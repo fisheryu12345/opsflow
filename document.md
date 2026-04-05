@@ -17,3 +17,13 @@ pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 npm 
 npm config set registry https://registry.npmmirror.com
+
+🚀 方案一：切换至国内镜像源（首选）
+这是最常见的原因。npm 默认的官方源服务器在国外，国内访问速度慢且不稳定，很容易导致安装过程“卡住”。
+执行命令：在终端中运行以下命令，将 npm 源切换到国内高速镜像。
+
+npm config set registry https://registry.npmmirror.com
+
+npm config get registry
+# 确认返回的是 https://registry.npmmirror.com/ 后
+npm install --verbose
