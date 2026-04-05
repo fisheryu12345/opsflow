@@ -100,15 +100,19 @@ WSGI_APPLICATION = "application.wsgi.application"
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": DATABASE_ENGINE,
-        "NAME": DATABASE_NAME,
-        "USER": DATABASE_USER,
-        "PASSWORD": DATABASE_PASSWORD,
-        "HOST": DATABASE_HOST,
-        "PORT": DATABASE_PORT,
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'stock',
+        'USER': 'root',
+        'PASSWORD': 'Yp520zll!',
+        'HOST': '192.168.31.128',
+        'PORT': '3306',
+        # 'OPTIONS': {
+        #     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        # },
     }
 }
+
 AUTH_USER_MODEL = "system.Users"
 USERNAME_FIELD = "username"
 
