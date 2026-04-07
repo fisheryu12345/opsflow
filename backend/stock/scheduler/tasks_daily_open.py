@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db.models import Q
 
 # 假设你的策略计算函数已经独立出来，或者在这里重新导入
-from stock.indicator import calculate_trend_factor, calculate_breakout_levels, calculate_atr
+from stock.utils.indicator import calculate_trend_factor, calculate_breakout_levels, calculate_atr
 # 为了演示，我将在代码中保留逻辑占位符
 
 def job_daily_open_prep():
