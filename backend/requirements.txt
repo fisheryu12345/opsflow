@@ -130,3 +130,5 @@ zope.interface==8.2
 zstandard==0.25.0
 influxdb-client==1.50.0
 influxdb==5.3.2
+apscheduler==3.11.2
+celery==5.6.3
