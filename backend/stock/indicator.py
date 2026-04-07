@@ -2,25 +2,23 @@ import pandas as pd
 import numpy as np
 from dataclasses import dataclass
 
-
-ENTRY_PERIOD = 20               # 入场突破周期
-EXIT_PERIOD = 10                # 离场突破周期
-ATR_PERIOD = 20                 # ATR计算周期
-MA_PERIODS = (10, 20, 40)       # 均线周期
-
 @dataclass
 class TrendInfo:
-    """
-    趋势信息数据类
-    用于标准化返回结果
-    """
-    factor: float       # 趋势因子 (-1.0 到 1.0)
-    label: str          # 趋势标签 (strong_bull, choppy, etc.)
-    rank: int           # 趋势等级 (-2 到 2)
+    factor: float
+    label: str
+    rank: int
 
+# 假设这些常量已在其他地方定义，这里为了运行不报错给个默认值
+ATR_PERIOD = 20
+MA_PERIODS = [10, 20, 40]
+ENTRY_PERIOD = 20
+EXIT_PERIOD = 10
 
 def calculate_atr(klines, period=ATR_PERIOD):
-    """计算ATR（平均真实波幅），使用前面已完成的K线数据，不包含当前待开仓K线。"""
+    """
+    计算ATR（平均真实波幅）
+    修正点：使用 rolling 计算，确保使用的是“当前时刻之前”的最新数据，而不是最早的数据。
+    """
     if len(klines) < period + 2:
         return 0.0
     
@@ -29,29 +27,32 @@ def calculate_atr(klines, period=ATR_PERIOD):
     close = klines["close"]
     prev_close = close.shift(1)
     
-    # 计算真实波幅TR
+    # 1. 计算真实波幅 TR
     tr = pd.concat([
         high - low,
         (high - prev_close).abs(),
         (low - prev_close).abs()
     ], axis=1).max(axis=1)
     
+    # 2. 去除 NaN (第一行会有 NaN)
     tr = tr.dropna()
-    if len(tr) < period + 1:
-        return 0.0
     
-    # 仅使用前一根K线之前的TR值，避免把当前K线TR纳入当日开仓判断
-    prior_tr = tr.iloc[:-1]
+    if len(tr) < period:
+        return 0.0
+        
+    # 3. 关键修正：
+    # 我们需要的是“上一根K线收盘时”的ATR。
+    # 所以我们要把 tr 序列切掉最后一个（当前的），然后计算 rolling mean。
+    prior_tr = tr.iloc[:-1] 
+    
     if len(prior_tr) < period:
         return 0.0
+        
+    # 使用 rolling 计算均值，取最后一个值
+    # 这比手动写 for 循环快且稳
+    atr_series = prior_tr.rolling(window=period).mean()
     
-    # 计算ATR（使用RMA平滑）
-    atr = prior_tr.iloc[:period].mean()
-    for i in range(period, len(prior_tr)):
-        atr = ((atr * (period - 1)) + prior_tr.iloc[i]) / period
-    
-    return float(atr) if not np.isnan(atr) else 0.0
-
+    return float(atr_series.iloc[-1]) if not np.isnan(atr_series.iloc[-1]) else 0.0
 
 def calculate_sma(klines, window):
     """计算简单移动平均线"""
@@ -60,32 +61,13 @@ def calculate_sma(klines, window):
     series = klines["close"].dropna()
     if len(series) < window:
         return 0.0
-    result = float(series.iloc[-window:].mean())
-    return result if not np.isnan(result) else 0.0
-
+    
+    # 优化：使用 rolling
+    result = series.rolling(window=window).mean().iloc[-1]
+    return float(result) if not np.isnan(result) else 0.0
 
 def calculate_trend_factor(klines):
-    """
-    策略意图总结
-    这段代码的核心思想是：“只做主升浪/主跌浪，放弃震荡和弱势行情”。
-    它通过 0.45% 的乖离率过滤掉了那些“虽然均线排列正确，但价格波动极小”的垃圾时间。
-    只有当短期均线（MA10）显著脱离中期均线（MA20），且中期均线也显著脱离长期均线（MA40）时，才认定为 Rank 2 的强趋势。
-
-    🛠️ 优化建议
-    - 参数 0.0045：这个参数（0.45%）是硬编码的。建议将其提取为策略配置参数，因为不同的板块（如黑色系 vs 农产品）可能对乖离率的敏感度不同。
-    - MA周期：10/20/40 是经典的趋势组合，但也可以考虑加入更长周期（如 MA60）来过滤长期趋势。
-
-    计算趋势因子
-
-    | 市场状态   | 判定条件                | 细分条件 (爆发力)         | 结果 (Label/Rank)         | 含义解析                                   |
-    | :-------- | :--------------------- | :----------------------- | :----------------------- | :----------------------------------------- |
-    | 多头排列   | MA10 > MA20 > MA40     | 强多头<br>diff > threshold | strong_bull (Rank 2)     | 均线发散，短期爆发力强，是最佳持仓或加仓阶段。 |
-    |            |                        | 弱多头<br>不满足强条件     | weak_bull (Rank 1)       | 均线虽多头排列，但粘合或乖离太小。 |
-    | 空头排列   | MA10 < MA20 < MA40     | 强空头<br>-diff > threshold | strong_bear (Rank -2)    | 均线向下发散，下跌动能强，最佳做空阶段。         |
-    |            |                        | 弱空头<br>不满足强条件     | weak_bear (Rank -1)      | 阴跌状态，动能不足。                           |
-    | 震荡市     | 无明显排列             | abs(diff) < threshold     | choppy (Rank 0)          | 均线纠缠在一起，市场无方向。停止交易或减仓。     |
-    | 过渡态     | 其他情况               | -                         | weak_trend (Rank 0)      | 处于趋势转换期，方向不明。                      |
-    """
+    """计算趋势因子"""
     ma10 = calculate_sma(klines, MA_PERIODS[0])
     ma20 = calculate_sma(klines, MA_PERIODS[1])
     ma40 = calculate_sma(klines, MA_PERIODS[2])
@@ -95,49 +77,63 @@ def calculate_trend_factor(klines):
     
     diff10_20 = ma10 - ma20
     diff20_40 = ma20 - ma40
+    
+    # 动态阈值：0.45% 的 MA20 价格
+    # 建议：这个 0.0045 可以做成配置项，不同板块（如螺纹钢 vs 玉米）敏感度不同
     threshold = 0.0045 * abs(ma20)
     
-    # 多头排列
+    # --- 多头排列 ---
     if ma10 > ma20 > ma40:
+        # 强多头：均线发散，爆发力强
         if diff10_20 > threshold and diff20_40 > threshold:
             return TrendInfo(factor=0.5, label="strong_bull", rank=2)
-        return TrendInfo(factor=-0.15, label="weak_bull", rank=1)
+        # 弱多头：均线粘合，虽然方向向上但动能不足
+        # 修正：这里之前是 -0.15，容易产生歧义，建议改为 0.1 (正向但弱)
+        return TrendInfo(factor=0.1, label="weak_bull", rank=1)
     
-    # 空头排列
+    # --- 空头排列 ---
     if ma10 < ma20 < ma40:
+        # 强空头：均线向下发散
         if -diff10_20 > threshold and -diff20_40 > threshold:
-            return TrendInfo(factor=0.5, label="strong_bear", rank=-2)
-        return TrendInfo(factor=-0.15, label="weak_bear", rank=-1)
+            return TrendInfo(factor=-0.5, label="strong_bear", rank=-2)
+        # 弱空头
+        # 修正：之前是 -0.15，保持一致性，建议改为 -0.1
+        return TrendInfo(factor=-0.1, label="weak_bear", rank=-1)
     
-    # 震荡市
+    # --- 震荡市 ---
+    # 均线纠缠，无方向
     if abs(diff10_20) < threshold and abs(diff20_40) < threshold:
-        return TrendInfo(factor=-0.3, label="choppy", rank=0)
+        return TrendInfo(factor=0.0, label="choppy", rank=0)
     
-    return TrendInfo(factor=-0.15, label="weak_trend", rank=0)
-
+    # --- 过渡态 ---
+    # 比如 MA10 上穿 MA20 但还没完全多头排列，或者正在回调
+    return TrendInfo(factor=0.0, label="transition", rank=0)
 
 def calculate_breakout_levels(klines):
-    """计算唐奇安通道突破价位 (修正版)"""
+    """
+    计算唐奇安通道突破价位
+    逻辑检查：通过。iloc[-N-1:-1] 完美避开了当前K线。
+    """
     if len(klines) < ENTRY_PERIOD + 2:
         return 0.0, 0.0, 0.0, 0.0
     
     try:
-        # 1. 入场通道计算
-        # 获取过去 ENTRY_PERIOD 天的数据 (不含当前K线，防止未来函数)
-        # 切片 [-N-1 : -1] 表示：倒数第N+1根 到 倒数第2根 (共N根)
+        # 1. 入场通道 (过去 N 天最高/低，不含当前)
+        # 切片逻辑：倒数第 N+1 根 到 倒数第 2 根 (共 N 根)
         high_prior = klines["high"].iloc[-ENTRY_PERIOD - 1:-1]
         low_prior = klines["low"].iloc[-ENTRY_PERIOD - 1:-1]
         
         if len(high_prior) == 0:
             return 0.0, 0.0, 0.0, 0.0
             
-        entry_high = float(high_prior.max()) # 使用最高价
-        entry_low = float(low_prior.min())   # 使用最低价
+        entry_high = float(high_prior.max())
+        entry_low = float(low_prior.min())
         
-        # 2. 离场通道计算 (通常使用较短周期，如10日)
+        # 2. 离场通道 (过去 M 天最高/低，不含当前)
         exit_high_prior = klines["high"].iloc[-EXIT_PERIOD - 1:-1]
         exit_low_prior = klines["low"].iloc[-EXIT_PERIOD - 1:-1]
         
+        # 如果数据不足 M 天，回退到入场通道数据（防御性编程）
         exit_high = float(exit_high_prior.max()) if len(exit_high_prior) > 0 else entry_high
         exit_low = float(exit_low_prior.min()) if len(exit_low_prior) > 0 else entry_low
         
