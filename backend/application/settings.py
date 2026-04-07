@@ -105,7 +105,7 @@ DATABASES = {
         'NAME': 'stock',
         'USER': 'root',
         'PASSWORD': 'Yp520zll!',
-        'HOST': '192.168.31.128',
+        'HOST': '192.168.31.129',
         'PORT': '3306',
         # 'OPTIONS': {
         #     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
