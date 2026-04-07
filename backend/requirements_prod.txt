@@ -31,3 +31,4 @@ mysqlclient==2.2.8
 tqsdk==3.9.1
 ipython==9.12.0
 django-extensions==4.1
+influxdb-client==1.50.0
