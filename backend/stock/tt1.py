@@ -175,6 +175,7 @@ def check_entry_signal(current_k_time,current_close, entry_high, entry_low, tren
     
     # 震荡市过滤
     if trend_info.label == "choppy":
+        print(f"   震荡市，放弃入场信号")
         return None
     
     # 做多信号
