@@ -238,6 +238,7 @@ def get_api():
     return global_api
 
 def detect_main_contact(symbol):
+    # tqsdk 提供了获取主力合约的方法。这里还是需要进行修改。此处只是伪代码。
     """
     检测指定品种的主力合约
     参数 symbol: 基础合约代码，如 "rb" (螺纹钢) 或 "IF" (股指)
