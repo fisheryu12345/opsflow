@@ -91,7 +91,7 @@ class StrategyConfig(models.Model):
 class TrendInfo(models.Model):
     """
     【品种趋势信息表】
-    
+
     💡 为什么需要这张表？
     对应你代码中的 `calculate_trend_factor` 函数。
     这张表存储的是“每日情报”。它记录了市场当下的状态（是强多、震荡还是弱空）。
@@ -105,23 +105,23 @@ class TrendInfo(models.Model):
         ('choppy', '震荡'),
         ('weak_bear', '弱空'),
         ('strong_bear', '强空'),
-        ('weak_trend', '弱势'),
+        ('transition', '过渡'),
         ('neutral', '中性'),
     ]
 
     account = models.ForeignKey(TradingAccount, on_delete=models.CASCADE, related_name='trend_infos', verbose_name="所属账户")
     symbol = models.CharField("合约代码", max_length=20)
     calc_date = models.DateField("计算日期", help_text="该趋势判断对应的日期")
-    
+
     # 核心因子：-0.3 到 0.5 之间，数值越大代表趋势越强
-    factor = models.DecimalField("趋势因子", max_digits=4, decimal_places=3)
-    
+    factor = models.DecimalField("趋势因子", max_digits=5, decimal_places=3)
+
     # 标签：人类可读的趋势描述
     label = models.CharField("趋势标签", max_length=20, choices=TREND_LABEL_CHOICES)
-    
+
     # 等级：-2 (极强空) 到 2 (极强多)，用于量化排序
     rank = models.IntegerField("趋势强度等级", default=0)
-    
+
     # 辅助字段：记录当时的均线价格，用于验证均线排列状态
     ma10 = models.DecimalField("MA10", max_digits=12, decimal_places=2, null=True, blank=True)
     ma20 = models.DecimalField("MA20", max_digits=12, decimal_places=2, null=True, blank=True)
@@ -223,6 +223,19 @@ class PositionState(models.Model):
     current_add_count = models.IntegerField("当前加仓次数", default=0)
     max_add_count = models.IntegerField("最大加仓次数", default=3)
 
+
+       # --- 移仓换月相关字段 ---
+    
+    # 是否开启自动移仓
+    is_rollover_enabled = models.BooleanField("开启自动移仓", default=True)
+    
+    # 是否检测到需要移仓
+    is_rollover_needed = models.BooleanField("需移仓", default=False)
+    
+    # 目标主力合约代码
+    target_rollover_symbol = models.CharField("目标合约", max_length=20, null=True, blank=True)
+
+
     def __str__(self):
         direction_map = {1: "多", -1: "空", 0: "空仓"}
         return f"{self.symbol} - {direction_map.get(self.direction, '未知')} - {self.units}单位"
@@ -233,6 +246,16 @@ class PositionState(models.Model):
         unique_together = ('account', 'symbol')
 
 
+
+class RolloverLog(models.Model):
+    account = models.ForeignKey(TradingAccount, on_delete=models.CASCADE)
+    old_symbol = models.CharField("旧合约", max_length=20)
+    new_symbol = models.CharField("新合约", max_length=20)
+    volume = models.IntegerField("手数")
+    trade_time = models.DateTimeField("移仓时间", auto_now_add=True)
+    status = models.CharField("状态", max_length=20) # PENDING, COMPLETED, FAILED
+
+    
 # ==================== 4. 交易与绩效层 (结果) ====================
 
 class TradeExecution(models.Model):

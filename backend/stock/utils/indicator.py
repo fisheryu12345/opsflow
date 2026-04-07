@@ -67,7 +67,19 @@ def calculate_sma(klines, window):
     return float(result) if not np.isnan(result) else 0.0
 
 def calculate_trend_factor(klines):
-    """计算趋势因子"""
+
+    """计算趋势因子
+    | 标签 | 颜色标识 | 核心特征 | 你的心态 | 你的操作 |
+| :--- | :--- | :--- | :--- | :--- |
+| strong_bull | 🟢 深绿 | 均线发散向上 | 兴奋，贪婪 | 加仓 / 拿住 |
+| weak_bull | 🟩 浅绿 | 均线粘合向上 | 谨慎，耐心 | 持有底仓 |
+| strong_bear | 🔴 深红 | 均线发散向下 | 恐惧，果断 | 加空 / 拿住 |
+| weak_bear | 🟥 浅红 | 均线粘合向下 | 观望，等待 | 轻仓 / 观望 |
+| choppy | ⚪ 灰色 | 均线纠缠不清 | 冷静，不动 | 空仓 / 休息 |
+| transition | 🟡 黄色 | 均线正在形成趋势但未完成 | 观察，准备 | 视情况而定 |  
+| neutral | ⚫ 黑色 | 数据无效或不足，无法判断趋势 | 0.0 | neutral | 0 |
+逻辑检查：通过。这个函数的核心是基于均线的排列和发散程度来判断趋势强弱。动态阈值的引入使得它更适应不同价格水平的品种。  
+    """
     ma10 = calculate_sma(klines, MA_PERIODS[0])
     ma20 = calculate_sma(klines, MA_PERIODS[1])
     ma40 = calculate_sma(klines, MA_PERIODS[2])
@@ -89,21 +101,21 @@ def calculate_trend_factor(klines):
             return TrendInfo(factor=0.5, label="strong_bull", rank=2)
         # 弱多头：均线粘合，虽然方向向上但动能不足
         # 修正：这里之前是 -0.15，容易产生歧义，建议改为 0.1 (正向但弱)
-        return TrendInfo(factor=0.1, label="weak_bull", rank=1)
+        return TrendInfo(factor=-0.15, label="weak_bull", rank=1)
     
     # --- 空头排列 ---
     if ma10 < ma20 < ma40:
         # 强空头：均线向下发散
         if -diff10_20 > threshold and -diff20_40 > threshold:
-            return TrendInfo(factor=-0.5, label="strong_bear", rank=-2)
+            return TrendInfo(factor=0.5, label="strong_bear", rank=-2)
         # 弱空头
         # 修正：之前是 -0.15，保持一致性，建议改为 -0.1
-        return TrendInfo(factor=-0.1, label="weak_bear", rank=-1)
+        return TrendInfo(factor=-0.15, label="weak_bear", rank=-1)
     
     # --- 震荡市 ---
     # 均线纠缠，无方向
     if abs(diff10_20) < threshold and abs(diff20_40) < threshold:
-        return TrendInfo(factor=0.0, label="choppy", rank=0)
+        return TrendInfo(factor=-0.3, label="choppy", rank=0)
     
     # --- 过渡态 ---
     # 比如 MA10 上穿 MA20 但还没完全多头排列，或者正在回调

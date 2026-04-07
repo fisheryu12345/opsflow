@@ -4,9 +4,11 @@ from datetime import date, timedelta
 from django.db import transaction
 from django.db.models import Sum, Q, F
 from decimal import Decimal
+from tqsdk import TqApi, TqAuth
 
 # 假设你的 models 在 myapp.models 中
-from stock.models import TradingAccount, TradeExecution, DailyPerformance, DailyStrategySignal
+from stock.models import TradingAccount, TradeExecution, DailyPerformance, DailyStrategySignal,RolloverLog, PositionState, TrendInfo
+from stock.utils.indicator import calculate_atr, calculate_trend_factor, calculate_breakout_levels
 
 def calculate_daily_performance(account, trade_date):
     """
@@ -165,8 +167,51 @@ def calculate_daily_signals(account, symbol, trade_date, klines_df):
     """
     辅助函数：计算每日策略信号 (TrendInfo 和 DailyStrategySignal)
     这个函数通常在获取到 K线数据后调用，不依赖数据库，只写数据库。
-    
+
     :param klines_df: 包含最新 K线数据的 Pandas DataFrame
+
+    calculate_daily_signals 是整个自动化交易系统的“大脑”或“指挥官”。
+    它通常由 APScheduler 在每天盘前（如 08:45）或盘后（如 15:30）定时触发。它的核心作用是“决策”——根据历史数据计算出明天该做什么。
+    它不负责下单，只负责生成计划。
+
+    🛠️ 核心功能拆解
+    这个函数主要完成了以下 4 个步骤的工作：
+
+    1. 数据清洗与准备
+       - 接收原始的 K 线数据 (klines_df)。
+       - 确保数据是干净的、按时间排序的，并且截止到“昨天”（防止使用今天的收盘价来计算今天的开盘信号，即避免未来函数）。
+
+    2. 指标计算（调用刚才讨论的函数）
+       - 它调用我们刚才分析的所有底层函数来获取市场状态：
+         - calculate_atr(klines_df) → 算出波动率，决定买多少手。
+         - calculate_trend_factor(klines_df) → 算出是 strong_bull 还是 choppy，决定能不能买。
+         - calculate_breakout_levels(klines_df) → 算出唐奇安通道的上下轨，决定具体在哪个价格买。
+
+    3. 策略逻辑判断（核心大脑）
+       - 这是该函数最重要的部分。它结合数据库中的旧状态（比如现在有没有持仓）和计算出的新指标，进行逻辑判断：
+         - 场景 A：空仓 -> 开仓
+           - 逻辑：如果当前没持仓，且 trend_factor 是 strong_bull，且价格即将突破 entry_high。
+           - 决策：生成一个“开仓信号”。
+         - 场景 B：持仓中 -> 加仓
+           - 逻辑：如果持有多单，且价格涨到了 entry_high + 1ATR。
+           - 决策：生成一个“加仓信号”。
+         - 场景 C：持仓中 -> 止损/止盈
+           - 逻辑：如果持有多单，且价格跌破了 exit_low（离场通道）。
+           - 决策：生成一个“平仓信号”。
+
+    4. 更新数据库（下达任务）
+       - 函数最后不直接调用 TqApi 下单，而是将决策结果写入数据库（如 PositionState 表）：
+         - 设置 pending_direction（待买/待卖方向）。
+         - 设置 pending_contracts（待买手数）。
+         - 设置 add_position_trigger_price（加仓触发价）。
+
+    | 模块           | 角色         | 职责                                                                 | 对应函数/脚本                       |
+    | :------------- | :----------- | :------------------------------------------------------------------- | :---------------------------------- |
+    | 每日信号计算   | 大脑 (指挥官) | 分析局势，制定计划。<br>“明天如果价格到 3050，我们就买入。”           | `calculate_daily_signals`           |
+    | 交易执行       | 双手 (士兵)   | 监听行情，执行计划。<br>“看到价格真的到了 3050，立即下单。”            | `check_and_execute_pending`             |
+    | 加仓监控       | 观察员       | 盯着持仓，寻找加仓点。<br>“底仓有了，如果价格到 3100，通知双手加仓。” | `job_add_position_loop`                |
+
+    这个设计的好处是职责分离，降低耦合。大脑只负责决策，不关心执行细节；双手只负责执行，不关心为什么要执行；观察员专注于监控加仓点。这种设计在复杂系统中非常常见，可以提高系统的可维护性和扩展性。
     """
     # 这里调用你策略里的 calculate_trend_factor 和 calculate_breakout_levels
     # 因为这两个函数是纯计算逻辑，不依赖 TqApi 对象
@@ -182,6 +227,108 @@ def calculate_daily_signals(account, symbol, trade_date, klines_df):
     # DailyStrategySignal.objects.create(...)
     pass
 
+
+# ================= 全局 TqApi 实例 =================
+global_api = None
+
+def get_api():
+    global global_api
+    if global_api is None:
+        global_api = TqApi(auth=TqAuth(account_id="YOUR_ACCOUNT_ID", password="YOUR_PASSWORD"))
+    return global_api
+
+def detect_main_contact(symbol):
+    """
+    检测指定品种的主力合约
+    参数 symbol: 基础合约代码，如 "rb" (螺纹钢) 或 "IF" (股指)
+    返回: 主力合约代码，如 "rb2410"
+    """
+    api = get_api()
+    try:
+        # 1. 获取该品种所有合约的列表
+        # TqApi 提供了 get_contract_list 来获取某品种下的所有合约
+        contracts = api.get_contract_list(symbol)
+        
+        if not contracts:
+            print(f"⚠️ 未找到品种 {symbol} 的合约列表")
+            return None
+
+        # 2. 获取所有合约的行情数据 (用于获取持仓量 open_interest)
+        # 我们只关心有持仓的合约
+        quotes = []
+        for contract in contracts:
+            quote = api.get_quote(contract)
+            if quote.open_interest > 0:
+                quotes.append({
+                    'symbol': contract,
+                    'open_interest': quote.open_interest
+                })
+        
+        if not quotes:
+            return None
+
+        # 3. 按持仓量排序，持仓量最大的即为主力合约
+        df = pd.DataFrame(quotes)
+        df.sort_values(by='open_interest', ascending=False, inplace=True)
+        
+        main_contract = df.iloc[0]['symbol']
+        print(f"🔍 品种 {symbol} 当前主力合约是: {main_contract} (持仓: {df.iloc[0]['open_interest']})")
+        
+        return main_contract
+        
+    except Exception as e:
+        print(f"❌ 检测主力合约失败: {e}")
+        return None
+
+
+def check_rollover_needed():
+    """
+    扫描所有持仓，标记需要移仓的记录
+    通常在盘后或盘前运行
+    """
+    api = get_api()
+    
+    # 1. 获取所有有持仓的记录
+    positions = PositionState.objects.filter(
+        direction__ne=0,          # 有持仓
+        is_rollover_enabled=True  # 开启移仓开关
+    )
+    
+    # 按品种分组，避免重复查询主力合约
+    symbols_checked = {}
+    
+    for pos in positions:
+        # 解析品种代码 (例如从 rb2405 提取 rb)
+        # 简单处理：去除数字部分
+        base_symbol = ''.join([c for c in pos.symbol if c.isalpha()])
+        
+        if base_symbol not in symbols_checked:
+            main_contract = detect_main_contact(base_symbol)
+            symbols_checked[base_symbol] = main_contract
+        else:
+            main_contract = symbols_checked[base_symbol]
+            
+        if not main_contract:
+            continue
+            
+        # 2. 判断是否需要移仓
+        if pos.symbol != main_contract:
+            print(f"⚠️ 发现非主力持仓: {pos.symbol} -> 需切换至 {main_contract}")
+            
+            # 3. 标记数据库
+            with transaction.atomic():
+                pos.is_rollover_needed = True
+                pos.target_rollover_symbol = main_contract
+                pos.save()
+                
+                # 记录日志
+                RolloverLog.objects.create(
+                    account=pos.account,
+                    old_symbol=pos.symbol,
+                    new_symbol=main_contract,
+                    status='PENDING',
+                    volume=pos.volume
+                )
 # ==================== APScheduler 任务入口 ====================
 
 def job_daily_close_calculation():
