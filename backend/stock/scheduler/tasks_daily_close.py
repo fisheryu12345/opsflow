@@ -7,7 +7,7 @@ from decimal import Decimal
 from tqsdk import TqApi, TqAuth
 
 # 假设你的 models 在 myapp.models 中
-from stock.models import TradingAccount, TradeExecution, DailyPerformance, DailyStrategySignal,RolloverLog, PositionState, TrendInfo
+from stock.models import TradingAccount, TradeExecution, DailyPerformance, DailyStrategySignal,RolloverLog, PositionState, TrendInfo, FullContractList
 from stock.utils.indicator import calculate_atr, calculate_trend_factor, calculate_breakout_levels
 
 def calculate_daily_performance(account, trade_date):
@@ -228,6 +228,235 @@ def calculate_daily_signals(account, symbol, trade_date, klines_df):
     pass
 
 
+def sync_contract_list_from_tqsdk():
+    """
+    使用 TqSDK 获取所有期货合约信息并同步到 FullContractList 表
+    
+    💡 功能说明：
+    1. 连接天勤 API
+    2. 遍历所有交易所的主要品种
+    3. 获取每个品种的合约列表和主力合约信息
+    4. 将合约元数据（乘数、最小变动价位等）写入数据库
+    5. 自动识别并标记当前主力合约
+    
+    📌 使用场景：
+    - 系统初始化时批量导入所有可交易合约
+    - 定期更新合约信息（如新合约上市）
+    - 更新主力合约切换状态
+    """
+    print("🔄 开始同步期货合约列表...")
+    
+    # 天勤账号配置
+    TQ_ACCOUNT = "yupei1986"
+    TQ_PASSWORD = "yupei1986"
+    
+    api = None
+    try:
+        # 1. 初始化 TqApi
+        api = TqApi(auth=TqAuth(TQ_ACCOUNT, TQ_PASSWORD))
+        print("✅ TqApi 连接成功")
+        
+        # 2. 定义主要交易所和品种映射
+        # 格式：{交易所代码: [品种代码列表]}
+        exchange_products = {
+            'SHFE': ['rb', 'hc', 'cu', 'al', 'zn', 'pb', 'ni', 'sn', 'au', 'ag', 'ru', 'bu', 'sp', 'fu'],
+            'DCE': ['i', 'j', 'jm', 'c', 'cs', 'l', 'v', 'pp', 'm', 'y', 'p', 'jd', 'eb', 'eg', 'pg', 'rr', 'b'],
+            'CZCE': ['MA', 'TA', 'SR', 'CF', 'RM', 'OI', 'FG', 'SA', 'UR', 'AP', 'CJ', 'SF', 'SM', 'RS', 'RI'],
+            'CFFEX': ['IF', 'IC', 'IH', 'IM', 'T', 'TF', 'TS', 'TL'],
+            'GFEX': ['si', 'lc']
+        }
+        
+        # 3. 品种板块分类映射
+        sector_mapping = {
+            'rb': '黑色金属', 'hc': '黑色金属', 'i': '黑色金属', 'j': '黑色金属', 'jm': '黑色金属',
+            'cu': '有色金属', 'al': '有色金属', 'zn': '有色金属', 'pb': '有色金属', 'ni': '有色金属', 'sn': '有色金属',
+            'au': '贵金属', 'ag': '贵金属',
+            'MA': '化工', 'TA': '化工', 'l': '化工', 'v': '化工', 'pp': '化工', 'eb': '化工', 'eg': '化工',
+            'fu': '能源化工', 'bu': '能源化工', 'ru': '化工', 'pg': '化工',
+            'c': '农产品', 'cs': '农产品', 'm': '农产品', 'y': '农产品', 'p': '农产品', 'a': '农产品', 'b': '农产品',
+            'sr': '软商品', 'cf': '软商品', 'oi': '农产品', 'fg': '建材', 'SA': '建材', 'UR': '化工',
+            'IF': '金融期货', 'IC': '金融期货', 'IH': '金融期货', 'IM': '金融期货',
+            'T': '国债期货', 'TF': '国债期货', 'TS': '国债期货', 'TL': '国债期货',
+            'si': '新能源', 'lc': '新能源'
+        }
+        
+        category_mapping = {
+            'rb': '螺纹类', 'hc': '热卷类', 'i': '铁矿类', 'j': '焦炭类', 'jm': '焦煤类',
+            'cu': '铜类', 'al': '铝类', 'zn': '锌类', 'pb': '铅类', 'ni': '镍类', 'sn': '锡类',
+            'au': '黄金类', 'ag': '白银类',
+            'MA': '甲醇类', 'TA': 'PTA类', 'l': '塑料类', 'v': 'PVC类', 'pp': 'PP类',
+            'eb': '苯乙烯类', 'eg': '乙二醇类', 'fu': '燃油类', 
+            'c': '玉米类', 'm': '豆粕类', 'y': '豆油类', 'p': '棕榈油类',
+            'IF': '沪深300', 'IC': '中证500', 'IH': '上证50', 'IM': '中证1000'
+        }
+        
+        synced_count = 0
+        updated_count = 0
+        skipped_count = 0
+        
+        # 4. 遍历所有品种
+        for exchange, products in exchange_products.items():
+            print(f"\n📊 处理交易所: {exchange}")
+            
+            for product_code in products:
+                try:
+                    # 构造 TqSDK 的品种代码格式
+                    # 使用 KQ.m@ 前缀获取主力合约连续数据
+                    if exchange == 'CZCE':
+                        # 郑商所品种代码通常是大写字母
+                        tq_main_symbol = f"KQ.m@{exchange}.{product_code}"
+                    else:
+                        tq_main_symbol = f"KQ.m@{exchange}.{product_code}"
+                    
+                    print(f"  🔍 检查品种: {product_code}")
+                    
+                    # 5. 尝试获取主力合约行情
+                    try:
+                        main_quote = api.get_quote(tq_main_symbol)
+                        
+                        # 检查是否获取到有效数据
+                        if not hasattr(main_quote, 'last_price') or pd.isna(main_quote.last_price):
+                            print(f"  ⚠️  {product_code}: 无法获取主力合约数据")
+                            continue
+                        
+                        # 从主力合约代码中提取实际合约代码
+                        # KQ.m@SHFE.rb 会返回类似 SHFE.rb2410 的实际合约
+                        main_contract = getattr(main_quote, 'underlying_symbol', None)
+                        
+                        if not main_contract:
+                            # 如果 underlying_symbol 为空，尝试从其他字段获取
+                            # 某些版本可能直接返回合约代码在 symbol 字段
+                            main_contract = getattr(main_quote, 'symbol', None)
+                            
+                        if not main_contract or main_contract == tq_main_symbol:
+                            print(f"  ⚠️  {product_code}: 无法解析主力合约代码")
+                            continue
+                        
+                        print(f"  ✅ 主力合约: {main_contract}")
+                        
+                    except Exception as e:
+                        print(f"  ⚠️  {product_code}: 获取主力合约失败 - {e}")
+                        continue
+                    
+                    # 6. 获取具体合约的详细信息
+                    try:
+                        contract_quote = api.get_quote(main_contract)
+                        
+                        # 提取合约乘数和最小变动价位
+                        volume_multiple = getattr(contract_quote, 'volume_multiple', 10)
+                        price_tick = getattr(contract_quote, 'price_tick', 1.0)
+                        
+                        # 验证数据有效性
+                        if not volume_multiple or volume_multiple <= 0:
+                            volume_multiple = 10  # 默认值
+                        
+                        if not price_tick or price_tick <= 0:
+                            price_tick = 1.0  # 默认值
+                            
+                    except Exception as e:
+                        print(f"  ⚠️  {product_code}: 获取合约详情失败 - {e}")
+                        # 使用默认值继续
+                        volume_multiple = 10
+                        price_tick = 1.0
+                    
+                    # 估算保证金比例（默认10%，实际需要从交易所获取或配置）
+                    margin_ratio = Decimal('0.1')
+                    
+                    # 判断是否需要移仓换月（股指期货通常不需要频繁换月）
+                    need_rollover = product_code not in ['IF', 'IC', 'IH', 'IM', 'T', 'TF', 'TS', 'TL']
+                    
+                    # 7. 检查数据库中是否已存在该品种记录
+                    existing = FullContractList.objects.filter(
+                        exchange=exchange,
+                        product_code=product_code
+                    ).first()
+                    
+                    # 8. 创建或更新记录
+                    with transaction.atomic():
+                        if existing:
+                            # 更新现有记录
+                            update_fields = []
+                            
+                            # 只在主力合约变化时更新 symbol
+                            if existing.symbol != main_contract:
+                                existing.symbol = main_contract
+                                update_fields.append('symbol')
+                                print(f"    🔄 主力合约变更: {existing.symbol} -> {main_contract}")
+                            
+                            # 更新其他元数据
+                            if existing.volume_multiple != volume_multiple:
+                                existing.volume_multiple = volume_multiple
+                                update_fields.append('volume_multiple')
+                            
+                            if float(existing.price_tick) != float(price_tick):
+                                existing.price_tick = Decimal(str(price_tick))
+                                update_fields.append('price_tick')
+                            
+                            if update_fields:
+                                existing.save(update_fields=update_fields)
+                                updated_count += 1
+                                print(f"    ✏️  更新记录: {main_contract}")
+                            else:
+                                skipped_count += 1
+                        else:
+                            # 创建新记录
+                            FullContractList.objects.create(
+                                exchange=exchange,
+                                product_code=product_code,
+                                symbol=main_contract,
+                                name=f"{product_code}主力合约",
+                                is_active=False,  # 默认不激活，需要手动开启
+                                allow_open=True,
+                                volume_multiple=volume_multiple,
+                                price_tick=Decimal(str(price_tick)),
+                                margin_ratio=margin_ratio,
+                                sector=sector_mapping.get(product_code, '其他'),
+                                category=category_mapping.get(product_code, '其他'),
+                                need_rollover=need_rollover
+                            )
+                            synced_count += 1
+                            print(f"    ➕ 新增记录: {main_contract}")
+                
+                except Exception as e:
+                    print(f"  ❌ 处理品种 {product_code} 失败: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+        
+        print(f"\n{'='*60}")
+        print(f"📈 同步完成统计:")
+        print(f"  ✅ 新增合约: {synced_count}")
+        print(f"  ✏️  更新合约: {updated_count}")
+        print(f"  ⏭️  跳过合约: {skipped_count}")
+        print(f"{'='*60}")
+        
+        return {
+            'synced': synced_count,
+            'updated': updated_count,
+            'skipped': skipped_count
+        }
+        
+    except Exception as e:
+        print(f"❌ 同步合约列表失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'synced': 0,
+            'updated': 0,
+            'skipped': 0,
+            'error': str(e)
+        }
+    
+    finally:
+        # 确保关闭 API 连接
+        if api:
+            try:
+                api.close()
+                print("🔒 TqApi 连接已关闭")
+            except Exception as e:
+                print(f"⚠️ 关闭 TqApi 时出错: {e}")
+
+
 # ================= 全局 TqApi 实例 =================
 global_api = None
 
@@ -238,47 +467,60 @@ def get_api():
     return global_api
 
 def detect_main_contact(symbol):
-    # tqsdk 提供了获取主力合约的方法。这里还是需要进行修改。此处只是伪代码。
     """
     检测指定品种的主力合约
+    
     参数 symbol: 基础合约代码，如 "rb" (螺纹钢) 或 "IF" (股指)
     返回: 主力合约代码，如 "rb2410"
+    
+    💡 实现原理：
+    使用 TqSDK 的 KQ.m@ 主力合约连续数据，直接获取当前主力合约
     """
     api = get_api()
     try:
-        # 1. 获取该品种所有合约的列表
-        # TqApi 提供了 get_contract_list 来获取某品种下的所有合约
-        contracts = api.get_contract_list(symbol)
+        # 1. 构造主力合约连续代码
+        # 首先判断交易所
+        exchange = None
+        if symbol in ['rb', 'hc', 'cu', 'al', 'zn', 'pb', 'ni', 'sn', 'au', 'ag', 'ru', 'bu', 'sp', 'fu',]:
+            exchange = 'SHFE'
+        elif symbol in ['i', 'j', 'jm', 'c', 'cs', 'l', 'v', 'pp', 'm', 'y', 'p', 'jd', 'eb', 'eg', 'pg', 'rr', 'b']:
+            exchange = 'DCE'
+        elif symbol in ['MA', 'TA', 'SR', 'CF', 'RM', 'OI', 'FG', 'SA', 'UR', 'AP', 'CJ', 'SF', 'SM', 'RS', 'RI']:
+            exchange = 'CZCE'
+        elif symbol in ['IF', 'IC', 'IH', 'IM', 'T', 'TF', 'TS', 'TL']:
+            exchange = 'CFFEX'
+        elif symbol in ['si', 'lc']:
+            exchange = 'GFEX'
         
-        if not contracts:
-            print(f"⚠️ 未找到品种 {symbol} 的合约列表")
+        if not exchange:
+            print(f"⚠️ 未知品种: {symbol}")
             return None
-
-        # 2. 获取所有合约的行情数据 (用于获取持仓量 open_interest)
-        # 我们只关心有持仓的合约
-        quotes = []
-        for contract in contracts:
-            quote = api.get_quote(contract)
-            if quote.open_interest > 0:
-                quotes.append({
-                    'symbol': contract,
-                    'open_interest': quote.open_interest
-                })
         
-        if not quotes:
+        # 2. 使用 KQ.m@ 获取主力合约连续数据
+        main_symbol_code = f"KQ.m@{exchange}.{symbol}"
+        
+        # 3. 获取主力合约行情
+        quote = api.get_quote(main_symbol_code)
+        
+        # 4. 从行情中提取实际的主力合约代码
+        # underlying_symbol 字段包含实际的合约代码（如 SHFE.rb2410）
+        actual_contract = getattr(quote, 'underlying_symbol', None)
+        
+        if not actual_contract or actual_contract == main_symbol_code:
+            # 某些版本可能在 symbol 字段
+            actual_contract = getattr(quote, 'symbol', None)
+        
+        if not actual_contract:
+            print(f"⚠️ 无法获取 {symbol} 的主力合约信息")
             return None
-
-        # 3. 按持仓量排序，持仓量最大的即为主力合约
-        df = pd.DataFrame(quotes)
-        df.sort_values(by='open_interest', ascending=False, inplace=True)
         
-        main_contract = df.iloc[0]['symbol']
-        print(f"🔍 品种 {symbol} 当前主力合约是: {main_contract} (持仓: {df.iloc[0]['open_interest']})")
-        
-        return main_contract
+        print(f"🔍 品种 {symbol} 当前主力合约是: {actual_contract}")
+        return actual_contract
         
     except Exception as e:
         print(f"❌ 检测主力合约失败: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 

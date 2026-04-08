@@ -85,6 +85,9 @@ urlpatterns = (
 
             # 仅用于开发，上线需关闭
             path("api/token/", LoginTokenView.as_view()),
+            
+            # Stock app URLs
+            path("api/stock/", include("stock.urls")),
         ]
         + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
         + static(settings.STATIC_URL, document_root=settings.STATIC_URL)
