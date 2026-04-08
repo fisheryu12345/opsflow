@@ -360,6 +360,9 @@ class DailyStrategySignal(models.Model):
 
 
 # ==================== 3. 状态管理层 (记忆) ====================
+'''
+FullContractList --> PositionState 的关系. FullContractList开关控制,激活的主力合约,PositionState记录当前持仓状态和挂单状态,以及加仓和移仓的辅助字段.
+'''
 
 class PositionState(models.Model):
     """
@@ -371,24 +374,26 @@ class PositionState(models.Model):
     它保证了策略的连续性。
     """
     account = models.ForeignKey(TradingAccount, on_delete=models.CASCADE, related_name='positions', verbose_name="所属账户")
-    symbol = models.CharField("合约代码", max_length=20, db_index=True)
+    symbol = models.CharField("合约代码", max_length=20, db_index=True)  # 合约代码CFFEX.IC2606
     
-    # --- 核心持仓 ---
+    # --- 核心持仓 ---  开盘后成交才更新的字段。收盘无需处理。
     units = models.IntegerField("持仓单位数", default=0, help_text="对应 position_units，0表示空仓")
     direction = models.IntegerField("持仓方向 (1多/-1空/0无)", default=0, db_index=True)
     contracts_per_unit = models.IntegerField("每单位手数", default=1, help_text="对应 contracts_per_unit")
-    
-    # --- 关键价格 (用于计算止损和加仓) ---
     last_add_price = models.DecimalField("上次加仓价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="用于计算下一次加仓阈值")
+
+    # --- 关键价格 (用于计算止损和加仓) ---   收盘需要处理。开盘后成交才更新 last_add_price 和 highest/lowest_close 字段
     highest_close = models.DecimalField("持仓期最高价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="多头持仓期间的最高收盘价，用于移动止损")
     lowest_close = models.DecimalField("持仓期最低价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="空头持仓期间的最低收盘价，用于移动止损")
     
     # --- 挂单状态 (Pending) ---
     # 对应代码中的 pending_entry_... 变量
-    # 用于处理"突破信号产生，但需等待次日开盘价开仓"的中间状态
+    # 用于处理"突破信号产生，但需等待次日开盘价开仓"的中间状态  收盘需要算出来的东西
     pending_direction = models.IntegerField("待开仓方向", default=0)
     pending_contracts = models.IntegerField("待开仓手数", default=1)
+    # 待开仓趋势因子：记录当时的趋势因子，作为开仓时的参考依据（如果趋势因子过弱，可能放弃开仓）  对应indicator.calculate_trend_factor() 函数,用来计算止损价线
     pending_trend_factor = models.DecimalField("待开仓趋势因子", max_digits=6, decimal_places=4, default=Decimal('0'))
+    # 需要完善添加一个止损价的字段。
 
     last_update_time = models.DateTimeField("最后更新时间", auto_now=True, help_text="最后收到行情的时间")
 
