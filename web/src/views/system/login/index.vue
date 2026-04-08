@@ -20,7 +20,7 @@
 				<span class="login-right-warp-two"></span>
 				<div class="login-right-warp-mian">
 <!--					<div class="login-right-warp-main-title">{{ getSystemConfig['login.site_title'] || getThemeConfig.globalTitle }} 欢迎您！</div>-->
-          <div class="login-right-warp-main-title">China CMDB</div>
+          <div class="login-right-warp-main-title">TRADE SYSTEM</div>
 					<div class="login-right-warp-main-form">
 						<div v-if="!state.isScan">
 							<el-tabs v-model="state.tabsActiveName">
