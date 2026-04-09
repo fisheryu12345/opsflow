@@ -63,12 +63,12 @@ matplotlib-inline==0.2.1
 msgpack==1.1.2
 multidict==6.7.1
 mysqlclient==2.2.8
-numpy==2.2.6
+numpy==2.4.4
 openpyxl==3.1.2
 orjson==3.11.8
 ormsgpack==1.12.2
 packaging==26.0
-pandas==2.2.3
+pandas==3.0.2
 parso==0.8.6
 pillow==12.2.0
 prompt_toolkit==3.0.52
