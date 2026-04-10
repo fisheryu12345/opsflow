@@ -41,7 +41,8 @@ sys.path.insert(0, os.path.join(PLUGINS_PATH))
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = locals().get("DEBUG", True)
-ALLOWED_HOSTS = locals().get("ALLOWED_HOSTS", ["*"])
+# ALLOWED_HOSTS = locals().get("ALLOWED_HOSTS", ["*"])
+ALLOWED_HOSTS = ['*'] 
 
 # 列权限需要排除的App应用
 COLUMN_EXCLUDE_APPS = ['channels', 'captcha'] + locals().get("COLUMN_EXCLUDE_APPS", [])
@@ -104,10 +105,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'stock',
-        'USER': 'root',
-        'PASSWORD': 'Yp520zll!',
+        'USER': 'trade',
+        'PASSWORD': 'Fisher&123YX!',
         'HOST': '47.103.201.230',
         'PORT': '3306',
+        'OPTIONS': {
+            'ssl': {'ssl-mode': 'DISABLED'},
+        },
         # 'OPTIONS': {
         #     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         # },

@@ -1,7 +1,7 @@
 <template>
 	<div class="layout-footer pb5 pt2">
 		<div class="layout-footer-warp">
-			<div>Powered by HSBC China</div>
+			<div>Fsiher Trade Support</div>
 		</div>
 	</div>
 </template>
