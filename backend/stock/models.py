@@ -264,61 +264,6 @@ class StrategyConfig(models.Model):
 
 # ==================== 2. 信号与分析层 (大脑) ====================
 
-class TrendInfo(models.Model):
-    """
-    【品种趋势信息表】
-
-    💡 为什么需要这张表？
-    对应你代码中的 `calculate_trend_factor` 函数。
-    这张表存储的是"每日情报"。它记录了市场当下的状态（是强多、震荡还是弱空）。
-    作用：
-    1. 解释性：当策略不开仓时，你可以查这张表，发现是因为 trend_label 是 'choppy' (震荡)。
-    2. 筛选：你可以快速找出所有处于 'strong_bull' 状态的品种进行重点关注。
-    """
-    TREND_LABEL_CHOICES = [
-        ('strong_bull', '强多'),
-        ('weak_bull', '弱多'),
-        ('choppy', '震荡'),
-        ('weak_bear', '弱空'),
-        ('strong_bear', '强空'),
-        ('transition', '过渡'),
-        ('neutral', '中性'),
-    ]
-
-    account = models.ForeignKey(TradingAccount, on_delete=models.CASCADE, related_name='trend_infos', verbose_name="所属账户")
-    symbol = models.CharField("合约代码", max_length=20, db_index=True)
-    calc_date = models.DateField("计算日期", db_index=True, help_text="该趋势判断对应的日期")
-
-    # 核心因子：-0.3 到 0.5 之间，数值越大代表趋势越强
-    factor = models.DecimalField("趋势因子", max_digits=6, decimal_places=4)
-
-    # 标签：人类可读的趋势描述
-    label = models.CharField("趋势标签", max_length=20, choices=TREND_LABEL_CHOICES, db_index=True)
-
-    # 等级：-2 (极强空) 到 2 (极强多)，用于量化排序
-    rank = models.IntegerField("趋势强度等级", default=0)
-
-    # 辅助字段：记录当时的均线价格，用于验证均线排列状态
-    ma10 = models.DecimalField("MA10", max_digits=12, decimal_places=2, null=True, blank=True)
-    ma20 = models.DecimalField("MA20", max_digits=12, decimal_places=2, null=True, blank=True)
-    ma40 = models.DecimalField("MA40", max_digits=12, decimal_places=2, null=True, blank=True)
-
-    created_at = models.DateTimeField("创建时间", auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.symbol} - {self.calc_date} - {self.get_label_display()}"
-
-    class Meta:
-        verbose_name = "品种趋势信息"
-        verbose_name_plural = "品种趋势信息"
-        unique_together = ('symbol', 'calc_date') # 每天每个品种只存一条
-        ordering = ['-calc_date']
-        indexes = [
-            models.Index(fields=['symbol', '-calc_date']),
-            models.Index(fields=['label', '-calc_date']),
-        ]
-
-
 class DailyStrategySignal(models.Model):
     """
     【每日策略信号表】
@@ -335,7 +280,7 @@ class DailyStrategySignal(models.Model):
     # --- 决策依据 ---
     trend_factor = models.DecimalField("趋势因子", max_digits=6, decimal_places=4, help_text="当时的趋势因子值")
     trend_label = models.CharField("趋势标签", max_length=20, help_text="当时的趋势标签")
-    trend_rank = models.IntegerField("趋势强度等级")
+    # trend_rank = models.IntegerField("趋势强度等级")
     
     # --- 通道数据 ---
     donchian_upper = models.DecimalField("唐奇安上轨", max_digits=12, decimal_places=2, null=True, blank=True, help_text="突破这个价格开多")

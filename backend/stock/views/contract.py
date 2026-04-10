@@ -1,46 +1,31 @@
 """
 期货合约列表视图集
 """
-from rest_framework import viewsets, status, filters
+from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from stock.models import FullContractList
-from stock.serializers.contract import (
-    FullContractListSerializer,
-    FullContractListCreateSerializer,
-    FullContractListUpdateSerializer,
-    FullContractListSimpleSerializer,
-)
+from stock.serializers.serializers import FullContractListSerializer
 
 
 class FullContractListViewSet(viewsets.ModelViewSet):
     """
-    期货合约列表视图集
-    
-    provide:
-        - list: 获取合约列表（支持筛选、搜索、排序）
-        - retrieve: 获取单个合约详情
-        - create: 创建新合约
-        - update: 更新合约信息
-        - partial_update: 部分更新合约
-        - destroy: 删除合约
-        - activate: 批量激活合约
-        - deactivate: 批量停用合约
-        - statistics: 获取合约统计信息
+    期货合约列表视图集 - 支持增删改查
     """
     queryset = FullContractList.objects.all()
+    serializer_class = FullContractListSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     # 精确过滤字段
     filterset_fields = {
-        'exchange': ['exact'],  # 交易所：精确匹配
-        'product_code': ['exact', 'icontains'],  # 品种代码：精确或模糊
-        'is_active': ['exact'],  # 是否激活：精确匹配
-        'allow_open': ['exact'],  # 是否允许开仓：精确匹配
-        'sector': ['exact', 'icontains'],  # 板块：精确或模糊
-        'category': ['exact', 'icontains'],  # 分类：精确或模糊
-        'need_rollover': ['exact'],  # 是否需要移仓：精确匹配
+        'exchange': ['exact'],
+        'product_code': ['exact', 'icontains'],
+        'is_active': ['exact'],
+        'allow_open': ['exact'],
+        'sector': ['exact', 'icontains'],
+        'category': ['exact', 'icontains'],
+        'need_rollover': ['exact'],
     }
     
     # 搜索字段（模糊搜索）
@@ -53,34 +38,27 @@ class FullContractListViewSet(viewsets.ModelViewSet):
         'category',
     ]
     
-    # 排序字段（支持升序/降序）
+    # 排序字段
     ordering_fields = [
-        'exchange',           # 按交易所排序
-        'product_code',       # 按品种代码排序
-        'symbol',             # 按主力合约排序
-        'sector',             # 按板块排序
-        'category',           # 按分类排序
-        'volume_multiple',    # 按合约乘数排序
-        'price_tick',         # 按最小变动价位排序
-        'margin_ratio',       # 按保证金比例排序
-        'is_active',          # 按激活状态排序
-        'created_at',         # 按创建时间排序
-        'updated_at',         # 按更新时间排序
+        'exchange',
+        'product_code',
+        'symbol',
+        'sector',
+        'category',
+        'volume_multiple',
+        'price_tick',
+        'margin_ratio',
+        'is_active',
+        'created_at',
+        'updated_at',
     ]
     
-    # 默认排序：先按交易所，再按品种代码
+    # 默认排序
     ordering = ['exchange', 'product_code']
 
     def get_serializer_class(self):
         """根据动作选择不同的序列化器"""
-        if self.action == 'list':
-            return FullContractListSerializer
-        elif self.action == 'create':
-            return FullContractListCreateSerializer
-        elif self.action in ['update', 'partial_update']:
-            return FullContractListUpdateSerializer
-        elif self.action == 'simple_list':
-            return FullContractListSimpleSerializer
+        # 目前所有操作都使用同一个序列化器
         return FullContractListSerializer
 
     def get_queryset(self):

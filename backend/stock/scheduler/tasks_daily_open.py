@@ -4,7 +4,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.db.models import Q
 
-from stock.models import TradingAccount, PositionState, TradeExecution,RolloverLog, TrendInfo
+from stock.models import TradingAccount, PositionState, TradeExecution, RolloverLog
 
 def rollover_positions(api, pos):
     """
