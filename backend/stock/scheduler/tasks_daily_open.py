@@ -4,152 +4,245 @@ from django.db import transaction
 from django.utils import timezone
 from django.db.models import Q
 
-from stock.models import TradingAccount, PositionState, TradeExecution, RolloverLog
+from stock.models import TradingAccount, PositionState, TradeExecution, RolloverLog,DailyStrategySignal
 
-def rollover_positions(api, pos):
+def price_gap_proection(api, symbol, target_price, gap_threshold):
     """
-    执行移仓换月操作
-    逻辑：平仓旧合约 -> 开仓新合约
-    建议在次日开盘后由 APScheduler 触发
+    价格跳空保护函数
+    :param api: TqApi实例
+    :param symbol: 合约代码
+    :param target_price: 目标价格
+    :param gap_threshold: 跳空价格差阈值
+    :return: 是否需要进行价格跳空保护
     """
-   
-    # 查询所有标记为需要移仓的持仓
-    pending_rollovers = PositionState.objects.filter(
-        is_rollover_needed=True
+    # 获取当前合约的最新价格
+    quote = api.get_quote(symbol)
+    latest_price = quote.last_price
+    
+    # 计算价格差
+    price_gap = abs(latest_price - target_price)
+    
+    # 判断是否需要进行价格跳空保护
+    if price_gap > gap_threshold:
+        print(f"⚠️ 价格跳空保护触发: {symbol} 最新价={latest_price}, 目标价={target_price}, 跳空差={price_gap}")
+        return True  # 需要进行价格跳空保护
+    else:
+        return False  # 不需要进行价格跳空保护  
+def execute_entry_order(api, account, signal):
+    """
+    执行开仓操作的函数
+    :param api: TqApi实例
+    :param account: TradingAccount实例
+    :param signal: DailyStrategySignal实例
+    :return: 是否成功执行开仓操作
+    """
+    # 获取当前合约信息
+    contract = api.get_instrument(signal.symbol)
+    
+    # 创建开仓指令
+    order_price = signal.price  # 可以根据策略信号中的价格来设置开仓价格
+    order_volume = signal.volume  # 可以根据策略信号中的数量来设置开仓数量
+    order_direction = 'BUY' if signal.direction == 1 else 'SELL'  # 根据策略信号中的方向设置开仓指令的方向
+    order_id = api.insert_order(
+        symbol=signal.symbol,
+        direction=order_direction,
+        offset='OPEN',
+        volume=order_volume,
+        limit_price=order_price
+    ) 
+    print(f"✅ 开仓指令已发送: {signal.symbol} OrderID={order_id}, 价格={order_price}")
+    with transaction.atomic():
+        # 记录开仓交易执行日志
+        TradeExecution.objects.create(
+            account=account,
+            symbol=signal.symbol,
+            direction=order_direction,
+            volume=order_volume,
+            price=order_price,
+            trade_time=timezone.now(),
+            order_id=order_id,
+            trade_type='ENTRY'
+        )
+        
+        # 创建持仓状态记录
+        PositionState.objects.create(
+            account=account,
+            symbol=signal.symbol,
+            direction=signal.direction,
+            units=order_volume,
+            open_price=order_price,
+
+        )
+
+def execute_exit_order(api, position, signal):
+    """
+    执行平仓操作的函数
+    :param api: TqApi实例
+    :param position: PositionState实例
+    :param signal: DailyStrategySignal实例
+    :return: 是否成功执行平仓操作
+    """
+    # 获取当前持仓的合约信息
+    contract = api.get_instrument(position.symbol)
+    
+    # 创建平仓指令
+    order_price = signal.price  # 可以根据策略信号中的价格来设置平仓价格
+    order_volume = position.volume  # 平掉当前持仓的全部数量
+    order_direction = 'SELL' if position.direction == 1 else 'BUY'  # 根据持仓方向设置平仓指令的方向
+    order_id = api.insert_order(
+        symbol=position.symbol,
+        direction=order_direction,
+        offset='CLOSE',
+        volume=order_volume,
+        limit_price=order_price
+    )
+    print(f"✅ 平仓指令已发送: {position.symbol} OrderID={order_id}, 价格={order_price}")
+    with transaction.atomic():
+        # 记录平仓交易执行日志
+        TradeExecution.objects.create(
+            account=position.account,
+            symbol=position.symbol,
+            direction=order_direction,
+            volume=order_volume,
+            price=order_price,
+            trade_time=timezone.now(),
+            order_id=order_id,
+            trade_type='EXIT'
+        )
+        
+        # 更新持仓状态为已平仓
+        PositionState.objects.filter(id=position.id).update(units=0)  # 更新持仓状态为已平仓
+def execute_rollover_order(api, position, signal):
+    """
+    执行移仓操作的函数
+    :param api: TqApi实例
+    :param position: PositionState实例
+    :param signal: DailyStrategySignal实例
+    :return: 是否成功执行移仓操作
+    """
+    # 获取当前持仓的合约信息
+    contract = api.get_instrument(position.symbol)
+    
+    # 创建移仓指令（先平掉当前持仓，再开新的持仓）
+    exit_order_price = signal.price  # 可以根据策略信号中的价格来设置平仓价格
+    entry_order_price = signal.price  # 可以根据策略信号中的价格来设置开仓价格
+    order_volume = position.volume  # 移仓数量与当前持仓数量相同
+    
+    # 先平掉当前持仓
+    exit_order_direction = 'SELL' if position.direction == 1 else 'BUY'
+    exit_order_id = api.insert_order(
+        symbol=position.symbol,
+        direction=exit_order_direction,
+        offset='CLOSE',
+        volume=order_volume,
+        limit_price=exit_order_price
     )
     
-    if not pending_rollovers.exists():
-        return
-
-    print(f"🔄 开始执行 {pending_rollovers.count()} 笔移仓任务...")
-
-    for pos in pending_rollovers:
-        old_symbol = pos.symbol
-        new_symbol = pos.target_rollover_symbol
-        volume = pos.volume # 移仓通常保持手数不变
-        direction = pos.direction # 1多, -1空
-        
-        print(f"🔄 正在移仓: {old_symbol} -> {new_symbol}, 手数: {volume}")
-        
-        try:
-            # --- 第一步：平掉旧合约 ---
-            # TqApi 平仓指令
-            close_order = api.insert_order(
-                symbol=old_symbol,
-                direction="SELL" if direction == 1 else "BUY",
-                offset="CLOSE",
-                volume=volume
-            )
-            
-            # 等待成交 (实盘中建议使用 wait_update 轮询成交状态，这里简化处理)
-            # 在实际 APScheduler 任务中，可能需要分步状态机来处理“等待成交”
-            # 这里假设快速成交
-            print(f"✅ 平仓指令已发送: {close_order}")
-            
-            # --- 第二步：开仓新合约 ---
-            # 获取新合约的最新价用于限价单
-            new_quote = api.get_quote(new_symbol)
-            price = new_quote.last_price
-            
-            open_order = api.insert_order(
-                symbol=new_symbol,
-                direction="BUY" if direction == 1 else "SELL",
-                offset="OPEN",
-                volume=volume,
-                limit_price=price
-            )
-            
-            print(f"✅ 开仓指令已发送: {open_order}")
-            
-            # --- 第三步：更新数据库状态 ---
-            with transaction.atomic():
-                # 更新原记录指向新合约
-                pos.symbol = new_symbol
-                pos.is_rollover_needed = False
-                pos.target_rollover_symbol = None
-                # 注意：这里只是更新了 symbol，实际实盘中可能需要重新计算 ATR 和止损价
-                pos.save()
-                
-                # 更新日志状态
-                log = RolloverLog.objects.filter(
-                    old_symbol=old_symbol, 
-                    new_symbol=new_symbol, 
-                    status='PENDING'
-                ).first()
-                if log:
-                    log.status = 'COMPLETED'
-                    log.save()
-                    
-        except Exception as e:
-            print(f"❌ 移仓失败: {e}")
-            # 失败时不要清除 is_rollover_needed，下次轮询会继续尝试
-            
-def execute_order_logic(api, pos, account, symbol):
-    """
-    执行具体的下单逻辑
-    """
-    print(f"🔥 准备执行: {symbol} - {'买入' if pos.pending_direction == 1 else '卖出'} - {pos.pending_contracts}手")
-    try:
-        # 1. 获取当前行情
-        quote = api.get_quote(symbol)
-        api.wait_update()  # 等待行情更新
-
-        direction = "BUY" if pos.pending_direction == 1 else "SELL"
-        offset = "OPEN"
-        price = quote.ask_price1 if pos.pending_direction == 1 else quote.bid_price1
-
-        # 2. 发送下单指令
-        order = api.insert_order(
-            symbol=symbol,
-            direction=direction,
-            offset=offset,
-            volume=pos.pending_contracts,
-            limit_price=price
+    # 再开新的持仓
+    entry_order_direction = 'BUY' if position.direction == 1 else 'SELL'
+    entry_order_id = api.insert_order(
+        symbol=signal.symbol,
+        direction=entry_order_direction,
+        offset='OPEN',
+        volume=order_volume,
+        limit_price=entry_order_price
+    )
+    
+    print(f"✅ 移仓指令已发送: {position.symbol} ExitOrderID={exit_order_id}, EntryOrderID={entry_order_id}, 价格={entry_order_price}")
+    
+    with transaction.atomic():
+        # 记录平仓交易执行日志
+        TradeExecution.objects.create(
+            account=position.account,
+            symbol=position.symbol,
+            direction=exit_order_direction,
+            volume=order_volume,
+            price=exit_order_price,
+            trade_time=timezone.now(),
+            order_id=exit_order_id,
+            trade_type='ROLLOVER_EXIT'
         )
-        print(f"✅ 指令已发送: OrderID={order.order_id}, 价格={price}")
-
-        # 3. 记录交易流水
-        with transaction.atomic():
-            TradeExecution.objects.create(
-                account=account,
-                symbol=symbol,
-                trade_type='ENTRY',
-                direction=pos.pending_direction,
-                volume=pos.pending_contracts,
-                price=price,
-                trade_time=timezone.now(),
-                trigger_price=price
-            )
-        return True
-
-    except Exception as e:
-        print(f"❌ 下单失败: {e}")
-        return False
-
-def check_and_execute_pending():
+        
+        # 记录开仓交易执行日志
+        TradeExecution.objects.create(
+            account=position.account,
+            symbol=signal.symbol,
+            direction=entry_order_direction,
+            volume=order_volume,
+            price=entry_order_price,
+            trade_time=timezone.now(),
+            order_id=entry_order_id,
+            trade_type='ROLLOVER_ENTRY'
+        )   
+        # 更新持仓状态为已平仓
+        # PositionState.objects.filter(id=position.id).update(units=0)  # 更新持仓状态为已平仓
+def process_exit_signals(api, account, current_date):
     """
-    查询所有 pending 状态的持仓并尝试执行
+    处理平仓信号的函数
+    :param api: TqApi实例
+    :param account: TradingAccount实例
+    :param current_date: 当前日期
+    :return:
     """
-    pending_positions = PositionState.objects.filter(
-        ~Q(pending_direction=0)
-    ).select_related('account')
+    # 查询所有持仓状态为持仓中的记录
+    open_positions = PositionState.objects.filter(account=account, status='open')
+    
+    for position in open_positions:
+        # 检查是否存在平仓信号
+        exit_signals = DailyStrategySignal.objects.filter(
+            Q(symbol=position.symbol) & 
+            Q(trade_type='STOP_LOSS') & 
+            Q(date=current_date)
+        )
+        
+        for signal in exit_signals:
+            # 执行平仓操作
+            success = execute_exit_order(api, position, signal) 
+def process_entry_signals(api, account, current_date):
+    """
+    处理开仓信号的函数
+    :param api: TqApi实例
+    :param account: TradingAccount实例
+    :param current_date: 当前日期
+    :return:
+    """
+    # 查询所有开仓信号
+    entry_signals = DailyStrategySignal.objects.filter(
+        Q(trade_type='ENTRY') & 
+        Q(date=current_date)
+    )
+    
+    for signal in entry_signals:
+        # 执行开仓操作
+        success = execute_entry_order(api, account, signal) 
 
-    if not pending_positions.exists():
-        return
+def process_rollover_signals(api, account, current_date):
+    """
+    处理移仓信号的函数
+    :param api: TqApi实例
+    :param account: TradingAccount实例
+    :param current_date: 当前日期
+    :return:
+    """
+    # 查询所有移仓信号
+    rollover_signals = DailyStrategySignal.objects.filter(
+        Q(trade_type='ROLLOVER') & 
+        Q(date=current_date)
+    )
+    
+    for signal in rollover_signals:
+        # 执行移仓操作
+        success = execute_rollover_order(api, account, signal)
 
-    print(f"🔍 扫描到 {pending_positions.count()} 个待处理挂单...")
-
-    # 用 with 自动管理 TqApi 连接
-    with TqApi(auth=TqAuth("your_username", "your_password")) as api:
-        for pos in pending_positions:
-            account = pos.account
-            symbol = pos.symbol
-
-            success = execute_order_logic(api, pos, account, symbol)
-            if success:
-                with transaction.atomic():
-                    pos.pending_direction = 0
-                    pos.pending_contracts = 1
-                    pos.pending_trend_factor = 0
-                    pos.save()
-                    print(f"🔄 状态已更新: {symbol} pending 已清除")
+def job_daily_open_process():
+    api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
+    account = TradingAccount.objects.get(account_id="1")
+    # 获取当前日期
+    current_date = timezone.now().date()
+    
+    #处理平仓信号
+    process_exit_signals(api, account, current_date)
+    #处理开仓信号
+    process_entry_signals(api, account, current_date)
+    #处理移仓信号
+    process_rollover_signals(api, account, current_date)
