@@ -14,12 +14,9 @@ from celery import platforms
 # else:
 from celery import Celery
 
-app = Celery(
-        'application',
-        broker='redis://:redis123456@127.0.0.1:6379/0',
-        backend='redis://:redis123456@127.0.0.1:6379/1'
-    )
-app.config_from_object('django.conf:settings')
+app = Celery('application')
+    
+app.config_from_object('django.conf:settings',namespace='CELERY')
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 platforms.C_FORCE_ROOT = True
 

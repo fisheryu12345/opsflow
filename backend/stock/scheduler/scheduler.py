@@ -28,7 +28,7 @@ scheduler.add_jobstore(DjangoJobStore(), 'default')
 scheduler.add_job(
     test_job, 
     'interval', 
-    minutes=1, 
+    hours=1, 
     id='test_job',
     name='test_job',
     misfire_grace_time=300,  # 允许5分钟的容错时间

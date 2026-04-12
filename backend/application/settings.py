@@ -399,8 +399,8 @@ API_MODEL_MAP = {
 DJANGO_CELERY_BEAT_TZ_AWARE = False
 CELERY_TIMEZONE = "Asia/Shanghai"  # celery 时区问题
 CELERY_RESULT_SERIALIZER = "json"
-CELERY_TASK_DEFAULT_QUEUE = "default"
-CELERY_TASK_DEFAULT_ROUTE = "default"
+# CELERY_TASK_DEFAULT_QUEUE = "default"
+# CELERY_TASK_DEFAULT_ROUTE = "default"
 # 静态页面压缩
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
@@ -446,3 +446,6 @@ CACHES = {
         }
     }
 }
+
+CELERY_BROKER_URL = 'redis://:redis123456@127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND = 'redis://:redis123456@127.0.0.1:6379/1'

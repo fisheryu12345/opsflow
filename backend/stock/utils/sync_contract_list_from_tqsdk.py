@@ -178,8 +178,13 @@ def sync_contract_list_from_tqsdk():
                                 
                                 updated_rows = PositionState.objects.filter(
                                     product_code=product_code,
-                                    # units__gt=0  
+                                    units__gt=0  # 只处理有持仓的
                                 ).update(is_rollover_needed=True)
+
+                                PositionState.objects.filter(
+                                    product_code=product_code,
+                                    units=0  # 只处理有持仓的
+                                ).update(symbol=main_contract)
                                 
                                 if updated_rows > 0:
                                     print(f"    [INFO] 已标记 {updated_rows} 条持仓记录需要移仓")
