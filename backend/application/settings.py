@@ -39,6 +39,12 @@ sys.path.insert(0, os.path.join(PLUGINS_PATH))
     if os.path.isdir(os.path.join(PLUGINS_PATH, ele)) and not ele.startswith("__")
 ]
 
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://47.103.201.230:8080',
+    # 如果你也希望通过域名访问，也可以把域名加上
+    # 'http://your-domain.com:8080',
+]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = locals().get("DEBUG", True)
 # ALLOWED_HOSTS = locals().get("ALLOWED_HOSTS", ["*"])
@@ -48,6 +54,8 @@ ALLOWED_HOSTS = ['*']
 COLUMN_EXCLUDE_APPS = ['channels', 'captcha'] + locals().get("COLUMN_EXCLUDE_APPS", [])
 
 INSTALLED_APPS = [
+    "simpleui",
+    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -60,6 +68,8 @@ INSTALLED_APPS = [
     "drf_yasg",
     "captcha",
     "channels",
+    "django_apscheduler",
+    "django_extensions",   
     "dvadmin.system",
     "stock",
 ]
@@ -388,6 +398,9 @@ API_MODEL_MAP = {
 
 DJANGO_CELERY_BEAT_TZ_AWARE = False
 CELERY_TIMEZONE = "Asia/Shanghai"  # celery 时区问题
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TASK_DEFAULT_QUEUE = "default"
+CELERY_TASK_DEFAULT_ROUTE = "default"
 # 静态页面压缩
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
@@ -420,3 +433,16 @@ PLUGINS_URL_PATTERNS = []
 #from dvadmin_social_auth.settings import *
 # ...
 # ********** 一键导入插件配置结束 **********
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        # 格式: redis://[:密码]@IP:端口/数据库ID
+        "LOCATION": "redis://127.0.0.1:6379/1", 
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PASSWORD": "redis123456",  # 将密码配置在这里更安全
+            # "PARSER_CLASS": "redis.connection.HiredisParser", # 推荐使用 hiredis 解析器提升性能
+        }
+    }
+}

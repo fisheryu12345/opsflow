@@ -101,3 +101,6 @@ gunicorn.pid
 !plugins/__init__.py
 
 web/node_modules/
+
+static/
+

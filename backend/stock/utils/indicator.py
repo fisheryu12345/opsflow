@@ -1,127 +1,120 @@
 import pandas as pd
 import numpy as np
-from dataclasses import dataclass
+from datetime import date, timedelta
+from django.db import transaction
+from django.db.models import Sum, Q, F
+from decimal import Decimal
+from tqsdk import TqApi, TqAuth
+from tqsdk.ta import ATR
 
-@dataclass
-class TrendInfo:
-    factor: float
-    label: str
-    rank: int
 
-# 假设这些常量已在其他地方定义，这里为了运行不报错给个默认值
-ATR_PERIOD = 20
-MA_PERIODS = [10, 20, 40]
-ENTRY_PERIOD = 20
-EXIT_PERIOD = 10
+# 假设你的 models 在 myapp.models 中
+from stock.models import TradingAccount, TradeExecution, DailyPerformance, DailyStrategySignal, RolloverLog, PositionState, FullContractList
+from stock.utils.sync_contract_list_from_tqsdk import sync_contract_list_from_tqsdk
 
-def calculate_atr(klines, period=ATR_PERIOD):
-    """
-    计算ATR（平均真实波幅）
-    修正点：使用 rolling 计算，确保使用的是“当前时刻之前”的最新数据，而不是最早的数据。
-    """
-    if len(klines) < period + 2:
-        return 0.0
-    
-    high = klines["high"]
-    low = klines["low"]
-    close = klines["close"]
-    prev_close = close.shift(1)
-    
-    # 1. 计算真实波幅 TR
-    tr = pd.concat([
-        high - low,
-        (high - prev_close).abs(),
-        (low - prev_close).abs()
-    ], axis=1).max(axis=1)
-    
-    # 2. 去除 NaN (第一行会有 NaN)
-    tr = tr.dropna()
-    
-    if len(tr) < period:
-        return 0.0
-        
-    # 3. 关键修正：
-    # 我们需要的是“上一根K线收盘时”的ATR。
-    # 所以我们要把 tr 序列切掉最后一个（当前的），然后计算 rolling mean。
-    prior_tr = tr.iloc[:-1] 
-    
-    if len(prior_tr) < period:
-        return 0.0
-        
-    # 使用 rolling 计算均值，取最后一个值
-    # 这比手动写 for 循环快且稳
-    atr_series = prior_tr.rolling(window=period).mean()
-    
-    return float(atr_series.iloc[-1]) if not np.isnan(atr_series.iloc[-1]) else 0.0
 
-def calculate_sma(klines, window):
-    """计算简单移动平均线"""
-    if len(klines) < window:
-        return 0.0
-    series = klines["close"].dropna()
-    if len(series) < window:
-        return 0.0
+def update_position_tracking(symbol, current_close, direction, highest_close, lowest_close):
+    """更新持仓跟踪价格（最高价、最低价）"""
+    if direction > 0:
+        if highest_close is None:
+            highest_close = current_close
+        else:
+            highest_close = max(highest_close, current_close)
+    elif direction < 0:
+        if lowest_close is None:
+            lowest_close = current_close
+        else:
+            lowest_close = min(lowest_close, current_close)
     
-    # 优化：使用 rolling
-    result = series.rolling(window=window).mean().iloc[-1]
-    return float(result) if not np.isnan(result) else 0.0
+    return highest_close, lowest_close
 
-def calculate_trend_factor(klines):
 
-    """计算趋势因子
-    | 标签 | 颜色标识 | 核心特征 | 你的心态 | 你的操作 |
-| :--- | :--- | :--- | :--- | :--- |
-| strong_bull | 🟢 深绿 | 均线发散向上 | 兴奋，贪婪 | 加仓 / 拿住 |
-| weak_bull | 🟩 浅绿 | 均线粘合向上 | 谨慎，耐心 | 持有底仓 |
-| strong_bear | 🔴 深红 | 均线发散向下 | 恐惧，果断 | 加空 / 拿住 |
-| weak_bear | 🟥 浅红 | 均线粘合向下 | 观望，等待 | 轻仓 / 观望 |
-| choppy | ⚪ 灰色 | 均线纠缠不清 | 冷静，不动 | 空仓 / 休息 |
-| transition | 🟡 黄色 | 均线正在形成趋势但未完成 | 观察，准备 | 视情况而定 |  
-| neutral | ⚫ 黑色 | 数据无效或不足，无法判断趋势 | 0.0 | neutral | 0 |
-逻辑检查：通过。这个函数的核心是基于均线的排列和发散程度来判断趋势强弱。动态阈值的引入使得它更适应不同价格水平的品种。  
-    """
-    ma10 = calculate_sma(klines, MA_PERIODS[0])
-    ma20 = calculate_sma(klines, MA_PERIODS[1])
-    ma40 = calculate_sma(klines, MA_PERIODS[2])
+def update_all_positions_latest_price():
+    """步骤4：更新所有有持仓记录的品种的最新收盘价、最高价和最低价"""
+    positions = PositionState.objects.all()
     
-    if any(v == 0 or np.isnan(v) for v in [ma10, ma20, ma40]):
-        return TrendInfo(factor=0.0, label="neutral", rank=0)
+    if not positions:
+        return
     
-    diff10_20 = ma10 - ma20
-    diff20_40 = ma20 - ma40
+    updated_count = 0
     
-    # 动态阈值：0.45% 的 MA20 价格
-    # 建议：这个 0.0045 可以做成配置项，不同板块（如螺纹钢 vs 玉米）敏感度不同
-    threshold = 0.0045 * abs(ma20)
-    
-    # --- 多头排列 ---
-    if ma10 > ma20 > ma40:
-        # 强多头：均线发散，爆发力强
-        if diff10_20 > threshold and diff20_40 > threshold:
-            return TrendInfo(factor=0.5, label="strong_bull", rank=2)
-        # 弱多头：均线粘合，虽然方向向上但动能不足
-        # 修正：这里之前是 -0.15，容易产生歧义，建议改为 0.1 (正向但弱)
-        return TrendInfo(factor=-0.15, label="weak_bull", rank=1)
-    
-    # --- 空头排列 ---
-    if ma10 < ma20 < ma40:
-        # 强空头：均线向下发散
-        if -diff10_20 > threshold and -diff20_40 > threshold:
-            return TrendInfo(factor=0.5, label="strong_bear", rank=-2)
-        # 弱空头
-        # 修正：之前是 -0.15，保持一致性，建议改为 -0.1
-        return TrendInfo(factor=-0.15, label="weak_bear", rank=-1)
-    
-    # --- 震荡市 ---
-    # 均线纠缠，无方向
-    if abs(diff10_20) < threshold and abs(diff20_40) < threshold:
-        return TrendInfo(factor=-0.3, label="choppy", rank=0)
-    
-    # --- 过渡态 ---
-    # 比如 MA10 上穿 MA20 但还没完全多头排列，或者正在回调
-    return TrendInfo(factor=0.0, label="transition", rank=0)
+    for position in positions:
+        try:
+            latest_signal = DailyStrategySignal.objects.filter(
+                symbol=position.symbol
+            ).order_by('-trade_date').first()
+            
+            if not latest_signal:
+                continue
+            
+            api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
+            
+            try:
+                klines = api.get_kline_serial(position.symbol, duration_seconds=24 * 60 * 60, data_length=1)
+                
+                if len(klines) > 0:
+                    current_close = float(klines.iloc[-1]['close'])
+                    
+                    new_highest, new_lowest = update_position_tracking(
+                        symbol=position.symbol,
+                        current_close=current_close,
+                        direction=position.direction,
+                        highest_close=position.highest_close,
+                        lowest_close=position.lowest_close
+                    )
+                    
+                    update_fields = ['latest_close_price']
+                    position.latest_close_price = Decimal(str(current_close))
+                    
+                    if position.direction > 0 and new_highest != position.highest_close:
+                        position.highest_close = Decimal(str(new_highest))
+                        update_fields.append('highest_close')
+                    elif position.direction < 0 and new_lowest != position.lowest_close:
+                        position.lowest_close = Decimal(str(new_lowest))
+                        update_fields.append('lowest_close')
+                    
+                    position.save(update_fields=update_fields)
+                    updated_count += 1
+                    
+            finally:
+                api.close()
+                
+        except Exception:
+            pass
 
-def calculate_breakout_levels(klines):
+
+def check_exit_signals():
+    """步骤5：检查是否需要平仓"""
+    positions = PositionState.objects.filter(direction__ne=0)
+    
+    if not positions:
+        return
+    
+    for position in positions:
+        try:
+            # TODO: 实现平仓逻辑
+            pass
+        except Exception:
+            pass
+
+
+def check_rollover_needed():
+    """步骤6：检查是否需要移仓"""
+    positions = PositionState.objects.filter(
+        direction__ne=0,
+        is_rollover_enabled=True
+    )
+    
+    if not positions:
+        return
+    
+    for position in positions:
+        try:
+            # TODO: 实现移仓逻辑
+            pass
+        except Exception:
+            pass
+
     """
     计算唐奇安通道突破价位
     逻辑检查：通过。iloc[-N-1:-1] 完美避开了当前K线。

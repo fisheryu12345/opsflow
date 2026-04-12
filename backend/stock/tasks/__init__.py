@@ -1,0 +1,1 @@
+from .celery_test import send_email_task

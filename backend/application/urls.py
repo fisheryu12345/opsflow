@@ -14,6 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.conf.urls.static import static
+from django.contrib import admin
 from django.urls import path, include, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
@@ -24,6 +25,7 @@ from rest_framework_simplejwt.views import (
 
 from application import dispatch
 from application import settings
+# from dvadmin.system import admin
 from dvadmin.system.views.dictionary import InitDictionaryViewSet
 from dvadmin.system.views.login import (
     LoginView,
@@ -88,6 +90,7 @@ urlpatterns = (
             
             # Stock app URLs
             path("api/stock/", include("stock.urls")),
+            re_path(r'^admin/', admin.site.urls),  # Django admin route
         ]
         + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
         + static(settings.STATIC_URL, document_root=settings.STATIC_URL)

@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import CheckConstraint, Q
 from decimal import Decimal
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 # ==================== 1. 基础架构层 ====================
 '''
@@ -201,8 +202,6 @@ class FullContractList(models.Model):
 
     # --- 移仓换月辅助 ---
     # 标记该品种是否需要进行主力换月（有些品种如股指期货可能不需要频繁换月，或者换月逻辑不同）
-    need_rollover = models.BooleanField("需移仓换月", default=True,
-                                       help_text="标记是否需要进行主力合约换月操作")
 
     # --- 时间戳 ---
     created_at = models.DateTimeField("录入时间", auto_now_add=True)
@@ -290,6 +289,18 @@ class DailyStrategySignal(models.Model):
     is_breakout = models.BooleanField("是否突破", default=False, db_index=True, help_text="收盘价是否突破了上轨或下轨")
     signal_direction = models.IntegerField("信号方向", default=0, db_index=True, help_text="1:多, -1:空, 0:无")
     
+    # --- 交易类型 ---
+    TRADE_TYPE_CHOICES = [
+        ('ENTRY', '开仓'),
+        ('ADD_ON', '加仓'),
+        ('STOP_LOSS', '止损'),
+        ('ROLLOVER', '移仓换月'),
+        ('EXIT', '平仓'),
+    ]
+    trade_type = models.CharField("交易类型", max_length=20, choices=TRADE_TYPE_CHOICES, 
+                                 null=True, blank=True, db_index=True,
+                                 help_text="记录信号对应的交易操作类型：开仓/加仓/止损/移仓/平仓")
+    
     # 备注：记录过滤原因，例如 "突破但处于震荡市过滤"
     remark = models.TextField("备注", blank=True, null=True)
 
@@ -321,8 +332,14 @@ class PositionState(models.Model):
     account = models.ForeignKey(TradingAccount, on_delete=models.CASCADE, related_name='positions', verbose_name="所属账户")
     symbol = models.CharField("合约代码", max_length=20, db_index=True)  # 合约代码CFFEX.IC2606
     
+    # --- 品种信息 (用于移仓换月判定) ---
+    product_code = models.CharField("品种代码", max_length=10, null=True, blank=True,
+                                   help_text="品种代码（不带年份），如：rb, MA, IF。用于移仓换月时识别品种属性")
+    
     # --- 核心持仓 ---  开盘后成交才更新的字段。收盘无需处理。
-    units = models.IntegerField("持仓单位数", default=0, help_text="对应 position_units，0表示空仓")
+    units = models.IntegerField("持仓单位数", default=0, 
+                               validators=[MinValueValidator(0), MaxValueValidator(3)],
+                               help_text="对应 position_units，0表示空仓，最大值为3")
     direction = models.IntegerField("持仓方向 (1多/-1空/0无)", default=0, db_index=True)
     contracts_per_unit = models.IntegerField("每单位手数", default=1, help_text="对应 contracts_per_unit")
     last_add_price = models.DecimalField("上次加仓价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="用于计算下一次加仓阈值")
@@ -331,44 +348,15 @@ class PositionState(models.Model):
     highest_close = models.DecimalField("持仓期最高价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="多头持仓期间的最高收盘价，用于移动止损")
     lowest_close = models.DecimalField("持仓期最低价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="空头持仓期间的最低收盘价，用于移动止损")
     
-    # --- 挂单状态 (Pending) ---
-    # 对应代码中的 pending_entry_... 变量
-    # 用于处理"突破信号产生，但需等待次日开盘价开仓"的中间状态  收盘需要算出来的东西
-    pending_direction = models.IntegerField("待开仓方向", default=0)
-    pending_contracts = models.IntegerField("待开仓手数", default=1)
-    # 待开仓趋势因子：记录当时的趋势因子，作为开仓时的参考依据（如果趋势因子过弱，可能放弃开仓）  对应indicator.calculate_trend_factor() 函数,用来计算止损价线
-    pending_trend_factor = models.DecimalField("待开仓趋势因子", max_digits=6, decimal_places=4, default=Decimal('0'))
-    # 需要完善添加一个止损价的字段。
-
+    stop_loss_price = models.DecimalField("止损价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="当前的止损价，根据持仓方向和最高/最低价计算得出")
+    # --- 最新行情价格 (每日盘后更新) ---
+    latest_close_price = models.DecimalField("最新收盘价", max_digits=12, decimal_places=2, null=True, blank=True, 
+                                           help_text="每日收盘后的最新收盘价，用于实时监控和决策参考")
+    indicators = models.JSONField("技术指标", null=True, blank=True, help_text="技术指标数据，如：MA, BOLL, KDJ 等")
     last_update_time = models.DateTimeField("最后更新时间", auto_now=True, help_text="最后收到行情的时间")
-
-        # --- 加仓配置字段 ---
-    
-    # 是否开启加仓逻辑
-    is_add_position_enabled = models.BooleanField("开启加仓", default=True)
-    
-    # 加仓触发价格 (由盘前/盘后任务计算写入)
-    # 例如：对于多头，这是下一个唐奇安突破点
-    add_position_trigger_price = models.DecimalField("加仓触发价", max_digits=12, decimal_places=2, null=True, blank=True)
-    
-    # 加仓手数 (可以是固定值，也可以是计算出的值)
-    add_position_volume = models.IntegerField("加仓手数", default=1)
-    
-    # (可选) 加仓次数限制
-    current_add_count = models.IntegerField("当前加仓次数", default=0)
-    max_add_count = models.IntegerField("最大加仓次数", default=3)
+    is_rollover_needed = models.BooleanField("需移仓换月", default=False, help_text="标记是否需要进行主力合约换月操作")
 
 
-       # --- 移仓换月相关字段 ---
-    
-    # 是否开启自动移仓
-    is_rollover_enabled = models.BooleanField("开启自动移仓", default=True)
-    
-    # 是否检测到需要移仓
-    is_rollover_needed = models.BooleanField("需移仓", default=False)
-    
-    # 目标主力合约代码
-    target_rollover_symbol = models.CharField("目标合约", max_length=20, null=True, blank=True)
 
 
     def __str__(self):

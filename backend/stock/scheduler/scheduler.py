@@ -1,23 +1,40 @@
-from apscheduler.schedulers.blocking import BlockingScheduler
-from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
-from apscheduler.jobstores.base import JobLookupError
+from apscheduler.schedulers.background import BackgroundScheduler
+from django_apscheduler.jobstores import DjangoJobStore
 
 
 # 导入任务函数（使用完整路径）
-from stock.scheduler.tasks_daily_open import job_daily_open_prep, job_check_pending_orders
+# from stock.scheduler.tasks_daily_open import job_daily_on_prep, job_check_pending_orders
+from stock.scheduler.test_job import test_job
 from stock.scheduler.tasks_daily_close import job_daily_close_calculation
+
 
 # 获取 Django 配置的时区
 
+
 # 创建调度器并设置中国时区
-scheduler = BlockingScheduler(
-    job_defaults={
-        'coalesce': True,  # 合并错过的执行
-        'max_instances': 1,  # 每个任务最多同时运行1个实例
-        'misfire_grace_time': 300  # 默认容错时间5分钟
-    }
-)
+scheduler = BackgroundScheduler()
+#     job_defaults={
+#         'coalesce': True,  # 合并错过的执行
+#         'max_instances': 1,  # 每个任务最多同时运行1个实例
+#         'misfire_grace_time': 300  # 默认容错时间5分钟
+#     }
+# )
+scheduler.remove_all_jobs()
+scheduler.add_jobstore(DjangoJobStore(), 'default')
 # ==================== 任务调度配置 ====================
+
+
+
+scheduler.add_job(
+    test_job, 
+    'interval', 
+    minutes=1, 
+    id='test_job',
+    name='test_job',
+    misfire_grace_time=300,  # 允许5分钟的容错时间
+    replace_existing=True,  # 如果任务已存在则替换
+    max_instances=1  # 最多同时运行1个实例
+)
 
 # 任务 1: 每日收盘后计算（16:00）
 # 此时日盘已收盘，数据最完整，执行：
@@ -83,7 +100,7 @@ scheduler.add_job(
 # print("\n⏰ 调度器正在运行... (按 Ctrl+C 停止)\n")
 # logger.info("调度器已启动，等待任务执行...")
 
-try:
-    scheduler.start()
-except (KeyboardInterrupt, SystemExit):
-    pass
+# try:
+#     scheduler.start()
+# except (KeyboardInterrupt, SystemExit):
+#     pass
