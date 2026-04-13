@@ -285,6 +285,7 @@ class DailyStrategySignal(models.Model):
     donchian_upper = models.DecimalField("唐奇安上轨", max_digits=12, decimal_places=2, null=True, blank=True, help_text="突破这个价格开多")
     donchian_lower = models.DecimalField("唐奇安下轨", max_digits=12, decimal_places=2, null=True, blank=True, help_text="跌破这个价格开空")
     
+    contract_target_number = models.IntegerField("目标新增单位", default=0, help_text="根据突破情况和资金管理计算出的目标新增单位数")
     # --- 信号结果 ---
     is_breakout = models.BooleanField("是否突破", default=False, db_index=True, help_text="收盘价是否突破了上轨或下轨")
     signal_direction = models.IntegerField("信号方向", default=0, db_index=True, help_text="1:多, -1:空, 0:无")

@@ -144,23 +144,14 @@ def execute_addon_order(api, account, signal, max_retries=5, retry_interval=10):
         print(f"[WARN] 信号类型错误: {signal.trade_type}，期望ADD_ON")
         return False
     
-    # 【修复P0+P2】从信号备注中解析加仓单位数
-    try:
-        import re
-        match = re.search(r'建议加仓(\d+)单位', signal.remark or '')
-        if not match:
-            print(f"[ERROR] 无法从信号备注解析加仓单位数: {signal.remark}")
-            return False
-        
-        add_units_from_signal = int(match.group(1))
-        
-        if add_units_from_signal <= 0:
-            print(f"[ERROR] 加仓单位数无效: {add_units_from_signal}")
-            return False
-        
-    except Exception as e:
-        print(f"[ERROR] 解析加仓信号失败: {str(e)}")
+    # 【优化】直接从 signal.contract_target_number 获取加仓单位数
+    add_units_from_signal = signal.contract_target_number
+    
+    if not add_units_from_signal or add_units_from_signal <= 0:
+        print(f"[ERROR] 信号中未设置有效的加仓单位数: contract_target_number={add_units_from_signal}")
         return False
+    
+    print(f"[INFO] {signal.symbol} 从信号获取加仓单位数: {add_units_from_signal}Unit")
     
     # 【修复P0】使用数据库事务和行级锁防止并发
     with transaction.atomic():
@@ -274,7 +265,7 @@ def execute_addon_order(api, account, signal, max_retries=5, retry_interval=10):
         # 检查是否部分成交
         if filled_lots < order_volume:
             print(f"[WARN] {signal.symbol} 部分成交: {filled_lots}/{order_volume}手，继续执行")
-            # 重新计算实际加仓的单位数（使用unit_lots而非contracts_per_unit）
+            # 重新计算实际加仓的单位数（使用unit_lots）
             add_units_from_signal = filled_lots // unit_lots
             if add_units_from_signal == 0:
                 print(f"[ERROR] {signal.symbol} 成交手数不足以构成1个Unit")

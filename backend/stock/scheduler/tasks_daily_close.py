@@ -293,6 +293,7 @@ def check_add_position_signals():
                             'is_breakout': False,
                             'signal_direction': position.direction,
                             'trade_type': 'ADD_ON',
+                            'contract_target_number': add_units,  # ← 新增：直接存储目标加仓单位数
                             'remark': f"加仓信号: {'多头' if position.direction == 1 else '空头'} "
                                      f"价格差={float(price_diff):.2f}, ATR={float(atr_value):.2f}, "
                                      f"建议加仓{add_units}单位 (当前{current_units}→{current_units + add_units})"
