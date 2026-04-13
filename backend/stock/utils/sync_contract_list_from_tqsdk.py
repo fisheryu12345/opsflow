@@ -10,7 +10,7 @@ from tqsdk.ta import ATR
 
 # 假设你的 models 在 myapp.models 中
 from stock.models import TradingAccount, TradeExecution, DailyPerformance, DailyStrategySignal, RolloverLog, PositionState, FullContractList
-def sync_contract_list_from_tqsdk():
+def sync_contract_list_from_tqsdk(api=None):
     """
     使用 TqSDK 获取所有期货合约信息并同步到 FullContractList 表
     
@@ -35,8 +35,8 @@ def sync_contract_list_from_tqsdk():
     api = None
     try:
         # 1. 初始化 TqApi
-        api = TqApi(auth=TqAuth(TQ_ACCOUNT, TQ_PASSWORD))
-        print("[SUCCESS] TqApi 连接成功")
+        # api = TqApi(auth=TqAuth(TQ_ACCOUNT, TQ_PASSWORD))
+        # print("[SUCCESS] TqApi 连接成功")
         
         # 2. 定义主要交易所和品种映射
         # 格式：{交易所代码: [品种代码列表]}
@@ -44,7 +44,7 @@ def sync_contract_list_from_tqsdk():
             'SHFE': ['rb', 'hc', 'cu', 'al', 'zn', 'pb', 'ni', 'sn', 'au', 'ag', 'ru', 'bu', 'sp', 'fu'],
             'DCE': ['i', 'j', 'jm', 'c', 'cs', 'l', 'v', 'pp', 'm', 'y', 'p', 'jd', 'eb', 'eg', 'pg', 'rr', 'b'],
             'CZCE': ['MA', 'TA', 'SR', 'CF', 'RM', 'OI', 'FG', 'SA', 'UR', 'AP', 'CJ', 'SF', 'SM', 'RS', 'RI'],
-            'CFFEX': ['IF', 'IC', 'IH', 'IM', 'T', 'TF', 'TS', 'TL'],
+            # 'CFFEX': ['IF', 'IC', 'IH', 'IM', 'T', 'TF', 'TS', 'TL'],
             'GFEX': ['si', 'lc']
         }
         
@@ -57,8 +57,8 @@ def sync_contract_list_from_tqsdk():
             'fu': '能源化工', 'bu': '能源化工', 'ru': '化工', 'pg': '化工',
             'c': '农产品', 'cs': '农产品', 'm': '农产品', 'y': '农产品', 'p': '农产品', 'a': '农产品', 'b': '农产品',
             'sr': '软商品', 'cf': '软商品', 'oi': '农产品', 'fg': '建材', 'SA': '建材', 'UR': '化工',
-            'IF': '金融期货', 'IC': '金融期货', 'IH': '金融期货', 'IM': '金融期货',
-            'T': '国债期货', 'TF': '国债期货', 'TS': '国债期货', 'TL': '国债期货',
+            # 'IF': '金融期货', 'IC': '金融期货', 'IH': '金融期货', 'IM': '金融期货',
+            # 'T': '国债期货', 'TF': '国债期货', 'TS': '国债期货', 'TL': '国债期货',
             'si': '新能源', 'lc': '新能源'
         }
         
@@ -69,7 +69,7 @@ def sync_contract_list_from_tqsdk():
             'MA': '甲醇类', 'TA': 'PTA类', 'l': '塑料类', 'v': 'PVC类', 'pp': 'PP类',
             'eb': '苯乙烯类', 'eg': '乙二醇类', 'fu': '燃油类', 
             'c': '玉米类', 'm': '豆粕类', 'y': '豆油类', 'p': '棕榈油类',
-            'IF': '沪深300', 'IC': '中证500', 'IH': '上证50', 'IM': '中证1000'
+            # 'IF': '沪深300', 'IC': '中证500', 'IH': '上证50', 'IM': '中证1000'
         }
         
         synced_count = 0

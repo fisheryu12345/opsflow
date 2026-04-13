@@ -6,97 +6,48 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 # ==================== 1. 基础架构层 ====================
 '''
 这份 models.py 文件构建了一个非常完整且专业的量化交易系统数据库架构。它不仅仅记录了交易结果，更重要的是实现了策略逻辑的持久化、状态管理以及参数化配置。
-这套设计将原本“一次性运行”的脚本策略，升级为了一个可监控、可回溯、可配置的系统工程。
+这套设计将原本"一次性运行"的脚本策略，升级为了一个可监控、可回溯、可配置的系统工程。
 以下是针对该文件中各个表的详细作用汇总分析：
 
 ️ 1. 基础架构层 (基础设施)
 这一层定义了系统运行的物理环境和标的物，是整个系统的基石。
 TradingAccount (交易账户表)
-● 核心作用：资金总账
-● 功能解析：
-○ 它是策略的“根节点”。系统支持多账户并行（例如：同时跑一个“激进版海龟”和一个“稳健版海龟”）。
-○ 记录初始资金（计算收益率的基准）和当前动态权益（实时净值）。
-○ 通过 is_active 字段实现“软删除”，暂停策略时不丢失历史数据。
+● 核心作用：资金总账
+● 功能解析：
+○ 它是策略的"根节点"。系统支持多账户并行（例如：同时跑一个"激进版海龟"和一个"稳健版海龟"）。
+○ 记录初始资金（计算收益率的基准）和当前动态权益（实时净值）。
+○ 通过 is_active 字段实现"软删除"，暂停策略时不丢失历史数据。
 FullContractList (全合约基础信息表 / 交易标的池)
-● 核心作用：交易白名单与元数据中心
-● 功能解析：
-○ 开关控制：这是策略的“水龙头”。只有 is_active=True 的品种，策略主循环才会去订阅和计算。
-○ 元数据映射：存储了 volume_multiple (合约乘数)、price_tick (最小变动价位) 等关键信息。策略在计算仓位（如：开仓手数 = 风险金额 / (ATR * 乘数)）时，直接从数据库读取这些参数，无需写死在代码中。
-○ 板块分类：通过 sector 字段，方便后续做板块轮动策略（如：只做化工板块）。
+● 核心作用：交易白名单与元数据中心
+● 功能解析：
+○ 开关控制：这是策略的"水龙头"。只有 is_active=True 的品种，策略主循环才会去订阅和计算。
+○ 元数据映射：存储了 volume_multiple (合约乘数)、price_tick (最小变动价位) 等关键信息。策略在计算仓位（如：开仓手数 = 风险金额 / (ATR * 乘数)）时，直接从数据库读取这些参数，无需写死在代码中。
+○ 板块分类：通过 sector 字段，方便后续做板块轮动策略（如：只做化工板块）。
 StrategyConfig (策略参数配置表)
-● 核心作用：策略逻辑的遥控器
-● 功能解析：
-○ 实现了配置与代码分离。原本代码中写死的 ATR_PERIOD=20 或 MAX_UNITS=3 现在都提取到了数据库。
-○ 允许针对不同合约应用不同的参数（例如：股指期货波动大，可以单独给它配一套更保守的参数）。
-○ 修改参数后，无需重启 Python 程序（或只需热重载），策略即可按新参数运行。
+● 核心作用：策略逻辑的遥控器
+● 功能解析：
+○ 实现了配置与代码分离。原本代码中写死的 ATR_PERIOD=20 或 MAX_UNITS=3 现在都提取到了数据库。
+○ 允许针对不同合约应用不同的参数（例如：股指期货波动大，可以单独给它配一套更保守的参数）。
+○ 修改参数后，无需重启 Python 程序（或只需热重载），策略即可按新参数运行。
 
 
 
 2. 信号与分析层 (大脑)
-这一层记录了策略“思考”的过程，用于解释“为什么买”或“为什么不买”。
+这一层记录了策略"思考"的过程，用于解释"为什么买"或"为什么不买"。
 TrendInfo (品种趋势信息表)
-● 核心作用：市场状态快照
-● 功能解析：
-○ 对应策略中的趋势过滤逻辑（如 calculate_trend_factor）。
-○ 它记录了某一天、某个品种的市场状态（强多、震荡、弱空等）。
-○ 价值：当策略没有开仓时，你可以通过查询这张表，发现是因为市场处于“震荡”状态被过滤掉了，而不是程序出错了。
+● 核心作用：市场状态快照
+● 功能解析：
+○ 对应策略中的趋势过滤逻辑（如 calculate_trend_factor）。
+○ 它记录了某一天、某个品种的市场状态（强多、震荡、弱空等）。
+○ 价值：当策略没有开仓时，你可以通过查询这张表，发现是因为市场处于"震荡"状态被过滤掉了，而不是程序出错了。
 DailyStrategySignal (每日策略信号表)
-● 核心作用：决策日志
-● 功能解析：
-○ 记录了具体的交易触发条件。它回答了：“今天突破了吗？上轨价格是多少？”
-○ 记录了 donchian_upper (唐奇安上轨) 和 donchian_lower (下轨)。
-○ 如果产生了信号但未交易（例如因为资金不足或跳空过大），remark 字段会记录原因。这是排查策略“漏单”问题的关键依据。
+● 核心作用：决策日志
+● 功能解析：
+○ 记录了具体的交易触发条件。它回答了："今天突破了吗？上轨价格是多少？"
+○ 记录了 donchian_upper (唐奇安上轨) 和 donchian_lower (下轨)。
+○ 如果产生了信号但未交易（例如因为资金不足或跳空过大），remark 字段会记录原因。这是排查策略"漏单"问题的关键依据。
 
 
-
-3. 状态管理层 (记忆)
-这一层解决了 Python 脚本重启后“失忆”的问题，是实盘交易连续性的保障。
-PositionState (策略持仓状态表)
-● 核心作用：策略的内存条
-● 功能解析：
-○ 这是最关键的表之一。它存储了策略运行时的上下文变量。
-○ 记录了：当前持有多少单位 (units)、上次加仓价 (last_add_price)、持仓期间的最高价 (highest_close，用于移动止损)。
-○ 挂单状态：处理了“信号已出但未成交”的中间状态（如 pending_direction），防止程序重启后重复发单或漏单。
-○ 移仓管理：包含 is_rollover_needed 等字段，辅助主力合约切换。
-RolloverLog (移仓换月日志表)
-● 核心作用：合约切换记录
-● 功能解析：
-○ 专门记录主力合约切换的操作（例如从 rb2405 换到 rb2410）。
-○ 记录了旧合约、新合约、换月时间和状态，方便统计移仓成本。
-
-
-
-4. 交易与绩效层 (结果)
-这一层记录了最终的执行结果和账户表现，用于事后分析和报表展示。
-TradeExecution (交易执行明细表)
-● 核心作用：资金流水账
-● 功能解析：
-○ 每一笔实际发生的买卖操作都会在这里留痕。
-○ 区分了交易类型：ENTRY (首仓)、ADD_ON (加仓)、STOP_LOSS (止损)。这对于分析策略的加仓逻辑是否有效至关重要。
-○ 关联了 DailyStrategySignal，可以将一笔成交追溯到具体的触发信号。
-DailyPerformance (每日绩效指标表)
-● 核心作用：账户体检报告
-● 功能解析：
-○ 每天收盘后计算并存储的“成绩单”。
-○ 包含核心量化指标：sharpe_ratio (夏普比率)、max_drawdown (最大回撤)、calmar_ratio (卡尔玛比率)。
-○ 前端 Dashboard 的图表数据主要来源于此表。
-
-
-
-总结：数据流向图
-为了帮助后续人员理解，可以将数据流向概括为：
-1. 初始化：读取 FullContractList (交易谁?) 和 StrategyConfig (怎么交易?)。
-2. 盘中计算：
-○ 根据行情计算 TrendInfo (趋势如何?)。
-○ 生成 DailyStrategySignal (有无信号?)。
-3. 状态检查：读取 PositionState (现在持仓如何?)。
-4. 决策与执行：
-○ 结合信号和状态，决定是否下单。
-○ 下单后写入 TradeExecution (流水)。
-○ 更新 PositionState (更新记忆)。
-5. 盘后结算：
-○ 更新 TradingAccount (更新净值)。
-○ 计算并写入 DailyPerformance (生成报表)。
 '''
 
 class TradingAccount(models.Model):
@@ -304,6 +255,8 @@ class DailyStrategySignal(models.Model):
     
     # 备注：记录过滤原因，例如 "突破但处于震荡市过滤"
     remark = models.TextField("备注", blank=True, null=True)
+    executed_status = models.CharField("执行状态", max_length=20, null=True, blank=True, db_index=True,default="PENDING",
+                                   help_text="记录信号对应的交易操作执行状态：成功/失败/取消")
 
     class Meta:
         verbose_name = "每日策略信号"
@@ -519,3 +472,73 @@ class DailyPerformance(models.Model):
 
     def __str__(self):
         return f"{self.account.name} - {self.trade_date} - 净值:{self.daily_equity} - 夏普:{self.sharpe_ratio}"
+
+
+# ==================== 5. 系统日志层 (监控) ====================
+
+class ErrorLog(models.Model):
+    """
+    【错误日志表】
+    
+    💡 为什么需要这张表？
+    专门记录系统运行时发生的异常和错误，用于问题排查和系统监控。
+    相比传统的日志文件，数据库存储的优势：
+    1. 结构化查询：可以按函数名、时间范围快速检索
+    2. 持久化保存：不受日志文件轮转影响
+    3. 统计分析：可以统计高频错误、错误趋势
+    4. 告警集成：可以基于此表实现自动告警
+    """
+    
+    # 自动记录错误发生的时间
+    timestamp = models.DateTimeField("错误时间", auto_now_add=True, db_index=True,
+                                    help_text="错误发生的精确时间戳")
+    
+    # 记录出错函数的完整路径（模块名.函数名）
+    function_name = models.CharField("函数名称", max_length=200, db_index=True,
+                                    help_text="发生错误的函数完整路径，如：stock.scheduler.tasks_daily_open.execute_addon_order")
+    
+    # 详细的错误信息（使用TextField支持长文本）
+    error_message = models.TextField("错误详情", blank=True, null=True,
+                                    help_text="完整的错误堆栈信息和上下文，可能包含Traceback")
+
+    class Meta:
+        verbose_name = "错误日志"
+        verbose_name_plural = "错误日志"
+        ordering = ['-timestamp']
+
+
+
+class TradeLog(models.Model):
+    """
+    【交易日志表】
+    
+    💡 为什么需要这张表？
+    记录策略运行过程中的关键操作日志和调试信息。
+    与 ErrorLog 的区别：
+    - ErrorLog：记录异常和错误（被动捕获）
+    - TradeLog：记录正常业务流程的关键节点（主动记录）
+    
+    典型用途：
+    1. 记录策略决策过程（如：为什么拒绝开仓）
+    2. 记录关键计算步骤（如：ATR计算结果、Unit手数）
+    3. 记录API调用情况（如：TqSDK连接状态）
+    4. 性能监控（如：某步耗时过长）
+    """
+    
+    # 自动记录日志生成的时间
+    timestamp = models.DateTimeField("日志时间", auto_now_add=True, db_index=True,
+                                    help_text="日志记录的精确时间戳")
+    
+    # 记录日志来源函数
+    function_name = models.CharField("函数名称", max_length=200, db_index=True,
+                                    help_text="生成日志的函数完整路径")
+    
+    # 日志内容（支持较长文本，但通常比错误信息短）
+    log_message = models.TextField("日志内容", blank=True, null=True,
+                                  help_text="详细的日志信息，包括关键参数、计算结果、决策原因等")
+    
+
+    class Meta:
+        verbose_name = "交易日志"
+        verbose_name_plural = "交易日志"
+        ordering = ['-timestamp']
