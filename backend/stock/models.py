@@ -153,7 +153,7 @@ class FullContractList(models.Model):
 
     # --- 移仓换月辅助 ---
     # 标记该品种是否需要进行主力换月（有些品种如股指期货可能不需要频繁换月，或者换月逻辑不同）
-
+    night_trading = models.BooleanField("夜盘交易", default=True, help_text="标记是否有夜盘，影响开盘任务执行时间") 
     # --- 时间戳 ---
     created_at = models.DateTimeField("录入时间", auto_now_add=True)
     updated_at = models.DateTimeField("更新时间", auto_now=True)

@@ -415,27 +415,6 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 				},
-				need_rollover: {
-					title: '需移仓',
-					type: 'dict-switch',
-					column: {
-						width: 90,
-						align: 'center',
-					},
-					dict: dict({
-						data: [
-							{ value: true, label: '是' },
-							{ value: false, label: '否' },
-						]
-					}),
-					form: {
-						value: true,
-						component: {
-							activeText: '需要',
-							inactiveText: '不需要',
-						},
-					},
-				},
 				created_at: {
 					title: '创建时间',
 					type: 'datetime',

@@ -91,6 +91,50 @@ def calculate_unit_lots(api, symbol):
         # 异常情况下返回默认值
         return 1
 
+
+def calculate_atr(api, symbol, period=20):
+    """
+    计算指定周期的ATR（平均真实波幅）
+    
+    :param api: TqApi实例
+    :param symbol: 合约代码（如 "SHFE.rb2610"）
+    :param period: ATR周期，默认20日
+    :return: ATR值（float），失败返回None
+    """
+    try:
+        # 获取K线数据（需要period+1根K线来计算period个TR值）
+        klines = api.get_kline_serial(symbol, duration_seconds=86400, data_length=period + 5)
+        
+        if klines is None or len(klines) < period + 1:
+            return None
+        
+        # 提取价格序列
+        high = klines['high']
+        low = klines['low']
+        close = klines['close']
+        
+        # 计算TR（真实波幅）
+        tr_list = []
+        for i in range(1, len(klines)):
+            hl = high.iloc[i] - low.iloc[i]
+            hpc = abs(high.iloc[i] - close.iloc[i-1])
+            lpc = abs(low.iloc[i] - close.iloc[i-1])
+            tr = max(hl, hpc, lpc)
+            tr_list.append(tr)
+        
+        if len(tr_list) < period:
+            return None
+        
+        # 计算ATR（取最近period个TR的平均值）
+        atr = sum(tr_list[-period:]) / period
+        
+        return float(atr) if atr > 0 else None
+        
+    except Exception as e:
+        print(f"[WARN] 计算{symbol}的ATR失败: {str(e)}")
+        return None
+
+
 def price_gap_proection(api, symbol, direction, gap_threshold_percent=1.5):
     """
     价格跳空保护函数（支持期货多空双向交易）
@@ -129,7 +173,7 @@ def price_gap_proection(api, symbol, direction, gap_threshold_percent=1.5):
         return False  # 无效的交易方向
 
 
-def execute_addon_order(api, account, signal, max_retries=5, retry_interval=10):
+def execute_addon_order(api, account, signal):
     """
     执行加仓操作的函数（使用TargetPosTask自动化订单管理）
     :param api: TqApi实例
@@ -394,7 +438,7 @@ def execute_addon_order(api, account, signal, max_retries=5, retry_interval=10):
             pass
 
 
-def execute_entry_order(api, account, signal, max_retries=5, retry_interval=10, gap_threshold_percent=1.5):
+def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
     """
     执行开仓操作的函数（使用TargetPosTask自动化订单管理）
     :param api: TqApi实例
@@ -626,7 +670,7 @@ def execute_entry_order(api, account, signal, max_retries=5, retry_interval=10, 
             pass
 
 
-def execute_exit_order(api, position, signal, max_retries=5, retry_interval=10):
+def execute_exit_order(api, position, signal):
     """
     执行平仓操作的函数（使用TargetPosTask自动化订单管理）
     :param api: TqApi实例
@@ -805,7 +849,7 @@ def execute_exit_order(api, position, signal, max_retries=5, retry_interval=10):
             pass
 
 
-def execute_rollover_order(api, position, signal, max_retries=5, retry_interval=10):
+def execute_rollover_order(api, position, signal):
     """
     执行移仓操作的函数（使用TargetPosTask自动化订单管理）
     :param api: TqApi实例
@@ -1100,6 +1144,46 @@ def execute_rollover_order(api, position, signal, max_retries=5, retry_interval=
             # 计算新持仓的单位数
             entry_units = entry_filled_lots // contracts_per_unit
             
+            # 【修复】基于过去20日历史数据初始化 highest_close、lowest_close 和 stop_loss_price
+            try:
+                # 获取新合约过去20日的K线数据
+                klines = api.get_kline_serial(signal.symbol, duration_seconds=86400, data_length=25)
+                
+                if klines is not None and len(klines) >= 20:
+                    # 计算过去20日的最高收盘价和最低收盘价
+                    historical_high = float(klines['close'].rolling(window=20).max().iloc[-1])
+                    historical_low = float(klines['close'].rolling(window=20).min().iloc[-1])
+                    
+                    # 计算ATR用于止损价
+                    atr_value = calculate_atr(api, signal.symbol, period=20)
+                    
+                    # 根据持仓方向设置初始值
+                    if position.direction == 1:  # 多头
+                        init_highest_close = Decimal(str(historical_high))
+                        init_lowest_close = None  # 多头不需要最低价
+                        # 止损价 = 最高收盘价 - 2 * ATR
+                        init_stop_loss = init_highest_close - Decimal('2') * Decimal(str(atr_value)) if atr_value else None
+                    else:  # 空头
+                        init_highest_close = None  # 空头不需要最高价
+                        init_lowest_close = Decimal(str(historical_low))
+                        # 止损价 = 最低收盘价 + 2 * ATR
+                        init_stop_loss = init_lowest_close + Decimal('2') * Decimal(str(atr_value)) if atr_value else None
+                    
+                    print(f"[INFO] {signal.symbol} 基于20日历史数据初始化: highest={historical_high:.2f}, lowest={historical_low:.2f}, ATR={atr_value:.2f}")
+                else:
+                    # 数据不足，使用开仓价作为后备方案
+                    print(f"[WARN] {signal.symbol} 历史数据不足({len(klines) if klines else 0}根)，使用开仓价初始化")
+                    init_highest_close = Decimal(str(entry_avg_price)) if position.direction == 1 else None
+                    init_lowest_close = Decimal(str(entry_avg_price)) if position.direction == -1 else None
+                    init_stop_loss = None
+            except Exception as e:
+                print(f"[WARN] {signal.symbol} 计算历史数据失败: {str(e)}，使用开仓价初始化")
+                import traceback
+                traceback.print_exc()
+                init_highest_close = Decimal(str(entry_avg_price)) if position.direction == 1 else None
+                init_lowest_close = Decimal(str(entry_avg_price)) if position.direction == -1 else None
+                init_stop_loss = None
+            
             # 创建新持仓状态记录
             PositionState.objects.create(
                 account=position.account,
@@ -1110,9 +1194,10 @@ def execute_rollover_order(api, position, signal, max_retries=5, retry_interval=
                 contract_total_position=entry_filled_lots,
                 last_add_price=Decimal(str(entry_avg_price)),
                 contract_price_avg=Decimal(str(entry_avg_price)),
-                highest_close=Decimal(str(entry_avg_price)),
-                lowest_close=Decimal(str(entry_avg_price)),
+                highest_close=init_highest_close,
+                lowest_close=init_lowest_close,
                 latest_close_price=Decimal(str(entry_avg_price)),
+                stop_loss_price=init_stop_loss,
                 is_rollover_needed=False
             )
             
@@ -1153,7 +1238,7 @@ def execute_rollover_order(api, position, signal, max_retries=5, retry_interval=
             pass
 
 
-def process_exit_signals(api, account, current_date):
+def process_exit_signals(api, account):
     """
     处理平仓信号的函数
     :param api: TqApi实例
@@ -1179,7 +1264,7 @@ def process_exit_signals(api, account, current_date):
                 print(f"✅ 平仓成功: {position.symbol}")
             else:
                 print(f"❌ 平仓失败: {position.symbol}")    
-def process_entry_signals(api, account, current_date):
+def process_entry_signals(api, account):
     """
     处理开仓信号的函数
     :param api: TqApi实例
@@ -1200,7 +1285,7 @@ def process_entry_signals(api, account, current_date):
             print(f"✅ 开仓成功: {signal.symbol}")
         else:
             print(f"❌ 开仓失败: {signal.symbol}")
-def process_rollover_signals(api, account, current_date): 
+def process_rollover_signals(api, account): 
     """
     处理移仓信号的函数
     :param api: TqApi实例
@@ -1227,7 +1312,7 @@ def process_rollover_signals(api, account, current_date):
                 print(f"❌ 移仓失败: {position.symbol} -> {signal.symbol}")
         except PositionState.DoesNotExist:
             print(f"⚠️ 移仓信号未找到对应持仓: {signal.symbol}")
-def process_addon_signals(api, account, current_date):
+def process_addon_signals(api, account):
     """
     处理加仓信号的函数
     :param api: TqApi实例
