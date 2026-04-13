@@ -1,3 +1,4 @@
+import os
 import time
 from decimal import Decimal
 from tqsdk import TqApi, TqAuth
@@ -1183,7 +1184,7 @@ def execute_rollover_order(api, position, signal, max_retries=5, retry_interval=
     return False
 
 
-def process_exit_signals(api, account):
+def process_exit_signals(api, account, current_date):
     """
     处理平仓信号的函数
     :param api: TqApi实例
@@ -1209,7 +1210,7 @@ def process_exit_signals(api, account):
                 print(f"✅ 平仓成功: {position.symbol}")
             else:
                 print(f"❌ 平仓失败: {position.symbol}")    
-def process_entry_signals(api, account):
+def process_entry_signals(api, account, current_date):
     """
     处理开仓信号的函数
     :param api: TqApi实例
@@ -1230,7 +1231,7 @@ def process_entry_signals(api, account):
             print(f"✅ 开仓成功: {signal.symbol}")
         else:
             print(f"❌ 开仓失败: {signal.symbol}")
-def process_rollover_signals(api, account): 
+def process_rollover_signals(api, account, current_date): 
     """
     处理移仓信号的函数
     :param api: TqApi实例
@@ -1257,7 +1258,7 @@ def process_rollover_signals(api, account):
                 print(f"❌ 移仓失败: {position.symbol} -> {signal.symbol}")
         except PositionState.DoesNotExist:
             print(f"⚠️ 移仓信号未找到对应持仓: {signal.symbol}")
-def process_addon_signals(api, account):
+def process_addon_signals(api, account, current_date):
     """
     处理加仓信号的函数
     :param api: TqApi实例
@@ -1278,19 +1279,119 @@ def process_addon_signals(api, account):
             print(f"✅ 加仓成功: {signal.symbol}")
         else:
             print(f"❌ 加仓失败: {signal.symbol}")
-def job_daily_open_process():
-    api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
-    account = TradingAccount.objects.get(account_id="1")
-    # 获取当前日期
-    current_date = timezone.now().date()
+
+
+def send_report(account, current_date):
+    """
+    发送今日交易执行情况报告（加仓、移仓、平仓）
     
-    #处理平仓信号
-    process_exit_signals(api, account, current_date)
-    #处理开仓信号
-    process_entry_signals(api, account, current_date)
-    #处理移仓信号
-    process_rollover_signals(api, account, current_date)
-    #处理加仓信号
-    process_addon_signals(api, account, current_date)
-    #发送报告
-    print("✅ 今日交易信号处理完成")
+    :param account: TradingAccount实例
+    :param current_date: 当前日期
+    :return: 是否发送成功
+    """
+    from stock.utils.send_mail import send_email
+    from django.template.loader import render_to_string
+    from django.utils import timezone
+    
+    try:
+        # 查询今天的交易执行记录
+        today_start = timezone.make_aware(timezone.datetime.combine(current_date, timezone.datetime.min.time()))
+        today_end = timezone.make_aware(timezone.datetime.combine(current_date, timezone.datetime.max.time()))
+        
+        today_trades = TradeExecution.objects.filter(
+            account=account,
+            trade_time__gte=today_start,
+            trade_time__lte=today_end
+        ).order_by('trade_time')
+        
+        # 分类统计
+        addon_trades = today_trades.filter(trade_type='ADD_ON')
+        rollover_exit_trades = today_trades.filter(trade_type='ROLLOVER_EXIT')
+        rollover_entry_trades = today_trades.filter(trade_type='ROLLOVER_ENTRY')
+        stop_loss_trades = today_trades.filter(trade_type='STOP_LOSS')
+        close_signal_trades = today_trades.filter(trade_type='CLOSE_SIGNAL')
+        
+        # 计算统计数据
+        total_trades = (len(addon_trades) + len(rollover_exit_trades) + 
+                       len(rollover_entry_trades) + len(stop_loss_trades) + 
+                       len(close_signal_trades))
+        
+        # 使用Django Template渲染HTML
+        context = {
+            'current_date': current_date,
+            'total_trades': total_trades,
+            'addon_count': len(addon_trades),
+            'rollover_count': len(rollover_exit_trades),
+            'stop_loss_count': len(stop_loss_trades),
+            'close_signal_count': len(close_signal_trades),
+            'addon_trades': addon_trades,
+            'rollover_exit_trades': rollover_exit_trades,
+            'rollover_entry_trades': rollover_entry_trades,
+            'stop_loss_trades': stop_loss_trades,
+            'close_signal_trades': close_signal_trades,
+        }
+        
+        html_content = render_to_string('trade_execution_report.html', context)
+        
+        # 发送邮件
+        subject = f"【量化交易日报】{current_date} 交易执行情况"
+        receiver_email = os.getenv('EMAIL_RECEIVER', '312711936@qq.com')
+        
+        # 异步发送邮件
+        send_email(
+            subject=subject,
+            body=html_content,
+            receiver_email=receiver_email,
+            is_html=True
+        )
+        
+        print(f"[INFO] 交易报告已发送至: {receiver_email}")
+        return True
+        
+    except Exception as e:
+        print(f"[ERROR] 发送交易报告失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def job_daily_open_process():
+    """
+    每日开盘处理函数
+    """
+    from datetime import datetime
+
+    # 获取当前日期
+    current_date = datetime.now().date()
+
+    # 获取交易账户
+    accounts = TradingAccount.objects.all()
+
+    for account in accounts:
+        # 初始化TqApi
+        api = TqApi(TqAuth('yupei1986', 'yupei1986'))
+
+        try:
+            # 处理平仓信号
+            process_exit_signals(api, account, current_date)
+
+            # 处理开仓信号
+            process_entry_signals(api, account, current_date)
+
+            # 处理移仓信号
+            process_rollover_signals(api, account, current_date)
+
+            # 处理加仓信号
+            process_addon_signals(api, account, current_date)
+
+            # 发送交易执行情况报告
+            send_report(account, current_date)
+
+        except Exception as e:
+            print(f"[ERROR] 处理账户 {account.username} 时发生错误: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+        finally:
+            # 关闭TqApi连接
+            api.close()

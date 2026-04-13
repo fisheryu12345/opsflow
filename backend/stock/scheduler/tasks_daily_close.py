@@ -537,7 +537,7 @@ def job_daily_close_calculation():
     """
     try:
         # 第1步：同步期货合约列表
-        # sync_contract_list_from_tqsdk()
+        sync_contract_list_from_tqsdk()
         
         # 第2步：计算活跃品种的技术指标
         contracts = PositionState.objects.all().values('symbol', 'product_code','units')
