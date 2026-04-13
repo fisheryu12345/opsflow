@@ -1,7 +1,7 @@
 import os
 import time
 from decimal import Decimal
-from tqsdk import TqApi, TqAuth
+from tqsdk import TqApi, TqAuth, TargetPosTask
 from django.db import transaction
 from django.utils import timezone
 from django.db.models import Q
@@ -131,7 +131,7 @@ def price_gap_proection(api, symbol, direction, gap_threshold_percent=1.5):
 
 def execute_addon_order(api, account, signal, max_retries=5, retry_interval=10):
     """
-    执行加仓操作的函数（从信号表获取加仓指令 + 使用对手价 + 重试机制 + 持仓表更新）
+    执行加仓操作的函数（使用TargetPosTask简化订单管理）
     :param api: TqApi实例
     :param account: TradingAccount实例
     :param signal: DailyStrategySignal实例（trade_type='ADD_ON'）
@@ -141,250 +141,209 @@ def execute_addon_order(api, account, signal, max_retries=5, retry_interval=10):
     """
     # 【验证信号类型】
     if signal.trade_type != 'ADD_ON':
+        print(f"[WARN] 信号类型错误: {signal.trade_type}，期望ADD_ON")
         return False
     
-    # 获取当前持仓状态
-    position = PositionState.objects.filter(
-        account=account,
-        symbol=signal.symbol,
-        units__gt=0
-    ).first()
-    
-    if not position:
-        return False  # 无持仓，无法加仓
-    
-    # 【从信号备注中解析加仓单位数】
-    # remark格式: "加仓信号: 多头 价格差=60.00, ATR=50.00, 建议加仓2单位 (当前1→3)"
+    # 【修复P0+P2】从信号备注中解析加仓单位数
     try:
         import re
         match = re.search(r'建议加仓(\d+)单位', signal.remark or '')
         if not match:
-            return False  # 无法解析加仓单位数
+            print(f"[ERROR] 无法从信号备注解析加仓单位数: {signal.remark}")
+            return False
         
         add_units_from_signal = int(match.group(1))
         
         if add_units_from_signal <= 0:
-            return False  # 加仓单位数无效
+            print(f"[ERROR] 加仓单位数无效: {add_units_from_signal}")
+            return False
         
     except Exception as e:
-        return False  # 解析失败
+        print(f"[ERROR] 解析加仓信号失败: {str(e)}")
+        return False
     
-    # 获取合约信息
+    # 【修复P0】使用数据库事务和行级锁防止并发
+    with transaction.atomic():
+        # 获取当前持仓状态（加锁）
+        position = PositionState.objects.select_for_update().filter(
+            account=account,
+            symbol=signal.symbol,
+            units__gt=0
+        ).first()
+        
+        if not position:
+            print(f"[WARN] {signal.symbol} 无持仓，无法加仓")
+            return False
+        
+        # 【修复P0】在下单前检查是否会超过最大持仓限制
+        projected_units = position.units + add_units_from_signal
+        if projected_units > POSITION_MAX_UNITS:
+            print(f"[WARN] {signal.symbol} 加仓后将超限: 当前{position.units}Unit + 加仓{add_units_from_signal}Unit = {projected_units}Unit > 最大{POSITION_MAX_UNITS}Unit")
+            return False
+    
+    # 【修复】使用 calculate_unit_lots 计算1个Unit对应的实际手数
+    unit_lots = calculate_unit_lots(api, signal.symbol)
+    
+    # 计算实际下单手数 = 加仓单位数 × 1个Unit的手数
+    order_volume = add_units_from_signal * unit_lots
+    
+    print(f"[INFO] {signal.symbol} 加仓计划: {add_units_from_signal}Unit × {unit_lots}手/Unit = {order_volume}手")
+    
+    # 【修复P0】记录加仓前的持仓状态（用于增量计算）
+    pos_before = api.get_position(signal.symbol)
+    initial_volume_long = pos_before.volume_long if pos_before else 0
+    initial_volume_short = pos_before.volume_short if pos_before else 0
+    initial_cost_long = Decimal(str(pos_before.open_cost_long)) if pos_before else Decimal('0')
+    initial_cost_short = Decimal(str(pos_before.open_cost_short)) if pos_before else Decimal('0')
+    
+    # 创建目标持仓任务
+    target_pos = TargetPosTask(api, signal.symbol)
+    
+    # 计算目标持仓量（考虑方向）
+    current_position = position.contract_total_position
+    if position.direction == 1:  # 多头
+        target_volume = current_position + order_volume
+    else:  # 空头
+        target_volume = -(current_position + order_volume)
+    
     try:
-        contract = api.get_instrument(signal.symbol)
-        contracts_per_unit = contract.volume_multiple if contract and contract.volume_multiple else 1
-    except:
-        contracts_per_unit = 1
-    
-    # 计算实际下单手数 = 加仓单位数 × 合约乘数
-    order_volume = add_units_from_signal * contracts_per_unit
-    order_direction = 'BUY' if signal.direction == 1 else 'SELL'
-    
-    filled_total_lots = 0  # 累计已成交手数
-    total_cost = Decimal('0')  # 累计成交金额
-    last_order_id = None
-    
-    for attempt in range(1, max_retries + 1):
-        try:
-            # 计算本次需要下单的手数
-            remaining_volume = order_volume - filled_total_lots
+        # 设置目标持仓量（TqSDK会自动处理下单、撤单、部分成交等）
+        target_pos.set_target_volume(target_volume)
+        
+        # 【修复P1】优化等待逻辑，增加进度监控和超时控制
+        timeout_seconds = 30  # 加仓超时30秒
+        start_time = time.time()
+        last_logged_volume = -1
+        
+        while time.time() - start_time < timeout_seconds:
+            api.wait_update(deadline=time.time() + 0.5)
             
-            if remaining_volume <= 0:
-                break  # 已全部成交
+            pos_obj = api.get_position(signal.symbol)
+            if pos_obj is None:
+                continue
             
-            # 获取最新行情并使用对手价
-            quote = api.get_quote(signal.symbol)
+            current_volume = pos_obj.volume_long if position.direction == 1 else pos_obj.volume_short
+            actual_added = current_volume - current_position
             
-            if order_direction == 'BUY':
-                order_price = quote.ask_price1 if quote.ask_price1 else quote.last_price
-            else:
-                order_price = quote.bid_price1 if quote.bid_price1 else quote.last_price
+            # 只在成交量变化时打印日志
+            if actual_added != last_logged_volume:
+                print(f"   [INFO] {signal.symbol} 加仓进度: {actual_added}/{order_volume}手")
+                last_logged_volume = actual_added
             
-            # 行情可用性检查
-            if order_price is None:
-                if attempt < max_retries:
-                    time.sleep(1)
-                    continue
-                else:
-                    return False
+            # 达到目标成交量
+            if actual_added >= order_volume:
+                print(f"   [SUCCESS] {signal.symbol} 加仓完成: {actual_added}手")
+                break
             
-            # 发送加仓指令
-            order_id = api.insert_order(
-                symbol=signal.symbol,
-                direction=order_direction,
-                offset='ADDON',
-                volume=remaining_volume,  # ← 剩余手数
-                limit_price=order_price
-            )
-            last_order_id = order_id
-            
-            # 监控订单状态
-            start_time = time.time()
-            while time.time() - start_time < retry_interval:
-                api.wait_update(deadline=time.time() + 0.5)
-                order = api.get_order(order_id)
-                
-                if order.status == 'FINISHED':
-                    break
-                elif order.status in ['CANCELLED', 'ERROR']:
-                    return False
-                elif order.status == 'PARTIAL_FILLED':
-                    pass
-            
-            # 处理订单结果
-            order = api.get_order(order_id)
-            
-            if order.status == 'FINISHED':
-                current_filled = order.volume_orign - order.volume_left
-                actual_filled = min(current_filled, remaining_volume)
-                
-                # 数据有效性验证
-                if actual_filled <= 0 or order.average_price is None:
-                    return False
-                
-                filled_total_lots += actual_filled
-                total_cost += Decimal(str(order.average_price)) * Decimal(str(actual_filled))
-                
-                # 检查是否全部完成
-                if filled_total_lots >= order_volume:
-                    avg_price = total_cost / Decimal(str(filled_total_lots))
-                    
-                    # 计算加仓的单位数（向下取整）
-                    added_units = filled_total_lots // contracts_per_unit
-                    
-                    with transaction.atomic():
-                        # 记录加仓交易执行日志
-                        TradeExecution.objects.create(
-                            account=account,
-                            symbol=signal.symbol,
-                            direction=order_direction,
-                            volume=filled_total_lots,  # ← 存储实际手数
-                            price=avg_price,
-                            trade_time=timezone.now(),
-                            order_id=order_id,
-                            trade_type='ADD_ON',
-                            signal=signal  # 关联到原始信号
-                        )
-                        
-                        # 【更新持仓表】
-                        new_units = position.units + added_units  # ← 累加单位数
-                        new_total_lots = position.contract_total_position + filled_total_lots  # ← 累加总手数
-                        
-                        # 检查是否超过最大持仓限制
-                        if new_units > POSITION_MAX_UNITS:
-                            return False
-                        
-                        # 【核心计算】加权平均成本价
-                        # 公式：新成本价 = (旧持仓总成本 + 新开仓总成本) / 新持仓总手数
-                        old_total_cost = Decimal(str(position.contract_total_position)) * position.contract_price_avg
-                        new_add_cost = total_cost  # 本次加仓的总成本
-                        combined_total_cost = old_total_cost + new_add_cost
-                        
-                        new_avg_price = combined_total_cost / Decimal(str(new_total_lots))
-                        
-                        PositionState.objects.filter(id=position.id).update(
-                            units=new_units,  # ← 更新单位数
-                            contract_total_position=new_total_lots,  # ← 更新总手数
-                            last_add_price=avg_price,  # 更新上次加仓价为本次加权均价
-                            contract_price_avg=new_avg_price,  # ← 更新加权平均成本价
-                            latest_close_price=avg_price  # 同时更新最新收盘价
-                        )
-                    
-                    return True
-                else:
-                    # FINISHED但累计量不足，说明有逻辑错误
-                    return False
-            
-            elif order.status == 'PARTIAL_FILLED':
-                current_filled = order.volume_orign - order.volume_left
-                actual_filled = min(current_filled, remaining_volume)
-                
-                # 数据有效性验证
-                if actual_filled > 0 and order.average_price is not None:
-                    filled_total_lots += actual_filled
-                    total_cost += Decimal(str(order.average_price)) * Decimal(str(actual_filled))
-                
-                # 撤销剩余部分，准备下一轮重试
-                api.cancel_order(order_id)
-                api.wait_update(deadline=time.time() + 1)
-                last_order_id = None
-                
-                # 检查是否已累计全部成交
-                if filled_total_lots >= order_volume:
-                    avg_price = total_cost / Decimal(str(filled_total_lots))
-                    
-                    # 计算加仓的单位数
-                    added_units = filled_total_lots // contracts_per_unit
-                    
-                    with transaction.atomic():
-                        TradeExecution.objects.create(
-                            account=account,
-                            symbol=signal.symbol,
-                            direction=order_direction,
-                            volume=filled_total_lots,  # ← 存储实际手数
-                            price=avg_price,
-                            trade_time=timezone.now(),
-                            order_id=order_id,
-                            trade_type='ADD_ON',
-                            signal=signal  # 关联到原始信号
-                        )
-                        
-                        # 【更新持仓表】
-                        new_units = position.units + added_units
-                        new_total_lots = position.contract_total_position + filled_total_lots
-                        
-                        if new_units > POSITION_MAX_UNITS:
-                            return False
-                        
-                        # 【核心计算】加权平均成本价
-                        old_total_cost = Decimal(str(position.contract_total_position)) * position.contract_price_avg
-                        new_add_cost = total_cost
-                        combined_total_cost = old_total_cost + new_add_cost
-                        
-                        new_avg_price = combined_total_cost / Decimal(str(new_total_lots))
-                        
-                        PositionState.objects.filter(id=position.id).update(
-                            units=new_units,
-                            contract_total_position=new_total_lots,
-                            last_add_price=avg_price,
-                            contract_price_avg=new_avg_price,  # ← 更新加权平均成本价
-                            latest_close_price=avg_price
-                        )
-                    
-                    return True
-                else:
-                    # 继续重试剩余量
-                    if attempt >= max_retries:
-                        return False
-                    continue
-            else:
-                # 未成交，撤单后重试
-                api.cancel_order(order_id)
-                api.wait_update(deadline=time.time() + 1)
-                last_order_id = None
-                
-                if attempt >= max_retries:
-                    return False
-                    
-        except Exception as e:
-            if last_order_id:
-                try:
-                    api.cancel_order(last_order_id)
-                    api.wait_update(deadline=time.time() + 1)
-                except:
-                    pass
-                finally:
-                    last_order_id = None
-            
-            if attempt >= max_retries:
+            # 检查是否长时间无进展（流动性问题）
+            if time.time() - start_time > timeout_seconds / 2 and actual_added == 0:
+                print(f"[WARN] {signal.symbol} 加仓{int(timeout_seconds/2)}秒仍无成交，可能存在流动性问题")
+        
+        # 获取最终成交结果
+        pos_after = api.get_position(signal.symbol)
+        if pos_after is None:
+            print(f"[ERROR] {signal.symbol} 无法获取持仓信息")
+            return False
+        
+        # 【修复P0】使用增量计算法计算本次加仓的实际成交量和均价
+        if position.direction == 1:
+            filled_lots = pos_after.volume_long - initial_volume_long
+            if filled_lots <= 0:
+                print(f"[ERROR] {signal.symbol} 多头持仓未增加")
                 return False
-    
-    return False
+            
+            # 计算本次加仓的均价 = (新累计成本 - 旧累计成本) / 新增持仓量
+            current_cost = Decimal(str(pos_after.open_cost_long))
+            added_cost = current_cost - initial_cost_long
+            avg_price = float(added_cost / Decimal(str(filled_lots))) if filled_lots > 0 else None
+        else:
+            filled_lots = pos_after.volume_short - initial_volume_short
+            if filled_lots <= 0:
+                print(f"[ERROR] {signal.symbol} 空头持仓未增加")
+                return False
+            
+            current_cost = Decimal(str(pos_after.open_cost_short))
+            added_cost = current_cost - initial_cost_short
+            avg_price = float(added_cost / Decimal(str(filled_lots))) if filled_lots > 0 else None
+        
+        # 数据有效性验证
+        if avg_price is None or avg_price <= 0:
+            print(f"[ERROR] {signal.symbol} 无法计算有效成交均价: avg_price={avg_price}")
+            return False
+        
+        # 检查是否部分成交
+        if filled_lots < order_volume:
+            print(f"[WARN] {signal.symbol} 部分成交: {filled_lots}/{order_volume}手，继续执行")
+            # 重新计算实际加仓的单位数（使用unit_lots而非contracts_per_unit）
+            add_units_from_signal = filled_lots // unit_lots
+            if add_units_from_signal == 0:
+                print(f"[ERROR] {signal.symbol} 成交手数不足以构成1个Unit")
+                return False
+        
+        # 计算加仓的单位数（向下取整，使用unit_lots）
+        added_units = filled_lots // unit_lots
+        
+        if added_units == 0:
+            print(f"[ERROR] {signal.symbol} 加仓单位数为0")
+            return False
+        
+        with transaction.atomic():
+            # 【修复P0】再次检查最大持仓限制（双重保险）
+            position = PositionState.objects.select_for_update().get(id=position.id)
+            new_units = position.units + added_units
+            if new_units > POSITION_MAX_UNITS:
+                print(f"[ERROR] {signal.symbol} 加仓后超限（并发保护）: {new_units}Unit > {POSITION_MAX_UNITS}Unit")
+                return False
+            
+            new_total_lots = position.contract_total_position + filled_lots
+            
+            # 记录加仓交易执行日志
+            TradeExecution.objects.create(
+                account=account,
+                symbol=signal.symbol,
+                direction='BUY' if position.direction == 1 else 'SELL',
+                volume=filled_lots,
+                price=Decimal(str(avg_price)),
+                trade_time=timezone.now(),
+                order_id='',
+                trade_type='ADD_ON',
+                signal=signal
+            )
+            
+            # 【核心计算】加权平均成本价
+            old_total_cost = Decimal(str(position.contract_total_position)) * position.contract_price_avg
+            new_add_cost = Decimal(str(avg_price)) * Decimal(str(filled_lots))
+            combined_total_cost = old_total_cost + new_add_cost
+            
+            new_avg_price = combined_total_cost / Decimal(str(new_total_lots))
+            
+            PositionState.objects.filter(id=position.id).update(
+                units=new_units,
+                contract_total_position=new_total_lots,
+                last_add_price=Decimal(str(avg_price)),
+                contract_price_avg=new_avg_price,
+                latest_close_price=Decimal(str(avg_price))
+            )
+        
+        print(f"[SUCCESS] {signal.symbol} 加仓成功: +{added_units}Unit({filled_lots}手) @ {avg_price:.2f}, 总持仓:{new_units}Unit")
+        return True
+        
+    except Exception as e:
+        print(f"[ERROR] 加仓失败 {signal.symbol}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+    finally:
+        # 清理TargetPosTask
+        try:
+            del target_pos
+        except:
+            pass
 
 
 def execute_entry_order(api, account, signal, max_retries=5, retry_interval=10, gap_threshold_percent=1.5):
     """
-    执行开仓操作的函数（使用对手价 + 跳空保护 + 重试机制）
+    执行开仓操作的函数（使用TargetPosTask简化订单管理）
     :param api: TqApi实例
     :param account: TradingAccount实例
     :param signal: DailyStrategySignal实例
@@ -398,414 +357,262 @@ def execute_entry_order(api, account, signal, max_retries=5, retry_interval=10, 
     
     # 首次开仓固定为1个Unit
     target_units = 1
-    order_volume = target_units * unit_lots  # ← 实际下单手数
+    order_volume = target_units * unit_lots
     
-    # 获取合约信息
-    try:
-        contract = api.get_instrument(signal.symbol)
-        contracts_per_unit = contract.volume_multiple if contract and contract.volume_multiple else 1
-    except:
-        contracts_per_unit = 1
+    # 【修复P0】使用数据库事务和行级锁防止并发
+    with transaction.atomic():
+        # 【修复P1】检查是否已存在同合约、同方向的持仓
+        existing_position = PositionState.objects.select_for_update().filter(
+            account=account,
+            symbol=signal.symbol,
+            direction=signal.direction,
+            units__gt=0
+        ).first()
+        
+        if existing_position:
+            print(f"[WARN] {signal.symbol} 已存在{['', '多头', '空头'][signal.direction]}持仓，跳过开仓")
+            return False
+        
+        # 【修复P1】检查是否有反向持仓（避免同时对冲）
+        # opposite_position = PositionState.objects.select_for_update().filter(
+        #     account=account,
+        #     symbol=signal.symbol,
+        #     direction=-signal.direction,
+        #     units__gt=0
+        # ).first()
+        
+        # if opposite_position:
+        #     print(f"[WARN] {signal.symbol} 存在反向持仓，需先平仓后再开仓")
+        #     return False
     
-    order_direction = 'BUY' if signal.direction == 1 else 'SELL'
-    
-    # 【持仓重复检查】检查是否已存在同合约、同方向的持仓
-    existing_position = PositionState.objects.filter(
-        account=account,
-        symbol=signal.symbol,
-        direction=signal.direction,
-        units__gt=0  # 持仓单位数大于0
-    ).first()
-    
-    if existing_position:
-        # 已存在持仓，不应重复开仓
+    # 【跳空保护检查】
+    can_trade = price_gap_proection(api, signal.symbol, signal.direction, gap_threshold_percent)
+    if not can_trade:
+        print(f"[WARN] {signal.symbol} 跳空幅度过大，禁止开仓")
         return False
     
-    last_order_id = None  # 记录最后一次发送的订单ID，用于异常清理
+    # 【修复P0】记录开仓前的持仓状态（用于增量计算）
+    pos_before = api.get_position(signal.symbol)
+    initial_volume_long = pos_before.volume_long if pos_before else 0
+    initial_volume_short = pos_before.volume_short if pos_before else 0
+    initial_cost_long = Decimal(str(pos_before.open_cost_long)) if pos_before else Decimal('0')
+    initial_cost_short = Decimal(str(pos_before.open_cost_short)) if pos_before else Decimal('0')
     
-    for attempt in range(1, max_retries + 1):
-        try:
-            # 【第1步】获取最新行情并确定价格
-            quote = api.get_quote(signal.symbol)
+    # 创建目标持仓任务
+    target_pos = TargetPosTask(api, signal.symbol)
+    
+    # 设置目标持仓量（考虑方向）
+    target_volume = order_volume if signal.direction == 1 else -order_volume
+    
+    try:
+        # 设置目标持仓量
+        target_pos.set_target_volume(target_volume)
+        
+        # 【修复P1】优化等待逻辑，增加进度监控和超时控制
+        timeout_seconds = 30  # 开仓超时30秒
+        start_time = time.time()
+        last_logged_volume = -1
+        
+        while time.time() - start_time < timeout_seconds:
+            api.wait_update(deadline=time.time() + 0.5)
             
-            # 使用对手价：买单用卖一价，卖单用买一价
-            if order_direction == 'BUY':
-                order_price = quote.ask_price1 if quote.ask_price1 else quote.last_price
-            else:  # SELL
-                order_price = quote.bid_price1 if quote.bid_price1 else quote.last_price
+            pos_obj = api.get_position(signal.symbol)
+            if pos_obj is None:
+                continue
             
-            # 【行情可用性检查】如果价格为空，跳过本轮重试
-            if order_price is None:
-                if attempt < max_retries:
-                    time.sleep(1)
-                    continue
-                else:
-                    return False
+            current_volume = pos_obj.volume_long if signal.direction == 1 else pos_obj.volume_short
             
-            # 【第2步】跳空阈值保护检查（仅在第一轮检查）
-            if attempt == 1:
-                can_trade = price_gap_proection(api, signal.symbol, signal.direction, gap_threshold_percent)
-                if not can_trade:
-                    # 存在危险跳空，放弃本次交易
-                    return False
+            # 只在成交量变化时打印日志
+            if current_volume != last_logged_volume:
+                print(f"   [INFO] {signal.symbol} 开仓进度: {current_volume}/{order_volume}手")
+                last_logged_volume = current_volume
             
-            # 【第3步】发送开仓指令
-            order_id = api.insert_order(
-                symbol=signal.symbol,
-                direction=order_direction,
-                offset='OPEN',
-                volume=order_volume,  # ← 实际手数（如8手）
-                limit_price=order_price
-            )
-            last_order_id = order_id
+            # 达到目标成交量
+            if current_volume >= order_volume:
+                print(f"   [SUCCESS] {signal.symbol} 开仓完成: {current_volume}手")
+                break
             
-            # 【第4步】等待并监控订单状态
-            start_time = time.time()
-            
-            while time.time() - start_time < retry_interval:
-                # 驱动事件循环以同步订单状态
-                api.wait_update(deadline=time.time() + 0.5)
-                
-                # 获取订单对象
-                order = api.get_order(order_id)
-                
-                # 检查订单终态
-                if order.status == 'FINISHED':
-                    # 订单全部成交
-                    filled_lots = order.volume_orign - order.volume_left  # 实际成交手数
-                    avg_price = order.average_price
-                    
-                    # 【数据有效性验证】确保成交量和价格有效
-                    if filled_lots <= 0 or avg_price is None:
-                        return False
-                    
-                    # 计算成交的单位数（向下取整到Unit）
-                    filled_units = filled_lots // unit_lots if unit_lots > 0 else 1
-                    
-                    with transaction.atomic():
-                        # 记录开仓交易执行日志
-                        TradeExecution.objects.create(
-                            account=account,
-                            symbol=signal.symbol,
-                            direction=order_direction,
-                            volume=filled_lots,  # ← 存储实际手数
-                            price=avg_price,
-                            trade_time=timezone.now(),
-                            order_id=order_id,
-                            trade_type='ENTRY'
-                        )
-                        
-                        # 创建持仓状态记录
-                        PositionState.objects.create(
-                            account=account,
-                            symbol=signal.symbol,
-                            product_code=signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',  # 提取品种代码
-                            direction=signal.direction,
-                            units=filled_units,  # ← 存储海龟单位数（如1）
-                            contract_total_position=filled_lots,  # ← 存储总手数（如8）
-                            last_add_price=avg_price,  # 初始化为开仓价
-                            contract_price_avg=avg_price,  # ← 首次开仓，成本价 = 开仓价
-                            highest_close=avg_price,  # 多头初始最高价
-                            lowest_close=avg_price,  # 空头初始最低价
-                            latest_close_price=avg_price,  # 初始化为开仓价
-                        )
-                    
-                    return True
-                elif order.status in ['CANCELLED', 'ERROR']:
-                    # 订单被取消或出错
-                    return False
-                elif order.status == 'PARTIAL_FILLED':
-                    # 部分成交，继续等待直到超时或全部成交
-                    pass
-            
-            # 【第5步】处理超时未完全成交的情况
-            order = api.get_order(order_id)
-            
-            if order.status == 'PARTIAL_FILLED':
-                # 部分成交，撤销剩余部分
-                api.cancel_order(order_id)
-                api.wait_update(deadline=time.time() + 1)
-                
-                # 记录已成交部分
-                filled_lots = order.volume_orign - order.volume_left
-                if filled_lots > 0:
-                    avg_price = order.average_price
-                    
-                    # 【数据有效性验证】确保价格有效
-                    if avg_price is None:
-                        return False
-                    
-                    # 计算成交的单位数
-                    filled_units = filled_lots // unit_lots if unit_lots > 0 else 1
-                    
-                    with transaction.atomic():
-                        TradeExecution.objects.create(
-                            account=account,
-                            symbol=signal.symbol,
-                            direction=order_direction,
-                            volume=filled_lots,  # ← 存储实际手数
-                            price=avg_price,
-                            trade_time=timezone.now(),
-                            order_id=order_id,
-                            trade_type='ENTRY'
-                        )
-                        
-                        # 创建持仓状态记录（按实际成交量）
-                        PositionState.objects.create(
-                            account=account,
-                            symbol=signal.symbol,
-                            product_code=signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
-                            direction=signal.direction,
-                            units=filled_units,  # ← 存储单位数
-                            contract_total_position=filled_lots,  # ← 存储总手数
-                            last_add_price=avg_price,
-                            highest_close=avg_price,
-                            lowest_close=avg_price,
-                            latest_close_price=avg_price,
-                        )
-                    
-                    return True
-                else:
-                    # 未成交，准备重试
-                    if attempt < max_retries:
-                        last_order_id = None
-                        continue
-                    else:
-                        return False
-            else:
-                # 未成交，撤单后重试
-                api.cancel_order(order_id)
-                api.wait_update(deadline=time.time() + 1)
-                last_order_id = None
-                
-                if attempt >= max_retries:
-                    return False
-                    
-        except Exception as e:
-            # 异常处理：尝试撤销未完成的订单
-            if last_order_id:
-                try:
-                    api.cancel_order(last_order_id)
-                    api.wait_update(deadline=time.time() + 1)
-                except:
-                    pass
-                finally:
-                    last_order_id = None
-            
-            if attempt >= max_retries:
+            # 检查是否长时间无进展（流动性问题）
+            if time.time() - start_time > timeout_seconds / 2 and current_volume == 0:
+                print(f"[WARN] {signal.symbol} 开仓{int(timeout_seconds/2)}秒仍无成交，可能存在流动性问题")
+        
+        # 获取最终成交结果
+        pos_after = api.get_position(signal.symbol)
+        if pos_after is None:
+            print(f"[ERROR] {signal.symbol} 无法获取持仓信息")
+            return False
+        
+        # 【修复P0】使用增量计算法计算本次开仓的实际成交量和均价
+        if signal.direction == 1:
+            filled_lots = pos_after.volume_long - initial_volume_long
+            if filled_lots <= 0:
+                print(f"[ERROR] {signal.symbol} 多头持仓未增加")
                 return False
-    
-    return False
+            
+            # 计算本次开仓的均价 = (新累计成本 - 旧累计成本) / 新增持仓量
+            current_cost = Decimal(str(pos_after.open_cost_long))
+            added_cost = current_cost - initial_cost_long
+            avg_price = float(added_cost / Decimal(str(filled_lots))) if filled_lots > 0 else None
+        else:
+            filled_lots = pos_after.volume_short - initial_volume_short
+            if filled_lots <= 0:
+                print(f"[ERROR] {signal.symbol} 空头持仓未增加")
+                return False
+            
+            current_cost = Decimal(str(pos_after.open_cost_short))
+            added_cost = current_cost - initial_cost_short
+            avg_price = float(added_cost / Decimal(str(filled_lots))) if filled_lots > 0 else None
+        
+        # 数据有效性验证
+        if avg_price is None or avg_price <= 0:
+            print(f"[ERROR] {signal.symbol} 无法计算有效成交均价: avg_price={avg_price}")
+            return False
+        
+        # 检查是否部分成交
+        if filled_lots < order_volume:
+            print(f"[WARN] {signal.symbol} 部分成交: {filled_lots}/{order_volume}手，继续执行")
+            # 更新实际成交的单位数
+            order_volume = filled_lots
+        
+        # 计算成交的单位数（向下取整）
+        filled_units = filled_lots // unit_lots if unit_lots > 0 else 1
+        
+        if filled_units == 0:
+            print(f"[ERROR] {signal.symbol} 成交手数不足以构成1个Unit")
+            return False
+        
+        with transaction.atomic():
+            # 记录开仓交易执行日志
+            TradeExecution.objects.create(
+                account=account,
+                symbol=signal.symbol,
+                direction='BUY' if signal.direction == 1 else 'SELL',
+                volume=filled_lots,
+                price=Decimal(str(avg_price)),
+                trade_time=timezone.now(),
+                order_id='',
+                trade_type='ENTRY'
+            )
+            
+            # 创建持仓状态记录
+            PositionState.objects.create(
+                account=account,
+                symbol=signal.symbol,
+                product_code=signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
+                direction=signal.direction,
+                units=filled_units,
+                contract_total_position=filled_lots,
+                last_add_price=Decimal(str(avg_price)),
+                contract_price_avg=Decimal(str(avg_price)),
+                highest_close=Decimal(str(avg_price)),
+                lowest_close=Decimal(str(avg_price)),
+                latest_close_price=Decimal(str(avg_price)),
+            )
+        
+        print(f"[SUCCESS] {signal.symbol} 开仓成功: {filled_units}Unit({filled_lots}手) @ {avg_price:.2f}")
+        return True
+        
+    except Exception as e:
+        print(f"[ERROR] 开仓失败 {signal.symbol}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+    finally:
+        # 清理TargetPosTask
+        try:
+            del target_pos
+        except:
+            pass
 
 
 def execute_exit_order(api, position, signal, max_retries=5, retry_interval=10):
     """
-    执行平仓操作的函数（使用当前市价 + 重试机制，确保全部成交）
+    执行平仓操作的函数（使用TargetPosTask简化订单管理）
     :param api: TqApi实例
     :param position: PositionState实例
     :param signal: DailyStrategySignal实例
     :param max_retries: 最大重试次数，默认5次
     :param retry_interval: 重试间隔时间（秒），默认10秒
-    :return: 是否成功执行平仓操作（全部成交）
+    :return: 是否成功执行平仓操作
     """
-    # 【计算需要平仓的总手数】从 contract_total_position 获取
+    # 获取需要平仓的总手数
     total_volume = position.contract_total_position
     
-    # 【边界检查】如果没有持仓，直接返回成功
+    # 边界检查
     if total_volume <= 0:
         return True
     
-    order_direction = 'SELL' if position.direction == 1 else 'BUY'
+    # 创建目标持仓任务
+    target_pos = TargetPosTask(api, position.symbol)
     
-    filled_total_lots = 0  # 累计已成交手数
-    total_cost = Decimal('0')  # 累计成交金额（用于计算加权均价）
-    last_order_id = None  # 记录最后一次发送的订单ID，用于异常清理
-    successful_order_id = None  # 记录成功成交的订单ID
-    
-    for attempt in range(1, max_retries + 1):
-        try:
-            # 计算本次需要下单的手数（总量 - 已成交）
-            remaining_volume = total_volume - filled_total_lots
+    try:
+        # 设置目标持仓为0（全部平仓）
+        target_pos.set_target_volume(0)
+        
+        # 等待成交完成
+        start_time = time.time()
+        while time.time() - start_time < retry_interval * max_retries:
+            api.wait_update(deadline=time.time() + 0.5)
             
-            if remaining_volume <= 0:
-                # 已全部成交，退出循环进行数据库记录
-                break
-            
-            # 【第1步】获取最新行情并确定价格
-            quote = api.get_quote(position.symbol)
-            
-            # 使用对手价：卖单用买一价，买单用卖一价
-            if order_direction == 'SELL':
-                order_price = quote.bid_price1 if quote.bid_price1 else quote.last_price
-            else:  # BUY
-                order_price = quote.ask_price1 if quote.ask_price1 else quote.last_price
-            
-            # 【行情可用性检查】如果价格为空，跳过本轮重试
-            if order_price is None:
-                if attempt < max_retries:
-                    time.sleep(1)  # 等待1秒后重试
-                    continue
-                else:
-                    return False
-            
-            # 【第2步】发送交易指令
-            order_id = api.insert_order(
-                symbol=position.symbol,
-                direction=order_direction,
-                offset='CLOSE',
-                volume=remaining_volume,  # ← 剩余手数
-                limit_price=order_price
-            )
-            last_order_id = order_id
-            
-            # 【第3步】等待并监控订单状态
-            start_time = time.time()
-            
-            while time.time() - start_time < retry_interval:
-                # 驱动事件循环以同步订单状态
-                api.wait_update(deadline=time.time() + 0.5)
-                
-                # 获取订单对象
-                order = api.get_order(order_id)
-                
-                # 检查订单终态
-                if order.status == 'FINISHED':
-                    successful_order_id = order_id  # 记录成功订单ID
+            # 检查是否已平仓
+            pos_obj = api.get_position(position.symbol)
+            if pos_obj is not None:
+                if pos_obj.volume_long == 0 and pos_obj.volume_short == 0:
                     break
-                elif order.status in ['CANCELLED', 'ERROR']:
-                    # 订单被取消或出错，直接返回失败
-                    return False
-                elif order.status == 'PARTIAL_FILLED':
-                    # 部分成交，继续等待直到超时或全部成交
-                    pass
+        
+        # 获取最终成交结果
+        pos_obj = api.get_position(position.symbol)
+        if pos_obj is None:
+            return False
+        
+        # 计算平仓均价（需要从历史成交记录估算）
+        # 由于TargetPosTask不直接提供平仓均价，这里使用当前市价作为近似
+        quote = api.get_quote(position.symbol)
+        avg_price = quote.last_price
+        
+        if avg_price is None:
+            return False
+        
+        with transaction.atomic():
+            TradeExecution.objects.create(
+                account=position.account,
+                symbol=position.symbol,
+                direction='SELL' if position.direction == 1 else 'BUY',
+                volume=total_volume,
+                price=Decimal(str(avg_price)),
+                trade_time=timezone.now(),
+                order_id='',
+                trade_type=signal.trade_type if signal else 'EXIT',
+                signal=signal
+            )
             
-            # 【第4步】根据最终状态处理
-            order = api.get_order(order_id)
-            
-            if order.status == 'FINISHED':
-                # 本笔订单全部成交，累加成交量和成本
-                current_filled = order.volume_orign - order.volume_left
-                actual_filled = min(current_filled, remaining_volume)
-                
-                # 【数据有效性验证】确保成交量和价格有效
-                if actual_filled <= 0 or order.average_price is None:
-                    return False
-                
-                filled_total_lots += actual_filled
-                total_cost += Decimal(str(order.average_price)) * Decimal(str(actual_filled))
-                
-                # 检查是否全部完成
-                if filled_total_lots >= total_volume:
-                    # 计算加权平均价格
-                    avg_price = total_cost / Decimal(str(filled_total_lots))
-                    
-                    with transaction.atomic():
-                        TradeExecution.objects.create(
-                            account=position.account,
-                            symbol=position.symbol,
-                            direction=-1 if position.direction == 1 else 1,  # 平仓方向与持仓相反
-                            volume=filled_total_lots,  # ← 存储实际手数
-                            price=avg_price,
-                            trade_time=timezone.now(),
-                            order_id=successful_order_id or order_id,
-                            trade_type=signal.trade_type if signal else 'EXIT',
-                            signal=signal
-                        )
-                        
-                        # 【清空持仓状态】
-                        PositionState.objects.filter(id=position.id).update(
-                            units=0,  # ← 单位数归零
-                            contract_total_position=0,  # ← 总手数归零
-                            direction=0,
-                            last_add_price=None,
-                            highest_close=None,
-                            lowest_close=None,
-                            stop_loss_price=None
-                        )
-                    
-                    return True
-                else:
-                    # FINISHED但累计量不足，说明有逻辑错误
-                    return False
-            
-            elif order.status == 'PARTIAL_FILLED':
-                # 部分成交且超时，累加成交量
-                current_filled = order.volume_orign - order.volume_left
-                actual_filled = min(current_filled, remaining_volume)
-                
-                # 【数据有效性验证】
-                if actual_filled > 0 and order.average_price is not None:
-                    filled_total_lots += actual_filled
-                    total_cost += Decimal(str(order.average_price)) * Decimal(str(actual_filled))
-                
-                # 撤销剩余未成交部分，准备下一轮重试
-                api.cancel_order(order_id)
-                api.wait_update(deadline=time.time() + 1)
-                last_order_id = None
-                
-                # 检查是否已累计全部成交
-                if filled_total_lots >= total_volume:
-                    avg_price = total_cost / Decimal(str(filled_total_lots))
-                    
-                    with transaction.atomic():
-                        TradeExecution.objects.create(
-                            account=position.account,
-                            symbol=position.symbol,
-                            direction=-1 if position.direction == 1 else 1,
-                            volume=filled_total_lots,  # ← 存储实际手数
-                            price=avg_price,
-                            trade_time=timezone.now(),
-                            order_id=order_id,
-                            trade_type=signal.trade_type if signal else 'EXIT',
-                            signal=signal
-                        )
-                        
-                        # 【清空持仓状态】
-                        PositionState.objects.filter(id=position.id).update(
-                            units=0,
-                            contract_total_position=0,
-                            direction=0,
-                            last_add_price=None,
-                            highest_close=None,
-                            lowest_close=None,
-                            stop_loss_price=None
-                        )
-                    
-                    return True
-                else:
-                    # 继续重试剩余量
-                    if attempt >= max_retries:
-                        return False
-                    continue
-            else:
-                # 未成交（NEW/SUBMITTED等状态超时），撤单后重试
-                api.cancel_order(order_id)
-                api.wait_update(deadline=time.time() + 1)
-                last_order_id = None
-                
-                if attempt >= max_retries:
-                    return False
-                    
-        except Exception as e:
-            # 异常处理：尝试撤销未完成的订单
-            if last_order_id:
-                try:
-                    api.cancel_order(last_order_id)
-                    api.wait_update(deadline=time.time() + 1)
-                except:
-                    pass
-                finally:
-                    last_order_id = None
-            
-            if attempt >= max_retries:
-                return False
-    
-    return False
+            # 清空持仓状态
+            PositionState.objects.filter(id=position.id).update(
+                units=0,
+                contract_total_position=0,
+                direction=0,
+                last_add_price=None,
+                highest_close=None,
+                lowest_close=None,
+                stop_loss_price=None
+            )
+        
+        return True
+        
+    except Exception as e:
+        print(f"[ERROR] 平仓失败 {position.symbol}: {str(e)}")
+        return False
+    finally:
+        # 清理TargetPosTask
+        try:
+            del target_pos
+        except:
+            pass
 
 
 def execute_rollover_order(api, position, signal, max_retries=5, retry_interval=10):
     """
-    执行移仓操作的函数（使用对手价 + 重试机制）
+    执行移仓操作的函数（使用TargetPosTask简化订单管理）
     :param api: TqApi实例
     :param position: PositionState实例（旧合约持仓）
     :param signal: DailyStrategySignal实例（新合约信号）
@@ -814,26 +621,13 @@ def execute_rollover_order(api, position, signal, max_retries=5, retry_interval=
     :return: 是否成功执行移仓操作
     """
     # 计算移仓数量
-    total_volume = position.units * position.contracts_per_unit
+    total_volume = position.contract_total_position
     
-    # 【边界检查】如果没有持仓，直接返回成功
+    # 边界检查
     if total_volume <= 0:
         return True
     
-    # 确定交易方向
-    exit_order_direction = 'SELL' if position.direction == 1 else 'BUY'  # 平仓方向
-    entry_order_direction = 'BUY' if position.direction == 1 else 'SELL'  # 开仓方向（与平仓相反）
-    
-    exit_filled_volume = 0  # 平仓累计成交量
-    entry_filled_volume = 0  # 开仓累计成交量
-    exit_total_cost = Decimal('0')  # 平仓累计成交金额
-    entry_total_cost = Decimal('0')  # 开仓累计成交金额
-    
-    last_exit_order_id = None  # 记录平仓订单ID
-    last_entry_order_id = None  # 记录开仓订单ID
-    exit_completed = False  # 标记平仓是否已完成
-    
-    # 创建移仓日志记录（初始状态为PENDING）
+    # 创建移仓日志记录
     rollover_log = RolloverLog.objects.create(
         account=position.account,
         old_symbol=position.symbol,
@@ -842,556 +636,180 @@ def execute_rollover_order(api, position, signal, max_retries=5, retry_interval=
         status='PENDING'
     )
     
-    for attempt in range(1, max_retries + 1):
-        try:
-            # ========== 第1阶段：平仓旧合约（仅当未完成时执行）==========
-            if not exit_completed and exit_filled_volume < total_volume:
-                exit_remaining_volume = total_volume - exit_filled_volume
-                
-                # 获取旧合约行情并使用对手价
-                exit_quote = api.get_quote(position.symbol)
-                if exit_order_direction == 'SELL':
-                    exit_order_price = exit_quote.bid_price1 if exit_quote.bid_price1 else exit_quote.last_price
-                else:  # BUY
-                    exit_order_price = exit_quote.ask_price1 if exit_quote.ask_price1 else exit_quote.last_price
-                
-                # 行情可用性检查
-                if exit_order_price is None:
-                    if attempt < max_retries:
-                        time.sleep(1)
-                        continue
-                    else:
-                        # 更新日志状态为失败
-                        rollover_log.status = 'FAILED'
-                        rollover_log.save(update_fields=['status', 'updated_at'])
-                        return False
-                
-                # 发送平仓指令
-                exit_order_id = api.insert_order(
-                    symbol=position.symbol,
-                    direction=exit_order_direction,
-                    offset='CLOSE',
-                    volume=exit_remaining_volume,
-                    limit_price=exit_order_price
-                )
-                last_exit_order_id = exit_order_id
-                
-                # 监控平仓订单状态
-                start_time = time.time()
-                while time.time() - start_time < retry_interval:
-                    api.wait_update(deadline=time.time() + 0.5)
-                    order = api.get_order(exit_order_id)
-                    
-                    if order.status == 'FINISHED':
-                        break
-                    elif order.status in ['CANCELLED', 'ERROR']:
-                        # 更新日志状态为失败
-                        rollover_log.status = 'FAILED'
-                        rollover_log.save(update_fields=['status', 'updated_at'])
-                        return False
-                    elif order.status == 'PARTIAL_FILLED':
-                        pass
-                
-                # 处理平仓订单结果
-                order = api.get_order(exit_order_id)
-                
-                if order.status == 'FINISHED':
-                    current_filled = order.volume_orign - order.volume_left
-                    actual_filled = min(current_filled, exit_remaining_volume)
-                    
-                    # 【数据有效性验证】
-                    if actual_filled <= 0 or order.average_price is None:
-                        # 更新日志状态为失败
-                        rollover_log.status = 'FAILED'
-                        rollover_log.save(update_fields=['status', 'updated_at'])
-                        return False
-                    
-                    exit_filled_volume += actual_filled
-                    exit_total_cost += Decimal(str(order.average_price)) * Decimal(str(actual_filled))
-                    
-                    # 检查是否全部完成
-                    if exit_filled_volume >= total_volume:
-                        exit_completed = True
-                elif order.status == 'PARTIAL_FILLED':
-                    current_filled = order.volume_orign - order.volume_left
-                    actual_filled = min(current_filled, exit_remaining_volume)
-                    
-                    # 【数据有效性验证】
-                    if actual_filled > 0 and order.average_price is not None:
-                        exit_filled_volume += actual_filled
-                        exit_total_cost += Decimal(str(order.average_price)) * Decimal(str(actual_filled))
-                    
-                    # 撤销剩余部分
-                    api.cancel_order(exit_order_id)
-                    api.wait_update(deadline=time.time() + 1)
-                    last_exit_order_id = None
-                    
-                    if exit_filled_volume < total_volume:
-                        if attempt < max_retries:
-                            continue
-                        else:
-                            # 更新日志状态为失败
-                            rollover_log.status = 'FAILED'
-                            rollover_log.save(update_fields=['status', 'updated_at'])
-                            return False
-                    else:
-                        exit_completed = True
-                else:
-                    # 未成交，撤单后重试
-                    api.cancel_order(exit_order_id)
-                    api.wait_update(deadline=time.time() + 1)
-                    last_exit_order_id = None
-                    
-                    if attempt >= max_retries:
-                        # 更新日志状态为失败
-                        rollover_log.status = 'FAILED'
-                        rollover_log.save(update_fields=['status', 'updated_at'])
-                        return False
-                    continue
-            
-            # ========== 第2阶段：开仓新合约（仅当平仓完成后执行）==========
-            if exit_completed and entry_filled_volume < total_volume:
-                entry_remaining_volume = total_volume - entry_filled_volume
-                
-                # 获取新合约行情并使用对手价
-                entry_quote = api.get_quote(signal.symbol)
-                if entry_order_direction == 'BUY':
-                    entry_order_price = entry_quote.ask_price1 if entry_quote.ask_price1 else entry_quote.last_price
-                else:  # SELL
-                    entry_order_price = entry_quote.bid_price1 if entry_quote.bid_price1 else entry_quote.last_price
-                
-                # 行情可用性检查
-                if entry_order_price is None:
-                    if attempt < max_retries:
-                        time.sleep(1)
-                        continue
-                    else:
-                        # 更新日志状态为失败
-                        rollover_log.status = 'FAILED'
-                        rollover_log.save(update_fields=['status', 'updated_at'])
-                        return False
-                
-                # 发送开仓指令
-                entry_order_id = api.insert_order(
-                    symbol=signal.symbol,
-                    direction=entry_order_direction,
-                    offset='OPEN',
-                    volume=entry_remaining_volume,
-                    limit_price=entry_order_price
-                )
-                last_entry_order_id = entry_order_id
-                
-                # 监控开仓订单状态
-                start_time = time.time()
-                while time.time() - start_time < retry_interval:
-                    api.wait_update(deadline=time.time() + 0.5)
-                    order = api.get_order(entry_order_id)
-                    
-                    if order.status == 'FINISHED':
-                        break
-                    elif order.status in ['CANCELLED', 'ERROR']:
-                        # 更新日志状态为失败
-                        rollover_log.status = 'FAILED'
-                        rollover_log.save(update_fields=['status', 'updated_at'])
-                        return False
-                    elif order.status == 'PARTIAL_FILLED':
-                        pass
-                
-                # 处理开仓订单结果
-                order = api.get_order(entry_order_id)
-                
-                if order.status == 'FINISHED':
-                    current_filled = order.volume_orign - order.volume_left
-                    actual_filled = min(current_filled, entry_remaining_volume)
-                    
-                    # 【数据有效性验证】
-                    if actual_filled <= 0 or order.average_price is None:
-                        # 更新日志状态为失败
-                        rollover_log.status = 'FAILED'
-                        rollover_log.save(update_fields=['status', 'updated_at'])
-                        return False
-                    
-                    entry_filled_volume += actual_filled
-                    entry_total_cost += Decimal(str(order.average_price)) * Decimal(str(actual_filled))
-                elif order.status == 'PARTIAL_FILLED':
-                    current_filled = order.volume_orign - order.volume_left
-                    actual_filled = min(current_filled, entry_remaining_volume)
-                    
-                    # 【数据有效性验证】
-                    if actual_filled > 0 and order.average_price is not None:
-                        entry_filled_volume += actual_filled
-                        entry_total_cost += Decimal(str(order.average_price)) * Decimal(str(actual_filled))
-                    
-                    # 撤销剩余部分
-                    api.cancel_order(entry_order_id)
-                    api.wait_update(deadline=time.time() + 1)
-                    last_entry_order_id = None
-                    
-                    if entry_filled_volume < total_volume:
-                        if attempt < max_retries:
-                            continue
-                        else:
-                            # 更新日志状态为失败
-                            rollover_log.status = 'FAILED'
-                            rollover_log.save(update_fields=['status', 'updated_at'])
-                            return False
-                else:
-                    # 未成交，撤单后重试
-                    api.cancel_order(entry_order_id)
-                    api.wait_update(deadline=time.time() + 1)
-                    last_entry_order_id = None
-                    
-                    if attempt >= max_retries:
-                        # 更新日志状态为失败
-                        rollover_log.status = 'FAILED'
-                        rollover_log.save(update_fields=['status', 'updated_at'])
-                        return False
-                    continue
-            
-            # ========== 检查是否全部完成 ==========
-            if exit_completed and entry_filled_volume >= total_volume:
-                # 计算加权平均价格
-                exit_avg_price = exit_total_cost / Decimal(str(exit_filled_volume))
-                entry_avg_price = entry_total_cost / Decimal(str(entry_filled_volume))
-                
-                with transaction.atomic():
-                    # 记录平仓交易执行日志
-                    TradeExecution.objects.create(
-                        account=position.account,
-                        symbol=position.symbol,
-                        direction=exit_order_direction,
-                        volume=exit_filled_volume,
-                        price=exit_avg_price,
-                        trade_time=timezone.now(),
-                        order_id=last_exit_order_id,
-                        trade_type='ROLLOVER_EXIT'
-                    )
-                    
-                    # 记录开仓交易执行日志
-                    TradeExecution.objects.create(
-                        account=position.account,
-                        symbol=signal.symbol,
-                        direction=entry_order_direction,
-                        volume=entry_filled_volume,
-                        price=entry_avg_price,
-                        trade_time=timezone.now(),
-                        order_id=last_entry_order_id,
-                        trade_type='ROLLOVER_ENTRY'
-                    )
-                    
-                    # 【关键】计算移仓盈亏
-                    rollover_pnl = (exit_avg_price - position.contract_price_avg) * Decimal(str(exit_filled_volume))
-                    if position.direction == -1:  # 空头持仓，盈亏反向
-                        rollover_pnl = -rollover_pnl
-                    
-                    # 更新旧持仓状态为已平仓（清空所有字段）
-                    PositionState.objects.filter(id=position.id).update(
-                        units=0,
-                        contract_total_position=0,
-                        direction=0,
-                        last_add_price=None,
-                        contract_price_avg=None,  # ← 清空成本价
-                        highest_close=None,
-                        lowest_close=None,
-                        stop_loss_price=None,
-                        latest_close_price=None,
-                        is_rollover_needed=False
-                    )
-                    
-                    # 获取新合约的合约乘数
-                    try:
-                        contract = api.get_instrument(signal.symbol)
-                        contracts_per_unit = contract.volume_multiple if contract and contract.volume_multiple else 1
-                    except:
-                        contracts_per_unit = 1
-                    
-                    # 计算新持仓的单位数
-                    entry_units = entry_filled_volume // contracts_per_unit
-                    
-                    # 创建新持仓状态记录
-                    PositionState.objects.create(
-                        account=position.account,
-                        symbol=signal.symbol,
-                        product_code=signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
-                        direction=position.direction,
-                        units=entry_units,  # ← 存储海龟单位数
-                        contract_total_position=entry_filled_volume,  # ← 存储实际手数
-                        last_add_price=entry_avg_price,
-                        contract_price_avg=entry_avg_price,  # ← 新合约成本价 = 开仓价
-                        highest_close=entry_avg_price,
-                        lowest_close=entry_avg_price,
-                        latest_close_price=entry_avg_price,
-                        is_rollover_needed=False
-                    )
-                    
-                    # 记录移仓日志
-                    RolloverLog.objects.create(
-                        account=position.account,
-                        old_symbol=position.symbol,
-                        new_symbol=signal.symbol,
-                        old_units=position.units,
-                        new_units=entry_units,
-                        old_avg_price=position.contract_price_avg,
-                        exit_price=exit_avg_price,
-                        entry_price=entry_avg_price,
-                        rollover_pnl=rollover_pnl,
-                        rollover_time=timezone.now(),
-                        status='COMPLETED',
-                        remark=f"移仓完成: {position.symbol} → {signal.symbol}, 盈亏={float(rollover_pnl):.2f}元"
-                    )
-                
-                return True
-            else:
-                # 未完成，继续重试
-                if attempt < max_retries:
-                    continue
-                else:
-                    # 更新日志状态为失败
-                    rollover_log.status = 'FAILED'
-                    rollover_log.save(update_fields=['status', 'updated_at'])
-                    return False
-                    
-        except Exception as e:
-            # 异常处理：尝试撤销未完成的订单
-            if last_exit_order_id:
-                try:
-                    api.cancel_order(last_exit_order_id)
-                    api.wait_update(deadline=time.time() + 1)
-                except:
-                    pass
-                finally:
-                    last_exit_order_id = None
-            
-            if last_entry_order_id:
-                try:
-                    api.cancel_order(last_entry_order_id)
-                    api.wait_update(deadline=time.time() + 1)
-                except:
-                    pass
-                finally:
-                    last_entry_order_id = None
-            
-            # 更新日志状态为失败
-            try:
-                rollover_log.status = 'FAILED'
-                rollover_log.save(update_fields=['status', 'updated_at'])
-            except:
-                pass
-            
-            if attempt >= max_retries:
-                return False
-    
-    return False
-
-
-def process_exit_signals(api, account, current_date):
-    """
-    处理平仓信号的函数
-    :param api: TqApi实例
-    :param account: TradingAccount实例
-    :param current_date: 当前日期
-    :return:
-    """
-    # 查询所有持仓状态为持仓中的记录（units > 0 表示有持仓）
-    open_positions = PositionState.objects.filter(account=account, units__gt=0)
-    
-    for position in open_positions:
-        # 检查是否存在平仓信号
-        exit_signals = DailyStrategySignal.objects.filter(
-            Q(symbol=position.symbol) & 
-            Q(trade_type='STOP_LOSS')        
-        )
-        for signal in exit_signals:
-            # 执行平仓操作
-            success = execute_exit_order(api, position, signal)
-            if success:
-                # 删除平仓信号
-                signal.delete()
-                print(f"✅ 平仓成功: {position.symbol}")
-            else:
-                print(f"❌ 平仓失败: {position.symbol}")    
-def process_entry_signals(api, account, current_date):
-    """
-    处理开仓信号的函数
-    :param api: TqApi实例
-    :param account: TradingAccount实例
-    :param current_date: 当前日期
-    :return:
-    """
-    # 查询所有开仓信号
-    entry_signals = DailyStrategySignal.objects.filter(
-        Q(trade_type='ENTRY')     )
-    
-    for signal in entry_signals:
-        # 执行开仓操作
-        success = execute_entry_order(api, account, signal) 
-        if success:
-            # 删除开仓信号
-            signal.delete()
-            print(f"✅ 开仓成功: {signal.symbol}")
-        else:
-            print(f"❌ 开仓失败: {signal.symbol}")
-def process_rollover_signals(api, account, current_date): 
-    """
-    处理移仓信号的函数
-    :param api: TqApi实例
-    :param account: TradingAccount实例
-    :param current_date: 当前日期
-    :return:
-    """
-    # 查询所有移仓信号
-    rollover_signals = DailyStrategySignal.objects.filter(
-        Q(trade_type='ROLLOVER') 
-    )
-    
-    for signal in rollover_signals:
-        # 【修复】查找对应的持仓记录
-        try:
-            position = PositionState.objects.get(account=account, symbol=signal.symbol, units__gt=0)
-            # 执行移仓操作
-            success = execute_rollover_order(api, position, signal)
-            if success:
-                # 删除移仓信号
-                signal.delete()
-                print(f"✅ 移仓成功: {position.symbol} -> {signal.symbol}")
-            else:
-                print(f"❌ 移仓失败: {position.symbol} -> {signal.symbol}")
-        except PositionState.DoesNotExist:
-            print(f"⚠️ 移仓信号未找到对应持仓: {signal.symbol}")
-def process_addon_signals(api, account, current_date):
-    """
-    处理加仓信号的函数
-    :param api: TqApi实例
-    :param account: TradingAccount实例
-    :param current_date: 当前日期
-    :return:
-    """
-    # 查询所有加仓信号
-    addon_signals = DailyStrategySignal.objects.filter(
-        Q(trade_type='ADDON'))
-    
-    for signal in addon_signals:
-        # 执行加仓操作
-        success = execute_addon_order(api, account, signal)
-        if success:
-            # 删除加仓信号
-            signal.delete()
-            print(f"✅ 加仓成功: {signal.symbol}")
-        else:
-            print(f"❌ 加仓失败: {signal.symbol}")
-
-
-def send_report(account, current_date):
-    """
-    发送今日交易执行情况报告（加仓、移仓、平仓）
-    
-    :param account: TradingAccount实例
-    :param current_date: 当前日期
-    :return: 是否发送成功
-    """
-    from stock.utils.send_mail import send_email
-    from django.template.loader import render_to_string
-    from django.utils import timezone
+    exit_avg_price = None
+    entry_avg_price = None
     
     try:
-        # 查询今天的交易执行记录
-        today_start = timezone.make_aware(timezone.datetime.combine(current_date, timezone.datetime.min.time()))
-        today_end = timezone.make_aware(timezone.datetime.combine(current_date, timezone.datetime.max.time()))
+        # ========== 第1阶段：平仓旧合约 ==========
+        target_pos_old = TargetPosTask(api, position.symbol)
         
-        today_trades = TradeExecution.objects.filter(
-            account=account,
-            trade_time__gte=today_start,
-            trade_time__lte=today_end
-        ).order_by('trade_time')
+        try:
+            # 设置目标持仓为0（全部平仓）
+            target_pos_old.set_target_volume(0)
+            
+            # 等待成交完成
+            start_time = time.time()
+            while time.time() - start_time < retry_interval * max_retries:
+                api.wait_update(deadline=time.time() + 0.5)
+                
+                pos_obj = api.get_position(position.symbol)
+                if pos_obj is not None:
+                    if pos_obj.volume_long == 0 and pos_obj.volume_short == 0:
+                        break
+            
+            # 获取平仓均价
+            quote = api.get_quote(position.symbol)
+            exit_avg_price = quote.last_price
+            
+            if exit_avg_price is None:
+                rollover_log.status = 'FAILED'
+                rollover_log.save(update_fields=['status', 'updated_at'])
+                return False
+                
+        finally:
+            try:
+                del target_pos_old
+            except:
+                pass
         
-        # 分类统计
-        addon_trades = today_trades.filter(trade_type='ADD_ON')
-        rollover_exit_trades = today_trades.filter(trade_type='ROLLOVER_EXIT')
-        rollover_entry_trades = today_trades.filter(trade_type='ROLLOVER_ENTRY')
-        stop_loss_trades = today_trades.filter(trade_type='STOP_LOSS')
-        close_signal_trades = today_trades.filter(trade_type='CLOSE_SIGNAL')
+        # ========== 第2阶段：开仓新合约 ==========
+        target_pos_new = TargetPosTask(api, signal.symbol)
         
-        # 计算统计数据
-        total_trades = (len(addon_trades) + len(rollover_exit_trades) + 
-                       len(rollover_entry_trades) + len(stop_loss_trades) + 
-                       len(close_signal_trades))
+        try:
+            # 设置目标持仓量（考虑方向）
+            target_volume = total_volume if position.direction == 1 else -total_volume
+            target_pos_new.set_target_volume(target_volume)
+            
+            # 等待成交完成
+            start_time = time.time()
+            while time.time() - start_time < retry_interval * max_retries:
+                api.wait_update(deadline=time.time() + 0.5)
+                
+                pos_obj = api.get_position(signal.symbol)
+                if pos_obj is not None:
+                    if position.direction == 1:
+                        if pos_obj.volume_long >= total_volume:
+                            break
+                    else:
+                        if pos_obj.volume_short >= total_volume:
+                            break
+            
+            # 获取开仓均价
+            pos_obj = api.get_position(signal.symbol)
+            if pos_obj is None:
+                rollover_log.status = 'FAILED'
+                rollover_log.save(update_fields=['status', 'updated_at'])
+                return False
+            
+            if position.direction == 1:
+                entry_avg_price = pos_obj.open_cost_long / pos_obj.volume_long if pos_obj.volume_long > 0 else None
+            else:
+                entry_avg_price = pos_obj.open_cost_short / pos_obj.volume_short if pos_obj.volume_short > 0 else None
+            
+            if entry_avg_price is None:
+                rollover_log.status = 'FAILED'
+                rollover_log.save(update_fields=['status', 'updated_at'])
+                return False
+                
+        finally:
+            try:
+                del target_pos_new
+            except:
+                pass
         
-        # 使用Django Template渲染HTML
-        context = {
-            'current_date': current_date,
-            'total_trades': total_trades,
-            'addon_count': len(addon_trades),
-            'rollover_count': len(rollover_exit_trades),
-            'stop_loss_count': len(stop_loss_trades),
-            'close_signal_count': len(close_signal_trades),
-            'addon_trades': addon_trades,
-            'rollover_exit_trades': rollover_exit_trades,
-            'rollover_entry_trades': rollover_entry_trades,
-            'stop_loss_trades': stop_loss_trades,
-            'close_signal_trades': close_signal_trades,
-        }
+        # ========== 更新数据库 ==========
+        with transaction.atomic():
+            # 记录平仓交易执行日志
+            TradeExecution.objects.create(
+                account=position.account,
+                symbol=position.symbol,
+                direction='SELL' if position.direction == 1 else 'BUY',
+                volume=total_volume,
+                price=Decimal(str(exit_avg_price)),
+                trade_time=timezone.now(),
+                order_id='',
+                trade_type='ROLLOVER_EXIT'
+            )
+            
+            # 记录开仓交易执行日志
+            TradeExecution.objects.create(
+                account=position.account,
+                symbol=signal.symbol,
+                direction='BUY' if position.direction == 1 else 'SELL',
+                volume=total_volume,
+                price=Decimal(str(entry_avg_price)),
+                trade_time=timezone.now(),
+                order_id='',
+                trade_type='ROLLOVER_ENTRY'
+            )
+            
+            # 计算移仓盈亏
+            rollover_pnl = (Decimal(str(exit_avg_price)) - position.contract_price_avg) * Decimal(str(total_volume))
+            if position.direction == -1:
+                rollover_pnl = -rollover_pnl
+            
+            # 获取新合约的合约乘数
+            try:
+                contract = api.get_instrument(signal.symbol)
+                contracts_per_unit = contract.volume_multiple if contract and contract.volume_multiple else 1
+            except:
+                contracts_per_unit = 1
+            
+            # 计算新持仓的单位数
+            entry_units = total_volume // contracts_per_unit
+            
+            # 更新旧持仓状态为已平仓
+            PositionState.objects.filter(id=position.id).update(
+                units=0,
+                contract_total_position=0,
+                direction=0,
+                last_add_price=None,
+                contract_price_avg=None,
+                highest_close=None,
+                lowest_close=None,
+                stop_loss_price=None,
+                latest_close_price=None,
+                is_rollover_needed=False
+            )
+            
+            # 创建新持仓状态记录
+            PositionState.objects.create(
+                account=position.account,
+                symbol=signal.symbol,
+                product_code=signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
+                direction=position.direction,
+                units=entry_units,
+                contract_total_position=total_volume,
+                last_add_price=Decimal(str(entry_avg_price)),
+                contract_price_avg=Decimal(str(entry_avg_price)),
+                highest_close=Decimal(str(entry_avg_price)),
+                lowest_close=Decimal(str(entry_avg_price)),
+                latest_close_price=Decimal(str(entry_avg_price)),
+                is_rollover_needed=False
+            )
+            
+            # 记录移仓日志
+            RolloverLog.objects.create(
+                account=position.account,
+                old_symbol=position.symbol,
+                new_symbol=signal.symbol,
+                old_units=position.units,
+                new_units=entry_units,
+                old_avg_price=position.contract_price_avg,
+                exit_price=Decimal(str(exit_avg_price)),
+                entry_price=Decimal(str(entry_avg_price)),
+                rollover_pnl=rollover_pnl,
+                rollover_time=timezone.now(),
+                status='COMPLETED',
+                remark=f"移仓完成: {position.symbol} → {signal.symbol}, 盈亏={float(rollover_pnl):.2f}元"
+            )
         
-        html_content = render_to_string('trade_execution_report.html', context)
-        
-        # 发送邮件
-        subject = f"【量化交易日报】{current_date} 交易执行情况"
-        receiver_email = os.getenv('EMAIL_RECEIVER', '312711936@qq.com')
-        
-        # 异步发送邮件
-        send_email(
-            subject=subject,
-            body=html_content,
-            receiver_email=receiver_email,
-            is_html=True
-        )
-        
-        print(f"[INFO] 交易报告已发送至: {receiver_email}")
         return True
         
     except Exception as e:
-        print(f"[ERROR] 发送交易报告失败: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-
-def job_daily_open_process():
-    """
-    每日开盘处理函数
-    """
-    from datetime import datetime
-
-    # 获取当前日期
-    current_date = datetime.now().date()
-
-    # 获取交易账户
-    accounts = TradingAccount.objects.all()
-
-    for account in accounts:
-        # 初始化TqApi
-        api = TqApi(TqAuth('yupei1986', 'yupei1986'))
-
+        print(f"[ERROR] 移仓失败 {position.symbol} -> {signal.symbol}: {str(e)}")
         try:
-            # 处理平仓信号
-            process_exit_signals(api, account, current_date)
-
-            # 处理开仓信号
-            process_entry_signals(api, account, current_date)
-
-            # 处理移仓信号
-            process_rollover_signals(api, account, current_date)
-
-            # 处理加仓信号
-            process_addon_signals(api, account, current_date)
-
-            # 发送交易执行情况报告
-            send_report(account, current_date)
-
-        except Exception as e:
-            print(f"[ERROR] 处理账户 {account.username} 时发生错误: {str(e)}")
-            import traceback
-            traceback.print_exc()
-
-        finally:
-            # 关闭TqApi连接
-            api.close()
+            rollover_log.status = 'FAILED'
+            rollover_log.save(update_fields=['status', 'updated_at'])
+        except:
+            pass

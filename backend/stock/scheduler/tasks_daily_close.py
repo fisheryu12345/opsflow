@@ -2,11 +2,8 @@ import pandas as pd
 import numpy as np
 from datetime import date, timedelta
 from django.db import transaction
-from django.db.models import Sum, Q, F
 from decimal import Decimal
 from tqsdk import TqApi, TqAuth
-from tqsdk.ta import ATR, SMA,MA
-from tqsdk.tafunc import hhv, llv
 from stock.tasks.celery_test import send_email_task as send_email
 from django.template.loader import render_to_string
 
@@ -527,25 +524,32 @@ def job_daily_close_calculation():
     每日收盘后定时任务入口
     
     执行流程：
-    1. 同步期货合约列表（获取最新主力合约信息）
-    2. 计算活跃品种的技术指标和策略信号
-    3. 检查是否需要开仓
-    4. 更新持仓跟踪价格
-    5. 检查是否需要平仓
-    6. 检查是否需要移仓
-    7. 邮件通知今日持仓、信号和操作建议（TODO）
+    1. 创建TqApi连接（统一管理）
+    2. 同步期货合约列表（获取最新主力合约信息）
+    3. 计算活跃品种的技术指标和策略信号
+    4. 检查是否需要开仓
+    5. 更新持仓跟踪价格
+    6. 检查是否需要平仓
+    7. 检查是否需要移仓
+    8. 邮件通知今日持仓、信号和操作建议
+    9. 关闭TqApi连接
     """
+    api = None
     try:
-        # 第1步：同步期货合约列表
+        # 第1步：创建TqApi连接
+        api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
+        print("[INFO] TqApi连接已建立")
+        
+        # 第2步：同步期货合约列表
         sync_contract_list_from_tqsdk()
         
-        # 第2步：计算活跃品种的技术指标
+        # 第3步：计算活跃品种的技术指标
         contracts = PositionState.objects.all().values('symbol', 'product_code','units')
         for contract in contracts:
             if FullContractList.objects.filter(symbol=contract['symbol'], is_active=True).exists():
                 contract['is_active'] = True
         active_contracts = [contract for contract in contracts if contract.get('is_active')]
-        print(active_contracts)
+        
         indicator_results = []
         
         if active_contracts:
@@ -554,17 +558,24 @@ def job_daily_close_calculation():
             
             for contract in active_contracts:
                 try:
+                    # 传入api实例，避免重复创建连接
                     result = calculate_indicators(
+                        api=api,  # ← 传入统一的api实例
                         symbol=contract['symbol'], 
                         product_code=contract['product_code'], 
                         days=60
                     )
-                    indicators = result.copy()
-                    del indicators['breakout_info']  # 不需要把突破信息存到 indicators 字段里
-                    del indicators['data_points']  # 不需要存储数据点数量
-                    PositionState.objects.filter(symbol=contract['symbol']).update(indicators=indicators,latest_close_price=result['latest_close'])
                     
                     if result:
+                        indicators = result.copy()
+                        del indicators['breakout_info']  # 不需要把突破信息存到 indicators 字段里
+                        del indicators['data_points']  # 不需要存储数据点数量
+                        
+                        PositionState.objects.filter(symbol=contract['symbol']).update(
+                            indicators=indicators,
+                            latest_close_price=result['latest_close']
+                        )
+                        
                         indicator_results.append(result)
                         success_count += 1
                     else:
@@ -572,10 +583,11 @@ def job_daily_close_calculation():
                         
                 except Exception as e:
                     fail_count += 1
-                    print(str(e))
-
-        # print(indicator_results)        
-        # 第3步：检查是否需要开仓（保存信号到数据库）
+                    print(f"[ERROR] 计算指标失败 {contract['symbol']}: {e}")
+            
+            print(f"[INFO] 指标计算完成: 成功{success_count}个, 失败{fail_count}个")
+        
+        # 第4步：检查是否需要开仓（保存信号到数据库）
         default_account = TradingAccount.objects.filter(is_active=True).first()
         
         if default_account and indicator_results:
@@ -597,27 +609,35 @@ def job_daily_close_calculation():
                     
                     if success:
                         open_count += 1
+            
+            print(f"[INFO] 开仓信号生成: {open_count}个")
     
-        # 计算持仓后出现的历史收盘最高低价格
+        # 第5步：计算持仓后出现的历史收盘最高低价格
         update_all_positions_high_low_price()
         
-        #止损价格计算
+        # 第6步：止损价格计算
         update_all_positions_stop_loss_price()
         
-        
-        # 第5步：检查是否需要平仓
+        # 第7步：检查是否需要平仓
         check_exit_signals()
 
-        # 第4步：检查加仓信号
+        # 第8步：检查加仓信号
         check_add_position_signals()
         
-        # 第6步：检查是否需要移仓
+        # 第9步：检查是否需要移仓
         check_rollover_signals()
         
-        # 第7步：生成并发送每日策略信号报告邮件
+        # 第10步：生成并发送每日策略信号报告邮件
         generate_daily_signal_report()
-
         
+        print("[INFO] ✅ 今日收盘计算任务完成")
+
     except Exception as e:
+        print(f"[ERROR] 收盘计算任务失败: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        # 确保TqApi连接被关闭
+        if api:
+            api.close()
+            print("[INFO] TqApi连接已关闭")

@@ -59,9 +59,17 @@ def check_breakout_signal(klines, entry_period=20):
         'remark': remark
     }
 
-def calculate_indicators(symbol="SHFE.rb2610", product_code="rb", days=60):
+def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
+    """
+    计算技术指标（使用传入的TqApi实例）
+    
+    :param api: TqApi实例（由调用者管理生命周期）
+    :param symbol: 合约代码
+    :param product_code: 品种代码
+    :param days: K线数据天数
+    :return: 指标结果字典
+    """
     try:
-        api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
         klines = api.get_kline_serial(symbol, days=days, duration_seconds=24 * 60 * 60)        
         if len(klines) < 20:
             return {
@@ -164,6 +172,7 @@ def calculate_indicators(symbol="SHFE.rb2610", product_code="rb", days=60):
         }
         return results
     except Exception as e:
-        print(str(e))
-    finally:
-        api.close()
+        print(f"[ERROR] 计算指标失败 {symbol}: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
