@@ -9,7 +9,7 @@ from django.template.loader import render_to_string
 
 
 # 假设你的 models 在 myapp.models 中
-from stock.models import TradingAccount, TradeExecution, DailyPerformance, DailyStrategySignal, RolloverLog, PositionState, FullContractList
+from stock.models import TradingAccount,DailyStrategySignal, PositionState, FullContractList
 from stock.utils.sync_contract_list_from_tqsdk import sync_contract_list_from_tqsdk
 from stock.utils.calculate_indicators import calculate_indicators
 
