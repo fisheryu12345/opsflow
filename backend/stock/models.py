@@ -339,11 +339,11 @@ class PositionState(models.Model):
     # --- 核心持仓 ---  开盘后成交才更新的字段。收盘无需处理。
     units = models.IntegerField("持仓单位数", default=0, 
                                validators=[MinValueValidator(0), MaxValueValidator(3)],
-                               help_text="对应 position_units，0表示空仓，最大值为3")
+                               help_text="对应 position_units，0表示空仓，最大值为3,用来计算开仓、加仓后的次数")
     direction = models.IntegerField("持仓方向 (1多/-1空/0无)", default=0, db_index=True)
-    contracts_per_unit = models.IntegerField("每单位手数", default=1, help_text="对应 contracts_per_unit")
+    contract_total_position = models.IntegerField("此合约总持仓手数", default=1, help_text="此合约总持仓手数,对于此合约总持仓")
     last_add_price = models.DecimalField("上次加仓价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="用于计算下一次加仓阈值")
-
+    contract_price_avg = models.DecimalField("持仓均价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="当前持仓的平均价格")
     # --- 关键价格 (用于计算止损和加仓) ---   收盘需要处理。开盘后成交才更新 last_add_price 和 highest/lowest_close 字段
     highest_close = models.DecimalField("持仓期最高价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="多头持仓期间的最高收盘价，用于移动止损")
     lowest_close = models.DecimalField("持仓期最低价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="空头持仓期间的最低收盘价，用于移动止损")

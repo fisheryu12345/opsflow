@@ -25,7 +25,7 @@ class FullContractListViewSet(viewsets.ModelViewSet):
         'allow_open': ['exact'],
         'sector': ['exact', 'icontains'],
         'category': ['exact', 'icontains'],
-        'need_rollover': ['exact'],
+        # 'need_rollover': ['exact'],
     }
     
     # 搜索字段（模糊搜索）

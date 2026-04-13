@@ -196,6 +196,123 @@ def check_rollover_signals():
         print(f"[ERROR] 检查移仓信号失败: {e}")
 
 
+def check_add_position_signals():
+    """
+    步骤4：检查是否需要加仓（基于海龟法则金字塔加仓逻辑）
+    
+    加仓规则：
+    - 仅对持仓单位数 < 3 的持仓进行检查
+    - 多头：今日收盘价 - 上次加仓价 > 0.5×ATR → 加仓1单位
+    - 多头：今日收盘价 - 上次加仓价 > 1.0×ATR 且 当前持仓=1单位 → 加仓2单位
+    - 空头：上次加仓价 - 今日收盘价 > 0.5×ATR → 加仓1单位
+    - 空头：上次加仓价 - 今日收盘价 > 1.0×ATR 且 当前持仓=1单位 → 加仓2单位
+    - 重要：无论价格变动多大，加仓后总单位数不得超过3单位
+    
+    注意：所有计算统一使用 Decimal 类型，避免精度丢失
+    """
+    try:
+        default_account = TradingAccount.objects.filter(is_active=True).first()
+        if not default_account:
+            return
+        
+        # 查询所有有持仓且单位数 < 3 的记录
+        positions = PositionState.objects.filter(
+            account=default_account,
+            units__gt=0,
+            units__lt=3  # 仅检查未达到最大持仓单位数的记录
+        ).exclude(direction=0)
+        
+        addon_count = 0
+        
+        for position in positions:
+            # 确保必要数据存在
+            if not position.latest_close_price or not position.last_add_price:
+                continue
+            
+            if not position.indicators:
+                continue
+            
+            try:
+                # 从 indicators 获取 ATR（转换为 Decimal）
+                atr_value = Decimal(str(position.indicators.get('atr_20', 0)))
+                
+                if atr_value <= 0:
+                    continue
+                
+                latest_price = position.latest_close_price
+                last_add_price = position.last_add_price
+                current_units = position.units  # ← 当前策略单位数（1或2）
+                
+                # 计算价格差
+                price_diff = latest_price - last_add_price
+                
+                add_units = 0  # 需要加仓的单位数
+                
+                if position.direction == 1:
+                    # 多头持仓：价格上涨才加仓
+                    if price_diff > Decimal('1') * atr_value:
+                        # 涨幅超过 1×ATR
+                        # 只有当前持仓为1单位时，才能加2单位（1+2=3）
+                        # 如果当前持仓为2单位，只能加1单位（2+1=3）
+                        if current_units == 1:
+                            add_units = 2
+                        else:  # current_units == 2
+                            add_units = 1
+                    elif price_diff > Decimal('0.5') * atr_value:
+                        # 涨幅超过 0.5×ATR，加仓1单位
+                        add_units = 1
+                
+                elif position.direction == -1:
+                    # 空头持仓：价格下跌才加仓
+                    # 对于空头，price_diff 为负值表示价格下跌
+                    if price_diff < Decimal('-1') * atr_value:
+                        # 跌幅超过 1×ATR
+                        # 只有当前持仓为1单位时，才能加2单位（1+2=3）
+                        # 如果当前持仓为2单位，只能加1单位（2+1=3）
+                        if current_units == 1:
+                            add_units = 2
+                        else:  # current_units == 2
+                            add_units = 1
+                    elif price_diff < Decimal('-0.5') * atr_value:
+                        # 跌幅超过 0.5×ATR，加仓1单位
+                        add_units = 1
+                
+                # 如果满足加仓条件，生成加仓信号
+                if add_units > 0:
+                    # 【最终安全检查】确保加仓后不超过3单位
+                    new_units = current_units + add_units
+                    if new_units > 3:
+                        add_units = 3 - current_units  # 调整为最多只能加到3单位
+                    
+                    DailyStrategySignal.objects.update_or_create(
+                        account=default_account,
+                        symbol=position.symbol,
+                        trade_date=date.today(),
+                        defaults={
+                            'trend_factor': position.indicators.get('trend_factor', 0),
+                            'trend_label': position.indicators.get('trend_label', ''),
+                            'donchian_upper': None,
+                            'donchian_lower': None,
+                            'is_breakout': False,
+                            'signal_direction': position.direction,
+                            'trade_type': 'ADD_ON',
+                            'remark': f"加仓信号: {'多头' if position.direction == 1 else '空头'} "
+                                     f"价格差={float(price_diff):.2f}, ATR={float(atr_value):.2f}, "
+                                     f"建议加仓{add_units}单位 (当前{current_units}→{current_units + add_units})"
+                        }
+                    )
+                    addon_count += 1
+            except Exception as pos_error:
+                print(f"[ERROR] 处理 {position.symbol} 加仓检查失败: {pos_error}")
+                continue
+        
+        if addon_count > 0:
+            print(f"[SUMMARY] 今日共生成 {addon_count} 个加仓信号")
+        
+    except Exception as e:
+        print(f"[ERROR] 检查加仓信号失败: {e}")
+
+
 def generate_daily_signal_report():
     """
     步骤7：生成每日策略信号报告并发送邮件
@@ -490,6 +607,9 @@ def job_daily_close_calculation():
         
         # 第5步：检查是否需要平仓
         check_exit_signals()
+
+        # 第4步：检查加仓信号
+        check_add_position_signals()
         
         # 第6步：检查是否需要移仓
         check_rollover_signals()
