@@ -6,7 +6,7 @@ from django_apscheduler.jobstores import DjangoJobStore
 # from stock.scheduler.tasks_daily_open import job_daily_on_prep, job_check_pending_orders
 from stock.scheduler.test_job import test_job
 from stock.scheduler.tasks_daily_close import job_daily_close_calculation
-from stock.scheduler.tasks_daily_open import tasks_daily_open
+from stock.scheduler.tasks_daily_open import job_daily_open_process
 
 
 # 获取 Django 配置的时区
@@ -54,11 +54,11 @@ scheduler.add_job(
     max_instances=1  # 最多同时运行1个实例
 )
 scheduler.add_job(
-    tasks_daily_open, 
+    job_daily_open_process, 
     'cron', 
     hour=21, 
     minute=1, 
-    id='tasks_daily_open',
+    id='job_daily_open_process',
     name='开盘前准备与跳空检查',
     misfire_grace_time=300,  # 允许5分钟的容错时间
     replace_existing=True,

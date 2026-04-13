@@ -542,7 +542,7 @@ def job_daily_close_calculation():
         print("[INFO] TqApi连接已建立")
         
         # 第2步：同步期货合约列表
-        sync_contract_list_from_tqsdk(api)
+        sync_contract_list_from_tqsdk(api=api)
         
         # 第3步：计算活跃品种的技术指标
         contracts = PositionState.objects.all().values('symbol', 'product_code','units')

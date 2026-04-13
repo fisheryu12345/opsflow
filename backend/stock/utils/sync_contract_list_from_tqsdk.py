@@ -29,10 +29,10 @@ def sync_contract_list_from_tqsdk(api=None):
     print("[INFO] 开始同步期货合约列表...")
     
     # 天勤账号配置
-    TQ_ACCOUNT = "yupei1986"
-    TQ_PASSWORD = "yupei1986"
+    # TQ_ACCOUNT = "yupei1986"
+    # TQ_PASSWORD = "yupei1986"
     
-    api = None
+    # api = None
     try:
         # 1. 初始化 TqApi
         # api = TqApi(auth=TqAuth(TQ_ACCOUNT, TQ_PASSWORD))
@@ -226,8 +226,4 @@ def sync_contract_list_from_tqsdk(api=None):
     
     finally:
         # 确保关闭 API 连接
-        if api:
-            try:
-                api.close()
-            except Exception as e:
-                print(f"[WARN] 关闭 TqApi 时出错: {e}")
+        pass
