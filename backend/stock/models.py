@@ -186,13 +186,13 @@ class StrategyConfig(models.Model):
     2. 不同品种可以应用不同的配置（例如：螺纹钢波动大，风险参数可以单独设）。
     """
     name = models.CharField("配置名称", max_length=50, unique=True, help_text="例如: 海龟策略_标准版")
-    symbol = models.CharField("适用合约", max_length=20, db_index=True, help_text="例如: CZCE.MA605")
-    is_active = models.BooleanField("是否启用", default=True, db_index=True)
+    # symbol = models.CharField("适用合约", max_length=20, db_index=True, help_text="例如: CZCE.MA605")
+    # is_active = models.BooleanField("是否启用", default=True, db_index=True)
 
     # --- 资金管理参数 ---
     max_units = models.IntegerField("最大持仓单位", default=3, help_text="对应代码 MAX_UNITS，限制最大加仓次数")
     entry_units = models.IntegerField("初始建仓单位", default=1, help_text="对应代码 ENTRY_UNITS")
-    risk_per_unit = models.DecimalField("每单位风险金额", max_digits=15, decimal_places=2, default=Decimal('40000'), help_text="对应代码 RISK_PER_UNIT，决定开仓手数")
+    risk_per_unit = models.DecimalField("每单位风险金额", max_digits=15, decimal_places=2, default=Decimal('4000'), help_text="对应代码 RISK_PER_UNIT，决定开仓手数")
     
     # --- 技术指标参数 ---
     atr_period = models.IntegerField("ATR周期", default=20, help_text="对应代码 ATR_PERIOD")
@@ -203,7 +203,7 @@ class StrategyConfig(models.Model):
     ma_periods = models.CharField("均线周期(逗号分隔)", max_length=20, default="10,20,40", help_text="用于计算趋势因子")
     
     # --- 过滤参数 ---
-    gap_threshold = models.DecimalField("跳空放弃阈值(%)", max_digits=5, decimal_places=2, default=Decimal('1.0'), help_text="对应代码中的跳空过滤逻辑，超过1%放弃开仓")
+    gap_threshold = models.DecimalField("跳空放弃阈值(%)", max_digits=5, decimal_places=2, default=Decimal('1.5'), help_text="对应代码中的跳空过滤逻辑，超过1.5%放弃开仓")
 
     class Meta:
         verbose_name = "策略参数配置"
