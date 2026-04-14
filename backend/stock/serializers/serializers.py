@@ -8,8 +8,6 @@ from stock.models import (
     StrategyConfig,
     DailyStrategySignal,
     PositionState,
-    RolloverLog,
-    TradeExecution,
     DailyPerformance,
 )
 
@@ -57,23 +55,6 @@ class PositionStateSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['id', 'last_update_time']
 
-
-class RolloverLogSerializer(serializers.ModelSerializer):
-    """移仓换月日志序列化器"""
-    
-    class Meta:
-        model = RolloverLog
-        fields = '__all__'
-        read_only_fields = ['id', 'trade_time', 'created_at', 'updated_at']
-
-
-class TradeExecutionSerializer(serializers.ModelSerializer):
-    """交易执行明细序列化器"""
-    
-    class Meta:
-        model = TradeExecution
-        fields = '__all__'
-        read_only_fields = ['id']
 
 
 class DailyPerformanceSerializer(serializers.ModelSerializer):

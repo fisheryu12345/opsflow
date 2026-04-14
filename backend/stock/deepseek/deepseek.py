@@ -32,7 +32,7 @@ class DeepSeekClient:
         api_key: Optional[str] = None,
         model: str = "deepseek-chat",
         temperature: float = 0.7,
-        max_tokens: int = 2000,
+        max_tokens: int = 20000,
         system_prompt: Optional[str] = None
     ):
         """

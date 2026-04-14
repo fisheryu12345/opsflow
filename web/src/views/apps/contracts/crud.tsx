@@ -95,13 +95,13 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 			},
 			rowHandle: {
 				fixed: 'right',
-				width: 100,  // 调整宽度，只保留切换状态按钮
+				width: 200,  // 调整宽度，只保留切换状态按钮
 				buttons: {
 					view: {
 						show: false,
 					},
 					edit: {
-						show: false  // 隐藏编辑按钮
+						show: true  // 隐藏编辑按钮
 					},
 					remove: {
 						show: false  // 隐藏删除按钮
@@ -110,7 +110,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						text: compute((context) => {
 							return context.row.is_active ? '停用' : '激活';
 						}),
-						type: 'text',
+						type: 'info',
 						iconRight: compute((context) => {
 							return context.row.is_active ? 'Close' : 'Check';
 						}),
@@ -391,6 +391,64 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						component: {
 							activeText: '启用',
 							inactiveText: '停用',
+						},
+					},
+				},
+				night_trading: {
+					title: '夜盘交易',
+					search: {
+						show: true,
+						component: {
+							name: 'el-select',
+							props: {
+								clearable: true,
+								placeholder: '请选择状态',
+							},
+							options: [  // 静态数据，不需要动态加载
+								{ label: '是', value: true },
+								{ label: '否', value: false },
+							]
+						}
+					},
+					type: 'dict-switch',
+					column: {
+						width: 100,
+						align: 'center',
+						sorter: true,  // 启用排序
+						component: {
+							name: 'el-switch',
+							activeText: '',
+							inactiveText: '',
+							style: '--el-switch-on-color: var(--el-color-primary); --el-switch-off-color: #dcdfe6',
+						},
+					},
+					dict: dict({
+						data: [
+							{ value: true, label: '是', color: 'success' },
+							{ value: false, label: '否', color: 'info' },
+						]
+					}),
+					form: {
+						value: false,
+						component: {
+							activeText: '是',
+							inactiveText: '否',
+						},
+					},
+				},
+			min_position: {
+					title: '交易所限制最小开仓手数',
+					type: 'number',
+					column: {
+						width: 100,
+						align: 'right',
+						sorter: true,  // 启用排序
+					},
+					form: {
+						rules: [{ required: true, message: '交易所限制最小开仓手数' }],
+						value: 1,
+						component: {
+							min: 1,
 						},
 					},
 				},

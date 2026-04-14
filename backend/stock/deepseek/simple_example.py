@@ -2,17 +2,37 @@
 DeepSeek API 极简示例
 """
 
+import os
 from stock.deepseek import DeepSeekClient
 from datetime import datetime
 
-# 创建客户端（替换为你的 API Key）
-client = DeepSeekClient(api_key="sk-217d89e0760c4e6eab307e87383f34b5")
+# 从环境变量读取 API Key（推荐方式），如果不存在则使用默认值（仅用于开发/测试）
+api_key = os.getenv("DEEPSEEK_API_KEY", "sk-217d89e0760c4e6eab307e87383f34b5")
+
+# 创建客户端
+client = DeepSeekClient(api_key=api_key)
 date = datetime.now().strftime("%Y-%m-%d")
-# 发送消息
-response = client.chat(f"请告诉我今天晚上{date}国内期货夜盘进行交易吗？请直接返回一个JSON数据,只需要包含以下字段：\n\"is_trading_night\": true/false" )
-print(response)
 
+# 发送消息 - 注意：JSON 中的花括号需要转义（使用双花括号 {{ }}）以避免 format() 报错
+prompt = """
+请告诉我当前{date}国内期货哪些品种有开仓最小数量限制?请直接返回一个JSON数据,返回的数据格式请严格遵守JSON数据格式。具体的返回数据格式参考如下：
+{{
+    "data": [
+        {{
+            "合约代码": "RB2610",
+            "开仓最小数量限制": "100"
+        }},
+        {{
+            "合约代码": "MA2605",
+            "开仓最小数量限制": "50"
+        }}
+    ]
+}}
+"""
 
-response = client.chat(f"请告诉我哪些国内期货品种没有夜盘？请直接返回一个JSON数据,只需要包含以下字段：\n\"product_code\": true/false" )
-print(response)
+try:
+    response = client.chat(prompt.format(date=date))
+    print(response)
+except Exception as e:
+    print(f"请求失败: {str(e)}")
 

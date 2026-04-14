@@ -11,7 +11,6 @@ from stock.scheduler.calculate_unit_lots import calculate_unit_lots
 from stock.scheduler.calculate_atr import calculate_atr, price_gap_protection
 from stock.scheduler.send_report import send_report
 from stock.utils.log_util import log_trade, log_error
-from stock.scheduler.check_min_position_requirement import check_min_position_requirement
 
 # ==================== 仓位管理配置常量 ====================
 POSITION_RISK_BASE_AMOUNT = 4000  # 每个Unit（单位）的固定风险资金基数（元）
@@ -34,9 +33,7 @@ def execute_addon_order(api, account, signal):
     
     # 优化】直接从 signal.contract_target_number 获取加仓单位数
     add_units_from_signal = signal.contract_target_number   
-    msg = f"[INFO] {signal.symbol} 从信号获取加仓单位数: {add_units_from_signal}Unit"
-    print(msg)
-    log_trade('execute_addon_order', msg, account=account, symbol=signal.symbol, signal=signal)
+    print(f"[INFO] {signal.symbol} 从信号获取加仓单位数: {add_units_from_signal}Unit")
     
     # 【修复P0】使用数据库事务和行级锁防止并发
     with transaction.atomic():
@@ -52,7 +49,6 @@ def execute_addon_order(api, account, signal):
         if projected_units > POSITION_MAX_UNITS:
             msg = f"[WARN] {signal.symbol} 加仓后将超限: 当前{position.units}Unit + 加仓{add_units_from_signal}Unit = {projected_units}Unit > 最大{POSITION_MAX_UNITS}Unit"
             print(msg)
-            log_trade('execute_addon_order', msg, account=account, symbol=signal.symbol, signal=signal, level='WARNING')
             # 更新信号状态为取消（超出限制）
             signal.executed_status = 'CANCELLED'
             signal.save(update_fields=['executed_status', 'updated_at'])
@@ -64,9 +60,7 @@ def execute_addon_order(api, account, signal):
     # 计算实际下单手数 = 加仓单位数 × 1个Unit的手数
     order_volume = add_units_from_signal * unit_lots
     
-    msg = f"[INFO] {signal.symbol} 加仓计划: {add_units_from_signal}Unit × {unit_lots}手/Unit = {order_volume}手"
-    print(msg)
-    log_trade('execute_addon_order', msg, account=account, symbol=signal.symbol, signal=signal)
+    print(f"[INFO] {signal.symbol} 加仓计划: {add_units_from_signal}Unit × {unit_lots}手/Unit = {order_volume}手")
     
     # 【修复P0】记录加仓前的持仓状态（仅用于验证成交量）
     pos_before = api.get_position(signal.symbol)
@@ -78,13 +72,13 @@ def execute_addon_order(api, account, signal):
     
     try:
         # 计算目标持仓量 = 当前持仓 + 加仓手数
-        # current_position = api.get_position(signal.symbol)
+        current_position = api.get_position(signal.symbol)
         if position.direction == 1:
-            current_lots = initial_volume_long 
+            current_lots = current_position.volume_long if current_position else 0
             target_lots = current_lots + order_volume
         else:
-            current_lots = initial_volume_short 
-            target_lots = -(current_lots + order_volume)
+            current_lots = current_position.volume_short if current_position else 0
+            target_lots = current_lots + order_volume
         
         msg = f"[INFO] {signal.symbol} 设置目标持仓: {target_lots}手 (当前{current_lots}手 + 加仓{order_volume}手)"
         print(msg)
@@ -370,6 +364,39 @@ def execute_exit_order(api, position, signal):
                 log_trade('execute_exit_order', msg, account=position.account, symbol=position.symbol, signal=signal, level='SUCCESS')
                 break
         
+        # 【修复P0】获取最终成交结果并验证持仓是否真的归零
+        pos_after = api.get_position(position.symbol)
+        if pos_after is None:
+            msg = f"[ERROR] {position.symbol} 无法获取持仓信息"
+            print(msg)
+            log_error('execute_exit_order', msg, account=position.account, symbol=position.symbol, signal=signal)
+            # 更新信号状态为失败（如果有信号关联）
+            if signal:
+                try:
+                    signal.executed_status = 'FAILED'
+                    signal.save(update_fields=['executed_status', 'updated_at'])
+                except:
+                    pass
+            return False
+        
+        # 【关键检查】验证实际剩余持仓
+        remaining_lots = 0
+        if position.direction == 1:
+            remaining_lots = pos_after.volume_long
+        else:
+            remaining_lots = pos_after.volume_short
+        
+        if remaining_lots > 0:
+            msg = f"[ERROR] {position.symbol} 平仓未完全成功！计划平仓{total_volume}手，剩余{remaining_lots}手"
+            print(msg)
+            log_error('execute_exit_order', msg, account=position.account, symbol=position.symbol, signal=signal)
+            if signal:
+                try:
+                    signal.executed_status = 'FAILED'
+                    signal.save(update_fields=['executed_status', 'updated_at'])
+                except:
+                    pass
+            return False
         
         with transaction.atomic():
             # 清空持仓状态
@@ -428,6 +455,12 @@ def execute_rollover_order(api, position, signal):
     # 计算移仓数量
     total_volume = position.contract_total_position
     
+    # 【边界检查】如果没有持仓，直接返回成功
+    if total_volume <= 0:
+        msg = f"[INFO] {position.symbol} 无持仓，无需移仓"
+        print(msg)
+        log_trade('execute_rollover_order', msg, account=position.account, symbol=position.symbol, signal=signal)
+        return True
     
     # ========== 第1阶段：平仓旧合约 ==========
     msg = f"[INFO] {position.symbol} 开始平仓旧合约..."
@@ -463,7 +496,33 @@ def execute_rollover_order(api, position, signal):
                 msg = f"[SUCCESS] {position.symbol} 平仓完成"
                 print(msg)
                 log_trade('execute_rollover_order', msg, account=position.account, symbol=position.symbol, signal=signal, level='SUCCESS')
-                break                
+                break
+        
+        # 【修复P0】获取最终成交结果并验证持仓是否真的归零
+        pos_after_old = api.get_position(position.symbol)
+        if pos_after_old is None:
+            msg = f"[ERROR] {position.symbol} 无法获取持仓信息"
+            print(msg)
+            log_error('execute_rollover_order', msg, account=position.account, symbol=position.symbol, signal=signal)
+            signal.executed_status = 'FAILED'
+            signal.save(update_fields=['executed_status', 'updated_at'])
+            return False
+        
+        # 【关键检查】验证实际剩余持仓
+        remaining_lots = 0
+        if position.direction == 1:
+            remaining_lots = pos_after_old.volume_long
+        else:
+            remaining_lots = pos_after_old.volume_short
+        
+        if remaining_lots > 0:
+            msg = f"[ERROR] {position.symbol} 平仓未完全成功！计划平仓{total_volume}手，剩余{remaining_lots}手"
+            print(msg)
+            log_error('execute_rollover_order', msg, account=position.account, symbol=position.symbol, signal=signal)
+            signal.executed_status = 'FAILED'
+            signal.save(update_fields=['executed_status', 'updated_at'])
+            return False
+                
     except Exception as e:
         msg = f"[ERROR] {position.symbol} 平仓失败: {str(e)}"
         print(msg)
@@ -523,18 +582,49 @@ def execute_rollover_order(api, position, signal):
                 log_trade('execute_rollover_order', msg, account=position.account, symbol=signal.symbol, signal=signal, level='SUCCESS')
                 break
         
+        # 【修复P0】获取最终成交结果并验证持仓
+        pos_after_new = api.get_position(signal.symbol)
+        if pos_after_new is None:
+            msg = f"[ERROR] {signal.symbol} 无法获取持仓信息"
+            print(msg)
+            log_error('execute_rollover_order', msg, account=position.account, symbol=signal.symbol, signal=signal)
+            signal.executed_status = 'FAILED'
+            signal.save(update_fields=['executed_status', 'updated_at'])
+            return False
+        
+        # 【简化】计算实际开仓成交量
+        if position.direction == 1:
+            entry_filled_lots = pos_after_new.volume_long
+        else:
+            entry_filled_lots = pos_after_new.volume_short
+        
+        if entry_filled_lots <= 0:
+            msg = f"[ERROR] {signal.symbol} 持仓未增加"
+            print(msg)
+            log_error('execute_rollover_order', msg, account=position.account, symbol=signal.symbol, signal=signal)
+            signal.executed_status = 'FAILED'
+            signal.save(update_fields=['executed_status', 'updated_at'])
+            return False
         
         # 【简化】直接使用TqSDK实时行情价格作为成交价格
         quote = api.get_quote(signal.symbol)
         entry_avg_price = float(quote.last_price) if quote and quote.last_price else None
         
-        msg = f"[INFO] {signal.symbol} 换月开仓成功: {actual_filled}手  @ {entry_avg_price:.2f}"
+        if entry_avg_price is None or entry_avg_price <= 0:
+            msg = f"[WARN] {signal.symbol} 无法获取有效市场价格，使用0作为均价"
+            print(msg)
+            log_trade('execute_rollover_order', msg, account=position.account, symbol=signal.symbol, signal=signal, level='WARNING')
+            entry_avg_price = 0.0
+        
+        msg = f"[INFO] {signal.symbol} 开仓成功: {entry_filled_lots}手 @ {entry_avg_price:.2f}"
         print(msg)
         log_trade('execute_rollover_order', msg, account=position.account, symbol=signal.symbol, signal=signal)
         
         # ========== 第3阶段：更新数据库 ==========
         with transaction.atomic():
-           
+            # 【修复】移仓后直接沿用旧合约的Unit值，不重新计算
+            entry_units = position.units
+            
             # 【修复】基于过去20日历史数据初始化 highest_close、lowest_close 和 stop_loss_price
             try:
                 # 获取新合约过去20日的K线数据
@@ -588,7 +678,7 @@ def execute_rollover_order(api, position, signal):
                 product_code=signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
                 direction=position.direction,
                 units=position.units,
-                contract_total_position=position.contract_total_position,
+                contract_total_position=entry_filled_lots,
                 last_add_price=Decimal(str(entry_avg_price)),
                 contract_price_avg=Decimal(str(entry_avg_price)),
                 highest_close=init_highest_close,
@@ -618,127 +708,100 @@ def execute_rollover_order(api, position, signal):
         except:
             pass
         return False
-
-
-def process_signals_by_type(api, account, trade_type):
+    
+def process_exit_signals(api, account):
     """
-    通用信号处理函数（支持开仓、平仓、移仓、加仓）
+    处理平仓信号的函数
     :param api: TqApi实例
     :param account: TradingAccount实例
-    :param trade_type: 交易类型 ('ENTRY', 'STOP_LOSS', 'ROLLOVER', 'ADDON')
-    :return: 处理结果统计
+    :param current_date: 当前日期
+    :return:
     """
-    # 定义不同交易类型的配置
-    type_config = {
-        'ENTRY': {
-            'query_filter': Q(trade_type='ENTRY'),
-            'executor': execute_entry_order,
-            'executor_args': ['api', 'account', 'signal'],
-            'success_msg': lambda signal: f"✅ 开仓成功: {signal.symbol}",
-            'fail_msg': lambda signal: f"❌ 开仓失败: {signal.symbol}",
-            'need_position': False
-        },
-        'STOP_LOSS': {
-            'query_filter': Q(trade_type='STOP_LOSS'),
-            'executor': execute_exit_order,
-            'executor_args': ['api', 'position', 'signal'],
-            'success_msg': lambda position: f"✅ 平仓成功: {position.symbol}",
-            'fail_msg': lambda position: f"❌ 平仓失败: {position.symbol}",
-            'need_position': True,
-            'position_filter': lambda account: PositionState.objects.filter(account=account, units__gt=0)
-        },
-        'ROLLOVER': {
-            'query_filter': Q(trade_type='ROLLOVER'),
-            'executor': execute_rollover_order,
-            'executor_args': ['api', 'position', 'signal'],
-            'success_msg': lambda position, signal: f"✅ 移仓成功: {position.symbol} -> {signal.symbol}",
-            'fail_msg': lambda position, signal: f"❌ 移仓失败: {position.symbol} -> {signal.symbol}",
-            'need_position': True,
-            'position_filter': lambda account, symbol: PositionState.objects.get(account=account, symbol=symbol, units__gt=0)
-        },
-        'ADDON': {
-            'query_filter': Q(trade_type='ADDON'),
-            'executor': execute_addon_order,
-            'executor_args': ['api', 'account', 'signal'],
-            'success_msg': lambda signal: f"✅ 加仓成功: {signal.symbol}",
-            'fail_msg': lambda signal: f"❌ 加仓失败: {signal.symbol}",
-            'need_position': False
-        }
-    }
+    # 查询所有持仓状态为持仓中的记录（units > 0 表示有持仓）
+    open_positions = PositionState.objects.filter(account=account, units__gt=0)
     
-    # 获取配置
-    config = type_config.get(trade_type)
-    if not config:
-        print(f"[ERROR] 不支持的交易类型: {trade_type}")
-        return {'success': 0, 'failed': 0, 'skipped': 0}
+    for position in open_positions:
+        # 检查是否存在平仓信号
+        exit_signals = DailyStrategySignal.objects.filter(
+            Q(symbol=position.symbol) & 
+            Q(trade_type='STOP_LOSS')        
+        )
+        for signal in exit_signals:
+            # 执行平仓操作
+            success = execute_exit_order(api, position, signal)
+            if success:
+                # 删除平仓信号
+                signal.delete()
+                print(f"✅ 平仓成功: {position.symbol}")
+            else:
+                print(f"❌ 平仓失败: {position.symbol}")    
+def process_entry_signals(api, account):
+    """
+    处理开仓信号的函数
+    :param api: TqApi实例
+    :param account: TradingAccount实例
+    :param current_date: 当前日期
+    :return:
+    """
+    # 查询所有开仓信号
+    entry_signals = DailyStrategySignal.objects.filter(
+        Q(trade_type='ENTRY')     )
     
-    # 查询信号
-    signals = DailyStrategySignal.objects.filter(config['query_filter'])
-    
-    success_count = 0
-    failed_count = 0
-    skipped_count = 0
-    
-    # 根据是否需要持仓记录采用不同的处理逻辑
-    if config['need_position']:
-        if trade_type == 'STOP_LOSS':
-            # 平仓：遍历持仓记录，查找对应的信号
-            positions = config['position_filter'](account)
-            for position in positions:
-                exit_signals = DailyStrategySignal.objects.filter(
-                    Q(symbol=position.symbol) & config['query_filter']
-                )
-                for signal in exit_signals:
-                    try:
-                        success = config['executor'](api, position, signal)
-                        if success:
-                            signal.delete()
-                            print(config['success_msg'](position))
-                            success_count += 1
-                        else:
-                            print(config['fail_msg'](position))
-                            failed_count += 1
-                    except Exception as e:
-                        print(f"[ERROR] 处理{trade_type}信号异常: {str(e)}")
-                        failed_count += 1
-        
-        elif trade_type == 'ROLLOVER':
-            # 移仓：遍历信号，查找对应的持仓记录
-            for signal in signals:
-                try:
-                    position = config['position_filter'](account, signal.symbol)
-                    success = config['executor'](api, position, signal)
-                    if success:
-                        signal.delete()
-                        print(config['success_msg'](position, signal))
-                        success_count += 1
-                    else:
-                        print(config['fail_msg'](position, signal))
-                        failed_count += 1
-                except PositionState.DoesNotExist:
-                    print(f"⚠️ 移仓信号未找到对应持仓: {signal.symbol}")
-                    skipped_count += 1
-                except Exception as e:
-                    print(f"[ERROR] 处理{trade_type}信号异常: {str(e)}")
-                    failed_count += 1
-    else:
-        # 开仓和加仓：直接遍历信号
-        for signal in signals:
-            try:
-                success = config['executor'](api, account, signal)
-                if success:
-                    signal.delete()
-                    print(config['success_msg'](signal))
-                    success_count += 1
-                else:
-                    print(config['fail_msg'](signal))
-                    failed_count += 1
-            except Exception as e:
-                print(f"[ERROR] 处理{trade_type}信号异常: {str(e)}")
-                failed_count += 1
-    
-    return {'success': success_count, 'failed': failed_count, 'skipped': skipped_count}
-
+    for signal in entry_signals:
+        # 执行开仓操作
+        success = execute_entry_order(api, account, signal) 
+        if success:
+            # 删除开仓信号
+            signal.delete()
+            print(f"✅ 开仓成功: {signal.symbol}")
+        else:
+            print(f"❌ 开仓失败: {signal.symbol}")
+def process_rollover_signals(api, account): 
+    """
+    处理移仓信号的函数
+    :param api: TqApi实例
+    :param account: TradingAccount实例
+    :param current_date: 当前日期
+    :return:
+    """
+    # 查询所有移仓信号
+    rollover_signals = DailyStrategySignal.objects.filter(
+        Q(trade_type='ROLLOVER') 
+    )
+    for signal in rollover_signals:
+        # 【修复】查找对应的持仓记录
+        try:
+            position = PositionState.objects.get(account=account, symbol=signal.symbol, units__gt=0)
+            # 执行移仓操作
+            success = execute_rollover_order(api, position, signal)
+            if success:
+                # 删除移仓信号
+                signal.delete()
+                print(f"✅ 移仓成功: {position.symbol} -> {signal.symbol}")
+            else:
+                print(f"❌ 移仓失败: {position.symbol} -> {signal.symbol}")
+        except PositionState.DoesNotExist:
+            print(f"⚠️ 移仓信号未找到对应持仓: {signal.symbol}")
+def process_addon_signals(api, account):
+    """
+    处理加仓信号的函数
+    :param api: TqApi实例
+    :param account: TradingAccount实例
+    :param current_date: 当前日期
+    :return:
+    """
+    # 查询所有加仓信号
+    addon_signals = DailyStrategySignal.objects.filter(
+        Q(trade_type='ADDON'))
+    for signal in addon_signals:
+        # 执行加仓操作
+        success = execute_addon_order(api, account, signal)
+        if success:
+            # 删除加仓信号
+            signal.delete()
+            print(f"✅ 加仓成功: {signal.symbol}")
+        else:
+            print(f"❌ 加仓失败: {signal.symbol}")
 
 def job_daily_open_process():
     """
@@ -754,21 +817,13 @@ def job_daily_open_process():
         api = TqApi(TqAuth('yupei1986', 'yupei1986'))
         try:
             # 处理平仓信号
-            result = process_signals_by_type(api, account, 'STOP_LOSS')
-            print(f"[INFO] 平仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
-            
+            process_exit_signals(api, account, current_date)
             # 处理开仓信号
-            result = process_signals_by_type(api, account, 'ENTRY')
-            print(f"[INFO] 开仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
-            
+            process_entry_signals(api, account, current_date)
             # 处理移仓信号
-            result = process_signals_by_type(api, account, 'ROLLOVER')
-            print(f"[INFO] 移仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔, 跳过{result['skipped']}笔")
-            
+            process_rollover_signals(api, account, current_date)
             # 处理加仓信号
-            result = process_signals_by_type(api, account, 'ADDON')
-            print(f"[INFO] 加仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
-            
+            process_addon_signals(api, account, current_date)
             # 发送交易执行情况报告
             send_report(account, current_date)
         except Exception as e:

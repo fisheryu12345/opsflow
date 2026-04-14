@@ -154,6 +154,7 @@ class FullContractList(models.Model):
     # --- 移仓换月辅助 ---
     # 标记该品种是否需要进行主力换月（有些品种如股指期货可能不需要频繁换月，或者换月逻辑不同）
     night_trading = models.BooleanField("夜盘交易", default=True, help_text="标记是否有夜盘，影响开盘任务执行时间") 
+    min_position = models.IntegerField("最小开仓手数", default=1, help_text="交易所规定的最小开仓手数，通常为1")
     # --- 时间戳 ---
     created_at = models.DateTimeField("录入时间", auto_now_add=True)
     updated_at = models.DateTimeField("更新时间", auto_now=True)
@@ -295,9 +296,9 @@ class PositionState(models.Model):
                                validators=[MinValueValidator(0), MaxValueValidator(3)],
                                help_text="对应 position_units，0表示空仓，最大值为3,用来计算开仓、加仓后的次数")
     direction = models.IntegerField("持仓方向 (1多/-1空/0无)", default=0, db_index=True)
-    contract_total_position = models.IntegerField("此合约总持仓手数", default=1, help_text="此合约总持仓手数,对于此合约总持仓")
+    contract_total_position = models.IntegerField("此合约总持仓手数", default=0, help_text="此合约总持仓手数,对于此合约总持仓")
     last_add_price = models.DecimalField("上次加仓价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="用于计算下一次加仓阈值")
-    contract_price_avg = models.DecimalField("持仓均价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="当前持仓的平均价格")
+    # contract_price_avg = models.DecimalField("持仓均价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="当前持仓的平均价格")
     # --- 关键价格 (用于计算止损和加仓) ---   收盘需要处理。开盘后成交才更新 last_add_price 和 highest/lowest_close 字段
     highest_close = models.DecimalField("持仓期最高价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="多头持仓期间的最高收盘价，用于移动止损")
     lowest_close = models.DecimalField("持仓期最低价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="空头持仓期间的最低收盘价，用于移动止损")
@@ -334,93 +335,6 @@ class PositionState(models.Model):
         indexes = [
             models.Index(fields=['symbol', 'direction']),
             models.Index(fields=['account', 'units']),
-        ]
-
-
-
-class RolloverLog(models.Model):
-    """
-    【移仓换月日志表】
-    
-    💡 为什么需要这张表？
-    专门记录主力合约切换的操作（例如从 rb2405 换到 rb2410）。
-    记录了旧合约、新合约、换月时间和状态，方便统计移仓成本。
-    """
-    STATUS_CHOICES = [
-        ('PENDING', '待执行'),
-        ('COMPLETED', '已完成'),
-        ('FAILED', '失败'),
-        ('CANCELLED', '已取消'),
-    ]
-    
-    account = models.ForeignKey(TradingAccount, on_delete=models.CASCADE, related_name='rollover_logs', verbose_name="所属账户")
-    old_symbol = models.CharField("旧合约", max_length=20, db_index=True)
-    new_symbol = models.CharField("新合约", max_length=20, db_index=True)
-    volume = models.IntegerField("手数")
-    trade_time = models.DateTimeField("移仓时间", auto_now_add=True, db_index=True)
-    status = models.CharField("状态", max_length=20, choices=STATUS_CHOICES, default='PENDING', db_index=True)
-    created_at = models.DateTimeField("创建时间", auto_now_add=True)
-    updated_at = models.DateTimeField("更新时间", auto_now=True)
-
-    class Meta:
-        verbose_name = "移仓换月日志"
-        verbose_name_plural = "移仓换月日志"
-        ordering = ['-trade_time']
-        indexes = [
-            models.Index(fields=['account', '-trade_time']),
-            models.Index(fields=['status', '-trade_time']),
-        ]
-
-    def __str__(self):
-        return f"{self.old_symbol} -> {self.new_symbol} ({self.get_status_display()})"
-
-    
-# ==================== 4. 交易与绩效层 (结果) ====================
-
-class TradeExecution(models.Model):
-    """
-    【交易执行明细表】
-    
-    💡 为什么需要这张表？
-    这是最底层的"流水账"。
-    相比 TradeLog，它更强调"执行细节"。
-    它可以区分这笔交易是"首仓"还是"加仓"，这对于分析策略的加仓逻辑是否有效至关重要。
-    """
-    TRADE_TYPE_CHOICES = [
-        ('ENTRY', '首次开仓'),
-        ('ADD_ON', '加仓'),
-        ('CLOSE_SIGNAL', '信号平仓'),
-        ('STOP_LOSS', '止损平仓'),
-    ]
-
-    account = models.ForeignKey(TradingAccount, on_delete=models.PROTECT, related_name='trades', verbose_name="所属账户")
-    symbol = models.CharField("合约代码", max_length=20, db_index=True)
-    
-    direction = models.IntegerField("方向 (1多/-1空)", default=0, db_index=True)
-    trade_type = models.CharField("交易类型", max_length=20, choices=TRADE_TYPE_CHOICES, db_index=True)
-    
-    price = models.DecimalField("成交价格", max_digits=12, decimal_places=2)
-    volume = models.IntegerField("手数")
-    trade_time = models.DateTimeField("交易时间", db_index=True)
-    
-    # 关联信号：可以追溯到具体是哪一天的突破信号触发了这次交易
-    signal = models.ForeignKey(DailyStrategySignal, on_delete=models.SET_NULL, null=True, blank=True, related_name='executions')
-    trigger_price = models.DecimalField("触发价格", max_digits=12, decimal_places=2, null=True, blank=True, help_text="触发这次交易的具体价格点位")
-
-    class Meta:
-        verbose_name = "交易执行明细"
-        verbose_name_plural = "交易执行明细"
-        ordering = ['-trade_time']
-        constraints = [
-            CheckConstraint(
-                check=Q(direction__in=[-1, 1]),
-                name='trade_direction_must_be_minus1_or_1'
-            ),
-        ]
-        indexes = [
-            models.Index(fields=['symbol', '-trade_time']),
-            models.Index(fields=['trade_type', '-trade_time']),
-            models.Index(fields=['account', '-trade_time']),
         ]
 
 
@@ -542,3 +456,4 @@ class TradeLog(models.Model):
         verbose_name = "交易日志"
         verbose_name_plural = "交易日志"
         ordering = ['-timestamp']
+
