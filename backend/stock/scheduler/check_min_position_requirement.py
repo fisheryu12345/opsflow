@@ -1,4 +1,18 @@
 
+from stock.models import TradingAccount
+from stock.utils.log_util import log_trade,log_error
+import os
+import time
+from decimal import Decimal
+from tqsdk import TqApi, TqAuth, TargetPosTask
+from django.db import transaction
+from django.utils import timezone
+from django.db.models import Q
+
+from stock.models import TradingAccount, PositionState, DailyStrategySignal
+from stock.scheduler.calculate_unit_lots import calculate_unit_lots
+from stock.scheduler.calculate_atr import calculate_atr, price_gap_protection
+
 def check_min_position_requirement(symbol, planned_volume):
     """
     检查交易所最小开仓手数限制，并返回是否需要两步开仓策略
@@ -68,3 +82,169 @@ def check_min_position_requirement(symbol, planned_volume):
         traceback.print_exc()
     
     return result
+
+
+def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_close, target_volume, function_name, account=None, signal=None):
+    """
+    执行两步开仓策略（应对交易所最小开仓限制）
+    
+    【功能说明】
+    当计划开仓手数小于交易所规定的最小开仓手数时，采用两步开仓法：
+    1. 第一步：开立等于最小开仓手数的仓位
+    2. 第二步：立即平仓多余部分，达到目标持仓
+    
+    :param api: TqApi实例
+    :param symbol: 合约代码
+    :param direction: 持仓方向 (1:多头, -1:空头)
+    :param adjusted_volume: 第一步需要开立的手数（等于min_position）
+    :param excess_to_close: 第二步需要平仓的多余手数
+    :param target_volume: 最终目标持仓手数
+    :param function_name: 调用函数名称（用于日志记录）
+    :param account: TradingAccount实例（可选，用于日志关联）
+    :param signal: DailyStrategySignal实例（可选，用于日志关联和状态更新）
+    :return: dict {
+        'success': bool,              # 是否成功
+        'actual_filled': int,         # 实际成交手数
+        'avg_price': float or None    # 成交价格
+    }
+    """
+    result = {
+        'success': False,
+        'actual_filled': 0,
+        'avg_price': None
+    }
+    
+    # 创建目标持仓任务
+    target_pos = TargetPosTask(api, symbol)
+    
+    try:
+        # ========== 第1步：开立等于最小开仓手数的仓位 ==========
+        if direction == 1:
+            step1_target = adjusted_volume  # 多头
+        else:
+            step1_target = -adjusted_volume  # 空头
+        
+        msg = f"[INFO] {symbol} 第1步：设置目标持仓 {step1_target}手 (最小开仓{adjusted_volume}手)"
+        print(msg)
+        log_trade(function_name, msg, account=account, symbol=symbol, signal=signal)
+        
+        target_pos.set_target_volume(step1_target)
+        
+        # 等待第1步成交
+        timeout_seconds = 120
+        start_time = time.time()
+        step1_completed = False
+        
+        while time.time() - start_time < timeout_seconds:
+            api.wait_update(deadline=time.time() + 1)
+            
+            pos_after = api.get_position(symbol)
+            if pos_after is None:
+                continue
+            
+            if direction == 1:
+                actual_filled = pos_after.volume_long
+            else:
+                actual_filled = pos_after.volume_short
+            
+            if actual_filled >= adjusted_volume:
+                msg = f"[SUCCESS] {symbol} 第1步完成: 已开{actual_filled}手"
+                print(msg)
+                log_trade(function_name, msg, account=account, symbol=symbol, signal=signal, level='SUCCESS')
+                step1_completed = True
+                break
+        
+        if not step1_completed:
+            msg = f"[ERROR] {symbol} 第1步开仓超时或失败"
+            print(msg)
+            log_error(function_name, msg, account=account, symbol=symbol, signal=signal)
+            return result
+        
+        # ========== 第2步：立即平仓多余部分 ==========
+        if direction == 1:
+            step2_target = adjusted_volume - excess_to_close
+        else:
+            step2_target = -(adjusted_volume - excess_to_close)
+        
+        msg = f"[INFO] {symbol} 第2步：平仓{excess_to_close}手，目标持仓 {step2_target}手"
+        print(msg)
+        log_trade(function_name, msg, account=account, symbol=symbol, signal=signal)
+        
+        target_pos.set_target_volume(step2_target)
+        
+        # 等待第2步成交
+        start_time = time.time()
+        step2_completed = False
+        
+        while time.time() - start_time < timeout_seconds:
+            api.wait_update(deadline=time.time() + 1)
+            
+            pos_after = api.get_position(symbol)
+            if pos_after is None:
+                continue
+            
+            if direction == 1:
+                final_filled = pos_after.volume_long
+            else:
+                final_filled = pos_after.volume_short
+            
+            if final_filled >= target_volume:
+                msg = f"[SUCCESS] {symbol} 第2步完成: 最终持仓{final_filled}手"
+                print(msg)
+                log_trade(function_name, msg, account=account, symbol=symbol, signal=signal, level='SUCCESS')
+                step2_completed = True
+                break
+        
+        if not step2_completed:
+            msg = f"[ERROR] {symbol} 第2步平仓超时或失败"
+            print(msg)
+            log_error(function_name, msg, account=account, symbol=symbol, signal=signal)
+            return result
+        
+        # 获取最终成交结果
+        pos_after = api.get_position(symbol)
+        if pos_after is None:
+            msg = f"[ERROR] {symbol} 无法获取持仓信息"
+            print(msg)
+            log_error(function_name, msg, account=account, symbol=symbol, signal=signal)
+            return result
+        
+        # 获取成交价格
+        quote = api.get_quote(symbol)
+        avg_price = float(quote.last_price) if quote and quote.last_price else None
+        
+        # 验证实际成交手数
+        if direction == 1:
+            actual_final_filled = pos_after.volume_long
+        else:
+            actual_final_filled = pos_after.volume_short
+        
+        if actual_final_filled != target_volume:
+            msg = f"[ERROR] {symbol} 开仓手数不一致: 期望{target_volume}手，实际{actual_final_filled}手"
+            print(msg)
+            log_error(function_name, msg, account=account, symbol=symbol, signal=signal)
+            return result
+        
+        # 成功返回
+        result['success'] = True
+        result['actual_filled'] = actual_final_filled
+        result['avg_price'] = avg_price
+        
+        msg = f"[SUCCESS] {symbol} 两步开仓成功: {actual_final_filled}手 @ {avg_price:.2f}"
+        print(msg)
+        log_trade(function_name, msg, account=account, symbol=symbol, signal=signal, level='SUCCESS')
+        
+        return result
+        
+    except Exception as e:
+        msg = f"[ERROR] {symbol} 两步开仓失败: {str(e)}"
+        print(msg)
+        import traceback
+        traceback.print_exc()
+        log_error(function_name, f"{msg}\n{traceback.format_exc()}", account=account, symbol=symbol, signal=signal)
+        return result
+    finally:
+        try:
+            del target_pos
+        except:
+            pass

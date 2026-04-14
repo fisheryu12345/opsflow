@@ -204,7 +204,8 @@ class StrategyConfig(models.Model):
     
     # --- 过滤参数 ---
     gap_threshold = models.DecimalField("跳空放弃阈值(%)", max_digits=5, decimal_places=2, default=Decimal('1.5'), help_text="对应代码中的跳空过滤逻辑，超过1.5%放弃开仓")
-
+    # --- 其他参数 ---
+    pause_open_task_job = models.BooleanField("暂停开仓时段任务", default=False, help_text="暂停开仓任务，用于临时关闭策略")
     class Meta:
         verbose_name = "策略参数配置"
         verbose_name_plural = "策略参数配置"
