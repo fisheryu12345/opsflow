@@ -30,52 +30,52 @@ def send_report(account, current_date):
         today_start = timezone.make_aware(timezone.datetime.combine(current_date, timezone.datetime.min.time()))
         today_end = timezone.make_aware(timezone.datetime.combine(current_date, timezone.datetime.max.time()))
         
-        today_trades = TradeExecution.objects.filter(
-            account=account,
-            trade_time__gte=today_start,
-            trade_time__lte=today_end
-        ).order_by('trade_time')
+        # today_trades = TradeExecution.objects.filter(
+        #     account=account,
+        #     trade_time__gte=today_start,
+        #     trade_time__lte=today_end
+        # ).order_by('trade_time')
         
-        # 分类统计
-        addon_trades = today_trades.filter(trade_type='ADD_ON')
-        rollover_exit_trades = today_trades.filter(trade_type='ROLLOVER_EXIT')
-        rollover_entry_trades = today_trades.filter(trade_type='ROLLOVER_ENTRY')
-        stop_loss_trades = today_trades.filter(trade_type='STOP_LOSS')
-        close_signal_trades = today_trades.filter(trade_type='CLOSE_SIGNAL')
+        # # 分类统计
+        # addon_trades = today_trades.filter(trade_type='ADD_ON')
+        # rollover_exit_trades = today_trades.filter(trade_type='ROLLOVER_EXIT')
+        # rollover_entry_trades = today_trades.filter(trade_type='ROLLOVER_ENTRY')
+        # stop_loss_trades = today_trades.filter(trade_type='STOP_LOSS')
+        # close_signal_trades = today_trades.filter(trade_type='CLOSE_SIGNAL')
         
-        # 计算统计数据
-        total_trades = (len(addon_trades) + len(rollover_exit_trades) + 
-                       len(rollover_entry_trades) + len(stop_loss_trades) + 
-                       len(close_signal_trades))
+        # # 计算统计数据
+        # total_trades = (len(addon_trades) + len(rollover_exit_trades) + 
+        #                len(rollover_entry_trades) + len(stop_loss_trades) + 
+        #                len(close_signal_trades))
         
-        # 使用Django Template渲染HTML
-        context = {
-            'current_date': current_date,
-            'total_trades': total_trades,
-            'addon_count': len(addon_trades),
-            'rollover_count': len(rollover_exit_trades),
-            'stop_loss_count': len(stop_loss_trades),
-            'close_signal_count': len(close_signal_trades),
-            'addon_trades': addon_trades,
-            'rollover_exit_trades': rollover_exit_trades,
-            'rollover_entry_trades': rollover_entry_trades,
-            'stop_loss_trades': stop_loss_trades,
-            'close_signal_trades': close_signal_trades,
-        }
+        # # 使用Django Template渲染HTML
+        # context = {
+        #     'current_date': current_date,
+        #     'total_trades': total_trades,
+        #     'addon_count': len(addon_trades),
+        #     'rollover_count': len(rollover_exit_trades),
+        #     'stop_loss_count': len(stop_loss_trades),
+        #     'close_signal_count': len(close_signal_trades),
+        #     'addon_trades': addon_trades,
+        #     'rollover_exit_trades': rollover_exit_trades,
+        #     'rollover_entry_trades': rollover_entry_trades,
+        #     'stop_loss_trades': stop_loss_trades,
+        #     'close_signal_trades': close_signal_trades,
+        # }
         
-        html_content = render_to_string('trade_execution_report.html', context)
+        # html_content = render_to_string('trade_execution_report.html', context)
         
-        # 发送邮件
-        subject = f"【量化交易日报】{current_date} 交易执行情况"
-        receiver_email = os.getenv('EMAIL_RECEIVER', '312711936@qq.com')
+        # # 发送邮件
+        # subject = f"【量化交易日报】{current_date} 交易执行情况"
+        # receiver_email = os.getenv('EMAIL_RECEIVER', '312711936@qq.com')
         
-        # 异步发送邮件
-        send_email(
-            subject=subject,
-            body=html_content,
-            receiver_email=receiver_email,
-            is_html=True
-        )
+        # # 异步发送邮件
+        # send_email(
+        #     subject=subject,
+        #     body=html_content,
+        #     receiver_email=receiver_email,
+        #     is_html=True
+        # )
         
         print(f"[INFO] 交易报告已发送至: {receiver_email}")
         return True

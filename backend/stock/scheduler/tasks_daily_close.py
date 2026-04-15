@@ -334,8 +334,35 @@ def generate_daily_signal_report():
         ).order_by('-trade_date', 'symbol')
         
         if not signals:
-            print("[INFO] 今日无策略信号，跳过邮件发送")
-            return False
+            print("[INFO] 今日无策略信号，发送通知邮件")
+            
+            # 渲染无信号的HTML模板
+            context = {
+                'report_date': today,
+                'account_name': default_account.name,
+                'signals': [],
+                'summary': {
+                    'total_signals': 0,
+                    'open_count': 0,
+                    'stop_loss_count': 0,
+                    'rollover_count': 0,
+                },
+                'current_time': pd.Timestamp.now(),
+                'no_signal_message': '今日没有产生任何策略信号',
+            }
+            
+            html_content = render_to_string('daily_strategy_signal_report.html', context)
+            
+            # 异步发送邮件
+            send_email(
+                subject=f'[量化策略] 每日信号报告 - {today.strftime("%Y-%m-%d")}',
+                body=html_content,
+                receiver_email='312711936@qq.com',
+                is_html=True
+            )
+            
+            print(f"[SUCCESS] 无信号通知邮件已发送")
+            return True
         
         # 统计数据
         summary = {

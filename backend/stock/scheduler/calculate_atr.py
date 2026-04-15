@@ -6,7 +6,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.db.models import Q
 
-from stock.models import TradingAccount, PositionState, TradeExecution, RolloverLog, DailyStrategySignal
+from stock.models import TradingAccount, PositionState, DailyStrategySignal
 def calculate_atr(api, symbol, period=20):
     """
     计算指定周期的ATR（平均真实波幅）

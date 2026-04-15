@@ -9,7 +9,7 @@ from tqsdk.ta import ATR
 
 
 # 假设你的 models 在 myapp.models 中
-from stock.models import TradingAccount, TradeExecution, DailyPerformance, DailyStrategySignal, RolloverLog, PositionState, FullContractList
+from stock.models import TradingAccount,  DailyStrategySignal, PositionState, FullContractList
 def sync_contract_list_from_tqsdk(api=None):
     """
     使用 TqSDK 获取所有期货合约信息并同步到 FullContractList 表
