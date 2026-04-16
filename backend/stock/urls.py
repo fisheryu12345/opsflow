@@ -4,8 +4,8 @@ Stock app URL configuration
 from rest_framework.routers import DefaultRouter
 from stock.views.contract import FullContractListViewSet
 from stock.views.strategyconfig import StrategyConfigViewSet
-from stock.views.trade_log import TradeLogViewSet,ErrorLogViewSet
-from stock.views.signal_table import DailyStrategySignalViewSet
+from stock.views.trade_log import TradeLogViewSet, ErrorLogViewSet
+from stock.views.dailysignal import DailyStrategySignalViewSet
 
 # 创建路由器
 router = DefaultRouter()

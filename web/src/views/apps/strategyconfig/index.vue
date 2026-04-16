@@ -4,7 +4,7 @@
     </fs-page>
 </template>
 
-<script lang="ts" setup name="operationLog">
+<script lang="ts" setup name="strategyConfig">
 import {ref, onMounted} from 'vue';
 import {useFs} from '@fast-crud/fast-crud';
 import {createCrudOptions} from './crud';

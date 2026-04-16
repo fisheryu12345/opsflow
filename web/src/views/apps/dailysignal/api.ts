@@ -2,6 +2,7 @@ import { request } from '/@/utils/service';
 import { UserPageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
 
 export const apiPrefix = '/api/stock/daily_signals';
+
 export function GetList(query: UserPageQuery) {
 	return request({
 		url: apiPrefix + '/',
@@ -9,6 +10,7 @@ export function GetList(query: UserPageQuery) {
 		params: query,
 	});
 }
+
 export function GetObj(id: InfoReq) {
 	return request({
 		url: apiPrefix + '/' + id + '/',

@@ -126,7 +126,7 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         
         msg = f"[INFO] {symbol} 第1步：设置目标持仓 {step1_target}手 (最小开仓{adjusted_volume}手)"
         print(msg)
-        log_trade(function_name, msg, account=account, symbol=symbol, signal=signal)
+        log_trade(function_name, msg)
         
         target_pos.set_target_volume(step1_target)
         
@@ -150,14 +150,14 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
             if actual_filled >= adjusted_volume:
                 msg = f"[SUCCESS] {symbol} 第1步完成: 已开{actual_filled}手"
                 print(msg)
-                log_trade(function_name, msg, account=account, symbol=symbol, signal=signal, level='SUCCESS')
+                log_trade(function_name, msg, level='SUCCESS')
                 step1_completed = True
                 break
         
         if not step1_completed:
             msg = f"[ERROR] {symbol} 第1步开仓超时或失败"
             print(msg)
-            log_error(function_name, msg, account=account, symbol=symbol, signal=signal)
+            log_error(function_name, msg)
             return result
         
         # ========== 第2步：立即平仓多余部分 ==========
@@ -168,7 +168,7 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         
         msg = f"[INFO] {symbol} 第2步：平仓{excess_to_close}手，目标持仓 {step2_target}手"
         print(msg)
-        log_trade(function_name, msg, account=account, symbol=symbol, signal=signal)
+        log_trade(function_name, msg)
         
         target_pos.set_target_volume(step2_target)
         
@@ -191,14 +191,14 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
             if final_filled >= target_volume:
                 msg = f"[SUCCESS] {symbol} 第2步完成: 最终持仓{final_filled}手"
                 print(msg)
-                log_trade(function_name, msg, account=account, symbol=symbol, signal=signal, level='SUCCESS')
+                log_trade(function_name, msg, level='SUCCESS')
                 step2_completed = True
                 break
         
         if not step2_completed:
             msg = f"[ERROR] {symbol} 第2步平仓超时或失败"
             print(msg)
-            log_error(function_name, msg, account=account, symbol=symbol, signal=signal)
+            log_error(function_name, msg)
             return result
         
         # 获取最终成交结果
@@ -206,7 +206,7 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         if pos_after is None:
             msg = f"[ERROR] {symbol} 无法获取持仓信息"
             print(msg)
-            log_error(function_name, msg, account=account, symbol=symbol, signal=signal)
+            log_error(function_name, msg)
             return result
         
         # 获取成交价格
@@ -222,7 +222,7 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         if actual_final_filled != target_volume:
             msg = f"[ERROR] {symbol} 开仓手数不一致: 期望{target_volume}手，实际{actual_final_filled}手"
             print(msg)
-            log_error(function_name, msg, account=account, symbol=symbol, signal=signal)
+            log_error(function_name, msg)
             return result
         
         # 成功返回
@@ -232,7 +232,7 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         
         msg = f"[SUCCESS] {symbol} 两步开仓成功: {actual_final_filled}手 @ {avg_price:.2f}"
         print(msg)
-        log_trade(function_name, msg, account=account, symbol=symbol, signal=signal, level='SUCCESS')
+        log_trade(function_name, msg, level='SUCCESS')
         
         return result
         
@@ -241,7 +241,7 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         print(msg)
         import traceback
         traceback.print_exc()
-        log_error(function_name, f"{msg}\n{traceback.format_exc()}", account=account, symbol=symbol, signal=signal)
+        log_error(function_name, f"{msg}\n{traceback.format_exc()}")
         return result
     finally:
         try:

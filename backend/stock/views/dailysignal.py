@@ -1,12 +1,11 @@
 """
-期货合约列表视图集
+每日策略信号视图集
 """
-from rest_framework import viewsets, filters, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
+from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from stock.serializers.serializers import DailyStrategySignalSerializer
 from stock.models import DailyStrategySignal
+
 
 class DailyStrategySignalViewSet(viewsets.ModelViewSet):
     """

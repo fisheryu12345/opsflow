@@ -15,6 +15,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 	const addRequest = async ({ form }: AddReq) => {
 		return await api.AddObj(form);
 	};
+
 	return {
 		crudOptions: {
 			request: {
@@ -31,7 +32,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				},
 			},
 			rowHandle: {
-				fixed:'right',
+				fixed: 'right',
 				width: 80,
 				buttons: {
 					view: {
@@ -100,12 +101,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 					form: {
-						show: false, // 自动记录，不允许手动设置
-						component: {
-							props: {
-								disabled: true,
-							},
-						},
+						show: false,
 					},
 				},
 				symbol: {
@@ -124,11 +120,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						minWidth: 150,
 					},
 					form: {
-						show: false, // 自动记录
-						rules: [{ required: true, message: '合约代码不能为空' }],
-						component: {
-							placeholder: '完整合约代码，如：SHFE.rb2410',
-						},
+						show: false,
 					},
 				},
 				trend_factor: {
@@ -217,13 +209,6 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 					form: {
 						show: false,
-						value: false,
-						component: {
-							props: {
-								activeText: '是',
-								inactiveText: '否',
-							},
-						},
 					},
 				},
 				signal_direction: {
