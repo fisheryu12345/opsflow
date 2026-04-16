@@ -141,9 +141,9 @@ class FullContractList(models.Model):
     price_tick = models.DecimalField("最小变动价位", max_digits=10, decimal_places=4, 
                                     default=Decimal('1.0'), 
                                     help_text="价格最小变动单位，跳动一个tick的价格变化")
-    margin_ratio = models.DecimalField("保证金比例(预估)", max_digits=6, decimal_places=4, 
-                                      default=Decimal('0.1'),
-                                      help_text="用于预估占用保证金，范围0-1")
+    # margin_ratio = models.DecimalField("保证金比例(预估)", max_digits=6, decimal_places=4, 
+    #                                   default=Decimal('0.1'),
+    #                                   help_text="用于预估占用保证金，范围0-1")
 
     # --- 分类信息 ---
     sector = models.CharField("所属板块", max_length=20, blank=True, null=True, 
@@ -168,12 +168,7 @@ class FullContractList(models.Model):
         verbose_name_plural = "交易合约列表"
         # 方便前端按交易所或板块筛选
         ordering = ['exchange', 'sector', 'product_code']
-        constraints = [
-            CheckConstraint(
-                check=Q(margin_ratio__gte=0) & Q(margin_ratio__lte=1),
-                name='margin_ratio_between_0_and_1'
-            ),
-        ]
+        
 
 class StrategyConfig(models.Model):
     """
@@ -205,7 +200,7 @@ class StrategyConfig(models.Model):
     # --- 过滤参数 ---
     gap_threshold = models.DecimalField("跳空放弃阈值(%)", max_digits=5, decimal_places=2, default=Decimal('1.5'), help_text="对应代码中的跳空过滤逻辑，超过1.5%放弃开仓")
     # --- 其他参数 ---
-    pause_open_task_job = models.BooleanField("暂停开仓时段任务", default=False, help_text="暂停开仓任务，用于临时关闭策略")
+    # pause_open_task_job = models.BooleanField("暂停开仓时段任务", default=False, help_text="暂停开仓任务，用于临时关闭策略")
     class Meta:
         verbose_name = "策略参数配置"
         verbose_name_plural = "策略参数配置"

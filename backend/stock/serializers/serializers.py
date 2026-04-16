@@ -9,6 +9,8 @@ from stock.models import (
     DailyStrategySignal,
     PositionState,
     DailyPerformance,
+    TradeLog,
+    ErrorLog
 )
 
 
@@ -62,5 +64,23 @@ class DailyPerformanceSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = DailyPerformance
+        fields = '__all__'
+        read_only_fields = ['id']
+
+
+class TradeLogSerializer(serializers.ModelSerializer):
+    """每日绩效指标序列化器"""
+    
+    class Meta:
+        model = TradeLog
+        fields = '__all__'
+        read_only_fields = ['id']
+
+
+class ErrorLogSerializer(serializers.ModelSerializer):
+    """每日绩效指标序列化器"""
+    
+    class Meta:
+        model = ErrorLog
         fields = '__all__'
         read_only_fields = ['id']

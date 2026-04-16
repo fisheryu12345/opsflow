@@ -48,7 +48,7 @@ def check_breakout_singal(symbol, product_code, trend_factor, trend_label,
             DailyStrategySignal.objects.update_or_create(
                 account=account,
                 symbol=symbol,
-                trade_date=date.today()
+                trade_date=date.today(),
                 defaults={
                     'trend_factor': Decimal(str(trend_factor)),
                     'trend_label': trend_label,
@@ -602,6 +602,8 @@ def job_daily_close_calculation():
                         PositionState.objects.filter(symbol=contract['symbol']).update(
                             indicators=result,
                             latest_close_price=result['latest_close']
+                            h_20_price=result['h_20'],
+                            l_20_price=result['l_20'],
                         )
                         
                         indicator_results.append(result)

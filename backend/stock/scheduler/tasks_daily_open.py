@@ -19,7 +19,13 @@ POSITION_RISK_MULTIPLIER = 2      # ATR风险倍数系数（止损距离 = N × 
 POSITION_MIN_UNITS = 1            # 最小持仓单位数（海龟法则中的"Unit"数量，非手数）
 POSITION_MAX_UNITS = 3            # 最大持仓3单位数（如1Unit=4手，最大持仓12手）
 
-
+def is_trading(api, account,signal):
+    ts = api.get_trading_status(signal.symbol)
+    if not ts.is_trading:
+        msg = f"[WARN] {signal.symbol} 不在交易时间"
+        print(msg)
+        log_trade('is_trading checking', msg, account=account, symbol=signal.symbol, signal=signal, level='INFO')
+        return False
 def execute_addon_order(api, account, signal):
     """
     执行加仓操作的函数（使用TargetPosTask自动化订单管理）
@@ -30,6 +36,15 @@ def execute_addon_order(api, account, signal):
     :param retry_interval: 重试间隔时间（秒），默认10秒
     :return: 是否成功执行加仓操作
     """
+    
+    if not is_trading(api, account,signal):
+        return False
+
+    if signal and signal.executed_status and signal.executed_status != 'PENDING':
+        msg = f"[INFO] {signal.symbol} 信号已执行（状态={signal.executed_status}），跳过"
+        print(msg)
+        log_trade('execute_addon_order', msg, account=signal.account, symbol=signal.symbol, signal=signal)
+        return False
     
     # 优化】直接从 signal.contract_target_number 获取加仓单位数
     add_units_from_signal = signal.contract_target_number   
@@ -240,7 +255,15 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
     :param gap_threshold_percent: 跳空阈值百分比，默认1.5%
     :return: 是否成功执行开仓操作
     """
+   
+    if not is_trading(api, account,signal):
+        return False
     
+    if signal and signal.executed_status and signal.executed_status != 'PENDING':
+        msg = f"[INFO] {signal.symbol} 信号已执行（状态={signal.executed_status}），跳过"
+        print(msg)
+        log_trade('execute_entry_order', msg, account=signal.account, symbol=signal.symbol, signal=signal)
+        return False
     # 【基于ATR计算1个Unit对应的手数】
     unit_lots = calculate_unit_lots(api, signal.symbol)
     
@@ -432,7 +455,12 @@ def execute_exit_order(api, position, signal):
     :param retry_interval: 重试间隔时间（秒），默认10秒
     :return: 是否成功执行平仓操作
     """
+    
+    if not is_trading(api, position.account, signal):
+        return False
     # 【新增】过滤已执行的信号，只处理PENDING状态的信号（如果有信号关联）
+
+    
     if signal and signal.executed_status and signal.executed_status != 'PENDING':
         msg = f"[INFO] {position.symbol} 信号已执行（状态={signal.executed_status}），跳过"
         print(msg)
@@ -538,8 +566,18 @@ def execute_rollover_order(api, position, signal):
     :return: 是否成功执行移仓操作
     """
     
+
+    if not is_trading(api, position.account, signal):
+        return False
+    
+    if signal and signal.executed_status and signal.executed_status != 'PENDING':
+        msg = f"[INFO] {signal.symbol} 信号已执行（状态={signal.executed_status}），跳过"
+        print(msg)
+        log_trade('execute_rollover_order', msg, account=signal.account, symbol=signal.symbol, signal=signal)
+        return False
+    
     # 计算移仓数量
-    total_volume = position.contract_total_position
+    # total_volume = position.contract_total_position
     
     
     # ========== 第1阶段：平仓旧合约 ==========
@@ -862,7 +900,7 @@ def process_signals_by_type(api, account, trade_type):
                     try:
                         success = config['executor'](api, position, signal)
                         if success:
-                            signal.delete()
+                            # signal.delete()
                             print(config['success_msg'](position))
                             success_count += 1
                         else:
@@ -879,7 +917,7 @@ def process_signals_by_type(api, account, trade_type):
                     position = config['position_filter'](account, signal.symbol)
                     success = config['executor'](api, position, signal)
                     if success:
-                        signal.delete()
+                        # signal.delete()
                         print(config['success_msg'](position, signal))
                         success_count += 1
                     else:
@@ -897,7 +935,7 @@ def process_signals_by_type(api, account, trade_type):
             try:
                 success = config['executor'](api, account, signal)
                 if success:
-                    signal.delete()
+                    # signal.delete()
                     print(config['success_msg'](signal))
                     success_count += 1
                 else:
@@ -915,17 +953,17 @@ def job_daily_open_process():
     每日开盘处理函数
     """
     from datetime import datetime
-    pause_open_task_job = StrategyConfig.objects.get(name='FT').pause_open_task_job
-    if pause_open_task_job:
-        print("[INFO] 暂停开仓任务")
-        return
+    # pause_open_task_job = StrategyConfig.objects.get(name='FT').pause_open_task_job
+    # if pause_open_task_job:
+    #     print("[INFO] 暂停开仓任务")
+    #     return
     # 获取当前日期
     current_date = datetime.now().date()
     # 获取交易账户
     accounts = TradingAccount.objects.all()
     for account in accounts:
         # 初始化TqApi
-        api = TqApi(TqAuth('yupei1986', 'yupei1986'))
+        api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
         try:
             # 处理平仓信号
             result = process_signals_by_type(api, account, 'STOP_LOSS')

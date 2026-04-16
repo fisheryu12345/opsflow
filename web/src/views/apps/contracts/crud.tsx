@@ -334,24 +334,6 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 				},
-				margin_ratio: {
-					title: '保证金比例',
-					type: 'number',
-					column: {
-						width: 110,
-						align: 'right',
-						sorter: true,  // 启用排序
-					},
-					form: {
-						rules: [{ required: true, message: '保证金比例必填' }],
-						value: 0.1,
-						component: {
-							precision: 4,
-							min: 0,
-							max: 1,
-						},
-					},
-				},
 				is_active: {
 					title: '交易状态',
 					search: {

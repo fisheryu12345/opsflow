@@ -235,29 +235,29 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 				},
-				pause_open_task_job: {
-					title: '开仓时段任务',
-					type: 'switch',
-					search: {
-						disabled: true,
-					},
-					column:{
-						minWidth: 140,
-						formatter: (context) => {
-							return context.value ? '已暂停' : '运行中';
-						},
-					},
-					form: {
-						value: false,
-						component: {
-							props: {
-								activeText: '已暂停',
-								inactiveText: '运行中',
-							},
-						},
-						helper: '节假日开启后将暂停开仓任务，用于临时关闭策略',
-					},
-				},
+				// pause_open_task_job: {
+				// 	title: '开仓时段任务',
+				// 	type: 'switch',
+				// 	search: {
+				// 		disabled: true,
+				// 	},
+				// 	column:{
+				// 		minWidth: 140,
+				// 		formatter: (context) => {
+				// 			return context.value ? '已暂停' : '运行中';
+				// 		},
+				// 	},
+				// 	form: {
+				// 		value: false,
+				// 		component: {
+				// 			props: {
+				// 				activeText: '已暂停',
+				// 				inactiveText: '运行中',
+				// 			},
+				// 		},
+				// 		helper: '节假日开启后将暂停开仓任务，用于临时关闭策略',
+				// 	},
+				// },
 			},
 		},
 	};
