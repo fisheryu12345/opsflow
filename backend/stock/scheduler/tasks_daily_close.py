@@ -601,7 +601,7 @@ def job_daily_close_calculation():
                         
                         PositionState.objects.filter(symbol=contract['symbol']).update(
                             indicators=result,
-                            latest_close_price=result['latest_close']
+                            latest_close_price=result['latest_close'],
                             h_20_price=result['h_20'],
                             l_20_price=result['l_20'],
                         )
