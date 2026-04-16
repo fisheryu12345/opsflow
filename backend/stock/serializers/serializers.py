@@ -42,11 +42,13 @@ class StrategyConfigSerializer(serializers.ModelSerializer):
 
 
 class DailyStrategySignalSerializer(serializers.ModelSerializer):
-
+    """每日策略信号序列化器"""
+    
     class Meta:
         model = DailyStrategySignal
         fields = '__all__'
         read_only_fields = ['id']
+        depth = 1  # 展开外键关系，方便前端显示账户信息
 
 
 class PositionStateSerializer(serializers.ModelSerializer):

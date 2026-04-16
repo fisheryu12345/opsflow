@@ -367,7 +367,7 @@ def generate_daily_signal_report():
         # 统计数据
         summary = {
             'total_signals': signals.count(),
-            'open_count': signals.filter(trade_type__in=['ENTRY', 'OPEN']).count(),
+            'open_count': signals.filter(trade_type__in=['ENTRY']).count(),
             'stop_loss_count': signals.filter(trade_type='STOP_LOSS').count(),
             'rollover_count': signals.filter(trade_type='ROLLOVER').count(),
         }
@@ -633,7 +633,7 @@ def job_daily_close_calculation():
                         trend_label=result['trend_label'],
                         breakout_info=breakout_info,
                         account=default_account,
-                        trade_type='OPEN'
+                        trade_type='ENTRY'
                     )
                     
                     if success:

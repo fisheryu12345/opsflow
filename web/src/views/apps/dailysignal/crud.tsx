@@ -149,23 +149,26 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				},
 				trend_label: {
 					title: '趋势标签',
-					type: 'dict-select',
+					type: 'input',
 					search: {
 						disabled: false,
 					},
 					column: {
 						minWidth: 120,
+						formatter: (context) => {
+							const map: Record<string, string> = {
+								'strong_bull': '强多',
+								'weak_bull': '弱多',
+								'neutral': '中性',
+								'choppy': '震荡',
+								'weak_bear': '弱空',
+								'strong_bear': '强空',
+							};
+							return map[context.value as string] || context.value;
+						},
 					},
 					form: {
 						show: false,
-					},
-					valueEnum: {
-						strong_bull: { text: '强多', status: 'success' },
-						weak_bull: { text: '弱多', status: 'processing' },
-						neutral: { text: '中性', status: 'default' },
-						choppy: { text: '震荡', status: 'warning' },
-						weak_bear: { text: '弱空', status: 'warning' },
-						strong_bear: { text: '强空', status: 'error' },
 					},
 				},
 				donchian_upper: {
@@ -225,7 +228,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				},
 				signal_direction: {
 					title: '信号方向',
-					type: 'dict-select',
+					type: 'input',
 					search: {
 						disabled: false,
 					},
@@ -239,48 +242,49 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					form: {
 						show: false,
 					},
-					valueEnum: {
-						1: { text: '多头信号' },
-						[-1]: { text: '空头信号' },
-						0: { text: '无信号' },
-					},
 				},
 				trade_type: {
 					title: '交易类型',
-					type: 'dict-select',
+					type: 'input',
 					search: {
 						disabled: false,
 					},
 					column: {
 						minWidth: 100,
+						formatter: (context) => {
+							const map: Record<string, string> = {
+								'ENTRY': '开仓',
+								'ADD_ON': '加仓',
+								'STOP_LOSS': '止损',
+								'ROLLOVER': '移仓换月',
+							};
+							return map[context.value as string] || context.value;
+						},
 					},
 					form: {
 						show: false,
-					},
-					valueEnum: {
-						ENTRY: { text: '开仓', status: 'success' },
-						ADD_ON: { text: '加仓', status: 'processing' },
-						STOP_LOSS: { text: '止损', status: 'error' },
-						ROLLOVER: { text: '移仓换月', status: 'warning' },
 					},
 				},
 				executed_status: {
 					title: '执行状态',
-					type: 'dict-select',
+					type: 'input',
 					search: {
 						disabled: false,
 					},
 					column: {
 						minWidth: 100,
+						formatter: (context) => {
+							const map: Record<string, string> = {
+								'PENDING': '待执行',
+								'SUCCESS': '成功',
+								'FAILED': '失败',
+								'CANCELLED': '已取消',
+							};
+							return map[context.value as string] || context.value;
+						},
 					},
 					form: {
 						show: false,
-					},
-					valueEnum: {
-						PENDING: { text: '待执行', status: 'default' },
-						SUCCESS: { text: '成功', status: 'success' },
-						FAILED: { text: '失败', status: 'error' },
-						CANCELLED: { text: '已取消', status: 'warning' },
 					},
 				},
 				remark: {

@@ -1,24 +1,24 @@
 import { request } from '/@/utils/service';
 import { UserPageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
 
-export const apiPrefix = '/api/stock/daily_signals/';
+export const apiPrefix = '/api/stock/daily_signals';
 export function GetList(query: UserPageQuery) {
 	return request({
-		url: apiPrefix,
+		url: apiPrefix + '/',
 		method: 'get',
 		params: query,
 	});
 }
 export function GetObj(id: InfoReq) {
 	return request({
-		url: apiPrefix + id,
+		url: apiPrefix + '/' + id + '/',
 		method: 'get',
 	});
 }
 
 export function AddObj(obj: AddReq) {
 	return request({
-		url: apiPrefix,
+		url: apiPrefix + '/',
 		method: 'post',
 		data: obj,
 	});
@@ -26,7 +26,7 @@ export function AddObj(obj: AddReq) {
 
 export function UpdateObj(obj: EditReq) {
 	return request({
-		url: apiPrefix + obj.id + '/',
+		url: apiPrefix + '/' + obj.id + '/',
 		method: 'put',
 		data: obj,
 	});
@@ -34,7 +34,7 @@ export function UpdateObj(obj: EditReq) {
 
 export function DelObj(id: DelReq) {
 	return request({
-		url: apiPrefix + id + '/',
+		url: apiPrefix + '/' + id + '/',
 		method: 'delete',
 		data: { id },
 	});

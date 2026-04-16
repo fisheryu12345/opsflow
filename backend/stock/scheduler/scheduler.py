@@ -55,11 +55,18 @@ scheduler.add_job(
     max_instances=1  # 最多同时运行1个实例
 )
 
+# 任务 2: 每日开盘前处理（周一至周五 09:02 和 21:02）
+# 此时市场即将开盘，执行：
+# - 检查并执行止损信号
+# - 检查并执行开仓信号
+# - 检查并执行移仓信号
+# - 检查并执行加仓信号
 scheduler.add_job(
     job_daily_open_process, 
     'cron', 
-    hour=21, 
-    minute=1, 
+    day_of_week='mon-fri',  # 周一到周五
+    hour='9,21',  # 早上9点和晚上21点
+    minute=2,  # 第2分钟
     id='job_daily_open_process',
     name='开盘前准备与跳空检查',
     misfire_grace_time=300,  # 允许5分钟的容错时间
