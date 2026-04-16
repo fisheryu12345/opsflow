@@ -595,15 +595,15 @@ def job_daily_close_calculation():
                     )
                     
                     if result:
-                        # indicators = result.copy()
-                        # del indicators['breakout_info']  # 不需要把突破信息存到 indicators 字段里
-                        # del indicators['data_points']  # 不需要存储数据点数量
+                        indicators = result.copy()
+                        del indicators['breakout_info']  # 不需要把突破信息存到 indicators 字段里
+                        del indicators['data_points']  # 不需要存储数据点数量
                         
                         PositionState.objects.filter(symbol=contract['symbol']).update(
-                            indicators=result,
+                            indicators=indicators,
                             latest_close_price=result['latest_close'],
-                            h_20_price=result['h_20'],
-                            l_20_price=result['l_20'],
+                            h20_price=result['h_20'],
+                            l20_price=result['l_20'],
                         )
                         
                         indicator_results.append(result)

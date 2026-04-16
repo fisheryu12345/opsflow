@@ -77,7 +77,7 @@ def send_report(account, current_date):
         #     is_html=True
         # )
         
-        print(f"[INFO] 交易报告已发送至: {receiver_email}")
+        print(f"[INFO] 交易报告已发送至:")
         return True
         
     except Exception as e:

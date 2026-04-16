@@ -8,11 +8,33 @@ from tqsdk import TqApi, TqAuth
 from tqsdk.ta import ATR, SMA,MA
 from tqsdk.tafunc import hhv, llv
 import json
+import math
 
 
 # 假设你的 models 在 myapp.models 中
 from stock.models import TradingAccount,  DailyPerformance, DailyStrategySignal,  PositionState, FullContractList
 from stock.utils.sync_contract_list_from_tqsdk import sync_contract_list_from_tqsdk
+
+
+def clean_nan_for_decimal(value):
+    """
+    将 NaN/inf/None 转换为 None，确保 Django DecimalField 能接受
+    
+    参数:
+        value: 任意数值（int, float, Decimal, None）
+    
+    返回:
+        None 或有效数字
+    """
+    if value is None:
+        return None
+    try:
+        if isinstance(value, float):
+            if math.isnan(value) or math.isinf(value):
+                return None
+        return value
+    except (TypeError, ValueError):
+        return None
 
 
 def check_breakout_signal(klines, entry_period=20):
@@ -70,8 +92,7 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
     :return: 指标结果字典
     """
     try:
-        klines = api.get_kline_serial(symbol, days=days, duration_seconds=24 * 60 * 60)
-        quote = api.get_quote(symbol)        
+        klines = api.get_kline_serial(symbol, days=days, duration_seconds=24 * 60 * 60) 
         if len(klines) < 20:
             return {
                 'symbol': symbol,
@@ -82,6 +103,8 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
                 'ma_10': None,
                 'ma_20': None,
                 'ma_40': None,
+                'h_20': None,
+                'l_20': None,
                 'close_high_20': None,
                 'close_low_20': None,
                 'data_points': len(klines),
@@ -98,7 +121,7 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
                 },
             }
         
-        # lastest_close = quote.close
+        lastest_close = float(klines.iloc[-1]['close'])
         # 3.1 计算ATR
         atr_20 = ATR(klines, 20)
         atr_20_value = float(atr_20.iloc[-1]['atr']) if len(atr_20) > 0 else None
@@ -115,10 +138,24 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
         # 3.3 计算20日内收盘价高低点（使用tqsdk.tafunc  hhv,llv）
         close_high_20 = hhv(klines['high'].shift(1), 20)
         close_low_20 = llv(klines['low'].shift(1), 20)
-        latest_hhv = close_high_20.iloc[-1]
-
-        # 获取最新的 llv20_excl_today 值
-        latest_llv = close_low_20.iloc[-1]
+        
+        # 获取最新的 hhv20 和 llv20 值，并将 NaN 转换为 None
+        latest_hhv_raw = close_high_20.iloc[-1]
+        latest_llv_raw = close_low_20.iloc[-1]
+        
+        # 将 NaN 转换为 None，避免 Django DecimalField 验证错误
+        latest_hhv = None if pd.isna(latest_hhv_raw) else float(latest_hhv_raw)
+        latest_llv = None if pd.isna(latest_llv_raw) else float(latest_llv_raw)
+        
+        # 3.4 获取最新收盘价，并处理 NaN
+        latest_close_raw = lastest_close
+        latest_close = clean_nan_for_decimal(latest_close_raw)
+        
+        # 3.5 清理所有可能包含 NaN 的指标值
+        atr_20_value = clean_nan_for_decimal(atr_20_value)
+        ma_10_value = clean_nan_for_decimal(ma_10_value)
+        ma_20_value = clean_nan_for_decimal(ma_20_value)
+        ma_40_value = clean_nan_for_decimal(ma_40_value)
         
         # 3.5 计算趋势因子
         if ma_10_value and ma_20_value and ma_40_value and not any(np.isnan(v) for v in [ma_10_value, ma_20_value, ma_40_value]):
@@ -158,13 +195,15 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
             'symbol': symbol,
             'product_code': product_code,
             'latest_date': breakout_info['trade_date'].strftime('%Y-%m-%d') if breakout_info['trade_date'] else None,
-            'latest_close': quote.close,
+            'latest_close': latest_close,  # ← 使用已处理 NaN 的值
             'atr_20': atr_20_value,
             'ma_10': ma_10_value,
             'ma_20': ma_20_value,
             'ma_40': ma_40_value,
-            'close_high_20': float(latest_hhv),
-            'close_low_20': float(latest_llv),
+            'h_20': latest_hhv,  # ← 已处理 NaN → None
+            'l_20': latest_llv,  # ← 已处理 NaN → None
+            'close_high_20': latest_hhv,  # ← 使用已处理的值
+            'close_low_20': latest_llv,   # ← 使用已处理的值
             'data_points': len(klines),
             'trend_factor': trend_factor,
             'trend_label': trend_label,
