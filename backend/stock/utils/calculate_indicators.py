@@ -70,7 +70,8 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
     :return: 指标结果字典
     """
     try:
-        klines = api.get_kline_serial(symbol, days=days, duration_seconds=24 * 60 * 60)        
+        klines = api.get_kline_serial(symbol, days=days, duration_seconds=24 * 60 * 60)
+        quote = api.get_quote(symbol)        
         if len(klines) < 20:
             return {
                 'symbol': symbol,
@@ -97,7 +98,7 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
                 },
             }
         
-        lastest_close = float(klines.iloc[-1]['close'])
+        # lastest_close = quote.close
         # 3.1 计算ATR
         atr_20 = ATR(klines, 20)
         atr_20_value = float(atr_20.iloc[-1]['atr']) if len(atr_20) > 0 else None
@@ -148,7 +149,6 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
         else:
             trend_factor = 0.0
             trend_label = "neutral"
-
         # 3.6 检查突破信号（只返回结果，不保存数据库）
         breakout_info = check_breakout_signal(klines, entry_period=20)
         # print(f"突破检测结果: {breakout_info}")
@@ -158,7 +158,7 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
             'symbol': symbol,
             'product_code': product_code,
             'latest_date': breakout_info['trade_date'].strftime('%Y-%m-%d') if breakout_info['trade_date'] else None,
-            'latest_close': lastest_close,
+            'latest_close': quote.close,
             'atr_20': atr_20_value,
             'ma_10': ma_10_value,
             'ma_20': ma_20_value,

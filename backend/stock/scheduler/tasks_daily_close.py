@@ -43,12 +43,12 @@ def check_breakout_singal(symbol, product_code, trend_factor, trend_label,
         if position and position.units != 0:
             print(f"[SKIP] 跳过突破信号保存 {symbol}: 当前持仓单位数={position.units}")
             return False
-        
+    
         with transaction.atomic():
             DailyStrategySignal.objects.update_or_create(
                 account=account,
                 symbol=symbol,
-                trade_date=breakout_info['trade_date'],
+                trade_date=date.today()
                 defaults={
                     'trend_factor': Decimal(str(trend_factor)),
                     'trend_label': trend_label,
@@ -595,12 +595,12 @@ def job_daily_close_calculation():
                     )
                     
                     if result:
-                        indicators = result.copy()
-                        del indicators['breakout_info']  # 不需要把突破信息存到 indicators 字段里
-                        del indicators['data_points']  # 不需要存储数据点数量
+                        # indicators = result.copy()
+                        # del indicators['breakout_info']  # 不需要把突破信息存到 indicators 字段里
+                        # del indicators['data_points']  # 不需要存储数据点数量
                         
                         PositionState.objects.filter(symbol=contract['symbol']).update(
-                            indicators=indicators,
+                            indicators=result,
                             latest_close_price=result['latest_close']
                         )
                         
@@ -623,7 +623,6 @@ def job_daily_close_calculation():
             
             for result in indicator_results:
                 breakout_info = result.get('breakout_info', {})
-                
                 if breakout_info.get('is_breakout'):
                     success = check_breakout_singal(
                         symbol=result['symbol'],

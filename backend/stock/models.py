@@ -249,7 +249,6 @@ class DailyStrategySignal(models.Model):
         ('ADD_ON', '加仓'),
         ('STOP_LOSS', '止损'),
         ('ROLLOVER', '移仓换月'),
-        ('EXIT', '平仓'),
     ]
     trade_type = models.CharField("交易类型", max_length=20, choices=TRADE_TYPE_CHOICES, 
                                  null=True, blank=True, db_index=True,
@@ -311,7 +310,8 @@ class PositionState(models.Model):
     indicators = models.JSONField("技术指标", null=True, blank=True, help_text="技术指标数据，如：MA, BOLL, KDJ 等")
     last_update_time = models.DateTimeField("最后更新时间", auto_now=True, help_text="最后收到行情的时间")
     is_rollover_needed = models.BooleanField("需移仓换月", default=False, help_text="标记是否需要进行主力合约换月操作")
-
+    h20_price = models.DecimalField("20日最高价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="20日最高价")
+    l20_price = models.DecimalField("20日最低价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="20日最低价")
 
 
 
