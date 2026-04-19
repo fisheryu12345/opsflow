@@ -58,7 +58,7 @@ class PositionStateSerializer(serializers.ModelSerializer):
         model = PositionState
         fields = '__all__'
         read_only_fields = ['id', 'last_update_time']
-
+        depth = 1  # 展开外键关系，方便前端显示账户信息
 
 
 class DailyPerformanceSerializer(serializers.ModelSerializer):
