@@ -83,10 +83,11 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 			},
 			rowHandle: {
 				fixed:'right',
-				width: 100,
+				width: 0,
+				show: false,
 				buttons: {
 					view: {
-						type: 'text',
+						show: false, // 持仓状态为只读，列表已展示完整信息，无需查看详情
 					},
 					edit: {
 						show: false, // 持仓状态为只读，不允许编辑
