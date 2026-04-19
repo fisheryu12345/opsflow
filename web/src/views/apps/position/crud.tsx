@@ -387,35 +387,35 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 				},
-				indicators: {
-					title: '技术指标',
-					type: 'textarea',
-					search: {
-						disabled: true,
-					},
-					column: {
-						minWidth: 200,
-						showOverflowTooltip: true,
-						formatter: (context) => {
-							const indicators = context.row?.indicators;
-							if (!indicators) return '-';
-							// 如果是对象，转换为JSON字符串显示
-							if (typeof indicators === 'object') {
-								return JSON.stringify(indicators, null, 2);
-							}
-							return indicators;
-						},
-					},
-					form: {
-						show: false,
-						component: {
-							props: {
-								rows: 4,
-								disabled: true,
-							},
-						},
-					},
-				},
+				// indicators: {
+				// 	title: '技术指标',
+				// 	type: 'textarea',
+				// 	search: {
+				// 		disabled: true,
+				// 	},
+				// 	column: {
+				// 		minWidth: 200,
+				// 		showOverflowTooltip: true,
+				// 		formatter: (context) => {
+				// 			const indicators = context.row?.indicators;
+				// 			if (!indicators) return '-';
+				// 			// 如果是对象，转换为JSON字符串显示
+				// 			if (typeof indicators === 'object') {
+				// 				return JSON.stringify(indicators, null, 2);
+				// 			}
+				// 			return indicators;
+				// 		},
+				// 	},
+				// 	form: {
+				// 		show: false,
+				// 		component: {
+				// 			props: {
+				// 				rows: 4,
+				// 				disabled: true,
+				// 			},
+				// 		},
+				// 	},
+				// },
 				last_update_time: {
 					title: '最后更新时间',
 					type: 'datetime',
