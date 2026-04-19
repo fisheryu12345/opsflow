@@ -149,7 +149,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 					column: {
-						minWidth: 150,
+						minWidth: 100,
 						showOverflowTooltip: true,
 						formatter: (context) => {
 							// 处理嵌套对象或ID
