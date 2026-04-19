@@ -30,7 +30,7 @@ scheduler.add_jobstore(DjangoJobStore(), 'default')
 scheduler.add_job(
     test_job, 
     'interval', 
-    hours=1, 
+    hours=3, 
     id='test_job',
     name='test_job',
     misfire_grace_time=300,  # 允许5分钟的容错时间
@@ -46,6 +46,7 @@ scheduler.add_job(
 scheduler.add_job(
     job_daily_close_calculation, 
     'cron', 
+    day_of_week='mon-fri',  # 周一到周五
     hour=16, 
     minute=0, 
     id='job_daily_close_calculation',
