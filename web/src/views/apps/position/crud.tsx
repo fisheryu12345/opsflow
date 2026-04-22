@@ -367,6 +367,26 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 				},
+				trend_info: {
+					title: '趋势信息(ATR-Factor)',
+					type: 'number',
+					search: {
+						disabled: true,
+					},
+					column: {
+						width: 120,
+						align: 'right',
+					},
+					form: {
+						show: false,
+						component: {
+							props: {
+								precision: 2,
+								disabled: true,
+							},
+						},
+					},
+				},
 				latest_close_price: {
 					title: '最新收盘价',
 					type: 'number',

@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from django.db import transaction
 from decimal import Decimal
 from tqsdk import TqApi, TqAuth
-from backend.stock.tasks.send_mail import send_email_task as send_email
+from stock.tasks.send_mail import send_email_task as send_email
 from django.template.loader import render_to_string
 
 
@@ -534,7 +534,8 @@ def update_all_positions_stop_loss_price():
                 
                 # 更新止损价格（保持 Decimal 类型）
                 PositionState.objects.filter(id=position.id).update(
-                    stop_loss_price=new_stop_loss
+                    stop_loss_price=new_stop_loss,
+                    trend_info=f'{atr_value:.2f},  {factor:.2f}'
                 )
                 updated_count += 1
                 
