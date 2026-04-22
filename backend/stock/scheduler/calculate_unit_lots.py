@@ -7,7 +7,8 @@ from django.utils import timezone
 from django.db.models import Q
 
 from stock.models import TradingAccount, PositionState, DailyStrategySignal
-
+POSITION_RISK_BASE_AMOUNT = float('4000')
+POSITION_RISK_MULTIPLIER = float('2')
 def calculate_unit_lots(api, symbol):
     """
     计算1个海龟Unit对应的实际手数
@@ -30,8 +31,9 @@ def calculate_unit_lots(api, symbol):
     """
     try:
         # 获取合约信息
-        contract = api.get_instrument(symbol)
+        contract = api.get_quote(symbol)
         if not contract or not contract.volume_multiple:
+            print(123123)
             return 1  # 默认返回1手
         
         contracts_per_unit = contract.volume_multiple  # 合约乘数（如螺纹钢10吨/手）
@@ -83,4 +85,5 @@ def calculate_unit_lots(api, symbol):
         
     except Exception as e:
         # 异常情况下返回默认值
+        print(222222)
         return 1

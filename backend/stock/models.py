@@ -253,6 +253,8 @@ class DailyStrategySignal(models.Model):
     remark = models.TextField("备注", blank=True, null=True)
     executed_status = models.CharField("执行状态", max_length=20, null=True, blank=True, db_index=True,default="PENDING",
                                    help_text="记录信号对应的交易操作执行状态：成功/失败/取消")
+    created_at = models.DateTimeField("创建时间",blank=True, null=True,auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", blank=True,null=True,auto_now=True)
 
     class Meta:
         verbose_name = "每日策略信号"

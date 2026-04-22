@@ -21,11 +21,13 @@ POSITION_MAX_UNITS = 3            # 最大持仓3单位数（如1Unit=4手，最
 
 def is_trading(api, account,signal):
     ts = api.get_trading_status(signal.symbol)
-    if ts.trade_status != 'TRADING':
+    if ts.trade_status == 'NOTRADING':
         msg = f"[WARN] {signal.symbol} 不在交易时间"
         print(msg)
         log_trade('is_trading checking', msg)
         return False
+    else:
+        return True
 def execute_add_on_order(api, account, signal):
     """
     执行加仓操作的函数（使用TargetPosTask自动化订单管理）
@@ -58,7 +60,7 @@ def execute_add_on_order(api, account, signal):
         position = PositionState.objects.select_for_update().filter(
             account=account,
             symbol=signal.symbol,
-            units__gt=0
+            # units__gt=0
         ).first()
         
         # 【修复P0】在下单前检查是否会超过最大持仓限制
@@ -267,22 +269,23 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
     # 【基于ATR计算1个Unit对应的手数】
     unit_lots = calculate_unit_lots(api, signal.symbol)
     
+    
     # 首次开仓固定为1个Unit
     target_units = 1
     order_volume = target_units * unit_lots
-    
+    print(f"[INFO] {signal.symbol} 开仓计划: 1个Unit × {unit_lots}手/Unit = {order_volume}手")
     # 【修复P0】使用数据库事务和行级锁防止并发
     with transaction.atomic():
         # 【修复P1】检查是否已存在同合约、同方向的持仓
         existing_position = PositionState.objects.select_for_update().filter(
             account=account,
             symbol=signal.symbol,
-            direction=signal.direction,
+            direction=signal.signal_direction,
             units__gt=0
         ).first()
         
         if existing_position:
-            msg = f"[WARN] {signal.symbol} 已存在{['', '多头', '空头'][signal.direction]}持仓，跳过开仓"
+            msg = f"[WARN] {signal.symbol} 已存在{['', '多头', '空头'][signal.signal_direction]}持仓，跳过开仓"
             print(msg)
             log_trade('execute_entry_order', msg)
             # 更新信号状态为取消（已有持仓）
@@ -291,7 +294,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
             return False
         
     # 【跳空保护检查】
-    can_trade = price_gap_protection(api, signal.symbol, signal.direction, gap_threshold_percent)
+    can_trade = price_gap_protection(api, signal.symbol, signal.signal_direction, gap_threshold_percent)
     if not can_trade:
         msg = f"[WARN] {signal.symbol} 跳空幅度过大，禁止开仓"
         print(msg)
@@ -317,7 +320,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
         two_step_result = execute_two_step_opening(
             api=api,
             symbol=signal.symbol,
-            direction=signal.direction,
+            direction=signal.signal_direction,
             adjusted_volume=adjusted_volume,
             excess_to_close=excess_to_close,
             target_volume=order_volume,
@@ -331,20 +334,22 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
             signal.save(update_fields=['executed_status', 'updated_at'])
             return False
         
-        # 创建持仓状态记录
+        # 【修复】使用 update_or_create 避免唯一约束冲突
         with transaction.atomic():
-            PositionState.objects.create(
+            PositionState.objects.update_or_create(
                 account=account,
                 symbol=signal.symbol,
-                product_code=signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
-                direction=signal.direction,
-                units=1,
-                contract_total_position=two_step_result['actual_filled'],
-                last_add_price=Decimal(str(two_step_result['avg_price'])),
-                contract_price_avg=Decimal(str(two_step_result['avg_price'])),
-                highest_close=Decimal(str(two_step_result['avg_price'])),
-                lowest_close=Decimal(str(two_step_result['avg_price'])),
-                latest_close_price=Decimal(str(two_step_result['avg_price'])),
+                defaults={
+                    'product_code': signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
+                    'direction': signal.signal_direction,
+                    'units': 1,
+                    'contract_total_position': two_step_result['actual_filled'],
+                    'last_add_price': Decimal(str(two_step_result['avg_price'])),
+                    # contract_price_avg=Decimal(str(two_step_result['avg_price'])),
+                    'highest_close': Decimal(str(two_step_result['avg_price'])),
+                    'lowest_close': Decimal(str(two_step_result['avg_price'])),
+                    'latest_close_price': Decimal(str(two_step_result['avg_price'])),
+                }
             )
             
             # 更新信号执行状态为成功
@@ -362,12 +367,12 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
         target_pos = TargetPosTask(api, signal.symbol)
         try:
             # 设置目标持仓量（开仓直接设置为目标手数）
-            if signal.direction == 1:
+            if signal.signal_direction == 1:
                 target_lots = order_volume  # 多头：目标持多单order_volume手
             else:
                 target_lots = -order_volume  # 空头：目标持空单order_volume手
             
-            msg = f"[INFO] {signal.symbol} 设置目标持仓: {target_lots}手 (开仓{target_units}Unit)"
+            msg = f"[INFO] {signal.symbol} 设置目标持仓: {target_lots}手 (开仓{target_units} Unit)"
             print(msg)
             log_trade('execute_entry_order', msg)
             
@@ -384,7 +389,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                 if pos_after is None:
                     continue
                 # 检查是否达到目标
-                if signal.direction == 1:
+                if signal.signal_direction == 1:
                     actual_filled = pos_after.volume_long 
                 else:
                     actual_filled = pos_after.volume_short
@@ -395,34 +400,44 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                     break    
 
             # 获取最终成交结果
-            pos_after = api.get_position(signal.symbol)          
-            entry_avg_price = float(pos_after.last_price) if pos_after and pos_after.last_price else None
-        
-            with transaction.atomic():
-                
-                # 创建持仓状态记录
-                PositionState.objects.create(
-                    account=account,
-                    symbol=signal.symbol,
-                    product_code=signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
-                    direction=signal.direction,
-                    units=1,
-                    contract_total_position=actual_filled,
-                    last_add_price=Decimal(str(entry_avg_price)),
-                    contract_price_avg=Decimal(str(entry_avg_price)),
-                    highest_close=Decimal(str(entry_avg_price)),
-                    lowest_close=Decimal(str(entry_avg_price)),
-                    latest_close_price=Decimal(str(entry_avg_price)),
-                )
-                
-                # 【新增】更新信号执行状态为成功
-                signal.executed_status = 'SUCCESS'
+            pos_after = api.get_position(signal.symbol)
+            if pos_after is None:
+                msg = f"[ERROR] {signal.symbol} 获取持仓信息失败"
+                print(msg)
+                log_error('execute_entry_order', msg, account=account, symbol=signal.symbol, signal=signal)
+                # 获取失败，更新信号状态为失败
+                signal.executed_status = 'FAILED'
                 signal.save(update_fields=['executed_status', 'updated_at'])
-            
-            msg = f"[SUCCESS] {signal.symbol} 开仓成功: 1 Unit({actual_filled}手) @ {entry_avg_price:.2f}"
-            print(msg)
-            log_trade('execute_entry_order', msg)
-            return True
+            else:
+                entry_avg_price = float(pos_after.last_price) if pos_after and pos_after.last_price else None
+                with transaction.atomic():
+                    
+                    # 【修复】使用 update_or_create 避免唯一约束冲突
+                    with transaction.atomic():
+                        PositionState.objects.update_or_create(
+                            account=account,
+                            symbol=signal.symbol,
+                            defaults={
+                                'product_code': signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
+                                'direction': signal.signal_direction,
+                                'units': 1,
+                                'contract_total_position': actual_filled,
+                                'last_add_price': Decimal(str(entry_avg_price)),
+                                # contract_price_avg=Decimal(str(entry_avg_price)),
+                                'highest_close': Decimal(str(entry_avg_price)),
+                                'lowest_close': Decimal(str(entry_avg_price)),
+                                'latest_close_price': Decimal(str(entry_avg_price)),
+                            }
+                        )
+                        
+                        # 【新增】更新信号执行状态为成功
+                        signal.executed_status = 'SUCCESS'
+                        signal.save(update_fields=['executed_status', 'updated_at'])
+                
+                msg = f"[SUCCESS] {signal.symbol} 开仓成功: 1 Unit({actual_filled}手) @ {entry_avg_price:.2f}"
+                print(msg)
+                log_trade('execute_entry_order', msg)
+                return True
             
         except Exception as e:
             msg = f"[ERROR] 开仓失败 {signal.symbol}: {str(e)}"
@@ -790,20 +805,22 @@ def execute_rollover_order(api, position, signal):
                 init_stop_loss = None
             
             # 创建新持仓状态记录
-            PositionState.objects.create(
+            PositionState.objects.update_or_create(
                 account=position.account,
                 symbol=signal.symbol,
-                product_code=signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
-                direction=position.direction,
-                units=position.units,
-                contract_total_position=actual_filled,
-                last_add_price=Decimal(str(entry_avg_price)),
-                contract_price_avg=Decimal(str(entry_avg_price)),
-                highest_close=init_highest_close,
-                lowest_close=init_lowest_close,
-                latest_close_price=Decimal(str(entry_avg_price)),
-                stop_loss_price=init_stop_loss,
-                is_rollover_needed=False
+                defaults={
+                    'product_code': signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
+                    'direction': position.direction,
+                    'units': position.units,
+                    'contract_total_position': actual_filled,
+                    'last_add_price': Decimal(str(entry_avg_price)),
+                    # contract_price_avg=Decimal(str(entry_avg_price)),
+                    'highest_close': init_highest_close,
+                    'lowest_close': init_lowest_close,
+                    'latest_close_price': Decimal(str(entry_avg_price)),
+                    'stop_loss_price': init_stop_loss,
+                    'is_rollover_needed': False
+                }
             )
             # 更新旧持仓状态为已平仓（删除整个合约记录）
             PositionState.objects.filter(id=position.id).delete()
