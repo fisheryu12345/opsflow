@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from django.db import transaction
 from decimal import Decimal
 from tqsdk import TqApi, TqAuth
-from stock.tasks.celery_test import send_email_task as send_email
+from backend.stock.tasks.send_mail import send_email_task as send_email
 from django.template.loader import render_to_string
 
 
