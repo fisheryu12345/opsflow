@@ -158,35 +158,87 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
         ma_40_value = clean_nan_for_decimal(ma_40_value)
         
         # 3.5 计算趋势因子
-        if ma_10_value and ma_20_value and ma_40_value and not any(np.isnan(v) for v in [ma_10_value, ma_20_value, ma_40_value]):
-            diff10_20 = ma_10_value - ma_20_value
-            diff20_40 = ma_20_value - ma_40_value
-            threshold = 0.0045 * abs(ma_20_value)
-            
-            if ma_10_value > ma_20_value > ma_40_value:
-                trend_factor = 0.5
+        # 计算均线间距占比
+        # 1. 核心判定标准（基于 gap_ratio）
+        #         维度	强牛 (strong_bull)	弱牛 (weak_bull)
+        #         均线排列	严格单调递增：<br>MA10 > MA20 > MA40	单调递增但发散不足：<br>MA10 > MA20 > MA40
+        #         间距占比要求	双高：<br>gap_ratio_10_20 > 1% 且 gap_ratio_20_40 > 1%	至少一个达标：<br>gap_ratio_10_20 > 0.3% 或 gap_ratio_20_40 > 0.3%
+        #         趋势因子	trend_factor = 0.5	trend_factor = -0.15
+        #         止损倍数	3.0 倍 ATR<br>（宽松，给足波动空间）	1.7 倍 ATR<br>（收紧，防范假突破）
+
+        # 总结对比表
+        # 均线形态	        间距占比	        分类	                trend_factor	止损倍数
+        # 完美发散	        > 1%	            Strong Bull/Bear	     0.5	        3.0 ATR
+        # 微弱发散	        0.3% ~ 1%	        Weak Bull/Bear	        -0.15	        1.7 ATR
+        # 高度粘合/交叉	    < 0.3%或非单调	    Choppy (震荡)	         -0.3	         1.4 ATR
+        # 数据缺失	N/A	Neutral (中性)	0.0	2.0 ATR
+        diff10_20 = ma_10_value - ma_20_value
+        diff20_40 = ma_20_value - ma_40_value
+        gap_ratio_10_20 = abs(diff10_20) / abs(ma_20_value) if ma_20_value != 0 else 0
+        gap_ratio_20_40 = abs(diff20_40) / abs(ma_20_value) if ma_20_value != 0 else 0
+
+        # 定义阈值
+        STRONG_THRESHOLD = 0.01   # 1%
+        WEAK_THRESHOLD = 0.003    # 0.3%
+
+        if ma_10_value > ma_20_value > ma_40_value:
+            # 多头排列
+            if gap_ratio_10_20 > STRONG_THRESHOLD and gap_ratio_20_40 > STRONG_THRESHOLD:
+                trend_factor = 0.5      # 强牛
                 trend_label = "strong_bull"
-            elif ma_10_value < ma_20_value < ma_40_value:
-                trend_factor = 0.5
-                trend_label = "strong_bear"
-            elif abs(diff10_20) < threshold and abs(diff20_40) < threshold:
-                trend_factor = -0.3
-                trend_label = "choppy"
-            elif (ma_10_value > ma_20_value and ma_20_value >= ma_40_value) or \
-                (ma_10_value >= ma_20_value and ma_20_value > ma_40_value):
-                trend_factor = -0.15
+            elif gap_ratio_10_20 > WEAK_THRESHOLD or gap_ratio_20_40 > WEAK_THRESHOLD:
+                trend_factor = -0.15    # 弱牛（至少有一个间距 > 0.3%）
                 trend_label = "weak_bull"
-            elif (ma_10_value < ma_20_value and ma_20_value <= ma_40_value) or \
-                (ma_10_value <= ma_20_value and ma_20_value < ma_40_value):
-                trend_factor = -0.15
+            else:
+                trend_factor = -0.3     # 震荡（两个间距都 < 0.3%）
+                trend_label = "choppy"
+
+        elif ma_10_value < ma_20_value < ma_40_value:
+            # 空头排列
+            if gap_ratio_10_20 > STRONG_THRESHOLD and gap_ratio_20_40 > STRONG_THRESHOLD:
+                trend_factor = 0.5      # 强熊
+                trend_label = "strong_bear"
+            elif gap_ratio_10_20 > WEAK_THRESHOLD or gap_ratio_20_40 > WEAK_THRESHOLD:
+                trend_factor = -0.15    # 弱熊
                 trend_label = "weak_bear"
             else:
-                trend_factor = -0.3
+                trend_factor = -0.3     # 震荡
                 trend_label = "choppy"
+
         else:
-            trend_factor = 0.0
-            trend_label = "neutral"
-        # 3.6 检查突破信号（只返回结果，不保存数据库）
+            # 交叉形态或无明显方向
+            trend_factor = -0.3
+            trend_label = "choppy"
+
+        # if ma_10_value and ma_20_value and ma_40_value and not any(np.isnan(v) for v in [ma_10_value, ma_20_value, ma_40_value]):
+        #     diff10_20 = ma_10_value - ma_20_value
+        #     diff20_40 = ma_20_value - ma_40_value
+        #     threshold = 0.0045 * abs(ma_20_value)
+            
+        #     if ma_10_value > ma_20_value > ma_40_value:
+        #         trend_factor = 0.5
+        #         trend_label = "strong_bull"
+        #     elif ma_10_value < ma_20_value < ma_40_value:
+        #         trend_factor = 0.5
+        #         trend_label = "strong_bear"
+        #     elif abs(diff10_20) < threshold and abs(diff20_40) < threshold:
+        #         trend_factor = -0.3
+        #         trend_label = "choppy"
+        #     elif (ma_10_value > ma_20_value and ma_20_value >= ma_40_value) or \
+        #         (ma_10_value >= ma_20_value and ma_20_value > ma_40_value):
+        #         trend_factor = -0.15
+        #         trend_label = "weak_bull"
+        #     elif (ma_10_value < ma_20_value and ma_20_value <= ma_40_value) or \
+        #         (ma_10_value <= ma_20_value and ma_20_value < ma_40_value):
+        #         trend_factor = -0.15
+        #         trend_label = "weak_bear"
+        #     else:
+        #         trend_factor = -0.3
+        #         trend_label = "choppy"
+        # else:
+        #     trend_factor = 0.0
+        #     trend_label = "neutral"
+        # # 3.6 检查突破信号（只返回结果，不保存数据库）
         breakout_info = check_breakout_signal(klines, entry_period=20)
         # print(f"突破检测结果: {breakout_info}")
         
