@@ -21,7 +21,6 @@ def send_report(account, current_date):
     :param current_date: 当前日期
     :return: 是否发送成功
     """
-    from stock.utils.send_mail import send_email
     from django.template.loader import render_to_string
     from django.utils import timezone
     

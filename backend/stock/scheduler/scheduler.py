@@ -4,7 +4,7 @@ from django_apscheduler.jobstores import DjangoJobStore
 
 # 导入任务函数（使用完整路径）
 # from stock.scheduler.tasks_daily_open import job_daily_on_prep, job_check_pending_orders
-from stock.scheduler.test_job import test_job
+# from stock.scheduler.test_job import test_job
 from stock.scheduler.tasks_daily_close import job_daily_close_calculation
 from stock.scheduler.tasks_daily_open import job_daily_open_process
 
@@ -27,16 +27,16 @@ scheduler.add_jobstore(DjangoJobStore(), 'default')
 
 
 
-scheduler.add_job(
-    test_job, 
-    'interval', 
-    hours=3, 
-    id='test_job',
-    name='test_job',
-    misfire_grace_time=300,  # 允许5分钟的容错时间
-    replace_existing=True,  # 如果任务已存在则替换
-    max_instances=1  # 最多同时运行1个实例
-)
+# scheduler.add_job(
+#     test_job, 
+#     'interval', 
+#     hours=3, 
+#     id='test_job',
+#     name='test_job',
+#     misfire_grace_time=300,  # 允许5分钟的容错时间
+#     replace_existing=True,  # 如果任务已存在则替换
+#     max_instances=1  # 最多同时运行1个实例
+# )
 
 # 任务 1: 每日收盘后计算（16:00）
 # 此时日盘已收盘，数据最完整，执行：
