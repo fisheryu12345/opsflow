@@ -349,6 +349,7 @@ def generate_daily_signal_report():
                 'summary': {
                     'total_signals': 0,
                     'open_count': 0,
+                    'add_on_count': 0,
                     'stop_loss_count': 0,
                     'rollover_count': 0,
                 },
@@ -375,6 +376,7 @@ def generate_daily_signal_report():
             'open_count': signals.filter(trade_type__in=['ENTRY']).count(),
             'stop_loss_count': signals.filter(trade_type='STOP_LOSS').count(),
             'rollover_count': signals.filter(trade_type='ROLLOVER').count(),
+            'add_on_count': signals.filter(trade_type='ADD_ON').count(),
         }
         
         # 转换信号数据为字典列表

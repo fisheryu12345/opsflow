@@ -53,7 +53,7 @@
         
         .summary-card {
             display: table-cell;
-            width: 25%;
+            width: 20%;
             text-align: center;
             padding: 15px;
         }
@@ -71,6 +71,7 @@
         
         .card-total .number { color: #667eea; }
         .card-open .number { color: #28a745; }
+        .card-add-on .number { color: #17a2b8; }
         .card-stop .number { color: #dc3545; }
         .card-rollover .number { color: #ffc107; }
         
@@ -280,6 +281,10 @@
             <div class="summary-card card-open">
                 <div class="number">{{ summary.open_count|default:0 }}</div>
                 <div class="label">开仓信号</div>
+            </div>
+            <div class="summary-card card-add-on">
+                <div class="number">{{ summary.add_on_count|default:0 }}</div>
+                <div class="label">加仓信号</div>
             </div>
             <div class="summary-card card-stop">
                 <div class="number">{{ summary.stop_loss_count|default:0 }}</div>
