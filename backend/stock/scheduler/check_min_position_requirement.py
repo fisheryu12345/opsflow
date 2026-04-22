@@ -131,7 +131,7 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         target_pos.set_target_volume(step1_target)
         
         # 等待第1步成交
-        timeout_seconds = 120
+        timeout_seconds = 240
         start_time = time.time()
         step1_completed = False
         

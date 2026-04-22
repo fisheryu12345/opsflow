@@ -168,7 +168,7 @@ def execute_add_on_order(api, account, signal):
             target_pos.set_target_volume(target_lots)
             
             # 等待成交（带超时控制）
-            timeout_seconds = 120  # 60秒超时
+            timeout_seconds = 240  # 60秒超时
             start_time = time.time()
             
             while time.time() - start_time < timeout_seconds:
@@ -379,7 +379,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
             target_pos.set_target_volume(target_lots)
             
             # 等待成交（带超时控制）
-            timeout_seconds = 120
+            timeout_seconds = 240
             start_time = time.time()
             
             while time.time() - start_time < timeout_seconds:
@@ -422,7 +422,6 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                                 'units': 1,
                                 'contract_total_position': actual_filled,
                                 'last_add_price': Decimal(str(entry_avg_price)),
-                                # contract_price_avg=Decimal(str(entry_avg_price)),
                                 'highest_close': Decimal(str(entry_avg_price)),
                                 'lowest_close': Decimal(str(entry_avg_price)),
                                 'latest_close_price': Decimal(str(entry_avg_price)),
@@ -502,7 +501,7 @@ def execute_exit_order(api, position, signal):
         target_pos.set_target_volume(0)
         
         # 等待成交（带超时控制）
-        timeout_seconds = 120
+        timeout_seconds = 240
         start_time = time.time()
         while time.time() - start_time < timeout_seconds:
             api.wait_update(deadline=time.time() + 1)
@@ -589,10 +588,7 @@ def execute_rollover_order(api, position, signal):
         print(msg)
         log_trade('execute_rollover_order', msg)
         return False
-    
-    # 计算移仓数量
-    # total_volume = position.contract_total_position
-    
+       
     
     # ========== 第1阶段：平仓旧合约 ==========
     msg = f"[INFO] {position.symbol} 开始平仓旧合约..."
@@ -607,7 +603,7 @@ def execute_rollover_order(api, position, signal):
         target_pos_old.set_target_volume(0)
         
         # 等待成交
-        timeout_seconds = 120
+        timeout_seconds = 240
         start_time = time.time()
         
         while time.time() - start_time < timeout_seconds:
@@ -705,7 +701,7 @@ def execute_rollover_order(api, position, signal):
             target_pos_new.set_target_volume(target_lots)
             
             # 等待成交
-            timeout_seconds = 120
+            timeout_seconds = 240
             start_time = time.time()
             
             while time.time() - start_time < timeout_seconds:
