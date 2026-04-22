@@ -965,11 +965,6 @@ def job_daily_open_process():
     每日开盘处理函数
     """
     from datetime import datetime
-    # pause_open_task_job = StrategyConfig.objects.get(name='FT').pause_open_task_job
-    # if pause_open_task_job:
-    #     print("[INFO] 暂停开仓任务")
-    #     return
-    # 获取当前日期
     current_date = datetime.now().date()
     # 获取交易账户
     accounts = TradingAccount.objects.all()
