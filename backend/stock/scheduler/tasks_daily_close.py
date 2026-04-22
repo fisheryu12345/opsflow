@@ -48,10 +48,12 @@ def check_breakout_singal(symbol, product_code, trend_factor, trend_label,
             DailyStrategySignal.objects.update_or_create(
                 account=account,
                 symbol=symbol,
+                product_code=product_code,
                 trade_date=date.today(),
                 defaults={
                     'trend_factor': Decimal(str(trend_factor)),
                     'trend_label': trend_label,
+
                     'donchian_upper': Decimal(str(breakout_info['entry_high'])) if breakout_info['entry_high'] else None,
                     'donchian_lower': Decimal(str(breakout_info['entry_low'])) if breakout_info['entry_low'] else None,
                     'is_breakout': breakout_info['is_breakout'],
@@ -116,6 +118,7 @@ def check_exit_signals():
                 DailyStrategySignal.objects.update_or_create(
                     account=default_account,
                     symbol=position.symbol,
+                    product_code=position.product_code,
                     trade_date=date.today(),
                     defaults={
                         'trend_factor': position.indicators.get('trend_factor', 0) if position.indicators else 0,
@@ -171,6 +174,7 @@ def check_rollover_signals():
                 DailyStrategySignal.objects.update_or_create(
                     account=default_account,
                     symbol=position.symbol,
+                    product_code=position.product_code,
                     trade_date=date.today(),
                     defaults={
                         'trend_factor': position.indicators.get('trend_factor', 0) if position.indicators else 0,
@@ -284,6 +288,7 @@ def check_add_position_signals():
                     DailyStrategySignal.objects.update_or_create(
                         account=default_account,
                         symbol=position.symbol,
+                        product_code=position.product_code,
                         trade_date=date.today(),
                         defaults={
                             'trend_factor': position.indicators.get('trend_factor', 0),

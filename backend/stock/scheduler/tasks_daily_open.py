@@ -340,12 +340,11 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                 account=account,
                 symbol=signal.symbol,
                 defaults={
-                    'product_code': signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
+                    'product_code': signal.product_code,
                     'direction': signal.signal_direction,
                     'units': 1,
                     'contract_total_position': two_step_result['actual_filled'],
                     'last_add_price': Decimal(str(two_step_result['avg_price'])),
-                    # contract_price_avg=Decimal(str(two_step_result['avg_price'])),
                     'highest_close': Decimal(str(two_step_result['avg_price'])),
                     'lowest_close': Decimal(str(two_step_result['avg_price'])),
                     'latest_close_price': Decimal(str(two_step_result['avg_price'])),
@@ -418,7 +417,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                             account=account,
                             symbol=signal.symbol,
                             defaults={
-                                'product_code': signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
+                                'product_code': signal.product_code,
                                 'direction': signal.signal_direction,
                                 'units': 1,
                                 'contract_total_position': actual_filled,
@@ -809,7 +808,7 @@ def execute_rollover_order(api, position, signal):
                 account=position.account,
                 symbol=signal.symbol,
                 defaults={
-                    'product_code': signal.symbol.split('.')[-1][:2] if '.' in signal.symbol else '',
+                    'product_code': signal.product_code,
                     'direction': position.direction,
                     'units': position.units,
                     'contract_total_position': actual_filled,

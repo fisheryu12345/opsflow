@@ -223,6 +223,7 @@ class DailyStrategySignal(models.Model):
     account = models.ForeignKey(TradingAccount, on_delete=models.CASCADE, related_name='daily_signals')
     symbol = models.CharField("合约代码", max_length=20, db_index=True)
     trade_date = models.DateField("交易日期", db_index=True)
+    product_code = models.CharField("品种代码", max_length=20,blank=True, null=True)
 
     # --- 决策依据 ---
     trend_factor = models.DecimalField("趋势因子", max_digits=6, decimal_places=4, help_text="当时的趋势因子值")
