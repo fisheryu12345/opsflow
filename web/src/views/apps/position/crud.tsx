@@ -82,7 +82,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				},
 			},
 			rowHandle: {
-				fixed:'right',
+				fixed:'center',
 				width: 0,
 				show: false,
 				buttons: {
@@ -104,7 +104,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					form: { show: false },
 					column: {
 						align: 'center',
-						width: '70px',
+						width: '60px',
 						columnSetDisabled: true,
 						formatter: (context) => {
 							let index = context.index ?? 1;
@@ -149,7 +149,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 					column: {
-						minWidth: 100,
+						align: 'center',
+						minWidth: 80,
 						showOverflowTooltip: true,
 						formatter: (context) => {
 							// 处理嵌套对象或ID
@@ -182,7 +183,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 					column: {
-						minWidth: 100,
+						align: 'center',
+						minWidth: 120,
 						showOverflowTooltip: true,
 					},
 					form: {
@@ -206,7 +208,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 					column: {
-						minWidth: 100,
+						align: 'center',
+						minWidth: 80,
 						showOverflowTooltip: true,
 					},
 					form: {
@@ -217,13 +220,13 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 				},
 				units: {
-					title: '持仓单位数',
+					title: '单位数',
 					type: 'number',
 					search: {
 						disabled: true,
 					},
 					column: {
-						width: 100,
+						width: 80,
 						align: 'center',
 					},
 					form: {
@@ -256,7 +259,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 					column: {
-						width: 80,
+						width: 100,
 						align: 'center',
 					},
 					form: {
@@ -295,7 +298,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 					column: {
 						width: 100,
-						align: 'right',
+						align: 'center',
 					},
 					form: {
 						show: false,
@@ -315,7 +318,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 					column: {
 						width: 120,
-						align: 'right',
+						align: 'center',
 					},
 					form: {
 						show: false,
@@ -335,7 +338,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 					column: {
 						width: 120,
-						align: 'right',
+						align: 'center',
 					},
 					form: {
 						show: false,
@@ -354,8 +357,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						disabled: true,
 					},
 					column: {
-						width: 120,
-						align: 'right',
+						width: 80,
+						align: 'center',
 					},
 					form: {
 						show: false,
@@ -374,8 +377,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						disabled: true,
 					},
 					column: {
-						width: 120,
-						align: 'right',
+						width: 160,
+						align: 'center',
 					},
 					form: {
 						show: false,
@@ -395,7 +398,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 					column: {
 						width: 100,
-						align: 'right',
+						align: 'center',
 					},
 					form: {
 						show: false,
@@ -447,6 +450,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 					column: {
 						minWidth: 180,
+						align: 'center',
 						sorter: {
 							enabled: true,
 						},
@@ -497,8 +501,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						disabled: true,
 					},
 					column: {
-						width: 120,
-						align: 'right',
+						width: 100,
+						align: 'center',
 					},
 					form: {
 						show: false,
@@ -517,8 +521,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						disabled: true,
 					},
 					column: {
-						width: 120,
-						align: 'right',
+						width: 100,
+						align: 'center',
 					},
 					form: {
 						show: false,
