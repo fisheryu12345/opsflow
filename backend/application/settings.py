@@ -40,11 +40,14 @@ sys.path.insert(0, os.path.join(PLUGINS_PATH))
 ]
 
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://47.103.201.230:8080',
-    # 如果你也希望通过域名访问，也可以把域名加上
-    # 'http://your-domain.com:8080',
-]
+# CSRF_TRUSTED_ORIGINS = [
+#     # 'http://47.103.201.230:8080',
+#     # 'http://fishertrade.com.cn'
+#     'https://fishertrade.com.cn',
+#     'https://www.fishertrade.com.cn'
+#     # 如果你也希望通过域名访问，也可以把域名加上
+#     # 'http://your-domain.com:8080',
+# ]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = locals().get("DEBUG", True)
 # ALLOWED_HOSTS = locals().get("ALLOWED_HOSTS", ["*"])
