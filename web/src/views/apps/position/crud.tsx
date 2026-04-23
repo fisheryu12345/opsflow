@@ -182,7 +182,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 					column: {
-						minWidth: 140,
+						minWidth: 100,
 						showOverflowTooltip: true,
 					},
 					form: {
@@ -223,7 +223,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						disabled: true,
 					},
 					column: {
-						width: 110,
+						width: 100,
 						align: 'center',
 					},
 					form: {
@@ -256,7 +256,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 					column: {
-						width: 100,
+						width: 80,
 						align: 'center',
 					},
 					form: {
@@ -275,7 +275,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						disabled: true,
 					},
 					column: {
-						width: 110,
+						width: 100,
 						align: 'center',
 					},
 					form: {
@@ -294,7 +294,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						disabled: true,
 					},
 					column: {
-						width: 120,
+						width: 100,
 						align: 'right',
 					},
 					form: {
@@ -394,7 +394,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						disabled: true,
 					},
 					column: {
-						width: 120,
+						width: 100,
 						align: 'right',
 					},
 					form: {
