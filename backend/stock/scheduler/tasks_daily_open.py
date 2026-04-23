@@ -121,7 +121,7 @@ def execute_add_on_order(api, account, signal):
         
         # 更新数据库
         with transaction.atomic():
-            new_units = position.units + unit_lots
+            new_units = position.units + add_units_from_signal
             new_total_lots = position.contract_total_position + order_volume
             
             PositionState.objects.filter(id=position.id).update(
@@ -207,7 +207,7 @@ def execute_add_on_order(api, account, signal):
             avg_price = float(quote.last_price) if quote and quote.last_price else None
         
             with transaction.atomic():
-                new_units = position.units + unit_lots
+                new_units = position.units + add_units_from_signal
                 new_total_lots = position.contract_total_position + order_volume
                 
                 PositionState.objects.filter(id=position.id).update(
