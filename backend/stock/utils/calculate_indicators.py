@@ -66,9 +66,9 @@ def calculate_dynamic_thresholds(ma_20_value, atr_20_value, base_ratio_strong=0.
     # 当ATR/MA > 2%时,认为是高波动品种,需要提高阈值避免假信号
     # 当ATR/MA < 0.5%时,认为是低波动品种,可以降低阈值捕捉微小趋势
     if atr_ratio > 0.02:  # 高波动 (>2%)
-        volatility_multiplier = 1.5  # 提高阈值,过滤噪音
+        volatility_multiplier = 1.2  # 提高阈值,过滤噪音
     elif atr_ratio < 0.005:  # 低波动 (<0.5%)
-        volatility_multiplier = 0.7  # 降低阈值,提高敏感度
+        volatility_multiplier = 0.8  # 降低阈值,提高敏感度
     else:  # 中等波动
         volatility_multiplier = 1.0
     
