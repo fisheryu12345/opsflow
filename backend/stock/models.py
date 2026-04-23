@@ -310,7 +310,7 @@ class PositionState(models.Model):
     is_rollover_needed = models.BooleanField("需移仓换月", default=False, help_text="标记是否需要进行主力合约换月操作")
     h20_price = models.DecimalField("20日最高价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="20日最高价")
     l20_price = models.DecimalField("20日最低价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="20日最低价")
-    trend_info = models.CharField("趋势标签", max_length=20, null=True, blank=True, help_text="趋势标签，如：BULL, BEAR, NEUTRAL")
+    trend_info = models.CharField("趋势标签", max_length=60, null=True, blank=True, help_text="趋势标签，如：BULL, BEAR, NEUTRAL")
 
 
 

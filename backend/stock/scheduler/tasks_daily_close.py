@@ -508,6 +508,7 @@ def update_all_positions_stop_loss_price():
                 # 从 indicators 获取 ATR 和 factor（统一转换为 Decimal）
                 atr_value = Decimal(str(position.indicators.get('atr_20', 0)))
                 factor = Decimal(str(position.indicators.get('trend_factor', 0)))
+                trend_label = position.indicators.get('trend_label', '')
                 
                 # 根据持仓方向选择基准价格和计算止损价
                 if position.direction == 1:
@@ -537,7 +538,8 @@ def update_all_positions_stop_loss_price():
                 # 更新止损价格（保持 Decimal 类型）
                 PositionState.objects.filter(id=position.id).update(
                     stop_loss_price=new_stop_loss,
-                    trend_info=f'{atr_value:.2f},  {factor:.2f}'
+                    trend_info=f'{atr_value:.2f},  {factor:.2f} , {trend_label}',
+
                 )
                 updated_count += 1
                 

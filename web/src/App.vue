@@ -114,7 +114,7 @@ const wsReceive = (message: any) => {
 			message: data.content,
 			type: 'success',
 			position: 'bottom-right',
-			duration: 5000,
+			duration: 15000,
 		});
 	}
 };
