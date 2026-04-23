@@ -14,6 +14,7 @@ import os
 import sys
 from pathlib import Path
 from datetime import timedelta
+import socket
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -114,13 +115,24 @@ WSGI_APPLICATION = "application.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
+# 根据目标IP动态配置数据库HOST
+hostname = socket.gethostname()
+ip_addresses = socket.gethostbyname_ex(hostname)[2]
+
+# 检查是否包含目标IP
+target_ip = '172.25.21.215'
+if target_ip not in ip_addresses:
+    DB_HOST = '127.0.0.1'  # 内网环境使用本地数据库
+else:
+    DB_HOST = '47.103.201.230'  # 外网环境使用公网IP
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'stock',
         'USER': 'trade',
         'PASSWORD': 'Fisher&123YX!',
-        'HOST': '47.103.201.230',
+        'HOST': DB_HOST,
         'PORT': '3306',
         'OPTIONS': {
             'ssl': {'ssl-mode': 'DISABLED'},
