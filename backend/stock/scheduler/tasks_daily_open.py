@@ -893,7 +893,7 @@ def process_signals_by_type(api, account, trade_type):
         return {'success': 0, 'failed': 0, 'skipped': 0}
     
     # 查询信号
-    signals = DailyStrategySignal.objects.filter(config['query_filter'])
+    signals = DailyStrategySignal.objects.filter(config['query_filter']).filter(executed_status = 'PENDING')
     
     success_count = 0
     failed_count = 0
