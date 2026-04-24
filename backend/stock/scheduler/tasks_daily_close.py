@@ -406,9 +406,6 @@ def generate_daily_signal_report():
         
         html_content = render_to_string('daily_strategy_signal_report.html', context)
         
-        from celery import current_app
-        print("Broker URL:", current_app.conf.broker_url)
-        print("Backend URL:", current_app.conf.result_backend)
         # 异步发送邮件
         send_email(
             subject=f'[量化策略] 每日信号报告 - {today.strftime("%Y-%m-%d")}',
