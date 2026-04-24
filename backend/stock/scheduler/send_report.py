@@ -44,12 +44,12 @@ def send_open_report(account=None, current_date=None):
         
         # 计算时间范围：过去一小时
         now = timezone.now()
-        one_hour_ago = now - timedelta(hours=1)
+        one_day_ago = now - timedelta(hours=24)
         
         # 查询过去一小时内更新的信号记录
         recent_signals = DailyStrategySignal.objects.filter(
             account=account,
-            updated_at__gte=one_hour_ago
+            updated_at__gte=one_day_ago
         ).order_by('-updated_at', 'symbol')
         
         # 统计数据（即使没有记录也要发送邮件）
@@ -74,7 +74,7 @@ def send_open_report(account=None, current_date=None):
             })
         
         # 格式化时间范围字符串
-        time_range_str = f"{one_hour_ago.strftime('%Y-%m-%d %H:%M')} ~ {now.strftime('%Y-%m-%d %H:%M')}"
+        time_range_str = f"{one_day_ago.strftime('%Y-%m-%d %H:%M')} ~ {now.strftime('%Y-%m-%d %H:%M')}"
         
         # 渲染HTML模板
         context = {

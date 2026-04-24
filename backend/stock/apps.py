@@ -29,7 +29,7 @@ class StockConfig(AppConfig):
         # from . import tasks # 确保任务函数被导入
         redis = get_redis_connection('default')
         lock_key = 'lock:scheduler'
-        lock_timeout = 10
+        lock_timeout = 3600
         if redis.set(lock_key, 'true', nx=True, ex=lock_timeout):
             from stock.scheduler.scheduler import scheduler
             try:

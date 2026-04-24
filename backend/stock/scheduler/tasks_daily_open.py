@@ -835,36 +835,43 @@ def job_daily_open_process():
     每日开盘处理函数
     """
     from datetime import datetime
+    from django_redis import get_redis_connection
     current_date = datetime.now().date()
     close_old_connections()
     # 获取交易账户
     accounts = TradingAccount.objects.all()
     for account in accounts:
-        # 初始化TqApi
         api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
-        try:
-            # 处理平仓信号
-            result = process_signals_by_type(api, account, 'STOP_LOSS')
-            print(f"[INFO] 平仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
-            
-            # 处理开仓信号
-            result = process_signals_by_type(api, account, 'ENTRY')
-            print(f"[INFO] 开仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
-            
-            # 处理移仓信号
-            result = process_signals_by_type(api, account, 'ROLLOVER')
-            print(f"[INFO] 移仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔, 跳过{result['skipped']}笔")
-            
-            # 处理加仓信号
-            result = process_signals_by_type(api, account, 'ADD_ON')
-            print(f"[INFO] 加仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
-            
-            # 发送交易执行情况报告
-            send_open_report(account, current_date)
-        except Exception as e:
-            print(f"[ERROR] 处理账户 {account.username} 时发生错误: {str(e)}")
-            import traceback
-            traceback.print_exc()
-        finally:
-            # 关闭TqApi连接
-            api.close()
+        # from . import tasks # 确保任务函数被导入
+        redis = get_redis_connection('default')
+        lock_key = 'lock:open'
+        if redis.set(lock_key, 'true', nx=True, ex=600): 
+            try:
+                # 处理平仓信号
+                result = process_signals_by_type(api, account, 'STOP_LOSS')
+                print(f"[INFO] 平仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
+                
+                # 处理开仓信号
+                result = process_signals_by_type(api, account, 'ENTRY')
+                print(f"[INFO] 开仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
+                
+                # 处理移仓信号
+                result = process_signals_by_type(api, account, 'ROLLOVER')
+                print(f"[INFO] 移仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔, 跳过{result['skipped']}笔")
+                
+                # 处理加仓信号
+                result = process_signals_by_type(api, account, 'ADD_ON')
+                print(f"[INFO] 加仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
+                
+                # 发送交易执行情况报告
+                send_open_report(account, current_date)
+            except Exception as e:
+                print(f"[ERROR] 处理账户 {account.username} 时发生错误: {str(e)}")
+                import traceback
+                traceback.print_exc()
+            finally:
+                # 关闭TqApi连接
+                redis.delete(lock_key)
+                api.close()
+        else:
+            print(f"[INFO] 账户 {account.username} 正在处理中, 跳过")
