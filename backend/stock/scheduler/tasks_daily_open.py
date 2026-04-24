@@ -361,6 +361,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                     log_trade('execute_entry_order', msg)
                     break
                 
+                #下面的代码 需要优化
                 pos_after = api.get_position(signal.symbol)
                 if pos_after is None:
                     continue
