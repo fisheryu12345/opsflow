@@ -9,7 +9,7 @@ from django.db.models import Q
 from stock.models import TradingAccount, PositionState, DailyStrategySignal,StrategyConfig
 from stock.scheduler.calculate_unit_lots import calculate_unit_lots
 from stock.scheduler.calculate_atr import calculate_atr, price_gap_protection
-from stock.scheduler.send_report import send_report
+from stock.scheduler.send_report import send_open_report
 from stock.utils.log_util import log_trade, log_error
 from stock.scheduler.check_min_position_requirement import check_min_position_requirement,execute_two_step_opening
 
@@ -860,7 +860,7 @@ def job_daily_open_process():
             print(f"[INFO] 加仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
             
             # 发送交易执行情况报告
-            send_report(account, current_date)
+            send_open_report(account, current_date)
         except Exception as e:
             print(f"[ERROR] 处理账户 {account.username} 时发生错误: {str(e)}")
             import traceback

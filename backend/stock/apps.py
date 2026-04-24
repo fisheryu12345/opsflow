@@ -33,9 +33,6 @@ class StockConfig(AppConfig):
         if redis.set(lock_key, 'true', nx=True, ex=lock_timeout):
             from stock.scheduler.scheduler import scheduler
             try:
-                # 添加你的定时任务
-                # 这里演示每10秒执行一次任务
-                # 启动调度器
                 if not scheduler.running:
                     scheduler.start()
                     print("启动定时任务成功！")
