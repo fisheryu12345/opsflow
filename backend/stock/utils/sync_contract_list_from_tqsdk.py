@@ -92,7 +92,7 @@ def sync_contract_list_from_tqsdk(api=None):
                 
                 min_position = quote.open_min_market_order_volume
                 
-                print(f"  [OK] {instrument_id} | 品种: {product_id} | 乘数: {volume_multiple} | Tick: {price_tick} | 夜盘: {'有' if has_night else '无'} | 分类: {category}")
+                print(f"  [OK] {instrument_id} | 品种: {product_id} | 乘数: {volume_multiple} | Tick: {price_tick} | 夜盘: {'有' if has_night else '无'} | 分类: {category_from_api}")
                 
                 # 7. 使用 update_or_create 创建或更新记录
                 with transaction.atomic():
