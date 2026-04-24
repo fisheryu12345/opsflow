@@ -146,8 +146,8 @@ class FullContractList(models.Model):
     #                                   help_text="用于预估占用保证金，范围0-1")
 
     # --- 分类信息 ---
-    sector = models.CharField("所属板块", max_length=20, blank=True, null=True, 
-                             help_text="例如：黑色金属、化工、农产品、金融")
+    # sector = models.CharField("所属板块", max_length=20, blank=True, null=True, 
+    #                          help_text="例如：黑色金属、化工、农产品、金融")
     category = models.CharField("详细分类", max_length=20, blank=True, null=True,
                                help_text="例如：螺纹类、PTA类")
 
@@ -167,7 +167,7 @@ class FullContractList(models.Model):
         verbose_name = "交易合约列表"
         verbose_name_plural = "交易合约列表"
         # 方便前端按交易所或板块筛选
-        ordering = ['exchange', 'sector', 'product_code']
+        ordering = ['exchange',  'product_code']
         
 
 class StrategyConfig(models.Model):

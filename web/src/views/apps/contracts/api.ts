@@ -136,10 +136,3 @@ export function GetExchanges() {
  * Query params: exchange (可选，按交易所过滤)
  * Returns: [{value: "黑色金属", count: 5}, ...]
  */
-export function GetSectors(exchange?: string) {
-	return request({
-		url: apiPrefix + 'sectors/',
-		method: 'get',
-		params: exchange ? { exchange } : undefined,
-	});
-}

@@ -43,27 +43,7 @@ def sync_contract_list_from_tqsdk(api=None):
         
         print(f"[INFO] 共获取到 {len(cont_quotes)} 个主力合约")
         
-        # 3. 品种板块分类映射（用于补充 TqSDK 未提供的分类信息）
-        sector_mapping = {
-            'RB': '黑色金属', 'HC': '黑色金属', 'I': '黑色金属', 'J': '黑色金属', 'JM': '黑色金属',
-            'CU': '有色金属', 'AL': '有色金属', 'ZN': '有色金属', 'PB': '有色金属', 'NI': '有色金属', 'SN': '有色金属',
-            'AU': '贵金属', 'AG': '贵金属',
-            'MA': '化工', 'TA': '化工', 'L': '化工', 'V': '化工', 'PP': '化工', 'EB': '化工', 'EG': '化工',
-            'FU': '能源化工', 'BU': '能源化工', 'RU': '化工', 'PG': '化工',
-            'C': '农产品', 'CS': '农产品', 'M': '农产品', 'Y': '农产品', 'P': '农产品', 'A': '农产品', 'B': '农产品',
-            'SR': '软商品', 'CF': '软商品', 'OI': '农产品', 'FG': '建材', 'SA': '建材', 'UR': '化工',
-            'SI': '新能源', 'LC': '新能源'
-        }
-        
-        category_mapping = {
-            'RB': '螺纹类', 'HC': '热卷类', 'I': '铁矿类', 'J': '焦炭类', 'JM': '焦煤类',
-            'CU': '铜类', 'AL': '铝类', 'ZN': '锌类', 'PB': '铅类', 'NI': '镍类', 'SN': '锡类',
-            'AU': '黄金类', 'AG': '白银类',
-            'MA': '甲醇类', 'TA': 'PTA类', 'L': '塑料类', 'V': 'PVC类', 'PP': 'PP类',
-            'EB': '苯乙烯类', 'EG': '乙二醇类', 'FU': '燃油类', 
-            'C': '玉米类', 'M': '豆粕类', 'Y': '豆油类', 'P': '棕榈油类',
-        }
-        
+       
         synced_count = 0
         updated_count = 0
         skipped_count = 0
@@ -101,15 +81,18 @@ def sync_contract_list_from_tqsdk(api=None):
                 # 提取交易时间信息（用于判断是否有夜盘）
                 trading_time = getattr(quote, 'trading_time', {})
                 has_night = bool(trading_time.get('night', []))
-    
                 
-                # 确定板块和分类
-                product_code_upper = product_id.upper()
-                sector = sector_mapping.get(product_code_upper, '其他')
-                category = category_mapping.get(product_code_upper, '其他')
+                # 尝试从 categories 字段提取分类名称
+                category_from_api = None
+                categories_list = getattr(quote, 'categories', [])
+                if categories_list and isinstance(categories_list, list) and len(categories_list) > 0:
+                    # 提取第一个分类的 name 字段
+                    category_from_api = categories_list[0].get('name') if isinstance(categories_list[0], dict) else None
+                
+                
                 min_position = quote.open_min_market_order_volume
                 
-                print(f"  [OK] {instrument_id} | 品种: {product_id} | 乘数: {volume_multiple} | Tick: {price_tick} | 夜盘: {'有' if has_night else '无'}")
+                print(f"  [OK] {instrument_id} | 品种: {product_id} | 乘数: {volume_multiple} | Tick: {price_tick} | 夜盘: {'有' if has_night else '无'} | 分类: {category}")
                 
                 # 7. 使用 update_or_create 创建或更新记录
                 with transaction.atomic():
@@ -127,8 +110,7 @@ def sync_contract_list_from_tqsdk(api=None):
                             'volume_multiple': int(volume_multiple),
                             'price_tick': Decimal(str(price_tick)),
                             'min_position': min_position,
-                            'sector': sector,
-                            'category': category,
+                            'category': category_from_api,
                             'night_trading': has_night,  # 根据交易时间自动设置
                         }
                     )

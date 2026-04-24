@@ -246,45 +246,6 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 				},
-				sector: {
-					title: '所属板块',
-					search: {
-						show: true,
-						component: {
-							name: 'el-select',
-							props: {
-								clearable: true,
-								placeholder: '请选择板块',
-							},
-							options: sectorOptions,  // 直接使用 ref
-						}
-					},
-					type: 'dict-select',
-					column: {
-						width: 100,
-						sorter: true,  // 启用排序
-					},
-					dict: dict({
-						data: [
-							{ value: '黑色金属', label: '黑色金属' },
-							{ value: '有色金属', label: '有色金属' },
-							{ value: '贵金属', label: '贵金属' },
-							{ value: '能源化工', label: '能源化工' },
-							{ value: '农产品', label: '农产品' },
-							{ value: '软商品', label: '软商品' },
-							{ value: '金融期货', label: '金融期货' },
-						]
-					}),
-					form: {
-						component: {
-							name: 'el-select',
-							props: {
-								placeholder: '请选择板块',
-							},
-							options: sectorOptions,  // 直接使用 ref
-						},
-					},
-				},
 				category: {
 					title: '详细分类',
 					search: {

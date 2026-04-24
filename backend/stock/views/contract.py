@@ -23,7 +23,6 @@ class FullContractListViewSet(viewsets.ModelViewSet):
         'product_code': ['exact', 'icontains'],
         'is_active': ['exact'],
         'allow_open': ['exact'],
-        'sector': ['exact', 'icontains'],
         'category': ['exact', 'icontains'],
         # 'need_rollover': ['exact'],
     }
@@ -34,7 +33,6 @@ class FullContractListViewSet(viewsets.ModelViewSet):
         'product_code',
         'name',
         'exchange',
-        'sector',
         'category',
     ]
     
@@ -43,7 +41,6 @@ class FullContractListViewSet(viewsets.ModelViewSet):
         'exchange',
         'product_code',
         'symbol',
-        'sector',
         'category',
         'volume_multiple',
         'price_tick',
@@ -106,42 +103,6 @@ class FullContractListViewSet(viewsets.ModelViewSet):
         
         return Response(result)
 
-    @action(detail=False, methods=['get'], url_path='sectors')
-    def get_sectors(self, request):
-        """
-        获取所有板块列表（去重）
-        
-        Query params:
-        - exchange: 可选，按交易所过滤
-        
-        Returns:
-        [
-            {"value": "黑色金属", "count": 5},
-            {"value": "化工", "count": 12},
-            ...
-        ]
-        """
-        from django.db.models import Count
-        
-        queryset = FullContractList.objects
-        
-        # 如果指定了交易所，则只返回该交易所的板块
-        exchange = request.query_params.get('exchange')
-        if exchange:
-            queryset = queryset.filter(exchange=exchange)
-        
-        sectors = queryset.values('sector').annotate(
-            count=Count('id')
-        ).order_by('-count')  # 按数量降序排列
-        
-        # 过滤掉空值
-        result = [
-            {'value': item['sector'], 'count': item['count']}
-            for item in sectors
-            if item['sector']  # 排除空值
-        ]
-        
-        return Response(result)
 
     @action(detail=False, methods=['post'])
     def activate(self, request):
@@ -202,7 +163,6 @@ class FullContractListViewSet(viewsets.ModelViewSet):
             "active": 激活数量,
             "inactive": 停用数量,
             "by_exchange": {按交易所统计},
-            "by_sector": {按板块统计}
         }
         """
         from django.db.models import Count
@@ -216,17 +176,13 @@ class FullContractListViewSet(viewsets.ModelViewSet):
             count=Count('id')
         ).order_by('exchange')
         
-        # 按板块统计
-        by_sector = FullContractList.objects.values('sector').annotate(
-            count=Count('id')
-        ).order_by('-count')
+
         
         return Response({
             'total': total,
             'active': active,
             'inactive': inactive,
             'by_exchange': list(by_exchange),
-            'by_sector': list(by_sector),
         })
 
     @action(detail=False, methods=['get'], url_path='simple')
