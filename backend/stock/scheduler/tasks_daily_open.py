@@ -2,7 +2,7 @@ import os
 import time
 from decimal import Decimal
 from tqsdk import TqApi, TqAuth, TargetPosTask
-from django.db import transaction
+from django.db import transaction,close_old_connections
 from django.utils import timezone
 from django.db.models import Q
 
@@ -966,6 +966,7 @@ def job_daily_open_process():
     """
     from datetime import datetime
     current_date = datetime.now().date()
+    close_old_connections()
     # 获取交易账户
     accounts = TradingAccount.objects.all()
     for account in accounts:
