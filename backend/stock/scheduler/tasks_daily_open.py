@@ -258,30 +258,11 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
     # 【基于ATR计算1个Unit对应的手数】
     unit_lots = calculate_unit_lots(api, signal.symbol)
     
-    
     # 首次开仓固定为1个Unit
     target_units = 1
     order_volume = target_units * unit_lots
     print(f"[INFO] {signal.symbol} 开仓计划: 1个Unit × {unit_lots}手/Unit = {order_volume}手")
-    # 【修复P0】使用数据库事务和行级锁防止并发
-    with transaction.atomic():
-        # 【修复P1】检查是否已存在同合约、同方向的持仓
-        existing_position = PositionState.objects.select_for_update().filter(
-            account=account,
-            symbol=signal.symbol,
-            direction=signal.signal_direction,
-            units__gt=0
-        ).first()
-        
-        if existing_position:
-            msg = f"[WARN] {signal.symbol} 已存在{['', '多头', '空头'][signal.signal_direction]}持仓，跳过开仓"
-            print(msg)
-            log_trade('execute_entry_order', msg)
-            # 更新信号状态为取消（已有持仓）
-            signal.executed_status = 'CANCELLED'
-            signal.save(update_fields=['executed_status', 'updated_at'])
-            return False
-        
+    
     # 【跳空保护检查】
     can_trade = price_gap_protection(api, signal.symbol, signal.signal_direction, gap_threshold_percent)
     if not can_trade:
