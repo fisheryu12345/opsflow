@@ -105,7 +105,7 @@ def send_open_report(account=None, current_date=None):
         return True
         
     except Exception as e:
-        print(f"[ERROR] 发送每小时信号报告失败: {str(e)}")
+        print(f"[ERROR] 发送今日信号报告失败: {str(e)}")
         import traceback
         traceback.print_exc()
         return False
