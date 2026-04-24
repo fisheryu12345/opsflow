@@ -875,3 +875,5 @@ def job_daily_open_process():
                 api.close()
         else:
             print(f"[INFO] 账户 {account.username} 正在处理中, 跳过")
+            msg = f"账户 {account.username} 正在处理中, 跳过"
+            log_trade('job_daily_open_process', msg, account=account)

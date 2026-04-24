@@ -204,6 +204,7 @@ class StrategyConfig(models.Model):
     class Meta:
         verbose_name = "策略参数配置"
         verbose_name_plural = "策略参数配置"
+        ordering = ['name']  # ← 新增：按最后更新时间倒序
 
     def __str__(self):
         return self.name
@@ -322,6 +323,7 @@ class PositionState(models.Model):
         verbose_name = "策略持仓状态"
         verbose_name_plural = "策略持仓状态"
         unique_together = ('account', 'symbol')
+        ordering = ['-last_update_time']  # ← 新增：按最后更新时间倒序
         constraints = [
             CheckConstraint(
                 check=Q(direction__in=[-1, 0, 1]),
