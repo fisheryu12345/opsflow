@@ -1,14 +1,5 @@
-import os
-import time
-from decimal import Decimal
-from tqsdk import TqApi, TqAuth, TargetPosTask
-from django.db import transaction
-from django.utils import timezone
-from django.db.models import Q
+from stock.parameter_config import POSITION_RISK_BASE_AMOUNT, POSITION_RISK_MULTIPLIER
 
-from stock.models import TradingAccount, PositionState, DailyStrategySignal
-POSITION_RISK_BASE_AMOUNT = float('4000')
-POSITION_RISK_MULTIPLIER = float('2')
 def calculate_unit_lots(api, symbol):
     """
     计算1个海龟Unit对应的实际手数
@@ -49,8 +40,6 @@ def calculate_unit_lots(api, symbol):
         high = klines['high']
         low = klines['low']
         close = klines['close']
-        
-        # 计算TR = max(high-low, abs(high-prev_close), abs(low-prev_close))
         tr_list = []
         for i in range(1, len(klines)):
             hl = high.iloc[i] - low.iloc[i]
@@ -68,11 +57,6 @@ def calculate_unit_lots(api, symbol):
         # 防止除零错误
         if atr_20 <= 0:
             return 1
-        
-        # 【核心公式】计算1个Unit对应的手数
-        # 公式含义：固定风险资金 / (单手止损金额)
-        # 单手止损金额 = ATR × 风险倍数 × 合约乘数
-        #              = 50元/吨 × 2 × 10吨/手 = 1000元/手
         unit_lots = POSITION_RISK_BASE_AMOUNT / (atr_20 * POSITION_RISK_MULTIPLIER * contracts_per_unit)
         
         # 向下取整，确保风险可控
@@ -84,6 +68,4 @@ def calculate_unit_lots(api, symbol):
         return unit_lots
         
     except Exception as e:
-        # 异常情况下返回默认值
-        print(222222)
         return 1

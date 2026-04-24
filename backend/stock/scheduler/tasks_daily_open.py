@@ -1,24 +1,21 @@
-import os
 import time
 from decimal import Decimal
 from tqsdk import TqApi, TqAuth, TargetPosTask
 from django.db import transaction,close_old_connections
-from django.utils import timezone
 from django.db.models import Q
-
-from stock.models import TradingAccount, PositionState, DailyStrategySignal,StrategyConfig
+from stock.models import TradingAccount, PositionState, DailyStrategySignal
 from stock.scheduler.calculate_unit_lots import calculate_unit_lots
 from stock.scheduler.calculate_atr import calculate_atr, price_gap_protection
 from stock.scheduler.send_report import send_open_report
 from stock.utils.log_util import log_trade, log_error
 from stock.scheduler.check_min_position_requirement import check_min_position_requirement,execute_two_step_opening
+from stock.parameter_config import (
+    POSITION_MAX_UNITS,
+    TIMEOUT_SECONDS
+)
 
 # ==================== 仓位管理配置常量 ====================
-POSITION_RISK_BASE_AMOUNT = 4000  # 每个Unit（单位）的固定风险资金基数（元）
-POSITION_RISK_MULTIPLIER = 2      # ATR风险倍数系数（止损距离 = N × ATR）
-POSITION_MIN_UNITS = 1            # 最小持仓单位数（海龟法则中的"Unit"数量，非手数）
-POSITION_MAX_UNITS = 3            # 最大持仓3单位数（如1Unit=4手，最大持仓12手）
-TIMEOUT_SECONDS = 300
+# 已从 stock.parameter_config 统一导入，此处不再重复定义
 
 def is_trading(api, account,signal):
     ts = api.get_trading_status(signal.symbol)
@@ -60,7 +57,7 @@ def execute_add_on_order(api, account, signal):
         # 【修复P0】在下单前检查是否会超过最大持仓限制
         projected_units = position.units + add_units_from_signal
         if projected_units > POSITION_MAX_UNITS:
-            msg = f"[WARN] {signal.symbol} 加仓后将超限: 当前{position.units}Unit + 加仓{add_units_from_signal}Unit = {projected_units}Unit > 最大{POSITION_MAX_UNITS}Unit"
+            msg = f"[WARN] {signal.symbol} 加仓后将超限: 当前{position.units}Unit + 加仓{add_units_from_signal}Unit = {projected_units}Unit > 最大{POSITION_MAX_UNITS} Unit"
             print(msg)
             log_trade('execute_add_on_order', msg)
             # 更新信号状态为取消（超出限制）
@@ -85,8 +82,7 @@ def execute_add_on_order(api, account, signal):
         # 需要两步开仓策略
         adjusted_volume = min_position_check['adjusted_volume']
         excess_to_close = min_position_check['excess_to_close']
-        
-        msg = f"[INFO] {signal.symbol} 采用两步开仓策略: 先开{adjusted_volume}手，再平{excess_to_close}手"
+        msg = f"[INFO] {signal.symbol} 采用两步开仓策略: 先开{adjusted_volume} 手，再平{excess_to_close} 手"
         print(msg)
         log_trade('execute_add_on_order', msg)
         
