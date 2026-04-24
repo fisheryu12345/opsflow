@@ -386,6 +386,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                 signal.executed_status = 'FAILED'
                 signal.save(update_fields=['executed_status', 'updated_at'])
             else:
+                #这里需要获取成本价
                 entry_avg_price = float(pos_after.last_price) if pos_after and pos_after.last_price else None
                 with transaction.atomic():
                     
@@ -454,13 +455,6 @@ def execute_exit_order(api, position, signal):
     
     # 【计算需要平仓的总手数】从 contract_total_position 获取
     total_volume = position.contract_total_position
-    
-    # 【边界检查】如果没有持仓，直接返回成功
-    if total_volume <= 0:
-        msg = f"[INFO] {position.symbol} 无持仓，无需平仓"
-        print(msg)
-        log_trade('execute_exit_order', msg)
-        return True
         
     # 创建目标持仓任务
     target_pos = TargetPosTask(api, position.symbol)
