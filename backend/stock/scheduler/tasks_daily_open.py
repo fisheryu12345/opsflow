@@ -41,12 +41,6 @@ def execute_add_on_order(api, account, signal):
     
     if not is_trading(api, account,signal):
         return False
-
-    if signal and signal.executed_status and signal.executed_status != 'PENDING':
-        msg = f"[INFO] {signal.symbol} 信号已执行（状态={signal.executed_status}），跳过"
-        print(msg)
-        log_trade('execute_add_on_order', msg)
-        return False
     
     # 优化】直接从 signal.contract_target_number 获取加仓单位数
     add_units_from_signal = signal.contract_target_number   
@@ -261,11 +255,6 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
     if not is_trading(api, account,signal):
         return False
     
-    if signal and signal.executed_status and signal.executed_status != 'PENDING':
-        msg = f"[INFO] {signal.symbol} 信号已执行（状态={signal.executed_status}），跳过"
-        print(msg)
-        log_trade('execute_entry_order', msg)
-        return False
     # 【基于ATR计算1个Unit对应的手数】
     unit_lots = calculate_unit_lots(api, signal.symbol)
     
@@ -474,12 +463,6 @@ def execute_exit_order(api, position, signal):
     # 【新增】过滤已执行的信号，只处理PENDING状态的信号（如果有信号关联）
 
     
-    if signal and signal.executed_status and signal.executed_status != 'PENDING':
-        msg = f"[INFO] {position.symbol} 信号已执行（状态={signal.executed_status}），跳过"
-        print(msg)
-        log_trade('execute_exit_order', msg)
-        return False
-    
     # 【计算需要平仓的总手数】从 contract_total_position 获取
     total_volume = position.contract_total_position
     
@@ -582,13 +565,6 @@ def execute_rollover_order(api, position, signal):
 
     if not is_trading(api, position.account, signal):
         return False
-    
-    if signal and signal.executed_status and signal.executed_status != 'PENDING':
-        msg = f"[INFO] {signal.symbol} 信号已执行（状态={signal.executed_status}），跳过"
-        print(msg)
-        log_trade('execute_rollover_order', msg)
-        return False
-       
     
     # ========== 第1阶段：平仓旧合约 ==========
     msg = f"[INFO] {position.symbol} 开始平仓旧合约..."
