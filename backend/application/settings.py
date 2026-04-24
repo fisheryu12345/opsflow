@@ -135,7 +135,7 @@ DATABASES = {
         'HOST': DB_HOST,
         'PORT': '3306',
         'CONN_MAX_AGE': 300,
-        'CONN_HEALTH_CHECKS: True,
+        'CONN_HEALTH_CHECKS': True,
         'OPTIONS': {
             'ssl': {'ssl-mode': 'DISABLED'},
         },
