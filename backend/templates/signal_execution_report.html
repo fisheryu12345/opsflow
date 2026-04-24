@@ -33,6 +33,7 @@
         .badge-success { background-color: #28a745; }
         .badge-failed { background-color: #dc3545; }
         .badge-pending { background-color: #ffc107; color: #333; }
+        .badge-cancelled { background-color: #6c757d; }
         .direction-long { color: #28a745; font-weight: bold; }
         .direction-short { color: #dc3545; font-weight: bold; }
         .direction-neutral { color: #6c757d; }
@@ -73,6 +74,10 @@
             <div class="summary-card card-pending">
                 <div class="number">{{ summary.pending_count }}</div>
                 <div class="label">仍待处理</div>
+            </div>
+            <div class="summary-card card-cancelled">
+                <div class="number" style="color: #6c757d;">{{ summary.cancelled_count }}</div>
+                <div class="label">已取消</div>
             </div>
         </div>
 
@@ -123,6 +128,8 @@
                                 <span class="badge badge-success">✓ 成功</span>
                             {% elif signal.executed_status == 'FAILED' %}
                                 <span class="badge badge-failed">✗ 失败</span>
+                            {% elif signal.executed_status == 'CANCELLED' %}
+                                <span class="badge badge-cancelled">⊘ 已取消</span>
                             {% else %}
                                 <span class="badge badge-pending">⏳ 待处理</span>
                             {% endif %}

@@ -58,6 +58,7 @@ def send_open_report(account=None, current_date=None):
             'success_count': recent_signals.filter(executed_status='SUCCESS').count(),
             'failed_count': recent_signals.filter(executed_status='FAILED').count(),
             'pending_count': recent_signals.filter(executed_status='PENDING').count(),
+            'cancelled_count': recent_signals.filter(executed_status='CANCELLED').count(),
         }
         
         # 转换信号数据为字典列表
@@ -99,7 +100,7 @@ def send_open_report(account=None, current_date=None):
         )
         
         if recent_signals:
-            print(f"[SUCCESS] 今日信号报告已发送: {summary['total_signals']}个信号 (成功:{summary['success_count']}, 失败:{summary['failed_count']}, 待处理:{summary['pending_count']})")
+            print(f"[SUCCESS] 今日信号报告已发送: {summary['total_signals']}个信号 (成功:{summary['success_count']}, 失败:{summary['failed_count']}, 待处理:{summary['pending_count']}, 取消:{summary['cancelled_count']})")
         else:
             print(f"[INFO] 今日信号报告已发送: 今日开盘没有需要执行的信号")
         return True
