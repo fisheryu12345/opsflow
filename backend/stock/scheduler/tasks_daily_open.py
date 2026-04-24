@@ -373,6 +373,13 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
             
             while time.time() - start_time < timeout_seconds:
                 api.wait_update(deadline=time.time() + 1)
+                
+                if target_pos.is_finished():
+                    msg = f"[SUCCESS] {signal.symbol} 开仓完成: {target_lots} 手"
+                    print(msg)
+                    log_trade('execute_entry_order', msg)
+                    break
+                
                 pos_after = api.get_position(signal.symbol)
                 if pos_after is None:
                     continue
