@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from datetime import date, timedelta
-from django.db import transaction
+from django.db import transaction,close_old_connections
 from decimal import Decimal
 from tqsdk import TqApi, TqAuth
 from stock.tasks.send_mail import send_email_task as send_email
@@ -574,9 +574,11 @@ def job_daily_close_calculation():
     """
     api = None
     try:
+        close_old_connections()
         # 第1步：创建TqApi连接
         api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
         print("[INFO] TqApi连接已建立")
+        
         
         # 第2步：同步期货合约列表
         sync_contract_list_from_tqsdk(api=api)
