@@ -471,25 +471,11 @@ def execute_exit_order(api, position, signal):
         start_time = time.time()
         while time.time() - start_time < timeout_seconds:
             api.wait_update(deadline=time.time() + 1)
-            
-            # 获取最新持仓
-            pos_after = api.get_position(position.symbol)
-            if pos_after is None:
-                continue
-            
-            # 检查是否达到目标（持仓归零）
-            remaining_lots = 0
-            if position.direction == 1:
-                remaining_lots = pos_after.volume_long
-            else:
-                remaining_lots = pos_after.volume_short
-            
-            if remaining_lots == 0:
+            if target_pos.is_finished():
                 msg = f"[SUCCESS] {position.symbol} 平仓完成"
                 print(msg)
                 log_trade('execute_exit_order', msg)
                 break
-        
         
         with transaction.atomic():
             # 清空持仓状态
