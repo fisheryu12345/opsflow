@@ -30,7 +30,7 @@ class ErrorLogViewSet(viewsets.ModelViewSet):
     queryset = ErrorLog.objects.all()
     serializer_class = ErrorLogSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['function_name', 'error_type', 'timestamp']
+    filterset_fields = ['function_name', 'timestamp']
     search_fields = ['function_name', 'error_message', 'traceback']
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
