@@ -1,5 +1,5 @@
 import * as api from './api';
-import { UserPageQuery, AddReq, DelReq, EditReq, CrudExpose, CrudOptions, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud';
+import { UserPageQuery, AddReq, DelReq, EditReq, CrudExpose, CrudOptions, CreateCrudOptionsProps, CreateCrudOptionsRet, dict } from '@fast-crud/fast-crud';
 
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
 	const pageRequest = async (query: UserPageQuery) => {
@@ -68,7 +68,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						show: false,
 					},
 					search: {
-						show: true,
+						show: false,
 						component: {
 							props: {
 								clearable: true,
@@ -252,12 +252,28 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				},
 				executed_status: {
 					title: '执行状态',
-					type: 'input',
+					type: 'dict-select',
+					dict: dict({
+						data: [
+							{ value: 'PENDING', label: '待执行' },
+							{ value: 'SUCCESS', label: '成功' },
+							{ value: 'FAILED', label: '失败' },
+							{ value: 'CANCELLED', label: '已取消' }
+						]
+					}),
 					search: {
+						show: true,
 						disabled: false,
+						component: {
+							props: {
+								clearable: true,
+								placeholder: '请选择执行状态'
+							}
+						}
 					},
 					column: {
 						minWidth: 100,
+						align: 'center',
 						formatter: (context) => {
 							const map: Record<string, string> = {
 								'PENDING': '待执行',

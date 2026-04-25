@@ -122,7 +122,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 					column: {
-						minWidth: 250,
+						minWidth: 140,
 						showOverflowTooltip: true,
 					},
 					form: {
@@ -193,7 +193,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						},
 					},
 					column: {
-						minWidth: 250,
+						minWidth: 80,
 						showOverflowTooltip: true,
 					},
 					form: {

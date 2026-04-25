@@ -14,6 +14,7 @@ class DailyStrategySignalViewSet(viewsets.ModelViewSet):
     queryset = DailyStrategySignal.objects.all().order_by('-trade_date')
     serializer_class = DailyStrategySignalSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['symbol', 'remark']
+    filterset_fields = ['executed_status', 'trade_type', 'symbol', 'is_breakout', 'signal_direction']
+    search_fields = ['symbol', 'remark','executed_status', 'trade_type']
     ordering_fields = ['trade_date', 'trend_factor']
     ordering = ['-trade_date']
