@@ -41,14 +41,7 @@ sys.path.insert(0, os.path.join(PLUGINS_PATH))
 ]
 
 
-# CSRF_TRUSTED_ORIGINS = [
-#     # 'http://47.103.201.230:8080',
-#     # 'http://fishertrade.com.cn'
-#     'https://fishertrade.com.cn',
-#     'https://www.fishertrade.com.cn'
-#     # 如果你也希望通过域名访问，也可以把域名加上
-#     # 'http://your-domain.com:8080',
-# ]
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = locals().get("DEBUG", True)
 # ALLOWED_HOSTS = locals().get("ALLOWED_HOSTS", ["*"])
@@ -120,11 +113,11 @@ hostname = socket.gethostname()
 ip_addresses = socket.gethostbyname_ex(hostname)[2]
 
 # 检查是否包含目标IP
-target_ip = '172.25.21.215'
+target_ip = '172.25.21.216'
 if target_ip in ip_addresses:
     DB_HOST = '127.0.0.1'  # 内网环境使用本地数据库
 else:
-    DB_HOST = '47.103.201.230'  # 外网环境使用公网IP
+    DB_HOST = '139.196.194.73'  # 外网环境使用公网IP
 
 DATABASES = {
     'default': {
