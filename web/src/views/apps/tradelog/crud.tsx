@@ -1,5 +1,5 @@
 import * as api from './api';
-import { UserPageQuery, AddReq, DelReq, EditReq, CrudExpose, CrudOptions, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud';
+import { UserPageQuery, AddReq, DelReq, EditReq, CrudExpose, CrudOptions, CreateCrudOptionsProps, CreateCrudOptionsRet, dict } from '@fast-crud/fast-crud';
 
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
 	const pageRequest = async (query: UserPageQuery) => {
@@ -67,7 +67,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						show: false,
 					},
 					search: {
-						show: true,
+						show: false,
 						component: {
 							props: {
 								clearable: true,
@@ -112,12 +112,84 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					title: '函数名称',
 					type: 'input',
 					search: {
+						show: true,
 						disabled: false,
 						component: {
 							props: {
 								clearable: true,
 							},
 							placeholder: '例如: execute_entry_order',
+						},
+					},
+					column: {
+						minWidth: 250,
+						showOverflowTooltip: true,
+					},
+					form: {
+						show: false, // 自动记录，不允许手动设置
+						rules: [{ required: true, message: '函数名称不能为空' }],
+						component: {
+							placeholder: '生成日志的函数完整路径',
+						},
+					},
+				},
+				log_level: {
+					title: '日志级别',
+					type: 'dict-select',
+					dict: dict({
+						data: [
+							// { value: 'DEBUG', label: '调试' },
+							{ value: 'INFO', label: '信息' },
+							{ value: 'SUCCESS', label: '成功' },
+							{ value: 'WARNING', label: '警告' },
+							// { value: 'ERROR', label: '错误' },
+							// { value: 'CRITICAL', label: '严重' }
+						]
+					}),
+					search: {
+						show: true,
+						disabled: false,
+						component: {
+							props: {
+								clearable: true,
+								placeholder: '请选择日志级别'
+							}
+						}
+					},
+					column: {
+						minWidth: 100,
+						align: 'center',
+						formatter: ({ row }) => {
+							const levelMap: Record<string, string> = {
+								DEBUG: '调试',
+								INFO: '信息',
+								SUCCESS: '成功',
+								WARNING: '警告',
+								ERROR: '错误',
+								CRITICAL: '严重'
+							};
+							return levelMap[row.log_level] || row.log_level;
+						}
+					},
+					form: {
+						show: false, // 自动记录，不允许手动设置
+						rules: [{ required: true, message: '日志级别不能为空' }],
+						component: {
+							placeholder: '日志级别',
+						},
+					},
+				},
+				symbol: {
+					title: '合约代码',
+					type: 'input',
+					search: {
+						show: true,
+						disabled: false,
+						component: {
+							props: {
+								clearable: true,
+							},
+							placeholder: '例如: rb2610',
 						},
 					},
 					column: {

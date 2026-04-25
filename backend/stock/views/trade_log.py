@@ -13,16 +13,24 @@ from stock.models import TradeLog,ErrorLog
 
 class TradeLogViewSet(viewsets.ModelViewSet):
     """
-    期货合约列表视图集 - 支持增删改查
+    交易日志视图集 - 支持增删改查
     """
     queryset = TradeLog.objects.all()
     serializer_class = TradeLogSerializer
-    # filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['function_name', 'log_level', 'symbol', 'timestamp']
+    search_fields = ['function_name', 'log_message', 'symbol']
+    ordering_fields = ['timestamp', 'log_level']
+    ordering = ['-timestamp']
 
 class ErrorLogViewSet(viewsets.ModelViewSet):
     """
-    期货合约列表视图集 - 支持增删改查
+    错误日志视图集 - 支持增删改查
     """
     queryset = ErrorLog.objects.all()
     serializer_class = ErrorLogSerializer
-    # filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['function_name', 'error_type', 'timestamp']
+    search_fields = ['function_name', 'error_message', 'traceback']
+    ordering_fields = ['timestamp']
+    ordering = ['-timestamp']

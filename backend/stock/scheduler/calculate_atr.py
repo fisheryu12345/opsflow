@@ -66,9 +66,9 @@ def price_gap_protection(api, symbol, direction, gap_threshold_percent=1.5):
     if direction == 1:
         # 做多：警惕向上跳空超过阈值（追高风险）
         if gap_percent > gap_threshold_percent:
-            msg = f"[WARN]存在危险跳空，请勿进行交易！合约：{symbol}，最新价：{latest_price:.2f}，昨日收盘价：{pre_close:.2f}，跳空幅度：{gap_percent:.2f}%"
+            msg = f"存在危险跳空，请勿进行交易！合约：{symbol}，最新价：{latest_price:.2f}，昨日收盘价：{pre_close:.2f}，跳空幅度：{gap_percent:.2f}%"
             print(msg)
-            log_trade('execute_entry_order', msg)
+            log_trade('execute_entry_order', msg,symbol=symbol, log_level='WARNING')
             return False  # 向上跳空过大，禁止做多
         else:
             return True  # 可以正常做多
@@ -77,7 +77,7 @@ def price_gap_protection(api, symbol, direction, gap_threshold_percent=1.5):
         if gap_percent < -gap_threshold_percent:
             msg = f"[WARN]存在危险跳空，请勿进行交易！合约：{symbol}，最新价：{latest_price:.2f}，昨日收盘价：{pre_close:.2f}，跳空幅度：{gap_percent:.2f}%"
             print(msg)
-            log_trade('execute_entry_order', msg)
+            log_trade('execute_entry_order', msg,symbol=symbol, log_level='WARNING')
             return False  # 向下跳空过大，禁止做空
         else:
             return True  # 可以正常做空

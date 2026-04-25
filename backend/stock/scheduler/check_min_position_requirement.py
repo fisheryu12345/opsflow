@@ -115,9 +115,9 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         else:
             step1_target = -adjusted_volume  # 空头
         
-        msg = f"[INFO] {symbol} 第1步：设置目标持仓 {step1_target}手 (最小开仓{adjusted_volume}手)"
+        msg = f"{symbol} 第1步：设置目标持仓 {step1_target}手 (最小开仓{adjusted_volume}手)"
         print(msg)
-        log_trade(function_name, msg)
+        log_trade(function_name, msg,symbol=symbol,log_level='INFO')
         
         target_pos.set_target_volume(step1_target)
         # 等待第1步成交
@@ -126,9 +126,9 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         while time.time() - start_time < TIMEOUT_SECONDS:
             api.wait_update(deadline=time.time() + 1)
             if target_pos.is_finished():
-                msg = f"[SUCCESS] {symbol} 第1步完成: 已开{step1_target}手"
+                msg = f"{symbol} 第1步完成: 已开{step1_target}手"
                 print(msg)
-                log_trade(function_name, msg, level='SUCCESS')
+                log_trade(function_name, msg, symbol=symbol, log_level='SUCCESS')
                 step1_completed = True
                 break
         if not step1_completed:
@@ -143,9 +143,9 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         else:
             step2_target = -(adjusted_volume - excess_to_close)
         
-        msg = f"[INFO] {symbol} 第2步：平仓{excess_to_close}手，目标持仓 {step2_target}手"
+        msg = f"{symbol} 第2步：平仓{excess_to_close}手，目标持仓 {step2_target}手"
         print(msg)
-        log_trade(function_name, msg)
+        log_trade(function_name, msg,symbol=symbol,log_level='INFO')
         
         target_pos.set_target_volume(step2_target)
         
@@ -156,9 +156,9 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         while time.time() - start_time < TIMEOUT_SECONDS:
             api.wait_update(deadline=time.time() + 1)
             if target_pos.is_finished():
-                msg = f"[SUCCESS] {symbol} 第2步完成: 最终持仓{step2_target}手"
+                msg = f"{symbol} 第2步完成: 最终持仓{step2_target}手"
                 print(msg)
-                log_trade(function_name, msg, level='SUCCESS')
+                log_trade(function_name, msg,symbol=symbol,log_level='SUCCESS')
                 step2_completed = True
                 break
         if not step2_completed:
@@ -189,9 +189,9 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         result['actual_filled'] = actual_final_filled
         result['avg_price'] = avg_price
         
-        msg = f"[SUCCESS] {symbol} 两步开仓成功: {actual_final_filled}手 @ {avg_price:.2f}"
+        msg = f"两步开仓成功: {actual_final_filled}手 @ {avg_price:.2f}"
         print(msg)
-        log_trade(function_name, msg, level='SUCCESS')
+        log_trade(function_name, msg,symbol=symbol,log_level='SUCCESS')
         return result
         
     except Exception as e:

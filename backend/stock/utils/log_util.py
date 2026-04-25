@@ -87,6 +87,8 @@ def log_error(
 def log_trade(
     function_name: str,
     log_message: str,
+    symbol: str = None,
+    log_level: str = 'INFO'
 ):
     """
     记录交易日志到数据库
@@ -128,6 +130,8 @@ def log_trade(
         trade_log = TradeLog.objects.create(
             function_name=function_name,
             log_message=log_message,
+            symbol=symbol,
+            log_level=log_level,
 
         )
         

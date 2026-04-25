@@ -131,7 +131,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'stock',
         'USER': 'trade',
-        'PASSWORD': 'Fisher&123YX!',
+        'PASSWORD': '312711936!@#GHS',
         'HOST': DB_HOST,
         'PORT': '3306',
         'CONN_MAX_AGE': 300,

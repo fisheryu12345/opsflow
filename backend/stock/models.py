@@ -28,7 +28,7 @@ StrategyConfig (策略参数配置表)
 ● 功能解析：
 ○ 实现了配置与代码分离。原本代码中写死的 ATR_PERIOD=20 或 MAX_UNITS=3 现在都提取到了数据库。
 ○ 允许针对不同合约应用不同的参数（例如：股指期货波动大，可以单独给它配一套更保守的参数）。
-○ 修改参数后，无需重启 Python 程序（或只需热重载），策略即可按新参数运行。
+○ 修改参数后，无需重启 Python 程序（或只需热重载），策略即可按新参数运行.
 
 
 
@@ -253,7 +253,7 @@ class DailyStrategySignal(models.Model):
     
     # 备注：记录过滤原因，例如 "突破但处于震荡市过滤"
     remark = models.TextField("备注", blank=True, null=True)
-    executed_status = models.CharField("执行状态", max_length=20, null=True, blank=True, db_index=True,default="PENDING",
+    executed_status = models.CharField("执行状态", max_length=20, null=True, blank=True,db_index=True,default="PENDING",
                                    help_text="记录信号对应的交易操作执行状态：成功/失败/取消")
     created_at = models.DateTimeField("创建时间",blank=True, null=True,auto_now_add=True)
     updated_at = models.DateTimeField("更新时间", blank=True,null=True,auto_now=True)
@@ -448,6 +448,13 @@ class TradeLog(models.Model):
     # 记录日志来源函数
     function_name = models.CharField("函数名称", max_length=200, db_index=True,
                                     help_text="生成日志的函数完整路径")
+    
+    # 日志级别，可选值：DEBUG/INFO/SUCCESS/WARNING/ERROR/CRITICAL
+    log_level = models.CharField("日志级别", max_length=10, default='INFO',
+                                help_text="日志的严重程度，可选值：DEBUG/INFO/SUCCESS/WARNING/ERROR/CRITICAL")
+    
+    symbol = models.CharField("合约代码", max_length=50, default=None,
+                              help_text="关联的合约代码，如：SHFE.rb2610")
     
     # 日志内容（支持较长文本，但通常比错误信息短）
     log_message = models.TextField("日志内容", blank=True, null=True,
