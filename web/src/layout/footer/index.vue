@@ -17,7 +17,7 @@
 	&-warp {
     color: var(--el-text-color-secondary);
 		text-align: center;
-    margin: 30px auto auto;
+    margin: 10px auto auto;
     animation: error-num 0.3s ease;
 	}
 }
