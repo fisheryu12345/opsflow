@@ -130,9 +130,3 @@ export function GetExchanges() {
 		method: 'get',
 	});
 }
-
-/**
- * 获取所有板块列表（去重）
- * Query params: exchange (可选，按交易所过滤)
- * Returns: [{value: "黑色金属", count: 5}, ...]
- */

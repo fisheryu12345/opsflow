@@ -17,7 +17,6 @@ import { ref } from 'vue';
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
 	// 使用 ref 存储动态加载的字典数据
 	const exchangeOptions = ref<any[]>([]);
-	const sectorOptions = ref<any[]>([]);
 
 	/**
 	 * 加载交易所列表
@@ -34,24 +33,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 		}
 	};
 
-	/**
-	 * 加载板块列表
-	 */
-	const loadSectors = async () => {
-		try {
-			const res = await api.GetSectors();
-			sectorOptions.value = res.map((item: any) => ({
-				label: `${item.value} (${item.count})`,
-				value: item.value
-			}));
-		} catch (error) {
-			console.error('加载板块列表失败:', error);
-		}
-	};
-
 	// 立即加载字典数据
 	loadExchanges();
-	loadSectors();
 
 	const pageRequest = async (query: UserPageQuery) => {
 		return await api.GetList(query);
@@ -95,13 +78,13 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 			},
 			rowHandle: {
 				fixed: 'right',
-				width: 200,  // 调整宽度，只保留切换状态按钮
+				width: 120,  // 调整宽度，只保留切换状态按钮
 				buttons: {
 					view: {
 						show: false,
 					},
 					edit: {
-						show: true  // 隐藏编辑按钮
+						show: false  // 隐藏编辑按钮
 					},
 					remove: {
 						show: false  // 隐藏删除按钮
@@ -339,31 +322,11 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				},
 				night_trading: {
 					title: '夜盘交易',
-					search: {
-						show: false,
-						component: {
-							name: 'el-select',
-							props: {
-								clearable: true,
-								placeholder: '请选择状态',
-							},
-							options: [  // 静态数据，不需要动态加载
-								{ label: '是', value: true },
-								{ label: '否', value: false },
-							]
-						}
-					},
 					type: 'dict-switch',
 					column: {
 						width: 100,
 						align: 'center',
 						sorter: true,  // 启用排序
-						component: {
-							name: 'el-switch',
-							activeText: '',
-							inactiveText: '',
-							style: '--el-switch-on-color: var(--el-color-primary); --el-switch-off-color: #dcdfe6',
-						},
 					},
 					dict: dict({
 						data: [
@@ -372,14 +335,10 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						]
 					}),
 					form: {
-						value: false,
-						component: {
-							activeText: '是',
-							inactiveText: '否',
-						},
+						show: false,  // 隐藏编辑表单，禁止修改
 					},
 				},
-			min_position: {
+				min_position: {
 					title: '交易所限制最小开仓手数',
 					type: 'number',
 					column: {
