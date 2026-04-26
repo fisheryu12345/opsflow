@@ -160,7 +160,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				exchange: {
 					title: '交易所',
 					search: {
-						show: true,
+						show: false,
 						component: {
 							name: 'el-select',
 							props: {
@@ -217,7 +217,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				symbol: {
 					title: '主力合约',
 					search: {
-						show: true,
+						show: false,
 					},
 					type: 'input',
 					column: {
@@ -234,7 +234,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				name: {
 					title: '合约名称',
 					search: {
-						show: true,
+						show: false,
 					},
 					type: 'input',
 					column: {
@@ -298,7 +298,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				is_active: {
 					title: '交易状态',
 					search: {
-						show: true,
+						show: false,
 						component: {
 							name: 'el-select',
 							props: {
@@ -340,7 +340,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				night_trading: {
 					title: '夜盘交易',
 					search: {
-						show: true,
+						show: false,
 						component: {
 							name: 'el-select',
 							props: {

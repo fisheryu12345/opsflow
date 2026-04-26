@@ -35,11 +35,11 @@
 					<el-table-column prop="count" label="数量" align="right" />
 				</el-table>
 				
-				<el-divider content-position="left">按板块统计</el-divider>
+				<!-- <el-divider content-position="left">按板块统计</el-divider>
 				<el-table :data="statisticsData.by_sector" border stripe max-height="300">
 					<el-table-column prop="sector" label="板块" />
 					<el-table-column prop="count" label="数量" align="right" width="100" />
-				</el-table>
+				</el-table> -->
 			</div>
 			
 			<template #footer>
