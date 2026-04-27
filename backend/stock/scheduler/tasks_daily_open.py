@@ -1,5 +1,6 @@
 import time
 from decimal import Decimal
+from django.utils import timezone
 from tqsdk import TqApi, TqAuth, TargetPosTask
 from django.db import transaction,close_old_connections
 from django.db.models import Q
@@ -46,24 +47,21 @@ def execute_add_on_order(api, account, signal):
     print(msg)
     log_trade('execute_add_on_order', msg,symbol=signal.symbol, log_level='INFO')
     
-    # 【修复P0】使用数据库事务和行级锁防止并发
-    with transaction.atomic():
-        # 获取当前持仓状态（加锁）
-        position = PositionState.objects.select_for_update().filter(
-            account=account,
-            symbol=signal.symbol,
-        ).first()
-        
-        # 【修复P0】在下单前检查是否会超过最大持仓限制
-        projected_units = position.units + add_units_from_signal
-        if projected_units > POSITION_MAX_UNITS:
-            msg = f"{signal.symbol} 加仓后将超限: 当前{position.units} Unit + 加仓 {add_units_from_signal} Unit = {projected_units} Unit > 最大 {POSITION_MAX_UNITS} Unit"
-            print(msg)
-            log_trade('execute_add_on_order', msg,symbol=signal.symbol,level='WARNING')
-            # 更新信号状态为取消（超出限制）
-            signal.executed_status = 'CANCELLED'
-            signal.save(update_fields=['executed_status', 'updated_at'])
-            return False
+    position = PositionState.objects.get(
+        account=account,
+        symbol=signal.symbol,
+    )
+
+    # 【修复P0】在下单前检查是否会超过最大持仓限制
+    projected_units = position.units + add_units_from_signal
+    if projected_units > POSITION_MAX_UNITS:
+        msg = f"{signal.symbol} 加仓后将超限: 当前{position.units} Unit + 加仓 {add_units_from_signal} Unit = {projected_units} Unit > 最大 {POSITION_MAX_UNITS} Unit"
+        print(msg)
+        log_trade('execute_add_on_order', msg,symbol=signal.symbol,level='WARNING')
+        # 更新信号状态为取消（超出限制）
+        signal.executed_status = 'CANCELLED'
+        signal.save(update_fields=['executed_status', 'updated_at'])
+        return False
     
     # 【修复】使用 calculate_unit_lots 计算1个Unit对应的实际手数
     unit_lots = calculate_unit_lots(api, signal.symbol)
@@ -85,11 +83,7 @@ def execute_add_on_order(api, account, signal):
         msg = f"{signal.symbol} 采用两步开仓策略: 先开 {adjusted_volume} 手，再平 {excess_to_close} 手"
         print(msg)
         log_trade('execute_add_on_order', msg,symbol=signal.symbol, log_level='INFO')
-        
-        # 记录加仓前的持仓状态
-        pos_before = api.get_position(signal.symbol)
-        initial_volume_long = pos_before.volume_long if pos_before else 0
-        initial_volume_short = pos_before.volume_short if pos_before else 0
+    
         
         # 调用两步开仓函数
         two_step_result = execute_two_step_opening(
@@ -118,35 +112,29 @@ def execute_add_on_order(api, account, signal):
                 units=new_units,
                 contract_total_position=new_total_lots,
                 last_add_price=Decimal(str(two_step_result['avg_price'])),
-                latest_close_price=Decimal(str(two_step_result['avg_price']))
+                latest_close_price=Decimal(str(two_step_result['avg_price'])),
+                last_update_time=timezone.now()  # 【修复】手动更新最后更新时间
             )
-            
-            # 更新信号执行状态为成功
-            signal.executed_status = 'SUCCESS'
-            signal.save(update_fields=['executed_status', 'updated_at'])
+
+        # 更新信号执行状态为成功
+        signal.executed_status = 'SUCCESS'
+        signal.save(update_fields=['executed_status', 'updated_at'])
         
         msg = f"{signal.symbol} 加仓成功（两步开仓）: +{unit_lots} Unit ({order_volume}手) @ {two_step_result['avg_price']:.2f}, 总持仓:{new_units} Unit"
         print(msg)
         log_trade('execute_add_on_order', msg,symbol=signal.symbol, log_level='SUCCESS')
         return True
     
-    else:
-        pos_before = api.get_position(signal.symbol)
-        initial_volume_long = pos_before.volume_long if pos_before else 0
-        initial_volume_short = pos_before.volume_short if pos_before else 0
-        
+    else:        
         # 创建目标持仓任务
         target_pos = TargetPosTask(api, signal.symbol)
-        
         try:
             if position.direction == 1:
-                current_lots = initial_volume_long 
-                target_lots = current_lots + order_volume
+                target_lots = position.contract_total_position + order_volume
             else:
-                current_lots = initial_volume_short 
-                target_lots = -(current_lots + order_volume)
+                target_lots = -(position.contract_total_position + order_volume)
             
-            msg = f"{signal.symbol} 设置目标持仓: {target_lots} 手 (当前 {current_lots} 手 + 加仓 {order_volume} 手)"
+            msg = f"{signal.symbol} 设置目标持仓: {target_lots} 手 (当前 {position.contract_total_position} 手 + 加仓 {order_volume} 手)"
             print(msg)
             log_trade('execute_add_on_order', msg,symbol=signal.symbol, log_level='INFO')
 
@@ -157,7 +145,7 @@ def execute_add_on_order(api, account, signal):
             while time.time() - start_time < TIMEOUT_SECONDS:
                 api.wait_update(deadline=time.time() + 1)
                 if target_pos.is_finished():
-                    msg = f"{signal.symbol} 从{current_lots} 手 加仓至: {target_lots}手"
+                    msg = f"{signal.symbol} 从{position.contract_total_position} 手 加仓至: {target_lots}手"
                     print(msg)
                     log_trade('execute_add_on_order', msg, symbol=signal.symbol, log_level='SUCCESS')
                     break
@@ -179,6 +167,8 @@ def execute_add_on_order(api, account, signal):
             avg_price = float(quote.last_price) if quote and quote.last_price else None
         
             with transaction.atomic():
+
+                
                 new_units = position.units + add_units_from_signal
                 new_total_lots = position.contract_total_position + order_volume
                 
@@ -186,16 +176,17 @@ def execute_add_on_order(api, account, signal):
                     units=new_units,
                     contract_total_position=new_total_lots,
                     last_add_price=Decimal(str(avg_price)),
-                    latest_close_price=Decimal(str(avg_price))
+                    latest_close_price=Decimal(str(avg_price)),
+                    last_update_time=timezone.now()  # 【修复】手动更新最后更新时间
                 )
-                
-                # 【新增】更新信号执行状态为成功
-                signal.executed_status = 'SUCCESS'
-                signal.save(update_fields=['executed_status', 'updated_at'])
+
+            # 【新增】更新信号执行状态为成功
+            signal.executed_status = 'SUCCESS'
+            signal.save(update_fields=['executed_status', 'updated_at'])
             
             msg = f"{signal.symbol} 加仓成功: +{unit_lots} Unit({order_volume}手) @ {avg_price:.2f}, 总持仓:{new_units} Unit"
             print(msg)
-            log_trade('execute_add_on_order', msg, smbol=signal.symbol,log_level='SUCCESS')
+            log_trade('execute_add_on_order', msg, symbol=signal.symbol,log_level='SUCCESS')
             return True
             
         except Exception as e:
@@ -296,6 +287,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                     'highest_close': Decimal(str(two_step_result['avg_price'])),
                     'lowest_close': Decimal(str(two_step_result['avg_price'])),
                     'latest_close_price': Decimal(str(two_step_result['avg_price'])),
+                    'last_update_time': timezone.now()  # 【修复】手动更新最后更新时间
                 }
             )
             
@@ -316,7 +308,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                 target_lots = order_volume  # 多头：目标持多单order_volume手
             else:
                 target_lots = -order_volume  # 空头：目标持空单order_volume手
-            msg = f"{signal.symbol} 设置目标持仓: {target_lots}手 (开仓{target_units} Unit)"
+            msg = f"{signal.symbol} 设置目标持仓: {target_lots} 手 (开仓{target_units} Unit)"
             print(msg)
             log_trade('execute_entry_order', msg,symbol=signal.symbol, log_level='INFO')
             # 设置目标持仓
@@ -365,6 +357,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                                 'highest_close': Decimal(str(entry_avg_price)),
                                 'lowest_close': Decimal(str(entry_avg_price)),
                                 'latest_close_price': Decimal(str(entry_avg_price)),
+                                'last_update_time': timezone.now()
                             }
                         )
                         
@@ -438,11 +431,13 @@ def execute_exit_order(api, position, signal):
                 last_add_price=None,
                 highest_close=None,
                 lowest_close=None,
-                stop_loss_price=None
+                stop_loss_price=None,
+                last_update_time=timezone.now()  # 【修复】手动更新最后更新时间
             )
-            if signal:
-                signal.executed_status = 'SUCCESS'
-                signal.save(update_fields=['executed_status', 'updated_at'])
+
+        if signal:
+            signal.executed_status = 'SUCCESS'
+            signal.save(update_fields=['executed_status', 'updated_at'])
         msg = f"{position.symbol} 平仓成功"
         print(msg)
         log_trade('execute_exit_order', msg,symbol=position.symbol, log_level='SUCCESS')
@@ -679,6 +674,7 @@ def execute_rollover_order(api, position, signal):
                     'highest_close': init_highest_close,
                     'lowest_close': init_lowest_close,
                     'latest_close_price': Decimal(str(entry_avg_price)),
+                    'last_update_time': timezone.now(),  # 【修复】手动更新最后更新时间
                     'stop_loss_price': init_stop_loss,
                     'is_rollover_needed': False
                 }
