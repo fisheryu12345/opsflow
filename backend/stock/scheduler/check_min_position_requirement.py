@@ -124,7 +124,7 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         start_time = time.time()
         step1_completed = False
         while time.time() - start_time < TIMEOUT_SECONDS:
-            api.wait_update(deadline=time.time() + 1)
+            api.wait_update()
             if target_pos.is_finished():
                 msg = f"{symbol} 第1步完成: 已开{step1_target}手"
                 print(msg)
@@ -154,7 +154,7 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         step2_completed = False
         
         while time.time() - start_time < TIMEOUT_SECONDS:
-            api.wait_update(deadline=time.time() + 1)
+            api.wait_update()
             if target_pos.is_finished():
                 msg = f"{symbol} 第2步完成: 最终持仓{step2_target}手"
                 print(msg)

@@ -141,9 +141,9 @@ def execute_add_on_order(api, account, signal):
             target_pos.set_target_volume(target_lots)
             
             start_time = time.time()
-            
+            # 这个地方 真实交易环境是否也会卡5分钟，需要实盘检验！！！！！！！！！！！！！
             while time.time() - start_time < TIMEOUT_SECONDS:
-                api.wait_update(deadline=time.time() + 1)
+                api.wait_update()
                 if target_pos.is_finished():
                     msg = f"{signal.symbol} 从{position.contract_total_position} 手 加仓至: {target_lots}手"
                     print(msg)
@@ -166,9 +166,7 @@ def execute_add_on_order(api, account, signal):
             quote = api.get_quote(signal.symbol)
             avg_price = float(quote.last_price) if quote and quote.last_price else None
         
-            with transaction.atomic():
-
-                
+            with transaction.atomic():   
                 new_units = position.units + add_units_from_signal
                 new_total_lots = position.contract_total_position + order_volume
                 
@@ -317,7 +315,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
             # 等待成交（带超时控制）
             start_time = time.time()
             while time.time() - start_time < TIMEOUT_SECONDS:
-                api.wait_update(deadline=time.time() + 1)
+                api.wait_update()
                 
                 if target_pos.is_finished():
                     msg = f"{signal.symbol} 开仓完成: {target_lots} 手"
@@ -415,7 +413,7 @@ def execute_exit_order(api, position, signal):
         
         start_time = time.time()
         while time.time() - start_time < TIMEOUT_SECONDS:
-            api.wait_update(deadline=time.time() + 1)
+            api.wait_update()
             if target_pos.is_finished():
                 msg = f"{position.symbol} 平仓完成"
                 print(msg)
@@ -491,7 +489,7 @@ def execute_rollover_order(api, position, signal):
         target_pos_old.set_target_volume(0)
         start_time = time.time()
         while time.time() - start_time < TIMEOUT_SECONDS:
-            api.wait_update(deadline=time.time() + 1)
+            api.wait_update()
             
             if target_pos_old.is_finished(): 
                 msg = f"{position.symbol} 平仓完成"
@@ -576,7 +574,7 @@ def execute_rollover_order(api, position, signal):
             
             start_time = time.time()
             while time.time() - start_time < TIMEOUT_SECONDS:
-                api.wait_update(deadline=time.time() + 1)
+                api.wait_update()
                 if target_pos_new.is_finished():
                     msg = f"{signal.symbol} 开仓完成: {actual_filled}手"
                     print(msg)
