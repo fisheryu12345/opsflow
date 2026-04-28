@@ -3,9 +3,7 @@ from decimal import Decimal
 
 from stock.models import TradingAccount, PositionState, FullContractList
 
-EXCLUDE_PRODUCT_CODES = ['IF', 'IC', 'IH', 'T', 'TF', 'IM','TL',
-                         'TS','CY' ,'ZS','JR','LR','PF','PK','PM','PR','RI','WH','bb','fb','lg',
-                         'rr','pd','ps','pt','bc','au','op','wr']
+PRODUCT_CODES = ['rb','hc','al','ao','MA','TA','SA','FG','fu','ru','UR','m','p','CF','RM','AP','lh','AP','jd','sp','si','lc','SR']
 
 def sync_contract_list_from_tqsdk(api=None):
     """
@@ -49,7 +47,7 @@ def sync_contract_list_from_tqsdk(api=None):
                 print(f"\n[CHECK] 处理主力合约: {cont_symbol}")
                 # 5. 获取合约详细信息
                 quote = api.get_quote(cont_symbol)
-                if quote.product_id in EXCLUDE_PRODUCT_CODES:
+                if quote.product_id not in PRODUCT_CODES:
                     print(f"  [SKIP] 排除的品种: {product_id}")
                     skipped_count += 1
                     continue
