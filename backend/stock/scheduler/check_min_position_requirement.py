@@ -123,14 +123,24 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         # 等待第1步成交
         start_time = time.time()
         step1_completed = False
+        pos_current = None
         while time.time() - start_time < TIMEOUT_SECONDS:
             api.wait_update()
-            if target_pos.is_finished():
+            
+            # 【修复】直接检查实际持仓是否达到第一步目标
+            pos_current = api.get_position(symbol)
+            if pos_current and pos_current.pos == step1_target:
                 msg = f"{symbol} 第1步完成: 已开{step1_target}手"
                 print(msg)
                 log_trade(function_name, msg, symbol=symbol, log_level='SUCCESS')
                 step1_completed = True
                 break
+        
+        # 【关键】第1步完成后，必须 cancel 释放资源
+        target_pos.cancel()
+        while not target_pos.is_finished():
+            api.wait_update()
+
         if not step1_completed:
             msg = f"[ERROR] {symbol} 第1步开仓超时或失败"
             print(msg)
@@ -152,15 +162,25 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         # 等待第2步成交
         start_time = time.time()
         step2_completed = False
+        pos_current = None
         
         while time.time() - start_time < TIMEOUT_SECONDS:
             api.wait_update()
-            if target_pos.is_finished():
+            
+            # 【修复】直接检查实际持仓是否达到最终目标
+            pos_current = api.get_position(symbol)
+            if pos_current and pos_current.pos == step2_target:
                 msg = f"{symbol} 第2步完成: 最终持仓{step2_target}手"
                 print(msg)
                 log_trade(function_name, msg,symbol=symbol,log_level='SUCCESS')
                 step2_completed = True
                 break
+        
+        # 【关键】第2步完成后，必须 cancel 释放资源
+        target_pos.cancel()
+        while not target_pos.is_finished():
+            api.wait_update()
+
         if not step2_completed:
             msg = f"[ERROR] {symbol} 第2步平仓超时或失败"
             print(msg)

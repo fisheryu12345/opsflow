@@ -1,7 +1,7 @@
 import time
 from decimal import Decimal
 from django.utils import timezone
-from tqsdk import TqApi, TqAuth, TargetPosTask
+from tqsdk import TqApi, TqAuth, TargetPosTask,TqAccount , TqKq,TqSim
 from django.db import transaction,close_old_connections
 from django.db.models import Q
 from stock.models import TradingAccount, PositionState, DailyStrategySignal
@@ -10,13 +10,44 @@ from stock.scheduler.calculate_atr import calculate_atr, price_gap_protection
 from stock.scheduler.send_report import send_open_report
 from stock.utils.log_util import log_trade, log_error
 from stock.scheduler.check_min_position_requirement import check_min_position_requirement,execute_two_step_opening
-from stock.parameter_config import (
-    POSITION_MAX_UNITS,
-    TIMEOUT_SECONDS
-)
+from stock.parameter_config import TIMEOUT_SECONDS, POSITION_MAX_UNITS
 
-# ==================== 仓位管理配置常量 ====================
-# 已从 stock.parameter_config 统一导入，此处不再重复定义
+
+def wait_for_target_position(api, target_pos, symbol, target_lots, function_name, timeout=TIMEOUT_SECONDS):
+    """
+    通用持仓目标等待与资源释放函数
+    
+    :param api: TqApi 实例
+    :param target_pos: TargetPosTask 实例
+    :param symbol: 合约代码
+    :param target_lots: 目标持仓手数
+    :param function_name: 调用该函数的名称（用于日志记录）
+    :param timeout: 超时时间（秒）
+    :return: dict {'success': bool, 'pos': Position object or None}
+    """
+    start_time = time.time()
+    pos_current = None
+    
+    while time.time() - start_time < timeout:
+        api.wait_update()
+        
+        # 【核心修复】直接检查实际持仓是否达到目标
+        pos_current = api.get_position(symbol)
+        if pos_current and pos_current.pos == target_lots:
+            msg = f"{symbol} 任务完成: 当前持仓 {target_lots} 手"
+            print(msg)
+            log_trade(function_name, msg, symbol=symbol, log_level='SUCCESS')
+            break
+    
+    # 【关键一步】：无论成功与否，都尝试 cancel 释放资源
+    try:
+        target_pos.cancel()
+        while not target_pos.is_finished():
+            api.wait_update()
+    except Exception as e:
+        log_error(function_name, f"{symbol} 释放 TargetPosTask 资源时出错: {str(e)}")
+
+    return {'success': pos_current is not None and pos_current.pos == target_lots, 'pos': pos_current}
 
 def is_trading(api, account,signal):
     ts = api.get_trading_status(signal.symbol)
@@ -140,28 +171,24 @@ def execute_add_on_order(api, account, signal):
 
             target_pos.set_target_volume(target_lots)
             
-            start_time = time.time()
-            # 这个地方 真实交易环境是否也会卡5分钟，需要实盘检验！！！！！！！！！！！！！
-            while time.time() - start_time < TIMEOUT_SECONDS:
-                api.wait_update()
-                if target_pos.is_finished():
-                    msg = f"{signal.symbol} 从{position.contract_total_position} 手 加仓至: {target_lots}手"
-                    print(msg)
-                    log_trade('execute_add_on_order', msg, symbol=signal.symbol, log_level='SUCCESS')
-                    break
+            # 【重构】调用通用等待函数
+            result = wait_for_target_position(
+                api=api, 
+                target_pos=target_pos, 
+                symbol=signal.symbol, 
+                target_lots=target_lots, 
+                function_name='execute_add_on_order'
+            )
             
-            # 获取最终成交结果
-            pos_after = api.get_position(signal.symbol)
-            if pos_after is None:
-                msg = f"[ERROR] {signal.symbol} 无法获取持仓信息"
+            # pos_after = result['pos']
+            if not result['success']:
+                msg = f"[ERROR] {signal.symbol} 加仓超时或失败"
                 print(msg)
                 log_error('execute_add_on_order', msg)
-                # 更新信号状态为失败
                 signal.executed_status = 'FAILED'
-                signal.remark = '无法获取持仓信息'
-                signal.save(update_fields=['executed_status', 'updated_at','remark'])
+                signal.save(update_fields=['executed_status', 'updated_at'])
                 return False
-            
+
             # 【简化】直接使用TqSDK实时行情价格作为成交价格
             quote = api.get_quote(signal.symbol)
             avg_price = float(quote.last_price) if quote and quote.last_price else None
@@ -312,19 +339,31 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
             # 设置目标持仓
             target_pos.set_target_volume(target_lots)
         
-            # 等待成交（带超时控制）
-            start_time = time.time()
-            while time.time() - start_time < TIMEOUT_SECONDS:
-                api.wait_update()
-                
-                if target_pos.is_finished():
-                    msg = f"{signal.symbol} 开仓完成: {target_lots} 手"
-                    print(msg)
-                    log_trade('execute_entry_order', msg,symbol=signal.symbol, log_level='SUCCESS')
-                    break
+            # 【重构】调用通用等待函数
+            result = wait_for_target_position(
+                api=api, 
+                target_pos=target_pos, 
+                symbol=signal.symbol, 
+                target_lots=target_lots, 
+                function_name='execute_entry_order'
+            )
             
-            # 获取最终成交结果
-            pos_after = api.get_position(signal.symbol)
+            pos_after = result['pos']
+            if not result['success']:
+                msg = f"[ERROR] {signal.symbol} 开仓超时或失败"
+                print(msg)
+                log_error('execute_entry_order', msg)
+                signal.executed_status = 'FAILED'
+                signal.remark = '开仓超时或失败'
+                signal.save(update_fields=['executed_status', 'updated_at', 'remark'])
+                return False
+
+            # 获取最终成交结果（复用 pos_current，避免重复请求）
+            pos_after = result['pos']
+            if pos_after is None:
+                # 如果 pos_current 依然是 None，说明可能还没收到任何持仓更新，尝试最后获取一次
+                pos_after = api.get_position(signal.symbol)
+
             if pos_after is None:
                 msg = f"[ERROR] {signal.symbol} 获取持仓信息失败"
                 print(msg)
@@ -411,15 +450,25 @@ def execute_exit_order(api, position, signal):
         log_trade('execute_exit_order', msg,symbol=position.symbol, log_level='INFO')
         target_pos.set_target_volume(0)
         
-        start_time = time.time()
-        while time.time() - start_time < TIMEOUT_SECONDS:
-            api.wait_update()
-            if target_pos.is_finished():
-                msg = f"{position.symbol} 平仓完成"
-                print(msg)
-                log_trade('execute_exit_order', msg,symbol=position.symbol, log_level='SUCCESS')
-                break
+        # 【重构】调用通用等待函数
+        result = wait_for_target_position(
+            api=api, 
+            target_pos=target_pos, 
+            symbol=position.symbol, 
+            target_lots=0, 
+            function_name='execute_exit_order'
+        )
         
+        if not result['success']:
+            msg = f"[ERROR] {position.symbol} 平仓超时或失败"
+            print(msg)
+            log_error('execute_exit_order', msg)
+            if signal:
+                signal.executed_status = 'FAILED'
+                signal.remark = '平仓超时或失败'
+                signal.save(update_fields=['executed_status', 'updated_at', 'remark'])
+            return False
+
         with transaction.atomic():
             # 清空持仓状态
             PositionState.objects.filter(id=position.id).update(
@@ -487,15 +536,23 @@ def execute_rollover_order(api, position, signal):
     
     try:
         target_pos_old.set_target_volume(0)
-        start_time = time.time()
-        while time.time() - start_time < TIMEOUT_SECONDS:
-            api.wait_update()
-            
-            if target_pos_old.is_finished(): 
-                msg = f"{position.symbol} 平仓完成"
-                print(msg)
-                log_trade('execute_rollover_order', msg,symbol=position.symbol, log_level='SUCCESS')
-                break          
+        
+        # 【重构】调用通用等待函数处理旧合约平仓
+        result = wait_for_target_position(
+            api=api, 
+            target_pos=target_pos_old, 
+            symbol=position.symbol, 
+            target_lots=0, 
+            function_name='execute_rollover_order'
+        )
+        
+        if not result['success']:
+            msg = f"[ERROR] {position.symbol} 移仓操作中，平仓旧合约失败"
+            print(msg)
+            log_error('execute_rollover_order', msg)
+            signal.executed_status = 'FAILED'
+            signal.save(update_fields=['executed_status', 'updated_at'])
+            return False
 
     except Exception as e:
         msg = f"[ERROR] {position.symbol} 平仓失败: {str(e)}"
@@ -572,16 +629,24 @@ def execute_rollover_order(api, position, signal):
             log_trade('execute_rollover_order', msg,symbol=signal.symbol,log_level='INFO')
             target_pos_new.set_target_volume(target_lots)
             
-            start_time = time.time()
-            while time.time() - start_time < TIMEOUT_SECONDS:
-                api.wait_update()
-                if target_pos_new.is_finished():
-                    msg = f"{signal.symbol} 开仓完成: {actual_filled}手"
-                    print(msg)
-                    log_trade('execute_rollover_order', msg,symbol=signal.symbol, level='SUCCESS')
-                    break
+            # 【重构】调用通用等待函数处理新合约开仓
+            result = wait_for_target_position(
+                api=api, 
+                target_pos=target_pos_new, 
+                symbol=signal.symbol, 
+                target_lots=target_lots, 
+                function_name='execute_rollover_order'
+            )
             
-            pos_after = api.get_position(signal.symbol)
+            pos_after = result['pos']
+            if not result['success']:
+                msg = f"[ERROR] {signal.symbol} 移仓操作中，开仓新合约失败"
+                print(msg)
+                log_error('execute_rollover_order', msg)
+                signal.executed_status = 'FAILED'
+                signal.save(update_fields=['executed_status', 'updated_at'])
+                return False
+
             if signal.signal_direction == 1:
                 entry_avg_price = float(pos_after.open_price_long) if pos_after and pos_after.open_price_long else None
                 actual_filled = pos_after.volume_long_today
@@ -831,7 +896,10 @@ def job_daily_open_process():
     # 获取交易账户
     accounts = TradingAccount.objects.all()
     for account in accounts:
-        api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
+        # api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
+        api = TqApi(TqKq(),auth=TqAuth("yupei1986", "yupei1986"))
+        # api = TqApi(TqAccount("Y银河期货_CTP七席", "0210003762", "012613"), auth=TqAuth("yupei1986", "yupei1986"))
+        
         redis = get_redis_connection('default')
         lock_key = 'lock:open'
         if redis.set(lock_key, 'true', nx=True, ex=600): 

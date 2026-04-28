@@ -21,6 +21,7 @@ scheduler = BackgroundScheduler()
 #         'misfire_grace_time': 300  # 默认容错时间5分钟
 #     }
 # )
+scheduler = BackgroundScheduler(timezone='Asia/Shanghai') # 【关键修复】
 scheduler.remove_all_jobs()
 scheduler.add_jobstore(DjangoJobStore(), 'default')
 # ==================== 任务调度配置 ====================
