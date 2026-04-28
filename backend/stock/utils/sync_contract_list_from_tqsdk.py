@@ -3,6 +3,10 @@ from decimal import Decimal
 
 from stock.models import TradingAccount, PositionState, FullContractList
 
+EXCLUDE_PRODUCT_CODES = ['IF', 'IC', 'IH', 'T', 'TF', 
+                         'TS','CY' ,'ZS','JR','LR','PF','PK','PM','PR','RI','WH','bb','fb','lg',
+                         'rr','pd','ps','pt','bc','au','op','wr']
+
 def sync_contract_list_from_tqsdk(api=None):
     """
     使用 TqSDK 内置 API 获取所有期货合约信息并同步到 FullContractList 表
@@ -45,6 +49,10 @@ def sync_contract_list_from_tqsdk(api=None):
                 print(f"\n[CHECK] 处理主力合约: {cont_symbol}")
                 # 5. 获取合约详细信息
                 quote = api.get_quote(cont_symbol)
+                if quote.product_id in EXCLUDE_PRODUCT_CODES:
+                    print(f"  [SKIP] 排除的品种: {product_id}")
+                    skipped_count += 1
+                    continue
                 # 6. 从 quote 对象中提取关键信息
                 instrument_id = quote.instrument_id  # 完整合约代码，如 "CZCE.MA605"
                 product_id = quote.product_id  # 品种代码，如 "MA"
