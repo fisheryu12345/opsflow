@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from stock.models import TradingAccount, PositionState, FullContractList
 
-EXCLUDE_PRODUCT_CODES = ['IF', 'IC', 'IH', 'T', 'TF', 
+EXCLUDE_PRODUCT_CODES = ['IF', 'IC', 'IH', 'T', 'TF', 'IM','TL',
                          'TS','CY' ,'ZS','JR','LR','PF','PK','PM','PR','RI','WH','bb','fb','lg',
                          'rr','pd','ps','pt','bc','au','op','wr']
 
