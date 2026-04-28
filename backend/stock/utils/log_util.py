@@ -143,39 +143,3 @@ def log_trade(
         print(f"[LOG_ERROR] 原始日志 - 函数: {function_name}, 消息: {log_message}")
         return None
 
-
-# ==================== 便捷装饰器 ====================
-
-def auto_log_errors(func):
-    """
-    自动捕获函数异常并记录错误日志的装饰器
-    
-    使用此装饰器后，函数内未捕获的异常会自动记录到ErrorLog表
-    
-    使用示例：
-        @auto_log_errors
-        def my_trading_function(account, symbol):
-            # 你的业务逻辑
-            pass
-    
-    注意：
-    - 装饰器会捕获所有Exception，但不会阻止异常向上传播
-    - 如果需要自定义错误级别或额外信息，建议使用try-except + log_error手动记录
-    """
-    import functools
-    
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            # 自动记录错误
-            log_error(
-                function_name=f"{func.__module__}.{func.__qualname__}",
-                error_message=f"{str(e)}\n{traceback.format_exc()}",
-                error_level='ERROR'
-            )
-            # 重新抛出异常，不改变原有行为
-            raise
-    
-    return wrapper

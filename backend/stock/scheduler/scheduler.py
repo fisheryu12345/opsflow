@@ -47,8 +47,8 @@ scheduler.add_job(
     job_daily_close_calculation, 
     'cron', 
     day_of_week='mon-fri',  # 周一到周五
-    hour=16, 
-    minute=0, 
+    hour=15, 
+    minute=2, 
     id='job_daily_close_calculation',
     name='盘后指标计算与绩效统计',
     misfire_grace_time=300,  # 允许5分钟的容错时间
@@ -67,7 +67,7 @@ scheduler.add_job(
     'cron', 
     day_of_week='mon-fri',  # 周一到周五
     hour='9,21',  # 早上9点和晚上21点
-    minute=2,  # 第2分钟
+    minute='2,12',  # 第2分钟
     id='job_daily_open_process',
     name='开盘前准备与跳空检查',
     misfire_grace_time=300,  # 允许5分钟的容错时间

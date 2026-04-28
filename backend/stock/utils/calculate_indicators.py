@@ -262,35 +262,6 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
             trend_factor = -0.3
             trend_label = "choppy"
 
-        # if ma_10_value and ma_20_value and ma_40_value and not any(np.isnan(v) for v in [ma_10_value, ma_20_value, ma_40_value]):
-        #     diff10_20 = ma_10_value - ma_20_value
-        #     diff20_40 = ma_20_value - ma_40_value
-        #     threshold = 0.0045 * abs(ma_20_value)
-            
-        #     if ma_10_value > ma_20_value > ma_40_value:
-        #         trend_factor = 0.5
-        #         trend_label = "strong_bull"
-        #     elif ma_10_value < ma_20_value < ma_40_value:
-        #         trend_factor = 0.5
-        #         trend_label = "strong_bear"
-        #     elif abs(diff10_20) < threshold and abs(diff20_40) < threshold:
-        #         trend_factor = -0.3
-        #         trend_label = "choppy"
-        #     elif (ma_10_value > ma_20_value and ma_20_value >= ma_40_value) or \
-        #         (ma_10_value >= ma_20_value and ma_20_value > ma_40_value):
-        #         trend_factor = -0.15
-        #         trend_label = "weak_bull"
-        #     elif (ma_10_value < ma_20_value and ma_20_value <= ma_40_value) or \
-        #         (ma_10_value <= ma_20_value and ma_20_value < ma_40_value):
-        #         trend_factor = -0.15
-        #         trend_label = "weak_bear"
-        #     else:
-        #         trend_factor = -0.3
-        #         trend_label = "choppy"
-        # else:
-        #     trend_factor = 0.0
-        #     trend_label = "neutral"
-        # # 3.6 检查突破信号（只返回结果，不保存数据库）
         breakout_info = check_breakout_signal(klines, entry_period=20)
         # print(f"突破检测结果: {breakout_info}")
         

@@ -1,14 +1,6 @@
-import pandas as pd
-import numpy as np
-from datetime import date, timedelta
 from django.db import transaction
-from django.db.models import Sum, Q, F
 from decimal import Decimal
-from tqsdk import TqApi, TqAuth
-from tqsdk.ta import ATR
 
-
-# 假设你的 models 在 myapp.models 中
 from stock.models import TradingAccount, PositionState, FullContractList
 
 def sync_contract_list_from_tqsdk(api=None):
@@ -42,25 +34,17 @@ def sync_contract_list_from_tqsdk(api=None):
             }
         
         print(f"[INFO] 共获取到 {len(cont_quotes)} 个主力合约")
-        
        
         synced_count = 0
         updated_count = 0
         skipped_count = 0
-        
+
         # 4. 遍历所有主力合约
         for cont_symbol in cont_quotes:
             try:
                 print(f"\n[CHECK] 处理主力合约: {cont_symbol}")
-                
                 # 5. 获取合约详细信息
                 quote = api.get_quote(cont_symbol)
-                
-                # 检查是否获取到有效数据
-                if not hasattr(quote, 'instrument_id') or quote.instrument_id == '':
-                    print(f"  [WARN] {cont_symbol}: 无法获取合约详情")
-                    continue
-                
                 # 6. 从 quote 对象中提取关键信息
                 instrument_id = quote.instrument_id  # 完整合约代码，如 "CZCE.MA605"
                 product_id = quote.product_id  # 品种代码，如 "MA"
@@ -81,15 +65,12 @@ def sync_contract_list_from_tqsdk(api=None):
                 # 提取交易时间信息（用于判断是否有夜盘）
                 trading_time = getattr(quote, 'trading_time', {})
                 has_night = bool(trading_time.get('night', []))
-                
                 # 尝试从 categories 字段提取分类名称
                 category_from_api = None
                 categories_list = getattr(quote, 'categories', [])
                 if categories_list and isinstance(categories_list, list) and len(categories_list) > 0:
                     # 提取第一个分类的 name 字段
                     category_from_api = categories_list[0].get('name') if isinstance(categories_list[0], dict) else None
-                
-                
                 min_position = quote.open_min_market_order_volume
                 
                 print(f"  [OK] {instrument_id} | 品种: {product_id} | 乘数: {volume_multiple} | Tick: {price_tick} | 夜盘: {'有' if has_night else '无'} | 分类: {category_from_api}")
@@ -181,5 +162,4 @@ def sync_contract_list_from_tqsdk(api=None):
         }
     
     finally:
-        # 确保关闭 API 连接
         pass
