@@ -24,10 +24,9 @@ def calculate_unit_lots(api, symbol):
         # 获取合约信息
         contract = api.get_quote(symbol)
         if not contract or not contract.volume_multiple:
-            print(123123)
             return 1  # 默认返回1手
         
-        contracts_per_unit = contract.volume_multiple  # 合约乘数（如螺纹钢10吨/手）
+        volume_multiple = contract.volume_multiple  # 合约乘数（如螺纹钢10吨/手）
         
         # 获取K线数据计算20日ATR
         klines = api.get_kline_serial(symbol, duration_seconds=86400, data_length=25)
@@ -57,7 +56,7 @@ def calculate_unit_lots(api, symbol):
         # 防止除零错误
         if atr_20 <= 0:
             return 1
-        unit_lots = POSITION_RISK_BASE_AMOUNT / (atr_20 * POSITION_RISK_MULTIPLIER * contracts_per_unit)
+        unit_lots = POSITION_RISK_BASE_AMOUNT / (atr_20 * POSITION_RISK_MULTIPLIER * volume_multiple)
         
         # 向下取整，确保风险可控
         unit_lots = int(unit_lots)
