@@ -180,7 +180,6 @@ def execute_add_on_order(api, account, signal):
                 function_name='execute_add_on_order'
             )
             
-            # pos_after = result['pos']
             if not result['success']:
                 msg = f"[ERROR] {signal.symbol} 加仓超时或失败"
                 print(msg)
@@ -367,7 +366,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
             if pos_after is None:
                 msg = f"[ERROR] {signal.symbol} 获取持仓信息失败"
                 print(msg)
-                log_error('execute_entry_order', msg, account=account, symbol=signal.symbol, signal=signal)
+                log_error('execute_entry_order', msg)
                 # 获取失败，更新信号状态为失败
                 signal.executed_status = 'FAILED'
                 signal.remark = '获取持仓信息失败'
