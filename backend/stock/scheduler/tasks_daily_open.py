@@ -23,7 +23,7 @@ def is_trading(api, account,signal):
     if ts.trade_status == 'NOTRADING':
         msg = f"{signal.symbol} 不在交易时间"
         print(msg)
-        log_trade('is_trading checking', msg,symbol=signal.symbol,log_level='WARNING')
+        log_trade('is_trading checking', msg,symbol=signal.symbol,log_level='INFO')
         return False
     else:
         return True
@@ -832,7 +832,6 @@ def job_daily_open_process():
     accounts = TradingAccount.objects.all()
     for account in accounts:
         api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
-        # from . import tasks # 确保任务函数被导入
         redis = get_redis_connection('default')
         lock_key = 'lock:open'
         if redis.set(lock_key, 'true', nx=True, ex=600): 

@@ -536,7 +536,7 @@ def update_all_positions_stop_loss_price():
                 # 更新止损价格（保持 Decimal 类型）
                 PositionState.objects.filter(id=position.id).update(
                     stop_loss_price=new_stop_loss,
-                    last_update_time=timezone.now()  # 【修复】手动更新最后更新时间
+                    last_update_time=timezone.now(),  # 【修复】手动更新最后更新时间
                     trend_info=f'{atr_value:.2f},  {factor:.2f} , {trend_label}',
 
                 )
