@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from django.utils import timezone
 from datetime import date, timedelta
 from django.db import transaction,close_old_connections
 from decimal import Decimal
@@ -452,10 +453,10 @@ def update_all_positions_high_low_price():
                 # 开仓的时候以开仓价格为初始最高价和最低价，需要再开仓的时候填入。然后每日收盘后更新一次，计算开仓以来的最高价和最低价。
                 if position.direction == 1:
                     if position.latest_close_price > position.highest_close:
-                        PositionState.objects.filter(id=position.id).update(highest_close=position.latest_close_price)
+                        PositionState.objects.filter(id=position.id).update(highest_close=position.latest_close_price,last_update_time=timezone.now())
                 if position.direction == -1:
                     if position.latest_close_price < position.lowest_close:
-                        PositionState.objects.filter(id=position.id).update(lowest_close=position.latest_close_price)
+                        PositionState.objects.filter(id=position.id).update(lowest_close=position.latest_close_price,last_update_time=timezone.now())
                 updated_count += 1
                 
             except Exception as pos_error:
@@ -535,6 +536,7 @@ def update_all_positions_stop_loss_price():
                 # 更新止损价格（保持 Decimal 类型）
                 PositionState.objects.filter(id=position.id).update(
                     stop_loss_price=new_stop_loss,
+                    last_update_time=timezone.now()  # 【修复】手动更新最后更新时间
                     trend_info=f'{atr_value:.2f},  {factor:.2f} , {trend_label}',
 
                 )
