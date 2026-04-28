@@ -58,8 +58,8 @@ def calculate_unit_lots(api, symbol):
             return 1
         unit_lots = POSITION_RISK_BASE_AMOUNT / (atr_20 * POSITION_RISK_MULTIPLIER * volume_multiple)
         
-        # 向下取整，确保风险可控
-        unit_lots = int(unit_lots)
+        # 四舍五入，使手数更接近理论值
+        unit_lots = round(unit_lots)
         
         # 至少1手
         unit_lots = max(1, unit_lots)
