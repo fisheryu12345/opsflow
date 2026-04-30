@@ -103,6 +103,7 @@ def save_daily_snapshot(
                 'commission': commission,
                 'daily_pnl': daily_pnl,
                 'daily_return': daily_return,
+                'closed_pnl': closed_pnl,  # 新增：保存平仓盈亏字段
             }
         )
                 

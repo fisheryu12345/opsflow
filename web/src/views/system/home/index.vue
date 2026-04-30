@@ -42,6 +42,13 @@
 					<div ref="closedPnlCurveRef" class="chart-ref"></div>
 				</div>
 			</el-col>
+			
+			<!-- 多窗口绩效对比雷达图 - 占据全宽且高度加倍 -->
+			<el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24" class="grid-item-wrapper">
+				<div class="grid-card-item grid-large-item grid-animation16 chart-container">
+					<MultiWindowRadarChart :account-id="accountId" />
+				</div>
+			</el-col>
 		</el-row>
 	</div>
 </template>
@@ -50,6 +57,7 @@
 import { ref, onMounted, nextTick } from 'vue';
 import * as echarts from 'echarts';
 import { ElMessage } from 'element-plus';
+import MultiWindowRadarChart from './components/MultiWindowRadarChart.vue';
 import { 
 	getAccountSummary, 
 	getEquitySnapshots, 

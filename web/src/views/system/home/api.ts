@@ -265,3 +265,24 @@ export function getCumulativeStats(accountId: number) {
 		};
 	}>(`/api/stock/cumulative-stats/?account=${accountId}`);
 }
+
+/**
+ * 获取多窗口滚动绩效指标（用于雷达图对比）
+ * @param accountId 账户ID
+ * @returns Promise<RollingMetrics[]> 返回4个窗口的数据数组
+ * 
+ * @example
+ * const metrics = await getMultiWindowMetrics(1);
+ * // 返回: [{window_days: 20, ...}, {window_days: 60, ...}, ...]
+ */
+export function getMultiWindowMetrics(accountId: number) {
+	return request({
+		url: '/api/stock/rolling-metrics/',
+		method: 'get',
+		params: {
+			account: accountId,
+			window_days__in: '20,60,120,250',
+			ordering: 'window_days'  // 按窗口天数升序排列
+		}
+	});
+}
