@@ -12,7 +12,7 @@ import math
 
 
 # 假设你的 models 在 myapp.models 中
-from stock.models import TradingAccount,  DailyPerformance, DailyStrategySignal,  PositionState, FullContractList
+from stock.models import TradingAccount, DailyStrategySignal,  PositionState, FullContractList
 from stock.utils.sync_contract_list_from_tqsdk import sync_contract_list_from_tqsdk
 
 

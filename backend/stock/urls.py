@@ -1,12 +1,21 @@
 """
 Stock app URL configuration
 """
+from django.urls import path
 from rest_framework.routers import DefaultRouter
+
+from stock.views.performance import (
+    DailyEquitySnapshotViewSet,
+    RollingPerformanceMetricsViewSet,
+    AccountPerformanceSummaryViewSet,
+    SymbolWinRateView,
+    AccountCumulativeStatsView
+)
 from stock.views.contract import FullContractListViewSet
+from stock.views.dailysignal import  DailyStrategySignalViewSet
 from stock.views.strategyconfig import StrategyConfigViewSet
-from stock.views.trade_log import TradeLogViewSet, ErrorLogViewSet
-from stock.views.dailysignal import DailyStrategySignalViewSet
 from stock.views.position import PositionStateViewSet
+from stock.views.trade_log import TradeLogViewSet, ErrorLogViewSet
 
 # 创建路由器
 router = DefaultRouter()
@@ -19,5 +28,16 @@ router.register(r'error_log', ErrorLogViewSet, basename='error_log')
 router.register(r'daily_signals', DailyStrategySignalViewSet, basename='daily_signals')
 router.register(r'position', PositionStateViewSet, basename='position')
 
-# URL 模式
-urlpatterns = router.urls
+# ==================== 绩效数据路由 ====================
+router.register(r'equity-snapshots', DailyEquitySnapshotViewSet, basename='equity-snapshot')
+router.register(r'rolling-metrics', RollingPerformanceMetricsViewSet, basename='rolling-metrics')
+router.register(r'account-summaries', AccountPerformanceSummaryViewSet, basename='account-summary')
+
+# 注册品种胜率统计接口（非 ModelViewSet，需手动添加）
+symbol_win_rate_view = SymbolWinRateView.as_view({'get': 'list'})
+cumulative_stats_view = AccountCumulativeStatsView.as_view({'get': 'list'})
+
+urlpatterns = router.urls + [
+    path('symbol-win-rate/', symbol_win_rate_view, name='symbol-win-rate'),
+    path('cumulative-stats/', cumulative_stats_view, name='cumulative-stats'),
+]

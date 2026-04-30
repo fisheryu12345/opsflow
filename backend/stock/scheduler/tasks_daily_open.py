@@ -4,14 +4,14 @@ from django.utils import timezone
 from tqsdk import TqApi, TqAuth, TargetPosTask,TqAccount , TqKq,TqSim
 from django.db import transaction,close_old_connections
 from django.db.models import Q
-from stock.models import TradingAccount, PositionState, DailyStrategySignal
+from stock.models import TradingAccount, PositionState, DailyStrategySignal, ClosedPositionRecord, FullContractList
 from stock.scheduler.calculate_unit_lots import calculate_unit_lots
 from stock.scheduler.calculate_atr import calculate_atr, price_gap_protection
 from stock.scheduler.send_report import send_open_report
 from stock.utils.log_util import log_trade, log_error
 from stock.scheduler.check_min_position_requirement import check_min_position_requirement,execute_two_step_opening
 from stock.parameter_config import TIMEOUT_SECONDS, POSITION_MAX_UNITS
-
+import time
 
 def wait_for_target_position(api, target_pos, symbol, target_lots, function_name, timeout=TIMEOUT_SECONDS):
     """
@@ -393,7 +393,8 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                                 'highest_close': Decimal(str(entry_avg_price)),
                                 'lowest_close': Decimal(str(entry_avg_price)),
                                 'latest_close_price': Decimal(str(entry_avg_price)),
-                                'last_update_time': timezone.now()
+                                'last_update_time': timezone.now(),
+                                'open_date': timezone.now().date()  # 设置开仓日期为当前日期
                             }
                         )
                         
@@ -469,6 +470,54 @@ def execute_exit_order(api, position, signal):
             return False
 
         with transaction.atomic():
+            # 获取平仓前的持仓信息（用于创建记录）
+            quote = api.get_quote(position.symbol)
+            exit_price = quote.last_price if quote and quote.last_price else None
+            cost_price = position.cost_price if position.cost_price else None
+            volume = total_volume
+            direction = position.direction
+            
+            # 计算持仓天数
+            holding_days = None
+            if position.open_date:
+                holding_days = (timezone.now().date() - position.open_date).days
+            
+            # 获取合约乘数
+            try:
+                contract_info = FullContractList.objects.get(symbol=position.symbol)
+                volume_multiple = contract_info.volume_multiple
+            except FullContractList.DoesNotExist:
+                volume_multiple = 10  # 默认值
+                log_error('execute_exit_order', f"未找到合约 {position.symbol} 的信息，使用默认乘数")
+            
+            # 计算毛盈亏
+            if direction == 1:  # 多头平仓
+                pnl = (exit_price - cost_price) * volume * volume_multiple
+            else:  # 空头平仓
+                pnl = (cost_price - exit_price) * volume * volume_multiple
+            
+   
+            
+            # 创建平仓记录
+            ClosedPositionRecord.objects.create(
+                account=position.account,
+                symbol=position.symbol,
+                product_code=position.product_code,
+                direction=direction,
+                volume=volume,
+                exit_price=Decimal(str(exit_price)),
+                cost_price=Decimal(str(cost_price)),
+                pnl=pnl,
+                trade_date=timezone.now().date(),
+                executed_at=timezone.now(),
+                holding_days=Decimal(str(holding_days)) if holding_days is not None else None,
+                # signal=signal
+            )
+            
+            msg = f"[SUCCESS] 平仓记录已创建: {position.product_code} {'多' if direction == 1 else '空'} 平仓 {volume}手 @ {exit_price}"
+            print(msg)
+            log_trade('execute_exit_order', msg, symbol=position.symbol, log_level='SUCCESS')
+            
             # 清空持仓状态
             PositionState.objects.filter(id=position.id).update(
                 units=0,
@@ -478,7 +527,8 @@ def execute_exit_order(api, position, signal):
                 highest_close=None,
                 lowest_close=None,
                 stop_loss_price=None,
-                last_update_time=timezone.now()  # 【修复】手动更新最后更新时间
+                open_date=None,  # 重置开仓日期
+                last_update_time=timezone.now()
             )
 
         if signal:

@@ -65,5 +65,7 @@ export const metricsData = {
 	
 	// === 连续表现 ===
 	consecutiveLosses: 3,            // 连续亏损次数
-	consecutiveWins: 8               // 最大连续盈利
+	consecutiveWins: 8,               // 最大连续盈利
+	maxProfit: 5000,                   // 最大盈利
+	maxLoss: -3000                     // 最大亏损
 };

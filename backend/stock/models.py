@@ -269,6 +269,244 @@ class DailyStrategySignal(models.Model):
         ]
 
 
+# ==================== 3. 绩效数据层 (三层架构) ====================
+'''
+💡 为什么采用三层架构？
+
+原 DailyPerformance 模型存在"职责混淆"问题：
+- 单日快照数据（每天独立）与滚动窗口统计（需要多日历史）混在一起
+- 导致数据冗余、更新困难、查询低效
+
+新架构将数据按性质分层：
+┌─────────────────────────────────────────────────────┐
+│  Layer 1: DailyEquitySnapshot (日权益快照)          │
+│  - 每日独立数据，无需历史计算                        │
+│  - 用途：资金曲线、日收益分析                        │
+└─────────────────────────────────────────────────────┘
+                        ↓ 聚合计算
+┌─────────────────────────────────────────────────────┐
+│  Layer 2: RollingPerformanceMetrics (滚动绩效指标)   │
+│  - 基于N日窗口的统计指标                             │
+│  - 用途：夏普比率、波动率、胜率                       │
+└─────────────────────────────────────────────────────┘
+                        ↓ 全局汇总
+┌─────────────────────────────────────────────────────┐
+│  Layer 3: AccountPerformanceSummary (账户总览)       │
+│  - 全生命周期的全局指标                              │
+│  - 用途：Dashboard首页展示                           │
+└─────────────────────────────────────────────────────┘
+'''
+
+class DailyEquitySnapshot(models.Model):
+    """
+    【日权益快照表】- Layer 1: 最基础的原子数据
+    
+    💡 特点：
+    - 每天一条记录，完全独立
+    - 只存储当日可直接获取的数据
+    - 不涉及任何历史数据计算
+    - 更新频率：每日收盘后
+    
+    📊 数据来源：
+    - TqSDK api.get_account() 直接映射
+    - 简单计算字段（仅依赖昨日数据）
+    """
+    account = models.ForeignKey(TradingAccount, on_delete=models.CASCADE, related_name='equity_snapshots', verbose_name="所属账户")
+    trade_date = models.DateField("交易日期", db_index=True, help_text="该快照对应的交易日期")
+    
+    # === TqSDK 直接获取的原始数据 ===
+    balance = models.DecimalField("当前权益", max_digits=15, decimal_places=2, 
+                                 help_text="TqSDK balance字段：现金 + 持仓盈亏")
+    available = models.DecimalField("可用资金", max_digits=15, decimal_places=2,
+                                   help_text="TqSDK available字段：可用于开仓的资金")
+    float_profit = models.DecimalField("浮动盈亏", max_digits=15, decimal_places=2,
+                                      help_text="TqSDK float_profit字段：持仓部分的未实现盈亏")
+    margin = models.DecimalField("保证金占用", max_digits=15, decimal_places=2,
+                                help_text="TqSDK margin字段：当前持仓占用的保证金 ")
+    risk_ratio = models.DecimalField("风险度", max_digits=6, decimal_places=4,
+                                    help_text="TqSDK risk_ratio字段：风险度（风险度 = 保证金 / 账户权益）")
+    commission = models.DecimalField("当日手续费", max_digits=10, decimal_places=2, default=Decimal('0'),
+                                    help_text="TqSDK commission字段：当日累计手续费")
+    
+    # === 简单计算字段（仅依赖昨日数据）===
+    daily_return = models.DecimalField("日收益率", max_digits=10, decimal_places=4, default=Decimal('0'),
+                                      help_text="(今日权益 - 昨日权益) / 昨日权益 * 100%")
+    daily_pnl = models.DecimalField("日盈亏", max_digits=15, decimal_places=2, default=Decimal('0'),
+                                   help_text="今日权益 - 昨日权益")
+    
+    # === 新增：平仓盈亏（来自 TqSDK close_profit）===
+    closed_pnl = models.DecimalField("当日平仓盈亏", max_digits=15, decimal_places=2, default=Decimal('0'),
+                                    help_text="TqSDK close_profit字段：本交易日内的累计平仓盈亏")
+    
+    # === 元数据 ===
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+    
+    class Meta:
+        verbose_name = "日权益快照"
+        verbose_name_plural = "日权益快照"
+        unique_together = ('account', 'trade_date')
+        ordering = ['trade_date']
+        indexes = [
+            models.Index(fields=['account', '-trade_date']),
+        ]
+    
+    def __str__(self):
+        return f"{self.account.name} - {self.trade_date} - 权益:{self.balance}"
+
+
+class RollingPerformanceMetrics(models.Model):
+    """
+    【滚动窗口绩效指标表】- Layer 2: 需要多日数据计算的指标
+    
+    💡 特点：
+    - 每个指标有明确的"计算窗口期"
+    - 定期重新计算（如每日收盘后）
+    - 存储的是"截止到某日的统计结果"
+    - 支持多窗口并行计算和对比（20日vs60日vs120日）
+    
+    📊 典型窗口配置：
+    - window_days=20  → 短期指标（夏普比率、波动率）
+    - window_days=60  → 中期指标（胜率、盈亏比）
+    - window_days=120 → 长期指标（卡尔玛比率）
+    """
+    account = models.ForeignKey(TradingAccount, on_delete=models.CASCADE, related_name='rolling_metrics', verbose_name="所属账户")
+    calc_date = models.DateField("计算截止日期", db_index=True, 
+                                 help_text="该指标是基于截止到这一天的数据计算的")
+    
+    # === 窗口配置 ===
+    window_days = models.IntegerField("窗口天数", default=20,
+                                     help_text="计算该指标使用的历史天数，如20日夏普、60日胜率")
+    
+    # === 风险调整收益指标 ===
+    sharpe_ratio = models.DecimalField("夏普比率", max_digits=10, decimal_places=4, null=True, blank=True,
+                                      help_text="(平均日收益 / 日收益标准差) * √252")
+    sortino_ratio = models.DecimalField("索提诺比率", max_digits=10, decimal_places=4, null=True, blank=True,
+                                       help_text="只考虑下行风险的夏普比率")
+    volatility = models.DecimalField("年化波动率", max_digits=10, decimal_places=4, null=True, blank=True,
+                                    help_text="日收益标准差 * √252")
+    
+    # === 交易统计指标 ===
+    win_rate = models.DecimalField("胜率", max_digits=6, decimal_places=2, null=True, blank=True,
+                                  help_text="窗口期内盈利交易次数 / 总交易次数 * 100%")
+    profit_loss_ratio = models.DecimalField("盈亏比", max_digits=6, decimal_places=2, null=True, blank=True,
+                                           help_text="平均盈利金额 / 平均亏损金额")
+    total_trades = models.IntegerField("窗口内交易次数", default=0,
+                                      help_text="该窗口期内的总交易笔数")
+    
+    # === 元数据 ===
+    calculated_at = models.DateTimeField("计算时间", auto_now=True,
+                                         help_text="该指标最后重新计算的时间")
+    data_quality = models.CharField("数据质量", max_length=20, default='COMPLETE',
+                                   help_text="COMPLETE(数据完整)/PARTIAL(部分缺失)/INSUFFICIENT(数据不足)")
+    
+    class Meta:
+        verbose_name = "滚动绩效指标"
+        verbose_name_plural = "滚动绩效指标"
+        ordering = ['-calc_date']
+        indexes = [
+            models.Index(fields=['account', '-calc_date', 'window_days']),
+            models.Index(fields=['window_days', '-calc_date']),
+        ]
+    
+    def __str__(self):
+        return f"{self.account.name} - {self.calc_date} ({self.window_days}日窗口) - 夏普:{self.sharpe_ratio}"
+
+
+class AccountPerformanceSummary(models.Model):
+    """
+    【账户绩效总览表】- Layer 3: 全局聚合指标，用于Dashboard
+    
+    💡 特点：
+    - 每个账户只有一条最新记录（按日保存快照）
+    - 包含所有时间范围的全局指标
+    - 前端Dashboard的直接数据源
+    - 更新频率：每日收盘后自动更新
+    
+    📊 数据来源：
+    - TradingAccount.initial_balance → 计算累计收益率
+    - DailyEquitySnapshot (所有记录) → 计算最大回撤、累计手续费
+    - PositionState (实时查询) → 当前持仓统计
+    - ClosedPositionRecord (聚合查询) → 胜率、盈利因子、极端值、连续表现、交易频率
+    - RollingPerformanceMetrics (最新值) → 夏普比率、索提诺比率、波动率
+    """
+    account = models.OneToOneField(TradingAccount, on_delete=models.CASCADE, related_name='performance_summary', verbose_name="所属账户")
+    snapshot_date = models.DateField("快照日期", db_index=True, 
+                                    help_text="该快照反映的是截止到这一天的全局表现")
+    
+    # === 全局收益指标 ===
+    total_return = models.DecimalField("累计收益率", max_digits=10, decimal_places=4,
+                                      help_text="(当前权益 - 初始资金) / 初始资金 * 100%")
+    annualized_return = models.DecimalField("年化收益率", max_digits=10, decimal_places=4, null=True, blank=True,
+                                           help_text="根据运行天数折算的年化收益率")
+    
+    # === 全局风险指标 ===
+    max_drawdown_all_time = models.DecimalField("历史最大回撤", max_digits=10, decimal_places=4,
+                                               help_text="从开始至今的最大峰值到谷值跌幅")
+    current_drawdown = models.DecimalField("当前回撤", max_digits=10, decimal_places=4,
+                                          help_text="当前净值距离历史最高净值的回撤")
+    max_drawdown_duration = models.IntegerField("最大回撤持续天数", default=0,
+                                               help_text="最长的一次连续回撤天数")
+    calmar_ratio = models.DecimalField("卡尔玛比率", max_digits=10, decimal_places=4, null=True, blank=True,
+                                      help_text="年化收益率 / 历史最大回撤")
+    
+    # === 全局交易统计 ===
+    total_trades_all_time = models.IntegerField("总交易次数", default=0,
+                                               help_text="账户生命周期内的总交易笔数")
+    overall_win_rate = models.DecimalField("整体胜率", max_digits=6, decimal_places=2, null=True, blank=True,
+                                          help_text="历史所有交易的胜率")
+    overall_profit_factor = models.DecimalField("整体盈利因子", max_digits=6, decimal_places=2, null=True, blank=True,
+                                               help_text="总盈利 / 总亏损")
+    
+    # === 极端值统计 ===
+    best_single_trade = models.DecimalField("最佳单笔盈利", max_digits=15, decimal_places=2, null=True, blank=True,
+                                           help_text="历史上盈利最多的一笔交易")
+    worst_single_trade = models.DecimalField("最差单笔亏损", max_digits=15, decimal_places=2, null=True, blank=True,
+                                            help_text="历史上亏损最多的一笔交易")
+    consecutive_wins = models.IntegerField("最大连续盈利次数", default=0,
+                                          help_text="历史上最长连胜纪录")
+    consecutive_losses = models.IntegerField("最大连续亏损次数", default=0,
+                                            help_text="历史上最长连败纪录")
+    
+    # === 持仓统计（实时）===
+    current_long_position = models.IntegerField("当前多头手数", default=0,
+                                               help_text="当前所有合约的多头持仓总和")
+    current_short_position = models.IntegerField("当前空头手数", default=0,
+                                                help_text="当前所有合约的空头持仓总和")
+    avg_holding_days = models.DecimalField("平均持仓天数", max_digits=8, decimal_places=2, null=True, blank=True,
+                                          help_text="已平仓交易的平均持仓时长")
+    
+    # === 引用滚动指标（最新值）===
+    latest_sharpe_20d = models.DecimalField("最新20日夏普", max_digits=10, decimal_places=4, null=True, blank=True,
+                                           help_text="引用 RollingPerformanceMetrics 的最新20日窗口值")
+    latest_volatility_20d = models.DecimalField("最新20日波动率", max_digits=10, decimal_places=4, null=True, blank=True,
+                                               help_text="引用 RollingPerformanceMetrics 的最新20日窗口值")
+    latest_sortino_20d = models.DecimalField("最新20日索提诺比率", max_digits=10, decimal_places=4, null=True, blank=True,
+                                            help_text="引用 RollingPerformanceMetrics 的最新20日窗口索提诺比率")
+    
+    # === 交易行为统计 ===
+    trading_frequency = models.DecimalField("交易频率(次/日)", max_digits=8, decimal_places=2, default=0,
+                                           help_text="日均交易次数，从第一笔交易至今的平均值")
+    
+    # === 累计财务数据 ===
+    closed_profit_total = models.DecimalField("累计平仓盈亏", max_digits=15, decimal_places=2, default=0,
+                                             help_text="历史上所有平仓操作的累计盈亏总和")
+    commission_total = models.DecimalField("累计手续费", max_digits=15, decimal_places=2, default=0,
+                                          help_text="历史上所有交易的累计手续费总和")
+    
+    # === 更新时间戳 ===
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+    
+    class Meta:
+        verbose_name = "账户绩效总览"
+        verbose_name_plural = "账户绩效总览"
+        get_latest_by = 'snapshot_date'
+        ordering = ['-snapshot_date']
+    
+    def __str__(self):
+        return f"{self.account.name} - {self.snapshot_date} - 累计收益:{self.total_return}%"
+
+
 # ==================== 3. 状态管理层 (记忆) ====================
 '''
 FullContractList --> PositionState 的关系. FullContractList开关控制,激活的主力合约,PositionState记录当前持仓状态和挂单状态,以及加仓和移仓的辅助字段.
@@ -297,8 +535,10 @@ class PositionState(models.Model):
     direction = models.IntegerField("持仓方向 (1多/-1空/0无)", default=0, db_index=True)
     contract_total_position = models.IntegerField("此合约总持仓手数", default=0, help_text="此合约总持仓手数,对于此合约总持仓")
     last_add_price = models.DecimalField("上次加仓价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="用于计算下一次加仓阈值")
-    # contract_price_avg = models.DecimalField("持仓均价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="当前持仓的平均价格")
-    # --- 关键价格 (用于计算止损和加仓) ---   收盘需要处理。开盘后成交才更新 last_add_price 和 highest/lowest_close 字段
+    open_date = models.DateField("开仓日期", null=True, blank=True, help_text="记录该笔持仓的初始开仓日期，用于计算持仓天数")
+    cost_price = models.DecimalField("持仓成本价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="开仓均价或加仓加权均价")
+    
+    # === 关键价格 (用于计算止损和加仓) ===   收盘需要处理。开盘后成交才更新 last_add_price 和 highest/lowest_close 字段
     highest_close = models.DecimalField("持仓期最高价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="多头持仓期间的最高收盘价，用于移动止损")
     lowest_close = models.DecimalField("持仓期最低价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="空头持仓期间的最低收盘价，用于移动止损")
     
@@ -340,54 +580,66 @@ class PositionState(models.Model):
         ]
 
 
-class DailyPerformance(models.Model):
+class ClosedPositionRecord(models.Model):
     """
-    【每日绩效指标表】
+    【平仓交易记录表】
     
-    💡 为什么需要这张表？
-    这是系统的"体检报告"。
-    每天收盘后，根据账户权益和交易记录计算得出。
-    它不记录过程，只记录结果（夏普比率、回撤、胜率），用于评估策略长期的表现。
+    💡 核心作用：
+    1. 记录每一笔平仓操作的完整信息
+    2. 支持按品种、方向、时间维度统计分析
+    3. 为前端"品种胜率"图表提供真实数据源
+    4. 用于计算胜率、盈亏比、平均持仓时长等指标
     """
-    account = models.ForeignKey(TradingAccount, on_delete=models.PROTECT, related_name='daily_perfs', verbose_name="所属账户")
-    trade_date = models.DateField("交易日期", db_index=True)
+    # === 基础关联 ===
+    account = models.ForeignKey(TradingAccount, on_delete=models.CASCADE, 
+                               related_name='closed_trades', verbose_name="所属账户")
+    symbol = models.CharField("合约代码", max_length=20, db_index=True,
+                             help_text="平仓时的合约代码，如：rb2405")
+    product_code = models.CharField("品种代码", max_length=10, db_index=True,
+                                   help_text="品种代码（不带年份），如：rb, MA, IF")
     
-    # --- 资金与收益 ---
-    daily_equity = models.DecimalField("当日净值", max_digits=15, decimal_places=2)
-    daily_return = models.DecimalField("当日收益率", max_digits=10, decimal_places=4, default=Decimal('0'))
-    cumulative_return = models.DecimalField("累计收益率", max_digits=10, decimal_places=4, default=Decimal('0'))
-    daily_pnl = models.DecimalField("当日盈亏金额", max_digits=15, decimal_places=2, default=Decimal('0'))
-
-    # --- 风险调整后收益 ---
-    sharpe_ratio = models.DecimalField("夏普比率(20日滚动)", max_digits=10, decimal_places=4, null=True, blank=True, help_text="衡量性价比，越高越好")
-    sortino_ratio = models.DecimalField("索提诺比率(20日滚动)", max_digits=10, decimal_places=4, null=True, blank=True, help_text="只考虑下行风险的夏普比率")
-    calmar_ratio = models.DecimalField("卡尔玛比率", max_digits=10, decimal_places=4, null=True, blank=True, help_text="年化收益/最大回撤，趋势策略核心指标")
-
-    # --- 风险与回撤 ---
-    max_drawdown = models.DecimalField("最大回撤", max_digits=10, decimal_places=4, default=Decimal('0'), help_text="历史最大回撤百分比")
-    current_drawdown = models.DecimalField("当前回撤", max_digits=10, decimal_places=4, default=Decimal('0'), help_text="当前净值距离最高净值的回撤")
-    max_drawdown_duration = models.IntegerField("最大回撤持续天数", default=0, help_text="最长的一次挨打时间")
-    volatility = models.DecimalField("年化波动率", max_digits=10, decimal_places=4, null=True, blank=True)
-    beta = models.DecimalField("Beta系数", max_digits=10, decimal_places=4, null=True, blank=True)
-
-    # --- 交易统计 (滚动窗口) ---
-    win_rate = models.DecimalField("胜率", max_digits=6, decimal_places=2, null=True, blank=True)
-    profit_loss_ratio = models.DecimalField("盈亏比", max_digits=6, decimal_places=2, null=True, blank=True)
-    trade_count = models.IntegerField("统计期内交易次数", default=0)
-
+    # === 交易方向与数量 ===
+    DIRECTION_CHOICES = [
+        (1, '多头平仓'),
+        (-1, '空头平仓'),
+    ]
+    direction = models.IntegerField("平仓方向", choices=DIRECTION_CHOICES, db_index=True,
+                                   help_text="1:多头平仓, -1:空头平仓")
+    volume = models.IntegerField("平仓手数", validators=[MinValueValidator(1)],
+                                help_text="实际平仓成交的手数")
+    
+    # === 价格信息 ===
+    exit_price = models.DecimalField("平仓成交价", max_digits=12, decimal_places=2,
+                                    help_text="平仓订单的平均成交价格")
+    cost_price = models.DecimalField("持仓成本价", max_digits=12, decimal_places=2,
+                                    help_text="该笔持仓的开仓均价或加仓加权均价")
+    
+    # === 盈亏数据 ===
+    pnl = models.DecimalField("平仓盈亏", max_digits=15, decimal_places=2,
+                             help_text="单笔平仓的净利润（已扣除手续费）")
+    
+    # === 时间信息 ===
+    trade_date = models.DateField("交易日期", db_index=True,
+                                 help_text="平仓发生的交易日期")
+    executed_at = models.DateTimeField("执行时间", db_index=True,
+                                      help_text="平仓订单实际成交的时间戳")
+    holding_days = models.DecimalField("持仓天数", max_digits=8, decimal_places=2, null=True, blank=True,
+                                      help_text="从开仓到平仓的实际持仓天数")
+    
+    
     class Meta:
-        verbose_name = "每日绩效"
-        verbose_name_plural = "每日绩效"
-        unique_together = ('account', 'trade_date')
-        ordering = ['trade_date']
+        verbose_name = "平仓交易记录"
+        verbose_name_plural = "平仓交易记录"
+        ordering = ['-executed_at']
         indexes = [
             models.Index(fields=['account', '-trade_date']),
-            models.Index(fields=['-sharpe_ratio']),
-            models.Index(fields=['-max_drawdown']),
+            models.Index(fields=['product_code', 'direction']),
+            models.Index(fields=['trade_date', 'direction']),
         ]
-
+    
     def __str__(self):
-        return f"{self.account.name} - {self.trade_date} - 净值:{self.daily_equity} - 夏普:{self.sharpe_ratio}"
+        direction_map = {1: "多", -1: "空"}
+        return f"{self.product_code} {direction_map.get(self.direction)} 平仓 {self.volume}手 @ {self.exit_price}"
 
 
 # ==================== 5. 系统日志层 (监控) ====================

@@ -48,7 +48,7 @@ def sync_contract_list_from_tqsdk(api=None):
                 # 5. 获取合约详细信息
                 quote = api.get_quote(cont_symbol)
                 if quote.product_id not in PRODUCT_CODES:
-                    print(f"  [SKIP] 排除的品种: {product_id}")
+                    print(f"  [SKIP] 排除的品种: {quote.product_id}")
                     skipped_count += 1
                     continue
                 # 6. 从 quote 对象中提取关键信息

@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Session } from '/@/utils/storage';
 import qs from 'qs';
@@ -17,7 +17,7 @@ const service: AxiosInstance = axios.create({
 
 // 添加请求拦截器
 service.interceptors.request.use(
-	(config: AxiosRequestConfig) => {
+	(config: InternalAxiosRequestConfig) => {
 		// 在发送请求之前做些什么 token
 		if (Session.get('token')) {
 			config.headers!['Authorization'] = `${Session.get('token')}`;
@@ -35,7 +35,9 @@ service.interceptors.response.use(
 	(response) => {
 		// 对响应数据做点什么
 		const res = response.data;
-		if (res.code && res.code !== 0) {
+		
+		// ✅ 修复：兼容 dvadmin 框架的 2000 成功码和常规的 0 成功码
+		if (res.code !== undefined && res.code !== 0 && res.code !== 2000) {
 			// `token` 过期或者账号已在别处登录
 			if (res.code === 401 || res.code === 4001) {
 				Session.clear(); // 清除浏览器全部临时缓存
@@ -44,19 +46,21 @@ service.interceptors.response.use(
 					.then(() => {})
 					.catch(() => {});
 			}
-			return Promise.reject(service.interceptors.response);
+			// ✅ 返回标准 Error 对象
+			return Promise.reject(new Error(res.msg || '请求失败'));
 		} else {
 			return response.data;
 		}
 	},
 	(error) => {
 		// 对响应错误做点什么
+		console.error('❌ 网络层错误:', error.message);
 		if (error.message.indexOf('timeout') != -1) {
 			ElMessage.error('网络超时');
 		} else if (error.message == 'Network Error') {
 			ElMessage.error('网络连接错误');
 		} else {
-			if (error.response.data) ElMessage.error(error.response.statusText);
+			if (error.response?.data) ElMessage.error(error.response.statusText);
 			else ElMessage.error('接口路径找不到');
 		}
 		return Promise.reject(error);

@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import date, timedelta
 from django.db import transaction,close_old_connections
 from decimal import Decimal
-from tqsdk import TqApi, TqAuth
+from tqsdk import TqApi, TqAuth,TqKq
 from stock.tasks.send_mail import send_email_task as send_email
 from django.template.loader import render_to_string
 
@@ -13,6 +13,7 @@ from django.template.loader import render_to_string
 from stock.models import TradingAccount,DailyStrategySignal, PositionState, FullContractList
 from stock.utils.sync_contract_list_from_tqsdk import sync_contract_list_from_tqsdk
 from stock.utils.calculate_indicators import calculate_indicators
+from stock.scheduler.performance_cal import update_all_performance_metrics
 
 def check_breakout_singal(symbol, product_code, trend_factor, trend_label, 
                                           breakout_info, account,trade_type):
@@ -471,7 +472,7 @@ def update_all_positions_high_low_price():
         print(f"[ERROR] 更新最高最低价格失败: {e}")
         import traceback
         traceback.print_exc()
-def update_all_positions_stop_loss_price():
+def update_all_positions_stop_loss_price(api):
     """
     更新所有持仓的止损价格
     
@@ -508,9 +509,13 @@ def update_all_positions_stop_loss_price():
                 factor = Decimal(str(position.indicators.get('trend_factor', 0)))
                 trend_label = position.indicators.get('trend_label', '')
                 
+
+                # 获取持仓成本（开仓价或加仓加权均价）
+                cost_price = None
                 # 根据持仓方向选择基准价格和计算止损价
                 if position.direction == 1:
                     # 多头持仓：使用最高价作为基准
+                    cost_price = api.get_position(position.symbol).open_price_long 
                     if not position.highest_close:
                         print(f"[SKIP] {position.symbol}: 缺少最高价数据")
                         continue
@@ -522,6 +527,7 @@ def update_all_positions_stop_loss_price():
                     
                 elif position.direction == -1:
                     # 空头持仓：使用最低价作为基准
+                    cost_price = api.get_position(position.symbol).open_price_short
                     if not position.lowest_close:
                         print(f"[SKIP] {position.symbol}: 缺少最低价数据")
                         continue
@@ -533,9 +539,15 @@ def update_all_positions_stop_loss_price():
                 else:
                     continue
                 
+
+                # 更新持仓仓位成本价格
+
                 # 更新止损价格（保持 Decimal 类型）
+                print(f"[INFO] 更新 {position.symbol} 止损价: {position.stop_loss_price} -> {new_stop_loss}")
+                print(f"[INFO] 更新 {position.symbol} 成本价: {position.cost_price} -> {cost_price}")
                 PositionState.objects.filter(id=position.id).update(
                     stop_loss_price=new_stop_loss,
+                    cost_price=cost_price,
                     last_update_time=timezone.now(),  # 【修复】手动更新最后更新时间
                     trend_info=f'{atr_value:.2f},  {factor:.2f} , {trend_label}',
 
@@ -575,7 +587,7 @@ def job_daily_close_calculation():
     try:
         close_old_connections()
         # 第1步：创建TqApi连接
-        api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
+        api = TqApi(TqKq(),auth=TqAuth("yupei1986", "yupei1986"))
         print("[INFO] TqApi连接已建立")
         
         
@@ -656,7 +668,7 @@ def job_daily_close_calculation():
         update_all_positions_high_low_price()
         
         # 第6步：止损价格计算
-        update_all_positions_stop_loss_price()
+        update_all_positions_stop_loss_price(api=api)
         
         # 第7步：检查是否需要平仓
         check_exit_signals()
@@ -669,6 +681,42 @@ def job_daily_close_calculation():
         
         # 第10步：生成并发送每日策略信号报告邮件
         generate_daily_signal_report()
+        
+        # 第11步：更新三层绩效指标（日权益快照、滚动指标、账户总览）
+        if default_account and api:
+            try:
+                # 从 TqSDK 获取账户数据
+                api_account = api.get_account()
+                
+                # 转换为字典格式（update_all_performance_metrics 需要的格式）
+                api_account_data = {
+                    'balance': float(api_account.balance),
+                    'static_balance': float(api_account.static_balance),
+                    'available': float(api_account.available),
+                    'margin': float(api_account.margin),
+                    'float_profit': float(api_account.float_profit),
+                    'close_profit': float(api_account.close_profit),
+                    'commission': float(api_account.commission),
+                    'risk_ratio': float(api_account.risk_ratio),
+                    'pre_balance': float(api_account.pre_balance),
+                }
+                
+                # 调用统一更新函数
+                result = update_all_performance_metrics(
+                    account=default_account,
+                    api_account_data=api_account_data,
+                    trade_date=date.today()
+                )
+                
+                print(f"[SUCCESS] ✅ 三层绩效数据已更新")
+                print(f"  - 日权益快照: balance={result['snapshot'].balance}")
+                print(f"  - 滚动指标: sharpe_20d={result['rolling_metrics'][20].sharpe_ratio}")
+                print(f"  - 账户总览: total_return={result['summary'].total_return}%")
+                
+            except Exception as perf_error:
+                print(f"[ERROR] 更新绩效指标失败: {perf_error}")
+                import traceback
+                traceback.print_exc()
         
         print("[INFO] ✅ 今日收盘计算任务完成")
 
