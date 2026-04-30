@@ -72,6 +72,48 @@ import {
 // TODO: 从 Pinia Store 或 URL 参数获取账户ID
 const accountId = ref(1); // 假设账户ID为1
 
+// ==================== 响应式工具函数 ====================
+/**
+ * 根据屏幕宽度获取响应式字体配置
+ * 
+ * @returns 包含各元素字体大小的配置对象
+ */
+const getResponsiveFontConfig = () => {
+	const width = window.innerWidth;
+	
+	if (width < 480) {
+		// 手机竖屏
+		return {
+			title: 13,
+			subtitle: 9,
+			axisName: 9,
+			legend: 10,
+			tooltip: 11,
+			label: 10
+		};
+	} else if (width < 768) {
+		// 平板或手机横屏
+		return {
+			title: 15,
+			subtitle: 11,
+			axisName: 11,
+			legend: 11,
+			tooltip: 12,
+			label: 11
+		};
+	} else {
+		// 桌面端
+		return {
+			title: 16,
+			subtitle: 12,
+			axisName: 12,
+			legend: 12,
+			tooltip: 12,
+			label: 12
+		};
+	}
+};
+
 // ==================== 状态管理 ====================
 const loading = ref(false);
 const normalItems = ref<any[]>([]);
@@ -154,7 +196,7 @@ const buildNormalItems = (
 		
 		// === 风险与回撤类 ===
 		{ number: 4, label: '最大回撤', value: formatPercent(summary.max_drawdown_all_time), colorType: 'negative' },
-		{ number: 5, label: '风险度', value: `${riskRatio.toFixed(2)}%`, colorType: riskRatio > 80 ? 'negative' : 'warning' },
+		{ number: 5, label: '风险度', value: `${riskRatio.toFixed(2)}%`, colorType: 'negative' },
 		{ number: 6, label: '波动率', value: formatPercent(summary.latest_volatility_20d), colorType: 'negative' },
 		
 		// === 策略质量指标 ===
@@ -217,6 +259,9 @@ const initSymbolWinRateChart = async () => {
 	
 	const chart = echarts.init(symbolWinRateRef.value);
 	
+	// 获取响应式字体配置
+	const fontConfig = getResponsiveFontConfig();
+	
 	// 从后端获取真实数据
 	try {
 		const res = await getSymbolWinRate(accountId.value);
@@ -235,7 +280,7 @@ const initSymbolWinRateChart = async () => {
 			left: 'center',
 			top: 10,
 			textStyle: {
-				fontSize: 16,
+				fontSize: fontConfig.title,
 				fontWeight: 'bold'
 			}
 		},
@@ -246,12 +291,15 @@ const initSymbolWinRateChart = async () => {
 				const data = params[0];
 				const item = symbolData[data.dataIndex];
 				return `${data.name}<br/>胜率: ${data.value}%<br/>交易次数: ${item.trades}<br/>多单: ${item.LongNum} / 空单: ${item.ShortNum}<br/>盈利: ¥${item.profit.toLocaleString()}`;
+			},
+			textStyle: {
+				fontSize: fontConfig.tooltip
 			}
 		},
 		grid: {
-			left: '3%',
-			right: '4%',
-			bottom: '3%',
+			left: window.innerWidth < 480 ? '8%' : '3%',
+			right: window.innerWidth < 480 ? '5%' : '4%',
+			bottom: window.innerWidth < 480 ? '15%' : '3%',
 			top: '15%',
 			containLabel: true
 		},
@@ -260,15 +308,27 @@ const initSymbolWinRateChart = async () => {
 			data: symbolData.map(item => item.name),
 			axisLabel: {
 				interval: 0,
-				rotate: 30
+				rotate: window.innerWidth < 480 ? 45 : 30,
+				fontSize: fontConfig.axisName,
+				// 小屏幕时缩短过长的品种名称
+				formatter: (value: string) => {
+					if (window.innerWidth < 480 && value.length > 6) {
+						return value.substring(0, 5) + '...';
+					}
+					return value;
+				}
 			}
 		},
 		yAxis: {
 			type: 'value',
 			name: '胜率 (%)',
 			max: 100,
+			nameTextStyle: {
+				fontSize: fontConfig.axisName
+			},
 			axisLabel: {
-				formatter: '{value}%'
+				formatter: '{value}%',
+				fontSize: fontConfig.axisName
 			}
 		},
 		series: [
@@ -283,11 +343,12 @@ const initSymbolWinRateChart = async () => {
 						{ offset: 1, color: '#188df0' }
 					])
 				},
-				barWidth: '60%',
+				barWidth: window.innerWidth < 480 ? '50%' : '60%',
 				label: {
-					show: true,
+					show: window.innerWidth >= 480, // 小屏幕隐藏标签避免拥挤
 					position: 'top',
-					formatter: '{c}%'
+					formatter: '{c}%',
+					fontSize: fontConfig.label
 				}
 			}
 		]
@@ -310,6 +371,10 @@ const initEquityCurveChart = (snapshots: EquitySnapshot[]) => {
 	
 	const chart = echarts.init(equityCurveRef.value);
 	
+	// 获取响应式字体配置
+	const fontConfig = getResponsiveFontConfig();
+	const isMobile = window.innerWidth < 480;
+	
 	// 从快照数据提取日期和权益
 	const dates = snapshots.map(s => s.trade_date);
 	const equities = snapshots.map(s => parseFloat(s.balance));
@@ -327,7 +392,7 @@ const initEquityCurveChart = (snapshots: EquitySnapshot[]) => {
 			left: 'center',
 			top: 10,
 			textStyle: {
-				fontSize: 16,
+				fontSize: fontConfig.title,
 				fontWeight: 'bold'
 			}
 		},
@@ -337,39 +402,69 @@ const initEquityCurveChart = (snapshots: EquitySnapshot[]) => {
 				const equity = params[0];
 				const ret = params[1];
 				return `${equity.axisValue}<br/>权益: ¥${parseFloat(equity.value).toLocaleString()}<br/>收益率: ${parseFloat(ret.value).toFixed(2)}%`;
+			},
+			textStyle: {
+				fontSize: fontConfig.tooltip
 			}
 		},
 		legend: {
 			data: ['账户权益', '日收益率'],
-			top: 35
+			top: isMobile ? 30 : 35,
+			textStyle: {
+				fontSize: fontConfig.legend
+			}
 		},
 		grid: {
-			left: '3%',
-			right: '4%',
-			bottom: '3%',
-			top: '20%',
+			left: isMobile ? '10%' : '3%',
+			right: isMobile ? '10%' : '4%',
+			bottom: isMobile ? '12%' : '3%',
+			top: isMobile ? '22%' : '20%',
 			containLabel: true
 		},
 		xAxis: {
 			type: 'category',
 			boundaryGap: false,
-			data: dates
+			data: dates,
+			axisLabel: {
+				fontSize: fontConfig.axisName,
+				// 小屏幕时简化日期显示
+				formatter: (value: string) => {
+					if (isMobile && value.length > 10) {
+						// 只显示月-日，如 "2024-01-15" -> "01-15"
+						return value.substring(5);
+					}
+					return value;
+				}
+			}
 		},
 		yAxis: [
 			{
 				type: 'value',
-				name: '账户权益 (元)',
+				name: isMobile ? '权益(万)' : '账户权益 (元)',
 				position: 'left',
+				nameTextStyle: {
+					fontSize: fontConfig.axisName
+				},
 				axisLabel: {
-					formatter: (value: number) => `¥${(value / 10000).toFixed(0)}万`
+					formatter: (value: number) => {
+						if (isMobile) {
+							return `${(value / 10000).toFixed(0)}万`;
+						}
+						return `¥${(value / 10000).toFixed(0)}万`;
+					},
+					fontSize: fontConfig.axisName
 				}
 			},
 			{
 				type: 'value',
 				name: '收益率 (%)',
 				position: 'right',
+				nameTextStyle: {
+					fontSize: fontConfig.axisName
+				},
 				axisLabel: {
-					formatter: '{value}%'
+					formatter: '{value}%',
+					fontSize: fontConfig.axisName
 				}
 			}
 		],
@@ -388,11 +483,12 @@ const initEquityCurveChart = (snapshots: EquitySnapshot[]) => {
 				},
 				lineStyle: {
 					color: '#188df0',
-					width: 2
+					width: isMobile ? 1.5 : 2
 				},
 				itemStyle: {
 					color: '#188df0'
-				}
+				},
+				symbolSize: isMobile ? 4 : 6
 			},
 			{
 				name: '日收益率',
@@ -402,12 +498,13 @@ const initEquityCurveChart = (snapshots: EquitySnapshot[]) => {
 				yAxisIndex: 1,
 				lineStyle: {
 					color: '#ff6b6b',
-					width: 2,
+					width: isMobile ? 1.5 : 2,
 					type: 'dashed'
 				},
 				itemStyle: {
 					color: '#ff6b6b'
-				}
+				},
+				symbolSize: isMobile ? 4 : 6
 			}
 		]
 	};
@@ -424,6 +521,10 @@ const initClosedPnlCurveChart = (snapshots: EquitySnapshot[]) => {
 	
 	const chart = echarts.init(closedPnlCurveRef.value);
 	
+	// 获取响应式字体配置
+	const fontConfig = getResponsiveFontConfig();
+	const isMobile = window.innerWidth < 480;
+	
 	// 从快照数据提取日期和当日平仓盈亏
 	const dates = snapshots.map(s => s.trade_date);
 	const dailyClosedPnls = snapshots.map(s => parseFloat(s.closed_pnl || '0'));
@@ -437,11 +538,11 @@ const initClosedPnlCurveChart = (snapshots: EquitySnapshot[]) => {
 	
 	const option = {
 		title: {
-			text: '平仓盈亏曲线（纯策略盈利）',
+			text: isMobile ? '平仓盈亏曲线' : '平仓盈亏曲线（纯策略盈利）',
 			left: 'center',
 			top: 10,
 			textStyle: {
-				fontSize: 16,
+				fontSize: fontConfig.title,
 				fontWeight: 'bold'
 			}
 		},
@@ -450,25 +551,47 @@ const initClosedPnlCurveChart = (snapshots: EquitySnapshot[]) => {
 			formatter: (params: any) => {
 				const pnl = params[0];
 				return `${pnl.axisValue}<br/>累计平仓盈亏: ¥${parseFloat(pnl.value).toLocaleString()}`;
+			},
+			textStyle: {
+				fontSize: fontConfig.tooltip
 			}
 		},
 		grid: {
-			left: '3%',
-			right: '4%',
-			bottom: '3%',
-			top: '15%',
+			left: isMobile ? '10%' : '3%',
+			right: isMobile ? '5%' : '4%',
+			bottom: isMobile ? '12%' : '3%',
+			top: isMobile ? '18%' : '15%',
 			containLabel: true
 		},
 		xAxis: {
 			type: 'category',
 			boundaryGap: false,
-			data: dates
+			data: dates,
+			axisLabel: {
+				fontSize: fontConfig.axisName,
+				// 小屏幕时简化日期显示
+				formatter: (value: string) => {
+					if (isMobile && value.length > 10) {
+						return value.substring(5);
+					}
+					return value;
+				}
+			}
 		},
 		yAxis: {
 			type: 'value',
-			name: '累计平仓盈亏 (元)',
+			name: isMobile ? '盈亏(万)' : '累计平仓盈亏 (元)',
+			nameTextStyle: {
+				fontSize: fontConfig.axisName
+			},
 			axisLabel: {
-				formatter: (value: number) => `¥${(value / 10000).toFixed(0)}万`
+				formatter: (value: number) => {
+					if (isMobile) {
+						return `${(value / 10000).toFixed(0)}万`;
+					}
+					return `¥${(value / 10000).toFixed(0)}万`;
+				},
+				fontSize: fontConfig.axisName
 			}
 		},
 		series: [
@@ -485,11 +608,12 @@ const initClosedPnlCurveChart = (snapshots: EquitySnapshot[]) => {
 				},
 				lineStyle: {
 					color: '#66bb6a',
-					width: 2
+					width: isMobile ? 1.5 : 2
 				},
 				itemStyle: {
 					color: '#66bb6a'
 				},
+				symbolSize: isMobile ? 4 : 6,
 				markLine: {
 					silent: true,
 					data: [{ yAxis: 0, lineStyle: { color: '#999', type: 'dashed' } }]
@@ -667,7 +791,7 @@ $gridLength: 16;
 					min-height: 110px;
 
 					.grid-value {
-						font-size: 32px;
+						font-size: 24px;
 						font-weight: bold;
 						margin-bottom: 8px;
 						line-height: 1.2;
@@ -683,12 +807,6 @@ $gridLength: 16;
 						&.text-success {
 							color: #52c41a;
 							text-shadow: 0 2px 4px rgba(82, 196, 26, 0.2);
-						}
-						
-						// 警告色（需要注意的指标）
-						&.text-warning {
-							color: #faad14;
-							text-shadow: 0 2px 4px rgba(250, 173, 20, 0.2);
 						}
 						
 						// 危险色（负向指标）
@@ -753,10 +871,11 @@ $gridLength: 16;
 				.grid-card-item {
 					min-height: 120px;
 					padding: 15px;
+					overflow: hidden; // 防止内容溢出
 
 					.grid-content {
-						.grid-number {
-							font-size: 36px;
+						.grid-value {
+							font-size: 20px;
 						}
 
 						.grid-label {
@@ -770,6 +889,7 @@ $gridLength: 16;
 						&.chart-container {
 							.chart-ref {
 								min-height: 215px; // 250px - padding(10px*2) - border
+								overflow: hidden;
 							}
 						}
 					}
@@ -790,10 +910,11 @@ $gridLength: 16;
 				.grid-card-item {
 					min-height: 100px;
 					padding: 12px;
+					overflow: hidden; // 防止内容溢出
 
 					.grid-content {
-						.grid-number {
-							font-size: 28px;
+						.grid-value {
+							font-size: 16px;
 						}
 
 						.grid-label {
@@ -807,6 +928,8 @@ $gridLength: 16;
 						&.chart-container {
 							.chart-ref {
 								min-height: 173px; // 208px - padding(10px*2) - border
+								width: 100%;
+								overflow: hidden; // 防止内容溢出
 							}
 						}
 					}
