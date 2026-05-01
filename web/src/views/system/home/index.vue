@@ -914,11 +914,11 @@ $gridLength: 16;
 
 					.grid-content {
 						.grid-value {
-							font-size: 16px;
+							font-size: 12px;
 						}
 
 						.grid-label {
-							font-size: 11px;
+							font-size: 12px;
 						}
 					}
 					
