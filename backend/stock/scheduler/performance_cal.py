@@ -75,6 +75,7 @@ def save_daily_snapshot(
         margin = Decimal(str(api_account_data.get('margin', 0))).quantize(Decimal('0.01'))
         risk_ratio = Decimal(str(api_account_data.get('risk_ratio', 0))).quantize(Decimal('0.0001'))
         commission = Decimal(str(api_account_data.get('commission', 0))).quantize(Decimal('0.01'))
+        closed_pnl = Decimal(str(api_account_data.get('closed_pnl', 0))).quantize(Decimal('0.01'))  # 新增：平仓盈亏字段
         
         # Step 2: 计算简单指标（需要昨日数据）
         prev_snapshot = DailyEquitySnapshot.objects.filter(

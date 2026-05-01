@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from django.db import transaction,close_old_connections
 from decimal import Decimal
 from tqsdk import TqApi, TqAuth,TqKq
+from stock.utils.log_util import log_trade
 from stock.tasks.send_mail import send_email_task as send_email
 from django.template.loader import render_to_string
 
@@ -45,24 +46,36 @@ def check_breakout_singal(symbol, product_code, trend_factor, trend_label,
         if position and position.units != 0:
             print(f"[SKIP] 跳过突破信号保存 {symbol}: 当前持仓单位数={position.units}")
             return False
+        
+        # 【修复1】检查是否存在未执行的开仓信号，避免跨日期重复生成
+        last_entry_signal = DailyStrategySignal.objects.filter(
+            account=account,
+            symbol=symbol,
+            trade_type='ENTRY',
+            executed_status='PENDING'
+        ).order_by('-trade_date').first()
+        
+        if last_entry_signal:
+            print(f"[SKIP] 跳过重复开仓信号 {symbol}: 存在未执行的ENTRY信号（{last_entry_signal.trade_date}）")
+            log_trade('check_breakout_singal', f"[SKIP] 跳过重复开仓信号 {symbol}: 存在未执行的ENTRY信号（{last_entry_signal.trade_date}）",
+                      symbol=symbol,log_level='INFO')
+            return False
     
         with transaction.atomic():
-            DailyStrategySignal.objects.update_or_create(
+            DailyStrategySignal.objects.create(
                 account=account,
                 symbol=symbol,
                 product_code=product_code,
                 trade_date=date.today(),
-                defaults={
-                    'trend_factor': Decimal(str(trend_factor)),
-                    'trend_label': trend_label,
-
-                    'donchian_upper': Decimal(str(breakout_info['entry_high'])) if breakout_info['entry_high'] else None,
-                    'donchian_lower': Decimal(str(breakout_info['entry_low'])) if breakout_info['entry_low'] else None,
-                    'is_breakout': breakout_info['is_breakout'],
-                    'signal_direction': breakout_info['signal_direction'],
-                    'trade_type': trade_type,
-                    'remark': breakout_info['remark'] or f"趋势状态: {trend_label} (factor={trend_factor})"
-                }
+                trend_factor=Decimal(str(trend_factor)),
+                trend_label=trend_label,
+                donchian_upper=Decimal(str(breakout_info['entry_high'])) if breakout_info['entry_high'] else None,
+                donchian_lower=Decimal(str(breakout_info['entry_low'])) if breakout_info['entry_low'] else None,
+                is_breakout=breakout_info['is_breakout'],
+                signal_direction=breakout_info['signal_direction'],
+                trade_type=trade_type,
+                remark=breakout_info['remark'] or f"趋势状态: {trend_label} (factor={trend_factor})",
+                contract_target_number=1,  # 海龟法则默认首次开仓为1单位
             )
             return True
             
@@ -117,21 +130,33 @@ def check_exit_signals():
             
             # 如果触发止损，保存平仓信号
             if is_trigger:
-                DailyStrategySignal.objects.update_or_create(
+                # 【修复】检查是否存在未执行的止损信号，避免跨日期重复生成
+                last_stop_signal = DailyStrategySignal.objects.filter(
+                    account=default_account,
+                    symbol=position.symbol,
+                    trade_type='STOP_LOSS',
+                    executed_status='PENDING'
+                ).order_by('-trade_date').first()
+                
+                if last_stop_signal:
+                    print(f"[SKIP] 跳过重复止损信号 {position.symbol}: 存在未执行的STOP_LOSS信号（{last_stop_signal.trade_date}）")
+                    log_trade('check_exit_signals', f"[SKIP] 跳过重复止损信号 {position.symbol}: 存在未执行的STOP_LOSS信号（{last_stop_signal.trade_date}）",
+                              symbol=position.symbol,log_level='INFO')
+                    continue
+                
+                DailyStrategySignal.objects.create(
                     account=default_account,
                     symbol=position.symbol,
                     product_code=position.product_code,
                     trade_date=date.today(),
-                    defaults={
-                        'trend_factor': position.indicators.get('trend_factor', 0) if position.indicators else 0,
-                        'trend_label': position.indicators.get('trend_label', '') if position.indicators else '',
-                        'donchian_upper': None,
-                        'donchian_lower': None,
-                        'is_breakout': False,
-                        'signal_direction': 0,
-                        'trade_type': 'STOP_LOSS',
-                        'remark': remark
-                    }
+                    trend_factor=Decimal(str(position.indicators.get('trend_factor', 0))) if position.indicators else Decimal('0'),
+                    trend_label=position.indicators.get('trend_label', '') if position.indicators else '',
+                    donchian_upper=None,
+                    donchian_lower=None,
+                    is_breakout=False,
+                    signal_direction=0,
+                    trade_type='STOP_LOSS',
+                    remark=remark,
                 )
                 exit_count += 1
                 print(f"[EXIT] 止损信号: {position.symbol} - {remark}")
@@ -173,21 +198,33 @@ def check_rollover_signals():
             ).first()
             
             if main_contract:
-                DailyStrategySignal.objects.update_or_create(
+                # 【修复】检查是否存在未执行的移仓信号，避免跨日期重复生成
+                last_rollover_signal = DailyStrategySignal.objects.filter(
+                    account=default_account,
+                    symbol=position.symbol,
+                    trade_type='ROLLOVER',
+                    executed_status='PENDING'
+                ).order_by('-trade_date').first()
+                
+                if last_rollover_signal:
+                    print(f"[SKIP] 跳过重复移仓信号 {position.symbol}: 存在未执行的ROLLOVER信号（{last_rollover_signal.trade_date}）")
+                    log_trade('check_rollover_signals', f"[SKIP] 跳过重复移仓信号 {position.symbol}: 存在未执行的ROLLOVER信号（{last_rollover_signal.trade_date}）",
+                              symbol=position.symbol,log_level='INFO')
+                    continue
+                
+                DailyStrategySignal.objects.create(
                     account=default_account,
                     symbol=position.symbol,
                     product_code=position.product_code,
                     trade_date=date.today(),
-                    defaults={
-                        'trend_factor': position.indicators.get('trend_factor', 0) if position.indicators else 0,
-                        'trend_label': position.indicators.get('trend_label', '') if position.indicators else '',
-                        'donchian_upper': None,
-                        'donchian_lower': None,
-                        'is_breakout': False,
-                        'signal_direction': 0,
-                        'trade_type': 'ROLLOVER',
-                        'remark': f"需要移仓到新主力合约 {main_contract.symbol}"
-                    }
+                    trend_factor=Decimal(str(position.indicators.get('trend_factor', 0))) if position.indicators else Decimal('0'),
+                    trend_label=position.indicators.get('trend_label', '') if position.indicators else '',
+                    donchian_upper=None,
+                    donchian_lower=None,
+                    is_breakout=False,
+                    signal_direction=0,
+                    trade_type='ROLLOVER',
+                    remark=f"需要移仓到新主力合约 {main_contract.symbol}",
                 )
                 rollover_count += 1
                 print(f"[ROLLOVER] 移仓信号: {position.symbol} -> {main_contract.symbol}")
@@ -287,24 +324,36 @@ def check_add_position_signals():
                     if new_units > 3:
                         add_units = 3 - current_units  # 调整为最多只能加到3单位
                     
-                    DailyStrategySignal.objects.update_or_create(
+                    # 【修复】检查是否存在未执行的加仓信号，避免跨日期重复生成
+                    last_add_signal = DailyStrategySignal.objects.filter(
+                        account=default_account,
+                        symbol=position.symbol,
+                        trade_type='ADD_ON',
+                        executed_status='PENDING'
+                    ).order_by('-trade_date').first()
+                    
+                    if last_add_signal:
+                        print(f"[SKIP] {position.symbol}: 存在未执行的加仓信号（{last_add_signal.trade_date}），跳过重复生成")
+                        log_trade('check_add_position_signals', f"[SKIP] {position.symbol}: 存在未执行的加仓信号（{last_add_signal.trade_date}），跳过重复生成",
+                                  symbol=position.symbol, log_level='INFO')
+                        continue
+                    
+                    DailyStrategySignal.objects.create(
                         account=default_account,
                         symbol=position.symbol,
                         product_code=position.product_code,
                         trade_date=date.today(),
-                        defaults={
-                            'trend_factor': position.indicators.get('trend_factor', 0),
-                            'trend_label': position.indicators.get('trend_label', ''),
-                            'donchian_upper': None,
-                            'donchian_lower': None,
-                            'is_breakout': False,
-                            'signal_direction': position.direction,
-                            'trade_type': 'ADD_ON',
-                            'contract_target_number': add_units,  # ← 新增：直接存储目标加仓单位数
-                            'remark': f"加仓信号: {'多头' if position.direction == 1 else '空头'} "
+                        trend_factor=Decimal(str(position.indicators.get('trend_factor', 0))),
+                        trend_label=position.indicators.get('trend_label', ''),
+                        donchian_upper=None,
+                        donchian_lower=None,
+                        is_breakout=False,
+                        signal_direction=position.direction,
+                        trade_type='ADD_ON',
+                        contract_target_number=add_units,  # ← 新增：直接存储目标加仓单位数
+                        remark=f"加仓信号: {'多头' if position.direction == 1 else '空头'} "
                                      f"价格差={float(price_diff):.2f}, ATR={float(atr_value):.2f}, "
                                      f"建议加仓{add_units}单位 (当前{current_units}→{current_units + add_units})"
-                        }
                     )
                     addon_count += 1
             except Exception as pos_error:
@@ -316,6 +365,7 @@ def check_add_position_signals():
         
     except Exception as e:
         print(f"[ERROR] 检查加仓信号失败: {e}")
+
 
 
 def generate_daily_signal_report():
