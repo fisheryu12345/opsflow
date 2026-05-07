@@ -950,11 +950,12 @@ def job_daily_open_process():
     for account in accounts:
         # api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
         api = TqApi(TqKq(),auth=TqAuth("yupei1986", "yupei1986"))
+        # api = TqApi(TqAccount("Y银河期货_CTP七席", "0210003762", "012613"), auth=TqAuth("yupei1986", "yupei1986"))
                 # 第2步：检查是否为交易日
         if skip_if_not_trade_day(api=api): 
             # 如果不是交易日期，直接返回
             return 
-        # api = TqApi(TqAccount("Y银河期货_CTP七席", "0210003762", "012613"), auth=TqAuth("yupei1986", "yupei1986"))
+        
         
         redis = get_redis_connection('default')
         lock_key = 'lock:open'
