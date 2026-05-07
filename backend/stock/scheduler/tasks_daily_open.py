@@ -11,7 +11,7 @@ from stock.scheduler.calculate_atr import calculate_atr, price_gap_protection
 from stock.scheduler.send_report import send_open_report
 from stock.utils.log_util import log_trade, log_error
 from stock.scheduler.check_min_position_requirement import check_min_position_requirement,execute_two_step_opening
-from stock.parameter_config import TIMEOUT_SECONDS, POSITION_MAX_UNITS
+from stock.parameter_config import TIMEOUT_SECONDS, POSITION_MAX_UNITS,GAP_PROTECTION_RATIO
 import time
 
 def wait_for_target_position(api, target_pos, symbol, target_lots, function_name, timeout=TIMEOUT_SECONDS):
@@ -234,7 +234,7 @@ def execute_add_on_order(api, account, signal):
                 pass
 
 
-def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
+def execute_entry_order(api, account, signal, gap_threshold_percent=GAP_PROTECTION_RATIO):
     """
     执行开仓操作的函数（使用TargetPosTask自动化订单管理）
     :param api: TqApi实例

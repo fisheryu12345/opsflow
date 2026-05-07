@@ -227,30 +227,44 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
             base_ratio_weak=0.003     # 基础弱趋势比例0.3%
         )
 
+        # 【改进】将 trend_factor 从三级阶梯改为连续值，基于均线间距的线性插值
+        # 计算每条均线对的趋势强度 [0, 1]
+        threshold_diff = STRONG_THRESHOLD - WEAK_THRESHOLD
+        if threshold_diff > 0:
+            s1 = max(0.0, min(1.0, (gap_ratio_10_20 - WEAK_THRESHOLD) / threshold_diff))
+            s2 = max(0.0, min(1.0, (gap_ratio_20_40 - WEAK_THRESHOLD) / threshold_diff))
+        else:
+            # 防御性处理：阈值相等时退化为阶跃
+            s1 = 1.0 if gap_ratio_10_20 > WEAK_THRESHOLD else 0.0
+            s2 = 1.0 if gap_ratio_20_40 > WEAK_THRESHOLD else 0.0
+        
+        # 综合趋势强度：兼顾"两个都强"与"一个极强"
+        trend_strength = (s1 + s2) / 2.0
+        
+        # 映射到连续 factor：范围 [-0.2, 0.5]，与原始三级边界对齐
+        #   score=0   → factor=-0.2 (choppy)
+        #   score≈0.3 → factor≈0    (weak)
+        #   score=1   → factor=0.5  (strong)
+        trend_factor = -0.2 + 0.7 * trend_strength
+        
         if ma_10_value > ma_20_value > ma_40_value:
             # 多头排列
-            if gap_ratio_10_20 > STRONG_THRESHOLD and gap_ratio_20_40 > STRONG_THRESHOLD:
-                trend_factor = 0.5      # 强牛
+            if trend_strength >= 0.8:
                 trend_label = "strong_bull"
-            elif gap_ratio_10_20 > WEAK_THRESHOLD or gap_ratio_20_40 > WEAK_THRESHOLD:
-                trend_factor = 0    # 弱牛(至少有一个间距 > 动态弱阈值)
+            elif trend_strength >= 0.3:
                 trend_label = "weak_bull"
             else:
-                trend_factor = -0.2    # 震荡(两个间距都 < 动态弱阈值)
                 trend_label = "choppy"
-
+        
         elif ma_10_value < ma_20_value < ma_40_value:
             # 空头排列
-            if gap_ratio_10_20 > STRONG_THRESHOLD and gap_ratio_20_40 > STRONG_THRESHOLD:
-                trend_factor = 0.5      # 强熊
+            if trend_strength >= 0.8:
                 trend_label = "strong_bear"
-            elif gap_ratio_10_20 > WEAK_THRESHOLD or gap_ratio_20_40 > WEAK_THRESHOLD:
-                trend_factor = 0   # 弱熊
+            elif trend_strength >= 0.3:
                 trend_label = "weak_bear"
             else:
-                trend_factor = -0.2     # 震荡
                 trend_label = "choppy"
-
+        
         else:
             # 交叉形态或无明显方向
             trend_factor = -0.2

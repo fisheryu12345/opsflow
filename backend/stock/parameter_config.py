@@ -5,3 +5,4 @@ POSITION_MAX_UNITS = 3            # 最大持仓3单位数（如1Unit=4手，最
 TIMEOUT_SECONDS = 60              # targetpostasks 交易执行超时时间（秒），防止长时间挂单未成交导致的风险暴露
 PROTECT_COST_ENABLED_RATIO = 2.5  # 保本价保护机制启用比例控制 （如1.5，则保本价=1.5×ATR） LAST PRICE - FIRST_OPEN_PRICE > PROTECT_COST_ENABLED_RATIO * ATR
 PRODUCT_CODES = ['rb','hc','al','ao','MA','TA','SA','FG','fu','ru','UR','m','p','CF','RM','AP','lh','jd','sp','si','lc','SR']
+GAP_PROTECTION_RATIO = 1.5        # 价格跳空保护机制启用比例控制 （如1.5，则跳空幅度>1.5×ATR时触发保护）

@@ -1,4 +1,5 @@
 from stock.utils.log_util import log_trade
+from stock.parameter_config import GAP_PROTECTION_RATIO
 def calculate_atr(api, symbol, period=20):
     """
     计算指定周期的ATR（平均真实波幅）
@@ -41,7 +42,7 @@ def calculate_atr(api, symbol, period=20):
         print(f"[WARN] 计算{symbol}的ATR失败: {str(e)}")
         return None
     
-def price_gap_protection(api, symbol, direction, gap_threshold_percent=1):
+def price_gap_protection(api, symbol, direction, gap_threshold_percent=GAP_PROTECTION_RATIO):
     """
     价格跳空保护函数（支持期货多空双向交易）
     :param api: TqApi实例
@@ -60,7 +61,7 @@ def price_gap_protection(api, symbol, direction, gap_threshold_percent=1):
     if latest_price is None or pre_close is None or pre_close == 0:
         return False  # 数据无效，禁止交易
     
-    # 计算跳空幅度（相对于昨日收盘价）
+    # 计算跳空幅度（相对于20ATR的波动进行跳空判断）
     gap_percent = ((latest_price - pre_close) / atr) * 100 if atr > 0 else 0
     
     # 根据交易方向判断是否存在危险跳空
