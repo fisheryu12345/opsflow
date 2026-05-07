@@ -82,7 +82,7 @@ scheduler.add_job(
     execute_exit_before_close, 
     'cron', 
     day_of_week='mon-fri',  # 周一到周五
-    hour='15',  # 早上9点和晚上21点
+    hour='14',  # 早上9点和晚上21点
     minute='57',  # 第2分钟
     id='execute_exit_before_close',
     name='收盘前平仓任务',
