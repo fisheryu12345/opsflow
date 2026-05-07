@@ -675,6 +675,7 @@ def job_daily_close_calculation():
         
         # 第1步：创建TqApi连接
         api = TqApi(TqKq(), auth=TqAuth("yupei1986", "yupei1986"))
+        # api = TqApi(TqAccount("Y银河期货_CTP七席", "0210003762", "012613"), auth=TqAuth("yupei1986", "yupei1986"))
         print("[INFO] TqApi连接已建立")
         # 第2步：检查是否为交易日
         if skip_if_not_trade_day(api=api): 
