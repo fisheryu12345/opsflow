@@ -234,7 +234,7 @@ def execute_add_on_order(api, account, signal):
                 pass
 
 
-def execute_entry_order(api, account, signal, gap_threshold_percent=GAP_PROTECTION_RATIO):
+def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_PROTECTION_RATIO):
     """
     执行开仓操作的函数（使用TargetPosTask自动化订单管理）
     :param api: TqApi实例
@@ -242,7 +242,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=GAP_PROTECTI
     :param signal: DailyStrategySignal实例
     :param max_retries: 最大重试次数，默认5次
     :param retry_interval: 重试间隔时间（秒），默认10秒
-    :param gap_threshold_percent: 跳空阈值百分比，默认1.5%
+    :param gap_threshold_atr_multiplier: 跳空阈值（ATR倍数），默认2.0倍ATR
     :return: 是否成功执行开仓操作
     """
    
@@ -258,7 +258,12 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=GAP_PROTECTI
     print(f"[INFO] {signal.symbol} 开仓计划: 1个Unit × {unit_lots}手/Unit = {order_volume}手")
     
     # 【跳空保护检查】
-    can_trade = price_gap_protection(api, signal.symbol, signal.signal_direction, gap_threshold_percent)
+    can_trade = price_gap_protection(
+        api=api, 
+        symbol=signal.symbol, 
+        direction=signal.signal_direction, 
+        gap_threshold_atr_multiplier=gap_threshold_atr_multiplier
+    )
     if not can_trade:
         msg = f"{signal.symbol} 跳空幅度过大，禁止开仓"
         print(msg)
