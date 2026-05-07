@@ -4,6 +4,7 @@ from django.utils import timezone
 from tqsdk import TqApi, TqAuth, TargetPosTask,TqAccount , TqKq,TqSim
 from django.db import transaction,close_old_connections
 from django.db.models import Q
+from stock.utils.is_trade_day import  skip_if_not_trade_day
 from stock.models import TradingAccount, PositionState, DailyStrategySignal, ClosedPositionRecord, FullContractList
 from stock.scheduler.calculate_unit_lots import calculate_unit_lots
 from stock.scheduler.calculate_atr import calculate_atr, price_gap_protection
@@ -308,6 +309,7 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                     'units': 1,
                     'contract_total_position': two_step_result['actual_filled'],
                     'last_add_price': Decimal(str(two_step_result['avg_price'])),
+                    'first_open_price': Decimal(str(two_step_result['avg_price'])),
                     'highest_close': Decimal(str(two_step_result['avg_price'])),
                     'lowest_close': Decimal(str(two_step_result['avg_price'])),
                     'latest_close_price': Decimal(str(two_step_result['avg_price'])),
@@ -394,7 +396,8 @@ def execute_entry_order(api, account, signal, gap_threshold_percent=1.5):
                                 'lowest_close': Decimal(str(entry_avg_price)),
                                 'latest_close_price': Decimal(str(entry_avg_price)),
                                 'last_update_time': timezone.now(),
-                                'open_date': timezone.now().date()  # 设置开仓日期为当前日期
+                                'open_date': timezone.now().date(),  # 设置开仓日期为当前日期
+                                'first_open_price': Decimal(str(entry_avg_price)),  # 设置初始开仓价
                             }
                         )
                         
@@ -947,6 +950,10 @@ def job_daily_open_process():
     for account in accounts:
         # api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
         api = TqApi(TqKq(),auth=TqAuth("yupei1986", "yupei1986"))
+                # 第2步：检查是否为交易日
+        if skip_if_not_trade_day(api=api): 
+            # 如果不是交易日期，直接返回
+            return 
         # api = TqApi(TqAccount("Y银河期货_CTP七席", "0210003762", "012613"), auth=TqAuth("yupei1986", "yupei1986"))
         
         redis = get_redis_connection('default')

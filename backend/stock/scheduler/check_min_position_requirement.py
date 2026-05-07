@@ -106,7 +106,7 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
     }
     
     # 创建目标持仓任务
-    target_pos = TargetPosTask(api, symbol)
+    target_pos = TargetPosTask(api, symbol,support_open_min_volume=True)
     
     try:
         # ========== 第1步：开立等于最小开仓手数的仓位 ==========
@@ -148,6 +148,7 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
             return result
         
         # ========== 第2步：立即平仓多余部分 ==========
+        target_pos = TargetPosTask(api, symbol,support_open_min_volume=True)
         if direction == 1:
             step2_target = adjusted_volume - excess_to_close
         else:

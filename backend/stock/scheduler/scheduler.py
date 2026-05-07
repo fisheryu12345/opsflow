@@ -5,6 +5,7 @@ from django_apscheduler.jobstores import DjangoJobStore
 # 导入任务函数（使用完整路径）
 # from stock.scheduler.tasks_daily_open import job_daily_on_prep, job_check_pending_orders
 # from stock.scheduler.test_job import test_job
+from stock.scheduler.tasks_exit_before_close import execute_exit_before_close
 from stock.scheduler.tasks_daily_close import job_daily_close_calculation
 from stock.scheduler.tasks_daily_open import job_daily_open_process
 
@@ -71,6 +72,20 @@ scheduler.add_job(
     minute='2',  # 第2分钟
     id='job_daily_open_process',
     name='开盘前准备与跳空检查',
+    misfire_grace_time=300,  # 允许5分钟的容错时间
+    replace_existing=True,
+    max_instances=1
+)
+
+
+scheduler.add_job(
+    execute_exit_before_close, 
+    'cron', 
+    day_of_week='mon-fri',  # 周一到周五
+    hour='15',  # 早上9点和晚上21点
+    minute='57',  # 第2分钟
+    id='execute_exit_before_close',
+    name='收盘前平仓任务',
     misfire_grace_time=300,  # 允许5分钟的容错时间
     replace_existing=True,
     max_instances=1

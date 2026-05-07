@@ -535,6 +535,7 @@ class PositionState(models.Model):
     direction = models.IntegerField("持仓方向 (1多/-1空/0无)", default=0, db_index=True)
     contract_total_position = models.IntegerField("此合约总持仓手数", default=0, help_text="此合约总持仓手数,对于此合约总持仓")
     last_add_price = models.DecimalField("上次加仓价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="用于计算下一次加仓阈值")
+    first_open_price = models.DecimalField("初始开仓价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="记录该笔持仓的初始开仓价格，用于计算第三仓位的处理价格")
     open_date = models.DateField("开仓日期", null=True, blank=True, help_text="记录该笔持仓的初始开仓日期，用于计算持仓天数")
     cost_price = models.DecimalField("持仓成本价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="开仓均价或加仓加权均价")
     
@@ -552,6 +553,7 @@ class PositionState(models.Model):
     h20_price = models.DecimalField("20日最高价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="20日最高价")
     l20_price = models.DecimalField("20日最低价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="20日最低价")
     trend_info = models.CharField("趋势标签", max_length=60, null=True, blank=True, help_text="趋势标签，如：BULL, BEAR, NEUTRAL")
+    protect_cost_enalbed = models.BooleanField("保护成本",null=True, blank=True,  default=False, help_text="是否保护成本")
 
 
 
@@ -705,7 +707,7 @@ class TradeLog(models.Model):
     log_level = models.CharField("日志级别", max_length=10, default='INFO',
                                 help_text="日志的严重程度，可选值：DEBUG/INFO/SUCCESS/WARNING/ERROR/CRITICAL")
     
-    symbol = models.CharField("合约代码", max_length=50, default=None,
+    symbol = models.CharField("合约代码", max_length=50, default=None, null=True, blank=True, 
                               help_text="关联的合约代码，如：SHFE.rb2610")
     
     # 日志内容（支持较长文本，但通常比错误信息短）

@@ -8,6 +8,7 @@ from tqsdk import TqApi, TqAuth,TqKq
 from stock.utils.log_util import log_trade
 from stock.tasks.send_mail import send_email_task as send_email
 from django.template.loader import render_to_string
+from stock.utils.is_trade_day import  skip_if_not_trade_day
 
 
 # 假设你的 models 在 myapp.models 中
@@ -242,10 +243,12 @@ def check_add_position_signals():
     
     加仓规则：
     - 仅对持仓单位数 < 3 的持仓进行检查
-    - 多头：今日收盘价 - 上次加仓价 > 0.5×ATR → 加仓1单位
-    - 多头：今日收盘价 - 上次加仓价 > 1.0×ATR 且 当前持仓=1单位 → 加仓2单位
-    - 空头：上次加仓价 - 今日收盘价 > 0.5×ATR → 加仓1单位
-    - 空头：上次加仓价 - 今日收盘价 > 1.0×ATR 且 当前持仓=1单位 → 加仓2单位
+    - 1单位持仓时，以 last_add_price（首次开仓价）为基准：
+      - 多头：价格涨超 0.5×ATR → 加1单位；涨超 1.0×ATR → 加2单位（直接满仓）
+      - 空头：价格跌超 0.5×ATR → 加1单位；跌超 1.0×ATR → 加2单位（直接满仓）
+    - 2单位持仓时，以 first_open_price（首次开仓价）为基准：
+      - 多头：从首次开仓价累计涨超 1.0×ATR → 加1单位
+      - 空头：从首次开仓价累计跌超 1.0×ATR → 加1单位
     - 重要：无论价格变动多大，加仓后总单位数不得超过3单位
     
     注意：所有计算统一使用 Decimal 类型，避免精度丢失
@@ -281,48 +284,52 @@ def check_add_position_signals():
                 
                 latest_price = position.latest_close_price
                 last_add_price = position.last_add_price
-                current_units = position.units  # ← 当前策略单位数（1或2）
-                
-                # 计算价格差
-                price_diff = latest_price - last_add_price
+                first_open_price = position.first_open_price if position.first_open_price else last_add_price
+                current_units = position.units
                 
                 add_units = 0  # 需要加仓的单位数
+                price_diff = Decimal('0')  # 用于日志记录的价格变动
                 
-                if position.direction == 1:
-                    # 多头持仓：价格上涨才加仓
-                    if price_diff > Decimal('1') * atr_value:
-                        # 涨幅超过 1×ATR
-                        # 只有当前持仓为1单位时，才能加2单位（1+2=3）
-                        # 如果当前持仓为2单位，只能加1单位（2+1=3）
-                        if current_units == 1:
+                if current_units == 1:
+                    # 1单位时：以 last_add_price 为基准计算价差
+                    price_diff = latest_price - last_add_price
+                    
+                    if position.direction == 1:
+                        # 多头持仓：价格上涨才加仓
+                        if price_diff > Decimal('1') * atr_value:
+                            # 涨幅超过 1×ATR，直接加2单位满仓
                             add_units = 2
-                        else:  # current_units == 2
+                        elif price_diff > Decimal('0.5') * atr_value:
+                            # 涨幅超过 0.5×ATR，加仓1单位
                             add_units = 1
-                    elif price_diff > Decimal('0.5') * atr_value:
-                        # 涨幅超过 0.5×ATR，加仓1单位
-                        add_units = 1
-                
-                elif position.direction == -1:
-                    # 空头持仓：价格下跌才加仓
-                    # 对于空头，price_diff 为负值表示价格下跌
-                    if price_diff < Decimal('-1') * atr_value:
-                        # 跌幅超过 1×ATR
-                        # 只有当前持仓为1单位时，才能加2单位（1+2=3）
-                        # 如果当前持仓为2单位，只能加1单位（2+1=3）
-                        if current_units == 1:
+                    
+                    elif position.direction == -1:
+                        # 空头持仓：价格下跌才加仓
+                        if price_diff < Decimal('-1') * atr_value:
+                            # 跌幅超过 1×ATR，直接加2单位满仓
                             add_units = 2
-                        else:  # current_units == 2
+                        elif price_diff < Decimal('-0.5') * atr_value:
+                            # 跌幅超过 0.5×ATR，加仓1单位
                             add_units = 1
-                    elif price_diff < Decimal('-0.5') * atr_value:
-                        # 跌幅超过 0.5×ATR，加仓1单位
-                        add_units = 1
                 
+                elif current_units == 2:
+                    # 2单位时：以 first_open_price 为基准判断累计波动
+                    # 第3单位加仓点 = 开仓价 ± 1.0×ATR（即距离第2单位又走了0.5×ATR）
+                    if position.direction == 1:
+                        price_diff = latest_price - first_open_price
+                        if price_diff > Decimal('1') * atr_value:
+                            add_units = 1
+                    elif position.direction == -1:
+                        price_diff = first_open_price - latest_price
+                        if price_diff > Decimal('1') * atr_value:
+                            add_units = 1
+              
                 # 如果满足加仓条件，生成加仓信号
                 if add_units > 0:
                     # 【最终安全检查】确保加仓后不超过3单位
                     new_units = current_units + add_units
                     if new_units > 3:
-                        add_units = 3 - current_units  # 调整为最多只能加到3单位
+                        add_units = 3 - current_units
                     
                     # 【修复】检查是否存在未执行的加仓信号，避免跨日期重复生成
                     last_add_signal = DailyStrategySignal.objects.filter(
@@ -350,10 +357,10 @@ def check_add_position_signals():
                         is_breakout=False,
                         signal_direction=position.direction,
                         trade_type='ADD_ON',
-                        contract_target_number=add_units,  # ← 新增：直接存储目标加仓单位数
+                        contract_target_number=add_units,
                         remark=f"加仓信号: {'多头' if position.direction == 1 else '空头'} "
-                                     f"价格差={float(price_diff):.2f}, ATR={float(atr_value):.2f}, "
-                                     f"建议加仓{add_units}单位 (当前{current_units}→{current_units + add_units})"
+                               f"价格差={float(price_diff):.2f}, ATR={float(atr_value):.2f}, "
+                               f"建议加仓{add_units}单位 (当前{current_units}→{current_units + add_units})"
                     )
                     addon_count += 1
             except Exception as pos_error:
@@ -589,17 +596,45 @@ def update_all_positions_stop_loss_price(api):
                 else:
                     continue
                 
-
+                # === 保本功能检查 ===
+                protect_cost_enabled = False
+                
+                # 【修复P1】如果已经启用保本，则保持保本状态（单向开关）
+                if position.protect_cost_enalbed:
+                    protect_cost_enabled = True
+                    # 保持保本止损价不变，覆盖之前计算的动态止损价
+                    new_stop_loss = position.stop_loss_price  # ← 使用数据库中已保存的保本止损价
+                    print(f"[PROTECT] {position.symbol} 已启用保本状态，保持保本止损价={new_stop_loss}")
+                    log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 已启用保本状态，保持保本止损价={new_stop_loss}",
+                              symbol=position.symbol, log_level='INFO')
+                else:
+                    # 首次检查是否满足保本条件
+                    if cost_price and position.latest_close_price:
+                        if position.direction == 1:
+                            # 多头：收盘价 - 成本价 > 2×ATR 时启用保本
+                            profit_diff = position.latest_close_price - Decimal(str(cost_price))
+                            if profit_diff > Decimal('2') * atr_value:
+                                protect_cost_enabled = True
+                                new_stop_loss = Decimal(str(cost_price)) + Decimal('1')
+                                print(f"[PROTECT] {position.symbol} 多头启用保本: 盈利={float(profit_diff):.2f} > 2×ATR={float(2*atr_value):.2f}, 保本止损价={new_stop_loss}")
+                                log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 多头启用保本: 盈利={float(profit_diff):.2f} > 2×ATR={float(2*atr_value):.2f}, 保本止损价={new_stop_loss}",
+                                        symbol=position.symbol, log_level='INFO') 
+                        elif position.direction == -1:
+                            # 空头：成本价 - 收盘价 > 2×ATR 时启用保本
+                            profit_diff = Decimal(str(cost_price)) - position.latest_close_price
+                            if profit_diff > Decimal('2') * atr_value:
+                                protect_cost_enabled = True
+                                new_stop_loss = Decimal(str(cost_price)) - Decimal('1')
+                                print(f"[PROTECT] {position.symbol} 空头启用保本: 盈利={float(profit_diff):.2f} > 2×ATR={float(2*atr_value):.2f}, 保本止损价={new_stop_loss}")
+                                log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 空头启用保本: 盈利={float(profit_diff):.2f} > 2×ATR={float(2*atr_value):.2f}, 保本止损价={new_stop_loss}",
+                                          symbol=position.symbol, log_level='INFO')
                 # 更新持仓仓位成本价格
-
-                # 更新止损价格（保持 Decimal 类型）
-                print(f"[INFO] 更新 {position.symbol} 止损价: {position.stop_loss_price} -> {new_stop_loss}")
-                print(f"[INFO] 更新 {position.symbol} 成本价: {position.cost_price} -> {cost_price}")
                 PositionState.objects.filter(id=position.id).update(
                     stop_loss_price=new_stop_loss,
                     cost_price=cost_price,
                     last_update_time=timezone.now(),  # 【修复】手动更新最后更新时间
                     trend_info=f'{atr_value:.2f},  {factor:.2f} , {trend_label}',
+                    protect_cost_enalbed=protect_cost_enabled,  # 【新增】更新保本状态
 
                 )
                 updated_count += 1
@@ -624,27 +659,32 @@ def job_daily_close_calculation():
     
     执行流程：
     1. 创建TqApi连接（统一管理）
-    2. 同步期货合约列表（获取最新主力合约信息）
-    3. 计算活跃品种的技术指标和策略信号
-    4. 检查是否需要开仓
-    5. 更新持仓跟踪价格
-    6. 检查是否需要平仓
-    7. 检查是否需要移仓
-    8. 邮件通知今日持仓、信号和操作建议
-    9. 关闭TqApi连接
+    2. 检查是否为交易日（非交易日直接返回）
+    3. 同步期货合约列表（获取最新主力合约信息）
+    4. 计算活跃品种的技术指标和策略信号
+    5. 检查是否需要开仓
+    6. 更新持仓跟踪价格
+    7. 检查是否需要平仓
+    8. 检查是否需要移仓
+    9. 邮件通知今日持仓、信号和操作建议
+    10. 关闭TqApi连接
     """
     api = None
     try:
         close_old_connections()
+        
         # 第1步：创建TqApi连接
-        api = TqApi(TqKq(),auth=TqAuth("yupei1986", "yupei1986"))
+        api = TqApi(TqKq(), auth=TqAuth("yupei1986", "yupei1986"))
         print("[INFO] TqApi连接已建立")
-        
-        
-        # 第2步：同步期货合约列表
+        # 第2步：检查是否为交易日
+        if skip_if_not_trade_day(api=api): 
+            # 如果不是交易日期，直接返回
+            return 
+         
+        # 第3步：同步期货合约列表
         sync_contract_list_from_tqsdk(api=api)
         
-        # 第3步：计算活跃品种的技术指标
+        # 第4步：计算活跃品种的技术指标
         contracts = PositionState.objects.all().values('symbol', 'product_code','units')
         for contract in contracts:
             if FullContractList.objects.filter(symbol=contract['symbol'], is_active=True).exists():
@@ -690,7 +730,7 @@ def job_daily_close_calculation():
             
             print(f"[INFO] 指标计算完成: 成功{success_count}个, 失败{fail_count}个")
         
-        # 第4步：检查是否需要开仓（保存信号到数据库）
+        # 第5步：检查是否需要开仓（保存信号到数据库）
         default_account = TradingAccount.objects.filter(is_active=True).first()
         
         if default_account and indicator_results:
@@ -714,25 +754,25 @@ def job_daily_close_calculation():
             
             print(f"[INFO] 开仓信号生成: {open_count}个")
     
-        # 第5步：计算持仓后出现的历史收盘最高低价格
+        # 第6步：计算持仓后出现的历史收盘最高低价格
         update_all_positions_high_low_price()
         
-        # 第6步：止损价格计算
+        # 第7步：止损价格计算
         update_all_positions_stop_loss_price(api=api)
         
-        # 第7步：检查是否需要平仓
+        # 第8步：检查是否需要平仓
         check_exit_signals()
 
-        # 第8步：检查加仓信号
+        # 第9步：检查加仓信号
         check_add_position_signals()
         
-        # 第9步：检查是否需要移仓
+        # 第10步：检查是否需要移仓
         check_rollover_signals()
         
-        # 第10步：生成并发送每日策略信号报告邮件
+        # 第11步：生成并发送每日策略信号报告邮件
         generate_daily_signal_report()
         
-        # 第11步：更新三层绩效指标（日权益快照、滚动指标、账户总览）
+        # 第12步：更新三层绩效指标（日权益快照、滚动指标、账户总览）
         if default_account and api:
             try:
                 # 从 TqSDK 获取账户数据

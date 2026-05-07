@@ -1,20 +1,9 @@
 import pandas as pd
-import numpy as np
-from datetime import date, timedelta
-from django.db import transaction
-from django.db.models import Sum, Q, F
-from decimal import Decimal
-from tqsdk import TqApi, TqAuth
-from tqsdk.ta import ATR, SMA,MA
+from tqsdk.ta import ATR, MA
 from tqsdk.tafunc import hhv, llv
-import json
 import math
 
-
 # 假设你的 models 在 myapp.models 中
-from stock.models import TradingAccount, DailyStrategySignal,  PositionState, FullContractList
-from stock.utils.sync_contract_list_from_tqsdk import sync_contract_list_from_tqsdk
-
 
 def clean_nan_for_decimal(value):
     """
@@ -65,21 +54,26 @@ def calculate_dynamic_thresholds(ma_20_value, atr_20_value, base_ratio_strong=0.
     # 设置波动率调整系数
     # 当ATR/MA > 2%时,认为是高波动品种,需要提高阈值避免假信号
     # 当ATR/MA < 0.5%时,认为是低波动品种,可以降低阈值捕捉微小趋势
+    # 根据波动率设置不同的保底值
     if atr_ratio > 0.02:  # 高波动 (>2%)
-        volatility_multiplier = 1.2  # 提高阈值,过滤噪音
-    elif atr_ratio < 0.005:  # 低波动 (<0.5%)
-        volatility_multiplier = 0.8  # 降低阈值,提高敏感度
-    else:  # 中等波动
+        base_strong = 0.01   # 1%
+        base_weak = 0.003    # 0.3%
+        volatility_multiplier = 1.2
+    elif atr_ratio > 0.005:  # 中波动 (0.5%~2%)
+        base_strong = 0.008  # 0.8%
+        base_weak = 0.0024   # 0.24%
         volatility_multiplier = 1.0
+    else:  # 低波动 (<0.5%)
+        base_strong = 0.005  # 0.5% ← 降低保底
+        base_weak = 0.0015   # 0.15% ← 降低保底
+        volatility_multiplier = 0.8
     
     # 计算动态阈值
-    # 强趋势阈值: 取"固定比例"和"ATR衍生比例"的最大值
-    atr_based_strong = atr_ratio * volatility_multiplier * 1.0  # ATR的1倍作为参考
-    dynamic_strong = round(max(base_ratio_strong, atr_based_strong), 3)
+    atr_based_strong = atr_ratio * volatility_multiplier * 1.0
+    dynamic_strong = round(max(base_strong, atr_based_strong), 3)
     
-    # 弱趋势阈值: 强趋势阈值的30%
-    atr_based_weak = atr_ratio * volatility_multiplier * 0.3  # ATR的0.3倍作为参考
-    dynamic_weak = round(max(base_ratio_weak, atr_based_weak), 3)
+    atr_based_weak = atr_ratio * volatility_multiplier * 0.3
+    dynamic_weak = round(max(base_weak, atr_based_weak), 3)
     
     return dynamic_strong, dynamic_weak
 
@@ -211,14 +205,14 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
         #         维度	强牛 (strong_bull)	弱牛 (weak_bull)
         #         均线排列	严格单调递增：<br>MA10 > MA20 > MA40	单调递增但发散不足：<br>MA10 > MA20 > MA40
         #         间距占比要求	双高：<br>gap_ratio_10_20 > 1% 且 gap_ratio_20_40 > 1%	至少一个达标：<br>gap_ratio_10_20 > 0.3% 或 gap_ratio_20_40 > 0.3%
-        #         趋势因子	trend_factor = 0.5	trend_factor = -0.15
-        #         止损倍数	3.0 倍 ATR<br>(宽松,给足波动空间)	1.7 倍 ATR<br>(收紧,防范假突破)
+        #         趋势因子	trend_factor = 0.5	trend_factor = 0
+        #         止损倍数	3.0 倍 ATR<br>(宽松,给足波动空间)	2.0 倍 ATR<br>(收紧,防范假突破)
 
         # 总结对比表
         # 均线形态	        间距占比	        分类	                trend_factor	止损倍数
         # 完美发散	        > 1%	            Strong Bull/Bear	     0.5	        3.0 ATR
-        # 微弱发散	        0.3% ~ 1%	        Weak Bull/Bear	        -0.15	        1.7 ATR
-        # 高度粘合/交叉	    < 0.3%或非单调	    Choppy (震荡)	         -0.3	         1.4 ATR
+        # 微弱发散	        0.3% ~ 1%	        Weak Bull/Bear	        0	        2 ATR
+        # 高度粘合/交叉	    < 0.3%或非单调	    Choppy (震荡)	         -0.2	         1.6 ATR
         # 数据缺失	N/A	Neutral (中性)	0.0	2.0 ATR
         diff10_20 = ma_10_value - ma_20_value
         diff20_40 = ma_20_value - ma_40_value
@@ -239,10 +233,10 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
                 trend_factor = 0.5      # 强牛
                 trend_label = "strong_bull"
             elif gap_ratio_10_20 > WEAK_THRESHOLD or gap_ratio_20_40 > WEAK_THRESHOLD:
-                trend_factor = -0.15    # 弱牛(至少有一个间距 > 动态弱阈值)
+                trend_factor = 0    # 弱牛(至少有一个间距 > 动态弱阈值)
                 trend_label = "weak_bull"
             else:
-                trend_factor = -0.3     # 震荡(两个间距都 < 动态弱阈值)
+                trend_factor = -0.2    # 震荡(两个间距都 < 动态弱阈值)
                 trend_label = "choppy"
 
         elif ma_10_value < ma_20_value < ma_40_value:
@@ -251,15 +245,15 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
                 trend_factor = 0.5      # 强熊
                 trend_label = "strong_bear"
             elif gap_ratio_10_20 > WEAK_THRESHOLD or gap_ratio_20_40 > WEAK_THRESHOLD:
-                trend_factor = -0.15    # 弱熊
+                trend_factor = 0   # 弱熊
                 trend_label = "weak_bear"
             else:
-                trend_factor = -0.3     # 震荡
+                trend_factor = -0.2     # 震荡
                 trend_label = "choppy"
 
         else:
             # 交叉形态或无明显方向
-            trend_factor = -0.3
+            trend_factor = -0.2
             trend_label = "choppy"
 
         breakout_info = check_breakout_signal(klines, entry_period=20)
