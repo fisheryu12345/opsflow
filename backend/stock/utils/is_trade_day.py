@@ -65,7 +65,7 @@ def is_trade_day(check_date: Optional[date] = None, api=None) -> bool:
         
     except Exception as e:
         log_error(f"[ERROR] 检查交易日失败: {e}")
-        return False  # 【修复】异常时应返回 False，而非 True
+        return True  # 【修复】重复执行问题不大。 不执行才有问题
     finally:
         # 如果是临时创建的 api，使用后关闭
         if api_created and api:
