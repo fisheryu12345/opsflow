@@ -453,7 +453,7 @@ def update_account_summary(
             if first_trade and total_trades_all_time > 0:
                 trading_days = (snapshot_date - first_trade.executed_at.date()).days
                 if trading_days > 0:
-                    trading_frequency = Decimal(str(total_trades_all_time / trading_days)).quantize(Decimal('0.01'))
+                    trading_frequency = Decimal(str(total_trades_all_time / trading_days)).quantize(Decimal('0.001'))
                 else:
                     trading_frequency = Decimal(str(total_trades_all_time))
             else:

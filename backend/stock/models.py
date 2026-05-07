@@ -485,7 +485,7 @@ class AccountPerformanceSummary(models.Model):
                                             help_text="引用 RollingPerformanceMetrics 的最新20日窗口索提诺比率")
     
     # === 交易行为统计 ===
-    trading_frequency = models.DecimalField("交易频率(次/日)", max_digits=8, decimal_places=2, default=0,
+    trading_frequency = models.DecimalField("交易频率(次/日)", max_digits=8, decimal_places=3, default=0,
                                            help_text="日均交易次数，从第一笔交易至今的平均值")
     
     # === 累计财务数据 ===

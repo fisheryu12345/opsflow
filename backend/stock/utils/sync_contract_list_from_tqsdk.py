@@ -2,8 +2,7 @@ from django.db import transaction
 from decimal import Decimal
 
 from stock.models import TradingAccount, PositionState, FullContractList
-
-PRODUCT_CODES = ['rb','hc','al','ao','MA','TA','SA','FG','fu','ru','UR','m','p','CF','RM','AP','lh','AP','jd','sp','si','lc','SR']
+from stock.parameter_config import PRODUCT_CODES
 
 def sync_contract_list_from_tqsdk(api=None):
     """

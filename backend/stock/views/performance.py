@@ -1,6 +1,7 @@
 """
 绩效数据视图集 - 支持三层绩效模型的增删改查
 """
+from decimal import Decimal
 from rest_framework import viewsets, filters, status
 from rest_framework.permissions import AllowAny  # ⚠️ 仅用于开发测试，生产环境请移除！
 from rest_framework.response import Response
@@ -243,4 +244,153 @@ class AccountCumulativeStatsView(viewsets.ViewSet):
                 'total_closed_pnl': total_closed_pnl,
                 'total_commission': total_commission
             }
+        })
+
+
+class DrawdownCurveView(viewsets.ViewSet):
+    """
+    【资金回撤曲线数据接口】
+    
+    💡 用途：
+    - 为前端提供资金回撤百分比时间序列数据
+    - 用于绘制回撤曲线图，直观展示风险暴露程度
+    
+    📊 返回格式：
+    {
+        "code": 2000,
+        "msg": "success",
+        "data": [
+            {
+                "date": "2024-01-15",
+                "equity": 105000.00,
+                "peak_equity": 110000.00,
+                "drawdown_pct": -4.55,
+                "is_new_peak": false
+            },
+            ...
+        ]
+    }
+    
+    🔢 计算逻辑：
+    - peak_equity: 到当前日期为止的历史最高权益
+    - drawdown_pct: (当前权益 - 历史最高权益) / 历史最高权益 * 100%
+    - is_new_peak: 是否创出新高（用于标记关键时间点）
+    """
+    permission_classes = [AllowAny]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    
+    def list(self, request):
+        account_id = request.query_params.get('account')
+        
+        if not account_id:
+            return Response({
+                'code': 4000,
+                'msg': '缺少账户ID参数',
+                'data': []
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 查询所有日权益快照，按日期排序
+        snapshots = DailyEquitySnapshot.objects.filter(
+            account_id=account_id
+        ).order_by('trade_date').values(
+            'trade_date',
+            'balance'
+        )
+        
+        # 计算回撤序列
+        result = []
+        peak_equity = Decimal('0')
+        
+        for snapshot in snapshots:
+            trade_date = snapshot['trade_date']
+            current_equity = snapshot['balance']
+            
+            # 更新历史最高权益
+            if current_equity > peak_equity:
+                peak_equity = current_equity
+                is_new_peak = True
+            else:
+                is_new_peak = False
+            
+            # 计算回撤百分比
+            if peak_equity > 0:
+                drawdown_pct = float((current_equity - peak_equity) / peak_equity * 100)
+            else:
+                drawdown_pct = 0.0
+            
+            result.append({
+                'date': trade_date.strftime('%Y-%m-%d'),
+                'equity': float(current_equity),
+                'peak_equity': float(peak_equity),
+                'drawdown_pct': round(drawdown_pct, 2),
+                'is_new_peak': is_new_peak
+            })
+        
+        return Response({
+            'code': 2000,
+            'msg': 'success',
+            'data': result
+        })
+
+
+class DailyReturnsCalendarView(viewsets.ViewSet):
+    """
+    【日历热力图数据接口】
+    
+    💡 用途：
+    - 为前端日历热力图提供日收益率数据
+    - 按月份分组，便于 ECharts heatmap 渲染
+    
+    📊 返回格式：
+    {
+        "code": 2000,
+        "msg": "success",
+        "data": [
+            {
+                "date": "2024-01-15",
+                "daily_return": 1.25,
+                "month": 1,
+                "day": 15
+            },
+            ...
+        ]
+    }
+    """
+    permission_classes = [AllowAny]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    
+    def list(self, request):
+        account_id = request.query_params.get('account')
+        
+        if not account_id:
+            return Response({
+                'code': 4000,
+                'msg': '缺少账户ID参数',
+                'data': []
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 查询所有日权益快照，按日期排序
+        snapshots = DailyEquitySnapshot.objects.filter(
+            account_id=account_id
+        ).order_by('trade_date').values(
+            'trade_date',
+            'daily_return'
+        )
+        
+        # 转换为前端需要的格式
+        result = []
+        for snapshot in snapshots:
+            trade_date = snapshot['trade_date']
+            daily_return = float(snapshot['daily_return']) if snapshot['daily_return'] else 0
+            
+            result.append({
+                'date': trade_date.strftime('%Y-%m-%d'),
+                'daily_return': round(daily_return, 2),
+                'month': trade_date.month,
+                'day': trade_date.day,
+                'year': trade_date.year
+            })
+        
+        return Response({
+            'code': 2000,
+            'msg': 'success',
+            'data': result
         })

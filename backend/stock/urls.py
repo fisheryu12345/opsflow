@@ -9,7 +9,9 @@ from stock.views.performance import (
     RollingPerformanceMetricsViewSet,
     AccountPerformanceSummaryViewSet,
     SymbolWinRateView,
-    AccountCumulativeStatsView
+    AccountCumulativeStatsView,
+    DailyReturnsCalendarView,  # 日历热力图数据接口
+    DrawdownCurveView  # 新增：回撤曲线数据接口
 )
 from stock.views.contract import FullContractListViewSet
 from stock.views.dailysignal import  DailyStrategySignalViewSet
@@ -36,8 +38,12 @@ router.register(r'account-summaries', AccountPerformanceSummaryViewSet, basename
 # 注册品种胜率统计接口（非 ModelViewSet，需手动添加）
 symbol_win_rate_view = SymbolWinRateView.as_view({'get': 'list'})
 cumulative_stats_view = AccountCumulativeStatsView.as_view({'get': 'list'})
+daily_returns_calendar_view = DailyReturnsCalendarView.as_view({'get': 'list'})
+drawdown_curve_view = DrawdownCurveView.as_view({'get': 'list'})  # 新增：回撤曲线
 
 urlpatterns = router.urls + [
     path('symbol-win-rate/', symbol_win_rate_view, name='symbol-win-rate'),
     path('cumulative-stats/', cumulative_stats_view, name='cumulative-stats'),
+    path('daily-returns-calendar/', daily_returns_calendar_view, name='daily-returns-calendar'),
+    path('drawdown-curve/', drawdown_curve_view, name='drawdown-curve'),  # 新增路由
 ]

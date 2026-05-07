@@ -29,23 +29,37 @@
 				</div>
 			</el-col>
 			
-			<!-- 资金曲线 - 占据全宽且高度加倍 -->
+			<!-- 日历热力图 - 占据全宽且高度加倍 -->
 			<el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24" class="grid-item-wrapper">
 				<div class="grid-card-item grid-large-item grid-animation14 chart-container">
+					<div ref="calendarHeatmapRef" class="chart-ref"></div>
+				</div>
+			</el-col>
+			
+			<!-- 资金曲线 - 占据全宽且高度加倍 -->
+			<el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24" class="grid-item-wrapper">
+				<div class="grid-card-item grid-large-item grid-animation15 chart-container">
 					<div ref="equityCurveRef" class="chart-ref"></div>
+				</div>
+			</el-col>
+			
+			<!-- 资金回撤曲线 - 占据全宽且高度加倍 -->
+			<el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24" class="grid-item-wrapper">
+				<div class="grid-card-item grid-large-item grid-animation16 chart-container">
+					<div ref="drawdownCurveRef" class="chart-ref"></div>
 				</div>
 			</el-col>
 
 			<!-- 平仓盈亏曲线 - 占据全宽且高度加倍 -->
 			<el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24" class="grid-item-wrapper">
-				<div class="grid-card-item grid-large-item grid-animation15 chart-container">
+				<div class="grid-card-item grid-large-item grid-animation17 chart-container">
 					<div ref="closedPnlCurveRef" class="chart-ref"></div>
 				</div>
 			</el-col>
 			
 			<!-- 多窗口绩效对比雷达图 - 占据全宽且高度加倍 -->
 			<el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24" class="grid-item-wrapper">
-				<div class="grid-card-item grid-large-item grid-animation16 chart-container">
+				<div class="grid-card-item grid-large-item grid-animation18 chart-container">
 					<MultiWindowRadarChart :account-id="accountId" />
 				</div>
 			</el-col>
@@ -64,6 +78,8 @@ import {
 	getLatestRollingMetric,
 	getSymbolWinRate,
 	getCumulativeStats,
+	getDailyReturnsCalendar,
+	getDrawdownCurve,  // 新增：回撤曲线数据接口
 	type AccountSummary,
 	type EquitySnapshot
 } from './api';
@@ -118,7 +134,9 @@ const getResponsiveFontConfig = () => {
 const loading = ref(false);
 const normalItems = ref<any[]>([]);
 const symbolWinRateRef = ref();
+const calendarHeatmapRef = ref();
 const equityCurveRef = ref();
+const drawdownCurveRef = ref();  // 新增：回撤曲线引用
 const closedPnlCurveRef = ref();
 
 // ==================== 辅助函数 ====================
@@ -215,7 +233,7 @@ const buildNormalItems = (
 		{ 
 			number: 12, 
 			label: '平均持仓时长/交易频率', 
-			value: `${summary.avg_holding_days ? parseFloat(summary.avg_holding_days).toFixed(1) + '天' : '0.0天'} / ${summary.trading_frequency ? parseFloat(summary.trading_frequency).toFixed(1) + '次/日' : '0.0次/日'}`,
+			value: `${summary.avg_holding_days ? parseFloat(summary.avg_holding_days).toFixed(1) + '天' : '0.0天'} / ${summary.trading_frequency ? parseFloat(summary.trading_frequency).toFixed(2) + '次/日' : '0.00次/日'}`,
 			colorType: 'neutral' 
 		},
 		
@@ -360,6 +378,138 @@ const initSymbolWinRateChart = async () => {
 	} catch (error: any) {
 		console.error('加载品种胜率数据失败:', error);
 		ElMessage.error('加载品种胜率数据失败');
+	}
+};
+
+/**
+ * 初始化日历热力图（日收益率）
+ */
+const initCalendarHeatmap = async () => {
+	if (!calendarHeatmapRef.value) return;
+	
+	const chart = echarts.init(calendarHeatmapRef.value);
+	
+	// 获取响应式字体配置
+	const fontConfig = getResponsiveFontConfig();
+	const isMobile = window.innerWidth < 480;
+	
+	try {
+		// 从后端获取真实数据
+		const res = await getDailyReturnsCalendar(accountId.value);
+		
+		if (res.code !== 2000 || !res.data || !Array.isArray(res.data) || res.data.length === 0) {
+			ElMessage.warning('暂无交易日收益数据');
+			return;
+		}
+		
+		const calendarData = res.data;
+		
+		// 转换为 ECharts heatmap 需要的格式：[month, day, value]
+		// month: 0-11, day: 0-30, value: daily_return
+		const heatmapData = calendarData.map(item => [
+			item.month - 1,  // ECharts月份从0开始
+			item.day - 1,    // ECharts日期从0开始
+			item.daily_return
+		]);
+		
+		// 获取年份范围
+		const years = [...new Set(calendarData.map(item => item.year))].sort();
+		const currentYear = years[years.length - 1]; // 使用最新年份
+		
+		const option = {
+			title: {
+				text: '交易日收益热力图',
+				left: 'center',
+				top: 10,
+				textStyle: {
+					fontSize: fontConfig.title,
+					fontWeight: 'bold'
+				}
+			},
+			tooltip: {
+				position: 'top',
+				formatter: (params: any) => {
+					const month = params.data[0] + 1;
+					const day = params.data[1] + 1;
+					const value = params.data[2];
+					const color = value >= 0 ? '🔴' : '🟢';
+					return `${currentYear}年${month}月${day}日<br/>${color} 收益率: ${value.toFixed(2)}%`;
+				},
+				textStyle: {
+					fontSize: fontConfig.tooltip
+				}
+			},
+			grid: {
+				left: isMobile ? '8%' : '3%',
+				right: isMobile ? '5%' : '4%',
+				bottom: isMobile ? '15%' : '10%',
+				top: isMobile ? '18%' : '15%',
+				containLabel: true
+			},
+			xAxis: {
+				type: 'category',
+				data: Array.from({ length: 31 }, (_, i) => i + 1),
+				splitArea: {
+					show: true
+				},
+				axisLabel: {
+					fontSize: fontConfig.axisName,
+					interval: isMobile ? 4 : 2  // 移动端每5天显示一个标签
+				}
+			},
+			yAxis: {
+				type: 'category',
+				data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+				splitArea: {
+					show: true
+				},
+				axisLabel: {
+					fontSize: fontConfig.axisName
+				}
+			},
+			visualMap: {
+				min: -5,
+				max: 5,
+				calculable: true,
+				orient: 'horizontal',
+				left: 'center',
+				bottom: isMobile ? '2%' : '1%',
+				inRange: {
+					color: [
+						'#16a34a',  // 深绿（<-5%）
+						'#4ade80',  // 浅绿（-5% ~ -1%）
+						'#f3f4f6',  // 白色（-1% ~ 1%）
+						'#fb7185',  // 浅红（1% ~ 5%）
+						'#dc2626'   // 深红（>5%）
+					]
+				},
+				textStyle: {
+					fontSize: fontConfig.legend
+				}
+			},
+			series: [{
+				name: '日收益率',
+				type: 'heatmap',
+				data: heatmapData,
+				label: {
+					show: !isMobile,  // 小屏幕隐藏标签避免拥挤
+					fontSize: fontConfig.label
+				},
+				emphasis: {
+					itemStyle: {
+						shadowBlur: 10,
+						shadowColor: 'rgba(0, 0, 0, 0.5)'
+					}
+				}
+			}]
+		};
+		
+		chart.setOption(option);
+		window.addEventListener('resize', () => chart.resize());
+		
+	} catch (error: any) {
+		console.error('加载日历热力图数据失败:', error);
+		ElMessage.error('加载日历热力图数据失败');
 	}
 };
 
@@ -511,6 +661,173 @@ const initEquityCurveChart = (snapshots: EquitySnapshot[]) => {
 	
 	chart.setOption(option);
 	window.addEventListener('resize', () => chart.resize());
+};
+
+/**
+ * 初始化资金回撤曲线图表
+ */
+const initDrawdownCurveChart = async () => {
+	if (!drawdownCurveRef.value) return;
+	
+	const chart = echarts.init(drawdownCurveRef.value);
+	
+	// 获取响应式字体配置
+	const fontConfig = getResponsiveFontConfig();
+	const isMobile = window.innerWidth < 480;
+	
+	try {
+		// 从后端获取真实数据
+		const res = await getDrawdownCurve(accountId.value);
+		
+		if (res.code !== 2000 || !res.data || !Array.isArray(res.data) || res.data.length === 0) {
+			ElMessage.warning('暂无回撤数据');
+			return;
+		}
+		
+		const drawdownData = res.data;
+		
+		// 提取日期和回撤百分比
+		const dates = drawdownData.map(item => item.date);
+		const drawdownPcts = drawdownData.map(item => item.drawdown_pct);
+		
+		// 找出最大回撤（最小值）
+		const maxDrawdown = Math.min(...drawdownPcts);
+		
+		const option = {
+			title: {
+				text: '资金回撤曲线',
+				left: 'center',
+				top: 10,
+				textStyle: {
+					fontSize: fontConfig.title,
+					fontWeight: 'bold'
+				}
+			},
+			tooltip: {
+				trigger: 'axis',
+				formatter: (params: any) => {
+					const data = params[0];
+					const date = data.axisValue;
+					const value = parseFloat(data.value);
+					const color = value <= -5 ? '🔴' : value <= -2 ? '🟠' : '⚪';
+					return `${date}<br/>${color} 回撤: ${value.toFixed(2)}%`;
+				},
+				textStyle: {
+					fontSize: fontConfig.tooltip
+				}
+			},
+			grid: {
+				left: isMobile ? '10%' : '3%',
+				right: isMobile ? '5%' : '4%',
+				bottom: isMobile ? '12%' : '3%',
+				top: isMobile ? '18%' : '15%',
+				containLabel: true
+			},
+			xAxis: {
+				type: 'category',
+				boundaryGap: false,
+				data: dates,
+				axisLabel: {
+					fontSize: fontConfig.axisName,
+					// 小屏幕时简化日期显示
+					formatter: (value: string) => {
+						if (isMobile && value.length > 10) {
+							return value.substring(5);
+						}
+						return value;
+					}
+				}
+			},
+			yAxis: {
+				type: 'value',
+				name: '回撤 (%)',
+				max: 0,  // Y轴最大值设为0，只显示负值区域
+				min: Math.floor(maxDrawdown * 1.2),  // 留出20%边距
+				nameTextStyle: {
+					fontSize: fontConfig.axisName
+				},
+				axisLabel: {
+					formatter: '{value}%',
+					fontSize: fontConfig.axisName
+				},
+				splitLine: {
+					lineStyle: {
+						color: '#e0e0e0',
+						type: 'dashed'
+					}
+				}
+			},
+			visualMap: {
+				show: false,
+				dimension: 1,
+				pieces: [
+					{ lte: -10, color: '#dc2626' },  // 严重回撤 <-10%
+					{ gt: -10, lte: -5, color: '#fb7185' },  // 中度回撤 -10% ~ -5%
+					{ gt: -5, lte: -2, color: '#fbbf24' },  // 轻度回撤 -5% ~ -2%
+					{ gt: -2, lte: 0, color: '#94a3b8' }  // 正常波动 -2% ~ 0%
+				]
+			},
+			series: [{
+				name: '回撤百分比',
+				type: 'line',
+				smooth: true,
+				data: drawdownPcts,
+				areaStyle: {
+					color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+						{ offset: 0, color: 'rgba(220, 38, 38, 0.3)' },
+						{ offset: 1, color: 'rgba(220, 38, 38, 0.05)' }
+					])
+				},
+				lineStyle: {
+					color: '#dc2626',
+					width: isMobile ? 1.5 : 2
+				},
+				itemStyle: {
+					color: '#dc2626'
+				},
+				symbolSize: isMobile ? 4 : 6,
+				markLine: {
+					silent: true,
+					lineStyle: {
+						color: '#ff4d4f',
+						type: 'dashed',
+						width: 2
+					},
+					label: {
+						position: 'end',
+						formatter: '最大回撤: {c}%',
+						fontSize: fontConfig.label,
+						color: '#ff4d4f'
+					},
+					data: [{
+						yAxis: maxDrawdown
+					}]
+				},
+				markPoint: {
+					data: drawdownData
+						.filter(item => item.is_new_peak)
+						.map(item => ({
+							name: '新高',
+							coord: [dates.indexOf(item.date), item.drawdown_pct],
+							value: '新高',
+							itemStyle: {
+								color: '#52c41a'
+							},
+							label: {
+								show: false
+							}
+						}))
+				}
+			}]
+		};
+		
+		chart.setOption(option);
+		window.addEventListener('resize', () => chart.resize());
+		
+	} catch (error: any) {
+		console.error('加载回撤曲线数据失败:', error);
+		ElMessage.error('加载回撤曲线数据失败');
+	}
 };
 
 /**
@@ -724,9 +1041,11 @@ onMounted(() => {
 	// 加载真实数据
 	loadDashboardData();
 	
-	// 初始化品种胜率图表（在数据加载完成后调用）
+	// 初始化图表（在数据加载完成后调用）
 	nextTick(() => {
 		initSymbolWinRateChart();
+		initCalendarHeatmap();
+		initDrawdownCurveChart();  // 新增：初始化回撤曲线
 	});
 });
 </script>

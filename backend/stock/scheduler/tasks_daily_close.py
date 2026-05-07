@@ -16,6 +16,7 @@ from stock.models import TradingAccount,DailyStrategySignal, PositionState, Full
 from stock.utils.sync_contract_list_from_tqsdk import sync_contract_list_from_tqsdk
 from stock.utils.calculate_indicators import calculate_indicators
 from stock.scheduler.performance_cal import update_all_performance_metrics
+from stock.parameter_config import PROTECT_COST_ENABLED_RATIO
 
 def check_breakout_singal(symbol, product_code, trend_factor, trend_label, 
                                           breakout_info, account,trade_type):
@@ -578,9 +579,9 @@ def update_all_positions_stop_loss_price(api):
                         continue
                     
                     # 多头止损价 = 最高价 - 2(1+factor) * ATR
-                    new_stop_loss = position.highest_close - Decimal('2') * (Decimal('1') + factor) * atr_value
+                    dynamic_stop_loss = position.highest_close - Decimal('2') * (Decimal('1') + factor) * atr_value
                     
-                    print(f"[UPDATE] {position.symbol} 多头止损: 最高价={position.highest_close}, ATR={atr_value}, factor={factor}, 止损价={new_stop_loss}")
+                    print(f"[UPDATE] {position.symbol} 多头止损: 最高价={position.highest_close}, ATR={atr_value}, factor={factor}, 动态止损价={dynamic_stop_loss}")
                     
                 elif position.direction == -1:
                     # 空头持仓：使用最低价作为基准
@@ -590,47 +591,61 @@ def update_all_positions_stop_loss_price(api):
                         continue
                     
                     # 空头止损价 = 最低价 + 2(1+factor) * ATR
-                    new_stop_loss = position.lowest_close + Decimal('2') * (Decimal('1') + factor) * atr_value
+                    dynamic_stop_loss = position.lowest_close + Decimal('2') * (Decimal('1') + factor) * atr_value
                     
-                    print(f"[UPDATE] {position.symbol} 空头止损: 最低价={position.lowest_close}, ATR={atr_value}, factor={factor}, 止损价={new_stop_loss}")
+                    print(f"[UPDATE] {position.symbol} 空头止损: 最低价={position.lowest_close}, ATR={atr_value}, factor={factor}, 动态止损价={dynamic_stop_loss}")
                 else:
                     continue
                 
                 # === 保本功能检查 ===
-                protect_cost_enabled = False
+                protect_cost_enabled = position.protect_cost_enalbed
                 
-                # 【修复P1】如果已经启用保本，则保持保本状态（单向开关）
-                if position.protect_cost_enalbed:
-                    protect_cost_enabled = True
-                    # 保持保本止损价不变，覆盖之前计算的动态止损价
-                    new_stop_loss = position.stop_loss_price  # ← 使用数据库中已保存的保本止损价
-                    print(f"[PROTECT] {position.symbol} 已启用保本状态，保持保本止损价={new_stop_loss}")
-                    log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 已启用保本状态，保持保本止损价={new_stop_loss}",
-                              symbol=position.symbol, log_level='INFO')
-                else:
-                    # 首次检查是否满足保本条件
-                    if cost_price and position.latest_close_price:
-                        if position.direction == 1:
-                            # 多头：收盘价 - 成本价 > 2×ATR 时启用保本
-                            profit_diff = position.latest_close_price - Decimal(str(cost_price))
-                            if profit_diff > Decimal('2') * atr_value:
-                                protect_cost_enabled = True
-                                new_stop_loss = Decimal(str(cost_price)) + Decimal('1')
-                                print(f"[PROTECT] {position.symbol} 多头启用保本: 盈利={float(profit_diff):.2f} > 2×ATR={float(2*atr_value):.2f}, 保本止损价={new_stop_loss}")
-                                log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 多头启用保本: 盈利={float(profit_diff):.2f} > 2×ATR={float(2*atr_value):.2f}, 保本止损价={new_stop_loss}",
-                                        symbol=position.symbol, log_level='INFO') 
-                        elif position.direction == -1:
-                            # 空头：成本价 - 收盘价 > 2×ATR 时启用保本
-                            profit_diff = Decimal(str(cost_price)) - position.latest_close_price
-                            if profit_diff > Decimal('2') * atr_value:
-                                protect_cost_enabled = True
-                                new_stop_loss = Decimal(str(cost_price)) - Decimal('1')
-                                print(f"[PROTECT] {position.symbol} 空头启用保本: 盈利={float(profit_diff):.2f} > 2×ATR={float(2*atr_value):.2f}, 保本止损价={new_stop_loss}")
-                                log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 空头启用保本: 盈利={float(profit_diff):.2f} > 2×ATR={float(2*atr_value):.2f}, 保本止损价={new_stop_loss}",
-                                          symbol=position.symbol, log_level='INFO')
+                # 计算保本价（基于成本价）
+                protect_price = None
+                if cost_price:
+                    if position.direction == 1:
+                        protect_price = Decimal(str(cost_price)) + Decimal('1')
+                    elif position.direction == -1:
+                        protect_price = Decimal(str(cost_price)) - Decimal('1')
+                
+                # 首次检查是否满足保本条件
+                if not protect_cost_enabled and cost_price and position.latest_close_price:
+                    if position.direction == 1:
+                        # 多头：收盘价 - 成本价 > 2×ATR 时启用保本
+                        profit_diff = position.latest_close_price - Decimal(str(cost_price))
+                        if profit_diff > PROTECT_COST_ENABLED_RATIO * atr_value:
+                            protect_cost_enabled = True
+                            print(f"[PROTECT] {position.symbol} 多头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO*atr_value):.2f}, 保本价={protect_price}")
+                            log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 多头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO*atr_value):.2f}, 保本价={protect_price}",
+                                    symbol=position.symbol, log_level='INFO') 
+                    elif position.direction == -1:
+                        # 空头：成本价 - 收盘价 > 2×ATR 时启用保本
+                        profit_diff = Decimal(str(cost_price)) - position.latest_close_price
+                        if profit_diff > PROTECT_COST_ENABLED_RATIO * atr_value:
+                            protect_cost_enabled = True
+                            print(f"[PROTECT] {position.symbol} 空头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO*atr_value):.2f}, 保本价={protect_price}")
+                            log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 空头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO    *atr_value):.2f}, 保本价={protect_price}",
+                                      symbol=position.symbol, log_level='INFO')
+                
+                # 如果启用保本，确保止损价不劣于保本价（保本只是底线，动态跟踪继续生效）
+                if protect_cost_enabled and protect_price is not None:
+                    if position.direction == 1:
+                        # 多头：止损价不能低于保本价（取较大者）
+                        if dynamic_stop_loss < protect_price:
+                            dynamic_stop_loss = protect_price
+                            print(f"[PROTECT] {position.symbol} 多头保本兜底: 动态止损 < 保本价={float(protect_price):.2f}, 采用保本价")
+                            log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 多头保本兜底: 动态止损 < 保本价={float(protect_price):.2f}, 采用保本价",
+                                      symbol=position.symbol, log_level='INFO')
+                    elif position.direction == -1:
+                        # 空头：止损价不能高于保本价（取较小者）
+                        if dynamic_stop_loss > protect_price:
+                            dynamic_stop_loss = protect_price
+                            print(f"[PROTECT] {position.symbol} 空头保本兜底: 动态止损 > 保本价={float(protect_price):.2f}, 采用保本价")
+                            log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 空头保本兜底: 动态止损 > 保本价={float(protect_price):.2f}, 采用保本价",
+                                      symbol=position.symbol, log_level='INFO')
                 # 更新持仓仓位成本价格
                 PositionState.objects.filter(id=position.id).update(
-                    stop_loss_price=new_stop_loss,
+                    stop_loss_price=dynamic_stop_loss,
                     cost_price=cost_price,
                     last_update_time=timezone.now(),  # 【修复】手动更新最后更新时间
                     trend_info=f'{atr_value:.2f},  {factor:.2f} , {trend_label}',

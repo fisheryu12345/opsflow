@@ -286,3 +286,49 @@ export function getMultiWindowMetrics(accountId: number) {
 		}
 	});
 }
+
+/**
+ * 获取日历热力图数据（日收益率）
+ * @param accountId 账户ID
+ * @returns Promise<{date: string, daily_return: number, month: number, day: number, year: number}[]>
+ * 
+ * @example
+ * const calendarData = await getDailyReturnsCalendar(1);
+ * // 返回: [{date: "2024-01-15", daily_return: 1.25, month: 1, day: 15, year: 2024}, ...]
+ */
+export function getDailyReturnsCalendar(accountId: number) {
+	return request.get<{
+		code: number;
+		msg: string;
+		data: Array<{
+			date: string;
+			daily_return: number;
+			month: number;
+			day: number;
+			year: number;
+		}>;
+	}>(`/api/stock/daily-returns-calendar/?account=${accountId}`);
+}
+
+/**
+ * 获取资金回撤曲线数据
+ * @param accountId 账户ID
+ * @returns Promise<{date: string, equity: number, peak_equity: number, drawdown_pct: number, is_new_peak: boolean}[]>
+ * 
+ * @example
+ * const drawdownData = await getDrawdownCurve(1);
+ * // 返回: [{date: "2024-01-15", equity: 105000, peak_equity: 110000, drawdown_pct: -4.55, is_new_peak: false}, ...]
+ */
+export function getDrawdownCurve(accountId: number) {
+	return request.get<{
+		code: number;
+		msg: string;
+		data: Array<{
+			date: string;
+			equity: number;
+			peak_equity: number;
+			drawdown_pct: number;
+			is_new_peak: boolean;
+		}>;
+	}>(`/api/stock/drawdown-curve/?account=${accountId}`);
+}
