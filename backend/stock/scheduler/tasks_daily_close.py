@@ -566,7 +566,7 @@ def update_all_positions_stop_loss_price(api):
                 atr_value = Decimal(str(position.indicators.get('atr_20', 0)))
                 factor = Decimal(str(position.indicators.get('trend_factor', 0)))
                 trend_label = position.indicators.get('trend_label', '')
-                
+                tick = FullContractList.objects.filter(symbol=position.symbol).first().price_tick if FullContractList.objects.filter(symbol=position.symbol).exists() else Decimal('0.01')
 
                 # 获取持仓成本（开仓价或加仓加权均价）
                 cost_price = None
@@ -598,15 +598,14 @@ def update_all_positions_stop_loss_price(api):
                     continue
                 
                 # === 保本功能检查 ===
-                protect_cost_enabled = position.protect_cost_enalbed
-                
+                protect_cost_enabled = position.protect_cost_enalbed  # 当前保本状态
                 # 计算保本价（基于成本价）
                 protect_price = None
                 if cost_price:
                     if position.direction == 1:
-                        protect_price = Decimal(str(cost_price)) + Decimal('1')
+                        protect_price = Decimal(str(cost_price)) + tick * Decimal('2')
                     elif position.direction == -1:
-                        protect_price = Decimal(str(cost_price)) - Decimal('1')
+                        protect_price = Decimal(str(cost_price)) - tick * Decimal('2')
                 
                 # 首次检查是否满足保本条件
                 if not protect_cost_enabled and cost_price and position.latest_close_price:
