@@ -118,7 +118,6 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
         ma_10_value = clean_nan_for_decimal(float(MA(klines, 10).iloc[-1]['ma']))
         ma_20_value = clean_nan_for_decimal(float(MA(klines, 20).iloc[-1]['ma']))
         ma_40_value = clean_nan_for_decimal(float(MA(klines, 40).iloc[-1]['ma']))
-        print(f"[{symbol}] 基础数据: close={latest_close}, atr_20={atr_20_value}, ma_10={ma_10_value}, ma_20={ma_20_value}, ma_40={ma_40_value}")
 
         # 20日高低点（唐奇安通道）
         close_high_20 = hhv(klines['high'].shift(1), 20)
@@ -138,19 +137,16 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
         if ma_10_value and ma_20_value and ma_40_value:
             is_bull = ma_10_value > ma_20_value > ma_40_value
             is_bear = ma_10_value < ma_20_value < ma_40_value
-            print(f"[{symbol}] 均线排列: is_bull={is_bull}, is_bear={is_bear}")
 
             if is_bull or is_bear:
                 # 最大间距比例（以MA20为基准）
                 gap_10_20 = abs(ma_10_value - ma_20_value) / abs(ma_20_value)
                 gap_20_40 = abs(ma_20_value - ma_40_value) / abs(ma_20_value)
                 max_gap = max(gap_10_20, gap_20_40)
-                print(f"[{symbol}] 间距计算: gap_10_20={gap_10_20:.4%}, gap_20_40={gap_20_40:.4%}, max_gap={max_gap:.4%}")
 
                 # 连续映射：max_gap 从 0 到 TREND_GAP_LIMIT 线性映射到 factor [0, TREND_FACTOR_MAX]
                 trend_strength = min(max_gap / TREND_GAP_LIMIT, 1.0)
                 trend_factor = round(trend_strength * TREND_FACTOR_MAX, 3)
-                print(f"[{symbol}] 趋势强度: TREND_GAP_LIMIT={TREND_GAP_LIMIT}, trend_strength={trend_strength:.4f}, trend_factor={trend_factor}")
 
                 # label 基于 trend_strength 比例划分，与 factor 计算同源
                 if trend_strength >= TREND_LABEL_STRONG_RATIO:
@@ -159,15 +155,10 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
                     trend_label = "weak_bull" if is_bull else "weak_bear"
                 else:
                     trend_label = "choppy"
-                print(f"[{symbol}] 标签判定: STRONG_RATIO={TREND_LABEL_STRONG_RATIO}, WEAK_RATIO={TREND_LABEL_WEAK_RATIO}, trend_label={trend_label}")
-            else:
-                print(f"[{symbol}] 均线无排列 → 震荡, trend_factor=0")
-        else:
-            print(f"[{symbol}] MA数据缺失, trend_factor=0")
 
         breakout_info = check_breakout_signal(klines, entry_period=20)
 
-        result = {
+        return {
             'symbol': symbol,
             'product_code': product_code,
             'latest_date': breakout_info['trade_date'].strftime('%Y-%m-%d') if breakout_info['trade_date'] else None,
@@ -186,8 +177,6 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
             'THRESHOLD': f'{TREND_LABEL_WEAK_RATIO} ~ {TREND_LABEL_STRONG_RATIO} (trend_strength ratio)',
             'breakout_info': breakout_info,
         }
-        print(f"[{symbol}] 最终结果: trend_factor={trend_factor}, trend_label={trend_label}")
-        return result
     except Exception as e:
         print(f"[ERROR] 计算指标失败 {symbol}: {e}")
         log_error('calculate_indicators', f"计算指标失败 {symbol}: {e}")

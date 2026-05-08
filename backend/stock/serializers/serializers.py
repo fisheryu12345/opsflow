@@ -102,7 +102,6 @@ class ClosedPositionRecordSerializer(serializers.ModelSerializer):
     - 盈亏分布分析
     """
     account_name = serializers.CharField(source='account.name', read_only=True, help_text="账户名称")
-    product_name = serializers.CharField(source='symbol', read_only=True, help_text="合约名称（用于前端展示）")
     
     class Meta:
         model = ClosedPositionRecord
@@ -117,16 +116,11 @@ class ClosedPositionRecordSerializer(serializers.ModelSerializer):
             'exit_price',
             'cost_price',
             'pnl',
-            'gross_pnl',
-            'commission',
             'trade_date',
             'executed_at',
             'holding_days',
-            'signal',
-            'created_at',
-            'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 # ==================== 三层绩效模型序列化器 ====================
