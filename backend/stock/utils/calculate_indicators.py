@@ -2,18 +2,19 @@ import pandas as pd
 from tqsdk.ta import ATR, MA
 from tqsdk.tafunc import hhv, llv
 import math
+from stock.utils.log_util import log_error
 
-# 假设你的 models 在 myapp.models 中
+from stock.parameter_config import (
+    TREND_GAP_LIMIT,
+    TREND_FACTOR_MAX,
+    TREND_LABEL_STRONG_RATIO,
+    TREND_LABEL_WEAK_RATIO,
+)
+
 
 def clean_nan_for_decimal(value):
     """
     将 NaN/inf/None 转换为 None，确保 Django DecimalField 能接受
-    
-    参数:
-        value: 任意数值（int, float, Decimal, None）
-    
-    返回:
-        None 或有效数字
     """
     if value is None:
         return None
@@ -24,58 +25,6 @@ def clean_nan_for_decimal(value):
         return value
     except (TypeError, ValueError):
         return None
-
-
-def calculate_dynamic_thresholds(ma_20_value, atr_20_value, base_ratio_strong=0.01, base_ratio_weak=0.003):
-    """
-    计算基于ATR的动态阈值
-    
-    核心逻辑:
-    - 传统固定阈值: 均线间距占比 > 1% (强) 或 > 0.3% (弱)
-    - 动态阈值: 结合ATR波动率,将固定比例转换为"价格绝对值"后再转回比例
-    
-    计算公式:
-    - strong_threshold = max(base_ratio_strong, ATR/MA * volatility_multiplier)
-    - weak_threshold = max(base_ratio_weak, ATR/MA * volatility_multiplier * 0.3)
-    
-    :param ma_20_value: MA20均线值
-    :param atr_20_value: ATR20值
-    :param base_ratio_strong: 基础强趋势比例阈值(默认1%)
-    :param base_ratio_weak: 基础弱趋势比例阈值(默认0.3%)
-    :return: (strong_threshold, weak_threshold) 元组
-    """
-    # 防御性检查:确保输入有效
-    if not ma_20_value or not atr_20_value or ma_20_value == 0:
-        return base_ratio_strong, base_ratio_weak
-    
-    # 计算ATR相对于均线的波动率比率
-    atr_ratio = abs(atr_20_value) / abs(ma_20_value)
-    
-    # 设置波动率调整系数
-    # 当ATR/MA > 2%时,认为是高波动品种,需要提高阈值避免假信号
-    # 当ATR/MA < 0.5%时,认为是低波动品种,可以降低阈值捕捉微小趋势
-    # 根据波动率设置不同的保底值
-    if atr_ratio > 0.02:  # 高波动 (>2%)
-        base_strong = 0.01   # 1%
-        base_weak = 0.003    # 0.3%
-        volatility_multiplier = 1.2
-    elif atr_ratio > 0.005:  # 中波动 (0.5%~2%)
-        base_strong = 0.008  # 0.8%
-        base_weak = 0.0024   # 0.24%
-        volatility_multiplier = 1.0
-    else:  # 低波动 (<0.5%)
-        base_strong = 0.005  # 0.5% ← 降低保底
-        base_weak = 0.0015   # 0.15% ← 降低保底
-        volatility_multiplier = 0.8
-    
-    # 计算动态阈值
-    atr_based_strong = atr_ratio * volatility_multiplier * 1.0
-    dynamic_strong = round(max(base_strong, atr_based_strong), 3)
-    
-    atr_based_weak = atr_ratio * volatility_multiplier * 0.3
-    dynamic_weak = round(max(base_weak, atr_based_weak), 3)
-    
-    return dynamic_strong, dynamic_weak
 
 
 def check_breakout_signal(klines, entry_period=20):
@@ -89,19 +38,19 @@ def check_breakout_signal(klines, entry_period=20):
             'trade_date': None,
             'remark': '数据不足'
         }
-    
+
     high_prior = klines["high"].iloc[-entry_period - 1:-1]
     low_prior = klines["low"].iloc[-entry_period - 1:-1]
-    
+
     entry_high = float(high_prior.max()) if len(high_prior) > 0 else None
     entry_low = float(low_prior.min()) if len(low_prior) > 0 else None
     latest_close = float(klines.iloc[-1]['close'])
     trade_date = pd.to_datetime(klines.iloc[-1]['datetime'], unit='ns').date()
-    
+
     is_breakout = False
     signal_direction = 0
     remark = ""
-    
+
     if entry_high and entry_low:
         if latest_close > entry_high:
             is_breakout = True
@@ -111,7 +60,7 @@ def check_breakout_signal(klines, entry_period=20):
             is_breakout = True
             signal_direction = -1
             remark = f"收盘价 {latest_close:.2f} 跌破唐奇安下轨 {entry_low:.2f}"
-    
+
     return {
         'is_breakout': is_breakout,
         'signal_direction': signal_direction,
@@ -122,18 +71,13 @@ def check_breakout_signal(klines, entry_period=20):
         'remark': remark
     }
 
+
 def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
     """
     计算技术指标（使用传入的TqApi实例）
-    
-    :param api: TqApi实例（由调用者管理生命周期）
-    :param symbol: 合约代码
-    :param product_code: 品种代码
-    :param days: K线数据天数
-    :return: 指标结果字典
     """
     try:
-        klines = api.get_kline_serial(symbol, days=days, duration_seconds=24 * 60 * 60) 
+        klines = api.get_kline_serial(symbol, days=days, duration_seconds=24 * 60 * 60)
         if len(klines) < 20:
             return {
                 'symbol': symbol,
@@ -162,140 +106,91 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
                     'remark': '数据不足'
                 },
             }
-        
-        lastest_close = float(klines.iloc[-1]['close'])
-        # 3.1 计算ATR
+
+        # 最新收盘价
+        latest_close = clean_nan_for_decimal(float(klines.iloc[-1]['close']))
+
+        # ATR
         atr_20 = ATR(klines, 20)
-        atr_20_value = float(atr_20.iloc[-1]['atr']) if len(atr_20) > 0 else None
-        
-        # 3.2 计算MA
-        ma_10_result = MA(klines, 10)  # 10日均线
-        ma_20_result = MA(klines, 20)  # 20日均线
-        ma_40_result = MA(klines, 40)  # 40日均线
-        
-        ma_10_value = float(ma_10_result.iloc[-1]['ma']) if len(ma_10_result) > 0 else None
-        ma_20_value = float(ma_20_result.iloc[-1]['ma']) if len(ma_20_result) > 0 else None
-        ma_40_value = float(ma_40_result.iloc[-1]['ma']) if len(ma_40_result) > 0 else None
-        
-        # 3.3 计算20日内收盘价高低点（使用tqsdk.tafunc  hhv,llv）
+        atr_20_value = clean_nan_for_decimal(float(atr_20.iloc[-1]['atr'])) if len(atr_20) > 0 else None
+
+        # MA
+        ma_10_value = clean_nan_for_decimal(float(MA(klines, 10).iloc[-1]['ma']))
+        ma_20_value = clean_nan_for_decimal(float(MA(klines, 20).iloc[-1]['ma']))
+        ma_40_value = clean_nan_for_decimal(float(MA(klines, 40).iloc[-1]['ma']))
+        print(f"[{symbol}] 基础数据: close={latest_close}, atr_20={atr_20_value}, ma_10={ma_10_value}, ma_20={ma_20_value}, ma_40={ma_40_value}")
+
+        # 20日高低点（唐奇安通道）
         close_high_20 = hhv(klines['high'].shift(1), 20)
         close_low_20 = llv(klines['low'].shift(1), 20)
-        
-        # 获取最新的 hhv20 和 llv20 值，并将 NaN 转换为 None
-        latest_hhv_raw = close_high_20.iloc[-1]
-        latest_llv_raw = close_low_20.iloc[-1]
-        
-        # 将 NaN 转换为 None，避免 Django DecimalField 验证错误
-        latest_hhv = None if pd.isna(latest_hhv_raw) else float(latest_hhv_raw)
-        latest_llv = None if pd.isna(latest_llv_raw) else float(latest_llv_raw)
-        
-        # 3.4 获取最新收盘价，并处理 NaN
-        latest_close_raw = lastest_close
-        latest_close = clean_nan_for_decimal(latest_close_raw)
-        
-        # 3.5 清理所有可能包含 NaN 的指标值
-        atr_20_value = clean_nan_for_decimal(atr_20_value)
-        ma_10_value = clean_nan_for_decimal(ma_10_value)
-        ma_20_value = clean_nan_for_decimal(ma_20_value)
-        ma_40_value = clean_nan_for_decimal(ma_40_value)
-        
-        # 3.5 计算趋势因子
-        # 计算均线间距占比
-        # 1. 核心判定标准(基于 gap_ratio)
-        #         维度	强牛 (strong_bull)	弱牛 (weak_bull)
-        #         均线排列	严格单调递增：<br>MA10 > MA20 > MA40	单调递增但发散不足：<br>MA10 > MA20 > MA40
-        #         间距占比要求	双高：<br>gap_ratio_10_20 > 1% 且 gap_ratio_20_40 > 1%	至少一个达标：<br>gap_ratio_10_20 > 0.3% 或 gap_ratio_20_40 > 0.3%
-        #         趋势因子	trend_factor = 0.5	trend_factor = 0
-        #         止损倍数	3.0 倍 ATR<br>(宽松,给足波动空间)	2.0 倍 ATR<br>(收紧,防范假突破)
+        latest_hhv = None if pd.isna(close_high_20.iloc[-1]) else float(close_high_20.iloc[-1])
+        latest_llv = None if pd.isna(close_low_20.iloc[-1]) else float(close_low_20.iloc[-1])
 
-        # 总结对比表
-        # 均线形态	        间距占比	        分类	                trend_factor	止损倍数
-        # 完美发散	        > 1%	            Strong Bull/Bear	     0.5	        3.0 ATR
-        # 微弱发散	        0.3% ~ 1%	        Weak Bull/Bear	        0	        2 ATR
-        # 高度粘合/交叉	    < 0.3%或非单调	    Choppy (震荡)	         -0.2	         1.6 ATR
-        # 数据缺失	N/A	Neutral (中性)	0.0	2.0 ATR
-        diff10_20 = ma_10_value - ma_20_value
-        diff20_40 = ma_20_value - ma_40_value
-        gap_ratio_10_20 = abs(diff10_20) / abs(ma_20_value) if ma_20_value != 0 else 0
-        gap_ratio_20_40 = abs(diff20_40) / abs(ma_20_value) if ma_20_value != 0 else 0
+        # ---- 趋势判断：均线排列 + 间距 → 连续 trend_factor [0, 0.5] ----
+        # 设计意图：
+        #   - 均线多头排列/空头排列才认为有趋势，否则 factor = 0
+        #   - 趋势强度由最大均线间距比例决定，线性映射到 [0, 0.5]
+        #   - 止损倍数 = 2.0 + trend_factor * 2.0，范围 [2.0, 3.0]，完全连续无跳变
+        # TREND_GAP_LIMIT: 均线间距达到此值时 trend_factor 达到最大值
+        trend_factor = 0.0
+        trend_label = "choppy"
 
-        # 使用基于ATR的动态阈值
-        STRONG_THRESHOLD, WEAK_THRESHOLD = calculate_dynamic_thresholds(
-            ma_20_value=ma_20_value,
-            atr_20_value=atr_20_value,
-            base_ratio_strong=0.01,   # 基础强趋势比例1%
-            base_ratio_weak=0.003     # 基础弱趋势比例0.3%
-        )
+        if ma_10_value and ma_20_value and ma_40_value:
+            is_bull = ma_10_value > ma_20_value > ma_40_value
+            is_bear = ma_10_value < ma_20_value < ma_40_value
+            print(f"[{symbol}] 均线排列: is_bull={is_bull}, is_bear={is_bear}")
 
-        # 【改进】将 trend_factor 从三级阶梯改为连续值，基于均线间距的线性插值
-        # 计算每条均线对的趋势强度 [0, 1]
-        threshold_diff = STRONG_THRESHOLD - WEAK_THRESHOLD
-        if threshold_diff > 0:
-            s1 = max(0.0, min(1.0, (gap_ratio_10_20 - WEAK_THRESHOLD) / threshold_diff))
-            s2 = max(0.0, min(1.0, (gap_ratio_20_40 - WEAK_THRESHOLD) / threshold_diff))
-        else:
-            # 防御性处理：阈值相等时退化为阶跃
-            s1 = 1.0 if gap_ratio_10_20 > WEAK_THRESHOLD else 0.0
-            s2 = 1.0 if gap_ratio_20_40 > WEAK_THRESHOLD else 0.0
-        
-        # 综合趋势强度：兼顾"两个都强"与"一个极强"
-        trend_strength = (s1 + s2) / 2.0
-        
-        # 映射到连续 factor：范围 [-0.2, 0.5]，与原始三级边界对齐
-        #   score=0   → factor=-0.2 (choppy)
-        #   score≈0.3 → factor≈0    (weak)
-        #   score=1   → factor=0.5  (strong)
-        trend_factor = -0.2 + 0.7 * trend_strength
-        
-        if ma_10_value > ma_20_value > ma_40_value:
-            # 多头排列
-            if trend_strength >= 0.8:
-                trend_label = "strong_bull"
-            elif trend_strength >= 0.3:
-                trend_label = "weak_bull"
+            if is_bull or is_bear:
+                # 最大间距比例（以MA20为基准）
+                gap_10_20 = abs(ma_10_value - ma_20_value) / abs(ma_20_value)
+                gap_20_40 = abs(ma_20_value - ma_40_value) / abs(ma_20_value)
+                max_gap = max(gap_10_20, gap_20_40)
+                print(f"[{symbol}] 间距计算: gap_10_20={gap_10_20:.4%}, gap_20_40={gap_20_40:.4%}, max_gap={max_gap:.4%}")
+
+                # 连续映射：max_gap 从 0 到 TREND_GAP_LIMIT 线性映射到 factor [0, TREND_FACTOR_MAX]
+                trend_strength = min(max_gap / TREND_GAP_LIMIT, 1.0)
+                trend_factor = round(trend_strength * TREND_FACTOR_MAX, 3)
+                print(f"[{symbol}] 趋势强度: TREND_GAP_LIMIT={TREND_GAP_LIMIT}, trend_strength={trend_strength:.4f}, trend_factor={trend_factor}")
+
+                # label 基于 trend_strength 比例划分，与 factor 计算同源
+                if trend_strength >= TREND_LABEL_STRONG_RATIO:
+                    trend_label = "strong_bull" if is_bull else "strong_bear"
+                elif trend_strength >= TREND_LABEL_WEAK_RATIO:
+                    trend_label = "weak_bull" if is_bull else "weak_bear"
+                else:
+                    trend_label = "choppy"
+                print(f"[{symbol}] 标签判定: STRONG_RATIO={TREND_LABEL_STRONG_RATIO}, WEAK_RATIO={TREND_LABEL_WEAK_RATIO}, trend_label={trend_label}")
             else:
-                trend_label = "choppy"
-        
-        elif ma_10_value < ma_20_value < ma_40_value:
-            # 空头排列
-            if trend_strength >= 0.8:
-                trend_label = "strong_bear"
-            elif trend_strength >= 0.3:
-                trend_label = "weak_bear"
-            else:
-                trend_label = "choppy"
-        
+                print(f"[{symbol}] 均线无排列 → 震荡, trend_factor=0")
         else:
-            # 交叉形态或无明显方向
-            trend_factor = -0.2
-            trend_label = "choppy"
+            print(f"[{symbol}] MA数据缺失, trend_factor=0")
 
         breakout_info = check_breakout_signal(klines, entry_period=20)
-        # print(f"突破检测结果: {breakout_info}")
-        
-        # 4. 整理结果
-        results = {
+
+        result = {
             'symbol': symbol,
             'product_code': product_code,
             'latest_date': breakout_info['trade_date'].strftime('%Y-%m-%d') if breakout_info['trade_date'] else None,
-            'latest_close': latest_close,  # ← 使用已处理 NaN 的值
+            'latest_close': latest_close,
             'atr_20': atr_20_value,
             'ma_10': ma_10_value,
             'ma_20': ma_20_value,
             'ma_40': ma_40_value,
-            'h_20': latest_hhv,  # ← 已处理 NaN → None
-            'l_20': latest_llv,  # ← 已处理 NaN → None
-            'close_high_20': latest_hhv,  # ← 使用已处理的值
-            'close_low_20': latest_llv,   # ← 使用已处理的值
+            'h_20': latest_hhv,
+            'l_20': latest_llv,
+            'close_high_20': latest_hhv,
+            'close_low_20': latest_llv,
             'data_points': len(klines),
             'trend_factor': trend_factor,
             'trend_label': trend_label,
-            'THRESHOLD': f'{STRONG_THRESHOLD} ~ {WEAK_THRESHOLD}',
+            'THRESHOLD': f'{TREND_LABEL_WEAK_RATIO} ~ {TREND_LABEL_STRONG_RATIO} (trend_strength ratio)',
             'breakout_info': breakout_info,
         }
-        return results
+        print(f"[{symbol}] 最终结果: trend_factor={trend_factor}, trend_label={trend_label}")
+        return result
     except Exception as e:
         print(f"[ERROR] 计算指标失败 {symbol}: {e}")
+        log_error('calculate_indicators', f"计算指标失败 {symbol}: {e}")
         import traceback
         traceback.print_exc()
         return None

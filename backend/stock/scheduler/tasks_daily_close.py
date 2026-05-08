@@ -613,18 +613,18 @@ def update_all_positions_stop_loss_price(api):
                     if position.direction == 1:
                         # 多头：收盘价 - 成本价 > 2×ATR 时启用保本
                         profit_diff = position.latest_close_price - Decimal(str(cost_price))
-                        if profit_diff > PROTECT_COST_ENABLED_RATIO * atr_value:
+                        if profit_diff > PROTECT_COST_ENABLED_RATIO * float(atr_value):
                             protect_cost_enabled = True
-                            print(f"[PROTECT] {position.symbol} 多头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO*atr_value):.2f}, 保本价={protect_price}")
-                            log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 多头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO*atr_value):.2f}, 保本价={protect_price}",
+                            print(f"[PROTECT] {position.symbol} 多头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO*float(atr_value)):.2f}, 保本价={protect_price}")
+                            log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 多头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO*float(atr_value)):.2f}, 保本价={protect_price}",
                                     symbol=position.symbol, log_level='INFO') 
                     elif position.direction == -1:
                         # 空头：成本价 - 收盘价 > 2×ATR 时启用保本
                         profit_diff = Decimal(str(cost_price)) - position.latest_close_price
-                        if profit_diff > PROTECT_COST_ENABLED_RATIO * atr_value:
+                        if profit_diff > PROTECT_COST_ENABLED_RATIO * float(atr_value):
                             protect_cost_enabled = True
-                            print(f"[PROTECT] {position.symbol} 空头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO*atr_value):.2f}, 保本价={protect_price}")
-                            log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 空头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO    *atr_value):.2f}, 保本价={protect_price}",
+                            print(f"[PROTECT] {position.symbol} 空头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO*float(atr_value)):.2f}, 保本价={protect_price}")
+                            log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 空头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO    *float(atr_value)):.2f}, 保本价={protect_price}",
                                       symbol=position.symbol, log_level='INFO')
                 
                 # 如果启用保本，确保止损价不劣于保本价（保本只是底线，动态跟踪继续生效）

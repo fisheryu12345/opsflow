@@ -1,0 +1,350 @@
+# 止损系统完整设计文档
+
+> 涉及文件：
+> - `backend/stock/utils/calculate_indicators.py` —— 趋势因子计算
+> - `backend/stock/scheduler/tasks_daily_close.py` —— 收盘任务与止损更新
+> - `backend/stock/parameter_config.py` —— 配置参数
+
+---
+
+## 一、整体架构
+
+止损系统采用**动态跟踪止损（Trailing Stop）**设计，核心思想：
+
+- **强趋势** → 止损放宽（给足回调空间，让利润奔跑）
+- **弱趋势/震荡** → 止损收紧（保护本金）
+- **保本机制** → 盈利超过阈值后，确保不亏本金
+
+### 数据流链路
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        每日收盘任务 (job_daily_close)                  │
+└─────────────────────────────────────────────────────────────────────┘
+   │
+   ├── Step 4: calculate_indicators() ──→ 计算趋势因子 ──→ 存入 indicators
+   │                                          │
+   │     ┌────────────────────────────────────┘
+   │     ▼
+   │   MA10/MA20/MA40 → 均线排列判断 → max_gap → trend_strength → trend_factor
+   │
+   ├── Step 6: update_all_positions_high_low_price()
+   │     └── 更新 highest_close (多头) / lowest_close (空头)
+   │
+   ├── Step 7: update_all_positions_stop_loss_price()  ←── 【核心止损更新】
+   │     │
+   │     ├── 读取 indicators.atr_20, indicators.trend_factor
+   │     ├── 读取 highest_close / lowest_close 作为基准价
+   │     ├── 计算动态止损 = 基准价 ± 2(1+factor) × ATR
+   │     ├── 保本检查：盈利 > 2.5×ATR ?
+   │     ├── 保本兜底：止损劣于保本价时，用保本价
+   │     └── 写入 PositionState.stop_loss_price
+   │
+   └── Step 8: check_exit_signals()
+         └── 最新价 触发 止损价 ? ──→ 生成 STOP_LOSS 平仓信号
+```
+
+---
+
+## 二、趋势因子计算（calculate_indicators.py）
+
+### 2.1 输入输出
+
+| 输入 | 说明 |
+|------|------|
+| `api` | TqApi 实例 |
+| `symbol` | 合约代码，如 `SHFE.rb2610` |
+| `product_code` | 品种代码，如 `rb` |
+| `days` | K线数据天数，默认 60 天 |
+
+| 输出字段 | 说明 |
+|----------|------|
+| `atr_20` | 20日 ATR |
+| `ma_10/20/40` | 10/20/40 日均线 |
+| `h_20 / l_20` | 20日最高/最低价（唐奇安通道） |
+| `trend_factor` | **趋势因子 [0, 0.5]，核心输出** |
+| `trend_label` | 趋势标签：`strong_bull` / `weak_bull` / `choppy` 等 |
+| `breakout_info` | 唐奇安突破信号 |
+
+### 2.2 趋势因子计算流程
+
+```python
+# Step 1: 均线排列判断
+is_bull = MA10 > MA20 > MA40
+is_bear = MA10 < MA20 < MA40
+
+# Step 2: 计算最大间距比例
+gap_10_20 = |MA10 - MA20| / MA20
+gap_20_40 = |MA20 - MA40| / MA20
+max_gap   = max(gap_10_20, gap_20_40)
+
+# Step 3: 归一化映射到 [0, 1]
+trend_strength = min(max_gap / TREND_GAP_LIMIT, 1.0)
+
+# Step 4: 映射到因子区间 [0, TREND_FACTOR_MAX]
+trend_factor = trend_strength * TREND_FACTOR_MAX
+```
+
+**label 分级（与 factor 同源）**：
+
+```python
+if trend_strength >= TREND_LABEL_STRONG_RATIO:   # 默认 0.80
+    → strong_bull / strong_bear
+elif trend_strength >= TREND_LABEL_WEAK_RATIO:   # 默认 0.30
+    → weak_bull / weak_bear
+else:
+    → choppy
+```
+
+> `trend_label` 仅用于展示参考，**实际止损计算使用 `trend_factor`**。
+
+---
+
+## 三、止损更新逻辑（tasks_daily_close.py）
+
+### 3.1 每日收盘任务执行顺序
+
+```python
+def job_daily_close_calculation():
+    Step 4:  计算技术指标 → 存入 PositionState.indicators
+    Step 5:  检查开仓信号（唐奇安突破）
+    Step 6:  更新持仓最高/最低收盘价
+    Step 7:  更新止损价格  ← 核心
+    Step 8:  检查平仓/止损信号
+    Step 9:  检查加仓信号
+    Step 10: 检查移仓信号
+    Step 11: 发送邮件报告
+```
+
+### 3.2 更新最高/最低收盘价（Step 6）
+
+```python
+def update_all_positions_high_low_price():
+    多头持仓: highest_close = max(highest_close, latest_close_price)
+    空头持仓: lowest_close  = min(lowest_close,  latest_close_price)
+```
+
+> 这是跟踪止损的**基准价**，持仓后每天更新，只朝有利方向移动。
+
+### 3.3 更新止损价格（Step 7）—— 核心函数
+
+```python
+def update_all_positions_stop_loss_price(api):
+    for position in 所有有持仓:
+        atr_value = position.indicators['atr_20']
+        factor    = position.indicators['trend_factor']
+
+        if 多头:
+            # 止损 = 最高价 - 2(1+factor) × ATR
+            stop_loss = highest_close - 2 × (1 + factor) × atr_value
+
+        if 空头:
+            # 止损 = 最低价 + 2(1+factor) × ATR
+            stop_loss = lowest_close + 2 × (1 + factor) × atr_value
+```
+
+### 3.4 止损公式推导
+
+| factor | 公式 | 止损倍数 |
+|--------|------|----------|
+| 0.0（震荡） | `2 × (1 + 0) = 2` | **2.0 ATR** |
+| 0.25（中等） | `2 × (1 + 0.25) = 2.5` | **2.5 ATR** |
+| 0.5（极强） | `2 × (1 + 0.5) = 3` | **3.0 ATR** |
+
+**止损距离**：
+- 多头：`最高价 - 止损价 = 2(1+factor) × ATR`
+- 空头：`止损价 - 最低价 = 2(1+factor) × ATR`
+
+### 3.5 保本机制
+
+**启用条件**：
+
+```python
+盈利 = |最新收盘价 - 成本价|
+if 盈利 > PROTECT_COST_ENABLED_RATIO × ATR:   # 默认 2.5 × ATR
+    → 启用保本
+```
+
+**保本价计算**：
+
+```python
+多头保本价 = 成本价 + 1   # 比成本价高 1 个价位
+空头保本价 = 成本价 - 1   # 比成本价低 1 个价位
+```
+
+**兜底逻辑**：
+
+```python
+if 启用保本:
+    多头: if 动态止损 < 保本价: 止损 = 保本价
+    空头: if 动态止损 > 保本价: 止损 = 保本价
+```
+
+> 保本只是**底线**，动态跟踪止损仍然每天计算。如果动态止损比保本价更优（多头更高），就继续用动态止损。
+
+---
+
+## 四、止损触发检查（Step 8）
+
+```python
+def check_exit_signals():
+    for position in 所有持仓:
+        if 多头 and 最新收盘价 < 止损价:
+            → 触发止损，生成 STOP_LOSS 信号
+
+        if 空头 and 最新收盘价 > 止损价:
+            → 触发止损，生成 STOP_LOSS 信号
+```
+
+触发后会在 `DailyStrategySignal` 表中创建一条 `trade_type='STOP_LOSS'` 的记录，等待执行。
+
+---
+
+## 五、配置参数速查表
+
+### 5.1 趋势因子参数
+
+| 参数 | 默认值 | 作用 |
+|------|--------|------|
+| `TREND_GAP_LIMIT` | 0.03 | **封顶上限**。均线间距达到 3% 时 factor 封顶 0.5 |
+| `TREND_FACTOR_MAX` | 0.5 | factor 最大值 |
+| `TREND_LABEL_STRONG_RATIO` | 0.80 | label 强趋势阈值（trend_strength ≥ 80%） |
+| `TREND_LABEL_WEAK_RATIO` | 0.30 | label 弱趋势阈值（trend_strength ≥ 30%） |
+
+### 5.2 止损与保本参数
+
+| 参数 | 默认值 | 作用 |
+|------|--------|------|
+| `PROTECT_COST_ENABLED_RATIO` | 2.5 | 保本启用阈值。盈利超过 `2.5 × ATR` 时启用保本 |
+| `POSITION_RISK_MULTIPLIER` | 2 | 仓位计算中的 ATR 风险倍数（与止损公式独立） |
+
+### 5.3 参数调整效果
+
+| 调整目标 | 参数 | 方向 |
+|----------|------|------|
+| 让 factor 更快封顶 | `TREND_GAP_LIMIT` | **调小** |
+| 更容易判定为"强趋势" | `TREND_LABEL_STRONG_RATIO` | **调小** |
+| 更容易判定为"有趋势" | `TREND_LABEL_WEAK_RATIO` | **调小** |
+| 更早启用保本 | `PROTECT_COST_ENABLED_RATIO` | **调小** |
+
+---
+
+## 六、数据库字段关联
+
+### PositionState（持仓状态表）
+
+| 字段 | 来源 | 说明 |
+|------|------|------|
+| `indicators` | Step 4 calculate_indicators | JSON，含 `atr_20`, `trend_factor`, `trend_label` |
+| `latest_close_price` | Step 4 K线收盘价 | 最新收盘价 |
+| `highest_close` | Step 6 更新 | 持仓后多头最高收盘价 |
+| `lowest_close` | Step 6 更新 | 持仓后空头最低收盘价 |
+| `stop_loss_price` | Step 7 计算 | 当前动态止损价 |
+| `cost_price` | Step 7 TqApi | 持仓成本价 |
+| `protect_cost_enalbed` | Step 7 保本检查 | 保本是否已启用 |
+| `direction` | 开仓时确定 | 1=多头, -1=空头 |
+
+### DailyStrategySignal（策略信号表）
+
+| trade_type | 来源 | 说明 |
+|------------|------|------|
+| `ENTRY` | Step 5 唐奇安突破 | 开仓信号 |
+| `STOP_LOSS` | Step 8 触发止损 | 平仓信号 |
+| `ADD_ON` | Step 9 加仓检查 | 加仓信号 |
+| `ROLLOVER` | Step 10 移仓检查 | 移仓信号 |
+
+---
+
+## 七、常见问题与排查
+
+### 7.1 所有品种 factor 都接近 0.5
+
+**原因**：`TREND_GAP_LIMIT` 太小，正常趋势行情下均线间距很容易超过上限。  
+**解决**：调大 `TREND_GAP_LIMIT`（如 0.015 → 0.03）。
+
+### 7.2 factor = 0 但明显有趋势
+
+**原因**：均线未形成多头排列/空头排列（MA10/MA20/MA40 交叉）。  
+**排查**：查看 print 输出的 `is_bull` / `is_bear` 和 MA 值。
+
+### 7.3 止损价没有每天更新
+
+**排查步骤**：
+1. 检查 `PositionState.indicators` 是否为空（Step 4 是否成功）
+2. 检查 `highest_close` / `lowest_close` 是否有值（Step 6）
+3. 查看 `update_all_positions_stop_loss_price` 的 print 输出
+
+### 7.4 保本机制没有生效
+
+**排查**：
+1. 检查 `cost_price` 是否有值（来自 TqApi `get_position().open_price_long/short`）
+2. 盈利是否超过 `PROTECT_COST_ENABLED_RATIO × ATR`
+3. 检查 `protect_cost_enalbed` 字段是否已更新为 True
+
+---
+
+## 八、完整计算示例（螺纹 rb2610）
+
+假设参数：
+- `TREND_GAP_LIMIT = 0.03`, `TREND_FACTOR_MAX = 0.5`
+- `highest_close = 3273`, `ATR = 26.35`
+- `MA10 = 3300`, `MA20 = 3270`, `MA40 = 3200`
+
+### Step 1: 趋势因子计算
+
+```
+排列: 3300 > 3270 > 3200 → 多头排列 ✓
+gap_10_20 = |3300-3270|/3270 = 0.92%
+gap_20_40 = |3270-3200|/3270 = 2.14%
+max_gap = 2.14%
+
+trend_strength = min(2.14% / 3%, 1.0) = 0.713
+trend_factor = 0.713 × 0.5 = 0.357
+
+label: trend_strength=0.713 ≥ 0.80? 否
+       trend_strength=0.713 ≥ 0.30? 是
+       → weak_bull
+```
+
+### Step 2: 止损价计算
+
+```
+止损倍数 = 2 × (1 + 0.357) = 2.714
+止损距离 = 2.714 × 26.35 = 71.51
+
+止损价 = 3273 - 71.51 = 3201.49
+```
+
+### Step 3: 保本检查（假设成本价 3200）
+
+```
+盈利 = 3273 - 3200 = 73
+保本阈值 = 2.5 × 26.35 = 65.88
+
+73 > 65.88 → 启用保本
+保本价 = 3200 + 1 = 3201
+
+动态止损 3201.49 > 保本价 3201 → 动态止损更优，继续用 3201.49
+```
+
+---
+
+## 九、代码位置索引
+
+| 功能 | 函数/变量 | 文件 |
+|------|-----------|------|
+| 趋势因子计算 | `calculate_indicators()` | `calculate_indicators.py` |
+| 均线排列判断 | `is_bull / is_bear` | `calculate_indicators.py:138` |
+| 间距计算 | `gap_10_20 / gap_20_40` | `calculate_indicators.py:145` |
+| factor 映射 | `trend_strength * TREND_FACTOR_MAX` | `calculate_indicators.py:152` |
+| label 分级 | `TREND_LABEL_STRONG_RATIO` | `calculate_indicators.py:156` |
+| 每日收盘入口 | `job_daily_close_calculation()` | `tasks_daily_close.py:671` |
+| 更新最高/最低价 | `update_all_positions_high_low_price()` | `tasks_daily_close.py:487` |
+| 更新止损价 | `update_all_positions_stop_loss_price()` | `tasks_daily_close.py:533` |
+| 多头止损公式 | `highest_close - 2*(1+factor)*ATR` | `tasks_daily_close.py:582` |
+| 空头止损公式 | `lowest_close + 2*(1+factor)*ATR` | `tasks_daily_close.py:594` |
+| 保本启用检查 | `PROTECT_COST_ENABLED_RATIO * ATR` | `tasks_daily_close.py:616` |
+| 保本兜底 | `dynamic_stop_loss vs protect_price` | `tasks_daily_close.py:631` |
+| 止损触发检查 | `check_exit_signals()` | `tasks_daily_close.py:89` |
+| 趋势因子配置 | `TREND_GAP_LIMIT` | `parameter_config.py:24` |
+| 保本配置 | `PROTECT_COST_ENABLED_RATIO` | `parameter_config.py:6` |
