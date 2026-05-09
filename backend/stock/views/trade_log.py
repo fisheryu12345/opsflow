@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from stock.serializers.serializers import TradeLogSerializer, ErrorLogSerializer
 from stock.models import TradeLog, ErrorLog
+from stock.filters import UserAccountFilterBackend
 
 
 class TradeLogViewSet(viewsets.ReadOnlyModelViewSet):
@@ -15,8 +16,8 @@ class TradeLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = TradeLog.objects.all()
     serializer_class = TradeLogSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['function_name', 'log_level', 'symbol', 'timestamp']
+    filter_backends = [DjangoFilterBackend, UserAccountFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['function_name', 'log_level', 'symbol', 'timestamp', 'account']
     search_fields = ['function_name', 'log_message', 'symbol']
     ordering_fields = ['timestamp', 'log_level']
     ordering = ['-timestamp']
@@ -30,8 +31,8 @@ class ErrorLogViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
     queryset = ErrorLog.objects.all()
     serializer_class = ErrorLogSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['function_name', 'timestamp']
+    filter_backends = [DjangoFilterBackend, UserAccountFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['function_name', 'timestamp', 'account']
     search_fields = ['function_name', 'error_message']
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']

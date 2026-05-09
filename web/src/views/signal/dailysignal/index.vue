@@ -1,6 +1,5 @@
 <template>
   <div class="trading-page">
-    <PageHeader title="每日交易信号" />
 
     <!-- Filter Bar -->
     <div class="filter-bar">
@@ -105,7 +104,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import PageHeader from '/@/views/apps/components/PageHeader.vue'
 import ValueCell from '/@/views/apps/components/ValueCell.vue'
 import StatusTag from '/@/views/apps/components/StatusTag.vue'
 import { useDailySignal } from './useDailySignal'

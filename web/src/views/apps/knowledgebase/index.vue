@@ -1,6 +1,5 @@
 <template>
   <div class="trading-page">
-    <PageHeader title="知识库" />
 
     <div class="kb-layout">
       <!-- Sidebar toggle button (mobile) -->
@@ -75,7 +74,6 @@ import { ref, watch, onMounted, nextTick } from 'vue'
 import { ElTree } from 'element-plus'
 import { FolderOpened, Document, Loading } from '@element-plus/icons-vue'
 import MarkdownIt from 'markdown-it'
-import PageHeader from '/@/views/apps/components/PageHeader.vue'
 import { GetTree, GetContent, type TreeNode } from './api'
 
 const md = new MarkdownIt({

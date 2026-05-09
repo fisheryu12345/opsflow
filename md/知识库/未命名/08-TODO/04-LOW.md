@@ -4,7 +4,9 @@
 
 ---
 
-## LOW-01: Performance_cal 使用 Pandas/Numpy 处理简单计算
+## ❌ LOW-01: Performance_cal 使用 Pandas/Numpy 处理简单计算 — 暂无计划修复
+
+> 当前 pandas/numpy 在性能计算中仅做简单运算，但替换为纯 Python 的收益有限（节省启动时间约 1-2 秒）。鉴于系统已稳定运行，重写为纯 Python 可能引入新 bug，决定保持现状。
 
 **文件**: [core/performance.py](../backend/stock/core/performance.py)（原 scheduler/performance_cal.py）
 
@@ -35,7 +37,9 @@ def std(values):
 
 ---
 
-## LOW-02: 回撤曲线全量数据在 Python 层计算
+## ❌ LOW-02: 回撤曲线全量数据在 Python 层计算 — 暂无计划修复
+
+> 当前数据量级（1 年约 250 条快照）下全量加载性能可接受。引入缓存层会增加系统复杂度，且回撤曲线查询频率低（用户手动查看 Dashboard 时触发），无需优化。
 
 **文件**: [performance.py:300-326](../backend/stock/views/performance.py#L300-L326)
 
@@ -98,7 +102,9 @@ def std(values):
 
 ---
 
-## LOW-05: Redis 分布式锁 key 硬编码
+## ❌ LOW-05: Redis 分布式锁 key 硬编码 — 暂无计划修复
+
+> 当前锁 key 已优化为 `lock:open:{account.id}` 实现账户级隔离，INSTANCE_ID 命名空间隔离在生产环境单实例部署下无实际需求。硬编码 key 便于运维排查（直接通过 key 名可识别用途）。
 
 **文件**: [tasks_daily_open.py](../backend/stock/scheduler/tasks_daily_open.py)
 

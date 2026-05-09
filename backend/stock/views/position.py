@@ -2,10 +2,12 @@
 每日策略信号视图集
 """
 from rest_framework import viewsets, filters
+from rest_framework.permissions import IsAuthenticated
 from django.db.models import OuterRef, Subquery
 from django_filters.rest_framework import DjangoFilterBackend
 from stock.serializers.serializers import PositionStateSerializer
 from stock.models import PositionState, FullContractList
+from stock.filters import UserAccountFilterBackend
 
 
 class PositionStateViewSet(viewsets.ReadOnlyModelViewSet):
@@ -19,7 +21,8 @@ class PositionStateViewSet(viewsets.ReadOnlyModelViewSet):
         )
     )
     serializer_class = PositionStateSerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, UserAccountFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     # 精确过滤字段配置（使用字典格式以支持多种过滤类型）
     filterset_fields = {

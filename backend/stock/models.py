@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import CheckConstraint, Q
+from django.conf import settings
 from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
 
@@ -59,6 +60,15 @@ class TradingAccount(models.Model):
     我们需要一个持久化的实体来记录"我有多少钱"以及"现在的总权益是多少"。
     它支持多账户管理（比如你可以同时跑一个激进版和一个稳健版策略）。
     """
+    # 所属用户：用于多用户数据隔离，null=未分配（仅超级管理员可见）
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        verbose_name="所属用户",
+        help_text="关联的系统用户，用于多用户数据隔离。null=未分配，仅超级管理员可见"
+    )
+
     # 账户名称：用于区分不同的策略实例（例如："海龟策略_甲醇605"）
     name = models.CharField("账户名称", max_length=50, unique=True, db_index=True,
                            help_text="用于区分不同的策略实例，如：海龟策略_甲醇605")
@@ -103,13 +113,14 @@ class TradingAccount(models.Model):
 class FullContractList(models.Model):
     """
     【全合约基础信息表 / 交易标的池】
-    
+
     💡 核心作用：
-    1. 交易开关：只有在这里面且 is_active=True 的品种，策略才会去订阅和交易。
-    2. 元数据源：提供合约乘数、最小变动价位等，用于计算仓位和止损金额。
+    1. 元数据源：提供合约乘数、最小变动价位等，用于计算仓位和止损金额。
+    2. 主力合约映射：记录 TqSDK 同步的最新主力合约代码。
     3. 板块分类：用于区分品种属性（如黑色、化工、农产品）。
+    注意：品种开关已迁移到 AccountContractConfig，此处仅作全局合约主表。
     """
-    
+
     # --- 基础身份信息 ---
     # 交易所代码：SHFE, DCE, CZCE, CFFEX, GFEX
     exchange = models.CharField("交易所", max_length=10, db_index=True,
@@ -122,19 +133,13 @@ class FullContractList(models.Model):
     
     # 合约代码：例如 "rb2405", "MA605"。这是实盘中交易的具体标的
     # 对于主力合约切换，这个字段会频繁更新，或者我们只存主力合约的代码
-    symbol = models.CharField("当前主力合约", max_length=20, unique=True, 
+    symbol = models.CharField("当前主力合约", max_length=20, db_index=True,
                              help_text="当前正在交易的主力合约代码，如：rb2405, MA605")
     
     # 合约名称：例如 "螺纹钢2405"
     name = models.CharField("合约名称", max_length=50, blank=True, null=True,
                            help_text="合约中文名称，如：螺纹钢2405")
 
-    # --- 交易控制开关 ---
-    is_active = models.BooleanField("开启交易", default=False, db_index=True,
-                                   help_text="核心开关：False则策略完全忽略此品种")
-    allow_open = models.BooleanField("允许开仓", default=True,
-                                    help_text="如果是False，只能平仓不能开新仓（用于逐步退市）")
-    
     # --- 合约规格 (用于计算仓位) ---
     volume_multiple = models.IntegerField("合约乘数", default=10, 
                                          help_text="每手合约的价值乘数，如螺纹钢10，IF是300")
@@ -160,8 +165,7 @@ class FullContractList(models.Model):
     updated_at = models.DateTimeField("更新时间", auto_now=True)
 
     def __str__(self):
-        status = "启用" if self.is_active else "停用"
-        return f"{self.exchange}.{self.symbol} ({self.name or '未知'}) - {status}"
+        return f"{self.exchange}.{self.symbol} ({self.name or '未知'})"
 
     class Meta:
         verbose_name = "交易合约列表"
@@ -180,6 +184,12 @@ class StrategyConfig(models.Model):
     1. 如果你想测试"把ATR周期改成14效果如何"，不需要改代码重启，直接在数据库改这里。
     2. 不同品种可以应用不同的配置（例如：螺纹钢波动大，风险参数可以单独设）。
     """
+    account = models.ForeignKey(
+        TradingAccount, on_delete=models.CASCADE,
+        null=True, blank=True,
+        verbose_name="所属账户",
+        help_text="null=全局配置, 指定则仅该账户使用此配置"
+    )
     name = models.CharField("配置名称", max_length=50, unique=True, help_text="例如: 海龟策略_标准版")
     # symbol = models.CharField("适用合约", max_length=20, db_index=True, help_text="例如: CZCE.MA605")
     # is_active = models.BooleanField("是否启用", default=True, db_index=True)
@@ -199,7 +209,6 @@ class StrategyConfig(models.Model):
     
     # --- 过滤参数 ---
     gap_threshold = models.DecimalField("跳空放弃阈值(%)", max_digits=5, decimal_places=2, default=Decimal('1.5'), help_text="对应代码中的跳空过滤逻辑，超过1.5%放弃开仓")
-    product_codes = models.TextField("交易品种列表", default='rb,hc,al,ao,MA,TA,SA,FG,fu,ru,UR,m,p,CF,RM,AP,lh,jd,sp,si,lc,SR', help_text="逗号分隔的交易品种代码列表，仅这些品种会同步合约和生成信号")
     # --- TqSDK 账户配置 ---
     tqapi_account = models.CharField("TqSDK账号", max_length=50, default='yupei1986', help_text="TqSDK 登录账号")
     tqapi_password = models.CharField("TqSDK密码", max_length=100, default='yupei1986', help_text="TqSDK 登录密码")
@@ -657,6 +666,49 @@ class ClosedPositionRecord(models.Model):
         return f"{self.product_code} {direction_map.get(self.direction)} 平仓 {self.volume}手 @ {self.exit_price}"
 
 
+# ==================== 4.5 账户合约配置层 (多用户) ====================
+
+class AccountContractConfig(models.Model):
+    """
+    【账户交易品种配置表】
+
+    💡 为什么需要这张表？
+    多用户场景下，每个用户（通过其 TradingAccount）需要选择自己要交易的品种。
+    这张表记录了每个账户激活了哪些品种，替代硬编码的 PRODUCT_CODES 列表。
+
+    💡 与 FullContractList 的关系：
+    - FullContractList 是全局主合约列表（account=null），由 TqSDK 每日自动同步
+    - AccountContractConfig 是用户的选择，记录每个账户要交易哪些 product_code
+    - 收盘任务根据此表为每个账户创建/更新 PositionState
+    """
+    account = models.ForeignKey(
+        TradingAccount, on_delete=models.CASCADE,
+        related_name='contract_configs',
+        verbose_name="所属账户"
+    )
+    product_code = models.CharField("品种代码", max_length=10, db_index=True,
+                                    help_text="品种代码，如：rb, MA, IF")
+    is_active = models.BooleanField("启用交易", default=True, db_index=True,
+                                    help_text="是否启用该品种的交易")
+    allow_open = models.BooleanField("允许开仓", default=True,
+                                     help_text="False 则只能平仓不能开新仓")
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+
+    class Meta:
+        verbose_name = "账户交易品种"
+        verbose_name_plural = "账户交易品种"
+        unique_together = ('account', 'product_code')
+        ordering = ['account', 'product_code']
+        indexes = [
+            models.Index(fields=['account', 'is_active']),
+        ]
+
+    def __str__(self):
+        status = "启用" if self.is_active else "停用"
+        return f"{self.account.name} - {self.product_code} ({status})"
+
+
 # ==================== 5. 系统日志层 (监控) ====================
 
 class ErrorLog(models.Model):
@@ -672,6 +724,13 @@ class ErrorLog(models.Model):
     4. 告警集成：可以基于此表实现自动告警
     """
     
+    account = models.ForeignKey(
+        TradingAccount, on_delete=models.CASCADE,
+        null=True, blank=True,
+        verbose_name="所属账户",
+        help_text="关联的交易账户，null=系统级错误"
+    )
+
     # 自动记录错误发生的时间
     timestamp = models.DateTimeField("错误时间", auto_now_add=True, db_index=True,
                                     help_text="错误发生的精确时间戳")
@@ -708,6 +767,13 @@ class TradeLog(models.Model):
     4. 性能监控（如：某步耗时过长）
     """
     
+    account = models.ForeignKey(
+        TradingAccount, on_delete=models.CASCADE,
+        null=True, blank=True,
+        verbose_name="所属账户",
+        help_text="关联的交易账户，null=系统级日志"
+    )
+
     # 自动记录日志生成的时间
     timestamp = models.DateTimeField("日志时间", auto_now_add=True, db_index=True,
                                     help_text="日志记录的精确时间戳")

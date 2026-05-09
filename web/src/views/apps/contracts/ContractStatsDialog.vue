@@ -1,15 +1,9 @@
 <template>
   <el-dialog v-model="visible" title="合约统计信息" width="600px" :close-on-click-modal="false">
     <div v-if="stats">
-      <el-descriptions :column="2" border>
+      <el-descriptions :column="1" border>
         <el-descriptions-item label="合约总数">
           <el-tag type="primary" size="large">{{ stats.total }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="已激活">
-          <el-tag type="success" size="large">{{ stats.active }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="已停用">
-          <el-tag type="info" size="large">{{ stats.inactive }}</el-tag>
         </el-descriptions-item>
       </el-descriptions>
 

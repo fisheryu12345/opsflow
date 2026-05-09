@@ -4,7 +4,7 @@
 
 ---
 
-## CRITICAL-01: 临收盘止损平仓盈亏计算缺少合约乘数
+## ✅ CRITICAL-01: 临收盘止损平仓盈亏计算缺少合约乘数 — 已修复 (重构后自然解决)
 
 **文件**: [infrastructure/stop_loss_executor.py:60](../backend/stock/infrastructure/stop_loss_executor.py#L60)（原 tasks_exit_before_close.py）
 

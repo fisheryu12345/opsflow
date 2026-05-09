@@ -60,8 +60,13 @@ def execute_stop_loss_exit(api, position):
         return True, filled_volume, avg_price
 
     except Exception as e:
-        print(f"[ERROR] 止损平仓异常: {e}")
+        error_msg = f"止损平仓异常: {e}"
+        print(f"[ERROR] {error_msg}")
         traceback.print_exc()
+        log_error(
+            function_name='execute_stop_loss_exit',
+            error_message=f"{error_msg}\n{traceback.format_exc()}",
+        )
         return False, 0, Decimal('0')
 
 
@@ -70,11 +75,40 @@ def check_and_execute_stop_loss(api):
     检查持仓止损并执行平仓。
     """
     try:
-        default_account = TradingAccount.objects.filter(is_active=True).first()
-        if not default_account:
+        accounts = TradingAccount.objects.filter(is_active=True)
+        if not accounts.exists():
             print("[WARN] 未找到活跃账户，跳过止损检查")
             return
 
+        for account in accounts:
+            try:
+                _execute_stop_loss_for_account(api, account)
+            except Exception as acct_error:
+                error_msg = f"处理账户 {account.name} 止损检查失败: {acct_error}"
+                print(f"[ERROR] {error_msg}")
+                traceback.print_exc()
+                log_error(
+                    function_name='check_and_execute_stop_loss',
+                    error_message=f"{error_msg}\n{traceback.format_exc()}",
+                    account=account,
+                )
+                continue
+
+    except Exception as e:
+        error_msg = f"检查并执行止损失败: {e}"
+        print(f"[ERROR] {error_msg}")
+        traceback.print_exc()
+        log_error(
+            function_name='check_and_execute_stop_loss',
+            error_message=f"{error_msg}\n{traceback.format_exc()}",
+        )
+
+
+def _execute_stop_loss_for_account(api, default_account):
+    """
+    为单个账户执行止损检查。
+    """
+    try:
         long_stop_loss = Q(direction=1) & Q(latest_close_price__lt=F('stop_loss_price'))
         short_stop_loss = Q(direction=-1) & Q(latest_close_price__gt=F('stop_loss_price'))
 
@@ -148,8 +182,14 @@ def check_and_execute_stop_loss(api):
                               symbol=position.symbol, log_level='ERROR')
 
             except Exception as pos_error:
-                print(f"[ERROR] 处理 {position.symbol} 止损检查失败: {pos_error}")
+                error_msg = f"处理 {position.symbol} 止损检查失败: {pos_error}"
+                print(f"[ERROR] {error_msg}")
                 traceback.print_exc()
+                log_error(
+                    function_name='_execute_stop_loss_for_account',
+                    error_message=f"{error_msg}\n{traceback.format_exc()}",
+                    account=default_account,
+                )
                 continue
 
         if exit_count > 0:

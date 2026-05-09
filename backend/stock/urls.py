@@ -20,6 +20,8 @@ from stock.views.position import PositionStateViewSet
 from stock.views.trade_log import TradeLogViewSet, ErrorLogViewSet
 from stock.views.closed_position import ClosedPositionRecordViewSet
 from stock.views.knowledge_base import KnowledgeBaseTreeView, KnowledgeBaseContentView
+from stock.views.account import TradingAccountViewSet
+from stock.views.account_contract import AccountContractConfigViewSet
 
 # 创建路由器
 router = DefaultRouter()
@@ -32,6 +34,8 @@ router.register(r'error_log', ErrorLogViewSet, basename='error_log')
 router.register(r'daily_signals', DailyStrategySignalViewSet, basename='daily_signals')
 router.register(r'position', PositionStateViewSet, basename='position')
 router.register(r'closed-positions', ClosedPositionRecordViewSet, basename='closed-position')
+router.register(r'tradingaccount', TradingAccountViewSet, basename='tradingaccount')
+router.register(r'account-contracts', AccountContractConfigViewSet, basename='account-contract')
 
 # ==================== 绩效数据路由 ====================
 router.register(r'equity-snapshots', DailyEquitySnapshotViewSet, basename='equity-snapshot')

@@ -8,7 +8,7 @@ from stock.utils.log_util import log_trade, log_error
 from stock.infrastructure.trade_day import skip_if_not_trade_day
 from stock.core.signal_checker import check_duplicate_pending_signal
 
-from stock.models import TradingAccount, DailyStrategySignal, PositionState, FullContractList
+from stock.models import TradingAccount, DailyStrategySignal, PositionState, FullContractList, AccountContractConfig
 from stock.infrastructure.contract_sync import sync_contract_list_from_tqsdk
 from stock.infrastructure.report_sender import generate_daily_signal_report
 from stock.core.indicators import calculate_indicators
@@ -85,22 +85,18 @@ def check_breakout_signal(symbol, product_code, trend_factor, trend_label,
         return False
 
 
-def check_exit_signals():
+def check_exit_signals(account):
     """
     步骤5：检查是否需要平仓（考虑期货多空特性）
-    
+
     止损逻辑：
     - 多头持仓(direction=1): 最新收盘价 < 止损价 -> 触发止损
     - 空头持仓(direction=-1): 最新收盘价 > 止损价 -> 触发止损
     """
     try:
-        default_account = TradingAccount.objects.filter(is_active=True).first()
-        if not default_account:
-            return
-        
         # 查询所有有持仓的记录（units > 0 且 direction != 0）
         positions = PositionState.objects.filter(
-            account=default_account,
+            account=account,
             units__gt=0
         ).exclude(direction=0)
         
@@ -131,11 +127,11 @@ def check_exit_signals():
             
             # 如果触发止损，保存平仓信号
             if is_trigger:
-                if check_duplicate_pending_signal(default_account, position.symbol, 'STOP_LOSS'):
+                if check_duplicate_pending_signal(account, position.symbol, 'STOP_LOSS'):
                     continue
-                
+
                 DailyStrategySignal.objects.create(
-                    account=default_account,
+                    account=account,
                     symbol=position.symbol,
                     product_code=position.product_code,
                     trade_date=date.today(),
@@ -158,22 +154,18 @@ def check_exit_signals():
         print(f"[ERROR] 检查平仓信号失败: {e}")
 
 
-def check_rollover_signals():
+def check_rollover_signals(account):
     """
     步骤6：检查是否需要移仓（根据is_rollover_needed字段）
-    
+
     逻辑：
     - 如果is_rollover_needed=True，说明主力合约发生变化且有持仓，需要移仓
     - 生成移仓信号，提醒用户进行移仓操作
     """
     try:
-        default_account = TradingAccount.objects.filter(is_active=True).first()
-        if not default_account:
-            return
-        
         # 查询所有需要移仓的记录
         rollover_positions = PositionState.objects.filter(
-            account=default_account,
+            account=account,
             is_rollover_needed=True,
             units__gt=0  # 只处理有持仓的记录
         )
@@ -183,16 +175,15 @@ def check_rollover_signals():
         for position in rollover_positions:
             # 获取新的主力合约信息
             main_contract = FullContractList.objects.filter(
-                product_code=position.product_code,
-                is_active=True
+                product_code=position.product_code
             ).first()
             
             if main_contract:
-                if check_duplicate_pending_signal(default_account, position.symbol, 'ROLLOVER'):
+                if check_duplicate_pending_signal(account, position.symbol, 'ROLLOVER'):
                     continue
-                
+
                 DailyStrategySignal.objects.create(
-                    account=default_account,
+                    account=account,
                     symbol=position.symbol,
                     product_code=position.product_code,
                     trade_date=date.today(),
@@ -215,10 +206,10 @@ def check_rollover_signals():
         print(f"[ERROR] 检查移仓信号失败: {e}")
 
 
-def check_add_position_signals():
+def check_add_position_signals(account):
     """
     步骤4：检查是否需要加仓（基于海龟法则金字塔加仓逻辑）
-    
+
     加仓规则：
     - 仅对持仓单位数 < 3 的持仓进行检查
     - 1单位持仓时，以 last_add_price（首次开仓价）为基准：
@@ -228,17 +219,13 @@ def check_add_position_signals():
       - 多头：从首次开仓价累计涨超 1.0×ATR → 加1单位
       - 空头：从首次开仓价累计跌超 1.0×ATR → 加1单位
     - 重要：无论价格变动多大，加仓后总单位数不得超过3单位
-    
+
     注意：所有计算统一使用 Decimal 类型，避免精度丢失
     """
     try:
-        default_account = TradingAccount.objects.filter(is_active=True).first()
-        if not default_account:
-            return
-        
         # 查询所有有持仓且单位数 < 3 的记录
         positions = PositionState.objects.filter(
-            account=default_account,
+            account=account,
             units__gt=0,
             units__lt=3  # 仅检查未达到最大持仓单位数的记录
         ).exclude(direction=0)
@@ -309,11 +296,11 @@ def check_add_position_signals():
                     if new_units > 3:
                         add_units = 3 - current_units
                     
-                    if check_duplicate_pending_signal(default_account, position.symbol, 'ADD_ON'):
+                    if check_duplicate_pending_signal(account, position.symbol, 'ADD_ON'):
                         continue
-                    
+
                     DailyStrategySignal.objects.create(
-                        account=default_account,
+                        account=account,
                         symbol=position.symbol,
                         product_code=position.product_code,
                         trade_date=date.today(),
@@ -342,22 +329,17 @@ def check_add_position_signals():
 
 
 
-def update_all_positions_high_low_price():
+def update_all_positions_high_low_price(account):
     """
     计算持仓后出现的历史收盘最高价和最低价
-    
+
     逻辑：
     - 对于每个持仓记录，查询该合约的历史收盘价
     - 更新持仓记录的最高收盘价和最低收盘价字段
     """
     try:
-        default_account = TradingAccount.objects.filter(is_active=True).first()
-        if not default_account:
-            print("[WARN] 未找到活跃账户，跳过最高最低价更新")
-            return
-        
         positions = PositionState.objects.filter(
-            account=default_account,
+            account=account,
             units__gt=0  # 只处理有持仓的记录
         )
         
@@ -386,26 +368,21 @@ def update_all_positions_high_low_price():
     except Exception as e:
         print(f"[ERROR] 更新最高最低价格失败: {e}")
         traceback.print_exc()
-def update_all_positions_stop_loss_price(api):
+def update_all_positions_stop_loss_price(api, account):
     """
     更新所有持仓的止损价格
-    
+
     止损价计算逻辑（考虑期货多空特性）：
     - 多头持仓 (direction=1)：止损价 = 最高价 - 2(1+factor) * ATR
       当价格跌破止损价时触发平仓
     - 空头持仓 (direction=-1)：止损价 = 最低价 + 2(1+factor) * ATR
       当价格突破止损价时触发平仓
-    
+
     注意：所有计算统一使用 Decimal 类型，避免精度丢失
     """
     try:
-        default_account = TradingAccount.objects.filter(is_active=True).first()
-        if not default_account:
-            print("[WARN] 未找到活跃账户，跳过止损价格更新")
-            return
-        
         positions = PositionState.objects.filter(
-            account=default_account,
+            account=account,
             units__gt=0  # 只处理有持仓的记录
         ).exclude(direction=0)
         
@@ -575,12 +552,14 @@ def job_daily_close_calculation():
         # 第3步：同步期货合约列表
         sync_contract_list_from_tqsdk(api=api)
         
-        # 第4步：计算活跃品种的技术指标
-        contracts = PositionState.objects.all().values('symbol', 'product_code','units')
-        for contract in contracts:
-            if FullContractList.objects.filter(symbol=contract['symbol'], is_active=True).exists():
-                contract['is_active'] = True
-        active_contracts = [contract for contract in contracts if contract.get('is_active')]
+        # 第4步：计算活跃品种的技术指标（基于 AccountContractConfig 多用户配置）
+        active_product_codes = AccountContractConfig.objects.filter(
+            is_active=True,
+            account__is_active=True
+        ).values_list('product_code', flat=True).distinct()
+        active_contracts = FullContractList.objects.filter(
+            product_code__in=active_product_codes
+        ).values('symbol', 'product_code')
         
         indicator_results = []
         
@@ -627,83 +606,107 @@ def job_daily_close_calculation():
             
             print(f"[INFO] 指标计算完成: 成功{success_count}个, 失败{fail_count}个")
         
-        # 第5步：检查是否需要开仓（保存信号到数据库）
-        default_account = TradingAccount.objects.filter(is_active=True).first()
-        
-        if default_account and indicator_results:
-            open_count = 0
-            
-            for result in indicator_results:
-                breakout_info = result.get('breakout_info', {})
-                if breakout_info.get('is_breakout'):
-                    success = check_breakout_signal(
-                        symbol=result['symbol'],
-                        product_code=result['product_code'],
-                        trend_factor=result['trend_factor'],
-                        trend_label=result['trend_label'],
-                        breakout_info=breakout_info,
-                        account=default_account,
-                        trade_type='ENTRY'
-                    )
-                    
-                    if success:
-                        open_count += 1
-            
-            print(f"[INFO] 开仓信号生成: {open_count}个")
-    
-        # 第6步：计算持仓后出现的历史收盘最高低价格
-        update_all_positions_high_low_price()
-        
-        # 第7步：止损价格计算
-        update_all_positions_stop_loss_price(api=api)
-        
-        # 第8步：检查是否需要平仓
-        check_exit_signals()
+        # 第5-12步：遍历所有活跃账户，执行账户级操作
+        accounts = TradingAccount.objects.filter(is_active=True)
+        if accounts.count() > 1:
+            log_trade('job_daily_close_calculation',
+                      f"多账户模式：共 {accounts.count()} 个账户共享同一 TqSDK 连接，"
+                      "绩效数据将基于同一账户权益计算。如各账户使用独立天勤账号，"
+                      "需为每个账户创建独立的 TqApi 连接。",
+                      symbol=None, log_level='INFO')
 
-        # 第9步：检查加仓信号
-        check_add_position_signals()
-        
-        # 第10步：检查是否需要移仓
-        check_rollover_signals()
-        
-        # 第11步：生成并发送每日策略信号报告邮件
-        generate_daily_signal_report()
-        
-        # 第12步：更新三层绩效指标（日权益快照、滚动指标、账户总览）
-        if default_account and api:
+        for account in accounts:
             try:
-                # 从 TqSDK 获取账户数据
-                api_account = api.get_account()
-                
-                # 转换为字典格式（update_all_performance_metrics 需要的格式）
-                api_account_data = {
-                    'balance': float(api_account.balance),
-                    'static_balance': float(api_account.static_balance),
-                    'available': float(api_account.available),
-                    'margin': float(api_account.margin),
-                    'float_profit': float(api_account.float_profit),
-                    'close_profit': float(api_account.close_profit),
-                    'commission': float(api_account.commission),
-                    'risk_ratio': float(api_account.risk_ratio),
-                    'pre_balance': float(api_account.pre_balance),
-                }
-                
-                # 调用统一更新函数
-                result = update_all_performance_metrics(
-                    account=default_account,
-                    api_account_data=api_account_data,
-                    trade_date=date.today()
+                # 获取该账户激活的品种代码，只处理该账户有权交易的品种
+                account_product_codes = set(
+                    AccountContractConfig.objects.filter(
+                        account=account, is_active=True
+                    ).values_list('product_code', flat=True)
                 )
-                
-                print(f"[SUCCESS] ✅ 三层绩效数据已更新")
-                print(f"  - 日权益快照: balance={result['snapshot'].balance}")
-                print(f"  - 滚动指标: sharpe_20d={result['rolling_metrics'][20].sharpe_ratio}")
-                print(f"  - 账户总览: total_return={result['summary'].total_return}%")
-                
-            except Exception as perf_error:
-                print(f"[ERROR] 更新绩效指标失败: {perf_error}")
+                account_results = [
+                    r for r in indicator_results
+                    if r['product_code'] in account_product_codes
+                ]
+
+                # 第5步：检查是否需要开仓（保存信号到数据库）
+                if account_results:
+                    open_count = 0
+
+                    for result in account_results:
+                        breakout_info = result.get('breakout_info', {})
+                        if breakout_info.get('is_breakout'):
+                            success = check_breakout_signal(
+                                symbol=result['symbol'],
+                                product_code=result['product_code'],
+                                trend_factor=result['trend_factor'],
+                                trend_label=result['trend_label'],
+                                breakout_info=breakout_info,
+                                account=account,
+                                trade_type='ENTRY'
+                            )
+
+                            if success:
+                                open_count += 1
+
+                    print(f"[INFO] {account.name} 开仓信号生成: {open_count}个")
+
+                # 第6步：计算持仓后出现的历史收盘最高低价格
+                update_all_positions_high_low_price(account)
+
+                # 第7步：止损价格计算
+                update_all_positions_stop_loss_price(api=api, account=account)
+
+                # 第8步：检查是否需要平仓
+                check_exit_signals(account)
+
+                # 第9步：检查加仓信号
+                check_add_position_signals(account)
+
+                # 第10步：检查是否需要移仓
+                check_rollover_signals(account)
+
+                # 第11步：生成并发送每日策略信号报告邮件
+                generate_daily_signal_report(account)
+
+                # 第12步：更新三层绩效指标（日权益快照、滚动指标、账户总览）
+                if api:
+                    try:
+                        # 从 TqSDK 获取账户数据
+                        api_account = api.get_account()
+
+                        # 转换为字典格式（update_all_performance_metrics 需要的格式）
+                        api_account_data = {
+                            'balance': float(api_account.balance),
+                            'static_balance': float(api_account.static_balance),
+                            'available': float(api_account.available),
+                            'margin': float(api_account.margin),
+                            'float_profit': float(api_account.float_profit),
+                            'close_profit': float(api_account.close_profit),
+                            'commission': float(api_account.commission),
+                            'risk_ratio': float(api_account.risk_ratio),
+                            'pre_balance': float(api_account.pre_balance),
+                        }
+
+                        # 调用统一更新函数
+                        result = update_all_performance_metrics(
+                            account=account,
+                            api_account_data=api_account_data,
+                            trade_date=date.today()
+                        )
+
+                        print(f"[SUCCESS] {account.name} ✅ 三层绩效数据已更新")
+                        print(f"  - 日权益快照: balance={result['snapshot'].balance}")
+                        print(f"  - 滚动指标: sharpe_20d={result['rolling_metrics'][20].sharpe_ratio}")
+                        print(f"  - 账户总览: total_return={result['summary'].total_return}%")
+
+                    except Exception as perf_error:
+                        print(f"[ERROR] {account.name} 更新绩效指标失败: {perf_error}")
+                        traceback.print_exc()
+
+            except Exception as account_error:
+                print(f"[ERROR] 处理账户 {account.name} 任务失败: {account_error}")
                 traceback.print_exc()
-        
+
         print("[INFO] ✅ 今日收盘计算任务完成")
 
     except Exception as e:

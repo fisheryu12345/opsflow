@@ -4,10 +4,23 @@ Contract list synchronization from TqSDK.
 from django.db import transaction
 from decimal import Decimal
 import traceback
-from stock.models import TradingAccount, PositionState, FullContractList
-from stock.core.config_loader import get_config
+from stock.models import TradingAccount, PositionState, FullContractList, AccountContractConfig
 
-PRODUCT_CODES = get_config('PRODUCT_CODES')
+
+def _ensure_position_states(symbol, product_code):
+    """
+    为所有已激活该品种的账户创建/更新 PositionState。
+    多用户场景下，每个激活了此品种的账户都需要有对应的持仓状态记录。
+    """
+    configs = AccountContractConfig.objects.filter(
+        product_code=product_code, is_active=True
+    ).select_related('account')
+    for cfg in configs:
+        PositionState.objects.get_or_create(
+            account=cfg.account,
+            symbol=symbol,
+            defaults={'product_code': product_code}
+        )
 
 
 def sync_contract_list_from_tqsdk(api=None):
@@ -38,11 +51,6 @@ def sync_contract_list_from_tqsdk(api=None):
             try:
                 print(f"\n[CHECK] 处理主力合约: {cont_symbol}")
                 quote = api.get_quote(cont_symbol)
-                if quote.product_id not in PRODUCT_CODES:
-                    print(f"  [SKIP] 排除的品种: {quote.product_id}")
-                    skipped_count += 1
-                    continue
-
                 instrument_id = quote.instrument_id
                 product_id = quote.product_id
                 exchange_id = quote.exchange_id
@@ -87,13 +95,7 @@ def sync_contract_list_from_tqsdk(api=None):
                     )
 
                     if created:
-                        ta = TradingAccount.objects.all().first()
-                        if ta:
-                            PositionState.objects.create(
-                                account=ta,
-                                symbol=instrument_id,
-                                product_code=product_id
-                            )
+                        _ensure_position_states(instrument_id, product_id)
                         synced_count += 1
                         print(f"    [ADD] 新增记录: {instrument_id}")
                     else:

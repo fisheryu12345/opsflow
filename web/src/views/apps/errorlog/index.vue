@@ -1,11 +1,5 @@
 <template>
   <div class="trading-page">
-    <PageHeader title="错误日志">
-      <template #actions>
-        <el-button type="danger" @click="handleClearAll">清除全部</el-button>
-      </template>
-    </PageHeader>
-
     <!-- Filter Bar -->
     <div class="filter-bar">
       <el-input v-model="filters.function_name" placeholder="函数名称" clearable class="filter-item" @clear="refresh" @keyup.enter="refresh" />
@@ -20,6 +14,7 @@
         @change="onDateChange"
       />
       <el-button type="primary" @click="refresh">查询</el-button>
+      <el-button type="danger" @click="handleClearAll">清除全部</el-button>
     </div>
 
     <!-- Table -->
@@ -69,7 +64,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import PageHeader from '/@/views/apps/components/PageHeader.vue'
 import { useErrorLog } from './useErrorLog'
 
 const {

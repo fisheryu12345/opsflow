@@ -5,8 +5,11 @@ import socket
 class StockConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'stock'
-    
+
     def ready(self):
+        # 注册信号（始终执行，不限 IP）
+        import stock.signals  # noqa
+
         # 检查本机IP地址，只有特定IP才启动定时器
         try:
             # 获取本机所有IP地址

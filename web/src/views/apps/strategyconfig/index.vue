@@ -1,15 +1,10 @@
 <template>
   <div class="trading-page">
-    <PageHeader title="策略配置">
-      <template #actions>
-        <el-button type="primary" @click="handleAdd">新建策略</el-button>
-      </template>
-    </PageHeader>
-
     <!-- Filter Bar -->
     <div class="filter-bar">
       <el-input v-model="search" placeholder="配置名称" clearable class="filter-item" @clear="refresh" @keyup.enter="refresh" />
       <el-button type="primary" @click="refresh">查询</el-button>
+      <el-button type="primary" @click="handleAdd">新建策略</el-button>
     </div>
 
     <!-- Table -->
@@ -28,11 +23,6 @@
           <el-table-column prop="atr_period" label="ATR周期" min-width="90" align="center" sortable />
           <el-table-column prop="entry_period" label="入场周期" min-width="90" align="center" sortable />
           <el-table-column prop="tqapi_account" label="TqSDK账号" min-width="150" />
-          <el-table-column label="交易品种数" min-width="100" align="center">
-            <template #default="{ row }">
-              <el-tag size="small">{{ (row.product_codes || '').split(',').filter(Boolean).length }}</el-tag>
-            </template>
-          </el-table-column>
           <el-table-column label="操作" width="130" align="center" fixed="right">
             <template #default="{ row }">
               <el-button type="primary" size="small" text @click="handleEdit(row)">编辑</el-button>
@@ -68,7 +58,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import PageHeader from '/@/views/apps/components/PageHeader.vue'
 import ValueCell from '/@/views/apps/components/ValueCell.vue'
 import { useStrategyConfig } from './useStrategyConfig'
 import StrategyFormDialog from './StrategyFormDialog.vue'

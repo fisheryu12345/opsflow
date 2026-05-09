@@ -16,11 +16,6 @@ DEFAULTS = {
     'TREND_FACTOR_MAX': 0.5,
     'TREND_LABEL_STRONG_RATIO': 0.80,
     'TREND_LABEL_WEAK_RATIO': 0.30,
-    'PRODUCT_CODES': [
-        'rb', 'hc', 'al', 'ao', 'MA', 'TA', 'SA', 'FG',
-        'fu', 'ru', 'UR', 'm', 'p', 'CF', 'RM', 'AP',
-        'lh', 'jd', 'sp', 'si', 'lc', 'SR',
-    ],
     'TQAPI_ACCOUNT': 'yupei1986',
     'TQAPI_PASSWORD': 'yupei1986',
 }
@@ -37,7 +32,6 @@ FIELD_MAP = {
     'TREND_FACTOR_MAX': 'trend_factor_max',
     'TREND_LABEL_STRONG_RATIO': 'trend_label_strong_ratio',
     'TREND_LABEL_WEAK_RATIO': 'trend_label_weak_ratio',
-    'PRODUCT_CODES': 'product_codes',
     'TQAPI_ACCOUNT': 'tqapi_account',
     'TQAPI_PASSWORD': 'tqapi_password',
 }
@@ -100,7 +94,6 @@ def _expected_type(key):
         'TREND_FACTOR_MAX': float,
         'TREND_LABEL_STRONG_RATIO': float,
         'TREND_LABEL_WEAK_RATIO': float,
-        'PRODUCT_CODES': list,
         'TQAPI_ACCOUNT': str,
         'TQAPI_PASSWORD': str,
     }

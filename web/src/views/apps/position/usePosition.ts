@@ -1,5 +1,6 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { usePagination } from '/@/composables/usePagination'
+import { useAccountStore } from '/@/stores/account'
 import * as api from './api'
 import type { PositionRecord } from '/@/types/trading'
 
@@ -13,6 +14,7 @@ export function usePosition() {
     direction: null as number | null,
   })
   const showHoldingsOnly = ref(false)
+  const accountStore = useAccountStore()
 
   async function fetchData() {
     loading.value = true
@@ -21,6 +23,7 @@ export function usePosition() {
       if (filters.symbol) params.symbol = filters.symbol
       if (filters.product_code) params.product_code = filters.product_code
       if (filters.direction !== null) params.direction = filters.direction
+      if (accountStore.currentAccountId) params.account = accountStore.currentAccountId
 
       const res = await api.GetList(params)
       if (res.code === 2000) {
@@ -47,7 +50,7 @@ export function usePosition() {
     list.value.filter(item => item.is_rollover_needed).length
   )
 
-  watch([page, pageSize], fetchData, { immediate: true })
+  watch([page, pageSize, () => accountStore.currentAccountId], fetchData, { immediate: true })
 
   function refresh() {
     page.value = 1

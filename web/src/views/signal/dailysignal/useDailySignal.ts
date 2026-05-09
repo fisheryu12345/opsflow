@@ -1,5 +1,6 @@
 import { ref, reactive, watch } from 'vue'
 import { usePagination } from '/@/composables/usePagination'
+import { useAccountStore } from '/@/stores/account'
 import * as api from './api'
 import type { DailySignalRecord } from '/@/types/trading'
 
@@ -7,6 +8,7 @@ export function useDailySignal() {
   const { page, pageSize, total, onPageChange, onSizeChange } = usePagination(20)
   const list = ref<DailySignalRecord[]>([])
   const loading = ref(false)
+  const accountStore = useAccountStore()
   const filters = reactive({
     trade_date__gte: '',
     trade_date__lte: '',
@@ -30,6 +32,7 @@ export function useDailySignal() {
       if (filters.executed_status) params.executed_status = filters.executed_status
       if (filters.symbol) params.symbol = filters.symbol
       if (filters.trend_label) params.trend_label = filters.trend_label
+      if (accountStore.currentAccountId) params.account = accountStore.currentAccountId
 
       const res = await api.GetList(params)
       if (res.code === 2000) {
@@ -43,7 +46,7 @@ export function useDailySignal() {
     }
   }
 
-  watch([page, pageSize], fetchData, { immediate: true })
+  watch([page, pageSize, () => accountStore.currentAccountId], fetchData, { immediate: true })
 
   function refresh() {
     page.value = 1

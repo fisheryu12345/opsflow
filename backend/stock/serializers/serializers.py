@@ -14,7 +14,8 @@ from stock.models import (
     DailyEquitySnapshot,
     RollingPerformanceMetrics,
     AccountPerformanceSummary,
-    ClosedPositionRecord
+    ClosedPositionRecord,
+    AccountContractConfig,
 )
 
 
@@ -242,3 +243,22 @@ class AccountPerformanceSummarySerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['id', 'updated_at']
+
+
+class AccountContractConfigSerializer(serializers.ModelSerializer):
+    """账户交易品种配置序列化器"""
+    account_name = serializers.CharField(source='account.name', read_only=True)
+
+    class Meta:
+        model = AccountContractConfig
+        fields = [
+            'id',
+            'account',
+            'account_name',
+            'product_code',
+            'is_active',
+            'allow_open',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']

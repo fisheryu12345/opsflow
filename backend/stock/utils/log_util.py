@@ -41,6 +41,7 @@ from django.utils import timezone
 def log_error(
     function_name: str,
     error_message: str,
+    account=None,
 ):
     """
     记录错误日志到数据库
@@ -74,6 +75,7 @@ def log_error(
         error_log = ErrorLog.objects.create(
             function_name=function_name,
             error_message=error_message,
+            account=account,
         )
 
         
@@ -88,7 +90,8 @@ def log_trade(
     function_name: str,
     log_message: str,
     symbol: str = None,
-    log_level: str = 'INFO'
+    log_level: str = 'INFO',
+    account=None,
 ):
     """
     记录交易日志到数据库
@@ -132,7 +135,7 @@ def log_trade(
             log_message=log_message,
             symbol=symbol,
             log_level=log_level,
-
+            account=account,
         )
         
         return trade_log

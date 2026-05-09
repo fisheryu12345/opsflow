@@ -18,8 +18,9 @@
         </el-col>
       </el-row>
     </template>
-    <div class="permission-com">
-      <el-collapse v-model="collapseCurrent" @change="handleCollapseChange" accordion>
+    <div class="permission-com" v-loading="loading">
+      <el-empty v-if="!loading && menuData.length === 0" description="暂无权限数据" />
+      <el-collapse v-if="menuData.length > 0" v-model="collapseCurrent" @change="handleCollapseChange" accordion>
         <el-collapse-item v-for="(item,mIndex) in menuData" :key="mIndex" :name="mIndex"
                           style="    background-color: #fafafa;">
           <template #title>
@@ -158,6 +159,7 @@ const defaultTreeProps = {
   value: 'id',
 };
 
+let loading = ref(false);
 let menuData = ref<MenuDataType[]>([]);
 let collapseCurrent = ref(['1']);
 let menuCurrent = ref<Partial<MenuDataType>>({});
@@ -175,8 +177,21 @@ let dataPermission = ref();
 let customDataPermission = ref([]);
 //获取菜单,按钮,权限
 const getMenuBtnPermission = async () => {
-  const resMenu = await getRolePremission({role: props.roleId})
-  menuData.value = resMenu.data
+  loading.value = true
+  try {
+    const resMenu = await getRolePremission({role: props.roleId})
+    if (resMenu && resMenu.code === 2000) {
+      menuData.value = resMenu.data || []
+    } else {
+      console.warn('获取权限配置失败:', resMenu?.msg || '未知错误')
+      menuData.value = []
+    }
+  } catch (e) {
+    console.error('获取权限配置异常:', e)
+    menuData.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 const fetchData = async () => {

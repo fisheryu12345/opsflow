@@ -77,10 +77,6 @@
             <el-input-number v-model="form.gap_threshold" :min="0" :max="10" :precision="2" :step="0.1" style="width: 100%" />
             <div class="form-helper">跳空幅度=abs(最新价-昨收)/ATR，超过此值跳过开仓。默认: 1.5</div>
           </el-form-item>
-          <el-form-item label="交易品种列表" prop="product_codes">
-            <el-input v-model="form.product_codes" type="textarea" :rows="4" placeholder="逗号分隔，如: rb,hc,MA,TA" />
-            <div class="form-helper">仅列表中的品种会同步合约和生成交易信号。逗号分隔，不要含空格</div>
-          </el-form-item>
         </el-tab-pane>
 
         <el-tab-pane label="TqSDK配置">
@@ -140,7 +136,6 @@ const form = reactive({
   trend_label_strong_ratio: 0.80,
   trend_label_weak_ratio: 0.30,
   gap_threshold: 1.5,
-  product_codes: '',
   tqapi_account: '',
   tqapi_password: '',
 })
@@ -162,7 +157,7 @@ watch(() => props.record, (r) => {
       timeout_seconds: 60, atr_period: 20, entry_period: 20,
       ma_periods: '10,20,40', trend_gap_limit: 0.03, trend_factor_max: 0.5,
       trend_label_strong_ratio: 0.80, trend_label_weak_ratio: 0.30,
-      gap_threshold: 1.5, product_codes: '', tqapi_account: '', tqapi_password: '',
+      gap_threshold: 1.5, tqapi_account: '', tqapi_password: '',
     })
   }
 }, { immediate: true })

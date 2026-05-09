@@ -3,7 +3,7 @@
 """
 from decimal import Decimal
 from rest_framework import viewsets, filters, status
-from rest_framework.permissions import IsAuthenticated  # ⚠️ 仅用于开发测试，生产环境请移除！
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count, Sum, Case, When, Value, IntegerField, Q
@@ -17,8 +17,10 @@ from stock.models import (
     DailyEquitySnapshot,
     RollingPerformanceMetrics,
     AccountPerformanceSummary,
-    ClosedPositionRecord
+    ClosedPositionRecord,
+    TradingAccount,
 )
+from stock.filters import UserAccountFilterBackend, validate_account_access
 
 
 class DailyEquitySnapshotViewSet(viewsets.ModelViewSet):
@@ -36,8 +38,8 @@ class DailyEquitySnapshotViewSet(viewsets.ModelViewSet):
     """
     queryset = DailyEquitySnapshot.objects.all()
     serializer_class = DailyEquitySnapshotSerializer
-    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, UserAccountFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     # 过滤字段配置
     filterset_fields = {
@@ -70,8 +72,8 @@ class RollingPerformanceMetricsViewSet(viewsets.ModelViewSet):
     """
     queryset = RollingPerformanceMetrics.objects.all()
     serializer_class = RollingPerformanceMetricsSerializer
-    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, UserAccountFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     # 过滤字段配置
     filterset_fields = {
@@ -104,8 +106,8 @@ class AccountPerformanceSummaryViewSet(viewsets.ModelViewSet):
     """
     queryset = AccountPerformanceSummary.objects.all()
     serializer_class = AccountPerformanceSummarySerializer
-    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, UserAccountFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     # 过滤字段配置
     filterset_fields = {
@@ -140,18 +142,25 @@ class SymbolWinRateView(viewsets.ViewSet):
         ...
     ]
     """
-    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    permission_classes = [IsAuthenticated]
     
     def list(self, request):
         account_id = request.query_params.get('account')
-        
+
         if not account_id:
             return Response({
                 'code': 4000,
                 'msg': '缺少账户ID参数',
                 'data': []
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        if not validate_account_access(request.user, account_id):
+            return Response({
+                'code': 4003,
+                'msg': '无权访问该账户',
+                'data': []
+            }, status=status.HTTP_403_FORBIDDEN)
+
         # 使用 Django ORM 聚合查询
         stats = ClosedPositionRecord.objects.filter(
             account_id=account_id
@@ -209,18 +218,25 @@ class AccountCumulativeStatsView(viewsets.ViewSet):
         }
     }
     """
-    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
-    
+    permission_classes = [IsAuthenticated]
+
     def list(self, request):
         account_id = request.query_params.get('account')
-        
+
         if not account_id:
             return Response({
                 'code': 4000,
                 'msg': '缺少账户ID参数',
                 'data': {}
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        if not validate_account_access(request.user, account_id):
+            return Response({
+                'code': 4003,
+                'msg': '无权访问该账户',
+                'data': {}
+            }, status=status.HTTP_403_FORBIDDEN)
+
         # 1. 累计平仓盈亏（从 ClosedPositionRecord 聚合）
         closed_pnl_agg = ClosedPositionRecord.objects.filter(
             account_id=account_id
@@ -276,7 +292,7 @@ class DrawdownCurveView(viewsets.ViewSet):
     - drawdown_pct: (当前权益 - 历史最高权益) / 历史最高权益 * 100%
     - is_new_peak: 是否创出新高（用于标记关键时间点）
     """
-    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    permission_classes = [IsAuthenticated]
     
     def list(self, request):
         account_id = request.query_params.get('account')
@@ -287,7 +303,14 @@ class DrawdownCurveView(viewsets.ViewSet):
                 'msg': '缺少账户ID参数',
                 'data': []
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        if not validate_account_access(request.user, account_id):
+            return Response({
+                'code': 4003,
+                'msg': '无权访问该账户',
+                'data': []
+            }, status=status.HTTP_403_FORBIDDEN)
+
         # 查询所有日权益快照，按日期排序
         snapshots = DailyEquitySnapshot.objects.filter(
             account_id=account_id
@@ -355,7 +378,7 @@ class DailyReturnsCalendarView(viewsets.ViewSet):
         ]
     }
     """
-    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    permission_classes = [IsAuthenticated]
     
     def list(self, request):
         account_id = request.query_params.get('account')
@@ -366,7 +389,14 @@ class DailyReturnsCalendarView(viewsets.ViewSet):
                 'msg': '缺少账户ID参数',
                 'data': []
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        if not validate_account_access(request.user, account_id):
+            return Response({
+                'code': 4003,
+                'msg': '无权访问该账户',
+                'data': []
+            }, status=status.HTTP_403_FORBIDDEN)
+
         # 查询所有日权益快照，按日期排序
         snapshots = DailyEquitySnapshot.objects.filter(
             account_id=account_id

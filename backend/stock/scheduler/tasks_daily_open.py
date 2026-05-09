@@ -8,7 +8,7 @@ from django.db import close_old_connections
 from datetime import datetime
 from stock.models import TradingAccount
 from stock.infrastructure.trade_day import skip_if_not_trade_day
-from stock.utils.log_util import log_trade
+from stock.utils.log_util import log_trade, log_error
 from stock.infrastructure.report_sender import send_open_report
 from stock.infrastructure.tqapi import create_tqapi, safe_close_api, ensure_api_connected
 from stock.infrastructure.order_signals import process_signals_by_type
@@ -22,15 +22,19 @@ def job_daily_open_process():
     current_date = datetime.now().date()
     close_old_connections()
 
+    # 非交易日检查 — 提前退出，避免为每个账户创建连接
+    check_api = create_tqapi()
+    try:
+        if skip_if_not_trade_day(api=check_api):
+            return
+    finally:
+        safe_close_api(check_api)
+
     accounts = TradingAccount.objects.all()
     for account in accounts:
         api = create_tqapi()
-        if skip_if_not_trade_day(api=api):
-            safe_close_api(api)
-            return
-
         redis = get_redis_connection('default')
-        lock_key = 'lock:open'
+        lock_key = f'lock:open:{account.id}'
         if redis.set(lock_key, 'true', nx=True, ex=600):
             try:
                 result = process_signals_by_type(api, account, 'STOP_LOSS')
@@ -57,8 +61,14 @@ def job_daily_open_process():
                 send_open_report(account, current_date)
 
             except Exception as e:
-                print(f"[ERROR] 处理账户 {account.username} 时发生错误: {str(e)}")
+                error_msg = f"处理账户 {account.username}(id={account.id}) 时发生错误: {str(e)}"
+                print(f"[ERROR] {error_msg}")
                 traceback.print_exc()
+                log_error(
+                    function_name='job_daily_open_process',
+                    error_message=f"{error_msg}\n{traceback.format_exc()}",
+                    account=account,
+                )
             finally:
                 redis.delete(lock_key)
                 safe_close_api(api)

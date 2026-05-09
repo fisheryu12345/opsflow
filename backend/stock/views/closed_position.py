@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from stock.serializers.serializers import ClosedPositionRecordSerializer
 from stock.models import ClosedPositionRecord
+from stock.filters import UserAccountFilterBackend
 
 
 class ClosedPositionRecordViewSet(viewsets.ReadOnlyModelViewSet):
@@ -25,7 +26,7 @@ class ClosedPositionRecordViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ClosedPositionRecord.objects.all()
     serializer_class = ClosedPositionRecordSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, UserAccountFilterBackend, filters.SearchFilter, filters.OrderingFilter]
 
     # 过滤字段配置
     filterset_fields = {

@@ -61,10 +61,11 @@ def send_open_report(account=None, current_date=None):
             'current_time': now.strftime('%Y-%m-%d %H:%M:%S'),
         })
 
+        receiver_email = account.user.email if account.user.email else '312711936@qq.com'
         send_email(
             subject=f'[量化策略] 今日信号执行报告 - {now.strftime("%Y-%m-%d %H:%M")}',
             body=html_content,
-            receiver_email='312711936@qq.com',
+            receiver_email=receiver_email,
             is_html=True
         )
 
@@ -82,29 +83,33 @@ def send_open_report(account=None, current_date=None):
         return False
 
 
-def generate_daily_signal_report():
+def generate_daily_signal_report(account=None):
     """
     生成每日策略信号报告并发送邮件。
     """
     try:
         today = date.today()
-        default_account = TradingAccount.objects.filter(is_active=True).first()
 
-        if not default_account:
-            print("[WARN] 未找到活跃账户，跳过邮件发送")
-            return False
+        if account is None:
+            account = TradingAccount.objects.filter(is_active=True).first()
+            if not account:
+                print("[WARN] 未找到活跃账户，跳过邮件发送")
+                return False
 
         signals = DailyStrategySignal.objects.filter(
-            account=default_account,
+            account=account,
             trade_date=today
         ).order_by('-trade_date', 'symbol')
 
+        # 先解析收件人邮箱，两个分支（无信号/有信号）共用
+        receiver_email = account.user.email if account.user.email else '312711936@qq.com'
+
         if not signals:
-            print("[INFO] 今日无策略信号，发送通知邮件")
+            print(f"[INFO] {account.name} 今日无策略信号，发送通知邮件")
 
             html_content = render_to_string('daily_strategy_signal_report.html', {
                 'report_date': today,
-                'account_name': default_account.name,
+                'account_name': account.name,
                 'signals': [],
                 'summary': {
                     'total_signals': 0,
@@ -118,13 +123,13 @@ def generate_daily_signal_report():
             })
 
             send_email(
-                subject=f'[量化策略] 每日信号报告 - {today.strftime("%Y-%m-%d")}',
+                subject=f'[量化策略] {account.name} 每日信号报告 - {today.strftime("%Y-%m-%d")}',
                 body=html_content,
-                receiver_email='312711936@qq.com',
+                receiver_email=receiver_email,
                 is_html=True
             )
 
-            print("[SUCCESS] 无信号通知邮件已发送")
+            print(f"[SUCCESS] {account.name} 无信号通知邮件已发送")
             return True
 
         summary = {
@@ -152,20 +157,20 @@ def generate_daily_signal_report():
 
         html_content = render_to_string('daily_strategy_signal_report.html', {
             'report_date': today,
-            'account_name': default_account.name,
+            'account_name': account.name,
             'signals': signals_data,
             'summary': summary,
             'current_time': timezone.now(),
         })
 
         send_email(
-            subject=f'[量化策略] 每日信号报告 - {today.strftime("%Y-%m-%d")}',
+            subject=f'[量化策略] {account.name} 每日信号报告 - {today.strftime("%Y-%m-%d")}',
             body=html_content,
-            receiver_email='312711936@qq.com',
+            receiver_email=receiver_email,
             is_html=True
         )
 
-        print(f"[SUCCESS] 邮件发送任务已提交: {summary['total_signals']}个信号")
+        print(f"[SUCCESS] {account.name} 邮件发送任务已提交: {summary['total_signals']}个信号")
         return True
 
     except Exception as e:

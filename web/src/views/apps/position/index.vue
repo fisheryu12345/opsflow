@@ -1,6 +1,5 @@
 <template>
   <div class="trading-page">
-    <PageHeader title="持仓管理" />
 
     <!-- Summary Cards -->
     <div class="metric-card-grid">
@@ -83,7 +82,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import PageHeader from '/@/views/apps/components/PageHeader.vue'
 import MetricCard from '/@/views/apps/components/MetricCard.vue'
 import StatusTag from '/@/views/apps/components/StatusTag.vue'
 import ValueCell from '/@/views/apps/components/ValueCell.vue'

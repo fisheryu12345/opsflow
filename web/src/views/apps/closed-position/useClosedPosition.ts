@@ -1,5 +1,6 @@
 import { ref, reactive, watch } from 'vue'
 import { usePagination } from '/@/composables/usePagination'
+import { useAccountStore } from '/@/stores/account'
 import * as api from './api'
 import type { ClosedPositionRecord } from '/@/types/trading'
 
@@ -7,6 +8,7 @@ export function useClosedPosition() {
   const { page, pageSize, total, onPageChange, onSizeChange } = usePagination(20)
   const list = ref<ClosedPositionRecord[]>([])
   const loading = ref(false)
+  const accountStore = useAccountStore()
   const filters = reactive({
     symbol: '',
     product_code: '',
@@ -26,6 +28,7 @@ export function useClosedPosition() {
       if (filters.symbol) params.symbol = filters.symbol
       if (filters.product_code) params.product_code = filters.product_code
       if (filters.direction !== null) params.direction = filters.direction
+      if (accountStore.currentAccountId) params.account = accountStore.currentAccountId
       if (filters.trade_date__gte) params.trade_date__gte = filters.trade_date__gte
       if (filters.trade_date__lte) params.trade_date__lte = filters.trade_date__lte
 
@@ -41,7 +44,7 @@ export function useClosedPosition() {
     }
   }
 
-  watch([page, pageSize], fetchData, { immediate: true })
+  watch([page, pageSize, () => accountStore.currentAccountId], fetchData, { immediate: true })
 
   function refresh() {
     page.value = 1

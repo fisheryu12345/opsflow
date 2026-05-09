@@ -1,15 +1,8 @@
 <template>
 	<div class="trading-page">
-		<PageHeader title="绩效面板">
-			<template #actions>
-				<el-tag type="info" effect="dark" size="small" style="margin-right: 8px;">
-					{{ `账户ID: ${accountId}` }}
-				</el-tag>
 				<el-tag v-if="lastUpdated" type="default" effect="plain" size="small">
 					最后更新: {{ lastUpdated }}
 				</el-tag>
-			</template>
-		</PageHeader>
 
 		<!-- 指标卡片 -->
 		<div class="metric-card-grid">
@@ -116,11 +109,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick } from 'vue';
+import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue';
 import * as echarts from 'echarts';
 import { ElMessage } from 'element-plus';
 import MultiWindowRadarChart from './components/MultiWindowRadarChart.vue';
-import PageHeader from '/@/views/apps/components/PageHeader.vue';
 import MetricCard from '/@/views/apps/components/MetricCard.vue';
 import {
 	getAccountSummary,
@@ -133,9 +125,11 @@ import {
 	type AccountSummary,
 	type EquitySnapshot
 } from './api';
+import { useAccountStore } from '/@/stores/account';
 
 // ==================== 配置 ====================
-const accountId = ref(1);
+const accountStore = useAccountStore();
+const accountId = computed(() => accountStore.currentAccountId ?? 0);
 
 // ==================== 响应式工具函数 ====================
 const getResponsiveFontConfig = () => {
@@ -726,6 +720,8 @@ const initSymbolPnlRankingChart = async () => {
 // ==================== 数据加载 ====================
 
 const loadDashboardData = async () => {
+	// 账户未就绪时跳过，由下方的 watch 驱动
+	if (!accountStore.currentAccountId) return
 	loading.value = true;
 	try {
 		const summaryRes = await getAccountSummary(accountId.value);
@@ -789,7 +785,10 @@ const loadDashboardData = async () => {
 
 // ==================== 生命周期 ====================
 
-onMounted(() => {
+onMounted(async () => {
+	// 确保账户已初始化（如果登录流程已加载，则为空操作）
+	if (!accountStore.loaded) await accountStore.fetchAccounts()
+	// 账户已就绪时加载数据，否则由下方 watch 驱动
 	loadDashboardData();
 	nextTick(() => {
 		initSymbolWinRateChart();
@@ -797,6 +796,19 @@ onMounted(() => {
 		initCalendarHeatmap();
 		initDrawdownCurveChart();
 	});
+});
+
+// 账户切换时重新加载所有数据
+watch(() => accountStore.currentAccountId, (newId) => {
+  if (newId) {
+    loadDashboardData();
+    nextTick(() => {
+      initSymbolWinRateChart();
+      initSymbolPnlRankingChart();
+      initCalendarHeatmap();
+      initDrawdownCurveChart();
+    });
+  }
 });
 </script>
 
