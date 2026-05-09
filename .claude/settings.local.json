@@ -21,7 +21,20 @@
       "Bash(ls \"c:\\\\Users\\\\dell\\\\.claude\\\\projects\\\\c--Users-dell-Desktop-Vue\\\\memory\\\\\")",
       "Read(//c/Users/dell/.claude/projects/c--Users-dell-Desktop-Vue/**)",
       "Bash(python -c \"import tqsdk; print\\(tqsdk.__version__\\)\")",
-      "Bash(python -c \"from tqsdk import TqBacktest; print\\('TqBacktest OK'\\)\")"
+      "Bash(python -c \"from tqsdk import TqBacktest; print\\('TqBacktest OK'\\)\")",
+      "Bash(python -m stock.backtest.download_data)",
+      "Bash(python -m stock.backtest.run_backtest --product rb --start 2019 --end 2026 --capital 1000000 -v)",
+      "Bash(python -m stock.backtest.run_backtest --product rb --start 2019 --end 2026 --capital 1000000 -q)",
+      "Bash(rm -f rollover_reference.csv)",
+      "Read(//c/c/Users/dell/Desktop/Vue/backend/stock/backtest/**)",
+      "Bash(awk '{print $5, $NF}')",
+      "Bash(python -m stock.backtest.run_portfolio_backtest --skip-download --total-capital 1000000)",
+      "Bash(python -m stock.backtest.generate_html_report)",
+      "Bash(cd /c/Users/dell/Desktop/Vue/backend && rm -f stock/backtest/data/*_main_daily_*.csv && echo \"Data deleted: $\\(ls stock/backtest/data/*_main_daily_*.csv 2>/dev/null | wc -l\\) files remaining\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",
+      "c:\\Users\\dell\\Desktop\\Vue\\stock\\backtest\\data"
     ]
   }
 }
