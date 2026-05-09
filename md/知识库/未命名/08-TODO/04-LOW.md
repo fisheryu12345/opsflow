@@ -6,7 +6,7 @@
 
 ## LOW-01: Performance_cal 使用 Pandas/Numpy 处理简单计算
 
-**文件**: [performance_cal.py](../backend/stock/scheduler/performance_cal.py)
+**文件**: [core/performance.py](../backend/stock/core/performance.py)（原 scheduler/performance_cal.py）
 
 **问题描述**:
 `performance_cal.py` 引入了 pandas 和 numpy，但实际只用于极简单的运算

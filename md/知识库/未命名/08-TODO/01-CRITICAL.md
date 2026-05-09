@@ -6,7 +6,7 @@
 
 ## CRITICAL-01: 临收盘止损平仓盈亏计算缺少合约乘数
 
-**文件**: [tasks_exit_before_close.py:187](../backend/stock/scheduler/tasks_exit_before_close.py#L187)
+**文件**: [infrastructure/stop_loss_executor.py:60](../backend/stock/infrastructure/stop_loss_executor.py#L60)（原 tasks_exit_before_close.py）
 
 **问题描述**:
 ```python
@@ -26,7 +26,7 @@ pnl = (avg_price - position.cost_price) * Decimal(str(filled_volume)) * volume_m
 - 进而影响: 品种胜率统计、累计盈亏、绩效指标等所有依赖 PnL 的模块
 
 **根因**: `tasks_daily_open.py` 中平仓函数已正确包含 `volume_multiple`（第503行），
-但 `tasks_exit_before_close.py` 中的平仓函数遗漏了该乘数，属于代码不一致 Bug。
+但 `infrastructure/stop_loss_executor.py` 中的平仓函数遗漏了该乘数，属于代码不一致 Bug。
 
 **修复方案**:
 ```python
@@ -47,7 +47,7 @@ else:
 
 ## ✅ CRITICAL-02: 止损更新函数中 `api.get_position()` 无异常保护 — 已修复 (2026-05-09)
 
-**文件**: [tasks_daily_close.py:576](../backend/stock/scheduler/tasks_daily_close.py#L576)
+**文件**: [scheduler/tasks_daily_close.py:432](../backend/stock/scheduler/tasks_daily_close.py#L432)
 
 **问题描述**:
 ```python

@@ -203,16 +203,27 @@ uvicorn application.asgi:application --port 8000 --host 0.0.0.0 --workers 4
 - `models.py`：交易相关模型（交易账户、合约列表、策略配置、日策略信号、每日权益快照、滚动绩效指标、账户绩效汇总、持仓状态、已平仓记录、错误日志、交易日志）
 - `views/`：各模型对应的 DRF ViewSet
 - `serializers/`：序列化器
-- `scheduler/`：APScheduler 定时任务定义
-  - `tasks_daily_open.py`：开盘任务
-  - `tasks_daily_close.py`：收盘任务
-  - `calculate_atr.py`：ATR 计算
-  - `calculate_unit_lots.py`：手数计算
-  - `performance_cal.py`：绩效计算
+- `scheduler/`：APScheduler 定时任务定义（薄编排层）
+  - `tasks_daily_open.py`：开盘任务（信号执行）
+  - `tasks_daily_close.py`：收盘任务（信号生成/止损更新）
+  - `tasks_exit_before_close.py`：临收盘止损入口
   - `send_report.py`：报告发送
-  - `check_min_position_requirement.py`：最小持仓检查
-- `tasks/`：Celery 异步任务（邮件发送等）
-- `utils/`：业务工具（指标计算、日志、合约同步等）
+- `core/`：纯领域逻辑（无 TqApi/DB 依赖）
+  - `indicators.py`：趋势因子/技术指标计算
+  - `atr.py`：ATR 计算与跳空保护
+  - `position_sizing.py`：Unit 手数计算
+  - `performance.py`：三层绩效指标
+  - `stop_loss.py`：止损价/保本价计算
+  - `signal_checker.py`：信号防重复检查
+  - `config_loader.py`：配置参数加载（数据库 → 缓存）
+- `infrastructure/`：TqSDK/DB 集成层
+  - `tqapi.py`：TqApi 创建/关闭
+  - `order_execution.py`：订单执行（两步开仓、等待目标仓位）
+  - `order_signals.py`：信号执行（开仓/平仓/加仓/移仓）
+  - `stop_loss_executor.py`：临收盘止损执行
+  - `contract_sync.py`：合约列表同步
+  - `trade_day.py`：交易日判断
+- `utils/`：重导出兼容层 + 日志工具
 - `deepseek/`：DeepSeek SDK 集成
 - `management/commands/sync_contracts.py`：合约同步命令
 - `apps.py`：AppConfig，包含 `ready()` 钩子——**仅在服务器 IP 为 `172.25.21.216` 时启动调度器**，并使用 Redis 分布式锁防止多实例冲突

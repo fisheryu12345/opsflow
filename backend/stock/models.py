@@ -192,13 +192,26 @@ class StrategyConfig(models.Model):
     # --- 技术指标参数 ---
     atr_period = models.IntegerField("ATR周期", default=20, help_text="对应代码 ATR_PERIOD")
     entry_period = models.IntegerField("入场突破周期", default=20, help_text="对应代码 ENTRY_PERIOD，唐奇安通道上轨周期")
-    exit_period = models.IntegerField("离场突破周期", default=10, help_text="对应代码 EXIT_PERIOD，唐奇安通道下轨周期")
+    # exit_period = models.IntegerField("离场突破周期", default=10, help_text="对应代码 EXIT_PERIOD，唐奇安通道下轨周期")
     
     # --- 均线参数 ---
     ma_periods = models.CharField("均线周期(逗号分隔)", max_length=20, default="10,20,40", help_text="用于计算趋势因子")
     
     # --- 过滤参数 ---
     gap_threshold = models.DecimalField("跳空放弃阈值(%)", max_digits=5, decimal_places=2, default=Decimal('1.5'), help_text="对应代码中的跳空过滤逻辑，超过1.5%放弃开仓")
+    product_codes = models.TextField("交易品种列表", default='rb,hc,al,ao,MA,TA,SA,FG,fu,ru,UR,m,p,CF,RM,AP,lh,jd,sp,si,lc,SR', help_text="逗号分隔的交易品种代码列表，仅这些品种会同步合约和生成信号")
+    # --- TqSDK 账户配置 ---
+    tqapi_account = models.CharField("TqSDK账号", max_length=50, default='yupei1986', help_text="TqSDK 登录账号")
+    tqapi_password = models.CharField("TqSDK密码", max_length=100, default='yupei1986', help_text="TqSDK 登录密码")
+    # --- 订单执行参数 ---
+    position_risk_multiplier = models.IntegerField("ATR风险倍数", default=2, help_text="止损距离 = N × ATR，默认2表示2倍ATR止损")
+    timeout_seconds = models.IntegerField("交易执行超时(秒)", default=60, help_text="TargetPosTask订单等待超时时间，防止长时间挂单")
+    protect_cost_enabled_ratio = models.DecimalField("保本启用比例(ATR倍数)", max_digits=5, decimal_places=2, default=Decimal('2.5'), help_text="盈利超过 N×ATR 时启用保本价保护，默认2.5倍")
+    # --- 趋势因子参数 ---
+    trend_gap_limit = models.DecimalField("趋势因子封顶上限", max_digits=6, decimal_places=4, default=Decimal('0.03'), help_text="均线间距达到此比例时trend_factor封顶，默认3%")
+    trend_factor_max = models.DecimalField("趋势因子最大值", max_digits=5, decimal_places=3, default=Decimal('0.5'), help_text="trend_factor上限，默认0.5对应止损倍数放大至3.0ATR")
+    trend_label_strong_ratio = models.DecimalField("强趋势比例阈值", max_digits=5, decimal_places=3, default=Decimal('0.80'), help_text="trend_strength≥此值判定为强趋势，默认80%")
+    trend_label_weak_ratio = models.DecimalField("弱趋势比例阈值", max_digits=5, decimal_places=3, default=Decimal('0.30'), help_text="trend_strength≥此值判定为弱趋势，默认30%")
     # --- 其他参数 ---
     # pause_open_task_job = models.BooleanField("暂停开仓时段任务", default=False, help_text="暂停开仓任务，用于临时关闭策略")
     class Meta:

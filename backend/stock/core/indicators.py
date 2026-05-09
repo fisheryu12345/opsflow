@@ -1,15 +1,18 @@
+"""
+Technical indicator computation for futures trading strategies.
+"""
 import pandas as pd
 from tqsdk.ta import ATR, MA
 from tqsdk.tafunc import hhv, llv
 import math
+import traceback
 from stock.utils.log_util import log_error
+from stock.core.config_loader import get_config
 
-from stock.parameter_config import (
-    TREND_GAP_LIMIT,
-    TREND_FACTOR_MAX,
-    TREND_LABEL_STRONG_RATIO,
-    TREND_LABEL_WEAK_RATIO,
-)
+TREND_GAP_LIMIT = get_config('TREND_GAP_LIMIT')
+TREND_FACTOR_MAX = get_config('TREND_FACTOR_MAX')
+TREND_LABEL_STRONG_RATIO = get_config('TREND_LABEL_STRONG_RATIO')
+TREND_LABEL_WEAK_RATIO = get_config('TREND_LABEL_WEAK_RATIO')
 
 
 def clean_nan_for_decimal(value):
@@ -107,7 +110,6 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
                 },
             }
 
-        # 最新收盘价
         latest_close = clean_nan_for_decimal(float(klines.iloc[-1]['close']))
 
         # ATR
@@ -125,12 +127,7 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
         latest_hhv = None if pd.isna(close_high_20.iloc[-1]) else float(close_high_20.iloc[-1])
         latest_llv = None if pd.isna(close_low_20.iloc[-1]) else float(close_low_20.iloc[-1])
 
-        # ---- 趋势判断：均线排列 + 间距 → 连续 trend_factor [0, 0.5] ----
-        # 设计意图：
-        #   - 均线多头排列/空头排列才认为有趋势，否则 factor = 0
-        #   - 趋势强度由最大均线间距比例决定，线性映射到 [0, 0.5]
-        #   - 止损倍数 = 2.0 + trend_factor * 2.0，范围 [2.0, 3.0]，完全连续无跳变
-        # TREND_GAP_LIMIT: 均线间距达到此值时 trend_factor 达到最大值
+        # ---- 趋势判断 ----
         trend_factor = 0.0
         trend_label = "choppy"
 
@@ -139,16 +136,13 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
             is_bear = ma_10_value < ma_20_value < ma_40_value
 
             if is_bull or is_bear:
-                # 最大间距比例（以MA20为基准）
                 gap_10_20 = abs(ma_10_value - ma_20_value) / abs(ma_20_value)
                 gap_20_40 = abs(ma_20_value - ma_40_value) / abs(ma_20_value)
                 max_gap = max(gap_10_20, gap_20_40)
 
-                # 连续映射：max_gap 从 0 到 TREND_GAP_LIMIT 线性映射到 factor [0, TREND_FACTOR_MAX]
                 trend_strength = min(max_gap / TREND_GAP_LIMIT, 1.0)
                 trend_factor = round(trend_strength * TREND_FACTOR_MAX, 3)
 
-                # label 基于 trend_strength 比例划分，与 factor 计算同源
                 if trend_strength >= TREND_LABEL_STRONG_RATIO:
                     trend_label = "strong_bull" if is_bull else "strong_bear"
                 elif trend_strength >= TREND_LABEL_WEAK_RATIO:
@@ -180,6 +174,5 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
     except Exception as e:
         print(f"[ERROR] 计算指标失败 {symbol}: {e}")
         log_error('calculate_indicators', f"计算指标失败 {symbol}: {e}")
-        import traceback
         traceback.print_exc()
         return None

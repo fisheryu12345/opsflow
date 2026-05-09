@@ -1,22 +1,21 @@
-import pandas as pd
-import numpy as np
-from django.utils import timezone
+import traceback
 from datetime import date, timedelta
-from django.db import transaction,close_old_connections
+from django.db import transaction, close_old_connections
+from django.utils import timezone
 from decimal import Decimal
-from tqsdk import TqApi, TqAuth,TqKq
 from stock.utils.log_util import log_trade, log_error
-from stock.tasks.send_mail import send_email_task as send_email
-from django.template.loader import render_to_string
-from stock.utils.is_trade_day import  skip_if_not_trade_day
+from stock.infrastructure.trade_day import skip_if_not_trade_day
+from stock.core.signal_checker import check_duplicate_pending_signal
 
+from stock.models import TradingAccount, DailyStrategySignal, PositionState, FullContractList
+from stock.infrastructure.contract_sync import sync_contract_list_from_tqsdk
+from stock.infrastructure.report_sender import generate_daily_signal_report
+from stock.core.indicators import calculate_indicators
+from stock.core.performance import update_all_performance_metrics
+from stock.infrastructure.tqapi import create_tqapi, safe_close_api
+from stock.core.config_loader import get_config
 
-# 假设你的 models 在 myapp.models 中
-from stock.models import TradingAccount,DailyStrategySignal, PositionState, FullContractList
-from stock.utils.sync_contract_list_from_tqsdk import sync_contract_list_from_tqsdk
-from stock.utils.calculate_indicators import calculate_indicators
-from stock.scheduler.performance_cal import update_all_performance_metrics
-from stock.parameter_config import PROTECT_COST_ENABLED_RATIO
+PROTECT_COST_ENABLED_RATIO = get_config('PROTECT_COST_ENABLED_RATIO')
 
 def check_breakout_singal(symbol, product_code, trend_factor, trend_label, 
                                           breakout_info, account,trade_type):
@@ -58,9 +57,8 @@ def check_breakout_singal(symbol, product_code, trend_factor, trend_label,
         ).order_by('-trade_date').first()
         
         if last_entry_signal:
-            print(f"[SKIP] 跳过重复开仓信号 {symbol}: 存在未执行的ENTRY信号（{last_entry_signal.trade_date}）")
-            log_trade('check_breakout_singal', f"[SKIP] 跳过重复开仓信号 {symbol}: 存在未执行的ENTRY信号（{last_entry_signal.trade_date}）",
-                      symbol=symbol,log_level='INFO')
+            log_trade('check_breakout_singal', f"跳过重复开仓信号 {symbol}: 存在未执行的ENTRY信号（{last_entry_signal.trade_date}）",
+                      symbol=symbol, log_level='INFO')
             return False
     
         with transaction.atomic():
@@ -132,18 +130,7 @@ def check_exit_signals():
             
             # 如果触发止损，保存平仓信号
             if is_trigger:
-                # 【修复】检查是否存在未执行的止损信号，避免跨日期重复生成
-                last_stop_signal = DailyStrategySignal.objects.filter(
-                    account=default_account,
-                    symbol=position.symbol,
-                    trade_type='STOP_LOSS',
-                    executed_status='PENDING'
-                ).order_by('-trade_date').first()
-                
-                if last_stop_signal:
-                    print(f"[SKIP] 跳过重复止损信号 {position.symbol}: 存在未执行的STOP_LOSS信号（{last_stop_signal.trade_date}）")
-                    log_trade('check_exit_signals', f"[SKIP] 跳过重复止损信号 {position.symbol}: 存在未执行的STOP_LOSS信号（{last_stop_signal.trade_date}）",
-                              symbol=position.symbol,log_level='INFO')
+                if check_duplicate_pending_signal(default_account, position.symbol, 'STOP_LOSS'):
                     continue
                 
                 DailyStrategySignal.objects.create(
@@ -200,18 +187,7 @@ def check_rollover_signals():
             ).first()
             
             if main_contract:
-                # 【修复】检查是否存在未执行的移仓信号，避免跨日期重复生成
-                last_rollover_signal = DailyStrategySignal.objects.filter(
-                    account=default_account,
-                    symbol=position.symbol,
-                    trade_type='ROLLOVER',
-                    executed_status='PENDING'
-                ).order_by('-trade_date').first()
-                
-                if last_rollover_signal:
-                    print(f"[SKIP] 跳过重复移仓信号 {position.symbol}: 存在未执行的ROLLOVER信号（{last_rollover_signal.trade_date}）")
-                    log_trade('check_rollover_signals', f"[SKIP] 跳过重复移仓信号 {position.symbol}: 存在未执行的ROLLOVER信号（{last_rollover_signal.trade_date}）",
-                              symbol=position.symbol,log_level='INFO')
+                if check_duplicate_pending_signal(default_account, position.symbol, 'ROLLOVER'):
                     continue
                 
                 DailyStrategySignal.objects.create(
@@ -332,18 +308,7 @@ def check_add_position_signals():
                     if new_units > 3:
                         add_units = 3 - current_units
                     
-                    # 【修复】检查是否存在未执行的加仓信号，避免跨日期重复生成
-                    last_add_signal = DailyStrategySignal.objects.filter(
-                        account=default_account,
-                        symbol=position.symbol,
-                        trade_type='ADD_ON',
-                        executed_status='PENDING'
-                    ).order_by('-trade_date').first()
-                    
-                    if last_add_signal:
-                        print(f"[SKIP] {position.symbol}: 存在未执行的加仓信号（{last_add_signal.trade_date}），跳过重复生成")
-                        log_trade('check_add_position_signals', f"[SKIP] {position.symbol}: 存在未执行的加仓信号（{last_add_signal.trade_date}），跳过重复生成",
-                                  symbol=position.symbol, log_level='INFO')
+                    if check_duplicate_pending_signal(default_account, position.symbol, 'ADD_ON'):
                         continue
                     
                     DailyStrategySignal.objects.create(
@@ -374,114 +339,6 @@ def check_add_position_signals():
     except Exception as e:
         print(f"[ERROR] 检查加仓信号失败: {e}")
 
-
-
-def generate_daily_signal_report():
-    """
-    步骤7：生成每日策略信号报告并发送邮件
-    
-    返回：
-    bool: 是否成功发送
-    """
-    try:
-        # 获取今日的所有信号
-        today = date.today()
-        default_account = TradingAccount.objects.filter(is_active=True).first()
-        
-        if not default_account:
-            print("[WARN] 未找到活跃账户，跳过邮件发送")
-            return False
-        
-        # 查询今日信号
-        signals = DailyStrategySignal.objects.filter(
-            account=default_account,
-            trade_date=today
-        ).order_by('-trade_date', 'symbol')
-        
-        if not signals:
-            print("[INFO] 今日无策略信号，发送通知邮件")
-            
-            # 渲染无信号的HTML模板
-            context = {
-                'report_date': today,
-                'account_name': default_account.name,
-                'signals': [],
-                'summary': {
-                    'total_signals': 0,
-                    'open_count': 0,
-                    'add_on_count': 0,
-                    'stop_loss_count': 0,
-                    'rollover_count': 0,
-                },
-                'current_time': pd.Timestamp.now(),
-                'no_signal_message': '今日没有产生任何策略信号',
-            }
-            
-            html_content = render_to_string('daily_strategy_signal_report.html', context)
-            
-            # 异步发送邮件
-            send_email(
-                subject=f'[量化策略] 每日信号报告 - {today.strftime("%Y-%m-%d")}',
-                body=html_content,
-                receiver_email='312711936@qq.com',
-                is_html=True
-            )
-            
-            print(f"[SUCCESS] 无信号通知邮件已发送")
-            return True
-        
-        # 统计数据
-        summary = {
-            'total_signals': signals.count(),
-            'open_count': signals.filter(trade_type__in=['ENTRY']).count(),
-            'stop_loss_count': signals.filter(trade_type='STOP_LOSS').count(),
-            'rollover_count': signals.filter(trade_type='ROLLOVER').count(),
-            'add_on_count': signals.filter(trade_type='ADD_ON').count(),
-        }
-        
-        # 转换信号数据为字典列表
-        signals_data = []
-        for signal in signals:
-            signals_data.append({
-                'symbol': signal.symbol,
-                'trade_date': signal.trade_date,
-                'trend_factor': float(signal.trend_factor) if signal.trend_factor else None,
-                'trend_label': signal.trend_label,
-                'donchian_upper': float(signal.donchian_upper) if signal.donchian_upper else None,
-                'donchian_lower': float(signal.donchian_lower) if signal.donchian_lower else None,
-                'signal_direction': signal.signal_direction,
-                'is_breakout': signal.is_breakout,
-                'remark': signal.remark,
-                'trade_type': signal.trade_type,
-            })
-        
-        # 渲染HTML模板
-        context = {
-            'report_date': today,
-            'account_name': default_account.name,
-            'signals': signals_data,
-            'summary': summary,
-            'current_time': pd.Timestamp.now(),
-        }
-        
-        html_content = render_to_string('daily_strategy_signal_report.html', context)
-        
-        # 异步发送邮件
-        send_email(
-            subject=f'[量化策略] 每日信号报告 - {today.strftime("%Y-%m-%d")}',
-            body=html_content,
-            receiver_email='312711936@qq.com',
-            is_html=True
-        )
-        
-        print(f"[SUCCESS] 邮件发送任务已提交: {summary['total_signals']}个信号")
-        return True
-        
-    except Exception as e:
-        print(f"[ERROR] 生成邮件报告失败: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
 
 
 def update_all_positions_high_low_price():
@@ -520,15 +377,13 @@ def update_all_positions_high_low_price():
                 
             except Exception as pos_error:
                 print(f"[ERROR] 更新 {position.symbol} 最高最低价失败: {pos_error}")
-                import traceback
                 traceback.print_exc()
                 continue
-        
+
         print(f"[SUCCESS] 已更新 {updated_count}/{positions.count()} 个持仓的最高最低价格")
-        
+
     except Exception as e:
         print(f"[ERROR] 更新最高最低价格失败: {e}")
-        import traceback
         traceback.print_exc()
 def update_all_positions_stop_loss_price(api):
     """
@@ -677,15 +532,13 @@ def update_all_positions_stop_loss_price(api):
                 
             except Exception as pos_error:
                 print(f"[ERROR] 更新 {position.symbol} 止损价失败: {pos_error}")
-                import traceback
                 traceback.print_exc()
                 continue
-        
+
         print(f"[SUCCESS] 已更新 {updated_count}/{positions.count()} 个持仓的止损价格")
-        
+
     except Exception as e:
         print(f"[ERROR] 更新止损价格失败: {e}")
-        import traceback
         traceback.print_exc()
 # ==================== APScheduler 任务入口 ====================
 
@@ -710,8 +563,7 @@ def job_daily_close_calculation():
         close_old_connections()
         
         # 第1步：创建TqApi连接
-        api = TqApi(TqKq(), auth=TqAuth("yupei1986", "yupei1986"))
-        # api = TqApi(TqAccount("Y银河期货_CTP七席", "0210003762", "012613"), auth=TqAuth("yupei1986", "yupei1986"))
+        api = create_tqapi()
         print("[INFO] TqApi连接已建立")
         # 第2步：检查是否为交易日
         if skip_if_not_trade_day(api=api): 
@@ -842,17 +694,12 @@ def job_daily_close_calculation():
                 
             except Exception as perf_error:
                 print(f"[ERROR] 更新绩效指标失败: {perf_error}")
-                import traceback
                 traceback.print_exc()
         
         print("[INFO] ✅ 今日收盘计算任务完成")
 
     except Exception as e:
         print(f"[ERROR] 收盘计算任务失败: {e}")
-        import traceback
         traceback.print_exc()
     finally:
-        # 确保TqApi连接被关闭
-        if api:
-            api.close()
-            print("[INFO] TqApi连接已关闭")
+        safe_close_api(api)

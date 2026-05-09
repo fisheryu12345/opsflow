@@ -55,7 +55,7 @@ ordering_fields = ['name', 'atr_period', 'entry_period']
 
 ## MEDIUM-03: Sortino 比率为 999.9999 极端值
 
-**文件**: [performance_cal.py:194](../backend/stock/scheduler/performance_cal.py#L194)
+**文件**: [core/performance.py:194](../backend/stock/core/performance.py#L194)（原 scheduler/performance_cal.py）
 
 **问题描述**:
 ```python
@@ -80,7 +80,7 @@ if downside_std == 0:
 
 ## MEDIUM-04: 最大回撤持续时间从错误起点计算
 
-**文件**: [performance_cal.py:349](../backend/stock/scheduler/performance_cal.py#L349)
+**文件**: [core/performance.py:349](../backend/stock/core/performance.py#L349)（原 scheduler/performance_cal.py）
 
 **问题描述**:
 最大回撤持续时间从回撤开始日计算到回撤结束日，
@@ -121,7 +121,7 @@ if downside_std == 0:
 
 ## MEDIUM-06: 嵌套 transaction.atomic() 冗余
 
-**文件**: [tasks_daily_open.py:390-391](../backend/stock/scheduler/tasks_daily_open.py#L390-L391)
+**文件**: [infrastructure/order_signals.py](../backend/stock/infrastructure/order_signals.py)（原 tasks_daily_open.py，已迁移）
 
 **问题描述**:
 在外层已有 `with transaction.atomic()` 的上下文中，内部又嵌套了同级别的 atomic 块。

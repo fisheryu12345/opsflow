@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py check)",
+      "Bash(python -c ' *)",
+      "Bash(DJANGO_SETTINGS_MODULE=application.settings python -c ' *)",
+      "Bash(python -c \"import django; import os; os.environ.setdefault\\('DJANGO_SETTINGS_MODULE', 'application.settings'\\); django.setup\\(\\); print\\('Django OK'\\)\")",
+      "Bash(grep -E \"\\\\.py$\")",
+      "Bash(python manage.py makemigrations stock --name add_strategy_config_fields)",
+      "Bash(python manage.py migrate stock)",
+      "Bash(python -c \"from stock.serializers.serializers import StrategyConfigSerializer; print\\('Serializer OK:', [f.name for f in StrategyConfigSerializer.Meta.model._meta.get_fields\\(\\)]\\)\")",
+      "Bash(python manage.py shell -c \"from stock.serializers.serializers import StrategyConfigSerializer; s = StrategyConfigSerializer\\(\\); print\\('Serializer fields:', list\\(s.fields.keys\\(\\)\\)\\)\")",
+      "Bash(npx vue-tsc *)",
+      "Bash(npx vite *)",
+      "Bash(python manage.py makemigrations stock --name remove_exit_period)",
+      "Bash(python manage.py makemigrations stock --name add_product_codes)",
+      "Bash(python manage.py makemigrations stock --name add_tqapi_credentials)",
+      "Bash(python manage.py shell -c ' *)",
+      "Bash(grep -v \"^$\\\\|pkg_resources\\\\|get_distribution\\\\|\\\\[INFO\\\\]\\\\|UserWarning\")",
+      "Bash(grep -v \"UserWarning\\\\|get_distribution\\\\|pkg_resources\\\\|\\\\[INFO\\\\]\\\\|^$\")",
+      "Bash(ls \"c:\\\\Users\\\\dell\\\\.claude\\\\projects\\\\c--Users-dell-Desktop-Vue\\\\memory\\\\\")",
+      "Read(//c/Users/dell/.claude/projects/c--Users-dell-Desktop-Vue/**)",
+      "Bash(python -c \"import tqsdk; print\\(tqsdk.__version__\\)\")",
+      "Bash(python -c \"from tqsdk import TqBacktest; print\\('TqBacktest OK'\\)\")"
+    ]
+  }
+}

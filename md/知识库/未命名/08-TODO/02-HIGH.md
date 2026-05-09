@@ -38,7 +38,7 @@ if indicators is None or indicators.get('atr_20') is None:
 
 ## ✅ HIGH-02: 跳空保护函数默认参数与调用方不一致 — 已修复 (2026-05-09)
 
-**文件**: [calculate_atr.py:45](../backend/stock/scheduler/calculate_atr.py#L45)
+**文件**: [core/atr.py:51](../backend/stock/core/atr.py#L51)（原 scheduler/calculate_atr.py，已迁移）
 
 **问题描述**:
 ```python
@@ -54,7 +54,7 @@ GAP_PROTECTION_RATIO = 1.5
 - 若未来有新的调用方未传入此参数，将使用更宽松的 2.0 阈值
 - 跳空保护的严格程度直接影响风险控制效果
 
-**修复内容**: 将 `calculate_atr.py` 中 `price_gap_protection` 函数默认值从 `2.0` 改为 `1.5`，与 `parameter_config.GAP_PROTECTION_RATIO` 保持一致。
+**修复内容**: 将 `calculate_atr.py` 中 `price_gap_protection` 函数默认值从 `2.0` 改为 `1.5`，与 `core.config_loader.get_config('GAP_PROTECTION_RATIO')` 保持一致。
 ```python
 def price_gap_protection(api, symbol, direction, gap_threshold_atr_multiplier=1.5):
 ```
@@ -63,7 +63,7 @@ def price_gap_protection(api, symbol, direction, gap_threshold_atr_multiplier=1.
 
 ## HIGH-03: 开仓 PnL 计算缺少 Decimal 包装
 
-**文件**: [tasks_daily_open.py:505](../backend/stock/scheduler/tasks_daily_open.py#L505)
+**文件**: [infrastructure/order_signals.py](../backend/stock/infrastructure/order_signals.py)（原 tasks_daily_open.py，已迁移）
 
 **问题描述**:
 ```python
