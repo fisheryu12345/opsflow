@@ -3,9 +3,30 @@
     <PageHeader title="知识库" />
 
     <div class="kb-layout">
+      <!-- Sidebar toggle button (mobile) -->
+      <button class="kb-toggle-btn" :class="{ 'is-active': sidebarVisible }" @click="toggleSidebar" title="文档目录">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
+      <!-- Sidebar overlay (mobile) -->
+      <div v-if="sidebarVisible" class="kb-overlay" @click="sidebarVisible = false" />
+
       <!-- Sidebar -->
-      <div class="kb-sidebar">
+      <div class="kb-sidebar" :class="{ 'is-visible': sidebarVisible }">
         <div class="kb-sidebar-header">
+          <div class="kb-sidebar-header-row">
+            <span class="kb-sidebar-title">文档目录</span>
+            <button class="kb-close-btn" @click="sidebarVisible = false">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
           <el-input v-model="searchText" placeholder="搜索文档..." clearable size="small" />
         </div>
         <div class="kb-tree-wrap">
@@ -71,6 +92,17 @@ const searchText = ref('')
 const currentFile = ref<string | null>(null)
 const loadingContent = ref(false)
 const renderedContent = ref('')
+const sidebarVisible = ref(false)
+
+function toggleSidebar() {
+  sidebarVisible.value = !sidebarVisible.value
+}
+
+function closeSidebarOnMobile() {
+  if (window.innerWidth < 768) {
+    sidebarVisible.value = false
+  }
+}
 
 watch(searchText, (val) => {
   treeRef.value?.filter(val)
@@ -94,6 +126,7 @@ async function loadTree() {
 
 async function onNodeClick(data: TreeNode) {
   if (data.is_dir) return
+  closeSidebarOnMobile()
   loadingContent.value = true
   currentFile.value = data.path
   renderedContent.value = ''
@@ -125,8 +158,10 @@ onMounted(() => {
   gap: 16px;
   align-items: flex-start;
   min-height: calc(100vh - 200px);
+  position: relative;
 }
 
+/* ---- Sidebar ---- */
 .kb-sidebar {
   width: 260px;
   flex-shrink: 0;
@@ -139,11 +174,40 @@ onMounted(() => {
   max-height: calc(100vh - 200px);
   display: flex;
   flex-direction: column;
+  transition: transform 0.25s ease;
 }
 
 .kb-sidebar-header {
   padding: 12px;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.kb-sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.kb-sidebar-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.kb-close-btn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.kb-close-btn:hover {
+  background: #f0f0f0;
+  color: #333;
 }
 
 .kb-tree-wrap {
@@ -164,6 +228,45 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+/* ---- Toggle button ---- */
+.kb-toggle-btn {
+  display: none;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #1a1a2e;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(26, 26, 46, 0.35);
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.kb-toggle-btn:active {
+  transform: scale(0.92);
+}
+
+.kb-toggle-btn.is-active {
+  background: #1890ff;
+  box-shadow: 0 4px 14px rgba(24, 144, 255, 0.4);
+}
+
+/* ---- Overlay ---- */
+.kb-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* ---- Content ---- */
 .kb-content {
   flex: 1;
   background: #fff;
@@ -187,6 +290,53 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 80px 0;
+}
+
+/* ---- Mobile ---- */
+@media (max-width: 767px) {
+  .kb-layout {
+    gap: 0;
+  }
+
+  .kb-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 200;
+    width: 280px;
+    max-width: 80vw;
+    height: 100vh;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+    transform: translateX(-110%);
+  }
+
+  .kb-sidebar.is-visible {
+    transform: translateX(0);
+  }
+
+  .kb-overlay {
+    display: block;
+  }
+
+  .kb-toggle-btn {
+    display: flex;
+  }
+
+  .kb-close-btn {
+    display: inline-flex;
+  }
+
+  .kb-sidebar-header {
+    padding-top: 16px;
+  }
+
+  .kb-content {
+    padding: 20px 16px;
+    min-height: calc(100vh - 180px);
+    border-radius: 6px;
+  }
 }
 
 /* Markdown content styling */

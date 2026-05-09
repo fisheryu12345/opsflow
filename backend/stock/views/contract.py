@@ -44,7 +44,6 @@ class FullContractListViewSet(viewsets.ModelViewSet):
         'category',
         'volume_multiple',
         'price_tick',
-        'margin_ratio',
         'is_active',
         'created_at',
         'updated_at',

@@ -422,7 +422,8 @@ def update_all_positions_stop_loss_price(api):
                 atr_value = Decimal(str(position.indicators.get('atr_20', 0)))
                 factor = Decimal(str(position.indicators.get('trend_factor', 0)))
                 trend_label = position.indicators.get('trend_label', '')
-                tick = FullContractList.objects.filter(symbol=position.symbol).first().price_tick if FullContractList.objects.filter(symbol=position.symbol).exists() else Decimal('0.01')
+                tick_contract = FullContractList.objects.filter(symbol=position.symbol).first()
+                tick = tick_contract.price_tick if tick_contract else Decimal('0.01')
 
                 # 获取持仓成本（开仓价或加仓加权均价）
                 cost_price = None

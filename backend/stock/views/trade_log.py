@@ -32,6 +32,6 @@ class ErrorLogViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['function_name', 'timestamp']
-    search_fields = ['function_name', 'error_message', 'traceback']
+    search_fields = ['function_name', 'error_message']
     ordering_fields = ['timestamp']
     ordering = ['-timestamp']
