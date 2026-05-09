@@ -37,12 +37,20 @@ FIELD_MAP = {
 }
 
 
-@lru_cache(maxsize=1)
-def _load_config():
-    """Load from first StrategyConfig DB record, or fall back to DEFAULTS."""
+@lru_cache(maxsize=16)
+def _load_config(account_id=None):
+    """
+    Load StrategyConfig from DB.
+
+    If account_id is given, load that account's config (OneToOne).
+    Otherwise fall back to the first available config.
+    """
     try:
         from stock.models import StrategyConfig
-        config = StrategyConfig.objects.first()
+        if account_id:
+            config = StrategyConfig.objects.filter(account_id=account_id).first()
+        else:
+            config = StrategyConfig.objects.first()
         if config is None:
             return dict(DEFAULTS)
     except Exception:
@@ -100,9 +108,13 @@ def _expected_type(key):
     return type_map.get(key, str)
 
 
-def get_config(key):
-    """Get a single config value by key."""
-    return _load_config()[key]
+def get_config(key, account_id=None):
+    """
+    Get a single config value by key.
+
+    If account_id is given, return that account's config; otherwise the default.
+    """
+    return _load_config(account_id)[key]
 
 
 def clear_cache():

@@ -184,11 +184,10 @@ class StrategyConfig(models.Model):
     1. 如果你想测试"把ATR周期改成14效果如何"，不需要改代码重启，直接在数据库改这里。
     2. 不同品种可以应用不同的配置（例如：螺纹钢波动大，风险参数可以单独设）。
     """
-    account = models.ForeignKey(
+    account = models.OneToOneField(
         TradingAccount, on_delete=models.CASCADE,
-        null=True, blank=True,
         verbose_name="所属账户",
-        help_text="null=全局配置, 指定则仅该账户使用此配置"
+        help_text="每个交易账户有且仅有一个策略配置"
     )
     name = models.CharField("配置名称", max_length=50, unique=True, help_text="例如: 海龟策略_标准版")
     # symbol = models.CharField("适用合约", max_length=20, db_index=True, help_text="例如: CZCE.MA605")
