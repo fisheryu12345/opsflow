@@ -84,8 +84,8 @@ function filterNode(value: string, data: TreeNode): boolean {
 async function loadTree() {
   try {
     const res = await GetTree()
-    if (res.data?.code === 2000) {
-      treeData.value = res.data.data || []
+    if (res.code === 2000) {
+      treeData.value = res.data || []
     }
   } catch (e) {
     console.error('Failed to load knowledge base tree:', e)
@@ -99,8 +99,8 @@ async function onNodeClick(data: TreeNode) {
   renderedContent.value = ''
   try {
     const res = await GetContent(data.path)
-    if (res.data?.code === 2000) {
-      const content = res.data.data.content
+    if (res.code === 2000) {
+      const content = res.data.content
       renderedContent.value = md.render(content)
       await nextTick()
       // scroll to top when content changes

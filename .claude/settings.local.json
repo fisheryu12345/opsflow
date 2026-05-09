@@ -45,7 +45,9 @@
       "Bash(yarn add *)",
       "Bash(python3 -c \"import json; data=json.load\\(open\\('c:/Users/dell/Desktop/Vue/backend/dvadmin/system/fixtures/init_menu.json'\\)\\); [print\\(f'{d[\\\\\"name\\\\\"]:20s} parent={d.get\\(\\\\\"parent\\\\\",\\\\\"none\\\\\"\\)}'\\) for d in data[:20]]\")",
       "Bash(python3 -c ' *)",
-      "Bash(python.exe -c \"import json; data = json.load\\(open\\('c:/Users/dell/Desktop/Vue/backend/dvadmin/system/fixtures/init_menu.json'\\)\\); print\\(len\\([d for d in data if not d.get\\('parent'\\)]\\)\\)\")"
+      "Bash(python.exe -c \"import json; data = json.load\\(open\\('c:/Users/dell/Desktop/Vue/backend/dvadmin/system/fixtures/init_menu.json'\\)\\); print\\(len\\([d for d in data if not d.get\\('parent'\\)]\\)\\)\")",
+      "Bash(git check-ignore *)",
+      "Bash(git cherry *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",
