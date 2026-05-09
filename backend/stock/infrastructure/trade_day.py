@@ -48,7 +48,10 @@ def is_trade_day(check_date: Optional[date] = None, api=None) -> bool:
         return is_trading
 
     except Exception as e:
-        log_error(f"[ERROR] 检查交易日失败: {e}")
+        log_error(
+            function_name='is_trade_day',
+            error_message=f"检查交易日失败: {e}"
+        )
         return True
     finally:
         if api_created and api:

@@ -57,8 +57,7 @@ def check_min_position_requirement(symbol, planned_volume):
         product_code = symbol.split('.')[-1][:2] if '.' in symbol else symbol[:2]
 
         contract_info = FullContractList.objects.filter(
-            product_code=product_code,
-            is_active=True
+            product_code=product_code
         ).first()
 
         if contract_info and contract_info.min_position > 1:

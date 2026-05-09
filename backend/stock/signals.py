@@ -17,7 +17,7 @@ def auto_create_trading_account(sender, instance, created, **kwargs):
     if created:
         TradingAccount.objects.create(
             user=instance,
-            name=f"{instance.name}的交易账户",
+            name=f"{instance.username}",
             initial_balance=Decimal('1000000.00'),
             current_equity=Decimal('1000000.00'),
             is_active=True,
@@ -26,7 +26,7 @@ def auto_create_trading_account(sender, instance, created, **kwargs):
         TradingAccount.objects.get_or_create(
             user=instance,
             defaults={
-                'name': f"{instance.name}的交易账户",
+                'name': f"{instance.username}",
                 'initial_balance': Decimal('1000000.00'),
                 'current_equity': Decimal('1000000.00'),
                 'is_active': True,
