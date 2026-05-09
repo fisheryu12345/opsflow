@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from django.db import transaction,close_old_connections
 from decimal import Decimal
 from tqsdk import TqApi, TqAuth,TqKq
-from stock.utils.log_util import log_trade
+from stock.utils.log_util import log_trade, log_error
 from stock.tasks.send_mail import send_email_task as send_email
 from django.template.loader import render_to_string
 from stock.utils.is_trade_day import  skip_if_not_trade_day
@@ -573,7 +573,18 @@ def update_all_positions_stop_loss_price(api):
                 # 根据持仓方向选择基准价格和计算止损价
                 if position.direction == 1:
                     # 多头持仓：使用最高价作为基准
-                    cost_price = api.get_position(position.symbol).open_price_long 
+                    try:
+                        tq_pos = api.get_position(position.symbol)
+                        cost_price = tq_pos.open_price_long
+                    except Exception as e:
+                        log_trade('update_all_positions_stop_loss_price',
+                                   f"API获取{position.symbol}多头成本价失败({e})，使用数据库记录",
+                                   symbol=position.symbol, log_level='WARNING')
+                        cost_price = position.cost_price
+                        if cost_price is None:
+                            log_error('update_all_positions_stop_loss_price',
+                                       f"{position.symbol} 数据库和API均无成本价，跳过止损更新")
+                            continue
                     if not position.highest_close:
                         print(f"[SKIP] {position.symbol}: 缺少最高价数据")
                         continue
@@ -585,7 +596,18 @@ def update_all_positions_stop_loss_price(api):
                     
                 elif position.direction == -1:
                     # 空头持仓：使用最低价作为基准
-                    cost_price = api.get_position(position.symbol).open_price_short
+                    try:
+                        tq_pos = api.get_position(position.symbol)
+                        cost_price = tq_pos.open_price_short
+                    except Exception as e:
+                        log_trade('update_all_positions_stop_loss_price',
+                                   f"API获取{position.symbol}空头成本价失败({e})，使用数据库记录",
+                                   symbol=position.symbol, log_level='WARNING')
+                        cost_price = position.cost_price
+                        if cost_price is None:
+                            log_error('update_all_positions_stop_loss_price',
+                                       f"{position.symbol} 数据库和API均无成本价，跳过止损更新")
+                            continue
                     if not position.lowest_close:
                         print(f"[SKIP] {position.symbol}: 缺少最低价数据")
                         continue
