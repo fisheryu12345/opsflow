@@ -94,6 +94,7 @@ export interface ContractStats {
 
 // === Strategy Config ===
 export interface StrategyConfigRecord extends BasicEntity {
+  account: number
   name: string
   // 资金管理
   max_units: number

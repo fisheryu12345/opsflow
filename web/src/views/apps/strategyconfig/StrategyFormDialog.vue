@@ -9,6 +9,10 @@
     <el-form ref="formRef" :model="form" label-width="150px" :rules="rules" v-loading="saving">
       <el-tabs type="border-card">
         <el-tab-pane label="资金管理">
+          <el-form-item label="所属账户">
+            <el-tag type="info">{{ currentAccountLabel }}</el-tag>
+            <div class="form-helper">策略自动绑定到当前账户，保存后不可变更</div>
+          </el-form-item>
           <el-form-item label="配置名称" prop="name">
             <el-input v-model="form.name" placeholder="例如: 海龟策略_标准版" />
           </el-form-item>
@@ -98,9 +102,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { StrategyConfigRecord } from '/@/types/trading'
+import { useAccountStore } from '/@/stores/account'
+
+const accountStore = useAccountStore()
+
+const currentAccountLabel = computed(() => {
+  const a = accountStore.accounts.find(a => a.id === form.account)
+  return a ? `${a.name} (ID: ${a.id})` : `账户 #${form.account}`
+})
 
 const props = withDefaults(defineProps<{
   modelValue: boolean
@@ -121,6 +133,7 @@ const saving = ref(false)
 const formRef = ref<any>(null)
 
 const form = reactive({
+  account: accountStore.currentAccountId || 0,
   name: '',
   max_units: 3,
   entry_units: 1,
@@ -152,6 +165,7 @@ watch(() => props.record, (r) => {
   } else {
     isEdit.value = false
     Object.assign(form, {
+      account: accountStore.currentAccountId || 0,
       name: '', max_units: 3, entry_units: 1, risk_per_unit: 4000,
       position_risk_multiplier: 2, protect_cost_enabled_ratio: 2.5,
       timeout_seconds: 60, atr_period: 20, entry_period: 20,
@@ -165,6 +179,10 @@ watch(() => props.record, (r) => {
 async function handleSave() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
+  if (!form.account) {
+    ElMessage.warning('未找到交易账户，无法创建策略')
+    return
+  }
   saving.value = true
   try {
     emit('saved', { ...form })
