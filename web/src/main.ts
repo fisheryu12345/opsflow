@@ -8,6 +8,7 @@ import '/@/assets/style/tailwind.css'; // 先引入tailwind css, 以免element-p
 import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
 import '/@/theme/index.scss';
+import '/@/styles/trading-global.scss';
 import mitt from 'mitt';
 import VueGridLayout from 'vue-grid-layout';
 import piniaPersist from 'pinia-plugin-persist';

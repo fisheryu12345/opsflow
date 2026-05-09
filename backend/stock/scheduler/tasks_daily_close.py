@@ -1,5 +1,6 @@
 import traceback
 from datetime import date, timedelta
+from typing import Optional, Any
 from django.db import transaction, close_old_connections
 from django.utils import timezone
 from decimal import Decimal
@@ -17,7 +18,7 @@ from stock.core.config_loader import get_config
 
 PROTECT_COST_ENABLED_RATIO = get_config('PROTECT_COST_ENABLED_RATIO')
 
-def check_breakout_singal(symbol, product_code, trend_factor, trend_label, 
+def check_breakout_signal(symbol, product_code, trend_factor, trend_label, 
                                           breakout_info, account,trade_type):
     """
     步骤3：保存每日策略信号并更新持仓状态（检查是否需要开仓）
@@ -57,7 +58,7 @@ def check_breakout_singal(symbol, product_code, trend_factor, trend_label,
         ).order_by('-trade_date').first()
         
         if last_entry_signal:
-            log_trade('check_breakout_singal', f"跳过重复开仓信号 {symbol}: 存在未执行的ENTRY信号（{last_entry_signal.trade_date}）",
+            log_trade('check_breakout_signal', f"跳过重复开仓信号 {symbol}: 存在未执行的ENTRY信号（{last_entry_signal.trade_date}）",
                       symbol=symbol, log_level='INFO')
             return False
     
@@ -600,22 +601,28 @@ def job_daily_close_calculation():
                         indicators = result.copy()
                         del indicators['breakout_info']  # 不需要把突破信息存到 indicators 字段里
                         del indicators['data_points']  # 不需要存储数据点数量
-                        
+
                         PositionState.objects.filter(symbol=contract['symbol']).update(
                             indicators=indicators,
                             latest_close_price=result['latest_close'],
                             h20_price=result['h_20'],
                             l20_price=result['l_20'],
                         )
-                        
+
                         indicator_results.append(result)
                         success_count += 1
                     else:
                         fail_count += 1
-                        
+                        log_trade('job_daily_close_calculation',
+                                  f"{contract['symbol']} 指标计算返回空，跳过",
+                                  symbol=contract['symbol'], log_level='WARNING')
+
                 except Exception as e:
                     fail_count += 1
-                    print(f"[ERROR] 计算指标失败 {contract['symbol']}: {e}")
+                    msg = f"计算指标失败 {contract['symbol']}: {e}"
+                    print(f"[ERROR] {msg}")
+                    log_trade('job_daily_close_calculation', msg,
+                              symbol=contract['symbol'], log_level='ERROR')
             
             print(f"[INFO] 指标计算完成: 成功{success_count}个, 失败{fail_count}个")
         
@@ -628,7 +635,7 @@ def job_daily_close_calculation():
             for result in indicator_results:
                 breakout_info = result.get('breakout_info', {})
                 if breakout_info.get('is_breakout'):
-                    success = check_breakout_singal(
+                    success = check_breakout_signal(
                         symbol=result['symbol'],
                         product_code=result['product_code'],
                         trend_factor=result['trend_factor'],

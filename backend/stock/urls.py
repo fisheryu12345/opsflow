@@ -19,6 +19,7 @@ from stock.views.strategyconfig import StrategyConfigViewSet
 from stock.views.position import PositionStateViewSet
 from stock.views.trade_log import TradeLogViewSet, ErrorLogViewSet
 from stock.views.closed_position import ClosedPositionRecordViewSet
+from stock.views.knowledge_base import KnowledgeBaseTreeView, KnowledgeBaseContentView
 
 # 创建路由器
 router = DefaultRouter()
@@ -42,10 +43,14 @@ symbol_win_rate_view = SymbolWinRateView.as_view({'get': 'list'})
 cumulative_stats_view = AccountCumulativeStatsView.as_view({'get': 'list'})
 daily_returns_calendar_view = DailyReturnsCalendarView.as_view({'get': 'list'})
 drawdown_curve_view = DrawdownCurveView.as_view({'get': 'list'})  # 新增：回撤曲线
+knowledge_base_tree_view = KnowledgeBaseTreeView.as_view({'get': 'list'})
+knowledge_base_content_view = KnowledgeBaseContentView.as_view({'get': 'list'})
 
 urlpatterns = router.urls + [
     path('symbol-win-rate/', symbol_win_rate_view, name='symbol-win-rate'),
     path('cumulative-stats/', cumulative_stats_view, name='cumulative-stats'),
     path('daily-returns-calendar/', daily_returns_calendar_view, name='daily-returns-calendar'),
     path('drawdown-curve/', drawdown_curve_view, name='drawdown-curve'),  # 新增路由
+    path('knowledge-base/tree/', knowledge_base_tree_view, name='knowledge-base-tree'),
+    path('knowledge-base/content/', knowledge_base_content_view, name='knowledge-base-content'),
 ]

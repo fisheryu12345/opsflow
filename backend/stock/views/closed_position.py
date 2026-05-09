@@ -2,13 +2,13 @@
 平仓记录视图集 - 支持平仓记录的增删改查
 """
 from rest_framework import viewsets, filters
-from rest_framework.permissions import AllowAny  # ⚠️ 仅用于开发测试，生产环境请移除！
+from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from stock.serializers.serializers import ClosedPositionRecordSerializer
 from stock.models import ClosedPositionRecord
 
 
-class ClosedPositionRecordViewSet(viewsets.ModelViewSet):
+class ClosedPositionRecordViewSet(viewsets.ReadOnlyModelViewSet):
     """
     【平仓记录视图集】
 
@@ -24,7 +24,7 @@ class ClosedPositionRecordViewSet(viewsets.ModelViewSet):
     """
     queryset = ClosedPositionRecord.objects.all()
     serializer_class = ClosedPositionRecordSerializer
-    permission_classes = [AllowAny]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
 
     # 过滤字段配置

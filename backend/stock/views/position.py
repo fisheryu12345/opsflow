@@ -2,16 +2,22 @@
 每日策略信号视图集
 """
 from rest_framework import viewsets, filters
+from django.db.models import OuterRef, Subquery
 from django_filters.rest_framework import DjangoFilterBackend
 from stock.serializers.serializers import PositionStateSerializer
-from stock.models import PositionState
+from stock.models import PositionState, FullContractList
 
 
-class PositionStateViewSet(viewsets.ModelViewSet):
+class PositionStateViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    策略持仓状态视图集 - 支持增删改查
+    策略持仓状态视图集 - 只读（数据由系统自动生成和维护）
     """
-    queryset = PositionState.objects.all()
+    queryset = PositionState.objects.annotate(
+        volume_multiple=Subquery(
+            FullContractList.objects.filter(symbol=OuterRef('symbol'))
+            .values('volume_multiple')[:1]
+        )
+    )
     serializer_class = PositionStateSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     

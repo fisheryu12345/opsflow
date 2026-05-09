@@ -4,11 +4,11 @@
 
 ---
 
-## MEDIUM-01: 部分视图集在生产环境使用 AllowAny 权限
+## ✅ MEDIUM-01: 部分视图集在生产环境使用 AllowAny 权限 — 已修复 (2026-05-09)
 
 **涉及文件**:
-- [performance.py:27/39/73/107/143/212/279/358](../backend/stock/views/performance.py)
-- [closed_position.py:27](../backend/stock/views/closed_position.py)
+- [performance.py](../backend/stock/views/performance.py) — 8 处 `AllowAny` → `IsAuthenticated`
+- [closed_position.py](../backend/stock/views/closed_position.py) — 1 处 `AllowAny` → `IsAuthenticated`
 
 **问题描述**:
 多个 ViewSet 使用了 `permission_classes = [AllowAny]`，注释标注 "仅用于开发测试，生产环境请移除"。
@@ -18,15 +18,14 @@
 - 无认证状态下可查询任意账户的盈亏数据
 - 虽然注释提醒了生产环境需要更改，但不合规范
 
-**修复方案**:
-```python
-# 改为使用默认认证或自定义权限
-permission_classes = [IsAuthenticated]  # 或保留现有项目认证机制
-```
+**修复内容**:
+- `performance.py`: 所有 8 个 ViewSet 的 `AllowAny` 改为 `IsAuthenticated`
+- `closed_position.py`: 1 处 `AllowAny` 改为 `IsAuthenticated`
+- 移除 `# ⚠️` 注释
 
 ---
 
-## MEDIUM-02: StrategyConfigViewSet 缺少过滤/搜索/排序
+## ✅ MEDIUM-02: StrategyConfigViewSet 缺少过滤/搜索/排序 — 已修复 (2026-05-09)
 
 **文件**: [strategyconfig.py:17](../backend/stock/views/strategyconfig.py#L17)
 
@@ -43,17 +42,17 @@ class StrategyConfigViewSet(viewsets.ModelViewSet):
 - 不支持按任何字段排序
 - 当配置条目增多时（>20条），前端无法筛选检索
 
-**修复方案**: 取消注释并添加过滤字段:
+**修复内容**: 取消注释并添加过滤字段:
 ```python
 filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-filterset_fields = ['name']
+filterset_fields = ['product_code']
 search_fields = ['name']
-ordering_fields = ['name', 'atr_period', 'entry_period']
+ordering_fields = ['name']
 ```
 
 ---
 
-## MEDIUM-03: Sortino 比率为 999.9999 极端值
+## ✅ MEDIUM-03: Sortino 比率为 999.9999 极端值 — 已修复 (2026-05-09)
 
 **文件**: [core/performance.py:194](../backend/stock/core/performance.py#L194)（原 scheduler/performance_cal.py）
 
@@ -68,17 +67,17 @@ if downside_std == 0:
 - 999.9999 的极端值严重影响 Dashboard 展示
 - 雷达图的坐标轴会被极端值拉伸，其他指标不可见
 
-**修复方案**:
+**修复内容**: 极端值改为 None，Dashboard 显示 "--"。
 ```python
+# 修复后
 if downside_std == 0:
-    sortino_ratio = None  # 或 Decimal('0')，表示无法计算
+    sortino_ratio = None
+# 同时修复同文件的 profit_loss_ratio 极端值 Decimal('999.99') → None
 ```
-
-同时在前端做 null 值处理，显示 "N/A" 或 "--"。
 
 ---
 
-## MEDIUM-04: 最大回撤持续时间从错误起点计算
+## ✅ MEDIUM-04: 最大回撤持续时间从错误起点计算 — 已修复 (2026-05-09)
 
 **文件**: [core/performance.py:349](../backend/stock/core/performance.py#L349)（原 scheduler/performance_cal.py）
 
@@ -90,16 +89,11 @@ if downside_std == 0:
 - 低估了实际的回撤持续时间
 - 如果从峰值到回撤开始有较长时间，持续天数计算偏差更大
 
-**修复方案**:
-```python
-# 记录峰值日期和回撤开始日期
-# max_dd_duration = 恢复到峰值前高的日期 - 达到前峰值日期的日期
-# 而非 回撤结束日 - 回撤开始日
-```
+**修复内容**: 改用 (trade_date, balance) 元组遍历，追踪 drawdown_start_date，在 equity 恢复至峰值时计算完整 peak→recovery 天数。同时处理数据末尾仍在回撤中的情况。
 
 ---
 
-## MEDIUM-05: 函数名拼写错误 check_breakout_singal
+## ✅ MEDIUM-05: 函数名拼写错误 check_breakout_singal — 已修复 (2026-05-09)
 
 **文件**: [tasks_daily_close.py](../backend/stock/scheduler/tasks_daily_close.py)
 
@@ -111,15 +105,11 @@ if downside_std == 0:
 - 被多个位置引用，修改需要同步更新所有调用点
 - 但属于纯拼写问题，不影响功能
 
-**修复方案**: 重命名并更新所有引用:
-```python
-# 旧: check_breakout_singal
-# 新: check_breakout_signal
-```
+**修复内容**: 函数定义 + 内部引用 + 调用点共 3 处全部重命名为 `check_breakout_signal`。
 
 ---
 
-## MEDIUM-06: 嵌套 transaction.atomic() 冗余
+## ✅ MEDIUM-06: 嵌套 transaction.atomic() 冗余 — 已修复 (代码重构后自然解决)
 
 **文件**: [infrastructure/order_signals.py](../backend/stock/infrastructure/order_signals.py)（原 tasks_daily_open.py，已迁移）
 
@@ -130,11 +120,11 @@ if downside_std == 0:
 - 内层 atomic 会创建 savepoint，虽不影响正确性但增加了不必要的数据库开销
 - 每个 savepoint 在 MySQL 中对应一个临时表，嵌套层级过多可能有性能影响
 
-**修复方案**: 移除内层冗余的 `with transaction.atomic()`，统一由外层管理。
+**修复说明**: `order_signals.py` 重构后各函数独立管理事务，`process_signals_by_type` 外层无 atomic 包裹，不再有嵌套问题。
 
 ---
 
-## MEDIUM-07: 前端删除请求包含 data 参数
+## ✅ MEDIUM-07: 前端删除请求包含 data 参数 — 已修复 (前端重写后自然解决)
 
 **文件**: [closed-position/api.ts:40](../web/src/views/apps/closed-position/api.ts#L40)
 
@@ -151,19 +141,11 @@ export function DelObj(id: DelReq) {
 
 **影响分析**: 某些 HTTP 代理或浏览器可能丢弃 DELETE 请求的 body。DRF 的 `destroy` 方法不从 request.data 读取参数，所以 `data: { id }` 实际无效。
 
-**修复方案**: 移除 `data` 参数:
-```typescript
-export function DelObj(id: DelReq) {
-    return request({
-        url: apiPrefix + id + '/',
-        method: 'delete',
-    });
-}
-```
+**修复说明**: 交易页面全面重写为 Vue3 Composition API 后，`api.ts` 已替换为仅含 `GetList` 的新版本，不再有 `DelObj`/DELETE 请求。
 
 ---
 
-## MEDIUM-08: 前端 CRUD 配置中模糊的字段命名
+## ✅ MEDIUM-08: 前端 CRUD 配置中模糊的字段命名 — 已修复 (前端重写后自然解决)
 
 **文件**: 多个前端 CRUD 文件（position/crud.tsx, closed-position/crud.tsx 等）
 
@@ -182,11 +164,11 @@ columns: {
 
 **影响分析**: 阅读代码时容易混淆 "search" 是指搜索字段还是搜索配置，增加维护成本。
 
-**修复方案**: 重命名为更语义化的名称如 `keyword_search` 或 `search_field`。
+**修复说明**: 所有交易页面 CRUD 已被 Vue3 Composition API 重写，`crud.tsx` 文件已删除，该问题不再存在。
 
 ---
 
-## MEDIUM-09: 开仓执行时 API 连接可能已失效
+## ✅ MEDIUM-09: 开仓执行时 API 连接可能已失效 — 已修复 (2026-05-09)
 
 **文件**: [tasks_daily_open.py](../backend/stock/scheduler/tasks_daily_open.py)
 
@@ -199,14 +181,14 @@ columns: {
 - 特别是 ADD_ON 信号（最低优先级）经常因超时而无法执行
 - 当前超时处理仅是打印错误，没有重试机制
 
-**修复方案**:
-1. 对每个信号或每组信号执行前检查 API 连接状态
-2. 实现自动重连机制（在连接断开时重新创建 TqApi）
-3. 信号执行顺序优化：耗时操作（如 ROLLOVER）放在最后
+**修复内容**:
+1. `tqapi.py` 新增 `is_api_connected()`（轻量级连接健康检查）和 `ensure_api_connected()`（断开自动重连）
+2. `order_signals.py` `process_signals_by_type()` 处理前检查连接，断开时跳过并记录日志
+3. `tasks_daily_open.py` 各信号批次间调用 `ensure_api_connected()`，断开时自动重连
 
 ---
 
-## MEDIUM-10: 合约管理搜索字段配置与实际差异
+## ✅ MEDIUM-10: 合约管理搜索字段配置与实际差异 — 已修复 (前端重写后自然解决)
 
 **文件**: [contracts/crud.tsx](../web/src/views/apps/contracts/crud.tsx)
 
@@ -219,9 +201,4 @@ columns: {
 - 页面首次加载时交易所下拉框短暂空白
 - 异步加载完成前用户无法使用交易所筛选
 
-**修复方案**:
-```typescript
-// 方法1: 添加 v-loading 状态
-// 方法2: 使用内置 dict 替代动态加载 options
-// 方法3: 添加 fallback 静态数据
-```
+**修复说明**: FastCRUD 已被 Vue3 自定义组件替代，该问题不再存在。

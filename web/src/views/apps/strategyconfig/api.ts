@@ -1,41 +1,23 @@
-import { request } from '/@/utils/service';
-import { UserPageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
+import { request } from '/@/utils/service'
 
-export const apiPrefix = '/api/stock/strategy/';
-export function GetList(query: UserPageQuery) {
-	return request({
-		url: apiPrefix,
-		method: 'get',
-		params: query,
-	});
-}
-export function GetObj(id: InfoReq) {
-	return request({
-		url: apiPrefix + id,
-		method: 'get',
-	});
+const apiPrefix = '/api/stock/strategy/'
+
+export function GetList(params: any) {
+  return request({ url: apiPrefix, method: 'get', params })
 }
 
-export function AddObj(obj: AddReq) {
-	return request({
-		url: apiPrefix,
-		method: 'post',
-		data: obj,
-	});
+export function GetObj(id: number) {
+  return request({ url: apiPrefix + id, method: 'get' })
 }
 
-export function UpdateObj(obj: EditReq) {
-	return request({
-		url: apiPrefix + obj.id + '/',
-		method: 'put',
-		data: obj,
-	});
+export function AddObj(obj: any) {
+  return request({ url: apiPrefix, method: 'post', data: obj })
 }
 
-export function DelObj(id: DelReq) {
-	return request({
-		url: apiPrefix + id + '/',
-		method: 'delete',
-		data: { id },
-	});
+export function UpdateObj(obj: any) {
+  return request({ url: apiPrefix + obj.id + '/', method: 'put', data: obj })
+}
+
+export function DelObj(id: number) {
+  return request({ url: apiPrefix + id + '/', method: 'delete' })
 }

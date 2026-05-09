@@ -1,0 +1,54 @@
+// === Design Tokens from portfolio_report.html ===
+
+// Background
+$bg-color: #f0f2f5;
+$page-bg: #f0f2f5;
+
+// Header
+$header-gradient-start: #1a1a2e;
+$header-gradient-end: #16213e;
+
+// Semantic Colors
+$color-green: #00a854;
+$color-green-light: #52c41a;
+$color-green-bg: #f6ffed;
+$color-red: #d93025;
+$color-red-light: #f5222d;
+$color-red-bg: #fff2f0;
+$color-blue: #1890ff;
+$color-blue-light: #40a9ff;
+$color-blue-bg: #e6f7ff;
+$color-orange: #fa8c16;
+$color-orange-light: #ffa940;
+$color-orange-bg: #fff7e6;
+$color-gold: #faad14;
+$color-purple: #722ed1;
+$color-cyan: #13c2c2;
+
+// Card Border Colors
+$card-green-border: #00a854;
+$card-red-border: #d93025;
+$card-blue-border: #1890ff;
+$card-orange-border: #fa8c16;
+
+// Shadows
+$card-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+$card-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.1);
+$card-shadow-hover-elevated: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+// Typography
+$font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+  'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+$text-primary: #1f1f1f;
+$text-secondary: #595959;
+$text-muted: #8c8c8c;
+
+// Spacing
+$page-padding: 24px;
+$card-padding: 20px;
+$grid-gap: 16px;
+
+// Border Radius
+$border-radius-sm: 4px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;

@@ -1,34 +1,35 @@
 """
-期货合约列表视图集
+交易日志与错误日志视图集
 """
-from rest_framework import viewsets, filters, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
+from rest_framework import viewsets, filters, mixins
+from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-from stock.serializers.serializers import TradeLogSerializer,ErrorLogSerializer
-from stock.models import TradeLog,ErrorLog
-"""
-交易日志视图集
-"""
+from stock.serializers.serializers import TradeLogSerializer, ErrorLogSerializer
+from stock.models import TradeLog, ErrorLog
 
-class TradeLogViewSet(viewsets.ModelViewSet):
+
+class TradeLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    交易日志视图集 - 支持增删改查
+    交易日志视图集 - 只读（日志由系统自动生成）
     """
     queryset = TradeLog.objects.all()
     serializer_class = TradeLogSerializer
+    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['function_name', 'log_level', 'symbol', 'timestamp']
     search_fields = ['function_name', 'log_message', 'symbol']
     ordering_fields = ['timestamp', 'log_level']
     ordering = ['-timestamp']
 
-class ErrorLogViewSet(viewsets.ModelViewSet):
+
+class ErrorLogViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
+                      mixins.DestroyModelMixin, viewsets.GenericViewSet):
     """
-    错误日志视图集 - 支持增删改查
+    错误日志视图集 - 只读+删除（保留清理功能，禁止修改）
     """
     queryset = ErrorLog.objects.all()
     serializer_class = ErrorLogSerializer
+    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['function_name', 'timestamp']
     search_fields = ['function_name', 'error_message', 'traceback']

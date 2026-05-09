@@ -30,7 +30,22 @@
       "Bash(awk '{print $5, $NF}')",
       "Bash(python -m stock.backtest.run_portfolio_backtest --skip-download --total-capital 1000000)",
       "Bash(python -m stock.backtest.generate_html_report)",
-      "Bash(cd /c/Users/dell/Desktop/Vue/backend && rm -f stock/backtest/data/*_main_daily_*.csv && echo \"Data deleted: $\\(ls stock/backtest/data/*_main_daily_*.csv 2>/dev/null | wc -l\\) files remaining\")"
+      "Bash(cd /c/Users/dell/Desktop/Vue/backend && rm -f stock/backtest/data/*_main_daily_*.csv && echo \"Data deleted: $\\(ls stock/backtest/data/*_main_daily_*.csv 2>/dev/null | wc -l\\) files remaining\")",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(python -m py_compile stock/scheduler/tasks_daily_close.py)",
+      "Bash(python -m py_compile stock/views/strategyconfig.py)",
+      "Bash(python -m py_compile stock/core/performance.py)",
+      "Bash(python -m py_compile stock/infrastructure/tqapi.py)",
+      "Bash(python -m py_compile stock/infrastructure/order_signals.py)",
+      "Bash(python update_todo.py)",
+      "Bash(npm install *)",
+      "Bash(grep -i \"workspace:\" \"c:/Users/dell/AppData/Local/npm-cache/_logs/2026-05-09T10_30_17_376Z-debug-0.log\" | head -5)",
+      "Read(//c/Users/dell/AppData/Local/npm-cache/_logs/**)",
+      "Bash(npm ls *)",
+      "Bash(yarn add *)",
+      "Bash(python3 -c \"import json; data=json.load\\(open\\('c:/Users/dell/Desktop/Vue/backend/dvadmin/system/fixtures/init_menu.json'\\)\\); [print\\(f'{d[\\\\\"name\\\\\"]:20s} parent={d.get\\(\\\\\"parent\\\\\",\\\\\"none\\\\\"\\)}'\\) for d in data[:20]]\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python.exe -c \"import json; data = json.load\\(open\\('c:/Users/dell/Desktop/Vue/backend/dvadmin/system/fixtures/init_menu.json'\\)\\); print\\(len\\([d for d in data if not d.get\\('parent'\\)]\\)\\)\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

@@ -14,4 +14,7 @@ class StrategyConfigViewSet(viewsets.ModelViewSet):
     """
     queryset = StrategyConfig.objects.all()
     serializer_class = StrategyConfigSerializer
-    # filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['name']
+    search_fields = ['name']
+    ordering_fields = ['name']

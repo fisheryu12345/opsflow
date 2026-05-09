@@ -57,7 +57,8 @@ class DailyStrategySignalSerializer(serializers.ModelSerializer):
 
 class PositionStateSerializer(serializers.ModelSerializer):
     """策略持仓状态序列化器"""
-    
+    volume_multiple = serializers.IntegerField(read_only=True, default=10)
+
     class Meta:
         model = PositionState
         fields = '__all__'

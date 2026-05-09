@@ -1,0 +1,222 @@
+@import './trading-variables.scss';
+
+// === Page Layout ===
+.trading-page {
+  padding: $page-padding;
+  background: $page-bg;
+  min-height: calc(100vh - 84px);
+  font-family: $font-family;
+
+  .page-header {
+    background: linear-gradient(135deg, $header-gradient-start, $header-gradient-end);
+    margin: -$page-padding;
+    margin-bottom: $page-padding;
+    padding: 20px $page-padding;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .page-title {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .page-actions {
+      display: flex;
+      gap: 8px;
+    }
+  }
+}
+
+// === Metric Card Grid ===
+.metric-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: $grid-gap;
+  margin-bottom: $grid-gap;
+}
+
+// === Metric Card ===
+.metric-card {
+  background: #fff;
+  border-radius: $border-radius-md;
+  padding: $card-padding;
+  box-shadow: $card-shadow;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    transition: opacity 0.3s ease;
+  }
+
+  &.border-green::before { background: $color-green; }
+  &.border-red::before { background: $color-red; }
+  &.border-blue::before { background: $color-blue; }
+  &.border-orange::before { background: $color-orange; }
+  &.border-purple::before { background: #722ed1; }
+
+  &:hover {
+    box-shadow: $card-shadow-hover;
+    transform: translateY(-2px);
+  }
+
+  .card-label {
+    font-size: 12px;
+    color: $text-secondary;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .card-value {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+    word-break: break-all;
+
+    &.positive { color: $color-red-light; }
+    &.negative { color: $color-green-light; }
+    &.neutral { color: $text-primary; }
+  }
+
+  .card-suffix {
+    font-size: 13px;
+    color: $text-muted;
+    margin-left: 4px;
+    font-weight: 400;
+  }
+
+  .card-icon {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    font-size: 32px;
+    opacity: 0.1;
+    color: $text-primary;
+  }
+}
+
+// === Section Card (for charts & tables) ===
+.section-card {
+  background: #fff;
+  border-radius: $border-radius-md;
+  box-shadow: $card-shadow;
+  margin-bottom: $grid-gap;
+  overflow: hidden;
+
+  .section-header {
+    padding: 16px $card-padding;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: $text-primary;
+      margin: 0;
+    }
+  }
+
+  .section-body {
+    padding: $card-padding;
+  }
+}
+
+// === Chart Container ===
+.chart-container {
+  width: 100%;
+  height: 350px;
+}
+
+// === Table Overrides ===
+.trading-table {
+  width: 100%;
+
+  .cell-positive {
+    color: $color-red-light;
+    font-weight: 500;
+  }
+
+  .cell-negative {
+    color: $color-green-light;
+    font-weight: 500;
+  }
+
+  .cell-neutral {
+    color: $text-primary;
+  }
+}
+
+// === Filter Bar ===
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: $grid-gap;
+
+  .filter-item {
+    width: 160px;
+  }
+
+  .filter-item-wide {
+    width: 240px;
+  }
+}
+
+// === Status Tags ===
+.tag-long {
+  color: $color-red-light;
+  background: $color-red-bg;
+  border-color: $color-red-light;
+}
+
+.tag-short {
+  color: $color-green-light;
+  background: $color-green-bg;
+  border-color: $color-green-light;
+}
+
+.tag-pending {
+  color: $color-orange;
+  background: $color-orange-bg;
+  border-color: $color-orange;
+}
+
+.tag-success {
+  color: $color-green-light;
+  background: $color-green-bg;
+  border-color: $color-green-light;
+}
+
+.tag-danger {
+  color: $color-red-light;
+  background: $color-red-bg;
+  border-color: $color-red-light;
+}
+
+// === Animations ===
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease forwards;
+}

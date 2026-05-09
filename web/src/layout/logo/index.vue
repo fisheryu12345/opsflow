@@ -12,6 +12,7 @@
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useThemeConfig } from '/@/stores/themeConfig';
+import { Local } from '/@/utils/storage';
 import logoMini from '/@/assets/hsbc.svg';
 import {SystemConfigStore} from "/@/stores/systemConfig";
 
@@ -28,6 +29,8 @@ const setShowLogo = computed(() => {
 const onThemeConfigChange = () => {
 	if (themeConfig.value.layout === 'transverse') return false;
 	themeConfig.value.isCollapse = !themeConfig.value.isCollapse;
+	Local.remove('themeConfig');
+	Local.set('themeConfig', themeConfig.value);
 };
 
 const systemConfigStore = SystemConfigStore()

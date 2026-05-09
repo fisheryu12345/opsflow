@@ -7,272 +7,161 @@ import { ref, onMounted, onUnmounted, watch } from 'vue';
 import * as echarts from 'echarts';
 import type { ECharts } from 'echarts';
 import { getMultiWindowMetrics } from '../api';
-import { ElMessage } from 'element-plus';
 
-// ==================== Props ====================
-const props = defineProps<{
-	accountId: number;
-}>();
+const props = defineProps<{ accountId: number }>();
 
-// ==================== 状态管理 ====================
 const chartRef = ref<HTMLElement | null>(null);
 let chartInstance: ECharts | null = null;
 
-// ==================== 模拟数据配置 ====================
-/**
- * 模拟数据（用于账户运行初期数据不足时展示）
- * 💡 数据来源：基于典型期货策略的历史表现估算
- * 🎨 颜色方案：
- * - 20日：蓝色系 (#1890ff) - 短期灵敏度高
- * - 60日：绿色系 (#52c41a) - 中期稳健
- * - 120日：橙色系 (#faad14) - 中长期平衡
- * - 250日：紫色系 (#722ed1) - 长期趋势稳定
- */
+const getFontConfig = () => {
+	const w = window.innerWidth;
+	if (w < 480) return { radar: 10, legend: 10, tooltip: 11, title: 13 };
+	if (w < 768) return { radar: 11, legend: 11, tooltip: 12, title: 15 };
+	return { radar: 12, legend: 12, tooltip: 12, title: 16 };
+};
+
 const MOCK_METRICS = [
-	{ window_days: 20, sharpe_ratio: '1.25', win_rate: '56.50', profit_loss_ratio: '1.85', volatility: '12.30', data_quality: 'MOCK', color: '#1890ff' },
-	{ window_days: 60, sharpe_ratio: '1.45', win_rate: '58.20', profit_loss_ratio: '2.10', volatility: '11.50', data_quality: 'MOCK', color: '#52c41a' },
-	{ window_days: 120, sharpe_ratio: '1.35', win_rate: '57.00', profit_loss_ratio: '1.95', volatility: '10.80', data_quality: 'MOCK', color: '#faad14' },
-	{ window_days: 250, sharpe_ratio: '1.50', win_rate: '59.50', profit_loss_ratio: '2.20', volatility: '9.80', data_quality: 'MOCK', color: '#722ed1' }
+	{ window_days: 20, sharpe_ratio: '1.25', win_rate: '56.50', profit_loss_ratio: '1.85', sortino_ratio: '1.52', volatility: '12.30', total_trades: 45, data_quality: 'MOCK', color: '#1890ff' },
+	{ window_days: 60, sharpe_ratio: '1.45', win_rate: '58.20', profit_loss_ratio: '2.10', sortino_ratio: '1.78', volatility: '11.50', total_trades: 128, data_quality: 'MOCK', color: '#52c41a' },
+	{ window_days: 120, sharpe_ratio: '1.35', win_rate: '57.00', profit_loss_ratio: '1.95', sortino_ratio: '1.65', volatility: '10.80', total_trades: 256, data_quality: 'MOCK', color: '#faad14' },
+	{ window_days: 250, sharpe_ratio: '1.50', win_rate: '59.50', profit_loss_ratio: '2.20', sortino_ratio: '1.85', volatility: '9.80', total_trades: 520, data_quality: 'MOCK', color: '#722ed1' }
 ];
 
-// ==================== 数据处理 ====================
-/**
- * 判断是否应该使用模拟数据
- * 
- * @param metrics 真实数据数组
- * @returns boolean - true表示需要使用模拟数据
- */
-const shouldUseMockData = (metrics: any[]): boolean => {
-	if (!metrics || metrics.length === 0) {
-		return true;
-	}
-	
-	// 过滤掉数据质量不足的窗口
-	const validMetrics = metrics.filter(m => 
-		m.data_quality !== 'INSUFFICIENT' && 
-		m.sharpe_ratio !== null
-	);
-	
-	// 如果有效窗口少于2个，使用模拟数据
-	return validMetrics.length < 2;
+const INDICATORS = [
+	{ key: 'sharpe_ratio', label: '夏普比率', factor: 1 },
+	{ key: 'win_rate', label: '胜率', factor: 1 },
+	{ key: 'profit_loss_ratio', label: '盈亏比', factor: 1 },
+	{ key: 'sortino_ratio', label: '索提诺', factor: 1 },
+	{ key: 'volatility_inv', label: '低波动指数', factor: 1 },
+];
+
+const safeParse = (v: string | null | undefined, def = 0) => {
+	if (v === null || v === undefined) return def;
+	const n = parseFloat(v);
+	return isNaN(n) ? def : n;
 };
 
-/**
-/**
- * 安全解析数值，处理 null/undefined
- */
-const safeParse = (value: string | null | undefined, defaultValue: number = 0): number => {
-	if (value === null || value === undefined) {
-		return defaultValue;
+const calcIndicatorValue = (m: any, key: string): number => {
+	if (key === 'volatility_inv') {
+		const vol = safeParse(m.volatility, 1);
+		return vol > 0 ? 1 / vol : 0;
 	}
-	const parsed = parseFloat(value);
-	return isNaN(parsed) ? defaultValue : parsed;
+	return safeParse(m[key]);
 };
 
-/**
- * 将后端数据转换为雷达图格式
- */
-const transformDataForRadar = (metrics: any[]) => {
-	// 过滤掉数据质量不足的窗口
-	const validMetrics = metrics.filter(m => 
-		m.data_quality !== 'INSUFFICIENT' && 
-		m.sharpe_ratio !== null
-	);
+const transformData = (metrics: any[]) => {
+	const valid = metrics.filter(m => m.data_quality !== 'INSUFFICIENT' && m.sharpe_ratio !== null);
+	if (valid.length === 0) return null;
 
-	if (validMetrics.length === 0) {
-		return null;
-	}
+	const colorMap: Record<number, string> = { 20: '#1890ff', 60: '#52c41a', 120: '#faad14', 250: '#722ed1' };
 
-	// 定义不同窗口的颜色映射（用于真实数据）
-	const colorMap: Record<number, string> = {
-		20: '#1890ff',   // 蓝色 - 短期
-		60: '#52c41a',   // 绿色 - 中期
-		120: '#faad14',  // 橙色 - 中长期
-		250: '#722ed1'   // 紫色 - 长期
+	// 每个维度独立算 max
+	const maxValues = INDICATORS.map(ind => {
+		const vals = valid.map(m => calcIndicatorValue(m, ind.key));
+		return Math.max(Math.max(...vals, 0.1) * 1.3, 0.5);
+	});
+
+	return {
+		maxValues,
+		series: valid.map(m => ({
+			name: `${m.window_days}日`,
+			value: INDICATORS.map(ind => calcIndicatorValue(m, ind.key)),
+			raw: m,
+			isMock: m.data_quality === 'MOCK',
+			color: m.color || colorMap[m.window_days] || '#1890ff'
+		}))
 	};
-
-	// 转换为雷达图所需格式
-	return validMetrics.map(m => ({
-		name: `${m.window_days}日`,
-		value: [
-			safeParse(m.sharpe_ratio),                    // 夏普比率
-			safeParse(m.win_rate),                        // 胜率(%)
-			safeParse(m.profit_loss_ratio),               // 盈亏比
-			m.volatility ? (1 / safeParse(m.volatility, 1)) : 0  // 波动率倒数（越大越好）
-		],
-		isMock: m.data_quality === 'MOCK',  // 标记是否为模拟数据
-		color: m.color || colorMap[m.window_days] || '#1890ff'  // 使用配置颜色或默认颜色
-	}));
 };
 
-// ==================== 图表配置 ====================
-/**
- * 获取 ECharts 配置项
- * 
- * @param radarData 雷达图数据
- * @param isMockData 是否使用模拟数据
- */
-const getChartOption = (radarData: any[], isMockData: boolean = false) => {
+const getChartOption = (data: any, isMock: boolean) => {
+	const font = getFontConfig();
+	const isMobile = window.innerWidth < 480;
+
 	return {
 		title: {
-			text: isMockData ? '多窗口绩效对比（示例数据）' : '多窗口绩效对比',
-			subtext: isMockData ? '数据积累中将自动切换为真实数据' : '',
-			left: 'center',
-			top: 10,
-			textStyle: {
-				fontSize: 16,
-				fontWeight: 'bold'
-			},
-			subtextStyle: {
-				fontSize: 12,
-				color: '#999'
-			}
+			text: '多窗口绩效对比',
+			subtext: isMock ? '模拟数据 — 数据积累中自动切换' : '',
+			left: 'center', top: 10,
+			textStyle: { fontSize: font.title, fontWeight: 'bold' },
+			subtextStyle: { fontSize: 12, color: '#999' }
 		},
 		tooltip: {
 			trigger: 'item',
 			formatter: (params: any) => {
-				const windowName = params.name;
-				const values = params.value;
-				const isMock = params.data.isMock;
-				return `
-					<div style="padding: 8px;">
-						<strong>${windowName}</strong>${isMock ? ' <span style="color:#999;font-size:12px;">(示例)</span>' : ''}<br/>
-						夏普比率: ${values[0].toFixed(2)}<br/>
-						胜率: ${values[1].toFixed(2)}%<br/>
-						盈亏比: ${values[2].toFixed(2)}<br/>
-						低波动指数: ${values[3].toFixed(2)}
+				const v = params.value;
+				const raw = params.data?.raw || {};
+				const mockTag = params.data?.isMock ? ' <span style="color:#999;font-size:11px;">(模拟)</span>' : '';
+				const q = raw.data_quality && raw.data_quality !== 'MOCK'
+					? `<div style="color:#999;font-size:11px;margin-top:2px;">数据质量: ${raw.data_quality}</div>` : '';
+				return `<div style="padding:6px;">
+					<strong style="font-size:14px;">${params.name}</strong>${mockTag}<br/>
+					<div style="margin-top:4px;line-height:1.7;">
+						<span style="display:inline-block;width:76px;">夏普比率</span><b>${v[0].toFixed(2)}</b><br/>
+						<span style="display:inline-block;width:76px;">胜率</span><b>${v[1].toFixed(1)}%</b><br/>
+						<span style="display:inline-block;width:76px;">盈亏比</span><b>${v[2].toFixed(2)}</b><br/>
+						<span style="display:inline-block;width:76px;">索提诺</span><b>${v[3].toFixed(2)}</b><br/>
+						<span style="display:inline-block;width:76px;">低波动</span><b>${v[4].toFixed(2)}</b><br/>
+						<span style="display:inline-block;width:76px;color:#999;">交易次数</span><span style="color:#999;">${raw.total_trades || 0} 次</span>
 					</div>
-				`;
-			}
+					${q}
+				</div>`;
+			},
+			textStyle: { fontSize: font.tooltip }
 		},
 		legend: {
-			data: radarData.map(d => d.name),
-			bottom: 10,
-			icon: 'circle'
+			data: data.series.map((d: any) => d.name),
+			bottom: 10, icon: 'circle',
+			textStyle: { fontSize: font.legend }
 		},
 		radar: {
-			indicator: [
-				{ name: '夏普比率', max: 3, min: 0 },
-				{ name: '胜率(%)', max: 100, min: 0 },
-				{ name: '盈亏比', max: 5, min: 0 },
-				{ name: '低波动', max: 1, min: 0 }
-			],
-			radius: '65%',
+			indicator: INDICATORS.map((ind, i) => ({
+				name: ind.label,
+				max: data.maxValues[i],
+				min: 0
+			})),
+			radius: isMobile ? '58%' : '65%',
 			center: ['50%', '50%'],
-			axisName: {
-				color: '#666',
-				fontSize: 12
-			},
-			splitArea: {
-				areaStyle: {
-					color: ['#f8f9fa', '#fff']
-				}
-			}
+			axisName: { color: '#666', fontSize: font.radar },
+			splitArea: { areaStyle: { color: ['rgba(24,144,255,0.03)', 'rgba(24,144,255,0.06)'] } },
+			splitLine: { lineStyle: { color: 'rgba(0,0,0,0.08)' } },
+			axisLine: { lineStyle: { color: 'rgba(0,0,0,0.08)' } }
 		},
 		series: [{
 			type: 'radar',
-			data: radarData.map((item, index) => ({
-				value: item.value,
-				name: item.name,
-				lineStyle: {
-					width: 2,
-					type: item.isMock ? 'dashed' : 'solid',  // 模拟数据用虚线
-					color: item.color || (item.isMock ? '#999' : undefined)  // 使用配置颜色
-				},
-				areaStyle: {
-					opacity: item.isMock ? 0.08 : 0.15,  // 模拟数据更透明
-					color: item.color || (item.isMock ? '#ccc' : undefined)
-				},
-				itemStyle: {
-					borderWidth: 2,
-					color: item.color || (item.isMock ? '#999' : undefined)
-				}
+			animationDuration: 800,
+			data: data.series.map((item: any) => ({
+				value: item.value, name: item.name,
+				lineStyle: { width: isMobile ? 1.5 : 2, type: item.isMock ? 'dashed' : 'solid', color: item.color },
+				areaStyle: { opacity: isMobile ? 0.1 : 0.15, color: item.color },
+				itemStyle: { borderWidth: isMobile ? 1.5 : 2, color: item.color }
 			})),
-			emphasis: {
-				lineStyle: {
-					width: 4
-				}
-			}
+			emphasis: { lineStyle: { width: 3 }, areaStyle: { opacity: 0.25 } }
 		}]
 	};
 };
 
-// ==================== 数据加载 ====================
-/**
- * 加载并渲染雷达图
- */
 const loadRadarChart = async () => {
 	try {
 		const res = await getMultiWindowMetrics(props.accountId);
-		
-		let radarData: any[] | null = null;
-		let isMockData = false;
-		
-		// 判断是否需要使用模拟数据
-		// 注意：这里假设 res.code === 2000 为成功，如果接口失败通常会在 catch 中处理或 res.code 不为 2000
-		// 如果 res.code !== 2000，res.data 可能为空或无效，shouldUseMockData 会处理空数组情况
-		if (!res.data || res.data.length === 0 || shouldUseMockData(res.data)) {
-			console.warn('[MultiWindowRadarChart] 数据不足，使用模拟数据展示');
-			radarData = transformDataForRadar(MOCK_METRICS);
-			isMockData = true;
+		let data: any = null, isMock = false;
+		if (!res.data || res.data.length === 0 || (res.data.filter((m: any) => m.data_quality !== 'INSUFFICIENT' && m.sharpe_ratio !== null).length < 2)) {
+			data = transformData(MOCK_METRICS); isMock = true;
 		} else {
-			radarData = transformDataForRadar(res.data);
-			isMockData = false;
+			data = transformData(res.data); isMock = false;
 		}
-		
-		if (!radarData) {
-			ElMessage.warning('无法生成雷达图数据');
-			return;
-		}
-
-		// 初始化或更新图表
-		if (!chartInstance && chartRef.value) {
-			chartInstance = echarts.init(chartRef.value);
-		}
-
-		if (chartInstance) {
-			const option = getChartOption(radarData, isMockData);
-			chartInstance.setOption(option, true);
-		}
+		if (!data) return;
+		if (!chartInstance && chartRef.value) chartInstance = echarts.init(chartRef.value);
+		if (chartInstance) chartInstance.setOption(getChartOption(data, isMock), true);
 	} catch (error: any) {
 		console.error('加载多窗口雷达图失败:', error);
-		ElMessage.error('加载图表失败');
 	}
 };
 
-// ==================== 生命周期 ====================
-onMounted(() => {
-	loadRadarChart();
-	
-	// 监听窗口大小变化
-	window.addEventListener('resize', handleResize);
-});
+onMounted(() => { loadRadarChart(); window.addEventListener('resize', handleResize); });
+onUnmounted(() => { if (chartInstance) { chartInstance.dispose(); chartInstance = null; } window.removeEventListener('resize', handleResize); });
+watch(() => props.accountId, () => loadRadarChart());
 
-onUnmounted(() => {
-	// 销毁图表实例
-	if (chartInstance) {
-		chartInstance.dispose();
-		chartInstance = null;
-	}
-	
-	// 移除事件监听
-	window.removeEventListener('resize', handleResize);
-});
-
-// 监听 accountId 变化
-watch(() => props.accountId, () => {
-	loadRadarChart();
-});
-
-// ==================== 响应式处理 ====================
-/**
- * 处理窗口大小变化
- */
-const handleResize = () => {
-	if (chartInstance) {
-		chartInstance.resize();
-	}
-};
+const handleResize = () => { if (chartInstance) chartInstance.resize(); };
 </script>
 
 <style scoped>
@@ -284,13 +173,7 @@ const handleResize = () => {
 	border-radius: 8px;
 	padding: 16px;
 	box-sizing: border-box;
-	
-	@media (max-width: 768px) {
-		min-height: 215px;
-	}
-	
-	@media (max-width: 480px) {
-		min-height: 173px;
-	}
+	@media (max-width: 768px) { min-height: 215px; }
+	@media (max-width: 480px) { min-height: 173px; }
 }
 </style>

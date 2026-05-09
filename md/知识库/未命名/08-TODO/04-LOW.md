@@ -55,29 +55,26 @@ def std(values):
 
 ---
 
-## LOW-03: 缺少类型注解和文档字符串
+## ✅ LOW-03: 缺少类型注解和文档字符串 — 已修复 (2026-05-09)
 
-**涉及文件**: 多个后端文件
+**涉及文件**:
+- [tasks_daily_close.py](../backend/stock/scheduler/tasks_daily_close.py) — 7 个函数
+- [tasks_daily_open.py](../backend/stock/scheduler/tasks_daily_open.py) — 1 个函数
 
 **问题描述**:
 部分关键函数缺少类型注解或文档字符串，特别是 `tasks_daily_close.py` 和 `tasks_daily_open.py`
 中的核心业务函数。
 
-**示例**:
-```python
-# 当前: 缺少参数和返回类型注解
-def check_breakout_singal(...):
-    
-# 建议:
-def check_breakout_signal(klines: pd.DataFrame, position: PositionState, 
-                          indicators: dict) -> Dict[str, Any]:
-```
-
 **影响分析**: 增加代码理解和维护成本，降低 IDE 智能提示效果。
+
+**修复内容**:
+- `check_breakout_signal` 添加完整参数注解 (`symbol: str`, `product_code: str`, `trend_factor: float`, `trend_label: str`, `breakout_info: dict`, `trade_type: str`) 和返回类型 (`-> bool`) 及文档字符串
+- `check_exit_signals`, `check_rollover_signals`, `check_add_position_signals`, `update_all_positions_high_low_price`, `update_all_positions_stop_loss_price`, `job_daily_close_calculation` 全部添加 `-> None` 返回类型
+- `job_daily_open_process` 添加 `-> None` 返回类型
 
 ---
 
-## LOW-04: API 端点使用 ModelViewSet 暴露写操作
+## ✅ LOW-04: API 端点使用 ModelViewSet 暴露写操作 — 已修复 (2026-05-09)
 
 **涉及文件**:
 - [position.py](../backend/stock/views/position.py) — PositionStateViewSet
@@ -93,22 +90,11 @@ def check_breakout_signal(klines: pd.DataFrame, position: PositionState,
 - 虽然前端隐藏了编辑按钮，但通过 API 工具仍可直接调用写操作
 - 存在误操作或数据被篡改的风险
 
-**修复方案**:
-```python
-# 改为 ReadOnlyModelViewSet
-from rest_framework.viewsets import ReadOnlyModelViewSet
-
-class PositionStateViewSet(ReadOnlyModelViewSet):
-    # 不需要 addRequest, editRequest, delRequest
-    ...
-```
-
-对需要删除功能的（如 ErrorLog），可保留 destroy 操作:
-```python
-class ErrorLogViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, 
-                      mixins.DestroyModelMixin, GenericViewSet):
-    ...
-```
+**修复内容**:
+- `PositionStateViewSet`: `ModelViewSet` → `ReadOnlyModelViewSet`
+- `ClosedPositionRecordViewSet`: `ModelViewSet` → `ReadOnlyModelViewSet`
+- `TradeLogViewSet`: `ModelViewSet` → `ReadOnlyModelViewSet`
+- `ErrorLogViewSet`: `ModelViewSet` → `mixins.ListModelMixin + mixins.RetrieveModelMixin + mixins.DestroyModelMixin + GenericViewSet`（保留删除清理功能）
 
 ---
 

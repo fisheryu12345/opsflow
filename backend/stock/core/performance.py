@@ -135,7 +135,7 @@ def calculate_rolling_metrics(
                 downside_std = np.std(downside_returns)
                 sortino_ratio = Decimal(str((mean_return / downside_std) * np.sqrt(252))).quantize(Decimal('0.0001')) if downside_std > 0 else None
             else:
-                sortino_ratio = Decimal('999.9999')
+                sortino_ratio = None
 
             volatility = Decimal(str(std_return * np.sqrt(252))).quantize(Decimal('0.0001'))
         else:
@@ -162,7 +162,7 @@ def calculate_rolling_metrics(
             if total_loss > 0:
                 profit_loss_ratio = (total_profit / total_loss).quantize(Decimal('0.01'))
             else:
-                profit_loss_ratio = Decimal('999.99') if total_profit > 0 else Decimal('0')
+                profit_loss_ratio = None
         else:
             win_rate = None
             profit_loss_ratio = None
@@ -240,33 +240,52 @@ def update_account_summary(
         all_snapshots = DailyEquitySnapshot.objects.filter(
             account=account,
             trade_date__lte=snapshot_date
-        ).order_by('trade_date').values_list('balance', flat=True)
+        ).order_by('trade_date').values_list('trade_date', 'balance')
 
-        equity_list = [Decimal(str(e)) for e in all_snapshots]
+        equity_list = [(d, Decimal(str(b))) for d, b in all_snapshots]
 
         if equity_list:
             max_drawdown = Decimal('0')
-            running_peak = equity_list[0]
+            running_peak = equity_list[0][1]
             max_dd_duration = 0
-            current_dd_duration = 0
+            peak_date = equity_list[0][0]
+            drawdown_start_date = None
 
-            for equity in equity_list:
+            for trade_date, equity in equity_list:
                 if equity > running_peak:
+                    # 到达新高：记录上一个回撤段的持续时间
+                    if drawdown_start_date is not None:
+                        recovery_days = (trade_date - drawdown_start_date).days
+                        if recovery_days > max_dd_duration:
+                            max_dd_duration = recovery_days
+                        drawdown_start_date = None
                     running_peak = equity
-                    current_dd_duration = 0
+                    peak_date = trade_date
 
                 if running_peak > 0:
                     drawdown = (running_peak - equity) / running_peak * 100
                     if drawdown > max_drawdown:
                         max_drawdown = drawdown
-                        max_dd_duration = current_dd_duration
 
                     if drawdown > 0:
-                        current_dd_duration += 1
+                        # 处于回撤中
+                        if drawdown_start_date is None:
+                            drawdown_start_date = trade_date
                     else:
-                        current_dd_duration = 0
+                        # 已恢复
+                        if drawdown_start_date is not None:
+                            recovery_days = (trade_date - drawdown_start_date).days
+                            if recovery_days > max_dd_duration:
+                                max_dd_duration = recovery_days
+                            drawdown_start_date = None
 
-            historical_peak = max(equity_list)
+            # 如果当前仍处于回撤中，计算到截止日期的持续时间
+            if drawdown_start_date is not None:
+                ongoing_days = (snapshot_date - drawdown_start_date).days
+                if ongoing_days > max_dd_duration:
+                    max_dd_duration = ongoing_days
+
+            historical_peak = max(b for _, b in equity_list)
             if historical_peak > 0:
                 current_drawdown = ((historical_peak - current_equity) / historical_peak * 100).quantize(Decimal('0.0001'))
             else:

@@ -3,7 +3,7 @@
 """
 from decimal import Decimal
 from rest_framework import viewsets, filters, status
-from rest_framework.permissions import AllowAny  # ⚠️ 仅用于开发测试，生产环境请移除！
+from rest_framework.permissions import IsAuthenticated  # ⚠️ 仅用于开发测试，生产环境请移除！
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count, Sum, Case, When, Value, IntegerField, Q
@@ -36,7 +36,7 @@ class DailyEquitySnapshotViewSet(viewsets.ModelViewSet):
     """
     queryset = DailyEquitySnapshot.objects.all()
     serializer_class = DailyEquitySnapshotSerializer
-    permission_classes = [AllowAny]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     # 过滤字段配置
@@ -70,7 +70,7 @@ class RollingPerformanceMetricsViewSet(viewsets.ModelViewSet):
     """
     queryset = RollingPerformanceMetrics.objects.all()
     serializer_class = RollingPerformanceMetricsSerializer
-    permission_classes = [AllowAny]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     # 过滤字段配置
@@ -104,7 +104,7 @@ class AccountPerformanceSummaryViewSet(viewsets.ModelViewSet):
     """
     queryset = AccountPerformanceSummary.objects.all()
     serializer_class = AccountPerformanceSummarySerializer
-    permission_classes = [AllowAny]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     # 过滤字段配置
@@ -140,7 +140,7 @@ class SymbolWinRateView(viewsets.ViewSet):
         ...
     ]
     """
-    permission_classes = [AllowAny]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
     
     def list(self, request):
         account_id = request.query_params.get('account')
@@ -209,7 +209,7 @@ class AccountCumulativeStatsView(viewsets.ViewSet):
         }
     }
     """
-    permission_classes = [AllowAny]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
     
     def list(self, request):
         account_id = request.query_params.get('account')
@@ -276,7 +276,7 @@ class DrawdownCurveView(viewsets.ViewSet):
     - drawdown_pct: (当前权益 - 历史最高权益) / 历史最高权益 * 100%
     - is_new_peak: 是否创出新高（用于标记关键时间点）
     """
-    permission_classes = [AllowAny]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
     
     def list(self, request):
         account_id = request.query_params.get('account')
@@ -355,7 +355,7 @@ class DailyReturnsCalendarView(viewsets.ViewSet):
         ]
     }
     """
-    permission_classes = [AllowAny]  # ⚠️ 临时允许匿名访问（仅开发测试用）
+    permission_classes = [IsAuthenticated]  # ⚠️ 临时允许匿名访问（仅开发测试用）
     
     def list(self, request):
         account_id = request.query_params.get('account')

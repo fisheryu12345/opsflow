@@ -4,7 +4,7 @@
 
 ---
 
-## HIGH-01: 指标计算失败时静默跳过，无日志告警
+## ✅ HIGH-01: 指标计算失败时静默跳过，无日志告警 — 已修复 (2026-05-09)
 
 **文件**: [tasks_daily_close.py:561-563](../backend/stock/scheduler/tasks_daily_close.py#L561-L563)
 
@@ -22,16 +22,19 @@ if indicators is None or indicators.get('atr_20') is None:
 - 止损价无法更新，可能导致该品种的止损停留在旧价格
 - 趋势信息无法更新，次日开盘信号可能基于旧数据
 
-**修复方案**:
+**修复内容**: 在 `job_daily_close_calculation` 的指标计算循环中，result 返回 None 时和异常捕获时均添加 `log_trade` 记录。
 ```python
-indicators = calculate_indicators(api, position.symbol, position.product_code)
-if indicators is None or indicators.get('atr_20') is None:
-    log_trade(
-        'update_all_positions_stop_loss_price',
-        f"{position.symbol} 指标计算失败，跳过止损更新",
-        symbol=position.symbol, log_level='WARNING'
-    )
-    continue
+# 修复后
+if result:
+    ...
+else:
+    log_trade('job_daily_close_calculation',
+              f"{contract['symbol']} 指标计算返回空，跳过",
+              symbol=contract['symbol'], log_level='WARNING')
+
+except Exception as e:
+    log_trade('job_daily_close_calculation', msg,
+              symbol=contract['symbol'], log_level='ERROR')
 ```
 
 ---

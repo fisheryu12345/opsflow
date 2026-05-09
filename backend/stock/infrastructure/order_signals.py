@@ -10,6 +10,7 @@ from tqsdk import TargetPosTask
 from stock.models import TradingAccount, PositionState, DailyStrategySignal, ClosedPositionRecord, FullContractList
 from stock.utils.log_util import log_trade, log_error
 from stock.core.config_loader import get_config
+from stock.infrastructure.tqapi import is_api_connected
 
 TIMEOUT_SECONDS = get_config('TIMEOUT_SECONDS')
 POSITION_MAX_UNITS = get_config('POSITION_MAX_UNITS')
@@ -672,6 +673,12 @@ def process_signals_by_type(api, account, trade_type):
     config = type_config.get(trade_type)
     if not config:
         print(f"[ERROR] 不支持的交易类型: {trade_type}")
+        return {'success': 0, 'failed': 0, 'skipped': 0}
+
+    # API 连接检查：如果连接已断开，跳过本批次处理并记录日志
+    if not is_api_connected(api):
+        log_error('process_signals_by_type',
+                   f"API连接已断开，跳过{trade_type}处理")
         return {'success': 0, 'failed': 0, 'skipped': 0}
 
     signals = DailyStrategySignal.objects.filter(config['query_filter']).filter(executed_status='PENDING')
