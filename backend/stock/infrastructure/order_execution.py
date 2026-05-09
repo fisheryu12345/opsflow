@@ -257,7 +257,7 @@ def record_and_reset_position(api, position, signal, filled_volume, avg_price):
             'highest_close': None,
             'lowest_close': None,
             'stop_loss_price': None,
-            'protect_cost_enalbed': False,
+            'protect_cost_enabled': False,
             'open_date': None,
             'last_update_time': timezone.now(),
         }

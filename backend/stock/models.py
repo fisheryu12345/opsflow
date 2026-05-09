@@ -566,7 +566,7 @@ class PositionState(models.Model):
     h20_price = models.DecimalField("20日最高价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="20日最高价")
     l20_price = models.DecimalField("20日最低价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="20日最低价")
     trend_info = models.CharField("趋势标签", max_length=60, null=True, blank=True, help_text="趋势标签，如：BULL, BEAR, NEUTRAL")
-    protect_cost_enalbed = models.BooleanField("保护成本",null=True, blank=True,  default=False, help_text="是否保护成本")
+    protect_cost_enabled = models.BooleanField("保护成本",null=True, blank=True,  default=False, help_text="是否保护成本")
 
 
 

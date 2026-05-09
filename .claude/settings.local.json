@@ -47,7 +47,9 @@
       "Bash(python3 -c ' *)",
       "Bash(python.exe -c \"import json; data = json.load\\(open\\('c:/Users/dell/Desktop/Vue/backend/dvadmin/system/fixtures/init_menu.json'\\)\\); print\\(len\\([d for d in data if not d.get\\('parent'\\)]\\)\\)\")",
       "Bash(git check-ignore *)",
-      "Bash(git cherry *)"
+      "Bash(git cherry *)",
+      "Bash(python manage.py makemigrations stock --name rename_protect_cost_enabled)",
+      "Bash(python manage.py migrate stock 0061)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

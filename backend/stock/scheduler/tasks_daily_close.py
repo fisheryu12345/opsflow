@@ -477,7 +477,7 @@ def update_all_positions_stop_loss_price(api):
                     continue
                 
                 # === 保本功能检查 ===
-                protect_cost_enabled = position.protect_cost_enalbed  # 当前保本状态
+                protect_cost_enabled = position.protect_cost_enabled  # 当前保本状态
                 # 计算保本价（基于成本价）
                 protect_price = None
                 if cost_price:
@@ -527,7 +527,7 @@ def update_all_positions_stop_loss_price(api):
                     cost_price=cost_price,
                     last_update_time=timezone.now(),  # 【修复】手动更新最后更新时间
                     trend_info=f'{atr_value:.2f},  {factor:.2f} , {trend_label}',
-                    protect_cost_enalbed=protect_cost_enabled,  # 【新增】更新保本状态
+                    protect_cost_enabled=protect_cost_enabled,  # 【新增】更新保本状态
 
                 )
                 updated_count += 1
