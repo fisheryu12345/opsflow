@@ -1,8 +1,17 @@
 <template>
 	<div class="trading-page">
-				<el-tag v-if="lastUpdated" type="default" effect="plain" size="small">
-					最后更新: {{ lastUpdated }}
-				</el-tag>
+		<div class="home-header">
+			<div class="header-right">
+					<span v-if="lastUpdated" class="update-time">
+						<Clock style="width:14px;height:14px;margin-right:4px;" />
+					{{ lastUpdated }}
+				</span>
+					<el-button class="report-btn" type="primary" plain @click="openReport">
+						<Document style="width:14px;height:14px;margin-right:4px;" />
+						策略分析报告
+					</el-button>
+				</div>
+			</div>
 
 		<!-- 指标卡片 -->
 		<div class="metric-card-grid">
@@ -112,6 +121,7 @@
 import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue';
 import * as echarts from 'echarts';
 import { ElMessage } from 'element-plus';
+import { Document, Clock } from '@element-plus/icons-vue';
 import MultiWindowRadarChart from './components/MultiWindowRadarChart.vue';
 import MetricCard from '/@/views/apps/components/MetricCard.vue';
 import {
@@ -179,6 +189,12 @@ const formatPercent = (value: number | string | null, decimals: number = 2) => {
 	const num = typeof value === 'string' ? parseFloat(value) : value;
 	return `${num.toFixed(decimals)}%`;
 };
+
+	const openReport = () => {
+		const baseUrl = import.meta.env.VITE_API_URL || '';
+		window.open(baseUrl + '/api/stock/strategy-report/', '_blank');
+	};
+
 
 const buildNormalItems = (
 	summary: AccountSummary,
@@ -830,4 +846,50 @@ watch(() => accountStore.currentAccountId, (newId) => {
 	0% { background-position: 200% 0; }
 	100% { background-position: -200% 0; }
 }
+
+	.home-header {
+	    display: flex;
+	    justify-content: flex-end;
+	    align-items: center;
+	    margin-bottom: 16px;
+	}
+	
+	.header-right {
+	    display: flex;
+	    align-items: center;
+	    gap: 12px;
+	}
+	
+	.update-time {
+	    display: inline-flex;
+	    align-items: center;
+	    font-size: 13px;
+	    color: #8c8c8c;
+	    background: #fafafa;
+	    border: 1px solid #f0f0f0;
+	    border-radius: 6px;
+	    padding: 5px 12px;
+	    white-space: nowrap;
+	    transition: all 0.3s ease;
+	}
+	
+	.update-time:hover {
+	    color: #595959;
+	    border-color: #d9d9d9;
+	    background: #fff;
+	}
+	
+	.report-btn {
+	    font-size: 13px;
+	    border-radius: 6px;
+	    padding: 7px 16px;
+	    font-weight: 500;
+	    transition: all 0.3s ease;
+	}
+	
+	.report-btn:hover {
+	    transform: translateY(-1px);
+	    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+	}
+
 </style>
