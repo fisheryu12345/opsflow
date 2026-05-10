@@ -110,7 +110,7 @@ export function useKline() {
 
     // 构建交易标记 markPoint data
     const markers = tradeMarkers.value || []
-    const markData: echarts.MarkPointDataType[] = markers
+    const markData: any[] = markers
       .map((m) => {
         const style = MARKER_STYLES[m.trade_type] || MARKER_STYLES.ENTRY
         const dateIndex = dates.indexOf(m.date)
@@ -133,7 +133,7 @@ export function useKline() {
           },
         }
       })
-      .filter(Boolean) as echarts.MarkPointDataType[]
+      .filter(Boolean) as any[]
 
     return {
       animation: false,

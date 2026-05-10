@@ -73,8 +73,9 @@ The models follow a layered architecture:
 | `views/` | Page components by feature |
 | `views/system/` | RBMA pages (home, login, user, role, menu, dept, dict, config, logs) |
 | `views/apps/` | Trading app pages (positions, contracts, strategy config, trade logs, closed positions, error logs) |
+| `views/apps/kline/` | K-line chart page (ECharts candlestick + trade markers + Donchian channel) |
 | `views/signal/` | Daily signal views |
-| `stores/` | Pinia stores (user, theme, routes, tags, permissions, dictionary) |
+| `stores/` | Pinia stores (user, theme, routes, tags, permissions, dictionary, account) |
 | `router/` | Route definitions (frontEnd.ts, backEnd.ts) |
 | `utils/` | Helpers (request, auth, storage, websocket, format, theme) |
 | `i18n/` | Internationalization (zh-cn, en) |
@@ -85,6 +86,7 @@ The models follow a layered architecture:
 - `api/system/*` — RBAC system CRUD
 - `api/stock/*` — Trading data endpoints
   - `contracts`, `strategy`, `position`, `closed-positions`, `trade_log`, `error_log`, `daily_signals`
+  - `kline-data/` — K-line data, trade markers, available contracts
   - Performance: `equity-snapshots`, `rolling-metrics`, `account-summaries`, `symbol-win-rate`, `cumulative-stats`, `daily-returns-calendar`, `drawdown-curve`
 - `api/login/`, `api/logout/`, `api/captcha/`, `api/token/` — Auth
 - Swagger docs at `/`
@@ -114,3 +116,61 @@ docker exec -ti dvadmin-django bash -c "python manage.py makemigrations && pytho
 
 ### Scheduler tasks (APScheduler)
 Scheduled trading tasks live in `backend/stock/scheduler/`. Jobs handle daily open/close, ATR calculation, performance snapshots, and report sending.
+
+## Symbol Format Convention
+
+All `symbol` fields across the system use the **exchange-prefixed format**: `{EXCHANGE}.{contract_code}` (e.g., `SHFE.rb2510`, `DCE.m2509`, `CZCE.MA501`).
+
+- `FullContractList.symbol` — e.g., `SHFE.rb2510` (seed data: `SHFE.rb888` for continuous contract placeholder)
+- `PositionState.symbol` — e.g., `SHFE.rb2510`
+- `KlineData.symbol` — e.g., `SHFE.rb2510`
+- `DailyStrategySignal.symbol` — e.g., `SHFE.rb2510`
+- `ClosedPositionRecord.symbol` — e.g., `SHFE.rb2510`
+
+**Why:** TqSDK API functions (`TargetPosTask`, `get_kline_serial`, `get_quote`, `get_position`) all require the exchange-prefixed format.
+
+**Querying by product code:** Use the `product_code` field (bare code like `rb`, `MA`) for filtering by product family.
+
+## Management Commands
+
+| Command | Purpose |
+|---------|---------|
+| `sync_contracts` | Sync contract list from TqSDK, or `--seed` for seed data, `--repair-accounts` for missing accounts |
+| `sync_kline` | Sync K-line data from TqSDK for active contracts |
+| `sync_all` | Combined: contract sync + K-line sync in one step. Options: `--seed`, `--product rb,MA`, `--skip-kline`, `--skip-contract` |
+| `fix_symbol_format` | Migrate DB symbols from bare format (`rb2510`) to exchange-prefixed (`SHFE.rb2510`) |
+| `add_closed_position_menu` | Add closed position menu entry (RBAC setup) |
+| `add_knowledge_base_menu` | Add knowledge base menu entry (RBAC setup) |
+
+## Redis Distributed Lock
+
+Located at `backend/stock/utils/redis_lock.py`. Provides:
+- `redis_lock()` — context manager with auto-renewal (daemon thread renews every 15s)
+- Default TTL: 30s (fast auto-release if process crashes)
+- `LockAcquisitionError` — raised when lock cannot be acquired
+- Used by: `tasks_daily_open.py` (per-account), `tasks_daily_close.py` (global), `tasks_exit_before_close.py` (global)
+
+## K-line Chart Architecture
+
+The K-line chart page (`web/src/views/apps/kline/`) uses **direct ECharts initialization** (not the `useECharts()` composable):
+
+- `useKline.ts` manages chart lifecycle: `echarts.init()` → `setOption()` → `dispose()`
+- Supports: candlestick, MA10/20/40 lines, Donchian channel (20HL), trade markers (entry/add-on/rollover/exit)
+- dataZoom: slider at bottom + mouse wheel zoom + drag pan
+- Legend: built-in ECharts legend for toggling MA and channel visibility
+- Race condition protection: `fetchSeq` counter discards stale responses on fast contract switch
+
+## Documentation
+
+Knowledge base: `md/知识库/未命名/`
+- `02-软件功能说明/` — Feature docs (strategy signals, performance, K-line buy points, position management)
+- `04-策略设计文档/` — Strategy design docs
+- `08-TODO/` — Issue tracking (all 42 issues resolved as of 2026-05-10)
+
+## Code Quality Status (2026-05-10)
+
+All known issues resolved — 0 remaining across all priorities:
+- 🔴 CRITICAL: 6/6 fixed
+- 🟠 HIGH: 10/10 fixed (1 verified as not-a-bug)
+- 🟡 MEDIUM: 24/24 fixed
+- 🟢 LOW: 5/5 fixed

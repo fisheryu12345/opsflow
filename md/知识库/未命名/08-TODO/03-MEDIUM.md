@@ -361,3 +361,47 @@ columns: {
 1. 嵌套 `forEach` 改为 `route.meta.roles.some(metaRole => userRoles.includes(metaRole))`
 2. 每个路由最多被添加一次，无论用户拥有多少个匹配角色
 3. 同时缓存 `userInfos.value.roles` 到局部变量 `userRoles`，减少重复读取
+
+---
+
+## ✅ MEDIUM-21 (代码审核): FullContractList.__str__ 交易所前缀重复 — 已修复 (2026-05-10)
+
+**文件**: [models.py:167](../backend/stock/models.py#L167)
+
+**问题描述**:
+`self.exchange` 输出 `SHFE`，而 `self.symbol` 已包含交易所前缀（如 `SHFE.rb2510`），导致 `__str__` 显示 `SHFE.SHFE.rb2510`。
+
+**影响分析**: Django admin 和 DRF 下拉选择器显示重复前缀。
+
+**修复内容**: 移除 `self.exchange.` 前缀，`__str__` 直接返回 `self.symbol`。
+
+---
+
+## ✅ MEDIUM-22 (代码审核): ContractsForKlineView 的 kline_symbol 字段不匹配 KlineData — 已修复 (2026-05-10)
+
+**文件**: [views/kline.py:273](../backend/stock/views/kline.py#L273)
+
+**问题描述**: `kline_symbol` 拼接为 `SHFE.rb`，但 `KlineData.symbol` 存储的是 `SHFE.rb2510`。前端虽未使用该字段，但具有误导性。
+
+**修复内容**: 移除 `kline_symbol` 字段。
+
+---
+
+## ✅ MEDIUM-23 (代码审核): PositionStateViewSet 子查询基于 symbol 而非 product_code — 已修复 (2026-05-10)
+
+**文件**: [views/position.py:17-22](../backend/stock/views/position.py#L17)
+
+**问题描述**: `volume_multiple` 子查询使用 `symbol=OuterRef('symbol')` 关联，种子数据（`SHFE.rb888`）与实际合约（`SHFE.rb2510`）不匹配。
+
+**修复内容**: 改用 `product_code=OuterRef('product_code')` 关联。
+
+---
+
+## ✅ MEDIUM-24 (代码审核): order_execution.py 产品代码硬编码 2 字符截取 — 已修复 (2026-05-10)
+
+**文件**: [infrastructure/order_execution.py:57](../backend/stock/infrastructure/order_execution.py#L57)
+
+**问题描述**: `symbol.split('.')[-1][:2]` 假设产品代码总是 2 字符，未来可能出现 3+ 字符代码时被错误截断。
+
+**修复内容**: 改用正则 `re.match(r'^[A-Za-z]+', ...)` 提取字母前缀。
+

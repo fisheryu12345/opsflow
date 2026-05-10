@@ -54,7 +54,9 @@ def check_min_position_requirement(symbol, planned_volume):
 
     try:
         from stock.models import FullContractList
-        product_code = symbol.split('.')[-1][:2] if '.' in symbol else symbol[:2]
+        import re
+        product_code = re.match(r'^[A-Za-z]+', symbol.split('.')[-1])
+        product_code = product_code.group(0) if product_code else symbol[:2]
 
         contract_info = FullContractList.objects.filter(
             product_code=product_code

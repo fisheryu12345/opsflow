@@ -165,7 +165,7 @@ class FullContractList(models.Model):
     updated_at = models.DateTimeField("更新时间", auto_now=True)
 
     def __str__(self):
-        return f"{self.exchange}.{self.symbol} ({self.name or '未知'})"
+        return f"{self.symbol} ({self.name or '未知'})"
 
     class Meta:
         verbose_name = "交易合约列表"

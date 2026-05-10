@@ -16,7 +16,7 @@ class PositionStateViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = PositionState.objects.annotate(
         volume_multiple=Subquery(
-            FullContractList.objects.filter(symbol=OuterRef('symbol'))
+            FullContractList.objects.filter(product_code=OuterRef('product_code'))
             .values('volume_multiple')[:1]
         )
     )

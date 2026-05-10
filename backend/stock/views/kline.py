@@ -226,7 +226,7 @@ class ContractsForKlineView(viewsets.ViewSet):
     【K线可用合约列表接口】
 
     返回当前用户有权限查看的合约列表（用于前端下拉选择器）
-    包含 kline_symbol（用于查询K线数据）和 product_code（用于查询交易标记）
+    前端通过 product_code 查询 KlineData 和 TradeMarkers
 
     📊 请求：
     GET /api/kline-data/available-contracts/?account=1
@@ -270,7 +270,6 @@ class ContractsForKlineView(viewsets.ViewSet):
                 'product_code': c['product_code'],
                 'name': c['name'],
                 'exchange': c['exchange'],
-                'kline_symbol': f"{c['exchange']}.{c['product_code']}",
             })
 
         return Response({
