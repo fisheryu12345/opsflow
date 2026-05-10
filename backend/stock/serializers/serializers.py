@@ -40,7 +40,7 @@ class TradingAccountSerializer(serializers.ModelSerializer):
 
 class StrategyConfigSerializer(serializers.ModelSerializer):
     """策略参数配置序列化器"""
-    
+
     class Meta:
         model = StrategyConfig
         fields = '__all__'
