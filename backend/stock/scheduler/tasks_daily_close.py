@@ -9,7 +9,7 @@ from stock.infrastructure.trade_day import skip_if_not_trade_day
 from stock.core.signal_checker import check_duplicate_pending_signal
 
 from stock.models import TradingAccount, DailyStrategySignal, PositionState, FullContractList, AccountContractConfig
-from stock.infrastructure.contract_sync import sync_contract_list_from_tqsdk
+from stock.infrastructure.contract_sync import sync_contract_list_from_tqsdk, sync_kline_data_from_tqsdk
 from stock.infrastructure.report_sender import generate_daily_signal_report
 from stock.core.indicators import calculate_indicators
 from stock.core.performance import update_all_performance_metrics
@@ -551,8 +551,13 @@ def job_daily_close_calculation():
          
         # 第3步：同步期货合约列表
         sync_contract_list_from_tqsdk(api=api)
-        
-        # 第4步：计算活跃品种的技术指标（基于 AccountContractConfig 多用户配置）
+
+        # 第4步：同步所有合约的K线数据
+        print("[INFO] 开始同步K线数据...")
+        sync_kline_data_from_tqsdk(api=api)
+        print("[INFO] K线数据同步完成")
+
+        # 第5步：计算活跃品种的技术指标（基于 AccountContractConfig 多用户配置）
         active_product_codes = AccountContractConfig.objects.filter(
             is_active=True,
             account__is_active=True
@@ -606,7 +611,7 @@ def job_daily_close_calculation():
             
             print(f"[INFO] 指标计算完成: 成功{success_count}个, 失败{fail_count}个")
         
-        # 第5-12步：遍历所有活跃账户，执行账户级操作
+        # 第6-13步：遍历所有活跃账户，执行账户级操作
         accounts = TradingAccount.objects.filter(is_active=True)
         if accounts.count() > 1:
             log_trade('job_daily_close_calculation',

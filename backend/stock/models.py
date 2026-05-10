@@ -708,7 +708,60 @@ class AccountContractConfig(models.Model):
         return f"{self.account.name} - {self.product_code} ({status})"
 
 
-# ==================== 5. 系统日志层 (监控) ====================
+# ==================== 5. K线数据层 ====================
+
+class KlineData(models.Model):
+    """
+    【K线数据表】
+
+    存储期货合约的日K线(OHLCV)数据，由每日收盘后的同步任务从 TqSDK 拉取。
+    与 TradingAccount 无直接关联 — K线是市场数据，所有账户共享。
+    交易标记（入场/加仓/移仓/平仓）在查询时由 TradeMarkersView 根据账户+合约动态生成。
+    """
+    # --- 合约标识 ---
+    symbol = models.CharField("合约代码", max_length=50, db_index=True,
+                              help_text="完整合约代码，如：SHFE.rb2410")
+    product_code = models.CharField("品种代码", max_length=10, db_index=True,
+                                    help_text="品种代码（不带年份），如：rb, MA, IF")
+    exchange = models.CharField("交易所", max_length=10,
+                                help_text="交易所代码：SHFE, DCE, CZCE, CFFEX, GFEX")
+
+    # --- 时间 ---
+    date = models.DateField("交易日", db_index=True, help_text="该K线对应的交易日")
+
+    # --- OHLCV ---
+    open = models.DecimalField("开盘价", max_digits=12, decimal_places=2,
+                               help_text="日开盘价")
+    high = models.DecimalField("最高价", max_digits=12, decimal_places=2,
+                               help_text="日最高价")
+    low = models.DecimalField("最低价", max_digits=12, decimal_places=2,
+                              help_text="日最低价")
+    close = models.DecimalField("收盘价", max_digits=12, decimal_places=2,
+                                help_text="日收盘价")
+    volume = models.BigIntegerField("成交量", default=0,
+                                    help_text="日成交量（手）")
+    open_interest = models.BigIntegerField("持仓量", null=True, blank=True,
+                                          help_text="日持仓量")
+
+    # --- 元数据 ---
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+
+    class Meta:
+        verbose_name = "K线数据"
+        verbose_name_plural = "K线数据"
+        unique_together = ('symbol', 'date')
+        ordering = ['date']
+        indexes = [
+            models.Index(fields=['symbol', '-date']),
+            models.Index(fields=['product_code', '-date']),
+        ]
+
+    def __str__(self):
+        return f"{self.symbol} {self.date} O:{self.open} H:{self.high} L:{self.low} C:{self.close}"
+
+
+# ==================== 6. 系统日志层 (监控) ====================
 
 class ErrorLog(models.Model):
     """

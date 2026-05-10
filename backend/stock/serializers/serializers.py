@@ -16,6 +16,7 @@ from stock.models import (
     AccountPerformanceSummary,
     ClosedPositionRecord,
     AccountContractConfig,
+    KlineData,
 )
 
 
@@ -258,6 +259,31 @@ class AccountContractConfigSerializer(serializers.ModelSerializer):
             'product_code',
             'is_active',
             'allow_open',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+# ==================== K线数据序列化器 ====================
+
+class KlineDataSerializer(serializers.ModelSerializer):
+    """K线数据序列化器"""
+
+    class Meta:
+        model = KlineData
+        fields = [
+            'id',
+            'symbol',
+            'product_code',
+            'exchange',
+            'date',
+            'open',
+            'high',
+            'low',
+            'close',
+            'volume',
+            'open_interest',
             'created_at',
             'updated_at',
         ]

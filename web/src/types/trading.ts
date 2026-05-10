@@ -231,3 +231,34 @@ export interface DrawdownPoint {
   drawdown_pct: number
   is_new_peak: boolean
 }
+
+// === Kline ===
+export interface KlineRecord {
+  id: number
+  symbol: string
+  product_code: string
+  exchange: string
+  date: string
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+  open_interest: number | null
+}
+
+export interface TradeMarker {
+  date: string
+  trade_type: 'ENTRY' | 'ADD_ON' | 'ROLLOVER' | 'EXIT'
+  price: number | null
+  direction: number
+  label: string
+  description: string
+}
+
+export interface AvailableContract {
+  symbol: string
+  product_code: string
+  name: string | null
+  exchange: string
+}

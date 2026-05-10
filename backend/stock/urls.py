@@ -22,6 +22,7 @@ from stock.views.closed_position import ClosedPositionRecordViewSet
 from stock.views.knowledge_base import KnowledgeBaseTreeView, KnowledgeBaseContentView
 from stock.views.account import TradingAccountViewSet
 from stock.views.account_contract import AccountContractConfigViewSet
+from stock.views.kline import KlineDataViewSet, TradeMarkersView, ContractsForKlineView
 
 # 创建路由器
 router = DefaultRouter()
@@ -50,7 +51,16 @@ drawdown_curve_view = DrawdownCurveView.as_view({'get': 'list'})  # 新增：回
 knowledge_base_tree_view = KnowledgeBaseTreeView.as_view({'get': 'list'})
 knowledge_base_content_view = KnowledgeBaseContentView.as_view({'get': 'list'})
 
-urlpatterns = router.urls + [
+# 注册K线数据路由
+router.register(r'kline-data', KlineDataViewSet, basename='kline-data')
+trade_markers_view = TradeMarkersView.as_view({'get': 'list'})
+contracts_for_kline_view = ContractsForKlineView.as_view({'get': 'list'})
+
+urlpatterns = [
+    # K线数据路由（必须放在 router.urls 之前，避免被 router 的 {pk} 路由拦截）
+    path('kline-data/trade-markers/', trade_markers_view, name='kline-trade-markers'),
+    path('kline-data/available-contracts/', contracts_for_kline_view, name='kline-available-contracts'),
+] + router.urls + [
     path('symbol-win-rate/', symbol_win_rate_view, name='symbol-win-rate'),
     path('cumulative-stats/', cumulative_stats_view, name='cumulative-stats'),
     path('daily-returns-calendar/', daily_returns_calendar_view, name='daily-returns-calendar'),
