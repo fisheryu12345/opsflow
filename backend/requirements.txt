@@ -137,3 +137,4 @@ sqlalchemy==2.0.49
 simpleui
 django_apscheduler==0.7.0
 chinesecalendar==1.11.0
+weasyprint==12.2.0

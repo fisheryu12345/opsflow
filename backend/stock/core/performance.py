@@ -26,8 +26,10 @@ from stock.models import (
     DailyEquitySnapshot,
     RollingPerformanceMetrics,
     AccountPerformanceSummary,
+    SymbolDailyPnl,
     PositionState,
-    ClosedPositionRecord
+    ClosedPositionRecord,
+    FullContractList,
 )
 from stock.utils.log_util import log_trade, log_error
 
@@ -440,6 +442,107 @@ def update_account_summary(
         raise
 
 
+# ==================== 品种日盈亏分解 ====================
+
+def save_symbol_daily_pnl(
+    account: TradingAccount,
+    trade_date: date,
+) -> List[SymbolDailyPnl]:
+    """
+    计算并保存当日每个持仓品种的盈亏分解。
+
+    数据来源：
+    - realized_pnl: 从 ClosedPositionRecord 按 symbol 聚合当日已平仓盈亏
+    - float_pnl: 从 PositionState 按市值计价计算浮动盈亏
+    - volume: 从 PositionState 获取收盘持仓手数
+
+    合约乘数从 FullContractList 按 product_code 批量查询（缓存避免 N+1）。
+    """
+    log_trade(
+        function_name='save_symbol_daily_pnl',
+        log_message=f"[INFO] 开始计算品种日盈亏 - 账户:{account.name}, 日期:{trade_date}",
+        symbol="N/A",
+        log_level='INFO'
+    )
+
+    # 1. 预加载合约乘数（按 product_code 缓存）
+    multipliers = {}
+    for fc in FullContractList.objects.values('product_code', 'volume_multiple').distinct():
+        multipliers[fc['product_code']] = fc['volume_multiple']
+
+    # 2. 已实现盈亏：从 ClosedPositionRecord 按 symbol 聚合
+    realized_data = {}
+    closed_qs = ClosedPositionRecord.objects.filter(
+        account=account,
+        trade_date=trade_date,
+    ).values('symbol', 'product_code').annotate(
+        total_realized=Sum('pnl')
+    )
+    for item in closed_qs:
+        realized_data[item['symbol']] = {
+            'product_code': item['product_code'],
+            'realized_pnl': item['total_realized'] or Decimal('0'),
+        }
+
+    # 3. 浮动盈亏 + 持仓手数：从 PositionState 计算
+    float_data = {}
+    positions = PositionState.objects.filter(
+        account=account,
+        units__gt=0,
+    ).exclude(direction=0)
+
+    for pos in positions:
+        symbol = pos.symbol
+        volume = pos.contract_total_position or 0
+        fpnl = Decimal('0')
+
+        if (pos.latest_close_price is not None
+                and pos.cost_price is not None
+                and pos.cost_price != 0
+                and volume > 0):
+            multiplier = multipliers.get(pos.product_code, 10)
+            price_diff = pos.latest_close_price - pos.cost_price
+            # float_pnl = direction × (latest_close - cost_price) × lots × multiplier
+            fpnl = price_diff * volume * multiplier * pos.direction
+
+        float_data[symbol] = {
+            'product_code': pos.product_code or '',
+            'float_pnl': fpnl,
+            'volume': volume,
+        }
+
+    # 4. 合并写入：先处理有平仓记录的品种，再处理仅有持仓的品种
+    created_records = []
+    all_symbols = set(realized_data.keys()) | set(float_data.keys())
+
+    for symbol in all_symbols:
+        r = realized_data.get(symbol, {'realized_pnl': Decimal('0')})
+        f = float_data.get(symbol, {'float_pnl': Decimal('0'), 'volume': 0})
+        product_code = realized_data[symbol]['product_code'] if symbol in realized_data else float_data[symbol]['product_code']
+
+        record, _ = SymbolDailyPnl.objects.update_or_create(
+            account=account,
+            trade_date=trade_date,
+            symbol=symbol,
+            defaults={
+                'product_code': product_code,
+                'realized_pnl': r['realized_pnl'],
+                'float_pnl': f['float_pnl'],
+                'volume': f['volume'],
+            }
+        )
+        created_records.append(record)
+
+    log_trade(
+        function_name='save_symbol_daily_pnl',
+        log_message=f"[SUCCESS] 品种日盈亏保存完成 - {len(created_records)}个品种",
+        symbol="N/A",
+        log_level='INFO'
+    )
+
+    return created_records
+
+
 # ==================== 统一入口函数 ====================
 
 def update_all_performance_metrics(
@@ -467,6 +570,9 @@ def update_all_performance_metrics(
 
         summary = update_account_summary(account, trade_date)
 
+        # 品种日盈亏分解
+        symbol_pnls = save_symbol_daily_pnl(account, trade_date)
+
         log_trade(
             function_name='update_all_performance_metrics',
             log_message=f"[SUCCESS] 三层绩效数据更新完成 - 权益:{snapshot.balance}, 20日夏普:{rolling_metrics[20].sharpe_ratio}",
@@ -476,6 +582,7 @@ def update_all_performance_metrics(
             'snapshot': snapshot,
             'rolling_metrics': rolling_metrics,
             'summary': summary,
+            'symbol_pnls': symbol_pnls,
         }
 
     except Exception as e:

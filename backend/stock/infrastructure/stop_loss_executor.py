@@ -3,16 +3,20 @@ Stop-loss execution — position scanning and TargetPosTask-based exit.
 """
 import time
 import traceback
+import logging
 from decimal import Decimal
 from datetime import date
 from django.db import transaction
 from django.utils import timezone
 from django.db.models import Q, F
 from tqsdk import TargetPosTask
-from stock.models import TradingAccount, PositionState, DailyStrategySignal, ClosedPositionRecord
+from stock.models import TradingAccount, PositionState, DailyStrategySignal, ClosedPositionRecord, FullContractList
 from stock.utils.log_util import log_trade, log_error
 from stock.infrastructure.order_execution import record_and_reset_position
+from stock.infrastructure.slippage_recorder import record_slippage
 from stock.core.signal_checker import check_duplicate_pending_signal
+
+logger = logging.getLogger(__name__)
 
 
 def execute_stop_loss_exit(api, position):
@@ -61,6 +65,26 @@ def execute_stop_loss_exit(api, position):
             filled_volume = position.contract_total_position
 
         print(f"✅ 止损平仓成功: {position.symbol} 成交量={filled_volume}, 均价={avg_price:.2f}")
+
+        # 记录止损滑点
+        try:
+            if position.stop_loss_price and avg_price > 0:
+                contract = FullContractList.objects.filter(symbol=position.symbol).first()
+                price_tick = contract.price_tick if contract else Decimal('1')
+                record_slippage(
+                    account=position.account,
+                    trade_type='STOP_LOSS',
+                    symbol=position.symbol,
+                    product_code=position.product_code or '',
+                    position_direction=position.direction,
+                    volume=filled_volume,
+                    signal_price=position.stop_loss_price,
+                    fill_price=avg_price,
+                    price_tick=price_tick,
+                )
+        except Exception as slip_err:
+            logger.warning('记录止损滑点失败: %s', slip_err)
+
         return True, filled_volume, avg_price
 
     except Exception as e:

@@ -29,15 +29,16 @@ class StockConfig(AppConfig):
         
         # 导入调度器和任务
         from django_redis import get_redis_connection
-        # from . import tasks # 确保任务函数被导入
         redis = get_redis_connection('default')
         lock_key = 'lock:scheduler'
         lock_timeout = 3600
         if redis.set(lock_key, 'true', nx=True, ex=lock_timeout):
-            from stock.scheduler.scheduler import scheduler
             try:
+                from stock.scheduler.scheduler import scheduler
                 if not scheduler.running:
                     scheduler.start()
                     print("启动定时任务成功！")
+            except Exception as e:
+                print(f"[ERROR] 启动定时任务失败: {e}")
             finally:
                 redis.delete(lock_key)

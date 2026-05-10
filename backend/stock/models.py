@@ -533,6 +533,120 @@ class AccountPerformanceSummary(models.Model):
         return f"{self.account.name} - {self.snapshot_date} - 累计收益:{self.total_return}%"
 
 
+# ==================== 2.5 品种日盈亏分解 ====================
+
+class SymbolDailyPnl(models.Model):
+    """
+    【品种日盈亏分解表】- 每日每个持仓品种的盈亏明细
+
+    用途：
+    - 按品种分解每日盈亏来源（已实现 + 浮动）
+    - 支持品种级别的绩效分析和报告
+    - 每日收盘后由 performance.save_symbol_daily_pnl() 自动填充
+
+    数据来源：
+    - realized_pnl: ClosedPositionRecord 按 (account, trade_date, symbol) 聚合 pnl 总和
+    - float_pnl: PositionState 按市值计价 (latest_close - cost_price) × 手数 × 合约乘数
+    """
+    account = models.ForeignKey(
+        TradingAccount, on_delete=models.CASCADE,
+        related_name='symbol_daily_pnls',
+        verbose_name="所属账户"
+    )
+    trade_date = models.DateField("交易日期", db_index=True,
+                                  help_text="盈亏数据对应的交易日")
+    symbol = models.CharField("合约代码", max_length=20, db_index=True,
+                              help_text="完整合约代码，如：SHFE.rb2510")
+    product_code = models.CharField("品种代码", max_length=10, db_index=True,
+                                    help_text="品种代码（不带年份），如：rb, MA, IF")
+
+    # === 盈亏分解 ===
+    realized_pnl = models.DecimalField("已实现盈亏", max_digits=15, decimal_places=2, default=0,
+                                       help_text="当日该品种已平仓盈亏合计")
+    float_pnl = models.DecimalField("浮动盈亏", max_digits=15, decimal_places=2, default=0,
+                                    help_text="当日收盘该品种持仓浮动盈亏（市值计价）")
+
+    # === 持仓快照 ===
+    volume = models.IntegerField("持仓手数", default=0,
+                                 help_text="当日收盘时该品种的总持仓手数")
+
+    class Meta:
+        verbose_name = "品种日盈亏"
+        verbose_name_plural = "品种日盈亏"
+        unique_together = ('account', 'trade_date', 'symbol')
+        ordering = ['-trade_date', 'product_code']
+        indexes = [
+            models.Index(fields=['account', '-trade_date']),
+            models.Index(fields=['product_code', 'trade_date']),
+        ]
+
+    def __str__(self):
+        return f"{self.account.name} - {self.symbol} - {self.trade_date} (已实现:{self.realized_pnl}, 浮动:{self.float_pnl})"
+
+
+# ==================== 2.7 滑点记录 ====================
+
+class SlippageRecord(models.Model):
+    """
+    【滑点记录表】- 记录每笔交易的理论价与实际成交价之间的偏差
+
+    用途：
+    - 追踪信号触发价与实际成交价的差异
+    - 统计平均滑点、最大滑点、有利/不利滑点分布
+    - 为策略优化和交易执行质量评估提供数据
+
+    数据来源：
+    - signal_price: ENTRY取Donchian通道, EXIT/STOP_LOSS取止损价
+    - fill_price: 实际成交均价（来自TqSDK成交回报或行情快照）
+    """
+    account = models.ForeignKey(
+        TradingAccount, on_delete=models.CASCADE,
+        related_name='slippage_records',
+        verbose_name="所属账户"
+    )
+    signal = models.ForeignKey(
+        'DailyStrategySignal', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        verbose_name="关联信号",
+        help_text="触发该交易的策略信号"
+    )
+    symbol = models.CharField("合约代码", max_length=20, db_index=True)
+    product_code = models.CharField("品种代码", max_length=10, db_index=True)
+    trade_type = models.CharField("交易类型", max_length=20, db_index=True,
+                                  help_text="ENTRY/EXIT/STOP_LOSS/ADD_ON")
+    trade_date = models.DateField("交易日期", db_index=True)
+    position_direction = models.IntegerField("持仓方向",
+                                             help_text="1=多头, -1=空头")
+    volume = models.IntegerField("成交手数", default=0)
+
+    # === 价格与滑点 ===
+    signal_price = models.DecimalField("信号触发价", max_digits=12, decimal_places=2,
+                                       help_text="触发交易的理论价格")
+    fill_price = models.DecimalField("实际成交价", max_digits=12, decimal_places=2,
+                                     help_text="实际成交均价")
+    slippage = models.DecimalField("滑点(价格)", max_digits=12, decimal_places=2,
+                                   help_text="fill_price - signal_price (价格点)")
+    slippage_ticks = models.DecimalField("滑点(跳动)", max_digits=8, decimal_places=1,
+                                         help_text="滑点换算为最小变动价位的倍数")
+    is_favorable = models.BooleanField("是否有利",
+                                       help_text="True=成交价优于信号价(有利滑点)")
+
+    created_at = models.DateTimeField("记录时间", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "滑点记录"
+        verbose_name_plural = "滑点记录"
+        ordering = ['-trade_date', '-created_at']
+        indexes = [
+            models.Index(fields=['account', '-trade_date']),
+            models.Index(fields=['trade_type']),
+            models.Index(fields=['product_code']),
+        ]
+
+    def __str__(self):
+        return f"{self.symbol} {self.trade_type} 滑点:{self.slippage}({'有利' if self.is_favorable else '不利'})"
+
+
 # ==================== 3. 状态管理层 (记忆) ====================
 '''
 FullContractList --> PositionState 的关系. FullContractList开关控制,激活的主力合约,PositionState记录当前持仓状态和挂单状态,以及加仓和移仓的辅助字段.

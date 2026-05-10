@@ -15,7 +15,10 @@ from stock.views.performance import (
     DrawdownCurveView  # 新增：回撤曲线数据接口
 )
 from stock.views.contract import FullContractListViewSet
-from stock.views.dailysignal import  DailyStrategySignalViewSet
+from stock.views.dailysignal import (
+    DailyStrategySignalViewSet,
+    SignalExecutionStatsView,
+)
 from stock.views.strategyconfig import StrategyConfigViewSet
 from stock.views.position import PositionStateViewSet
 from stock.views.trade_log import TradeLogViewSet, ErrorLogViewSet
@@ -70,4 +73,5 @@ urlpatterns = [
     path('drawdown-curve/', drawdown_curve_view, name='drawdown-curve'),  # 新增路由
     path('knowledge-base/tree/', knowledge_base_tree_view, name='knowledge-base-tree'),
     path('knowledge-base/content/', knowledge_base_content_view, name='knowledge-base-content'),
+    path('signal-stats/', SignalExecutionStatsView.as_view(), name='signal-stats'),
 ]

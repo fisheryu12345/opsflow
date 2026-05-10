@@ -3,6 +3,7 @@ Signal execution — order placement functions for entry, add-on, exit, and roll
 """
 import time
 import traceback
+import logging
 from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
@@ -15,6 +16,8 @@ from stock.infrastructure.tqapi import is_api_connected
 TIMEOUT_SECONDS = get_config('TIMEOUT_SECONDS')
 POSITION_MAX_UNITS = get_config('POSITION_MAX_UNITS')
 GAP_PROTECTION_RATIO = get_config('GAP_PROTECTION_RATIO')
+
+logger = logging.getLogger(__name__)
 from stock.core.atr import price_gap_protection, calculate_atr
 from stock.core.position_sizing import calculate_unit_lots
 from stock.infrastructure.order_execution import (
@@ -23,6 +26,7 @@ from stock.infrastructure.order_execution import (
     execute_two_step_opening,
     record_and_reset_position,
 )
+from stock.infrastructure.slippage_recorder import record_slippage
 
 
 def is_trading(api, account, signal):
@@ -128,6 +132,28 @@ def execute_add_on_order(api, account, signal):
         signal.executed_status = 'SUCCESS'
         signal.save(update_fields=['executed_status', 'updated_at'])
 
+        # 记录加仓滑点（两步开仓）
+        try:
+            add_signal_price = (signal.donchian_upper if signal.signal_direction == 1
+                                else signal.donchian_lower) or position.last_add_price
+            if add_signal_price and two_step_result.get('avg_price'):
+                contract = FullContractList.objects.filter(symbol=trade_symbol).first()
+                price_tick = contract.price_tick if contract else Decimal('1')
+                record_slippage(
+                    account=account,
+                    trade_type='ADD_ON',
+                    symbol=trade_symbol,
+                    product_code=signal.product_code,
+                    position_direction=position.direction,
+                    volume=order_volume,
+                    signal_price=add_signal_price,
+                    fill_price=Decimal(str(two_step_result['avg_price'])),
+                    price_tick=price_tick,
+                    signal=signal,
+                )
+        except Exception as slip_err:
+            logger.warning('记录加仓滑点失败（两步）: %s', slip_err)
+
         msg = (f"{trade_symbol} 加仓成功（两步开仓）: +{unit_lots} Unit ({order_volume}手) @ "
                f"{two_step_result['avg_price']:.2f}, 总持仓:{new_units} Unit")
         print(msg)
@@ -181,6 +207,28 @@ def execute_add_on_order(api, account, signal):
 
             signal.executed_status = 'SUCCESS'
             signal.save(update_fields=['executed_status', 'updated_at'])
+
+            # 记录加仓滑点
+            try:
+                add_signal_price = (signal.donchian_upper if signal.signal_direction == 1
+                                    else signal.donchian_lower) or position.last_add_price
+                if add_signal_price and avg_price:
+                    contract = FullContractList.objects.filter(symbol=trade_symbol).first()
+                    price_tick = contract.price_tick if contract else Decimal('1')
+                    record_slippage(
+                        account=account,
+                        trade_type='ADD_ON',
+                        symbol=trade_symbol,
+                        product_code=signal.product_code,
+                        position_direction=position.direction,
+                        volume=order_volume,
+                        signal_price=add_signal_price,
+                        fill_price=Decimal(str(avg_price)),
+                        price_tick=price_tick,
+                        signal=signal,
+                    )
+            except Exception as slip_err:
+                logger.warning('记录加仓滑点失败: %s', slip_err)
 
             msg = f"{trade_symbol} 加仓成功: +{unit_lots} Unit({order_volume}手) @ {avg_price:.2f}, 总持仓:{new_units} Unit"
             print(msg)
@@ -282,6 +330,28 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
             signal.executed_status = 'SUCCESS'
             signal.save(update_fields=['executed_status', 'updated_at'])
 
+        # 记录滑点（两步开仓）
+        try:
+            signal_price = (signal.donchian_upper if signal.signal_direction == 1
+                            else signal.donchian_lower)
+            if signal_price and two_step_result.get('avg_price'):
+                contract = FullContractList.objects.filter(symbol=signal.symbol).first()
+                price_tick = contract.price_tick if contract else Decimal('1')
+                record_slippage(
+                    account=account,
+                    trade_type='ENTRY',
+                    symbol=signal.symbol,
+                    product_code=signal.product_code,
+                    position_direction=signal.signal_direction,
+                    volume=two_step_result.get('actual_filled') or 0,
+                    signal_price=signal_price,
+                    fill_price=Decimal(str(two_step_result['avg_price'])),
+                    price_tick=price_tick,
+                    signal=signal,
+                )
+        except Exception as slip_err:
+            logger.warning('记录两步开仓滑点失败: %s', slip_err)
+
         msg = f"{signal.symbol} 开仓成功（两步开仓）: 1 Unit({two_step_result['actual_filled']}手) @ {two_step_result['avg_price']:.2f}"
         print(msg)
         log_trade('execute_entry_order', msg, symbol=signal.symbol, log_level='SUCCESS')
@@ -345,6 +415,28 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
                 signal.executed_status = 'SUCCESS'
                 signal.save(update_fields=['executed_status', 'updated_at'])
 
+            # 记录滑点
+            try:
+                signal_price = (signal.donchian_upper if signal.signal_direction == 1
+                                else signal.donchian_lower)
+                if signal_price and entry_avg_price:
+                    contract = FullContractList.objects.filter(symbol=signal.symbol).first()
+                    price_tick = contract.price_tick if contract else Decimal('1')
+                    record_slippage(
+                        account=account,
+                        trade_type='ENTRY',
+                        symbol=signal.symbol,
+                        product_code=signal.product_code,
+                        position_direction=signal.signal_direction,
+                        volume=actual_filled or 0,
+                        signal_price=signal_price,
+                        fill_price=Decimal(str(entry_avg_price)),
+                        price_tick=price_tick,
+                        signal=signal,
+                    )
+            except Exception as slip_err:
+                logger.warning('记录开仓滑点失败: %s', slip_err)
+
             msg = f"{signal.symbol} 开仓成功: 1 Unit({actual_filled}手) @ {entry_avg_price:.2f}"
             print(msg)
             log_trade('execute_entry_order', msg, symbol=signal.symbol, log_level='SUCCESS')
@@ -405,6 +497,26 @@ def execute_exit_order(api, position, signal):
         if signal:
             signal.executed_status = 'SUCCESS'
             signal.save(update_fields=['executed_status', 'updated_at'])
+
+        # 记录平仓滑点
+        try:
+            if position.stop_loss_price and exit_price:
+                contract = FullContractList.objects.filter(symbol=position.symbol).first()
+                price_tick = contract.price_tick if contract else Decimal('1')
+                record_slippage(
+                    account=position.account,
+                    trade_type='EXIT',
+                    symbol=position.symbol,
+                    product_code=position.product_code or '',
+                    position_direction=position.direction,
+                    volume=total_volume,
+                    signal_price=position.stop_loss_price,
+                    fill_price=Decimal(str(exit_price)),
+                    price_tick=price_tick,
+                    signal=signal,
+                )
+        except Exception as slip_err:
+            logger.warning('记录平仓滑点失败: %s', slip_err)
 
         msg = f"{position.symbol} 平仓成功"
         print(msg)

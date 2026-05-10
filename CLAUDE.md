@@ -184,6 +184,29 @@ Knowledge base: `md/知识库/未命名/`
 - `04-策略设计文档/` — Strategy design docs
 - `08-TODO/` — Issue tracking (all 42 issues resolved as of 2026-05-10)
 
+## API Response Format Convention (重要!)
+
+All custom API views (non-ModelViewSet) **MUST** wrap responses in the framework's standard envelope:
+
+```python
+return Response({
+    'code': 2000,
+    'msg': 'success',
+    'data': { ... }
+})
+```
+
+**Why:** The frontend axios interceptor (`web/src/utils/service.ts`) checks for `code` field. Missing it causes `"非标准返回"` error and blocks the response from reaching the page.
+
+| Code | Meaning |
+|------|---------|
+| `2000` | Success |
+| `4000` | Business error |
+| `401` | Auth failure |
+| `400` | Bad request |
+
+**Note:** `ModelViewSet` routes auto-handle this wrapping. Custom `APIView` / `APIViewSet` classes must manually wrap — this is easy to miss and has caused repeated failures.
+
 ## Code Quality Status (2026-05-10)
 
 All known issues resolved:
