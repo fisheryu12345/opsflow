@@ -114,7 +114,6 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted } from 'vue'
 import { useKline } from './useKline'
 
 const {
@@ -128,7 +127,6 @@ const {
   chartRef,
   onSymbolChange,
   refresh,
-  resize,
 } = useKline()
 
 // 交易类型标签样式映射
@@ -142,12 +140,6 @@ const TYPE_TAG_MAP: Record<string, string> = {
 function tagType(tradeType: string) {
   return TYPE_TAG_MAP[tradeType] || 'info'
 }
-
-// ECharts 自适应
-window.addEventListener('resize', resize)
-onUnmounted(() => {
-  window.removeEventListener('resize', resize)
-})
 </script>
 
 <style scoped>

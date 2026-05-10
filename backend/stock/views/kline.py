@@ -7,11 +7,10 @@ from rest_framework import viewsets, mixins, status, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q
 
-from stock.models import KlineData, DailyStrategySignal, ClosedPositionRecord, PositionState, TradingAccount
+from stock.models import KlineData, DailyStrategySignal, ClosedPositionRecord
 from stock.serializers.serializers import KlineDataSerializer
-from stock.filters import UserAccountFilterBackend, validate_account_access
+from stock.filters import validate_account_access
 
 
 class KlineDataViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -100,30 +99,39 @@ class TradeMarkersView(viewsets.ViewSet):
     def _get_signal_markers(self, account_id, product_code):
         """从 DailyStrategySignal 获取入场/加仓/移仓标记"""
         markers = []
-        signals = DailyStrategySignal.objects.filter(
+        signals = list(DailyStrategySignal.objects.filter(
             account_id=account_id,
             product_code=product_code,
             executed_status='SUCCESS'
         ).exclude(trade_type='STOP_LOSS').values(
             'trade_date', 'trade_type', 'signal_direction',
             'donchian_upper', 'donchian_lower', 'contract_target_number', 'symbol'
-        )
+        ))
+
+        # 预取相关日期的K线收盘价（用于加仓/移仓标记）
+        trade_dates = [s['trade_date'] for s in signals]
+        close_prices = {
+            k.date: float(k.close)
+            for k in KlineData.objects.filter(
+                product_code=product_code,
+                date__in=trade_dates
+            )
+        }
 
         for s in signals:
-            # 尝试推断价格
             price = None
             if s['trade_type'] == 'ENTRY':
-                # ENTRY 使用唐奇安通道价格
                 if s['signal_direction'] == 1:
                     price = float(s['donchian_upper']) if s['donchian_upper'] else None
                 elif s['signal_direction'] == -1:
                     price = float(s['donchian_lower']) if s['donchian_lower'] else None
                 desc = f"{self.DIRECTION_MAP.get(s['signal_direction'], '')}开仓 {s['contract_target_number'] or 1} Unit"
             elif s['trade_type'] == 'ADD_ON':
+                price = close_prices.get(s['trade_date'])
                 desc = f"加仓 {s['contract_target_number'] or 1} Unit"
             elif s['trade_type'] == 'ROLLOVER':
+                price = close_prices.get(s['trade_date'])
                 desc = f"移仓换月"
-                price = None  # 移仓不标价格，仅标日期
             else:
                 continue
 

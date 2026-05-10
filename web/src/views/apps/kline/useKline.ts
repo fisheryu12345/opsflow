@@ -1,7 +1,6 @@
-import { ref, reactive, watch, computed, onMounted } from 'vue'
+import { ref, reactive, watch, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import { useAccountStore } from '/@/stores/account'
-import { useECharts } from '/@/composables/useECharts'
 import * as api from './api'
 import type { KlineRecord, TradeMarker, AvailableContract } from '/@/types/trading'
 
@@ -17,7 +16,31 @@ export function useKline() {
   const accountStore = useAccountStore()
   // 确保账户列表已加载（否则 currentAccountId 可能为 null）
   if (!accountStore.loaded) accountStore.fetchAccounts()
-  const { chartRef, initChart, resize, dispose, getResponsiveFontConfig } = useECharts()
+
+  // ===== ECharts 实例管理（直接管理，不使用 useECharts 代理层） =====
+  const chartRef = ref<HTMLElement | null>(null)
+  let chartInstance: echarts.ECharts | null = null
+
+  function initChart() {
+    if (!chartRef.value) return null
+    if (chartInstance) chartInstance.dispose()
+    chartInstance = echarts.init(chartRef.value)
+    return chartInstance
+  }
+
+  function resize() {
+    chartInstance?.resize()
+  }
+
+  function getResponsiveFontConfig() {
+    const width = window.innerWidth
+    if (width < 480) {
+      return { title: 13, subtitle: 9, axisName: 9, legend: 10, tooltip: 11, label: 10 }
+    } else if (width < 768) {
+      return { title: 15, subtitle: 11, axisName: 11, legend: 11, tooltip: 12, label: 11 }
+    }
+    return { title: 16, subtitle: 12, axisName: 12, legend: 12, tooltip: 12, label: 12 }
+  }
 
   // ===== State =====
   const loading = ref(false)
@@ -27,7 +50,6 @@ export function useKline() {
   const selectedSymbol = ref('')
   const selectedProductCode = ref('')
   const dateRange = reactive<[string, string]>(['', ''])
-  const chartInstance = ref<echarts.ECharts | null>(null)
 
   const fonts = getResponsiveFontConfig()
 
@@ -55,6 +77,30 @@ export function useKline() {
       return result
     }
 
+    // 计算唐奇安通道 20HL
+    function calcDonchianHL(period: number): { upper: number[]; lower: number[] } {
+      const upper: number[] = []
+      const lower: number[] = []
+      for (let i = 0; i < data.length; i++) {
+        if (i < period - 1) {
+          upper.push(NaN)
+          lower.push(NaN)
+        } else {
+          let max = -Infinity
+          let min = Infinity
+          for (let j = i - period + 1; j <= i; j++) {
+            if (data[j].high > max) max = data[j].high
+            if (data[j].low < min) min = data[j].low
+          }
+          upper.push(max)
+          lower.push(min)
+        }
+      }
+      return { upper, lower }
+    }
+
+    const donchian = calcDonchianHL(20)
+
     const ma10 = calcMA(10)
     const ma20 = calcMA(20)
     const ma40 = calcMA(40)
@@ -62,13 +108,15 @@ export function useKline() {
     // 构建交易标记 markPoint data
     const markers = tradeMarkers.value || []
     const markData: echarts.MarkPointDataType[] = markers
-      .map((m, idx) => {
+      .map((m) => {
         const style = MARKER_STYLES[m.trade_type] || MARKER_STYLES.ENTRY
         const dateIndex = dates.indexOf(m.date)
-        if (dateIndex === -1 || m.price === null) return null
+        if (dateIndex === -1) return null
+        // 若后端未返回价格，以当日收盘价作为标记位置
+        const price = m.price ?? data[dateIndex].close
         return {
           name: m.label,
-          coord: [dateIndex, m.price] as [number, number],
+          coord: [dateIndex, price] as [number, number],
           symbol: style.symbol,
           symbolSize: style.symbolSize,
           itemStyle: { color: style.color },
@@ -96,6 +144,7 @@ export function useKline() {
           const candle = params.find((p: any) => p.seriesName === 'K线')
           if (!candle) return ''
           const k = data[candle.dataIndex]
+          if (!k || k.open == null) return ''
           return [
             `<b>${k.date}</b>`,
             `开: ${k.open.toFixed(2)}`,
@@ -108,8 +157,14 @@ export function useKline() {
       grid: {
         left: '8%',
         right: '8%',
-        top: '8%',
+        top: '14%',
         bottom: '14%',
+      },
+      legend: {
+        data: ['K线', 'MA10', 'MA20', 'MA40', '通道上轨', '通道下轨'],
+        top: 0,
+        left: 'center',
+        textStyle: { fontSize: fonts.legend },
       },
       xAxis: {
         type: 'category',
@@ -124,28 +179,15 @@ export function useKline() {
         splitLine: { lineStyle: { type: 'dashed', color: '#e0e0e0' } },
       },
       dataZoom: [
-        {
-          type: 'inside',
-          xAxisIndex: 0,
-          start: 0,
-          end: 100,
-          zoomOnMouseWheel: true,
-          moveOnMouseMove: true,
-        },
+        { type: 'inside', start: 0, end: 100 },
         {
           type: 'slider',
-          xAxisIndex: 0,
-          start: Math.max(0, 100 - 60),
+          show: true,
+          start: 0,
           end: 100,
-          bottom: 24,
-          height: 18,
-          borderColor: '#dcdfe6',
-          fillerColor: 'rgba(64,158,255,0.15)',
-          backgroundColor: '#f5f7fa',
-          handleStyle: {
-            borderColor: '#409eff',
-            color: '#fff',
-          },
+          bottom: 15,
+          height: 22,
+          borderColor: '#d0d0d0',
           textStyle: { fontSize: 11 },
         },
       ],
@@ -162,7 +204,7 @@ export function useKline() {
           },
           markPoint: {
             data: markData,
-            symbolSize: 0, // each point has its own symbolSize
+            symbolSize: 0,
           },
         },
         {
@@ -188,6 +230,22 @@ export function useKline() {
           smooth: true,
           symbol: 'none',
           lineStyle: { width: 1, color: '#ab47bc' },
+        },
+        {
+          name: '通道上轨',
+          type: 'line',
+          data: donchian.upper,
+          smooth: true,
+          symbol: 'none',
+          lineStyle: { width: 1, color: '#9c27b0', type: 'dashed' as const },
+        },
+        {
+          name: '通道下轨',
+          type: 'line',
+          data: donchian.lower,
+          smooth: true,
+          symbol: 'none',
+          lineStyle: { width: 1, color: '#9c27b0', type: 'dashed' as const },
         },
       ],
     }
@@ -225,9 +283,15 @@ export function useKline() {
       ])
 
       if (klineRes.code === 2000) {
-        // 按日期升序排列（ECharts 从左到右展示）
-        const rawData = klineRes.data || []
-        rawData.sort((a: KlineRecord, b: KlineRecord) => a.date.localeCompare(b.date))
+        const rawData = (klineRes.data || []) as KlineRecord[]
+        rawData.sort((a, b) => a.date.localeCompare(b.date))
+        // 后端 DecimalField 序列化为字符串，转成数字确保 toFixed 可用
+        rawData.forEach((k) => {
+          k.open = Number(k.open)
+          k.high = Number(k.high)
+          k.low = Number(k.low)
+          k.close = Number(k.close)
+        })
         klineList.value = rawData
       }
 
@@ -238,8 +302,14 @@ export function useKline() {
       console.error('获取K线数据失败:', e)
     } finally {
       loading.value = false
-      // DOM 更新后渲染图表
-      nextTick(renderChart)
+    }
+
+    // DOM 更新后直接初始化图表（确保 DOM 已渲染、chartRef 可用）
+    await nextTick()
+    if (!chartRef.value || !klineList.value.length) return
+    if (!chartInstance) initChart()
+    if (chartInstance) {
+      chartInstance.setOption(chartOption.value, true)
     }
   }
 
@@ -262,25 +332,16 @@ export function useKline() {
     fetchContracts()
   }, { immediate: true })
 
-  // 组件挂载后初始化图表
+  // ===== Lifecycle =====
   onMounted(() => {
-    if (klineList.value.length) {
-      chartInstance.value = initChart()
-      chartInstance.value?.setOption(chartOption.value, true)
-    }
+    window.addEventListener('resize', resize)
   })
 
-  // k线数据变化时更新图表（flush:post 确保 DOM 已渲染、chartRef 可用）
-  watch(klineList, () => {
-    if (chartRef.value && klineList.value.length) {
-      if (!chartInstance.value) {
-        chartInstance.value = initChart()
-      }
-      if (chartInstance.value) {
-        chartInstance.value.setOption(chartOption.value, true)
-      }
-    }
-  }, { flush: 'post' })
+  onUnmounted(() => {
+    window.removeEventListener('resize', resize)
+    chartInstance?.dispose()
+    chartInstance = null
+  })
 
   return {
     klineList,
@@ -291,7 +352,6 @@ export function useKline() {
     dateRange,
     loading,
     chartRef,
-    chartInstance,
     onSymbolChange,
     refresh,
     resize,

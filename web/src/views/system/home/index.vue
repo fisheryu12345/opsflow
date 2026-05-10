@@ -775,7 +775,7 @@ const loadDashboardData = async () => {
 		lastUpdated.value = summary.updated_at
 			? new Date(summary.updated_at).toLocaleString('zh-CN', { hour12: false })
 			: new Date().toLocaleString('zh-CN', { hour12: false });
-		ElMessage.success('数据加载成功');
+		// ElMessage.success('数据加载成功');
 	} catch (error: any) {
 		console.error('加载 Dashboard 数据失败:', error);
 	} finally {
