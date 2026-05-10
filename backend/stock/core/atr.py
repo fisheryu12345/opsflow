@@ -48,7 +48,7 @@ def calculate_atr(api, symbol, period=20):
         return None
 
 
-def price_gap_protection(api, symbol, direction, gap_threshold_atr_multiplier=1.5):
+def price_gap_protection(api, symbol, direction, gap_threshold_atr_multiplier=1.5, atr=None):
     """
     价格跳空保护函数（支持期货多空双向交易）
 
@@ -61,9 +61,11 @@ def price_gap_protection(api, symbol, direction, gap_threshold_atr_multiplier=1.
     :param symbol: 合约代码
     :param direction: 交易方向，1表示做多，-1表示做空
     :param gap_threshold_atr_multiplier: 跳空阈值（ATR倍数），默认1.5倍ATR（与GAP_PROTECTION_RATIO一致）
+    :param atr: 预计算的ATR值（避免重复计算），为None时内部计算
     :return: True表示可以交易（无危险跳空），False表示存在危险跳空应禁止交易
     """
-    atr = calculate_atr(api, symbol)
+    if atr is None:
+        atr = calculate_atr(api, symbol)
     quote = api.get_quote(symbol)
     latest_price = quote.last_price
     pre_close = quote.pre_close

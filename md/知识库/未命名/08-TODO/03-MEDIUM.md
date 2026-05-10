@@ -405,3 +405,151 @@ columns: {
 
 **修复内容**: 改用正则 `re.match(r'^[A-Za-z]+', ...)` 提取字母前缀。
 
+---
+
+## ✅ MEDIUM-25 (TqSDK): wait_for_target_position 未使用 deadline，超时可能失效 — 已修复 (2026-05-10)
+
+**文件**: [infrastructure/order_execution.py:24-31](../backend/stock/infrastructure/order_execution.py#L24)
+
+**问题描述**:
+```python
+while time.time() - start_time < timeout:
+    api.wait_update()  # ← 没有 deadline，行情清淡时可无限阻塞
+    pos_current = api.get_position(symbol)
+```
+
+`wait_update()` 默认阻塞到有数据更新。夜盘收盘后行情稀疏时，单次阻塞可达数十秒，实际超时远超 `timeout`。
+
+**影响分析**:
+- 信号执行时间不可控，开盘任务的信号批处理窗口被拉长
+- 后续批次的信号（如 ADD_ON）可能因总时间超限而无法执行
+
+**修复建议**: 使用 `deadline` 参数控制阻塞上限：
+```python
+while time.time() - start_time < timeout:
+    remaining = timeout - (time.time() - start_time)
+    if remaining <= 0:
+        break
+    api.wait_update(deadline=time.time() + min(1, remaining))
+    pos_current = api.get_position(symbol)
+```
+
+---
+
+## ❌ MEDIUM-26 (TqSDK): 入场/平仓价格使用 quote.last_price 而非实际成交价 — 待修复
+
+**文件**:
+- [infrastructure/order_signals.py:146-147](../backend/stock/infrastructure/order_signals.py#L146)（加仓）
+- [infrastructure/order_signals.py:385-386](../backend/stock/infrastructure/order_signals.py#L385)（平仓）
+
+**问题描述**:
+```python
+quote = api.get_quote(signal.symbol)
+avg_price = float(quote.last_price)  # ← 市场最新价，非实际成交均价
+```
+
+`TargetPosTask` 以限价单/市价单执行，成交价可能偏离 `last_price`。使用行情价代替实际成交价导致成本记录不精确。
+
+**影响分析**:
+- 持仓成本价有偏差，影响止损计算（止损 = 成本价 ± N×ATR）
+- PnL 记录不精确
+- `stop_loss_executor.py` 已有通过 `api.get_trades()` 计算实际均价的正确做法（line 40-57），但未被复用
+
+**修复建议**: 参考 `stop_loss_executor.py:40-57`，在加仓/平仓后通过 `api.get_trades()` 遍历成交记录计算实际均价。
+
+---
+
+## ✅ MEDIUM-27 (TqSDK): record_and_reset_position 异常捕获过宽 — 已修复 (2026-05-10)
+
+**文件**: [infrastructure/order_execution.py:228-232](../backend/stock/infrastructure/order_execution.py#L228)
+
+**问题描述**:
+```python
+try:
+    contract_info = FullContractList.objects.get(symbol=position.symbol)
+    volume_multiple = contract_info.volume_multiple
+except Exception:  # ← 捕获所有异常
+    volume_multiple = 10
+```
+
+**影响分析**:
+- 静默捕获所有异常，编程错误（如字段名拼错）被隐藏
+- 合约乘数查不到时兜底到 10，对白银(15)、焦炭(100)等品种 PnL 计算错误
+- `record_and_reset_position` 被止损、平仓、移仓等多处调用，影响范围广
+
+**修复建议**:
+```python
+try:
+    contract_info = FullContractList.objects.get(symbol=position.symbol)
+    volume_multiple = contract_info.volume_multiple
+except FullContractList.DoesNotExist:
+    log_error('record_and_reset_position', f"合约 {position.symbol} 未找到，乘数默认10")
+    volume_multiple = 10
+```
+
+---
+
+## ❌ MEDIUM-28 (配置): POSITION_MAX_UNITS 等配置在模块导入时冻结 — 不是BUG
+
+**文件**: [infrastructure/order_signals.py:16-17](../backend/stock/infrastructure/order_signals.py#L16)
+
+**问题描述**:
+```python
+POSITION_MAX_UNITS = get_config('POSITION_MAX_UNITS')
+GAP_PROTECTION_RATIO = get_config('GAP_PROTECTION_RATIO')
+```
+
+模块载入时从数据库读取一次，运行时配置变更不生效（需重启 Django）。
+
+**分析结论**: 策略参数在开盘任务启动前加载，运行中不期望变化。如需变更配置，待收盘后再修改并重启 Django 即可。使用时不反复查询数据库反而减少了不必要的开销。**不属于BUG**。
+
+---
+
+## ✅ MEDIUM-33 (代码审核): 移仓换月未设置 `open_date` 和 `first_open_price` — 已修复 (2026-05-10)
+
+**文件**: [infrastructure/order_signals.py:668-684](../backend/stock/infrastructure/order_signals.py#L668)
+
+**问题描述**:
+`execute_rollover_order` Phase 3 创建新 `PositionState` 时，defaults 中缺少 `open_date` 和 `first_open_price`。
+
+**影响分析**:
+- 移仓后持仓的 `open_date=NULL`，无法计算 `holding_days`
+- `first_open_price=NULL`，`check_add_position_signals` 在 2 单位持仓时依赖此字段判断加仓条件（回退到 `last_add_price` 可能导致加仓触发点偏移）
+
+**修复内容**: defaults 中添加 `'open_date': timezone.now().date()` 和 `'first_open_price': Decimal(str(entry_avg_price))`。
+
+---
+
+## ✅ MEDIUM-34 (TqSDK): ROLLOVER 后 ADD_ON 找不到新合约持仓 — 已修复 (2026-05-10)
+
+**文件**: [infrastructure/order_signals.py:47-63](../backend/stock/infrastructure/order_signals.py#L47)
+
+**问题描述**:
+ROLLOVER 信号在 ADD_ON 之前处理，移仓后旧 `PositionState` 被删除。`execute_add_on_order` 按 `signal.symbol`（旧合约代码）查找持仓时抛出 `DoesNotExist`，导致加仓信号失败且状态停留 PENDING。
+
+**影响分析**:
+- 移仓日的加仓信号无法执行，信号残留在 PENDING
+- 移仓后的新仓位保留了原 units，本可继续加仓
+
+**修复内容**:
+`PositionState.objects.get(symbol=signal.symbol)` 抛出 `DoesNotExist` 时，回退到按 `product_code` 查找有持仓的活跃记录（`units__gt=0`），日志中注明"旧合约已移仓，转至新合约 X 加仓"。
+
+---
+
+## ✅ MEDIUM-35 (TqSDK): 成交回报过滤 `CLOSETODAY` 遗漏 — 已修复 (2026-05-10)
+
+**文件**:
+- [infrastructure/stop_loss_executor.py:49](../backend/stock/infrastructure/stop_loss_executor.py#L49)
+- [infrastructure/order_signals.py:474](../backend/stock/infrastructure/order_signals.py#L474)（HIGH-13 移仓平仓记录）
+
+**问题描述**:
+两处使用 `trade.offset == 'CLOSE'` 过滤成交记录，但 SHFE/INE 品种的 TargetPosTask 平今仓时 offset 为 `CLOSETODAY`，导致这些成交被跳过，回退到 `quote.last_price` 近似价格。
+
+**影响分析**:
+- SHFE 螺纹钢(rb)、沪铜(cu)等品种开仓当日的平仓，成交记录的 offset 为 `CLOSETODAY`
+- 当前代码漏掉这些成交，`filled_volume=0` → 使用 `last_price` 近似计算
+- 止损平仓和移仓平仓的 PnL 记录均受影响
+- 非 SHFE/INE 品种无影响（仅使用 `CLOSE`）
+
+**修复内容**:
+两处 `trade.offset == 'CLOSE'` 统一改为 `trade.offset in ('CLOSE', 'CLOSETODAY')`。

@@ -22,7 +22,10 @@ def wait_for_target_position(api, target_pos, symbol, target_lots, function_name
     pos_current = None
 
     while time.time() - start_time < timeout:
-        api.wait_update()
+        remaining = timeout - (time.time() - start_time)
+        if remaining <= 0:
+            break
+        api.wait_update(deadline=time.time() + min(1, remaining))
         pos_current = api.get_position(symbol)
         if pos_current and pos_current.pos == target_lots:
             msg = f"{symbol} 任务完成: 当前持仓 {target_lots} 手"
@@ -228,7 +231,8 @@ def record_and_reset_position(api, position, signal, filled_volume, avg_price):
         try:
             contract_info = FullContractList.objects.get(symbol=position.symbol)
             volume_multiple = contract_info.volume_multiple
-        except Exception:
+        except FullContractList.DoesNotExist:
+            log_error('record_and_reset_position', f"合约 {position.symbol} 未找到，乘数默认10")
             volume_multiple = 10
 
         if direction == 1:

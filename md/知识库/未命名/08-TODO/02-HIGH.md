@@ -207,3 +207,89 @@ pnl = (exit_price - cost_price) * Decimal(str(volume)) * Decimal(str(volume_mult
 3. `updateUserInfos()` 中从 `role_info[].key` 提取角色标识数组赋值给 `roles`
 4. `setUserInfos()` 中 API 分支和 Session 回填分支均添加 `roles` 赋值逻辑
 5. 旧缓存兼容：Session 回填时检测 `roles` 为空则自动从 `role_info` 重建
+
+---
+
+## ✅ HIGH-12 (TqSDK): 止损平仓后读取 trades 缺少最后一次 wait_update — 已修复 (2026-05-10)
+
+**文件**: [infrastructure/stop_loss_executor.py:34-40](../backend/stock/infrastructure/stop_loss_executor.py#L34)
+
+**问题描述**:
+`execute_stop_loss_exit` 中 `target_pos.is_finished()` 循环退出后立即调 `api.get_trades()`：
+```python
+while not target_pos.is_finished():
+    api.wait_update(deadline=time.time() + 1)
+    if time.time() - start_time > 60:
+        return False, 0, Decimal('0')
+
+trades = api.get_trades()  # ← 成交数据可能还没到达
+```
+
+TqSDK 的成交回报（Trade）在 `wait_update()` 期间推送到内存对象。最后一次 `wait_update()` 如果只推进了任务状态（`is_finished=True`）但成交回报尚未到达，`get_trades()` 返回空或不完整的成交列表。
+
+**影响分析**:
+- `filled_volume=0` → 回退到 `quote.last_price` 计算盈亏（`order_execution.py:219`）
+- PnL 记录使用近似价格而非实际成交价
+- 多次止损平仓时累计偏差放大
+
+**修复建议**:
+```python
+# target_pos 完成后，多等几轮 wait_update 确保成交数据到达
+for _ in range(3):
+    api.wait_update()
+trades = api.get_trades()
+```
+---
+
+## ✅ HIGH-13 (TqSDK): 移仓操作不记录平仓 PnL — 已修复 (2026-05-10)
+
+**文件**: [infrastructure/order_signals.py:446-502](../backend/stock/infrastructure/order_signals.py#L446)
+
+**问题描述**:
+`execute_rollover_order` 的 Phase 1 平仓旧合约后，未创建 `ClosedPositionRecord`。Phase 3 直接 `delete()` 旧 `PositionState`。
+
+**影响分析**:
+- 移仓产生的盈亏完全丢失，不纳入绩效计算（胜率、盈亏比、最大回撤等均有偏差）
+- `ClosedPositionRecord` 中缺少移仓记录，交易历史不完整
+- 越频繁移仓的品种，数据偏差越大
+
+**修复内容**:
+Phase 1 平仓成功后增加平仓记录创建:
+1. 3 轮 `api.wait_update()` 等待成交回报到达
+2. 遍历 `api.get_trades()` 统计实际成交手数和均价（同 `stop_loss_executor.py` 模式）
+3. 查 `FullContractList.volume_multiple` 计算实际 PnL
+4. 创建 `ClosedPositionRecord` 包含 account/symbol/direction/volume/exit_price/cost_price/pnl/holding_days
+5. 成交数据不足时回退到 `quote.last_price` 近似计算
+
+---
+
+## ✅ HIGH-15: 两步开仓路径未设置 `open_date` — 已修复 (2026-05-10)
+
+**文件**: [infrastructure/order_signals.py:238-254](../backend/stock/infrastructure/order_signals.py#L238)
+
+**问题描述**:
+`execute_entry_order` 两步开仓路径的 `update_or_create` defaults 中缺少 `open_date` 字段。直接开仓路径（line 325）正确设置了该字段。
+
+**影响分析**:
+- 两步开仓建立的仓位 `open_date=NULL`
+- 平仓时 `holding_days` 无法计算（为 `None`）
+- 持仓周期统计缺失
+
+**修复内容**: two_step_entry 路径的 defaults 中添加 `'open_date': timezone.now().date()`
+
+---
+
+## ✅ HIGH-16: 品种停用后持仓跟踪冻结 — 已修复 (2026-05-10)
+
+**文件**: [scheduler/tasks_daily_close.py:564-571](../backend/stock/scheduler/tasks_daily_close.py#L564)
+
+**问题描述**:
+`job_daily_close_calculation` 的指标计算只对 `AccountContractConfig.is_active=True` 的品种执行。停用品种的持仓指标不再更新，止损价、高低价跟踪均冻结。
+
+**影响分析**:
+- 停用品种的 `indicators`(ATR/MA/trend) 冻结 → 止损价不跟随市场移动
+- 若市场逆向波动，止损不会调整，可能造成超预期亏损
+- `highest_close`/`lowest_close` 依赖 `latest_close_price` 也无法更新
+
+**修复内容**: 指标计算的品种范围从仅 `active_product_codes` 扩展到 `active_product_codes | position_product_codes`（有持仓的品种也纳入计算）。ENTRY 信号生成仍按 active 过滤，不受影响。
+`

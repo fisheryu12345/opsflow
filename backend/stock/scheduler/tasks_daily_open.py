@@ -23,19 +23,19 @@ def job_daily_open_process():
     current_date = datetime.now().date()
     close_old_connections()
 
-    # 非交易日检查 — 提前退出，避免为每个账户创建连接
-    check_api = create_tqapi()
-    try:
-        if skip_if_not_trade_day(api=check_api):
-            return
-    finally:
-        safe_close_api(check_api)
-
     accounts = TradingAccount.objects.all()
+    is_first_account = True
+
     for account in accounts:
         api = None
         try:
             api = create_tqapi()
+
+            # 第一个账户的 API 连接复用做交易日检查，避免单独创建连接
+            if is_first_account:
+                is_first_account = False
+                if skip_if_not_trade_day(api=api):
+                    return
             redis = get_redis_connection('default')
             lock_key = f'lock:open:{account.id}'
             with redis_lock(redis, lock_key):

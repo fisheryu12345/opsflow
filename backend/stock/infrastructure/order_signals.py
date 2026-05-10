@@ -44,10 +44,28 @@ def execute_add_on_order(api, account, signal):
     print(msg)
     log_trade('execute_add_on_order', msg, symbol=signal.symbol, log_level='INFO')
 
-    position = PositionState.objects.get(
-        account=account,
-        symbol=signal.symbol,
-    )
+    try:
+        position = PositionState.objects.get(
+            account=account,
+            symbol=signal.symbol,
+        )
+    except PositionState.DoesNotExist:
+        # 移仓后旧合约持仓已被删除，按品种查找新合约持仓
+        position = PositionState.objects.filter(
+            account=account,
+            product_code=signal.product_code,
+            units__gt=0,
+        ).exclude(direction=0).first()
+        if position is None:
+            log_error('execute_add_on_order',
+                       f"{signal.symbol}({signal.product_code}) 未找到对应持仓，无法加仓")
+            signal.executed_status = 'FAILED'
+            signal.save(update_fields=['executed_status', 'updated_at'])
+            return False
+        msg = (f"{signal.symbol} 旧合约已移仓，转至新合约 {position.symbol} 加仓: "
+               f"{add_units_from_signal} Unit (当前{position.units} Unit)")
+        print(msg)
+        log_trade('execute_add_on_order', msg, symbol=position.symbol, log_level='INFO')
 
     projected_units = position.units + add_units_from_signal
     if projected_units > POSITION_MAX_UNITS:
@@ -59,25 +77,28 @@ def execute_add_on_order(api, account, signal):
         signal.save(update_fields=['executed_status', 'updated_at'])
         return False
 
-    unit_lots = calculate_unit_lots(api, signal.symbol)
+    # 使用 position.symbol（可能因移仓回退而不同于 signal.symbol）
+    trade_symbol = position.symbol
+
+    unit_lots = calculate_unit_lots(api, trade_symbol)
     order_volume = add_units_from_signal * unit_lots
 
-    msg = f"{signal.symbol} 加仓计划: {add_units_from_signal} Unit × {unit_lots} 手/Unit = {order_volume} 手"
+    msg = f"{trade_symbol} 加仓计划: {add_units_from_signal} Unit × {unit_lots} 手/Unit = {order_volume} 手"
     print(msg)
-    log_trade('execute_add_on_order', msg, symbol=signal.symbol, log_level='INFO')
+    log_trade('execute_add_on_order', msg, symbol=trade_symbol, log_level='INFO')
 
-    min_position_check = check_min_position_requirement(signal.symbol, order_volume)
+    min_position_check = check_min_position_requirement(trade_symbol, order_volume)
 
     if min_position_check['need_adjustment']:
         adjusted_volume = min_position_check['adjusted_volume']
         excess_to_close = min_position_check['excess_to_close']
-        msg = f"{signal.symbol} 采用两步开仓策略: 先开 {adjusted_volume} 手，再平 {excess_to_close} 手"
+        msg = f"{trade_symbol} 采用两步开仓策略: 先开 {adjusted_volume} 手，再平 {excess_to_close} 手"
         print(msg)
-        log_trade('execute_add_on_order', msg, symbol=signal.symbol, log_level='INFO')
+        log_trade('execute_add_on_order', msg, symbol=trade_symbol, log_level='INFO')
 
         two_step_result = execute_two_step_opening(
             api=api,
-            symbol=signal.symbol,
+            symbol=trade_symbol,
             direction=position.direction,
             adjusted_volume=adjusted_volume,
             excess_to_close=excess_to_close,
@@ -107,43 +128,43 @@ def execute_add_on_order(api, account, signal):
         signal.executed_status = 'SUCCESS'
         signal.save(update_fields=['executed_status', 'updated_at'])
 
-        msg = (f"{signal.symbol} 加仓成功（两步开仓）: +{unit_lots} Unit ({order_volume}手) @ "
+        msg = (f"{trade_symbol} 加仓成功（两步开仓）: +{unit_lots} Unit ({order_volume}手) @ "
                f"{two_step_result['avg_price']:.2f}, 总持仓:{new_units} Unit")
         print(msg)
-        log_trade('execute_add_on_order', msg, symbol=signal.symbol, log_level='SUCCESS')
+        log_trade('execute_add_on_order', msg, symbol=trade_symbol, log_level='SUCCESS')
         return True
 
     else:
-        target_pos = TargetPosTask(api, signal.symbol)
+        target_pos = TargetPosTask(api, trade_symbol)
         try:
             if position.direction == 1:
                 target_lots = position.contract_total_position + order_volume
             else:
                 target_lots = -(position.contract_total_position + order_volume)
 
-            msg = f"{signal.symbol} 设置目标持仓: {target_lots} 手 (当前 {position.contract_total_position} 手 + 加仓 {order_volume} 手)"
+            msg = f"{trade_symbol} 设置目标持仓: {target_lots} 手 (当前 {position.contract_total_position} 手 + 加仓 {order_volume} 手)"
             print(msg)
-            log_trade('execute_add_on_order', msg, symbol=signal.symbol, log_level='INFO')
+            log_trade('execute_add_on_order', msg, symbol=trade_symbol, log_level='INFO')
 
             target_pos.set_target_volume(target_lots)
 
             result = wait_for_target_position(
                 api=api,
                 target_pos=target_pos,
-                symbol=signal.symbol,
+                symbol=trade_symbol,
                 target_lots=target_lots,
                 function_name='execute_add_on_order'
             )
 
             if not result['success']:
-                msg = f"[ERROR] {signal.symbol} 加仓超时或失败"
+                msg = f"[ERROR] {trade_symbol} 加仓超时或失败"
                 print(msg)
                 log_error('execute_add_on_order', msg)
                 signal.executed_status = 'FAILED'
                 signal.save(update_fields=['executed_status', 'updated_at'])
                 return False
 
-            quote = api.get_quote(signal.symbol)
+            quote = api.get_quote(trade_symbol)
             avg_price = float(quote.last_price) if quote and quote.last_price else None
 
             with transaction.atomic():
@@ -161,13 +182,13 @@ def execute_add_on_order(api, account, signal):
             signal.executed_status = 'SUCCESS'
             signal.save(update_fields=['executed_status', 'updated_at'])
 
-            msg = f"{signal.symbol} 加仓成功: +{unit_lots} Unit({order_volume}手) @ {avg_price:.2f}, 总持仓:{new_units} Unit"
+            msg = f"{trade_symbol} 加仓成功: +{unit_lots} Unit({order_volume}手) @ {avg_price:.2f}, 总持仓:{new_units} Unit"
             print(msg)
-            log_trade('execute_add_on_order', msg, symbol=signal.symbol, log_level='SUCCESS')
+            log_trade('execute_add_on_order', msg, symbol=trade_symbol, log_level='SUCCESS')
             return True
 
         except Exception as e:
-            msg = f"[ERROR] 加仓失败 {signal.symbol}: {str(e)}"
+            msg = f"[ERROR] 加仓失败 {trade_symbol}: {str(e)}"
             print(msg)
             traceback.print_exc()
             log_error('execute_add_on_order', f"{msg}\n{traceback.format_exc()}")
@@ -188,7 +209,10 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
     if not is_trading(api, account, signal):
         return False
 
-    unit_lots = calculate_unit_lots(api, signal.symbol)
+    # 预计算 ATR，避免 price_gap_protection 和 calculate_unit_lots 重复计算
+    atr_20 = calculate_atr(api, signal.symbol, period=20)
+
+    unit_lots = calculate_unit_lots(api, signal.symbol, atr=atr_20)
     target_units = 1
     order_volume = target_units * unit_lots
     print(f"[INFO] {signal.symbol} 开仓计划: 1个Unit × {unit_lots}手/Unit = {order_volume}手")
@@ -197,7 +221,8 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
         api=api,
         symbol=signal.symbol,
         direction=signal.signal_direction,
-        gap_threshold_atr_multiplier=gap_threshold_atr_multiplier
+        gap_threshold_atr_multiplier=gap_threshold_atr_multiplier,
+        atr=atr_20
     )
     if not can_trade:
         msg = f"{signal.symbol} 跳空幅度过大，禁止开仓"
@@ -250,6 +275,7 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
                     'lowest_close': Decimal(str(two_step_result['avg_price'])),
                     'latest_close_price': Decimal(str(two_step_result['avg_price'])),
                     'last_update_time': timezone.now(),
+                    'open_date': timezone.now().date(),
                 }
             )
 
@@ -291,49 +317,38 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
                 return False
 
             pos_after = result['pos']
-            if pos_after is None:
-                pos_after = api.get_position(signal.symbol)
-
-            if pos_after is None:
-                msg = f"[ERROR] {signal.symbol} 获取持仓信息失败"
-                print(msg)
-                log_error('execute_entry_order', msg)
-                signal.executed_status = 'FAILED'
-                signal.remark = '获取持仓信息失败'
-                signal.save(update_fields=['executed_status', 'updated_at', 'remark'])
+            if signal.signal_direction == 1:
+                entry_avg_price = float(pos_after.open_price_long) if pos_after.open_price_long else None
+                actual_filled = pos_after.volume_long_today
             else:
-                if signal.signal_direction == 1:
-                    entry_avg_price = float(pos_after.open_price_long) if pos_after and pos_after.open_price_long else None
-                    actual_filled = pos_after.volume_long_today
-                else:
-                    entry_avg_price = float(pos_after.open_price_short) if pos_after and pos_after.open_price_short else None
-                    actual_filled = pos_after.volume_short_today
-                with transaction.atomic():
-                    PositionState.objects.update_or_create(
-                        account=account,
-                        symbol=signal.symbol,
-                        defaults={
-                            'product_code': signal.product_code,
-                            'direction': signal.signal_direction,
-                            'units': 1,
-                            'contract_total_position': actual_filled,
-                            'last_add_price': Decimal(str(entry_avg_price)),
-                            'highest_close': Decimal(str(entry_avg_price)),
-                            'lowest_close': Decimal(str(entry_avg_price)),
-                            'latest_close_price': Decimal(str(entry_avg_price)),
-                            'last_update_time': timezone.now(),
-                            'open_date': timezone.now().date(),
-                            'first_open_price': Decimal(str(entry_avg_price)),
-                        }
-                    )
+                entry_avg_price = float(pos_after.open_price_short) if pos_after.open_price_short else None
+                actual_filled = pos_after.volume_short_today
+            with transaction.atomic():
+                PositionState.objects.update_or_create(
+                    account=account,
+                    symbol=signal.symbol,
+                    defaults={
+                        'product_code': signal.product_code,
+                        'direction': signal.signal_direction,
+                        'units': 1,
+                        'contract_total_position': actual_filled,
+                        'last_add_price': Decimal(str(entry_avg_price)),
+                        'highest_close': Decimal(str(entry_avg_price)),
+                        'lowest_close': Decimal(str(entry_avg_price)),
+                        'latest_close_price': Decimal(str(entry_avg_price)),
+                        'last_update_time': timezone.now(),
+                        'open_date': timezone.now().date(),
+                        'first_open_price': Decimal(str(entry_avg_price)),
+                    }
+                )
 
-                    signal.executed_status = 'SUCCESS'
-                    signal.save(update_fields=['executed_status', 'updated_at'])
+                signal.executed_status = 'SUCCESS'
+                signal.save(update_fields=['executed_status', 'updated_at'])
 
-                msg = f"{signal.symbol} 开仓成功: 1 Unit({actual_filled}手) @ {entry_avg_price:.2f}"
-                print(msg)
-                log_trade('execute_entry_order', msg, symbol=signal.symbol, log_level='SUCCESS')
-                return True
+            msg = f"{signal.symbol} 开仓成功: 1 Unit({actual_filled}手) @ {entry_avg_price:.2f}"
+            print(msg)
+            log_trade('execute_entry_order', msg, symbol=signal.symbol, log_level='SUCCESS')
+            return True
 
         except Exception as e:
             msg = f"[ERROR] 开仓失败 {signal.symbol}: {str(e)}"
@@ -442,6 +457,64 @@ def execute_rollover_order(api, position, signal):
             signal.executed_status = 'FAILED'
             signal.save(update_fields=['executed_status', 'updated_at'])
             return False
+
+        # ===== Record closed position for rollover =====
+        # TargetPosTask 完成后，等待成交回报到达
+        for _ in range(3):
+            api.wait_update()
+
+        trades = api.get_trades()
+        filled_volume = 0
+        total_cost = Decimal('0')
+        for trade in reversed(trades.values()):
+            if (trade.instrument_id == position.symbol and
+                    trade.offset in ('CLOSE', 'CLOSETODAY')):
+                filled_volume += trade.volume
+                total_cost += Decimal(str(trade.price)) * Decimal(str(trade.volume))
+                if filled_volume >= position.contract_total_position:
+                    break
+
+        if filled_volume > 0:
+            rollover_exit_price = total_cost / Decimal(str(filled_volume))
+        else:
+            quote = api.get_quote(position.symbol)
+            rollover_exit_price = Decimal(str(quote.last_price)) if quote.last_price else Decimal('0')
+            filled_volume = position.contract_total_position
+
+        try:
+            contract_info = FullContractList.objects.get(symbol=position.symbol)
+            volume_multiple = contract_info.volume_multiple
+        except FullContractList.DoesNotExist:
+            log_error('execute_rollover_order', f"合约 {position.symbol} 未找到，乘数默认10")
+            volume_multiple = 10
+
+        cost_price = position.cost_price if position.cost_price else None
+        if position.direction == 1:
+            rollover_pnl = (rollover_exit_price - cost_price) * Decimal(str(filled_volume)) * Decimal(str(volume_multiple))
+        else:
+            rollover_pnl = (cost_price - rollover_exit_price) * Decimal(str(filled_volume)) * Decimal(str(volume_multiple))
+
+        holding_days = None
+        if position.open_date:
+            holding_days = (timezone.now().date() - position.open_date).days
+
+        ClosedPositionRecord.objects.create(
+            account=position.account,
+            symbol=position.symbol,
+            product_code=position.product_code,
+            direction=position.direction,
+            volume=filled_volume,
+            exit_price=rollover_exit_price,
+            cost_price=cost_price,
+            pnl=rollover_pnl,
+            trade_date=timezone.now().date(),
+            executed_at=timezone.now(),
+            holding_days=Decimal(str(holding_days)) if holding_days is not None else None,
+        )
+
+        msg = f"{position.symbol} 移仓平仓记录已创建: {filled_volume}手 @ {rollover_exit_price:.2f}, PnL={rollover_pnl:.2f}"
+        print(msg)
+        log_trade('execute_rollover_order', msg, symbol=position.symbol, log_level='SUCCESS')
 
     except Exception as e:
         msg = f"[ERROR] {position.symbol} 平仓失败: {str(e)}"
@@ -616,10 +689,12 @@ def execute_rollover_order(api, position, signal):
                     'units': position.units,
                     'contract_total_position': actual_filled,
                     'last_add_price': Decimal(str(entry_avg_price)),
+                    'first_open_price': Decimal(str(entry_avg_price)),
                     'highest_close': init_highest_close,
                     'lowest_close': init_lowest_close,
                     'latest_close_price': Decimal(str(entry_avg_price)),
                     'last_update_time': timezone.now(),
+                    'open_date': timezone.now().date(),
                     'stop_loss_price': init_stop_loss,
                     'is_rollover_needed': False,
                 }

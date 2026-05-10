@@ -561,13 +561,18 @@ def job_daily_close_calculation():
             sync_kline_data_from_tqsdk(api=api)
             print("[INFO] K线数据同步完成")
 
-            # 第5步：计算活跃品种的技术指标（基于 AccountContractConfig 多用户配置）
+            # 第5步：计算品种技术指标（基于 AccountContractConfig + 持仓品种）
             active_product_codes = AccountContractConfig.objects.filter(
                 is_active=True,
                 account__is_active=True
             ).values_list('product_code', flat=True).distinct()
+            # 同时计入有持仓的品种（即使已停用，仍需更新指标维持止损跟踪）
+            position_product_codes = PositionState.objects.filter(
+                units__gt=0
+            ).values_list('product_code', flat=True).distinct()
+            all_product_codes = set(active_product_codes) | set(position_product_codes)
             active_contracts = FullContractList.objects.filter(
-                product_code__in=active_product_codes
+                product_code__in=all_product_codes
             ).values('symbol', 'product_code')
 
             indicator_results = []

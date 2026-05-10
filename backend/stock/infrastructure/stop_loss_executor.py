@@ -37,13 +37,17 @@ def execute_stop_loss_exit(api, position):
                 print(f"⚠️ 止损平仓超时: {position.symbol}")
                 return False, 0, Decimal('0')
 
+        # TargetPosTask 完成后，等待成交回报到达
+        for _ in range(3):
+            api.wait_update()
+
         trades = api.get_trades()
         filled_volume = 0
         total_cost = Decimal('0')
 
         for trade in reversed(trades.values()):
             if (trade.instrument_id == position.symbol and
-                    trade.offset == 'CLOSE'):
+                    trade.offset in ('CLOSE', 'CLOSETODAY')):
                 filled_volume += trade.volume
                 total_cost += Decimal(str(trade.price)) * Decimal(str(trade.volume))
                 if filled_volume >= position.contract_total_position:

@@ -169,8 +169,8 @@ Knowledge base: `md/知识库/未命名/`
 
 ## Code Quality Status (2026-05-10)
 
-All known issues resolved — 0 remaining across all priorities:
+All known issues resolved:
 - 🔴 CRITICAL: 6/6 fixed
-- 🟠 HIGH: 10/10 fixed (1 verified as not-a-bug)
-- 🟡 MEDIUM: 24/24 fixed
-- 🟢 LOW: 5/5 fixed
+- 🟠 HIGH: 15/15 total (14 bug-items fixed, 1 verified as not-a-bug)
+- 🟡 MEDIUM: 29/30 total (28 bug-items fixed, 1 verified not-a-bug, 1 TqSDK pending)
+- 🟢 LOW: 7/9 total (7 fixed, 2 no-plan-to-fix)

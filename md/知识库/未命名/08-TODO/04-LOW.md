@@ -127,3 +127,77 @@ LOCK_KEY = f"lock:open:{os.environ.get('INSTANCE_ID', 'default')}"
 from django.conf import settings
 LOCK_KEY = getattr(settings, 'REDIS_LOCK_OPEN_KEY', 'lock:open')
 ```
+
+---
+
+## ✅ LOW-06 (TqSDK): execute_entry_order 中存在 dead code — 已修复 (2026-05-10)
+
+**文件**: [infrastructure/order_signals.py:316](../backend/stock/infrastructure/order_signals.py#L316)
+
+**问题描述**:
+```python
+pos_after = result['pos']
+if pos_after is None:
+    pos_after = api.get_position(signal.symbol)  # ← 永远不会执行到
+```
+
+`wait_for_target_position` 返回 `success=False` 时已在之前提前 return。`pos_after` 为 None 的路径实际不可达。
+
+**影响**: 无运行时影响，但增加代码维护负担。
+
+**修复内容**: 移除死代码，`if pos_after is None` 外层分支扁平化。
+
+---
+
+## ✅ LOW-07 (TqSDK): calculate_atr 每笔入场被重复调用 — 已修复 (2026-05-10)
+
+**文件**:
+- [infrastructure/order_signals.py:209](../backend/stock/infrastructure/order_signals.py#L209)（execute_entry_order）
+- [core/atr.py:55](../backend/stock/core/atr.py#L55)（price_gap_protection 新增 atr 参数）
+- [core/position_sizing.py:10](../backend/stock/core/position_sizing.py#L10)（calculate_unit_lots 新增 atr 参数）
+
+**问题描述**:
+`execute_entry_order` → `price_gap_protection(api,...)` 内部调用 `calculate_atr()`，随后 `calculate_unit_lots(api,...)` 内部又调用一次 `calculate_atr()`。同一品种同一周期的 ATR 被重复计算 2 次。
+
+**影响**: 每次入场信号浪费一次 API K 线查询 + 计算开销。
+
+**修复内容**:
+1. `price_gap_protection` 新增可选参数 `atr=None`，传入时跳过内部计算
+2. `calculate_unit_lots` 新增可选参数 `atr=None`，传入时跳过内部计算
+3. `execute_entry_order` 预先计算 ATR 一次，同时传入两个函数
+
+两项修改均向后兼容，已有调用方不受影响。
+
+---
+
+## ✅ LOW-08 (TqSDK): 交易日检查创建额外 TqApi 连接 — 已修复 (2026-05-10)
+
+**文件**: [scheduler/tasks_daily_open.py](../backend/stock/scheduler/tasks_daily_open.py)
+
+**问题描述**:
+`job_daily_open_process` 先创建一个 TqApi 连接仅用于检查交易日，关闭后又在账户循环中重新创建连接。检查逻辑可复用账户循环的第一个 `api`。
+
+**影响**: 每次开盘任务多创建和销毁一个 TqApi 连接（约 2-3 秒开销）。
+
+**修复内容**:
+1. 移除 `check_api = create_tqapi()` + `skip_if_not_trade_day(api=check_api)` 前置检查块
+2. 账户循环内新增 `is_first_account` 布尔标记
+3. 第一个账户的 `api` 创建后执行 `skip_if_not_trade_day(api=api)`，非交易日提前退出（finally 块自动释放连接）
+
+---
+
+## ✅ LOW-10: `is_trade_day` 异常时默认返回交易日 — 已修复 (2026-05-10)
+
+**文件**: [infrastructure/trade_day.py:55](../backend/stock/infrastructure/trade_day.py#L55)
+
+**问题描述**:
+```python
+except Exception as e:
+    log_error(...)
+    return True  # ← TqSDK API 异常时仍返回交易日
+```
+
+交易日历 API 调用失败时默认认为是交易日，非交易日也可能执行交易任务。
+
+**修复内容**: `return True` → `return False`。API 异常时默认非交易日，跳过任务。管理员通过 ErrorLog 排查原因后手动重试。
+

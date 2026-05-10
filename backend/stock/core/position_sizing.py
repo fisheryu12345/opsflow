@@ -5,7 +5,7 @@ import traceback
 from stock.core.config_loader import get_config
 
 
-def calculate_unit_lots(api, symbol):
+def calculate_unit_lots(api, symbol, atr=None):
     """
     计算1个海龟Unit对应的实际手数
 
@@ -13,6 +13,7 @@ def calculate_unit_lots(api, symbol):
 
     :param api: TqApi实例
     :param symbol: 合约代码（如 "SHFE.rb2610"）
+    :param atr: 预计算的ATR值（避免重复计算），为None时内部计算
     :return: 1个Unit对应的实际手数（整数）
     """
     try:
@@ -22,9 +23,11 @@ def calculate_unit_lots(api, symbol):
 
         volume_multiple = contract.volume_multiple
 
-        # 复用 core/atr 的 ATR 计算，消除重复
-        from stock.core.atr import calculate_atr
-        atr_20 = calculate_atr(api, symbol, period=20)
+        if atr is None:
+            from stock.core.atr import calculate_atr
+            atr_20 = calculate_atr(api, symbol, period=20)
+        else:
+            atr_20 = atr
 
         if atr_20 is None or atr_20 <= 0:
             return 1
