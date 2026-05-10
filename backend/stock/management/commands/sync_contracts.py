@@ -198,7 +198,7 @@ class Command(BaseCommand):
                     exchange=p['exchange'],
                     product_code=p['product_code'],
                     defaults={
-                        'symbol': f"{p['product_code']}888",
+                        'symbol': f"{p['exchange']}.{p['product_code']}888",
                         'name': p['name'],
                         'volume_multiple': p['volume_multiple'],
                         'price_tick': p['price_tick'],

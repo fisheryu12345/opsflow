@@ -4,7 +4,9 @@ from typing import Optional, Any
 from django.db import transaction, close_old_connections
 from django.utils import timezone
 from decimal import Decimal
+from django_redis import get_redis_connection
 from stock.utils.log_util import log_trade, log_error
+from stock.utils.redis_lock import redis_lock, LockAcquisitionError
 from stock.infrastructure.trade_day import skip_if_not_trade_day
 from stock.core.signal_checker import check_duplicate_pending_signal
 
@@ -538,182 +540,162 @@ def job_daily_close_calculation():
     10. 关闭TqApi连接
     """
     api = None
+    redis = get_redis_connection('default')
     try:
-        close_old_connections()
-        
-        # 第1步：创建TqApi连接
-        api = create_tqapi()
-        print("[INFO] TqApi连接已建立")
-        # 第2步：检查是否为交易日
-        if skip_if_not_trade_day(api=api): 
-            # 如果不是交易日期，直接返回
-            return 
-         
-        # 第3步：同步期货合约列表
-        sync_contract_list_from_tqsdk(api=api)
+        with redis_lock(redis, 'lock:daily_close'):
+            close_old_connections()
 
-        # 第4步：同步所有合约的K线数据
-        print("[INFO] 开始同步K线数据...")
-        sync_kline_data_from_tqsdk(api=api)
-        print("[INFO] K线数据同步完成")
+            # 第1步：创建TqApi连接
+            api = create_tqapi()
+            print("[INFO] TqApi连接已建立")
+            # 第2步：检查是否为交易日
+            if skip_if_not_trade_day(api=api):
+                # 如果不是交易日期，直接返回
+                return
 
-        # 第5步：计算活跃品种的技术指标（基于 AccountContractConfig 多用户配置）
-        active_product_codes = AccountContractConfig.objects.filter(
-            is_active=True,
-            account__is_active=True
-        ).values_list('product_code', flat=True).distinct()
-        active_contracts = FullContractList.objects.filter(
-            product_code__in=active_product_codes
-        ).values('symbol', 'product_code')
-        
-        indicator_results = []
-        
-        if active_contracts:
-            success_count = 0
-            fail_count = 0
-            
-            for contract in active_contracts:
-                try:
-                    # 传入api实例，避免重复创建连接
-                    result = calculate_indicators(
-                        api=api,  # ← 传入统一的api实例
-                        symbol=contract['symbol'], 
-                        product_code=contract['product_code'], 
-                        days=60
-                    )
-                    
-                    if result:
-                        indicators = result.copy()
-                        del indicators['breakout_info']  # 不需要把突破信息存到 indicators 字段里
-                        del indicators['data_points']  # 不需要存储数据点数量
+            # 第3步：同步期货合约列表
+            sync_contract_list_from_tqsdk(api=api)
 
-                        PositionState.objects.filter(symbol=contract['symbol']).update(
-                            indicators=indicators,
-                            latest_close_price=result['latest_close'],
-                            h20_price=result['h_20'],
-                            l20_price=result['l_20'],
+            # 第4步：同步所有合约的K线数据
+            print("[INFO] 开始同步K线数据...")
+            sync_kline_data_from_tqsdk(api=api)
+            print("[INFO] K线数据同步完成")
+
+            # 第5步：计算活跃品种的技术指标（基于 AccountContractConfig 多用户配置）
+            active_product_codes = AccountContractConfig.objects.filter(
+                is_active=True,
+                account__is_active=True
+            ).values_list('product_code', flat=True).distinct()
+            active_contracts = FullContractList.objects.filter(
+                product_code__in=active_product_codes
+            ).values('symbol', 'product_code')
+
+            indicator_results = []
+
+            if active_contracts:
+                success_count = 0
+                fail_count = 0
+
+                for contract in active_contracts:
+                    try:
+                        # 传入api实例，避免重复创建连接
+                        result = calculate_indicators(
+                            api=api,
+                            symbol=contract['symbol'],
+                            product_code=contract['product_code'],
+                            days=60
                         )
 
-                        indicator_results.append(result)
-                        success_count += 1
-                    else:
-                        fail_count += 1
-                        log_trade('job_daily_close_calculation',
-                                  f"{contract['symbol']} 指标计算返回空，跳过",
-                                  symbol=contract['symbol'], log_level='WARNING')
+                        if result:
+                            indicators = result.copy()
+                            del indicators['breakout_info']
+                            del indicators['data_points']
 
-                except Exception as e:
-                    fail_count += 1
-                    msg = f"计算指标失败 {contract['symbol']}: {e}"
-                    print(f"[ERROR] {msg}")
-                    log_trade('job_daily_close_calculation', msg,
-                              symbol=contract['symbol'], log_level='ERROR')
-            
-            print(f"[INFO] 指标计算完成: 成功{success_count}个, 失败{fail_count}个")
-        
-        # 第6-13步：遍历所有活跃账户，执行账户级操作
-        accounts = TradingAccount.objects.filter(is_active=True)
-        if accounts.count() > 1:
-            log_trade('job_daily_close_calculation',
-                      f"多账户模式：共 {accounts.count()} 个账户共享同一 TqSDK 连接，"
-                      "绩效数据将基于同一账户权益计算。如各账户使用独立天勤账号，"
-                      "需为每个账户创建独立的 TqApi 连接。",
-                      symbol=None, log_level='INFO')
-
-        for account in accounts:
-            try:
-                # 获取该账户激活的品种代码，只处理该账户有权交易的品种
-                account_product_codes = set(
-                    AccountContractConfig.objects.filter(
-                        account=account, is_active=True
-                    ).values_list('product_code', flat=True)
-                )
-                account_results = [
-                    r for r in indicator_results
-                    if r['product_code'] in account_product_codes
-                ]
-
-                # 第5步：检查是否需要开仓（保存信号到数据库）
-                if account_results:
-                    open_count = 0
-
-                    for result in account_results:
-                        breakout_info = result.get('breakout_info', {})
-                        if breakout_info.get('is_breakout'):
-                            success = check_breakout_signal(
-                                symbol=result['symbol'],
-                                product_code=result['product_code'],
-                                trend_factor=result['trend_factor'],
-                                trend_label=result['trend_label'],
-                                breakout_info=breakout_info,
-                                account=account,
-                                trade_type='ENTRY'
+                            PositionState.objects.filter(symbol=contract['symbol']).update(
+                                indicators=indicators,
+                                latest_close_price=result['latest_close'],
+                                h20_price=result['h_20'],
+                                l20_price=result['l_20'],
                             )
 
-                            if success:
-                                open_count += 1
+                            indicator_results.append(result)
+                            success_count += 1
+                        else:
+                            fail_count += 1
+                            log_trade('job_daily_close_calculation',
+                                      f"{contract['symbol']} 指标计算返回空，跳过",
+                                      symbol=contract['symbol'], log_level='WARNING')
 
-                    print(f"[INFO] {account.name} 开仓信号生成: {open_count}个")
+                    except Exception as e:
+                        fail_count += 1
+                        msg = f"计算指标失败 {contract['symbol']}: {e}"
+                        print(f"[ERROR] {msg}")
+                        log_trade('job_daily_close_calculation', msg,
+                                  symbol=contract['symbol'], log_level='ERROR')
 
-                # 第6步：计算持仓后出现的历史收盘最高低价格
-                update_all_positions_high_low_price(account)
+                print(f"[INFO] 指标计算完成: 成功{success_count}个, 失败{fail_count}个")
 
-                # 第7步：止损价格计算
-                update_all_positions_stop_loss_price(api=api, account=account)
+            # 第6-13步：遍历所有活跃账户，执行账户级操作
+            accounts = TradingAccount.objects.filter(is_active=True)
+            if accounts.count() > 1:
+                log_trade('job_daily_close_calculation',
+                          f"多账户模式：共 {accounts.count()} 个账户共享同一 TqSDK 连接，"
+                          "绩效数据将基于同一账户权益计算。如各账户使用独立天勤账号，"
+                          "需为每个账户创建独立的 TqApi 连接。",
+                          symbol=None, log_level='INFO')
 
-                # 第8步：检查是否需要平仓
-                check_exit_signals(account)
+            for account in accounts:
+                try:
+                    account_product_codes = set(
+                        AccountContractConfig.objects.filter(
+                            account=account, is_active=True
+                        ).values_list('product_code', flat=True)
+                    )
+                    account_results = [
+                        r for r in indicator_results
+                        if r['product_code'] in account_product_codes
+                    ]
 
-                # 第9步：检查加仓信号
-                check_add_position_signals(account)
+                    if account_results:
+                        open_count = 0
+                        for result in account_results:
+                            breakout_info = result.get('breakout_info', {})
+                            if breakout_info.get('is_breakout'):
+                                success = check_breakout_signal(
+                                    symbol=result['symbol'],
+                                    product_code=result['product_code'],
+                                    trend_factor=result['trend_factor'],
+                                    trend_label=result['trend_label'],
+                                    breakout_info=breakout_info,
+                                    account=account,
+                                    trade_type='ENTRY'
+                                )
+                                if success:
+                                    open_count += 1
+                        print(f"[INFO] {account.name} 开仓信号生成: {open_count}个")
 
-                # 第10步：检查是否需要移仓
-                check_rollover_signals(account)
+                    update_all_positions_high_low_price(account)
+                    update_all_positions_stop_loss_price(api=api, account=account)
+                    check_exit_signals(account)
+                    check_add_position_signals(account)
+                    check_rollover_signals(account)
+                    generate_daily_signal_report(account)
 
-                # 第11步：生成并发送每日策略信号报告邮件
-                generate_daily_signal_report(account)
+                    if api:
+                        try:
+                            api_account = api.get_account()
+                            api_account_data = {
+                                'balance': float(api_account.balance),
+                                'static_balance': float(api_account.static_balance),
+                                'available': float(api_account.available),
+                                'margin': float(api_account.margin),
+                                'float_profit': float(api_account.float_profit),
+                                'close_profit': float(api_account.close_profit),
+                                'commission': float(api_account.commission),
+                                'risk_ratio': float(api_account.risk_ratio),
+                                'pre_balance': float(api_account.pre_balance),
+                            }
+                            result = update_all_performance_metrics(
+                                account=account,
+                                api_account_data=api_account_data,
+                                trade_date=date.today()
+                            )
+                            print(f"[SUCCESS] {account.name} ✅ 三层绩效数据已更新")
+                            print(f"  - 日权益快照: balance={result['snapshot'].balance}")
+                            print(f"  - 滚动指标: sharpe_20d={result['rolling_metrics'][20].sharpe_ratio}")
+                            print(f"  - 账户总览: total_return={result['summary'].total_return}%")
+                        except Exception as perf_error:
+                            print(f"[ERROR] {account.name} 更新绩效指标失败: {perf_error}")
+                            traceback.print_exc()
 
-                # 第12步：更新三层绩效指标（日权益快照、滚动指标、账户总览）
-                if api:
-                    try:
-                        # 从 TqSDK 获取账户数据
-                        api_account = api.get_account()
+                except Exception as account_error:
+                    print(f"[ERROR] 处理账户 {account.name} 任务失败: {account_error}")
+                    traceback.print_exc()
 
-                        # 转换为字典格式（update_all_performance_metrics 需要的格式）
-                        api_account_data = {
-                            'balance': float(api_account.balance),
-                            'static_balance': float(api_account.static_balance),
-                            'available': float(api_account.available),
-                            'margin': float(api_account.margin),
-                            'float_profit': float(api_account.float_profit),
-                            'close_profit': float(api_account.close_profit),
-                            'commission': float(api_account.commission),
-                            'risk_ratio': float(api_account.risk_ratio),
-                            'pre_balance': float(api_account.pre_balance),
-                        }
+            print("[INFO] ✅ 今日收盘计算任务完成")
 
-                        # 调用统一更新函数
-                        result = update_all_performance_metrics(
-                            account=account,
-                            api_account_data=api_account_data,
-                            trade_date=date.today()
-                        )
-
-                        print(f"[SUCCESS] {account.name} ✅ 三层绩效数据已更新")
-                        print(f"  - 日权益快照: balance={result['snapshot'].balance}")
-                        print(f"  - 滚动指标: sharpe_20d={result['rolling_metrics'][20].sharpe_ratio}")
-                        print(f"  - 账户总览: total_return={result['summary'].total_return}%")
-
-                    except Exception as perf_error:
-                        print(f"[ERROR] {account.name} 更新绩效指标失败: {perf_error}")
-                        traceback.print_exc()
-
-            except Exception as account_error:
-                print(f"[ERROR] 处理账户 {account.name} 任务失败: {account_error}")
-                traceback.print_exc()
-
-        print("[INFO] ✅ 今日收盘计算任务完成")
-
+    except LockAcquisitionError:
+        print("[INFO] 收盘计算任务正在执行中，跳过本次调度")
     except Exception as e:
         print(f"[ERROR] 收盘计算任务失败: {e}")
         traceback.print_exc()

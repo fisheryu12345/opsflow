@@ -1,10 +1,12 @@
 import { ref, reactive, watch } from 'vue'
 import { usePagination } from '/@/composables/usePagination'
+import { useAccountStore } from '/@/stores/account'
 import * as api from './api'
 import type { TradeLogRecord } from '/@/types/trading'
 
 export function useTradeLog() {
   const { page, pageSize, total, onPageChange, onSizeChange } = usePagination(20)
+  const accountStore = useAccountStore()
   const list = ref<TradeLogRecord[]>([])
   const loading = ref(false)
   const filters = reactive({
@@ -23,6 +25,7 @@ export function useTradeLog() {
         limit: pageSize.value,
         ordering: '-timestamp',
       }
+      if (accountStore.currentAccountId) params.account = accountStore.currentAccountId
       if (filters.log_level) params.log_level = filters.log_level
       if (filters.function_name) params.function_name__contains = filters.function_name
       if (filters.symbol) params.symbol = filters.symbol
@@ -41,7 +44,7 @@ export function useTradeLog() {
     }
   }
 
-  watch([page, pageSize], fetchData, { immediate: true })
+  watch([page, pageSize, () => accountStore.currentAccountId], fetchData, { immediate: true })
 
   function refresh() {
     page.value = 1

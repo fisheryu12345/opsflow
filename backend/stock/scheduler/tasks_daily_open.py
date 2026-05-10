@@ -12,6 +12,7 @@ from stock.utils.log_util import log_trade, log_error
 from stock.infrastructure.report_sender import send_open_report
 from stock.infrastructure.tqapi import create_tqapi, safe_close_api, ensure_api_connected
 from stock.infrastructure.order_signals import process_signals_by_type
+from stock.utils.redis_lock import redis_lock, LockAcquisitionError
 
 
 def job_daily_open_process():
@@ -32,47 +33,48 @@ def job_daily_open_process():
 
     accounts = TradingAccount.objects.all()
     for account in accounts:
-        api = create_tqapi()
-        redis = get_redis_connection('default')
-        lock_key = f'lock:open:{account.id}'
-        if redis.set(lock_key, 'true', nx=True, ex=600):
-            try:
-                result = process_signals_by_type(api, account, 'STOP_LOSS')
-                print(f"[INFO] 平仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
+        api = None
+        try:
+            api = create_tqapi()
+            redis = get_redis_connection('default')
+            lock_key = f'lock:open:{account.id}'
+            with redis_lock(redis, lock_key):
+                try:
+                    result = process_signals_by_type(api, account, 'STOP_LOSS')
+                    print(f"[INFO] 平仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
 
-                api, reconnected = ensure_api_connected(api)
-                if reconnected:
-                    print(f"[INFO] 平仓处理后API重连成功")
-                result = process_signals_by_type(api, account, 'ENTRY')
-                print(f"[INFO] 开仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
+                    api, reconnected = ensure_api_connected(api)
+                    if reconnected:
+                        print(f"[INFO] 平仓处理后API重连成功")
+                    result = process_signals_by_type(api, account, 'ENTRY')
+                    print(f"[INFO] 开仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
 
-                api, reconnected = ensure_api_connected(api)
-                if reconnected:
-                    print(f"[INFO] 开仓处理后API重连成功")
-                result = process_signals_by_type(api, account, 'ROLLOVER')
-                print(f"[INFO] 移仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔, 跳过{result['skipped']}笔")
+                    api, reconnected = ensure_api_connected(api)
+                    if reconnected:
+                        print(f"[INFO] 开仓处理后API重连成功")
+                    result = process_signals_by_type(api, account, 'ROLLOVER')
+                    print(f"[INFO] 移仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔, 跳过{result['skipped']}笔")
 
-                api, reconnected = ensure_api_connected(api)
-                if reconnected:
-                    print(f"[INFO] 移仓处理后API重连成功")
-                result = process_signals_by_type(api, account, 'ADD_ON')
-                print(f"[INFO] 加仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
+                    api, reconnected = ensure_api_connected(api)
+                    if reconnected:
+                        print(f"[INFO] 移仓处理后API重连成功")
+                    result = process_signals_by_type(api, account, 'ADD_ON')
+                    print(f"[INFO] 加仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
 
-                send_open_report(account, current_date)
+                    send_open_report(account, current_date)
 
-            except Exception as e:
-                error_msg = f"处理账户 {account.username}(id={account.id}) 时发生错误: {str(e)}"
-                print(f"[ERROR] {error_msg}")
-                traceback.print_exc()
-                log_error(
-                    function_name='job_daily_open_process',
-                    error_message=f"{error_msg}\n{traceback.format_exc()}",
-                    account=account,
-                )
-            finally:
-                redis.delete(lock_key)
-                safe_close_api(api)
-        else:
+                except Exception as e:
+                    error_msg = f"处理账户 {account.username}(id={account.id}) 时发生错误: {str(e)}"
+                    print(f"[ERROR] {error_msg}")
+                    traceback.print_exc()
+                    log_error(
+                        function_name='job_daily_open_process',
+                        error_message=f"{error_msg}\n{traceback.format_exc()}",
+                        account=account,
+                    )
+        except LockAcquisitionError:
             print(f"[INFO] 账户 {account.username} 正在处理中, 跳过")
             log_trade('job_daily_open_process', f"账户 {account.username} 正在处理中, 跳过",
                       symbol=None, log_level='INFO')
+        finally:
+            safe_close_api(api)

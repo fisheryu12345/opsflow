@@ -134,7 +134,7 @@ def _execute_stop_loss_for_account(api, default_account):
                 if check_duplicate_pending_signal(default_account, position.symbol, 'STOP_LOSS'):
                     continue
 
-                DailyStrategySignal.objects.create(
+                signal = DailyStrategySignal.objects.create(
                     account=default_account,
                     symbol=position.symbol,
                     product_code=position.product_code,
@@ -147,39 +147,42 @@ def _execute_stop_loss_for_account(api, default_account):
                     signal_direction=0,
                     trade_type='STOP_LOSS',
                     remark=remark,
-                    executed_status='EXECUTING'
+                    executed_status='PENDING'
                 )
 
                 print(f"[EXIT] 止损信号: {position.symbol} - {remark}")
 
-                success, filled_volume, avg_price = execute_stop_loss_exit(api, position)
+                # 信号创建 + 止损执行 + 状态更新在同一事务中，
+                # 避免崩溃后残留 EXECUTING 信号导致重复执行
+                with transaction.atomic():
+                    DailyStrategySignal.objects.filter(id=signal.id).update(executed_status='EXECUTING')
 
-                if success and filled_volume > 0:
-                    exit_count += 1
+                    success, filled_volume, avg_price = execute_stop_loss_exit(api, position)
 
-                    record_and_reset_position(api, position, None, filled_volume, float(avg_price))
+                    if success and filled_volume > 0:
+                        exit_count += 1
 
-                    DailyStrategySignal.objects.filter(
-                        account=default_account,
-                        symbol=position.symbol,
-                        trade_type='STOP_LOSS',
-                        executed_status='EXECUTING'
-                    ).update(executed_status='SUCCESS')
+                        # record_and_reset_position 异常不阻断事务提交（TqSDK 订单已执行）
+                        try:
+                            record_and_reset_position(api, position, None, filled_volume, float(avg_price))
+                        except Exception as rp_error:
+                            log_error(
+                                function_name='_execute_stop_loss_for_account',
+                                error_message=f"止损后重置持仓状态失败(订单已执行): {rp_error}\n{traceback.format_exc()}",
+                                account=default_account,
+                            )
 
-                    log_trade('check_and_execute_stop_loss',
-                              f"✅ 止损平仓成功: {position.symbol} 成交量={filled_volume}, 均价={avg_price:.2f}",
-                              symbol=position.symbol, log_level='SUCCESS')
-                else:
-                    DailyStrategySignal.objects.filter(
-                        account=default_account,
-                        symbol=position.symbol,
-                        trade_type='STOP_LOSS',
-                        executed_status='EXECUTING'
-                    ).update(executed_status='FAILED')
+                        DailyStrategySignal.objects.filter(id=signal.id).update(executed_status='SUCCESS')
 
-                    log_trade('check_and_execute_stop_loss',
-                              f"❌ 止损平仓失败: {position.symbol}",
-                              symbol=position.symbol, log_level='ERROR')
+                        log_trade('check_and_execute_stop_loss',
+                                  f"✅ 止损平仓成功: {position.symbol} 成交量={filled_volume}, 均价={avg_price:.2f}",
+                                  symbol=position.symbol, log_level='SUCCESS')
+                    else:
+                        DailyStrategySignal.objects.filter(id=signal.id).update(executed_status='FAILED')
+
+                        log_trade('check_and_execute_stop_loss',
+                                  f"❌ 止损平仓失败: {position.symbol}",
+                                  symbol=position.symbol, log_level='ERROR')
 
             except Exception as pos_error:
                 error_msg = f"处理 {position.symbol} 止损检查失败: {pos_error}"

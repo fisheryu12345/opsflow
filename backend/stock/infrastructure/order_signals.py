@@ -540,7 +540,7 @@ def execute_rollover_order(api, position, signal):
                 signal.save(update_fields=['executed_status', 'updated_at'])
                 return False
 
-            if signal.signal_direction == 1:
+            if position.direction == 1:
                 entry_avg_price = float(pos_after.open_price_long) if pos_after and pos_after.open_price_long else None
                 actual_filled = pos_after.volume_long_today
             else:

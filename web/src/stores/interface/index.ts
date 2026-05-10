@@ -17,6 +17,7 @@ export interface UserInfosState {
 		dept_name: string;
 	};
 	role_info: any[];
+	roles: string[];
 }
 export interface UserInfosStates {
 	userInfos: UserInfosState;

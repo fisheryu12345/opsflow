@@ -7,7 +7,7 @@ export function GetList(params: any) {
 }
 
 export function GetObj(id: number) {
-  return request({ url: apiPrefix + id, method: 'get' })
+  return request({ url: apiPrefix + id + '/', method: 'get' })
 }
 
 export function AddObj(obj: any) {

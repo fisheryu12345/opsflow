@@ -35,8 +35,8 @@ export function useContract() {
   async function fetchStats() {
     try {
       const res = await api.GetStatistics()
-      if (res && res.total !== undefined) {
-        stats.value = res
+      if (res.code === 2000 && res.data) {
+        stats.value = res.data
       }
     } catch (e) {
       console.error('获取统计信息失败', e)

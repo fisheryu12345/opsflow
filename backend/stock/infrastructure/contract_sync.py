@@ -57,19 +57,22 @@ def sync_contract_list_from_tqsdk(api=None):
                 exchange_id = quote.exchange_id
                 instrument_name = quote.instrument_name
 
-                # 尝试获取实际主力合约代码（而非连续合约代码）
+                # 获取实际合约代码（带交易所前缀，如 SHFE.rb2510）
                 actual_contract = instrument_id
                 if '888' in instrument_id or instrument_id == f"{exchange_id}.{product_id}":
                     if quote.underlying_symbol:
                         actual_contract = quote.underlying_symbol
+                        # TqSDK underlying_symbol 返回裸合约代码（如 rb2510），补上交易所前缀
+                        if actual_contract and '.' not in actual_contract:
+                            actual_contract = f"{exchange_id}.{actual_contract}"
                         print(f"    [INFO] 通过 underlying_symbol 解析实际合约: {instrument_id} → {actual_contract}")
                     else:
                         print(f"    [WARN] {instrument_id} 是连续合约代码，未能解析实际合约")
 
-                # 去掉交易所前缀，只保留合约代码（如 CFFEX.IC2606 → IC2606）
-                # TqSDK 可能返回带交易所前缀的代码（如 CFFEX.IC2606），去掉前缀只保留合约代码
-                if actual_contract and '.' in actual_contract:
-                    actual_contract = actual_contract.split('.', 1)[1]
+                # 统一确保带交易所前缀
+                if actual_contract and '.' not in actual_contract:
+                    actual_contract = f"{exchange_id}.{actual_contract}"
+                    print(f"    [INFO] 补上交易所前缀: → {actual_contract}")
 
                 volume_multiple = getattr(quote, 'volume_multiple', 10)
                 price_tick = getattr(quote, 'price_tick', 1.0)
@@ -123,7 +126,7 @@ def sync_contract_list_from_tqsdk(api=None):
                             PositionState.objects.filter(
                                 product_code=product_id,
                                 units=0
-                            ).update(symbol=actual_contract)
+                            ).update(symbol=actual_contract, is_rollover_needed=False)
 
                             if updated_rows > 0:
                                 print(f"    [INFO] 已标记 {updated_rows} 条持仓记录需要移仓")
@@ -184,39 +187,31 @@ def sync_kline_data_from_tqsdk(api, product_codes=None):
 
     print(f"[INFO] 共 {total_count} 个合约需要同步K线")
 
-    # 直接用 FullContractList 的 exchange+product_code 构造 KQ.m@ 格式查询标识
-    # 这是 TqSDK 标准连续合约 K 线查询方式，无需依赖 query_cont_quotes
-
     for idx, contract in enumerate(contracts, 1):
         product_code = contract.product_code
         exchange = contract.exchange
-        contract_symbol = contract.symbol  # 数据库已无污染数据，symbol 不带交易所前缀
-
-        # TqSDK 查询使用连续合约标识
-        query_key = f"KQ.m@{exchange}.{product_code}"
-        # 数据库存储使用实际合约代码
-        store_symbol = contract_symbol
+        query_key = contract.symbol  # 使用实际合约代码（如 SHFE.rb2510），与指标计算一致
 
         try:
-            latest = KlineData.objects.filter(symbol=store_symbol).order_by('-date').first()
+            latest = KlineData.objects.filter(symbol=query_key).order_by('-date').first()
 
             if latest:
                 data_length = 20
-                print(f"  [{idx}/{total_count}] {store_symbol}: 增量同步（已有数据至 {latest.date}）")
+                print(f"  [{idx}/{total_count}] {query_key}: 增量同步（已有数据至 {latest.date}）")
             else:
                 data_length = 500
-                print(f"  [{idx}/{total_count}] {store_symbol}: 全量同步（无历史数据，拉取 {data_length} 根）")
+                print(f"  [{idx}/{total_count}] {query_key}: 全量同步（无历史数据，拉取 {data_length} 根）")
 
             klines = api.get_kline_serial(query_key, duration_seconds=86400, data_length=data_length)
 
             if klines is None or len(klines) == 0:
-                print(f"    [SKIP] {query_key} → {store_symbol}: 未获取到K线数据")
+                print(f"    [SKIP] {query_key} → {query_key}: 未获取到K线数据")
                 fail_count += 1
                 continue
 
             # 查询已有日期，避免逐条 update_or_create
             existing_dates = set(
-                KlineData.objects.filter(symbol=store_symbol)
+                KlineData.objects.filter(symbol=query_key)
                 .values_list('date', flat=True)
             )
 
@@ -248,7 +243,7 @@ def sync_kline_data_from_tqsdk(api, product_codes=None):
                         oi_val = int(oi_val)
 
                     new_records.append(KlineData(
-                        symbol=store_symbol,
+                        symbol=query_key,
                         product_code=product_code,
                         exchange=exchange,
                         date=kline_date,
@@ -260,7 +255,7 @@ def sync_kline_data_from_tqsdk(api, product_codes=None):
                         open_interest=oi_val,
                     ))
                 except Exception as row_error:
-                    print(f"    [WARN] {store_symbol} 第{row_idx}行处理失败: {row_error}")
+                    print(f"    [WARN] {query_key} 第{row_idx}行处理失败: {row_error}")
                     continue
 
             if new_records:
@@ -278,7 +273,7 @@ def sync_kline_data_from_tqsdk(api, product_codes=None):
             if 'non-existent instrument' in err_msg or 'contains non-existent' in err_msg:
                 print(f"  [WARN] {query_key}: 无效合约代码，跳过（TqSDK 不识别此合约）")
             else:
-                print(f"  [ERROR] {query_key} → {store_symbol}: 同步失败: {e}")
+                print(f"  [ERROR] {query_key} → {query_key}: 同步失败: {e}")
                 traceback.print_exc()
             continue
 

@@ -2,7 +2,6 @@
 Centralized config loader — reads from DB (StrategyConfig) with fallback to hardcoded defaults.
 Formerly stock.parameter_config was used; now all callers use get_config() from this module.
 """
-from functools import lru_cache
 
 # Hardcoded defaults mirroring parameter_config.py
 DEFAULTS = {
@@ -37,7 +36,6 @@ FIELD_MAP = {
 }
 
 
-@lru_cache(maxsize=16)
 def _load_config(account_id=None):
     """
     Load StrategyConfig from DB.
@@ -115,8 +113,3 @@ def get_config(key, account_id=None):
     If account_id is given, return that account's config; otherwise the default.
     """
     return _load_config(account_id)[key]
-
-
-def clear_cache():
-    """Clear the cached config (call after DB update if running long-lived)."""
-    _load_config.cache_clear()

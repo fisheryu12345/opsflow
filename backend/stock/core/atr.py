@@ -52,6 +52,11 @@ def price_gap_protection(api, symbol, direction, gap_threshold_atr_multiplier=1.
     """
     价格跳空保护函数（支持期货多空双向交易）
 
+    逻辑区分多空方向：
+    - 多头入场 (direction=1)：仅跳空高开（最新价 >> 前收盘）危险 — 买入价过高
+    - 空头入场 (direction=-1)：仅跳空低开（最新价 << 前收盘）危险 — 卖出价过低
+    反向跳空（多头遇到低开、空头遇到高开）视为有利，不拦截。
+
     :param api: TqApi实例
     :param symbol: 合约代码
     :param direction: 交易方向，1表示做多，-1表示做空
@@ -68,23 +73,25 @@ def price_gap_protection(api, symbol, direction, gap_threshold_atr_multiplier=1.
     if atr is None or atr <= 0:
         return False
 
-    gap_ratio = abs(latest_price - pre_close) / atr
-
     if direction == 1:
-        if gap_ratio > gap_threshold_atr_multiplier:
+        # 多头：检查跳空高开（最新价显著高于前收盘）
+        gap_up = (latest_price - pre_close) / atr
+        if gap_up > gap_threshold_atr_multiplier:
             log_trade('execute_entry_order',
-                      f"存在危险跳空，请勿进行交易！合约：{symbol}，最新价：{latest_price:.2f}，"
-                      f"昨日收盘价：{pre_close:.2f}，跳空幅度：{gap_ratio:.2f}倍ATR，"
-                      f"阈值：{gap_threshold_atr_multiplier}倍ATR",
+                      f"[跳空保护] 多头开仓被拦截：{symbol} 跳空高开 {gap_up:.2f}倍ATR"
+                      f"（最新价={latest_price:.2f}, 前收盘={pre_close:.2f}），"
+                      f"阈值={gap_threshold_atr_multiplier}倍ATR",
                       symbol=symbol, log_level='WARNING')
             return False
         return True
     elif direction == -1:
-        if gap_ratio > gap_threshold_atr_multiplier:
+        # 空头：检查跳空低开（最新价显著低于前收盘）
+        gap_down = (pre_close - latest_price) / atr
+        if gap_down > gap_threshold_atr_multiplier:
             log_trade('execute_entry_order',
-                      f"存在危险跳空，请勿进行交易！合约：{symbol}，最新价：{latest_price:.2f}，"
-                      f"昨日收盘价：{pre_close:.2f}，跳空幅度：{gap_ratio:.2f}倍ATR，"
-                      f"阈值：{gap_threshold_atr_multiplier}倍ATR",
+                      f"[跳空保护] 空头开仓被拦截：{symbol} 跳空低开 {gap_down:.2f}倍ATR"
+                      f"（最新价={latest_price:.2f}, 前收盘={pre_close:.2f}），"
+                      f"阈值={gap_threshold_atr_multiplier}倍ATR",
                       symbol=symbol, log_level='WARNING')
             return False
         return True

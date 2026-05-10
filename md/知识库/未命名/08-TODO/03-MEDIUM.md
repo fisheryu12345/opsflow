@@ -202,3 +202,162 @@ columns: {
 - 异步加载完成前用户无法使用交易所筛选
 
 **修复说明**: FastCRUD 已被 Vue3 自定义组件替代，该问题不再存在。
+
+---
+
+## ✅ MEDIUM-11: 移仓换月 K线同步使用连续合约但指标计算使用实际合约 — 已修复 (2026-05-10)
+
+**文件**: [infrastructure/contract_sync.py:196](../backend/stock/infrastructure/contract_sync.py#L196), [core/indicators.py:83](../backend/stock/core/indicators.py#L83)
+
+**问题描述**:
+`sync_kline_data_from_tqsdk` 使用连续合约 `KQ.m@{exchange}.{product_code}` 获取 K 线数据，而 `calculate_indicators` 使用 `FullContractList.symbol` 调用 `api.get_kline_serial()`。两者在临近交割月时的 K 线数据会产生显著差异。
+
+**影响分析**:
+- KlineData 表中存储的是连续合约数据（前端的图表展示基于此）
+- 策略指标计算使用的是实际合约数据
+- 两者在换月前后出现偏离，导致策略信号与图表展示不匹配
+
+**修复内容**:
+1. symbol 格式统一 (2026-05-10):
+   - `contract_sync.py` 删除去掉交易所前缀的代码，`underlying_symbol` 裸代码自动补前缀
+   - `FullContractList.symbol` 存储完整格式如 `SHFE.rb2510`
+   - 新建 `fix_symbol_format` 管理命令更新存量数据
+   - 所有 TqSDK API 调用现在使用正确格式
+
+2. KlineData 数据源统一 (2026-05-10):
+   - `sync_kline_data_from_tqsdk` 改用 `contract.symbol`（实际合约）代替 `KQ.m@{exchange}.{product_code}`（连续合约）获取 K 线
+   - KlineData 与 `calculate_indicators` 使用同一数据源，不再有偏离
+   - 前端 K 线图与策略指标所见一致
+
+---
+
+## ✅ MEDIUM-12: 跳空保护对多空方向逻辑相同 — 过于保守 — 已修复 (2026-05-10)
+
+**文件**: [core/atr.py:73-92](../backend/stock/core/atr.py#L73)
+
+**问题描述**:
+`price_gap_protection` 中 `direction == 1` 和 `direction == -1` 分支执行完全相同的逻辑 — 都检查 `abs(gap) > threshold`。但正确的逻辑应是：
+- 多头入场：跳空高开（gap up）危险 — 买入价过高
+- 空头入场：跳空低开（gap down）危险 — 卖出价过低
+
+**影响分析**: 跳空高开会同时阻止多头和空头开仓，过于保守；在跳空低开时应该阻止空头而非多头。
+
+**修复内容**:
+1. 多头方向：计算 `gap_up = (latest_price - pre_close) / atr`，仅 `gap_up > threshold` 时拦截（跳空高开买入太贵）
+2. 空头方向：计算 `gap_down = (pre_close - latest_price) / atr`，仅 `gap_down > threshold` 时拦截（跳空低开卖出太便宜）
+3. 反向跳空（多头遇低开、空头遇高开）视为有利，不拦截
+4. 日志信息区分多空，明确标注拦截原因
+
+---
+
+## ✅ MEDIUM-13: 合约同步未重置 `is_rollover_needed` 状态 — 已修复 (2026-05-10)
+
+**文件**: [infrastructure/contract_sync.py:117-126](../backend/stock/infrastructure/contract_sync.py#L117)
+
+**问题描述**:
+当 `units == 0`（持仓已平）时，`sync_contract_list_from_tqsdk` 更新 symbol 但未将 `is_rollover_needed` 重置为 `False`。如果之前有未执行的移仓标记，该标记会残留。当同品种新开仓后，`is_rollover_needed=True` 仍存在，导致触发虚假的移仓检查。
+
+**修复内容**: `units=0` 的更新追加 `is_rollover_needed=False`。
+
+---
+
+## ✅ MEDIUM-14: Redis 分布式锁超时可能不足 — 已修复 (2026-05-10)
+
+**文件**: [utils/redis_lock.py](../backend/stock/utils/redis_lock.py)
+
+**问题描述**:
+`redis.set(lock_key, 'true', nx=True, ex=600)` 设置 600 秒（10 分钟）超时。如果某个账户处理多个信号类型时超时（如 `wait_for_target_position` 对每个信号阻塞 60 秒），锁自动释放后另一个调度实例可能开始同时处理同一账户的信号。
+
+**影响分析**: 锁超时释放后，另一个调度实例可能开始处理同一账户，导致信号重复执行或数据竞争。
+
+**修复内容**:
+1. 新建 `utils/redis_lock.py`：提供带自动续期的 Redis 分布式锁上下文管理器 `redis_lock()`
+   - 短 TTL（默认 30s），进程崩溃后锁快速自动释放
+   - 后台 daemon 线程每 15s 续期一次，长任务不超时
+   - `LockAcquisitionError` 异常用于调用方区分"获取锁失败"和"业务异常"
+2. 三个 APScheduler 入口全部改用新锁：
+   - `tasks_daily_open.py`：`lock:open:{account.id}`（每账户独立锁）— 替换原 `ex=600` 直写模式
+   - `tasks_daily_close.py`：`lock:daily_close`（全局锁）— 替换原 `ex=900` 直写模式
+   - `tasks_exit_before_close.py`：`lock:exit_before_close`（全局锁）— 替换原 `ex=600` 直写模式
+3. `tasks_daily_open.py` 增加外层 `try/finally` 确保 `LockAcquisitionError` 时 `safe_close_api(api)` 仍被执行
+
+---
+
+## ✅ MEDIUM-15: 夜盘交易日期归属问题 — 已修复 (重构后自然解决)
+
+**涉及文件**: [scheduler/scheduler.py:71](../backend/stock/scheduler/scheduler.py#L71)（已移除）
+
+**问题描述**:
+夜盘（21:02）使用 `date.today()` 记录信号日期。但中国期货市场夜盘通常属于下一个交易日（如周五夜盘属于下周一的交易日）。可能导致信号日期记录错误，影响交易日历判断。
+
+**修复说明**: 原 `scheduler/scheduler.py` 已在重构中移除，`tasks_daily_open.py` 中虽保留 `datetime.now().date()`，但 `current_date` 当前为死参数（仅传入 `send_open_report` 但函数体内未使用），实际无影响。
+
+---
+
+## ✅ MEDIUM-16 (前端): K线图快速切换合约存在竞态条件 — 已修复 (2026-05-10)
+
+**文件**: [useKline.ts:267-314](../web/src/views/apps/kline/useKline.ts#L267)
+
+**问题描述**:
+快速切换品种时，`fetchData` 为异步且无取消机制或过期响应保护。前一个品种的响应若晚于后一个到达，会覆盖 `klineList` 和 `tradeMarkers` 为旧数据，图表展示错误的 K 线。
+
+**修复内容**:
+1. 新增 `fetchSeq` 计数器，每次 `fetchData()` 调用时 `++fetchSeq` 标记当前请求
+2. `const seq = ++fetchSeq` 记录本次请求序号
+3. API 响应到达后检查 `if (seq !== fetchSeq) return` — 过期响应被丢弃
+4. `finally` 中仅最新请求设置 `loading.value = false`
+5. `nextTick` 后再次检查序号，防止 DOM 更新期间品种已切换
+
+---
+
+## ✅ MEDIUM-17 (前端): 持仓表 `unrealized_pnl` 排序字段不存在 — 已修复 (2026-05-10)
+
+**文件**: [position/index.vue:42](../web/src/views/apps/position/index.vue#L42)
+
+**问题描述**:
+表格列声明 `prop="unrealized_pnl"`，但 `PositionRecord` 接口没有该字段。`sortable="custom"` 时 Element Plus 尝试访问 `row.unrealized_pnl` 得到 `undefined`，排序功能失效。
+
+**修复内容**: 添加 `@sort-change` 事件处理，按 `calcUnrealizedPnl(row)` 的计算结果对当前页数据排序。
+
+---
+
+## ✅ MEDIUM-18 (前端): 交易日志缺少账户过滤 — 已修复 (2026-05-10)
+
+**文件**: [tradelog/useTradeLog.ts:44](../web/src/views/apps/tradelog/useTradeLog.ts#L44)
+
+**问题描述**:
+`useTradeLog` 的 watcher 未包含 `accountStore.currentAccountId`，API 请求也不带 `account` 参数。切换账户后交易日志仍显示全部数据，与其他页面的行为不一致。
+
+**修复内容**:
+1. 导入 `useAccountStore`，创建 `accountStore` 实例
+2. API 请求参数中添加 `params.account = accountStore.currentAccountId`
+3. watcher 添加 `() => accountStore.currentAccountId` 依赖，切换账户自动刷新
+
+---
+
+## ✅ MEDIUM-19 (前端): 账户合约管理初始化重复请求 API — 已修复 (2026-05-10)
+
+**文件**: [account-contract/useAccountContract.ts:117-137](../web/src/views/apps/account-contract/useAccountContract.ts#L117)
+
+**问题描述**:
+`onMounted` 中的 `init()` 显式调用 `fetchData()`，同时 `watch(currentAccountId)` 也在账户加载后触发 `fetchData()`，导致初始化时发出两次完全相同的 HTTP 请求。
+
+**修复内容**:
+1. 移除 `init()` 函数及其显式 `fetchData()` 调用
+2. watcher 添加 `{ immediate: true }`，初始化时自动触发一次数据加载
+3. `onMounted` 只负责账户加载，不负责数据获取（职责分离）
+4. 修复后：无论账户是否已加载，始终只发一次 API 请求
+
+---
+
+## ✅ MEDIUM-20 (前端): 路由生成对多角色用户产生重复条目 — 已修复 (2026-05-10)
+
+**文件**: [router/frontEnd.ts:83-97](../web/src/router/frontEnd.ts#L83)
+
+**问题描述**:
+`setFilterRoute` 中 `filterRoute.push({ ...route })` 为每个匹配角色创建浅拷贝。如果一个路由匹配多个角色（如 `roles: ['admin', 'common']`），同一路由会重复添加，导致 `router.addRoute` 重复注册并产生 Vue Router 警告。
+
+**修复内容**:
+1. 嵌套 `forEach` 改为 `route.meta.roles.some(metaRole => userRoles.includes(metaRole))`
+2. 每个路由最多被添加一次，无论用户拥有多少个匹配角色
+3. 同时缓存 `userInfos.value.roles` 到局部变量 `userRoles`，减少重复读取

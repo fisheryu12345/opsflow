@@ -97,9 +97,10 @@ function handleDelete(id: number) {
 
 function handleClearAll() {
   ElMessageBox.confirm('确认清除全部错误日志？此操作不可恢复', '警告', { type: 'warning' }).then(async () => {
-    // Delete all visible items one by one (simplified approach)
-    for (const item of list.value) {
-      await deleteLog(item.id)
+    // 快照 IDs，避免 deleteLog 中 fetchData 替换 list.value 导致迭代失效
+    const ids = list.value.map(item => item.id)
+    for (const id of ids) {
+      await deleteLog(id)
     }
     ElMessage.success('已清除')
     refresh()

@@ -51,6 +51,9 @@ export function useKline() {
   const selectedProductCode = ref('')
   const dateRange = reactive<[string, string]>(['', ''])
 
+  // 请求序号，用于丢弃过期响应（快速切换品种时的竞态保护）
+  let fetchSeq = 0
+
   const fonts = getResponsiveFontConfig()
 
   // ===== Computed: ECharts option =====
@@ -265,6 +268,7 @@ export function useKline() {
   }
 
   async function fetchData() {
+    const seq = ++fetchSeq
     if (!selectedProductCode.value || !accountStore.currentAccountId) return
     loading.value = true
     try {
@@ -281,6 +285,9 @@ export function useKline() {
           product_code: selectedProductCode.value,
         }),
       ])
+
+      // 丢弃过期响应：快速切换品种时，旧品种的响应不应覆盖最新数据
+      if (seq !== fetchSeq) return
 
       if (klineRes.code === 2000) {
         const rawData = (klineRes.data || []) as KlineRecord[]
@@ -301,11 +308,13 @@ export function useKline() {
     } catch (e) {
       console.error('获取K线数据失败:', e)
     } finally {
-      loading.value = false
+      if (seq === fetchSeq) loading.value = false
     }
 
     // DOM 更新后直接初始化图表（确保 DOM 已渲染、chartRef 可用）
     await nextTick()
+    // 再检查一次，防止在 await nextTick 期间品种已切换
+    if (seq !== fetchSeq) return
     if (!chartRef.value || !klineList.value.length) return
     if (!chartInstance) initChart()
     if (chartInstance) {

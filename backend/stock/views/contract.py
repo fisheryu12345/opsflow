@@ -83,6 +83,10 @@ class FullContractListViewSet(viewsets.ModelViewSet):
             })
 
         return Response({
-            'total': total,
-            'by_exchange': by_exchange_list,
+            'code': 2000,
+            'msg': 'success',
+            'data': {
+                'total': total,
+                'by_exchange': by_exchange_list,
+            }
         })

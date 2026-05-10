@@ -25,6 +25,7 @@ export const useUserInfo = defineStore('userInfo', {
 					name: '',
 				},
 			],
+			roles: [],
 		},
 		isSocketOpen: false
 	}),
@@ -39,12 +40,16 @@ export const useUserInfo = defineStore('userInfo', {
 			this.userInfos.gender = userInfos.data.gender;
 			this.userInfos.dept_info = userInfos.data.dept_info;
 			this.userInfos.role_info = userInfos.data.role_info;
+			this.userInfos.roles = (userInfos.data.role_info || []).map((r: any) => r.key);
 			Session.set('userInfo', this.userInfos);
 		},
 		async setUserInfos() {
 			// 存储用户信息到浏览器缓存
 			if (Session.get('userInfo')) {
 				this.userInfos = Session.get('userInfo');
+				if (!this.userInfos.roles || this.userInfos.roles.length === 0) {
+					this.userInfos.roles = (this.userInfos.role_info || []).map((r: any) => r.key);
+				}
 			} else {
 				let userInfos: any = await this.getApiUserInfo();
 				this.userInfos.username = userInfos.data.name;
@@ -55,6 +60,7 @@ export const useUserInfo = defineStore('userInfo', {
 				this.userInfos.gender = userInfos.data.gender;
 				this.userInfos.dept_info = userInfos.data.dept_info;
 				this.userInfos.role_info = userInfos.data.role_info;
+				this.userInfos.roles = (userInfos.data.role_info || []).map((r: any) => r.key);
 				Session.set('userInfo', this.userInfos);
 			}
 		},

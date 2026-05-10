@@ -115,25 +115,22 @@ export function useAccountContract() {
   }
 
   // 初始化: 等账户加载完成再获取数据
-  async function init() {
+  onMounted(async () => {
     if (!accountStore.loaded) {
       await accountStore.fetchAccounts()
     }
-    if (accountStore.currentAccountId) {
-      await fetchData()
-    } else {
+    if (!accountStore.currentAccountId) {
       initError.value = '未找到交易账户，请确认用户已关联 TradingAccount'
     }
-  }
+  })
 
-  onMounted(() => { init() })
-
-  // 账户切换时重新加载
+  // 账户加载/切换时自动获取数据（immediate 替代显式 fetchData 调用，避免重复请求）
   watch(
     () => accountStore.currentAccountId,
     (val) => {
       if (val) fetchData()
-    }
+    },
+    { immediate: true }
   )
 
   return {

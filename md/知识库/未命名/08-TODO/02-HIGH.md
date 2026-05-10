@@ -64,7 +64,7 @@ def price_gap_protection(api, symbol, direction, gap_threshold_atr_multiplier=1.
 
 ---
 
-## HIGH-03: 开仓 PnL 计算缺少 Decimal 包装
+## ❌ HIGH-03: 开仓 PnL 计算缺少 Decimal 包装 — 不是BUG（Django 自动转换，精度影响可忽略）
 
 **文件**: [infrastructure/order_signals.py](../backend/stock/infrastructure/order_signals.py)（原 tasks_daily_open.py，已迁移）
 
@@ -86,3 +86,124 @@ pnl = (exit_price - cost_price) * volume * volume_multiple
 from decimal import Decimal
 pnl = (exit_price - cost_price) * Decimal(str(volume)) * Decimal(str(volume_multiple))
 ```
+
+---
+
+## ✅ HIGH-04: StrategyConfig 明文存储 TqSDK 密码 — 已修复 (2026-05-10)
+
+**文件**: [views/strategyconfig.py:13](../backend/stock/views/strategyconfig.py#L13)
+
+**问题描述**:
+`StrategyConfigViewSet` 使用 `ModelViewSet` 且只有 `IsAuthenticated` 权限，任何已登录用户都可读取和修改 TqSDK 账号密码。
+
+**影响分析**:
+- 任意系统用户（非管理员）可通过 API 获取交易账号密码
+- 可通过 API 修改账号密码导致交易系统无法登录
+
+**修复内容**: `permission_classes` 从 `[IsAuthenticated]` 改为 `[IsAdminUser]`，仅管理员可访问策略配置 API。
+
+---
+
+## ✅ HIGH-05: `AccountContractConfigViewSet` 缺少账户访问验证 — 已修复 (2026-05-10)
+
+**文件**: [views/account_contract.py:68-76,106-113,127-161](../backend/stock/views/account_contract.py#L68)
+
+**问题描述**:
+`toggle`、`batch_toggle`、`available` 三个端点接收 `account_id` 参数，但未调用 `validate_account_access()` 校验当前用户对该账户的操作权限。
+
+**影响分析**: 用户可查看/修改其他账户的品种配置。
+
+**修复内容**: 三个端点均在确定 `account_id` 后调用 `validate_account_access()`，越权操作返回 403。
+
+---
+
+## ✅ HIGH-06: `test.py` 包含生产环境交易凭证 — 已修复 (2026-05-10)
+
+**文件**: [views/test.py:4,27,80,138,207,234](../backend/stock/views/test.py#L4)
+
+**问题描述**:
+`test.py` 硬编码了 TqSDK 账号密码 `yupei1986`/`yupei1986` 共 6 处，包含实盘交易 API 调用代码。
+
+**修复内容**: 已删除 `test.py` 文件。
+
+---
+
+## ✅ HIGH-07: FullContractList 和 RollingPerformanceMetrics 缺少唯一约束 — 已修复 (2026-05-10)
+
+**文件**: [models.py:170-174,424-431](../backend/stock/models.py#L170)
+
+**问题描述**:
+`FullContractList` 没有 `unique_together = ('exchange', 'product_code', 'symbol')`，同一合约可被重复插入多次。`RollingPerformanceMetrics` 没有 `unique_together = ('account', 'calc_date', 'window_days')`，同一计算可产生多条重复记录。
+
+**影响分析**:
+- `FullContractList` 重复数据导致合约选择器出现重复项
+- 移仓检测可能匹配到错误的合约行
+- `RollingPerformanceMetrics` 重复记录导致绩效指标数值膨胀
+
+**修复内容**:
+1. `FullContractList.Meta` 添加 `unique_together = ('exchange', 'product_code', 'symbol')`
+2. `RollingPerformanceMetrics.Meta` 添加 `unique_together = ('account', 'calc_date', 'window_days')`
+3. 生成并运行迁移 `0068_add_unique_constraints`
+4. 经验证：当前数据库无重复记录，约束已直接生效
+
+---
+
+## ✅ HIGH-08 (前端): StrategyConfig `GetObj` URL 缺少尾部斜杠 — 已修复 (2026-05-10)
+
+**文件**: [strategyconfig/api.ts:9-11](../web/src/views/apps/strategyconfig/api.ts#L9)
+
+**问题描述**:
+`GetObj` 拼接的 URL 为 `apiPrefix + id`（无尾部斜杠），但 DRF 默认 `APPEND_SLASH=True`。所有其他 CRUD 端点都使用 `apiPrefix + id + '/'`。缺少斜杠会导致请求被 302 重定向或 404。
+
+**修复内容**: `apiPrefix + id` → `apiPrefix + id + '/'`
+
+---
+
+## ✅ HIGH-09 (前端): 合约统计 `fetchStats` 响应结构解析错误 — 已修复 (2026-05-10)
+
+**文件**: [contracts/useContract.ts:35-43](../web/src/views/apps/contracts/useContract.ts#L35)
+
+**问题描述**:
+`fetchStats()` 检查 `res.total !== undefined` 后赋值 `stats.value = res`。但后端 `statistics()` 返回的是非标准格式 `{"total": ..., "by_exchange": [...]}`（无 `code`/`data` 包裹），触发 Axios 拦截器"非标准返回"错误日志。同时 `ContractStats` 接口声明的 `active`/`inactive` 字段后端未提供。
+
+**影响分析**: 统计弹窗功能可用（因拦截器对无 `code` 的响应直接透传），但每次打开都会触发错误日志记录，且前后端响应格式不统一。
+
+**修复内容**:
+1. 后端 `contract.py`：`statistics()` 返回标准格式 `{'code': 2000, 'msg': 'success', 'data': {'total': ..., 'by_exchange': [...]}}`
+2. 前端 `useContract.ts`：改为检查 `res.code === 2000 && res.data` 后赋值 `stats.value = res.data`
+
+---
+
+## ✅ HIGH-10 (前端): 错误日志"清除全部"只删除第一条 — 已修复 (2026-05-10)
+
+**文件**: [errorlog/index.vue:98-107](../web/src/views/apps/errorlog/index.vue#L98)
+
+**问题描述**:
+`handleClearAll` 遍历 `list.value` 逐条删除，但每次 `deleteLog` 调用后 `fetchData()` 会替换 `list.value`，导致后续迭代操作过期引用。同时 N 次多余的 `fetchData` 调用造成性能浪费。
+
+**影响分析**: "清除全部"功能名不副实，用户误以为已清除但多数记录仍在
+
+**修复内容**:
+1. 用 `list.value.map(item => item.id)` 快照所有 ID，迭代不再依赖 `list.value` 引用
+2. 避免 `deleteLog` 中 `fetchData` 替换数组导致的迭代失效问题
+
+---
+
+## ✅ HIGH-11 (前端): `userInfo` 缺少 `roles` 属性 — 路由守卫可能崩溃 — 已修复 (2026-05-10)
+
+**文件**: [stores/userInfo.ts:44-59](../web/src/stores/userInfo.ts#L44)
+
+**问题描述**:
+`frontEnd.ts:31` 检查 `useUserInfo().userInfos.roles.length` 确定用户角色是否为空。但 `UserInfosState` 接口中只有 `role_info: any[]`，没有 `roles` 属性。API 返回的角色数据被赋到 `role_info` 而非 `roles`，导致 `userInfos.roles` 为 `undefined`，`.length` 调用抛出 TypeError。
+
+**影响分析**:
+- 路由守卫执行时 `undefined.length` 抛出 TypeError，后续动态路由添加中断
+- 菜单过滤函数 (`setFilterHasRolesMenu`) 接收 `undefined` 而非角色数组，过滤逻辑全部失效
+- 实际表现：用户登录后可能看不到菜单或路由守卫提前返回
+
+**修复内容**:
+1. `UserInfosState` 接口添加 `roles: string[]`
+2. `userInfo.ts` state 默认值添加 `roles: []`
+3. `updateUserInfos()` 中从 `role_info[].key` 提取角色标识数组赋值给 `roles`
+4. `setUserInfos()` 中 API 分支和 Session 回填分支均添加 `roles` 赋值逻辑
+5. 旧缓存兼容：Session 回填时检测 `roles` 为空则自动从 `role_info` 重建

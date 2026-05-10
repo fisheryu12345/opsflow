@@ -172,6 +172,7 @@ class FullContractList(models.Model):
         verbose_name_plural = "交易合约列表"
         # 方便前端按交易所或板块筛选
         ordering = ['exchange',  'product_code']
+        unique_together = ('exchange', 'product_code', 'symbol')
         
 
 class StrategyConfig(models.Model):
@@ -425,6 +426,7 @@ class RollingPerformanceMetrics(models.Model):
         verbose_name = "滚动绩效指标"
         verbose_name_plural = "滚动绩效指标"
         ordering = ['-calc_date']
+        unique_together = ('account', 'calc_date', 'window_days')
         indexes = [
             models.Index(fields=['account', '-calc_date', 'window_days']),
             models.Index(fields=['window_days', '-calc_date']),

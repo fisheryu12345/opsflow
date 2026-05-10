@@ -24,7 +24,7 @@
     <!-- Table -->
     <div class="section-card">
       <div class="section-body" style="padding: 0;">
-        <el-table :data="list" border stripe v-loading="loading" class="trading-table" style="width: 100%">
+        <el-table :data="list" border stripe v-loading="loading" class="trading-table" style="width: 100%" @sort-change="handleSortChange">
           <el-table-column type="index" label="#" width="50" align="center" />
           <el-table-column prop="symbol" label="合约代码" min-width="130" sortable />
           <el-table-column prop="product_code" label="品种" min-width="80" sortable />
@@ -107,4 +107,12 @@ function calcUnrealizedPnl(row: PositionRecord): number {
 const totalUnrealizedPnl = computed(() =>
   list.value.reduce((sum, row) => sum + calcUnrealizedPnl(row), 0)
 )
+
+function handleSortChange({ prop, order }: { prop?: string; order?: 'ascending' | 'descending' | null }) {
+  if (prop !== 'unrealized_pnl' || !order) return
+  list.value.sort((a, b) => {
+    const diff = calcUnrealizedPnl(a) - calcUnrealizedPnl(b)
+    return order === 'ascending' ? diff : -diff
+  })
+}
 </script>

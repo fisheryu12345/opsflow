@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from stock.models import AccountContractConfig, FullContractList
 from stock.serializers.serializers import AccountContractConfigSerializer
-from stock.filters import UserAccountFilterBackend, get_user_account_ids
+from stock.filters import UserAccountFilterBackend, get_user_account_ids, validate_account_access
 
 
 class AccountContractConfigViewSet(viewsets.ModelViewSet):
@@ -65,6 +65,9 @@ class AccountContractConfigViewSet(viewsets.ModelViewSet):
                 return Response({'code': 4000, 'msg': '无可用交易账户'}, status=status.HTTP_400_BAD_REQUEST)
             account_id = account_ids[0]
 
+        if not validate_account_access(request.user, account_id):
+            return Response({'code': 4003, 'msg': '无权访问该账户'}, status=status.HTTP_403_FORBIDDEN)
+
         config, created = AccountContractConfig.objects.get_or_create(
             account_id=account_id,
             product_code=product_code,
@@ -102,6 +105,9 @@ class AccountContractConfigViewSet(viewsets.ModelViewSet):
                 return Response({'code': 4000, 'msg': '无可用交易账户'}, status=status.HTTP_400_BAD_REQUEST)
             account_id = account_ids[0]
 
+        if not validate_account_access(request.user, account_id):
+            return Response({'code': 4003, 'msg': '无权访问该账户'}, status=status.HTTP_403_FORBIDDEN)
+
         for code in product_codes:
             config, created = AccountContractConfig.objects.get_or_create(
                 account_id=account_id,
@@ -130,6 +136,9 @@ class AccountContractConfigViewSet(viewsets.ModelViewSet):
             if not account_ids:
                 return Response({'code': 2000, 'msg': 'success', 'data': []})
             account_id = account_ids[0]
+
+        if not validate_account_access(request.user, account_id):
+            return Response({'code': 4003, 'msg': '无权访问该账户', 'data': []}, status=status.HTTP_403_FORBIDDEN)
 
         # 全局合约列表（不按 is_active 过滤，让用户自己选择要激活哪些品种）
         contracts = FullContractList.objects.values(

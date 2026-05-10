@@ -83,14 +83,13 @@ export function setFilterRouteEnd() {
 export function setFilterRoute(chil: any) {
 	const stores = useUserInfo(pinia);
 	const { userInfos } = storeToRefs(stores);
+	const userRoles = userInfos.value.roles;
 	let filterRoute: any = [];
 	chil.forEach((route: any) => {
 		if (route.meta.roles) {
-			route.meta.roles.forEach((metaRoles: any) => {
-				userInfos.value.roles.forEach((roles: any) => {
-					if (metaRoles === roles) filterRoute.push({ ...route });
-				});
-			});
+			if (route.meta.roles.some((metaRole: any) => userRoles.includes(metaRole))) {
+				filterRoute.push({ ...route });
+			}
 		}
 	});
 	return filterRoute;
