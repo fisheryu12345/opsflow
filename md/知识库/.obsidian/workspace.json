@@ -31,12 +31,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "未命名/08-TODO/00-总览.md",
+                "file": "未命名/08-TODO/05-待实现功能.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "00-总览"
+              "title": "05-待实现功能"
             }
           }
         ]
@@ -203,11 +203,11 @@
   },
   "active": "368a6c5ef6bb399d",
   "lastOpenFiles": [
+    "未命名/08-TODO/00-总览.md",
     "未命名/08-TODO/04-LOW.md",
     "未命名/08-TODO/03-MEDIUM.md",
     "未命名/08-TODO/02-HIGH.md",
     "未命名/08-TODO/01-CRITICAL.md",
-    "未命名/08-TODO/00-总览.md",
     "未命名/02-软件功能说明/功能说明-K线买点.md",
     "未命名/03-策略说明/策略运行说明-实盘操作手册.md",
     "未命名/03-策略说明/策略说明-交易系统总览.md",
