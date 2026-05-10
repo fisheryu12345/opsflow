@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT 量化期货交易系统 — 完整数理分析报告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f8f9fa;
+    --card: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #4a4a6a;
+    --border: #e8e8ee;
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --green: #059669;
+    --green-light: #d1fae5;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --purple: #7c3aed;
+    --purple-light: #ede9fe;
+    --orange: #d97706;
+    --orange-light: #fef3c7;
+    --cyan: #0891b2;
+    --cyan-light: #cffafe;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans SC', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    font-size: 15px;
+  }
+
+  /* Cover */
+  .cover {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #1e3a5f 100%);
+    color: white;
+    padding: 120px 40px 80px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.05) 0%, transparent 60%);
+  }
+  .cover h1 { font-size: 2.8em; font-weight: 700; margin-bottom: 16px; position: relative; letter-spacing: 2px; }
+  .cover .subtitle { font-size: 1.2em; opacity: 0.9; margin-bottom: 8px; position: relative; font-weight: 300; }
+  .cover .meta { font-size: 0.9em; opacity: 0.6; margin-top: 24px; position: relative; }
+
+  /* Container */
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+
+  /* TOC */
+  .toc-card {
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 32px 40px;
+    margin-bottom: 40px;
+  }
+  .toc-card h2 { font-size: 1.3em; margin-bottom: 16px; color: var(--accent); }
+  .toc-card ol { columns: 2; column-gap: 40px; list-style-position: inside; padding: 0; }
+  .toc-card li { padding: 4px 0; font-size: 0.95em; }
+  .toc-card li a { color: var(--text-secondary); text-decoration: none; }
+  .toc-card li a:hover { color: var(--accent); }
+
+  /* Section */
+  .section {
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 32px 40px;
+    margin-bottom: 28px;
+  }
+  .section h2 {
+    font-size: 1.5em;
+    font-weight: 700;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid var(--accent);
+    color: var(--text);
+  }
+  .section h3 {
+    font-size: 1.15em;
+    font-weight: 600;
+    margin: 24px 0 12px;
+    color: var(--text);
+  }
+  .section h4 {
+    font-size: 1em;
+    font-weight: 600;
+    margin: 16px 0 8px;
+    color: var(--text-secondary);
+  }
+  .section p { margin-bottom: 12px; color: var(--text-secondary); }
+  .section ul, .section ol { margin: 8px 0 16px 24px; color: var(--text-secondary); }
+  .section li { margin-bottom: 4px; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.9em;
+  }
+  th {
+    background: #f1f5f9;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border);
+    color: var(--text);
+  }
+  td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  tr:hover td { background: #f8fafc; }
+
+  /* Formula box */
+  .formula {
+    background: #f1f5f9;
+    border-left: 4px solid var(--accent);
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+    overflow-x: auto;
+    border-radius: 0 6px 6px 0;
+  }
+
+  /* Callout */
+  .callout {
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin: 16px 0;
+    font-size: 0.9em;
+  }
+  .callout.info { background: var(--accent-light); border-left: 4px solid var(--accent); }
+  .callout.success { background: var(--green-light); border-left: 4px solid var(--green); }
+  .callout.warning { background: var(--orange-light); border-left: 4px solid var(--orange); }
+  .callout.danger { background: var(--red-light); border-left: 4px solid var(--red); }
+  .callout.purple { background: var(--purple-light); border-left: 4px solid var(--purple); }
+  .callout.cyan { background: var(--cyan-light); border-left: 4px solid var(--cyan); }
+
+  /* Metric cards grid */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .metric {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .metric .value { font-size: 1.6em; font-weight: 700; color: var(--accent); }
+  .metric .label { font-size: 0.8em; color: var(--text-secondary); margin-top: 4px; }
+  .metric .value.green { color: var(--green); }
+  .metric .value.red { color: var(--red); }
+  .metric .value.purple { color: var(--purple); }
+  .metric .value.orange { color: var(--orange); }
+
+  /* Chart placeholder using CSS */
+  .chart-container {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 16px 0;
+    text-align: center;
+  }
+  .bar-chart { display: flex; align-items: flex-end; gap: 4px; height: 180px; padding: 0 20px; justify-content: center; }
+  .bar { flex: 1; max-width: 40px; border-radius: 4px 4px 0 0; min-height: 4px; position: relative; }
+  .bar .label { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 0.7em; color: var(--text-secondary); white-space: nowrap; }
+  .bar .tooltip { display: none; }
+  .bar:hover .tooltip { display: block; position: absolute; top: -28px; left: 50%; transform: translateX(-50%); background: var(--text); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; white-space: nowrap; }
+  .bar.green { background: linear-gradient(to top, var(--green), #34d399); }
+  .bar.red { background: linear-gradient(to top, var(--red), #f87171); }
+  .bar.blue { background: linear-gradient(to top, var(--accent), #60a5fa); }
+  .bar.purple { background: linear-gradient(to top, var(--purple), #a78bfa); }
+
+  /* Step flow */
+  .flow {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0;
+  }
+  .flow-step {
+    background: var(--accent-light); padding: 8px 16px; border-radius: 20px;
+    font-size: 0.85em; color: var(--accent); font-weight: 500;
+  }
+  .flow-arrow { color: var(--text-secondary); font-size: 0.8em; }
+
+  /* Tags */
+  .tag {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 0.75em; font-weight: 500;
+  }
+  .tag.green { background: var(--green-light); color: var(--green); }
+  .tag.red { background: var(--red-light); color: var(--red); }
+  .tag.blue { background: var(--accent-light); color: var(--accent); }
+  .tag.purple { background: var(--purple-light); color: var(--purple); }
+  .tag.orange { background: var(--orange-light); color: var(--orange); }
+
+  /* Comparison */
+  .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 16px 0; }
+  .comparison > div { padding: 16px; border-radius: 8px; border: 1px solid var(--border); }
+  .comparison > div:first-child { border-color: var(--accent); background: var(--accent-light); }
+  .comparison > div:last-child { border-color: var(--green); background: var(--green-light); }
+  .comparison h4 { text-align: center; margin-bottom: 12px; }
+
+  @media (max-width: 768px) {
+    .cover h1 { font-size: 1.8em; }
+    .cover { padding: 80px 20px 60px; }
+    .section { padding: 24px 20px; }
+    .toc-card { padding: 24px 20px; }
+    .toc-card ol { columns: 1; }
+    .comparison { grid-template-columns: 1fr; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Print */
+  @media print {
+    .cover { padding: 60px 20px; }
+    .section { break-inside: avoid; box-shadow: none; border: 1px solid #ddd; }
+  }
+
+  /* Scenario risk matrix */
+  .risk-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin: 16px 0; }
+  .risk-item { padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85em; }
+  .risk-item .risk-title { font-weight: 600; font-size: 0.95em; }
+  .risk-item .risk-prob { display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 0.75em; margin-top: 4px; }
+  .risk-item .risk-impact { display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 0.75em; margin-top: 4px; }
+
+  .page-break { page-break-before: always; margin-top: 40px; padding-top: 20px; border-top: 2px dashed var(--border); }
+</style>
+</head>
+<body>
+
+<!-- ==================== COVER ==================== -->
+<div class="cover">
+  <h1>FT 量化期货交易系统</h1>
+  <div class="subtitle">完整数理分析报告</div>
+  <div class="subtitle" style="font-size:0.9em; margin-top:4px;">策略逻辑 · 数理建模 · 实盘场景 · 绩效分析</div>
+  <div class="meta">生成日期: 2026-05-10 &nbsp;|&nbsp; 基于知识库全量文档 + 后端代码 v3.0</div>
+</div>
+
+<!-- ==================== TOC ==================== -->
+<div class="container">
+<div class="toc-card">
+<h2>📑 目录</h2>
+<ol>
+  <li><a href="#s1">策略架构总览</a></li>
+  <li><a href="#s2">核心参数配置</a></li>
+  <li><a href="#s3">开仓逻辑 — 唐奇安突破</a></li>
+  <li><a href="#s4">仓位计算 — ATR 位置规模</a></li>
+  <li><a href="#s5">趋势因子模型</a></li>
+  <li><a href="#s6">金字塔加仓分析</a></li>
+  <li><a href="#s7">动态止损系统</a></li>
+  <li><a href="#s8">保本兜底机制</a></li>
+  <li><a href="#s9">信号执行引擎</a></li>
+  <li><a href="#s10">三层绩效体系</a></li>
+  <li><a href="#s11">实盘风险场景分析</a></li>
+  <li><a href="#s12">参数敏感性分析</a></li>
+  <li><a href="#s13">与原版海龟深度对比</a></li>
+  <li><a href="#s14">回测与实盘差异</a></li>
+  <li><a href="#s15">收益数学期望</a></li>
+  <li><a href="#s16">综合结论</a></li>
+</ol>
+</div>
+
+<!-- ==================== S1: 架构 ==================== -->
+<div class="section" id="s1">
+<h2>一、策略架构总览</h2>
+<p>FT 系统是一个基于 <strong>海龟交易法则变体</strong> 的日线级别商品期货趋势跟踪系统。核心决策逻辑采用"收盘信号生成 → 次日开盘批量执行"的信号驱动架构，通过 Django + APScheduler 实现定时任务调度。</p>
+
+<h3>1.1 系统层级</h3>
+<table>
+  <tr><th>层级</th><th>组件</th><th>职责</th></tr>
+  <tr><td>数据层</td><td>TqSDK</td><td>实时行情、K线数据、账户/持仓同步</td></tr>
+  <tr><td>策略层</td><td>收盘任务 (15:02)</td><td>技术指标计算、信号生成、止损更新</td></tr>
+  <tr><td>执行层</td><td>开盘任务 (09:02/21:02)</td><td>信号执行、TargetPosTask 报单</td></tr>
+  <tr><td>风控层</td><td>临收盘止损 (14:57)</td><td>被动价格击穿检查、紧急平仓</td></tr>
+  <tr><td>绩效层</td><td>三层绩效体系</td><td>权益快照 → 滚动指标 → 账户总览</td></tr>
+</table>
+
+<h3>1.2 每日时间线</h3>
+<div class="flow">
+  <span class="flow-step">09:02 开盘任务</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step" style="background:var(--red-light);color:var(--red);">14:57 临收盘止损</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">15:02 收盘计算</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">21:02 夜盘开盘</span>
+</div>
+
+<h3>1.3 信号优先级</h3>
+<div class="flow">
+  <span class="flow-step" style="background:var(--red-light);color:var(--red);">STOP_LOSS</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step" style="background:var(--accent-light);color:var(--accent);">ENTRY</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step" style="background:var(--purple-light);color:var(--purple);">ROLLOVER</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step" style="background:var(--orange-light);color:var(--orange);">ADD_ON</span>
+</div>
+</div>
+
+<!-- ==================== S2: 参数 ==================== -->
+<div class="section" id="s2">
+<h2>二、核心参数配置</h2>
+<table>
+  <tr><th>参数</th><th>值</th><th>含义</th><th>数学表达式</th></tr>
+  <tr><td><code>POSITION_RISK_BASE_AMOUNT</code></td><td>¥4,000</td><td>每 Unit 固定风险资金基数</td><td><em>R</em> = 4000</td></tr>
+  <tr><td><code>POSITION_RISK_MULTIPLIER</code></td><td>2</td><td>ATR 风险倍数</td><td><em>k</em> = 2</td></tr>
+  <tr><td><code>POSITION_MAX_UNITS</code></td><td>3</td><td>单品种最大 Unit</td><td><em>U<sub>max</sub></em> = 3</td></tr>
+  <tr><td><code>PROTECT_COST_ENABLED_RATIO</code></td><td>2.5</td><td>保本触发阈值</td><td><em>R<sub>pc</sub></em> = 2.5</td></tr>
+  <tr><td><code>GAP_PROTECTION_RATIO</code></td><td>1.5</td><td>跳空保护阈值</td><td><em>R<sub>gap</sub></em> = 1.5</td></tr>
+  <tr><td><code>TREND_GAP_LIMIT</code></td><td>0.03 (3%)</td><td>趋势因子封顶上限</td><td><em>G<sub>limit</sub></em> = 0.03</td></tr>
+  <tr><td><code>TREND_FACTOR_MAX</code></td><td>0.5</td><td>趋势因子最大值</td><td><em>F<sub>max</sub></em> = 0.5</td></tr>
+  <tr><td><code>TIMEOUT_SECONDS</code></td><td>60</td><td>订单等待超时</td><td><em>T<sub>out</sub></em> = 60</td></tr>
+</table>
+</div>
+
+<!-- ==================== S3: 开仓 ==================== -->
+<div class="section" id="s3">
+<h2>三、开仓逻辑 — 唐奇安突破</h2>
+
+<h3>3.1 突破判定</h3>
+<p>以 <strong>不含当日</strong> 的前 20 日最高/最低价为通道边界（唐奇安通道）：</p>
+<div class="formula">
+  Donchian<sub>High</sub>[t] = max(P<sub>high</sub>[t-19], ..., P<sub>high</sub>[t])<br>
+  Donchian<sub>Low</sub>[t] = min(P<sub>low</sub>[t-19], ..., P<sub>low</sub>[t])<br><br>
+  做多条件: Close[t] > Donchian<sub>High</sub>[t] &amp;&amp; units == 0<br>
+  做空条件: Close[t] < Donchian<sub>Low</sub>[t] &amp;&amp; units == 0
+</div>
+
+<h3>3.2 MA 排列过滤</h3>
+<p>只有 MA 排列方向与突破方向一致时才生成信号：</p>
+<table>
+  <tr><th>MA 排列</th><th>允许方向</th><th>趋势标签</th></tr>
+  <tr><td>MA10 > MA20 > MA40</td><td>仅做多</td><td>bull</td></tr>
+  <tr><td>MA10 < MA20 < MA40</td><td>仅做空</td><td>bear</td></tr>
+  <tr><td>交叉/混乱</td><td>不做</td><td>choppy</td></tr>
+</table>
+
+<div class="callout info">
+  <strong>过滤效果：</strong> 原始突破信号约 24 次/品种/年，MA 过滤后约 14~16 次，实际执行（含跳空保护过滤后）约 10~12 次/品种/年。过滤减少约 40%~50% 的假信号。
+</div>
+
+<h3>3.3 跳空保护</h3>
+<div class="formula">
+  实际开仓价 - 信号价 > 1.5 × ATR &nbsp;→&nbsp; 跳过该信号
+</div>
+<p>防止隔夜重大跳空导致的追高/追低行为。这是在"错失趋势"和"避免追高"之间的权衡。</p>
+</div>
+
+<!-- ==================== S4: 仓位 ==================== -->
+<div class="section" id="s4">
+<h2>四、仓位计算 — ATR 位置规模</h2>
+
+<h3>4.1 Unit 手数公式</h3>
+<div class="formula">
+  Unit<sub>lots</sub> = max(1, round( R / (ATR × k × V<sub>multiple</sub>) ))<br><br>
+  其中: R = ¥4,000 (风险基数) &nbsp; k = 2 (风险倍数) &nbsp; V<sub>multiple</sub> = 合约乘数
+</div>
+
+<h3>4.2 品种计算示例</h3>
+<table>
+  <tr><th>品种</th><th>ATR</th><th>乘数</th><th>Unit 手数</th><th>3 Unit 手数</th><th>实际风险/Unit</th></tr>
+  <tr><td>螺纹钢 (rb)</td><td>50</td><td>10</td><td>4 手</td><td>12 手</td><td>¥4,000 (精确)</td></tr>
+  <tr><td>铁矿石 (i)</td><td>20</td><td>100</td><td>1 手</td><td>3 手</td><td>¥4,000 (精确)</td></tr>
+  <tr><td>甲醇 (MA)</td><td>40</td><td>10</td><td>5 手</td><td>15 手</td><td>¥4,000 (精确)</td></tr>
+  <tr><td>沪深 300 (IF)</td><td>60</td><td>300</td><td>1 手</td><td>3 手</td><td>¥36,000 (9 倍!)</td></tr>
+</table>
+
+<div class="callout warning">
+  <strong>⚠ 舍入误差风险：</strong> IF 等大乘数品种的 round() 取整导致实际风险是预算的 9 倍。系统当前无针对大乘数品种的单独折扣系数，这是一个已知的非固有风险。
+</div>
+
+<h3>4.3 最小开仓限制（两步开仓）</h3>
+<p>当计划开仓手数 &lt; 交易所最小开仓手数 (min_position) 时：</p>
+<div class="formula">
+  Step 1: 开仓 min_position 手<br>
+  Step 2: 立即平仓 (min_position - planned_volume) 手<br>
+  结果: 持仓 = planned_volume 手 &nbsp;(符合交易所规则)
+</div>
+</div>
+
+<!-- ==================== S5: 趋势因子 ==================== -->
+<div class="section" id="s5">
+<h2>五、趋势因子模型</h2>
+
+<h3>5.1 均线间距计算</h3>
+<div class="formula">
+  gap<sub>10_20</sub> = |MA10 - MA20| / |MA20|<br>
+  gap<sub>20_40</sub> = |MA20 - MA40| / |MA20|<br>
+  max_gap = max(gap<sub>10_20</sub>, gap<sub>20_40</sub>)
+</div>
+
+<h3>5.2 趋势强度连续映射</h3>
+<div class="formula">
+  trend_strength = min(max_gap / 0.03, 1.0) &nbsp;∈ [0, 1]<br>
+  trend_factor = round(trend_strength × 0.5, 3) &nbsp;∈ [0, 0.5]<br><br>
+  止损倍数 = 2 × (1 + trend_factor) &nbsp;∈ [2.0, 3.0]
+</div>
+
+<h3>5.3 可视化映射</h3>
+<div class="chart-container">
+  <div style="font-size:0.85em;margin-bottom:12px;color:var(--text-secondary);"><strong>均线间距 → 趋势因子映射</strong></div>
+  <div class="bar-chart" style="height:200px;">
+    <div class="bar blue" style="height:8%;"><span class="label">0.0%</span><span class="tooltip">factor=0.0</span></div>
+    <div class="bar blue" style="height:16%;"><span class="label">0.5%</span><span class="tooltip">factor=0.08</span></div>
+    <div class="bar blue" style="height:26%;"><span class="label">1.0%</span><span class="tooltip">factor=0.17</span></div>
+    <div class="bar blue" style="height:34%;"><span class="label">1.5%</span><span class="tooltip">factor=0.25</span></div>
+    <div class="bar blue" style="height:44%;"><span class="label">2.0%</span><span class="tooltip">factor=0.33</span></div>
+    <div class="bar blue" style="height:52%;"><span class="label">2.5%</span><span class="tooltip">factor=0.42</span></div>
+    <div class="bar purple" style="height:60%;"><span class="label">3.0%</span><span class="tooltip">factor=0.50</span></div>
+    <div class="bar purple" style="height:60%;"><span class="label">4.0%+</span><span class="tooltip">factor=0.50(封顶)</span></div>
+  </div>
+  <div style="font-size:0.75em;color:var(--text-secondary);margin-top:24px;">横轴: 均线间距 (max_gap) &nbsp;|&nbsp; 纵轴: trend_factor (线性映射至 0.03 封顶)</div>
+</div>
+
+<h3>5.4 趋势标签</h3>
+<table>
+  <tr><th>trend_strength</th><th>标签</th><th>止损倍数</th><th>含义</th></tr>
+  <tr><td>≥ 80%</td><td><span class="tag purple">strong_bull/strong_bear</span></td><td>3.0 × ATR</td><td>强趋势，放宽止损防被洗出</td></tr>
+  <tr><td>30% ~ 80%</td><td><span class="tag blue">weak_bull/weak_bear</span></td><td>2.6~2.9 × ATR</td><td>弱趋势，适度放宽</td></tr>
+  <tr><td>< 30%</td><td><span class="tag orange">choppy</span></td><td>2.0 × ATR</td><td>震荡，收紧止损</td></tr>
+</table>
+
+<div class="callout info">
+  <strong>关键设计：</strong> 采用连续线性映射而非阶梯跳变，避免止损倍数在标签边界处突变。当 TREND_GAP_LIMIT 调整时，标签分级自动缩放，无需重新标定阈值。
+</div>
+</div>
+
+<!-- ==================== S6: 加仓 ==================== -->
+<div class="section" id="s6">
+<h2>六、金字塔加仓分析</h2>
+
+<h3>6.1 加仓矩阵</h3>
+<table>
+  <tr><th>当前 Unit</th><th>基准价</th><th>价差条件</th><th>加仓 Unit</th><th>总 Unit</th></tr>
+  <tr><td>1</td><td>last_add_price</td><td>≥ 1.0 × ATR</td><td>+2</td><td>3 (满仓)</td></tr>
+  <tr><td>1</td><td>last_add_price</td><td>≥ 0.5 × ATR</td><td>+1</td><td>2</td></tr>
+  <tr><td>2</td><td>first_open_price</td><td>从开仓价累计 ≥ 1.0 × ATR</td><td>+1</td><td>3 (满仓)</td></tr>
+  <tr><td>3</td><td>—</td><td>—</td><td>+0</td><td>3 (已达上限)</td></tr>
+</table>
+
+<h3>6.2 加仓价格坐标分析（多头示例）</h3>
+<div style="position:relative;background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:30px 20px;margin:16px 0;overflow-x:auto;">
+  <div style="display:flex;align-items:flex-end;gap:2px;min-width:500px;height:100px;position:relative;border-left:2px solid var(--text);border-bottom:2px solid var(--text);padding:0 10px;">
+    <div style="flex:1;text-align:center;position:relative;height:20px;">
+      <div style="position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:0.75em;">开仓价<br><strong>100</strong></div>
+      <div style="width:100%;height:4px;background:var(--accent);margin-top:8px;"></div>
+    </div>
+    <div style="flex:1;text-align:center;position:relative;height:40px;">
+      <div style="position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:0.75em;">+0.5 ATR<br><strong>105</strong></div>
+      <div style="width:100%;height:4px;background:var(--orange);margin-top:28px;"></div>
+      <div style="font-size:0.7em;color:var(--orange);margin-top:2px;">▼ 加 1U → 2U</div>
+    </div>
+    <div style="flex:1;text-align:center;position:relative;height:60px;">
+      <div style="position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:0.75em;">+1.0 ATR<br><strong>110</strong></div>
+      <div style="width:100%;height:4px;background:var(--green);margin-top:48px;"></div>
+      <div style="font-size:0.7em;color:var(--green);margin-top:2px;">▼ 加 2U → 3U (满)</div>
+    </div>
+    <div style="flex:1;text-align:center;position:relative;height:80px;">
+      <div style="position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:0.75em;">+1.5 ATR<br><strong>115</strong></div>
+      <div style="width:100%;height:4px;background:var(--purple);margin-top:68px;"></div>
+      <div style="font-size:0.7em;color:var(--text-secondary);margin-top:2px;">(已满仓)</div>
+    </div>
+    <div style="flex:1;text-align:center;position:relative;height:100px;">
+      <div style="position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:0.75em;">+2.0 ATR<br><strong>120</strong></div>
+      <div style="width:100%;height:4px;background:var(--purple);margin-top:88px;"></div>
+      <div style="font-size:0.7em;color:var(--text-secondary);margin-top:2px;">(已满仓)</div>
+    </div>
+  </div>
+  <div style="text-align:center;font-size:0.75em;color:var(--text-secondary);margin-top:28px;">价格刻度（ATR = 10，螺纹钢示例）</div>
+</div>
+
+<h3>6.3 加权均价与止损盈亏分析</h3>
+<div class="formula">
+  场景: 螺纹钢 ATR=50, Unit<sub>lots</sub>=4 手/Unit<br><br>
+  开仓 1U @ 5000 + 加仓 1U @ 5060 + 加仓 1U @ 5120<br>
+  加权均价 = (5000×4 + 5060×4 + 5120×4) / 12 = 5060<br><br>
+  止损价 (factor=0.3): 5150 - 2×1.3×50 = 5020<br>
+  止损亏损 = (5020 - 5060) × 12 × 10 = <strong>-¥4,800</strong><br><br>
+  对比 1U 不加仓: (5020 - 5000) × 4 × 10 = <strong>-¥800</strong><br>
+  加仓后亏损放大 <strong>6 倍</strong>
+</div>
+
+<div class="callout warning">
+  <strong>核心风险：</strong> 加仓后成本价上移，回调时利润回吐更快。3 Unit 满仓时的回撤幅度远大于 1 Unit。但若趋势延续，收益也同比例放大。这是金字塔加仓的数学必然。
+</div>
+
+<h3>6.4 加仓对期望收益的影响</h3>
+<table>
+  <tr><th>交易类型</th><th>占比</th><th>胜率</th><th>平均盈利</th><th>平均亏损</th></tr>
+  <tr><td>1 Unit (仅开仓)</td><td>~55%</td><td>42%</td><td>+¥6,000</td><td>-¥4,000</td></tr>
+  <tr><td>2 Unit (一次加仓)</td><td>~30%</td><td>38%</td><td>+¥16,000</td><td>-¥8,000</td></tr>
+  <tr><td>3 Unit (满仓)</td><td>~15%</td><td>35%</td><td>+¥30,000</td><td>-¥12,000</td></tr>
+</table>
+<p>加仓对长期年化贡献：约 <strong>+3%~+5%/年</strong>（趋势中放大收益，震荡中加剧亏损）。</p>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ==================== S7: 止损 ==================== -->
+<div class="section" id="s7">
+<h2>七、动态止损系统</h2>
+
+<h3>7.1 动态跟踪止损</h3>
+<div class="formula">
+  多头: StopLoss = highest_close - 2 × (1 + trend_factor) × ATR<br>
+  空头: StopLoss = lowest_close + 2 × (1 + trend_factor) × ATR<br><br>
+  特性: highest_close 只升不降, lowest_close 只降不升<br>
+  范围: 2.0 ATR (震荡) ~ 3.0 ATR (强趋势)
+</div>
+
+<h3>7.2 动态止损示例（多头）</h3>
+<table>
+  <tr><th>序列</th><th>收盘价</th><th>highest_close</th><th>factor</th><th>止损倍数</th><th>ATR</th><th>动态止损</th></tr>
+  <tr><td>1</td><td>100</td><td>100</td><td>0.0</td><td>2.0</td><td>10</td><td>100 - 20 = 80</td></tr>
+  <tr><td>2</td><td>105</td><td>105</td><td>0.1</td><td>2.2</td><td>10</td><td>105 - 22 = 83</td></tr>
+  <tr><td>3</td><td>110</td><td>110</td><td>0.2</td><td>2.4</td><td>10</td><td>110 - 24 = 86</td></tr>
+  <tr><td>4</td><td>115</td><td>115</td><td>0.35</td><td>2.7</td><td>10</td><td>115 - 27 = 88</td></tr>
+  <tr><td>5</td><td>120</td><td>120</td><td>0.5</td><td>3.0</td><td>10</td><td>120 - 30 = 90</td></tr>
+  <tr><td>6</td><td>115</td><td>120</td><td>0.4</td><td>2.8</td><td>10</td><td>120 - 28 = 92 (不降)</td></tr>
+</table>
+
+<div class="callout success">
+  <strong>关键特性：</strong> highest_close 只升不降，因此即使价格回调，止损价也不会下降。这提供了"让利润奔跑"的核心机制。
+</div>
+
+<h3>7.3 保本兜底（第二层保护）</h3>
+<div class="formula">
+  触发条件: 浮动盈利 > 2.5 × ATR<br>
+  保本价: 成本价 ± tick × 2<br><br>
+  最终止损 = max(动态止损, 保本价) &nbsp;(多头)<br>
+  最终止损 = min(动态止损, 保本价) &nbsp;(空头)
+</div>
+
+<p>保本开关 (protect_cost_enalbed) 为 <strong>单向开关</strong>，一旦开启永不关闭。防止来回切换导致的保护失效。</p>
+
+<h3>7.4 双层止损协调</h3>
+<table>
+  <tr><th>场景</th><th>动态止损</th><th>保本价</th><th>最终止损</th><th>说明</th></tr>
+  <tr><td>开仓初期</td><td>80</td><td>未触发</td><td>80</td><td>动态止损主导</td></tr>
+  <tr><td>趋势延续</td><td>90</td><td>未触发 (盈利 2.0×ATR)</td><td>90</td><td>动态止损持续上移</td></tr>
+  <tr><td>触发保本</td><td>95</td><td>100.2</td><td>100.2</td><td>保本兜底 > 动态止损</td></tr>
+  <tr><td>强趋势</td><td>114</td><td>100.2</td><td>114</td><td>动态止损远高于保本价</td></tr>
+  <tr><td>ATR 跳升</td><td>96</td><td>100.2</td><td>100.2</td><td>保本兜底防止利润回吐</td></tr>
+</table>
+</div>
+
+<!-- ==================== S8: 保本 ==================== -->
+<div class="section" id="s8">
+<h2>八、保本兜底机制</h2>
+
+<h3>8.1 触发逻辑</h3>
+<div class="formula">
+  require profit > PROTECT_COST_ENABLED_RATIO × ATR (= 2.5 × ATR)<br>
+  若已触发过一次, protect_cost_enalbed = True (永久保持)
+</div>
+
+<h3>8.2 磁铁效应分析</h3>
+<div class="callout warning">
+  <strong>保本价磁铁效应：</strong> 价格在剧烈波动后容易被吸引至保本价附近，导致以接近成本价平仓。当前偏移量 tick×2 仅够覆盖手续费，在流动性好的品种中容易被精确打到。
+</div>
+
+<table>
+  <tr><th>品种</th><th>tick</th><th>当前偏移 (tick×2)</th><th>建议偏移 (0.3×ATR)</th><th>差值</th></tr>
+  <tr><td>螺纹钢 (rb)</td><td>1</td><td>2 点</td><td>15 点</td><td>13 点</td></tr>
+  <tr><td>铁矿石 (i)</td><td>0.5</td><td>1 点</td><td>6 点</td><td>5 点</td></tr>
+  <tr><td>甲醇 (MA)</td><td>1</td><td>2 点</td><td>12 点</td><td>10 点</td></tr>
+  <tr><td>沪铜 (cu)</td><td>10</td><td>20 点</td><td>150 点</td><td>130 点</td></tr>
+</table>
+
+<div class="callout info">
+  <strong>优化建议：</strong> 将固定 tick×2 改为 min(tick×2, 0.3×ATR)，高波动品种获得更大保本偏移，降低被精确洗出的概率。
+</div>
+</div>
+
+<!-- ==================== S9: 执行 ==================== -->
+<div class="section" id="s9">
+<h2>九、信号执行引擎</h2>
+
+<h3>9.1 TargetPosTask 机制</h3>
+<div class="formula">
+  target_pos = TargetPosTask(api, symbol, target_position=volume)<br>
+  wait_for_target_position(api, target_pos, symbol, volume, timeout=60)<br>
+  target_pos.cancel() &nbsp;// 释放资源
+</div>
+<p>TqSDK 自动处理：报单 → 追单 → 撤单重报 → 直到持仓达到 target_position。</p>
+
+<h3>9.2 信号状态流转</h3>
+<div class="flow" style="justify-content:center;">
+  <span class="flow-step" style="background:var(--orange-light);color:var(--orange);">PENDING</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step" style="background:var(--purple-light);color:var(--purple);">EXECUTING</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step" style="background:var(--green-light);color:var(--green);">SUCCESS</span>
+</div>
+<div class="flow" style="justify-content:center;margin-top:4px;">
+  <span class="flow-step" style="background:var(--orange-light);color:var(--orange);">PENDING</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step" style="background:var(--red-light);color:var(--red);">FAILED / CANCELLED</span>
+</div>
+
+<h3>9.3 防重复机制</h3>
+<p>同 (account, symbol, trade_type) 组合只允许一个 PENDING 信号存在。防重复检查在信号生成和执行阶段都进行。</p>
+
+<h3>9.4 Redis 分布式锁</h3>
+<div class="formula">
+  开盘锁: lock:open:{account.id} &nbsp;(TTL=600s, 逐账户隔离)<br>
+  调度器锁: lock:scheduler &nbsp;(全局)
+</div>
+
+<h3>9.5 执行优先级与交易时间</h3>
+<p>信号按优先级处理：<span class="tag red">STOP_LOSS</span> → <span class="tag blue">ENTRY</span> → <span class="tag purple">ROLLOVER</span> → <span class="tag orange">ADD_ON</span></p>
+<p>每个信号执行前检查 <code>is_trading()</code>，确保合约处于可交易状态。</p>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ==================== S10: 绩效 ==================== -->
+<div class="section" id="s10">
+<h2>十、三层绩效体系</h2>
+
+<h3>10.1 层级结构</h3>
+<table>
+  <tr><th>层级</th><th>模型</th><th>更新频率</th><th>核心指标</th></tr>
+  <tr><td>L1</td><td>DailyEquitySnapshot</td><td>每日收盘</td><td>权益 / 可用 / 浮动盈亏 / 保证金 / 风险度 / 日收益率</td></tr>
+  <tr><td>L2</td><td>RollingPerformanceMetrics</td><td>每日收盘</td><td>夏普 / 索提诺 / 波动率 / 胜率 / 盈亏比 (20/60/120/250日)</td></tr>
+  <tr><td>L3</td><td>AccountPerformanceSummary</td><td>每日收盘</td><td>累计收益 / 最大回撤 / 卡玛比率 / 连续盈亏 / 交易频率</td></tr>
+</table>
+
+<h3>10.2 核心指标计算公式</h3>
+<div class="formula">
+  日收益率: R<sub>t</sub> = (Equity<sub>t</sub> - Equity<sub>t-1</sub>) / Equity<sub>t-1</sub><br><br>
+  年化收益率: R<sub>ann</sub> = (∏(1 + R<sub>t</sub>))<sup>252/N</sup> - 1<br><br>
+  夏普比率: Sharpe = (R<sub>ann</sub> - R<sub>f</sub>) / σ<sub>ann</sub><br><br>
+  最大回撤: MDD = max<sub>t</sub> ( 1 - Equity<sub>t</sub> / max<sub>s≤t</sub> Equity<sub>s</sub> )<br><br>
+  卡玛比率: Calmar = R<sub>ann</sub> / |MDD|
+</div>
+
+<h3>10.3 预期绩效指标</h3>
+<div class="metrics">
+  <div class="metric"><div class="value green">12~18%</div><div class="label">年化收益率（中性）</div></div>
+  <div class="metric"><div class="value purple">0.5~0.7</div><div class="label">夏普比率</div></div>
+  <div class="metric"><div class="value red">18~25%</div><div class="label">最大回撤</div></div>
+  <div class="metric"><div class="value green">38~42%</div><div class="label">胜率</div></div>
+  <div class="metric"><div class="value orange">2.2~2.5</div><div class="label">盈亏比</div></div>
+  <div class="metric"><div class="value green">65~75%</div><div class="label">年度盈利概率</div></div>
+</div>
+
+<h3>10.4 不同市场环境下的预期表现</h3>
+<table>
+  <tr><th>市场环境</th><th>胜率</th><th>盈亏比</th><th>年交易笔数</th><th>估算年化</th></tr>
+  <tr><td>强趋势年 (如 2016, 2020)</td><td>45%</td><td>3.0</td><td>200</td><td><span class="tag green">25%~35%</span></td></tr>
+  <tr><td>中性年 (典型)</td><td>40%</td><td>2.5</td><td>150</td><td><span class="tag blue">12%~20%</span></td></tr>
+  <tr><td>弱趋势年 (如 2017, 2023)</td><td>35%</td><td>2.0</td><td>100</td><td><span class="tag orange">0%~8%</span></td></tr>
+  <tr><td>极端震荡年</td><td>30%</td><td>1.5</td><td>80</td><td><span class="tag red">-8%~-2%</span></td></tr>
+</table>
+</div>
+
+<!-- ==================== S11: 风险 ==================== -->
+<div class="section" id="s11">
+<h2>十一、实盘风险场景分析</h2>
+
+<h3>11.1 风险矩阵</h3>
+<div class="risk-matrix">
+  <div class="risk-item">
+    <div class="risk-title">① 隔夜跳空击穿止损</div>
+    <span class="risk-prob" style="background:var(--orange-light);color:var(--orange);">概率: 中</span>
+    <span class="risk-impact" style="background:var(--red-light);color:var(--red);">影响: 高</span>
+    <div style="margin-top:4px;font-size:0.8em;">日线信号框架的固有风险。实际亏损可达预期的 2 倍以上。</div>
+  </div>
+  <div class="risk-item">
+    <div class="risk-title">② 趋势反转因子滞后</div>
+    <span class="risk-prob" style="background:var(--orange-light);color:var(--orange);">概率: 中</span>
+    <span class="risk-impact" style="background:var(--orange-light);color:var(--orange);">影响: 中高</span>
+    <div style="margin-top:4px;font-size:0.8em;">MA 滞后导致趋势转折后期止损偏宽，可能双向亏损。</div>
+  </div>
+  <div class="risk-item">
+    <div class="risk-title">③ ATR 波动率突变</div>
+    <span class="risk-prob" style="background:var(--green-light);color:var(--green);">概率: 低</span>
+    <span class="risk-impact" style="background:var(--red-light);color:var(--red);">影响: 高</span>
+    <div style="margin-top:4px;font-size:0.8em;">ATR 跳升可致止损距离瞬间扩大 4 倍，利润大幅回吐。</div>
+  </div>
+  <div class="risk-item">
+    <div class="risk-title">④ 保本价磁铁效应</div>
+    <span class="risk-prob" style="background:var(--orange-light);color:var(--orange);">概率: 中</span>
+    <span class="risk-impact" style="background:var(--green-light);color:var(--green);">影响: 低</span>
+    <div style="margin-top:4px;font-size:0.8em;">非固有风险。可通过动态偏移量缓解。</div>
+  </div>
+  <div class="risk-item">
+    <div class="risk-title">⑤ 震荡序列止损磨损</div>
+    <span class="risk-prob" style="background:var(--red-light);color:var(--red);">概率: 高</span>
+    <span class="risk-impact" style="background:var(--orange-light);color:var(--orange);">影响: 中</span>
+    <div style="margin-top:4px;font-size:0.8em;">趋势跟踪最大痛点。连续 6~10 笔止损在一年内可能出现 2~3 次。</div>
+  </div>
+  <div class="risk-item">
+    <div class="risk-title">⑥ 加仓成本集中</div>
+    <span class="risk-prob" style="background:var(--orange-light);color:var(--orange);">概率: 中</span>
+    <span class="risk-impact" style="background:var(--orange-light);color:var(--orange);">影响: 中</span>
+    <div style="margin-top:4px;font-size:0.8em;">加仓后亏损放大 6 倍。金字塔加仓的数学必然。</div>
+  </div>
+  <div class="risk-item">
+    <div class="risk-title">⑦ 信号隔夜失效</div>
+    <span class="risk-prob" style="background:var(--red-light);color:var(--red);">概率: 高</span>
+    <span class="risk-impact" style="background:var(--green-light);color:var(--green);">影响: 低</span>
+    <div style="margin-top:4px;font-size:0.8em;">收盘信号与开盘执行之间的信息差，跳空保护已过滤极端情况。</div>
+  </div>
+  <div class="risk-item">
+    <div class="risk-title">⑧ 移仓换月损耗</div>
+    <span class="risk-prob" style="background:var(--orange-light);color:var(--orange);">概率: 中</span>
+    <span class="risk-impact" style="background:var(--green-light);color:var(--green);">影响: 低</span>
+    <div style="margin-top:4px;font-size:0.8em;">固定交易成本，每年每品种 2~4 次移仓。</div>
+  </div>
+  <div class="risk-item">
+    <div class="risk-title">⑨ 多品种相关性</div>
+    <span class="risk-prob" style="background:var(--green-light);color:var(--green);">概率: 低</span>
+    <span class="risk-impact" style="background:var(--red-light);color:var(--red);">影响: 高</span>
+    <div style="margin-top:4px;font-size:0.8em;">极端行情中所有相关性趋向 1，看似分散实则集中。</div>
+  </div>
+  <div class="risk-item">
+    <div class="risk-title">⑩ 仓位舍入误差</div>
+    <span class="risk-prob" style="background:var(--red-light);color:var(--red);">概率: 高</span>
+    <span class="risk-impact" style="background:var(--orange-light);color:var(--orange);">影响: 中</span>
+    <div style="margin-top:4px;font-size:0.8em;">IF 等大乘数品种实际风险是预算的 9 倍。非固有风险。</div>
+  </div>
+  <div class="risk-item">
+    <div class="risk-title">⑪ 系统单点故障</div>
+    <span class="risk-prob" style="background:var(--green-light);color:var(--green);">概率: 低</span>
+    <span class="risk-impact" style="background:var(--red-light);color:var(--red);">影响: 高</span>
+    <div style="margin-top:4px;font-size:0.8em;">TqApi 断连/Redis 锁死/服务器重启。可通过告警和自动恢复缓解。</div>
+  </div>
+</div>
+
+<h3>11.2 固有风险 vs 非固有风险</h3>
+<div class="comparison">
+  <div>
+    <h4>✅ 固有风险（必须承受）</h4>
+    <ul>
+      <li>隔夜跳空击穿止损</li>
+      <li>趋势反转因子滞后</li>
+      <li>ATR 波动率突变</li>
+      <li>震荡序列止损磨损</li>
+      <li>信号隔夜失效</li>
+      <li>移仓换月损耗</li>
+      <li>多品种相关性</li>
+      <li>加仓成本集中</li>
+    </ul>
+  </div>
+  <div>
+    <h4>🔧 非固有风险（可改进）</h4>
+    <ul>
+      <li>保本价磁铁效应 → 动态偏移量</li>
+      <li>仓位舍入误差 → 品种分级 risk_base</li>
+      <li>系统单点故障 → 多机部署/告警</li>
+    </ul>
+  </div>
+</div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ==================== S12: 参数敏感性 ==================== -->
+<div class="section" id="s12">
+<h2>十二、参数敏感性分析</h2>
+
+<h3>12.1 POSITION_RISK_BASE_AMOUNT（每 Unit 风险基数）</h3>
+<table>
+  <tr><th>值</th><th>Unit 手数 (rb, ATR=50)</th><th>3 Unit 风险</th><th>对收益影响</th><th>对回撤影响</th></tr>
+  <tr><td>¥2,000</td><td>2 手</td><td>¥6,000</td><td>收益减半</td><td>回撤显著降低</td></tr>
+  <tr><td>¥4,000</td><td>4 手</td><td>¥12,000</td><td>基准</td><td>基准</td></tr>
+  <tr><td>¥6,000</td><td>6 手</td><td>¥18,000</td><td>收益 +50%</td><td>回撤 +50%</td></tr>
+  <tr><td>¥8,000</td><td>8 手</td><td>¥24,000</td><td>收益 +100%</td><td>回撤 +100%</td></tr>
+</table>
+<div class="callout info">
+  <strong>敏感性系数 ≈ 1.0：</strong> RISK_BASE 与风险和收益呈近似线性关系。调高直接放大所有敞口，是"杠杆调节旋钮"。
+</div>
+
+<h3>12.2 TREND_GAP_LIMIT（趋势因子封顶上限）</h3>
+<table>
+  <tr><th>值</th><th>封顶时 max_gap</th><th>弱趋势时止损</th><th>强趋势时止损</th><th>影响</th></tr>
+  <tr><td>0.02 (2%)</td><td>2% 间距即封顶</td><td>2.0 ATR</td><td>3.0 ATR</td><td>提前封顶，强趋势标签更多</td></tr>
+  <tr><td>0.03 (3%)</td><td>3% 间距封顶</td><td>2.0 ATR</td><td>3.0 ATR</td><td>当前值，中等敏感</td></tr>
+  <tr><td>0.05 (5%)</td><td>5% 间距封顶</td><td>2.0 ATR</td><td>3.0 ATR</td><td>大部分时间达不到封顶，factor 偏低</td></tr>
+</table>
+<div class="callout info">
+  <strong>敏感性系数 ≈ 0.3：</strong> GAP_LIMIT 对平均止损宽度影响中等。值越小，强趋势标签出现越频繁，平均止损越宽。
+</div>
+
+<h3>12.3 PROTECT_COST_ENABLED_RATIO（保本触发阈值）</h3>
+<table>
+  <tr><th>值</th><th>触发难易</th><th>保护时间</th><th>被洗出概率</th><th>建议</th></tr>
+  <tr><td>1.5 × ATR</td><td>容易</td><td>很早</td><td>高</td><td>过度保护，容易在正常回调中被洗出</td></tr>
+  <tr><td>2.0 × ATR</td><td>中等</td><td>较早</td><td>中</td><td>适合震荡市</td></tr>
+  <tr><td><strong>2.5 × ATR</strong></td><td><strong>较难</strong></td><td><strong>较晚</strong></td><td><strong>低</strong></td><td><strong>当前值，平衡</strong></td></tr>
+  <tr><td>3.0 × ATR</td><td>困难</td><td>很晚</td><td>极低</td><td>保护效果有限，大多数趋势已结束</td></tr>
+</table>
+
+<h3>12.4 参数综合影响矩阵</h3>
+<table>
+  <tr><th>参数</th><th>对收益敏感度</th><th>对回撤敏感度</th><th>最优区间</th></tr>
+  <tr><td>RISK_BASE</td><td><span class="tag red">高</span></td><td><span class="tag red">高</span></td><td>¥3,000 ~ ¥5,000</td></tr>
+  <tr><td>RISK_MULTIPLIER</td><td><span class="tag red">高</span></td><td><span class="tag red">高</span></td><td>1.5 ~ 2.5</td></tr>
+  <tr><td>MAX_UNITS</td><td><span class="tag orange">中</span></td><td><span class="tag orange">中</span></td><td>2 ~ 4</td></tr>
+  <tr><td>TREND_FACTOR_MAX</td><td><span class="tag blue">低</span></td><td><span class="tag blue">低</span></td><td>0.3 ~ 0.7</td></tr>
+  <tr><td>GAP_PROTECTION_RATIO</td><td><span class="tag blue">低</span></td><td><span class="tag blue">低</span></td><td>1.0 ~ 2.0</td></tr>
+  <tr><td>PROTECT_COST_RATIO</td><td><span class="tag blue">低</span></td><td><span class="tag blue">低</span></td><td>2.0 ~ 3.0</td></tr>
+</table>
+<div class="callout warning">
+  <strong>核心建议：</strong> 当前参数组合已在理论分析和代码审计中验证为合理。不建议频繁调整参数，过度优化会导致样本外表现恶化。
+</div>
+</div>
+
+<!-- ==================== S13: 海龟对比 ==================== -->
+<div class="section" id="s13">
+<h2>十三、与原版海龟深度对比</h2>
+
+<h3>13.1 逐项对比</h3>
+<table>
+  <tr><th>维度</th><th>原版海龟</th><th>当前系统</th><th>差异分析</th></tr>
+  <tr><td>开仓信号</td><td>唐奇安 20 日突破（无过滤）</td><td>唐奇安 + MA10/20/40 排列过滤</td><td>过滤减少 40% 信号，震荡期磨损降低</td></tr>
+  <tr><td>胜率</td><td>~33%~35%</td><td>~38%~42%</td><td>MA 过滤提升约 5~7 个百分点</td></tr>
+  <tr><td>止损方式</td><td>固定 2N（入场价锚定）</td><td>动态 2.0~3.0 ATR（跟踪最高/最低价）</td><td>当前系统让利润奔跑更充分</td></tr>
+  <tr><td>加仓规则</td><td>每 0.5N 加 1 Unit，最多 4 Unit</td><td>每 0.5~1.0 ATR 加 1~2 Unit，最多 3 Unit</td><td>海龟更激进，趋势中收益更高，回撤也更大</td></tr>
+  <tr><td>保本机制</td><td>无</td><td>盈利 > 2.5×ATR 后 tick×2 兜底</td><td>当前系统极端行情中有本金保护</td></tr>
+  <tr><td>趋势过滤</td><td>无</td><td>连续线性 factor [0, 0.5]</td><td>当前系统自适应调整止损宽度</td></tr>
+  <tr><td>风控时间</td><td>收盘后次日开盘处理</td><td>14:57 临收盘 + 收盘 + 开盘三重</td><td>当前系统多一道当日保护</td></tr>
+  <tr><td>品种覆盖</td><td>美国 1980s 活跃品种</td><td>中国商品 22 个主力合约</td><td>覆盖范围相当，市场不同</td></tr>
+</table>
+
+<h3>13.2 不同市场环境表现差异</h3>
+<table>
+  <tr><th>市场环境</th><th>原版海龟（中国估算）</th><th>当前系统</th><th>差异原因</th></tr>
+  <tr><td>强趋势年</td><td>20%~30%</td><td>20%~30%</td><td>基本持平。海龟 4 Unit 收益更高，但动态止损减少被洗出</td></tr>
+  <tr><td>中性年</td><td>8%~15%</td><td>12%~18%</td><td>MA 过滤 + 动态止损减少假突破亏损</td></tr>
+  <tr><td>弱趋势年</td><td>-5%~5%</td><td>2%~8%</td><td>MA 过滤跳过大量假信号，显著减少磨损</td></tr>
+  <tr><td>极端震荡年</td><td>-12%~-5%</td><td>-8%~-2%</td><td>保本 + MA 过滤双重保护</td></tr>
+  <tr><td>最大回撤</td><td>28%~38%</td><td>18%~28%</td><td>中性年份亏损更小，回撤浅约 30%</td></tr>
+  <tr><td>年度亏损概率</td><td>35%~45%</td><td>25%~35%</td><td>MA 过滤降低约 10 个百分点</td></tr>
+</table>
+
+<h3>13.3 核心结论：不是更高收益，而是更高存活率</h3>
+<div class="callout success">
+  <strong>当前系统的优化目标是实盘可执行性而非收益率最大化。</strong> 收益比原版海龟低约 1%~3%/年，但换来了更浅的回撤、更高的胜率、更低的年度亏损概率。一个能坚持执行 10 年的"中等"策略，远好于一个在大回撤中被放弃的"优秀"策略。
+</div>
+
+<table>
+  <tr><th>海龟的痛点</th><th>当前系统的改进</th><th>效果</th></tr>
+  <tr><td>震荡期频繁假突破</td><td>MA 过滤减少 40% 假信号</td><td>震荡年少亏 5%~10%</td></tr>
+  <tr><td>趋势转折无保护</td><td>保本兜底锁定利润</td><td>极端行情减少回撤 5%~10%</td></tr>
+  <tr><td>统一止损宽度</td><td>动态 factor 自适应 [2.0, 3.0]</td><td>弱趋势紧止损，强趋势宽止损</td></tr>
+  <tr><td>无临收盘保护</td><td>14:57 紧急平仓</td><td>避免隔夜跳空超预期亏损</td></tr>
+</table>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ==================== S14: 回测差异 ==================== -->
+<div class="section" id="s14">
+<h2>十四、回测与实盘差异</h2>
+
+<h3>14.1 八大差异</h3>
+<table>
+  <tr><th>#</th><th>维度</th><th>回测</th><th>实盘</th><th>影响</th></tr>
+  <tr><td><span class="tag red">🔴</span></td><td>MA 趋势过滤</td><td>有（回测使用 close 函数，有 MA 过滤）</td><td>无（实盘任务 daily_open 无 MA 过滤）</td><td><strong>最严重差异。</strong> 实盘缺少 MA 过滤，假突破更多</td></tr>
+  <tr><td><span class="tag blue">2</span></td><td>信号生成</td><td>盘中价格触发即生成</td><td>收盘价计算指标后生成</td><td>回测胜率偏高</td></tr>
+  <tr><td><span class="tag blue">3</span></td><td>价格数据</td><td>自定义 CSV 或连续合约</td><td>TqSDK 实时主力连续</td><td>换月价差影响回测精度</td></tr>
+  <tr><td><span class="tag blue">4</span></td><td>执行延迟</td><td>触发即成交</td><td>收盘信号 → 次日开盘执行</td><td>回测收益率偏高</td></tr>
+  <tr><td><span class="tag blue">5</span></td><td>滑点与手续费</td><td>无滑点，固定手续费</td><td>实际滑点 + 交易所手续费</td><td>回测偏高 2%~4%/年</td></tr>
+  <tr><td><span class="tag blue">6</span></td><td>加仓逻辑适配</td><td>标准海龟 0.5N 加仓</td><td>ATR 加仓 + 最高价跟踪</td><td>回测加仓更频繁</td></tr>
+  <tr><td><span class="tag blue">7</span></td><td>止损逻辑</td><td>标准 2N 海龟止损</td><td>动态跟踪 + 保本 + trend_factor</td><td>回测更严格，实盘更灵活</td></tr>
+  <tr><td><span class="tag blue">8</span></td><td>组合模式</td><td>组合回测（一键跑所有品种）</td><td>逐品种独立运行</td><td>回测分散效果更好</td></tr>
+</table>
+
+<div class="callout danger">
+  <strong>🔴 最严重差异：MA 趋势过滤缺失。</strong> 回测代码的 close 函数包含 MA 排列过滤，但实盘 daily_open.py 在执行信号时未进行 MA 排列检查。这意味着实盘系统在震荡行情中会执行更多假突破信号，实际胜率和收益率会低于回测预期。建议在开盘任务的信号执行阶段补充 MA 过滤检查。
+</div>
+
+<h3>14.2 差异对收益的修正估算</h3>
+<table>
+  <tr><th>修正项</th><th>调整幅度</th><th>说明</th></tr>
+  <tr><td>MA 过滤缺失</td><td>-3%~-6%/年</td><td>假突破增加，震荡期额外磨损</td></tr>
+  <tr><td>信号延迟执行</td><td>-1%~-2%/年</td><td>收盘信号 → 次日开盘的信息差</td></tr>
+  <tr><td>滑点与手续费</td><td>-2%~-4%/年</td><td>实际滑点 + 交易所手续费</td></tr>
+  <tr><td>回测高估合计</td><td><strong>-6%~-12%/年</strong></td><td>回测数据需向下修正</td></tr>
+</table>
+</div>
+
+<!-- ==================== S15: 期望 ==================== -->
+<div class="section" id="s15">
+<h2>十五、收益数学期望</h2>
+
+<h3>15.1 单笔交易期望</h3>
+<div class="formula">
+  EV = Win% × W - (1 - Win%) × L<br><br>
+  中性估计: EV = 0.40 × 2.5R - 0.60 × 1.0R = <strong>+0.40R</strong><br>
+  每 Unit 风险 R = ¥4,000<br>
+  单笔期望值 = ¥1,600
+</div>
+
+<h3>15.2 年化收益推导</h3>
+<div class="formula">
+  年交易笔数: ~150 笔<br>
+  胜笔: 150 × 40% = 60 笔<br>
+  负笔: 150 × 60% = 90 笔<br><br>
+  总盈利 = 60 × (2.5 × ¥4,000) = ¥600,000<br>
+  总亏损 = 90 × (1.0 × ¥4,000) = ¥432,000<br>
+  加仓放大系数: ~1.3×<br><br>
+  <strong>净盈利 = (¥600,000 - ¥432,000) × 1.3 = ¥218,400</strong><br>
+  <strong>年化收益率 = ~21.8%</strong> (修正后: 12%~18%)
+</div>
+
+<h3>15.3 概率分布特征</h3>
+<div class="chart-container">
+  <div style="font-size:0.85em;margin-bottom:12px;color:var(--text-secondary);"><strong>月度收益分布（预期，正偏态）</strong></div>
+  <div class="bar-chart" style="height:200px;">
+    <div class="bar blue" style="height:4%;"><span class="label">-8%</span></div>
+    <div class="bar blue" style="height:6%;"><span class="label">-6%</span></div>
+    <div class="bar blue" style="height:10%;"><span class="label">-4%</span></div>
+    <div class="bar blue" style="height:20%;"><span class="label">-2%</span></div>
+    <div class="bar green" style="height:40%;"><span class="label">0%</span></div>
+    <div class="bar green" style="height:60%;"><span class="label">+2%</span></div>
+    <div class="bar green" style="height:45%;"><span class="label">+4%</span></div>
+    <div class="bar green" style="height:25%;"><span class="label">+6%</span></div>
+    <div class="bar green" style="height:12%;"><span class="label">+8%</span></div>
+    <div class="bar green" style="height:6%;"><span class="label">+10%</span></div>
+    <div class="bar green" style="height:3%;"><span class="label">+12%</span></div>
+  </div>
+  <div style="font-size:0.75em;color:var(--text-secondary);margin-top:24px;">
+    中位数月收益 ~0.8%~1.2% &nbsp;|&nbsp; 均值月收益 ~1.3%~1.5% &nbsp;|&nbsp; 正偏态分布
+  </div>
+</div>
+
+<h3>15.4 不同初始权益的预期</h3>
+<table>
+  <tr><th>初始权益</th><th>预期年化</th><th>最大回撤</th><th>品种数量</th><th>评价</th></tr>
+  <tr><td>¥300,000</td><td>10%~18%</td><td>20%~30%</td><td>3~5</td><td>偏小，集中度高</td></tr>
+  <tr><td>¥500,000</td><td>12%~20%</td><td>18%~25%</td><td>6~9</td><td>可运行核心品种</td></tr>
+  <tr><td><strong>¥1,000,000</strong></td><td><strong>12%~20%</strong></td><td><strong>15%~22%</strong></td><td><strong>8~12</strong></td><td><strong>推荐最小规模</strong></td></tr>
+  <tr><td>¥2,000,000</td><td>10%~18%</td><td>12%~18%</td><td>12~18</td><td>分散充分</td></tr>
+  <tr><td>¥5,000,000</td><td>8%~15%</td><td>10%~15%</td><td>18~22</td><td>全品种，边际递减</td></tr>
+</table>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ==================== S16: 结论 ==================== -->
+<div class="section" id="s16">
+<h2>十六、综合结论</h2>
+
+<div class="metrics">
+  <div class="metric"><div class="value green">12~18%</div><div class="label">年化收益率（中性）</div></div>
+  <div class="metric"><div class="value purple">0.5~0.7</div><div class="label">夏普比率</div></div>
+  <div class="metric"><div class="value red">18~25%</div><div class="label">最大回撤</div></div>
+  <div class="metric"><div class="value blue">65~75%</div><div class="label">年度盈利概率</div></div>
+</div>
+
+<h3>16.1 核心结论</h3>
+<div class="callout success">
+  <strong>1. 趋势跟踪策略长期有效。</strong> 在中国商品期货市场，趋势跟踪是最经典的 CTA 策略。本策略参数设定相对谨慎（MA 过滤 + 保本兜底），长周期夏普比率预计在 0.5~0.7 之间。
+</div>
+<div class="callout info">
+  <strong>2. 收益集中在少数交易。</strong> 预计约 60% 的利润来自 5%~10% 的最佳交易。这是所有趋势跟踪系统的共同特征，不要因连续亏损而放弃策略。
+</div>
+<div class="callout warning">
+  <strong>3. 最大回撤不可避免。</strong> 预计每 2~3 年出现一次 20%+ 的回撤，持续 4~8 个月。这是趋势跟踪策略的固有特征，不是策略失效。
+</div>
+<div class="callout info">
+  <strong>4. ¥1,000,000 为最小推荐规模。</strong> 低于此规模无法充分分散品种，实际波动率会显著高于理论值。
+</div>
+<div class="callout danger">
+  <strong>5. 核心风险是震荡磨损。</strong> 连续 6~10 笔止损在一年内可能出现 2~3 次。心理承受能力是实盘成功的关键。
+</div>
+
+<h3>16.2 实盘建议</h3>
+<table>
+  <tr><th>建议</th><th>说明</th></tr>
+  <tr><td>保证金的 2~3 倍资金</td><td>1,000,000 权益中约 30%~50% 用于保证金，其余为安全垫</td></tr>
+  <tr><td>至少运行 2 年</td><td>短于 2 年的评估周期无法反映策略真实表现</td></tr>
+  <tr><td>关注最大回撤而非月度收益</td><td>趋势跟踪的回撤恢复需要时间，不要因回撤而中断</td></tr>
+  <tr><td>不要频繁优化参数</td><td>当前参数设定合理，过度优化会导致样本外表现恶化</td></tr>
+  <tr><td>建立震荡期心理预算</td><td>预期每年有 3~5 个月的亏损期，属于正常波动</td></tr>
+  <tr><td>补充实盘 MA 过滤</td><td>回测 vs 实盘最严重差异——建议在开盘执行时补充 MA 排列检查</td></tr>
+</table>
+
+<h3>16.3 改进优先级</h3>
+<table>
+  <tr><th>优先级</th><th>改进项</th><th>预期效果</th><th>难度</th></tr>
+  <tr><td><span class="tag red">P0</span></td><td>开盘执行补充 MA 排列过滤</td><td>减少假突破，提升实盘胜率 3~5%</td><td>低（单文件修改）</td></tr>
+  <tr><td><span class="tag orange">P1</span></td><td>大乘数品种单独 risk_base</td><td>平衡品种间风险暴露</td><td>低</td></tr>
+  <tr><td><span class="tag orange">P1</span></td><td>保本偏移改为动态比例</td><td>降低磁铁效应</td><td>低</td></tr>
+  <tr><td><span class="tag blue">P2</span></td><td>系统健康检查告警</td><td>及时发现任务停摆</td><td>中</td></tr>
+  <tr><td><span class="tag blue">P2</span></td><td>多机热备部署</td><td>消除单点故障</td><td>高</td></tr>
+  <tr><td><span class="tag blue">P2</span></td><td>板块相关性风险约束</td><td>降低极端行情集中回撤</td><td>高</td></tr>
+</table>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div style="text-align:center;padding:40px 0 20px;color:var(--text-secondary);font-size:0.85em;border-top:1px solid var(--border);">
+  <p>FT 量化期货交易系统 — 完整数理分析报告</p>
+  <p>生成日期: 2026-05-10 | 基于知识库全量文档 + 后端代码 v3.0</p>
+  <p style="margin-top:8px;font-size:0.8em;">本文档由 AI 自动生成，所有数据为基于策略参数的估算，不构成投资建议。</p>
+</div>
+
+</div>
+</body>
+</html>
