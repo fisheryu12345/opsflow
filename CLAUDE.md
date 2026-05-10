@@ -160,6 +160,23 @@ The K-line chart page (`web/src/views/apps/kline/`) uses **direct ECharts initia
 - Legend: built-in ECharts legend for toggling MA and channel visibility
 - Race condition protection: `fetchSeq` counter discards stale responses on fast contract switch
 
+## Strategy Design Principles
+
+### Entry Logic
+- **Entry is purely based on 20HL Donchian channel breakout** (closing price breaking the 20-day high/low)
+- No MA filter on entry — MA10/20/40 are **NOT** used to filter signals
+- This is by design: prioritizes capturing all trend starts, uses stop-loss width for risk control instead of pre-filtering
+
+### MA/Role of Trend Factor
+- MA10/20/40 calculation is **only used for stop-loss distance adjustment**
+- `trend_factor` (computed from MA gap ratio) dynamically adjusts stop-loss: 2.0 ATR (choppy) ~ 3.0 ATR (strong trend)
+- The trend label (bull/bear/choppy) in signals and position state is informational only — it does NOT gate entry
+
+### Key Design Difference from Backtest
+- The backtest system (`backend/stock/backtest/`) is an independent offline analysis tool
+- It includes additional MA filtering that the live system intentionally does not use
+- Live system results will show slightly lower win rate (3~5%) but capture more trend trades
+
 ## Documentation
 
 Knowledge base: `md/知识库/未命名/`

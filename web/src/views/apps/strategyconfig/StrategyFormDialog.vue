@@ -90,6 +90,17 @@
           <el-form-item label="TqSDK密码" prop="tqapi_password">
             <el-input v-model="form.tqapi_password" type="password" show-password placeholder="请输入密码" />
           </el-form-item>
+          <el-divider border-style="dashed" content-position="left">期货账户信息</el-divider>
+          <el-form-item label="期货交易商" prop="future_broker">
+            <el-input v-model="form.future_broker" placeholder="例如: 永安期货、中信期货" />
+            <div class="form-helper">期货开户的交易商名称</div>
+          </el-form-item>
+          <el-form-item label="期货账户" prop="future_account">
+            <el-input v-model="form.future_account" placeholder="请输入期货账户号" />
+          </el-form-item>
+          <el-form-item label="期货密码" prop="future_password">
+            <el-input v-model="form.future_password" type="password" show-password placeholder="请输入期货账户密码" />
+          </el-form-item>
         </el-tab-pane>
       </el-tabs>
     </el-form>
@@ -151,6 +162,9 @@ const form = reactive({
   gap_threshold: 1.5,
   tqapi_account: '',
   tqapi_password: '',
+  future_broker: '',
+  future_account: '',
+  future_password: '',
 })
 
 const rules: Record<string, any> = {
@@ -172,6 +186,7 @@ watch(() => props.record, (r) => {
       ma_periods: '10,20,40', trend_gap_limit: 0.03, trend_factor_max: 0.5,
       trend_label_strong_ratio: 0.80, trend_label_weak_ratio: 0.30,
       gap_threshold: 1.5, tqapi_account: '', tqapi_password: '',
+      future_broker: '', future_account: '', future_password: '',
     })
   }
 }, { immediate: true })
@@ -204,5 +219,14 @@ function handleClose() {
   color: #8c8c8c;
   line-height: 1.4;
   margin-top: 4px;
+}
+
+.el-dialog__body {
+  padding-top: 0;
+}
+
+:deep(.el-tabs__content) {
+  max-height: 420px;
+  overflow-y: auto;
 }
 </style>

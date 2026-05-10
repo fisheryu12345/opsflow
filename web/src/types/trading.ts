@@ -118,6 +118,10 @@ export interface StrategyConfigRecord extends BasicEntity {
   // TqSDK
   tqapi_account: string
   tqapi_password?: string
+  // 期货账户
+  future_broker: string
+  future_account: string
+  future_password?: string
 }
 
 // === Daily Signal ===

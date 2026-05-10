@@ -212,6 +212,9 @@ class StrategyConfig(models.Model):
     # --- TqSDK 账户配置 ---
     tqapi_account = models.CharField("TqSDK账号", max_length=50, default='yupei1986', help_text="TqSDK 登录账号")
     tqapi_password = models.CharField("TqSDK密码", max_length=100, default='yupei1986', help_text="TqSDK 登录密码")
+    future_broker = models.CharField("期货交易商", max_length=50, default='yupei1986', help_text="期货交易商")
+    future_account = models.CharField("期货账户", max_length=50, default='yupei1986', help_text="期货账户")
+    future_password = models.CharField("期货密码", max_length=100, default='yupei1986', help_text="期货密码")
     # --- 订单执行参数 ---
     position_risk_multiplier = models.IntegerField("ATR风险倍数", default=2, help_text="止损距离 = N × ATR，默认2表示2倍ATR止损")
     timeout_seconds = models.IntegerField("交易执行超时(秒)", default=60, help_text="TargetPosTask订单等待超时时间，防止长时间挂单")

@@ -23,6 +23,8 @@
           <el-table-column prop="atr_period" label="ATR周期" min-width="90" align="center" sortable />
           <el-table-column prop="entry_period" label="入场周期" min-width="90" align="center" sortable />
           <el-table-column prop="tqapi_account" label="TqSDK账号" min-width="150" />
+          <el-table-column prop="future_broker" label="期货交易商" min-width="120" />
+          <el-table-column prop="future_account" label="期货账户" min-width="120" />
           <el-table-column label="操作" width="130" align="center" fixed="right">
             <template #default="{ row }">
               <el-button type="primary" size="small" text @click="handleEdit(row)">编辑</el-button>
