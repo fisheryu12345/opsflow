@@ -187,3 +187,33 @@ def _load_config(account_id=None):
 2. 执行前通过 `transaction.atomic()` 将 `PENDING→EXECUTING` 与执行结果状态更新捆绑
 3. `record_and_reset_position` 异常被单独捕获并记录日志，不阻断事务提交（TqSDK 订单已执行）
 4. 同一持仓的止损信号 ID 被复用查询，避免 filter 条件过于宽泛误更新其他信号
+
+---
+
+## ✅ CRITICAL-07: 信号状态更新在 transaction.atomic() 块外 — 已修复 (2026-05-11)
+
+**文件**: [infrastructure/order_signals.py](../backend/stock/infrastructure/order_signals.py)
+
+**问题描述**:
+`execute_add_on_order`（两步开仓和标准开仓）和 `execute_exit_order` 中，`signal.executed_status` 在 `transaction.atomic()` 块外保存。具体模式：
+
+```python
+# 修复前：
+with transaction.atomic():
+    PositionState.objects.filter(...).update(...)  # 持仓状态已更新
+
+signal.executed_status = 'SUCCESS'
+signal.save(update_fields=['executed_status', 'updated_at'])  # 信号状态在事务外！
+```
+
+**影响分析**:
+- 如果 `signal.save()` 在 PositionState 更新后失败（DB 连接中断等），持仓状态已变但信号仍为 PENDING
+- 下一周期 `process_signals_by_type` 会重新执行该 PENDING 信号
+- 加仓信号重放 → 重复加仓 → 仓位翻倍 + 可能超限
+- 平仓信号重放 → 重复平仓 → 可能做反方向
+- 止损信号因 CRITICAL-06 已有独立保护，不受此影响
+
+**修复内容**:
+1. `execute_add_on_order` 两步开仓路径：`signal.save()` 移入 `transaction.atomic()` 块内
+2. `execute_add_on_order` 标准开仓路径：`signal.save()` 移入 `transaction.atomic()` 块内
+3. `execute_exit_order`：`record_and_reset_position` + `signal.save()` 统一包裹 `transaction.atomic()`

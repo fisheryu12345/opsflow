@@ -246,11 +246,6 @@ def execute_add_on_order(api, account, signal):
             except Exception:
                 pass
             return False
-        finally:
-            try:
-                del target_pos
-            except Exception:
-                pass
 
 
 def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_PROTECTION_RATIO):
@@ -453,11 +448,6 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
             except Exception:
                 pass
             return False
-        finally:
-            try:
-                del target_pos
-            except Exception:
-                pass
 
 
 def execute_exit_order(api, position, signal):
@@ -536,11 +526,6 @@ def execute_exit_order(api, position, signal):
             except Exception:
                 pass
         return False
-    finally:
-        try:
-            del target_pos
-        except Exception:
-            pass
 
 
 def execute_rollover_order(api, position, signal):
@@ -572,20 +557,29 @@ def execute_rollover_order(api, position, signal):
             return False
 
         # ===== Record closed position for rollover =====
-        # TargetPosTask 完成后，等待成交回报到达
-        for _ in range(3):
-            api.wait_update()
-
-        trades = api.get_trades()
+        # TargetPosTask 完成后，等待成交回报到达（超时等待替代固定次数更新）
         filled_volume = 0
         total_cost = Decimal('0')
-        for trade in reversed(trades.values()):
-            if (trade.instrument_id == position.symbol and
-                    trade.offset in ('CLOSE', 'CLOSETODAY')):
-                filled_volume += trade.volume
-                total_cost += Decimal(str(trade.price)) * Decimal(str(trade.volume))
-                if filled_volume >= position.contract_total_position:
-                    break
+        confirm_start = time.time()
+        CONFIRM_TIMEOUT = 10  # 最多等待10秒等待成交回报
+
+        while time.time() - confirm_start < CONFIRM_TIMEOUT:
+            api.wait_update()
+            trades = api.get_trades()
+            filled_volume = 0
+            total_cost = Decimal('0')
+            for trade in reversed(trades.values()):
+                if (trade.instrument_id == position.symbol and
+                        trade.offset in ('CLOSE', 'CLOSETODAY')):
+                    filled_volume += trade.volume
+                    total_cost += Decimal(str(trade.price)) * Decimal(str(trade.volume))
+                    if filled_volume >= position.contract_total_position:
+                        break
+            if filled_volume >= position.contract_total_position:
+                msg = f"{position.symbol} 全部成交回报已接收: {filled_volume}手"
+                print(msg)
+                log_trade('execute_rollover_order', msg, symbol=position.symbol, log_level='SUCCESS', account=position.account)
+                break
 
         if filled_volume > 0:
             rollover_exit_price = total_cost / Decimal(str(filled_volume))
@@ -637,11 +631,6 @@ def execute_rollover_order(api, position, signal):
         signal.executed_status = 'FAILED'
         signal.save(update_fields=['executed_status', 'updated_at'])
         return False
-    finally:
-        try:
-            del target_pos_old
-        except Exception:
-            pass
 
     # ===== Phase 2: Open new contract =====
     # 从 FullContractList 获取新主力合约代码（signal.symbol 存的是旧合约代码）
@@ -748,11 +737,6 @@ def execute_rollover_order(api, position, signal):
             except Exception:
                 pass
             return False
-        finally:
-            try:
-                del target_pos_new
-            except Exception:
-                pass
 
     # ===== Phase 3: Update database =====
     try:

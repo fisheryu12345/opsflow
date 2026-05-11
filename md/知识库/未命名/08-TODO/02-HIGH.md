@@ -293,3 +293,29 @@ Phase 1 平仓成功后增加平仓记录创建:
 
 **修复内容**: 指标计算的品种范围从仅 `active_product_codes` 扩展到 `active_product_codes | position_product_codes`（有持仓的品种也纳入计算）。ENTRY 信号生成仍按 active 过滤，不受影响。
 `
+
+---
+
+## ✅ HIGH-17: 移仓成交确认仅固定 3 次 wait_update — 已修复 (2026-05-11)
+
+**文件**: [infrastructure/order_signals.py:574-577](../backend/stock/infrastructure/order_signals.py#L574)
+
+**问题描述**:
+`execute_rollover_order` Phase 1 平仓旧合约后，仅执行 3 次 `api.wait_update()` 等待成交回报：
+
+```python
+for _ in range(3):
+    api.wait_update()
+```
+
+**影响分析**:
+- 部分成交场景下，3 次 `wait_update()` 不足以收到全部成交回报
+- `filled_volume` 统计为部分值或 0 → PnL 记录为近似值而非实际值
+- 多次移仓的累计偏差放大
+- 大户持仓拆分成交（各交易所常见）时问题最明显
+
+**修复内容**:
+1. 使用带超时（10秒）的循环替代固定 3 次更新
+2. 每次 `wait_update()` 后重新统计 `api.get_trades()` 中该合约+该方向的成交手数
+3. 全部成交到达后提前退出循环
+4. 超时后仍使用已收集到的部分成交数据（最差情况：fallback 到 `quote.last_price`）
