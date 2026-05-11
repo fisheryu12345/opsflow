@@ -10,7 +10,7 @@ from stock.utils.redis_lock import redis_lock, LockAcquisitionError
 from stock.infrastructure.trade_day import skip_if_not_trade_day
 from stock.core.signal_checker import check_duplicate_pending_signal
 
-from stock.models import TradingAccount, DailyStrategySignal, PositionState, FullContractList, AccountContractConfig, StrategyConfig
+from stock.models import TradingAccount, DailyStrategySignal, PositionState, FullContractList, AccountContractConfig
 from stock.infrastructure.contract_sync import sync_contract_list_from_tqsdk, sync_kline_data_from_tqsdk
 from stock.infrastructure.report_sender import generate_daily_signal_report
 from stock.core.indicators import calculate_indicators
@@ -624,17 +624,10 @@ def job_daily_close_calculation():
             accounts = TradingAccount.objects.filter(is_active=True)
 
             for account in accounts:
-                # 实盘账户需要独立的 TqApi 连接
-                account_api = api
-                need_close_account_api = False
+                # 每个账户独立创建 TqApi 连接（实盘用 TqAccount，模拟盘用各自的 TqKq）
+                account_api = None
                 try:
-                    try:
-                        config = StrategyConfig.objects.get(account=account)
-                        if not config.is_simulation:
-                            account_api = create_tqapi(account)
-                            need_close_account_api = True
-                    except StrategyConfig.DoesNotExist:
-                        pass
+                    account_api = create_tqapi(account)
 
                     account_product_codes = set(
                         AccountContractConfig.objects.filter(
@@ -702,7 +695,7 @@ def job_daily_close_calculation():
                     print(f"[ERROR] 处理账户 {account.name} 任务失败: {account_error}")
                     traceback.print_exc()
                 finally:
-                    if need_close_account_api:
+                    if account_api:
                         safe_close_api(account_api)
 
             print("[INFO] ✅ 今日收盘计算任务完成")

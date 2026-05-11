@@ -43,6 +43,11 @@ def create_tqapi(account=None):
                     TqAccount(config.future_broker, config.future_account, config.future_password),
                     auth=TqAuth(config.tqapi_account, config.tqapi_password)
                 )
+            # 模拟账户：用自己的天勤账号创建独立的 TqKq 连接
+            return TqApi(
+                TqKq(),
+                auth=TqAuth(config.tqapi_account, config.tqapi_password)
+            )
         except StrategyConfig.DoesNotExist:
             pass
     tqapi_account, tqapi_password = _get_default_auth()

@@ -208,7 +208,7 @@ return Response({
 **Note:** `ModelViewSet` routes auto-handle this wrapping. Custom `APIView` / `APIViewSet` classes must manually wrap — this is easy to miss and has caused repeated failures.
 
 ## Code Quality Status (2026-05-10)
-
+when you fix a bug you should add the bug to TODO list and after fixing the bug you should update the TODO list
 All known issues resolved:
 - 🔴 CRITICAL: 6/6 fixed
 - 🟠 HIGH: 15/15 total (14 bug-items fixed, 1 verified as not-a-bug)
