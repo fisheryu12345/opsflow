@@ -204,7 +204,7 @@ def calculate_rolling_metrics(
         log_error(
             function_name='calculate_rolling_metrics',
             error_message=f"{error_msg}\n{traceback.format_exc()}",
-        , account=account)
+            account=account)
         raise
 
 
@@ -446,7 +446,7 @@ def update_account_summary(
         log_error(
             function_name='update_account_summary',
             error_message=f"{error_msg}\n{traceback.format_exc()}",
-        , account=account)
+        account=account)
         raise
 
 
@@ -587,7 +587,7 @@ def update_all_performance_metrics(
         log_trade(
             function_name='update_all_performance_metrics',
             log_message=f"[SUCCESS] 三层绩效数据更新完成 - 权益:{snapshot.balance}, 20日夏普:{rolling_metrics[20].sharpe_ratio}",
-        , account=account)
+        account=account)
 
         return {
             'snapshot': snapshot,
@@ -601,7 +601,7 @@ def update_all_performance_metrics(
         log_error(
             function_name='update_all_performance_metrics',
             error_message=f"{error_msg}\n{traceback.format_exc()}",
-        , account=account)
+        account=account)
         raise
 
 
@@ -658,7 +658,7 @@ def get_dashboard_metrics(account: TradingAccount) -> Dict[str, Any]:
         log_error(
             function_name='get_dashboard_metrics',
             error_message=f"获取 Dashboard 指标失败: {str(e)}\n{traceback.format_exc()}",
-        , account=account)
+        account=account)
         raise
 
 
