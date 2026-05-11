@@ -98,27 +98,34 @@ def execute_stop_loss_exit(api, position):
         return False, 0, Decimal('0')
 
 
-def check_and_execute_stop_loss(api):
+def check_and_execute_stop_loss(api, account=None):
     """
     检查持仓止损并执行平仓。
+
+    Args:
+        api: TqApi 连接实例
+        account: 可选，指定要处理的账户。为 None 时遍历所有活跃账户。
     """
     try:
-        accounts = TradingAccount.objects.filter(is_active=True)
-        if not accounts.exists():
-            print("[WARN] 未找到活跃账户，跳过止损检查")
-            return
+        if account is not None:
+            accounts = [account]
+        else:
+            accounts = TradingAccount.objects.filter(is_active=True)
+            if not accounts.exists():
+                print("[WARN] 未找到活跃账户，跳过止损检查")
+                return
 
-        for account in accounts:
+        for acct in accounts:
             try:
-                _execute_stop_loss_for_account(api, account)
+                _execute_stop_loss_for_account(api, acct)
             except Exception as acct_error:
-                error_msg = f"处理账户 {account.name} 止损检查失败: {acct_error}"
+                error_msg = f"处理账户 {acct.name} 止损检查失败: {acct_error}"
                 print(f"[ERROR] {error_msg}")
                 traceback.print_exc()
                 log_error(
                     function_name='check_and_execute_stop_loss',
                     error_message=f"{error_msg}\n{traceback.format_exc()}",
-                    account=account,
+                    account=acct,
                 )
                 continue
 

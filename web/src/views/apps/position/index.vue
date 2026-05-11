@@ -27,7 +27,6 @@
         <el-table :data="list" border stripe v-loading="loading" class="trading-table" style="width: 100%" @sort-change="handleSortChange">
           <el-table-column type="index" label="#" width="50" align="center" />
           <el-table-column prop="symbol" label="合约代码" min-width="130" sortable />
-          <el-table-column prop="product_code" label="品种" min-width="80" sortable />
           <el-table-column label="方向" width="70" align="center">
             <template #default="{ row }">
               <StatusTag type="direction" :value="row.direction" />
@@ -39,9 +38,9 @@
               <ValueCell :value="row.last_add_price" type="number" :precision="1" :color-by-sign="false" />
             </template>
           </el-table-column>
-          <el-table-column label="浮动盈亏" min-width="130" align="right" sortable="custom" prop="unrealized_pnl">
+          <el-table-column prop="latest_close_price" label="收盘价" min-width="90" align="right" sortable>
             <template #default="{ row }">
-              <ValueCell :value="calcUnrealizedPnl(row)" type="currency" />
+              <ValueCell :value="row.latest_close_price" type="number" :precision="1" :color-by-sign="false" />
             </template>
           </el-table-column>
           <el-table-column prop="stop_loss_price" label="止损价" min-width="110" align="right" sortable>
@@ -49,14 +48,24 @@
               <ValueCell :value="row.stop_loss_price" type="number" :precision="1" :color-by-sign="false" />
             </template>
           </el-table-column>
-          <el-table-column prop="trend_info" label="趋势因子" min-width="100" align="right" sortable>
+          <el-table-column label="浮动盈亏" min-width="130" align="right" sortable="custom" prop="unrealized_pnl">
             <template #default="{ row }">
-              <ValueCell :value="row.trend_info" type="number" :precision="2" />
+              <ValueCell :value="calcUnrealizedPnl(row)" type="currency" />
+            </template>
+          </el-table-column>
+          <el-table-column label="趋势因子" min-width="100" align="right" sortable>
+            <template #default="{ row }">
+              <ValueCell :value="row.indicators?.trend_factor ?? row.trend_info" type="number" :precision="4" />
             </template>
           </el-table-column>
           <el-table-column label="需移仓" width="80" align="center">
             <template #default="{ row }">
               <StatusTag type="active" :value="!row.is_rollover_needed" />
+            </template>
+          </el-table-column>
+          <el-table-column label="保本激活" width="80" align="center">
+            <template #default="{ row }">
+              <StatusTag type="active" :value="row.protect_cost_enabled" />
             </template>
           </el-table-column>
           <el-table-column prop="last_update_time" label="更新时间" min-width="160" sortable />

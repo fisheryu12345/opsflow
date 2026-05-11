@@ -72,6 +72,17 @@
 			</div>
 		</div>
 
+		<!-- 日收益率 -->
+		<div class="section-card">
+			<div class="section-header">
+				<h3 class="section-title">日收益率</h3>
+			</div>
+			<div class="section-body" style="position: relative;">
+				<div ref="dailyReturnsRef" class="chart-container"></div>
+				<div v-if="chartLoading.dailyReturns" class="chart-skeleton-overlay" />
+			</div>
+		</div>
+
 		<!-- 月度收益柱状图 -->
 		<div class="section-card">
 			<div class="section-header">
@@ -161,6 +172,7 @@ const chartLoading = reactive({
 	symbolWinRate: true,
 	calendarHeatmap: true,
 	equityCurve: true,
+	dailyReturns: true,
 	drawdownCurve: true,
 	closedPnlCurve: true,
 	monthlyReturns: true,
@@ -170,6 +182,7 @@ const symbolWinRateRef = ref();
 const symbolPnlRankingRef = ref();
 const calendarHeatmapRef = ref();
 const equityCurveRef = ref();
+	const dailyReturnsRef = ref();
 const monthlyReturnsRef = ref();
 const drawdownCurveRef = ref();
 const closedPnlCurveRef = ref();
@@ -392,65 +405,110 @@ const initEquityCurveChart = (snapshots: EquitySnapshot[]) => {
 
 	const dates = snapshots.map(s => s.trade_date);
 	const equities = snapshots.map(s => parseFloat(s.balance));
-	const returns = equities.map((equity, index) => {
-		if (index === 0) return 0;
-		const prev = equities[index - 1];
-		return prev > 0 ? ((equity - prev) / prev * 100) : 0;
-	});
 
 	chart.setOption({
 		tooltip: {
 			trigger: 'axis', axisPointer: { type: 'cross' },
 			formatter: (params: any) => {
-				const eq = params[0], ret = params[1];
-				return `${eq.axisValue}<br/>权益: ¥${parseFloat(eq.value).toLocaleString()}<br/>收益率: ${parseFloat(ret.value).toFixed(2)}%`;
+				const eq = params[0];
+				return `${eq.axisValue}<br/>权益: ¥${parseFloat(eq.value).toLocaleString()}`;
 			},
 			textStyle: { fontSize: fontConfig.tooltip }
 		},
-		legend: {
-			data: ['账户权益', '日收益率'],
-			top: isMobile ? 30 : 35,
-			textStyle: { fontSize: fontConfig.legend }
-		},
-		grid: { left: isMobile ? '10%' : '3%', right: isMobile ? '10%' : '4%', bottom: isMobile ? '22%' : '20%', top: isMobile ? '22%' : '20%', containLabel: true },
+		grid: { left: isMobile ? '10%' : '3%', right: '4%', bottom: isMobile ? '22%' : '20%', top: '15%', containLabel: true },
 		xAxis: {
 			type: 'category', boundaryGap: false, data: dates,
 			axisLabel: { fontSize: fontConfig.axisName, formatter: (v: string) => isMobile && v.length > 10 ? v.substring(5) : v }
 		},
-		yAxis: [
-			{
-				type: 'value', name: '权益', position: 'left',
-				nameTextStyle: { fontSize: fontConfig.axisName },
-				axisLabel: { formatter: (v: number) => `¥${(v / 10000).toFixed(0)}万`, fontSize: fontConfig.axisName }
-			},
-			{
-				type: 'value', name: '收益率 (%)', position: 'right',
-				nameTextStyle: { fontSize: fontConfig.axisName },
-				axisLabel: { formatter: '{value}%', fontSize: fontConfig.axisName }
-			}
-		],
+		yAxis: {
+			type: 'value', name: '权益',
+			min: 900000,
+			max: 1500000,
+			nameTextStyle: { fontSize: fontConfig.axisName },
+			axisLabel: { formatter: (v: number) => `¥${(v / 10000).toFixed(0)}万`, fontSize: fontConfig.axisName }
+		},
 		dataZoom: [
 			{ type: 'slider', show: true, start: 0, end: 100, bottom: isMobile ? 10 : 15, height: isMobile ? 20 : 25, borderColor: '#d0d0d0', textStyle: { fontSize: fontConfig.legend } },
 			{ type: 'inside', start: 0, end: 100 }
 		],
 		series: [
 			{
-				name: '账户权益', type: 'line', smooth: true, data: equities, yAxisIndex: 0,
+				name: '账户权益', type: 'line', smooth: true, data: equities,
 				areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(24,141,240,0.3)' }, { offset: 1, color: 'rgba(24,141,240,0.05)' }]) },
 				lineStyle: { color: '#188df0', width: isMobile ? 1.5 : 2 },
 				itemStyle: { color: '#188df0' }, symbolSize: isMobile ? 3 : 4,
 				markPoint: { data: [{ type: 'max', name: '最大值', symbolSize: 40 }, { type: 'min', name: '最小值', symbolSize: 40 }] }
-			},
-			{
-				name: '日收益率', type: 'line', smooth: true, data: returns, yAxisIndex: 1,
-				lineStyle: { color: '#ff6b6b', width: isMobile ? 1.5 : 2, type: 'dashed' },
-				itemStyle: { color: '#ff6b6b' }, symbolSize: isMobile ? 3 : 4
 			}
 		]
 	});
 
 	window.addEventListener('resize', () => chart.resize());
 	chartLoading.equityCurve = false;
+};
+
+const initDailyReturnsChart = (snapshots: EquitySnapshot[]) => {
+	if (!dailyReturnsRef.value || !snapshots.length) {
+		chartLoading.dailyReturns = false;
+		return;
+	}
+	const chart = echarts.init(dailyReturnsRef.value);
+	const fontConfig = getResponsiveFontConfig();
+	const isMobile = window.innerWidth < 480;
+
+	const dates = snapshots.map(s => s.trade_date);
+	const dailyReturns = snapshots.map(s => parseFloat(s.daily_return || '0'));
+
+	chart.setOption({
+		tooltip: {
+			trigger: 'axis', axisPointer: { type: 'shadow' },
+			formatter: (params: any) => {
+				const val = params[0].value;
+				return `${params[0].name}<br/>日收益率: <span style="color:${val >= 0 ? '#f5222d' : '#52c41a'};font-weight:700;">${val.toFixed(2)}%</span>`;
+			},
+			textStyle: { fontSize: fontConfig.tooltip }
+		},
+		grid: { left: isMobile ? '10%' : '3%', right: '4%', bottom: isMobile ? '22%' : '20%', top: '15%', containLabel: true },
+		xAxis: {
+			type: 'category', data: dates,
+			axisLabel: { fontSize: fontConfig.axisName, formatter: (v: string) => isMobile && v.length > 10 ? v.substring(5) : v }
+		},
+		yAxis: {
+			type: 'value', name: '收益率 (%)',
+			splitLine: { lineStyle: { type: 'dashed', color: '#e8e8e8' } },
+			nameTextStyle: { fontSize: fontConfig.axisName },
+			axisLabel: { formatter: '{value}%', fontSize: fontConfig.axisName }
+		},
+		dataZoom: [
+			{ type: 'slider', show: true, start: 0, end: 100, bottom: isMobile ? 10 : 15, height: isMobile ? 20 : 25, borderColor: '#d0d0d0', textStyle: { fontSize: fontConfig.legend } },
+			{ type: 'inside', start: 0, end: 100 }
+		],
+		series: [{
+			name: '日收益率', type: 'bar',
+			data: dailyReturns.map(v => ({
+				value: Math.round(v * 100) / 100,
+				itemStyle: {
+					color: v >= 0
+						? new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#f5222d' }, { offset: 1, color: '#a8071a' }])
+						: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#52c41a' }, { offset: 1, color: '#237804' }])
+				}
+			})),
+			barWidth: isMobile ? '50%' : '40%',
+			label: {
+				show: !isMobile, position: 'top',
+				formatter: (p: any) => `${p.value.toFixed(2)}%`,
+				fontSize: fontConfig.label, fontWeight: 600,
+				color: (p: any) => p.value >= 0 ? '#f5222d' : '#52c41a'
+			},
+			markLine: {
+				silent: true,
+				lineStyle: { color: '#999', type: 'dashed', width: 1 },
+				data: [{ yAxis: 0 }]
+			}
+		}]
+	});
+
+	window.addEventListener('resize', () => chart.resize());
+	chartLoading.dailyReturns = false;
 };
 
 const initDrawdownCurveChart = async () => {
@@ -522,16 +580,6 @@ const initDrawdownCurveChart = async () => {
 					label: { position: 'end', formatter: `最大回撤 ${maxDrawdown.toFixed(2)}%`, fontSize: fontConfig.label, color: '#ff4d4f' },
 					data: [{ yAxis: maxDrawdown }]
 				},
-				markPoint: {
-					symbol: 'pin', symbolSize: isMobile ? 30 : 40,
-					data: drawdownData
-						.filter((item: any) => item.is_new_peak)
-						.map((item: any) => ({
-							name: '新高', coord: [dates.indexOf(item.date), 0], value: '新高',
-							itemStyle: { color: '#52c41a' },
-							label: { show: true, formatter: '新高', fontSize: fontConfig.label, color: '#fff' }
-						}))
-				}
 			}]
 		});
 
@@ -767,11 +815,13 @@ const loadDashboardData = async () => {
 
 			nextTick(() => {
 				initEquityCurveChart(snapshotsRes.data);
+				initDailyReturnsChart(snapshotsRes.data);
 				initClosedPnlCurveChart(snapshotsRes.data);
 				initMonthlyReturnsChart(snapshotsRes.data);
 			});
 		} else {
 			chartLoading.equityCurve = false;
+			chartLoading.dailyReturns = false;
 			chartLoading.closedPnlCurve = false;
 			chartLoading.monthlyReturns = false;
 		}
@@ -803,7 +853,7 @@ const loadDashboardData = async () => {
 
 onMounted(async () => {
 	// 确保账户已初始化（如果登录流程已加载，则为空操作）
-	if (!accountStore.loaded) await accountStore.fetchAccounts()
+	await accountStore.fetchAccounts()
 	// 账户已就绪时加载数据，否则由下方 watch 驱动
 	loadDashboardData();
 	nextTick(() => {

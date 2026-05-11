@@ -10,7 +10,7 @@ from stock.utils.redis_lock import redis_lock, LockAcquisitionError
 from stock.infrastructure.trade_day import skip_if_not_trade_day
 from stock.core.signal_checker import check_duplicate_pending_signal
 
-from stock.models import TradingAccount, DailyStrategySignal, PositionState, FullContractList, AccountContractConfig
+from stock.models import TradingAccount, DailyStrategySignal, PositionState, FullContractList, AccountContractConfig, StrategyConfig
 from stock.infrastructure.contract_sync import sync_contract_list_from_tqsdk, sync_kline_data_from_tqsdk
 from stock.infrastructure.report_sender import generate_daily_signal_report
 from stock.core.indicators import calculate_indicators
@@ -622,15 +622,20 @@ def job_daily_close_calculation():
 
             # 第6-13步：遍历所有活跃账户，执行账户级操作
             accounts = TradingAccount.objects.filter(is_active=True)
-            if accounts.count() > 1:
-                log_trade('job_daily_close_calculation',
-                          f"多账户模式：共 {accounts.count()} 个账户共享同一 TqSDK 连接，"
-                          "绩效数据将基于同一账户权益计算。如各账户使用独立天勤账号，"
-                          "需为每个账户创建独立的 TqApi 连接。",
-                          symbol=None, log_level='INFO')
 
             for account in accounts:
+                # 实盘账户需要独立的 TqApi 连接
+                account_api = api
+                need_close_account_api = False
                 try:
+                    try:
+                        config = StrategyConfig.objects.get(account=account)
+                        if not config.is_simulation:
+                            account_api = create_tqapi(account)
+                            need_close_account_api = True
+                    except StrategyConfig.DoesNotExist:
+                        pass
+
                     account_product_codes = set(
                         AccountContractConfig.objects.filter(
                             account=account, is_active=True
@@ -660,15 +665,15 @@ def job_daily_close_calculation():
                         print(f"[INFO] {account.name} 开仓信号生成: {open_count}个")
 
                     update_all_positions_high_low_price(account)
-                    update_all_positions_stop_loss_price(api=api, account=account)
+                    update_all_positions_stop_loss_price(api=account_api, account=account)
                     check_exit_signals(account)
                     check_add_position_signals(account)
                     check_rollover_signals(account)
                     generate_daily_signal_report(account)
 
-                    if api:
+                    if account_api:
                         try:
-                            api_account = api.get_account()
+                            api_account = account_api.get_account()
                             api_account_data = {
                                 'balance': float(api_account.balance),
                                 'static_balance': float(api_account.static_balance),
@@ -696,6 +701,9 @@ def job_daily_close_calculation():
                 except Exception as account_error:
                     print(f"[ERROR] 处理账户 {account.name} 任务失败: {account_error}")
                     traceback.print_exc()
+                finally:
+                    if need_close_account_api:
+                        safe_close_api(account_api)
 
             print("[INFO] ✅ 今日收盘计算任务完成")
 

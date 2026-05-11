@@ -52,8 +52,11 @@ class UserAccountFilterBackend(filters.BaseFilterBackend):
         if not user or user.is_anonymous:
             return queryset.model.objects.none() if hasattr(queryset.model, 'objects') else queryset.none()
 
-        # 超级管理员不受限
+        # 超级管理员不受限，但显式传了 account 参数时按账户筛选
         if user.is_superuser:
+            account_param = request.query_params.get('account')
+            if account_param:
+                return queryset.filter(account_id=account_param)
             return queryset
 
         user_account_ids = get_user_account_ids(user)

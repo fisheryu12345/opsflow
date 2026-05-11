@@ -88,7 +88,7 @@ def save_daily_snapshot(
         log_error(
             function_name='save_daily_snapshot',
             error_message=f"{error_msg}\n{traceback.format_exc()}",
-        )
+        , account=account)
         raise
 
 
@@ -119,7 +119,7 @@ def calculate_rolling_metrics(
                 log_message=f"[WARN] 数据不足 - 账户:{account.name}, 窗口:{window_days}日, 有效数据:{len(returns)}条",
                 symbol="N/A",
                 log_level='WARNING'
-            )
+            , account=account)
         elif len(returns) < window_days * 0.8:
             data_quality = 'PARTIAL'
         else:
@@ -188,7 +188,7 @@ def calculate_rolling_metrics(
             log_message=f"计算滚动绩效指标 - 账户:{account.name}, 窗口:{window_days}日, 夏普:{sharpe_ratio}, 索提诺:{sortino_ratio}, 波动率:{volatility}, 胜率:{win_rate}, 盈亏比:{profit_loss_ratio}, 交易数:{total_trades}, 数据质量:{data_quality}",
             symbol="N/A",
             log_level='INFO'
-        )
+        , account=account)
         return metric
 
     except Exception as e:
@@ -196,7 +196,7 @@ def calculate_rolling_metrics(
         log_error(
             function_name='calculate_rolling_metrics',
             error_message=f"{error_msg}\n{traceback.format_exc()}",
-        )
+        , account=account)
         raise
 
 
@@ -429,7 +429,7 @@ def update_account_summary(
             log_message=f"[SUCCESS] {action}账户总览 - 累计收益:{total_return}%, 最大回撤:{max_drawdown}%, 夏普:{latest_sharpe_20d}",
             symbol="N/A",
             log_level='INFO'
-        )
+        , account=account)
 
         return summary
 
@@ -438,7 +438,7 @@ def update_account_summary(
         log_error(
             function_name='update_account_summary',
             error_message=f"{error_msg}\n{traceback.format_exc()}",
-        )
+        , account=account)
         raise
 
 
@@ -463,7 +463,7 @@ def save_symbol_daily_pnl(
         log_message=f"[INFO] 开始计算品种日盈亏 - 账户:{account.name}, 日期:{trade_date}",
         symbol="N/A",
         log_level='INFO'
-    )
+    , account=account)
 
     # 1. 预加载合约乘数（按 product_code 缓存）
     multipliers = {}
@@ -538,7 +538,7 @@ def save_symbol_daily_pnl(
         log_message=f"[SUCCESS] 品种日盈亏保存完成 - {len(created_records)}个品种",
         symbol="N/A",
         log_level='INFO'
-    )
+    , account=account)
 
     return created_records
 
@@ -559,7 +559,7 @@ def update_all_performance_metrics(
             log_message=f"[INFO] 开始更新三层绩效数据 - 账户:{account.name}, 日期:{trade_date}",
             symbol="N/A",
             log_level='INFO'
-        )
+        , account=account)
 
         snapshot = save_daily_snapshot(account, api_account_data, trade_date)
 
@@ -576,7 +576,7 @@ def update_all_performance_metrics(
         log_trade(
             function_name='update_all_performance_metrics',
             log_message=f"[SUCCESS] 三层绩效数据更新完成 - 权益:{snapshot.balance}, 20日夏普:{rolling_metrics[20].sharpe_ratio}",
-        )
+        , account=account)
 
         return {
             'snapshot': snapshot,
@@ -590,7 +590,7 @@ def update_all_performance_metrics(
         log_error(
             function_name='update_all_performance_metrics',
             error_message=f"{error_msg}\n{traceback.format_exc()}",
-        )
+        , account=account)
         raise
 
 
@@ -608,7 +608,7 @@ def get_dashboard_metrics(account: TradingAccount) -> Dict[str, Any]:
                 log_message=f"[WARN] 未找到账户 {account.name} 的绩效总览，返回默认值",
                 symbol="N/A",
                 log_level='WARNING'
-            )
+            , account=account)
             return _get_default_dashboard_metrics(account)
 
         latest_snapshot = DailyEquitySnapshot.objects.filter(
@@ -647,7 +647,7 @@ def get_dashboard_metrics(account: TradingAccount) -> Dict[str, Any]:
         log_error(
             function_name='get_dashboard_metrics',
             error_message=f"获取 Dashboard 指标失败: {str(e)}\n{traceback.format_exc()}",
-        )
+        , account=account)
         raise
 
 

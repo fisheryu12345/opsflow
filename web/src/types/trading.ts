@@ -30,9 +30,14 @@ export interface PositionRecord extends BasicEntity {
   highest_close: number
   lowest_close: number
   stop_loss_price: number
-  trend_info: number
+  trend_info: string
   latest_close_price: number
   is_rollover_needed: boolean
+  protect_cost_enabled: boolean
+  indicators?: {
+    atr_20: number
+    trend_factor: number
+  }
   h20_price: number
   l20_price: number
   volume_multiple: number
@@ -122,6 +127,8 @@ export interface StrategyConfigRecord extends BasicEntity {
   future_broker: string
   future_account: string
   future_password?: string
+  // 模式
+  is_simulation: boolean
 }
 
 // === Daily Signal ===

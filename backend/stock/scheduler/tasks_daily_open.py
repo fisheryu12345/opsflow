@@ -29,12 +29,13 @@ def job_daily_open_process():
     for account in accounts:
         api = None
         try:
-            api = create_tqapi()
+            api = create_tqapi(account)
 
             # 第一个账户的 API 连接复用做交易日检查，避免单独创建连接
             if is_first_account:
                 is_first_account = False
                 if skip_if_not_trade_day(api=api):
+                    safe_close_api(api)
                     return
             redis = get_redis_connection('default')
             lock_key = f'lock:open:{account.id}'
@@ -43,19 +44,19 @@ def job_daily_open_process():
                     result = process_signals_by_type(api, account, 'STOP_LOSS')
                     print(f"[INFO] 平仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
 
-                    api, reconnected = ensure_api_connected(api)
+                    api, reconnected = ensure_api_connected(api, account)
                     if reconnected:
                         print(f"[INFO] 平仓处理后API重连成功")
                     result = process_signals_by_type(api, account, 'ENTRY')
                     print(f"[INFO] 开仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔")
 
-                    api, reconnected = ensure_api_connected(api)
+                    api, reconnected = ensure_api_connected(api, account)
                     if reconnected:
                         print(f"[INFO] 开仓处理后API重连成功")
                     result = process_signals_by_type(api, account, 'ROLLOVER')
                     print(f"[INFO] 移仓处理完成: 成功{result['success']}笔, 失败{result['failed']}笔, 跳过{result['skipped']}笔")
 
-                    api, reconnected = ensure_api_connected(api)
+                    api, reconnected = ensure_api_connected(api, account)
                     if reconnected:
                         print(f"[INFO] 移仓处理后API重连成功")
                     result = process_signals_by_type(api, account, 'ADD_ON')
@@ -75,6 +76,6 @@ def job_daily_open_process():
         except LockAcquisitionError:
             print(f"[INFO] 账户 {account.username} 正在处理中, 跳过")
             log_trade('job_daily_open_process', f"账户 {account.username} 正在处理中, 跳过",
-                      symbol=None, log_level='INFO')
+                      symbol=None, log_level='INFO', account=account)
         finally:
             safe_close_api(api)

@@ -1,5 +1,6 @@
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useAccountStore } from '/@/stores/account'
 import { GetSignalStats } from './api'
 
 export interface SignalStatsData {
@@ -30,11 +31,17 @@ export interface SignalStatsData {
 export function useSignalStats() {
   const loading = ref(false)
   const stats = ref<SignalStatsData | null>(null)
+  const accountStore = useAccountStore()
 
   const filters = reactive({
     date_from: '',
     date_to: '',
-    account: undefined as number | undefined,
+    account: accountStore.currentAccountId ?? undefined,
+  })
+
+  // Sync account from store
+  watch(() => accountStore.currentAccountId, (id) => {
+    filters.account = id ?? undefined
   })
 
   async function fetchStats() {

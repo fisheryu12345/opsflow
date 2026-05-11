@@ -225,6 +225,7 @@ class StrategyConfig(models.Model):
     trend_label_strong_ratio = models.DecimalField("强趋势比例阈值", max_digits=5, decimal_places=3, default=Decimal('0.80'), help_text="trend_strength≥此值判定为强趋势，默认80%")
     trend_label_weak_ratio = models.DecimalField("弱趋势比例阈值", max_digits=5, decimal_places=3, default=Decimal('0.30'), help_text="trend_strength≥此值判定为弱趋势，默认30%")
     # --- 其他参数 ---
+    is_simulation = models.BooleanField("模拟盘模式", default=True, help_text="True=模拟盘(TqKq)，False=实盘(TqAccount)")
     # pause_open_task_job = models.BooleanField("暂停开仓时段任务", default=False, help_text="暂停开仓任务，用于临时关闭策略")
     class Meta:
         verbose_name = "策略参数配置"

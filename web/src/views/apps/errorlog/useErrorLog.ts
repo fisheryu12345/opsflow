@@ -1,10 +1,12 @@
 import { ref, reactive, watch } from 'vue'
 import { usePagination } from '/@/composables/usePagination'
+import { useAccountStore } from '/@/stores/account'
 import * as api from './api'
 import type { ErrorLogRecord } from '/@/types/trading'
 
 export function useErrorLog() {
   const { page, pageSize, total, onPageChange, onSizeChange } = usePagination(20)
+  const accountStore = useAccountStore()
   const list = ref<ErrorLogRecord[]>([])
   const loading = ref(false)
   const filters = reactive({
@@ -22,6 +24,7 @@ export function useErrorLog() {
         limit: pageSize.value,
         ordering: '-timestamp',
       }
+      if (accountStore.currentAccountId) params.account = accountStore.currentAccountId
       if (filters.function_name) params.function_name__contains = filters.function_name
       if (filters.error_message) params.error_message__contains = filters.error_message
       if (filters.timestamp__gte) params.timestamp__gte = filters.timestamp__gte
@@ -52,7 +55,7 @@ export function useErrorLog() {
     return false
   }
 
-  watch([page, pageSize], fetchData, { immediate: true })
+  watch([page, pageSize, () => accountStore.currentAccountId], fetchData, { immediate: true })
 
   function refresh() {
     page.value = 1

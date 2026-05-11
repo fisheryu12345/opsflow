@@ -31,11 +31,26 @@ class FullContractListSerializer(serializers.ModelSerializer):
 
 class TradingAccountSerializer(serializers.ModelSerializer):
     """交易账户序列化器"""
-    
+    strategy_name = serializers.SerializerMethodField()
+    user_email = serializers.SerializerMethodField()
+    user_mobile = serializers.SerializerMethodField()
+
     class Meta:
         model = TradingAccount
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_strategy_name(self, obj):
+        try:
+            return obj.strategyconfig.name if obj.strategyconfig else '-'
+        except:
+            return '-'
+
+    def get_user_email(self, obj):
+        return obj.user.email if obj.user else '-'
+
+    def get_user_mobile(self, obj):
+        return obj.user.mobile if obj.user else '-'
 
 
 class StrategyConfigSerializer(serializers.ModelSerializer):

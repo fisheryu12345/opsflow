@@ -12,7 +12,7 @@ from django.db.models import Count, Q, Avg
 from django.utils import timezone
 from stock.serializers.serializers import DailyStrategySignalSerializer
 from stock.models import DailyStrategySignal
-from stock.filters import UserAccountFilterBackend
+from stock.filters import UserAccountFilterBackend, get_user_account_ids
 
 
 class DailyStrategySignalViewSet(viewsets.ModelViewSet):
@@ -56,6 +56,11 @@ class SignalExecutionStatsView(APIView):
             filters &= Q(trade_date__lte=date_to)
         if account_id:
             filters &= Q(account_id=account_id)
+
+        # 账户数据隔离：非超管只能看到自己有权限的账户数据
+        user_account_ids = get_user_account_ids(request.user)
+        if user_account_ids is not None:
+            filters &= Q(account_id__in=user_account_ids)
 
         base_qs = DailyStrategySignal.objects.filter(filters)
 

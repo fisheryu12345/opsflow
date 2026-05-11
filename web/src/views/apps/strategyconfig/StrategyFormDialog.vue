@@ -84,13 +84,23 @@
         </el-tab-pane>
 
         <el-tab-pane label="TqSDK配置">
+          <el-form-item label="运行模式">
+            <el-switch
+              v-model="form.is_simulation"
+              active-text="模拟盘"
+              inactive-text="实盘"
+              inline-prompt
+              style="--el-switch-on-color: #67c23a; --el-switch-off-color: #f56c6c"
+            />
+            <div class="form-helper">模拟盘使用 TqKq，实盘连接真实交易通道</div>
+          </el-form-item>
           <el-form-item label="TqSDK账号" prop="tqapi_account">
             <el-input v-model="form.tqapi_account" placeholder="请输入天勤量化账号" />
           </el-form-item>
           <el-form-item label="TqSDK密码" prop="tqapi_password">
             <el-input v-model="form.tqapi_password" type="password" show-password placeholder="请输入密码" />
           </el-form-item>
-          <el-divider border-style="dashed" content-position="left">期货账户信息</el-divider>
+          <el-divider border-style="dashed" content-position="left">期货账户信息（实盘需要）</el-divider>
           <el-form-item label="期货交易商" prop="future_broker">
             <el-input v-model="form.future_broker" placeholder="例如: 永安期货、中信期货" />
             <div class="form-helper">期货开户的交易商名称</div>
@@ -165,6 +175,7 @@ const form = reactive({
   future_broker: '',
   future_account: '',
   future_password: '',
+  is_simulation: true,
 })
 
 const rules: Record<string, any> = {
@@ -187,6 +198,7 @@ watch(() => props.record, (r) => {
       trend_label_strong_ratio: 0.80, trend_label_weak_ratio: 0.30,
       gap_threshold: 1.5, tqapi_account: '', tqapi_password: '',
       future_broker: '', future_account: '', future_password: '',
+      is_simulation: true,
     })
   }
 }, { immediate: true })
