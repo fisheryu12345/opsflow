@@ -48,9 +48,9 @@
               <ValueCell :value="row.stop_loss_price" type="number" :precision="1" :color-by-sign="false" />
             </template>
           </el-table-column>
-          <el-table-column label="浮动盈亏" min-width="130" align="right" sortable="custom" prop="unrealized_pnl">
+          <el-table-column label="浮动盈亏" min-width="130" align="right" sortable="custom" prop="float_profit">
             <template #default="{ row }">
-              <ValueCell :value="calcUnrealizedPnl(row)" type="currency" />
+              <ValueCell :value="row.float_profit ?? 0" type="currency" />
             </template>
           </el-table-column>
           <el-table-column label="趋势因子" min-width="100" align="right" sortable>
@@ -94,7 +94,6 @@ import { computed } from 'vue'
 import MetricCard from '/@/views/apps/components/MetricCard.vue'
 import StatusTag from '/@/views/apps/components/StatusTag.vue'
 import ValueCell from '/@/views/apps/components/ValueCell.vue'
-import type { PositionRecord } from '/@/types/trading'
 import { usePosition } from './usePosition'
 
 const {
@@ -103,24 +102,14 @@ const {
   onPageChange, onSizeChange, refresh,
 } = usePosition()
 
-function calcUnrealizedPnl(row: PositionRecord): number {
-  const vm = row.volume_multiple || 10
-  if (row.direction === 1) {
-    return (row.latest_close_price - row.cost_price) * row.contract_total_position * vm
-  } else if (row.direction === -1) {
-    return (row.cost_price - row.latest_close_price) * row.contract_total_position * vm
-  }
-  return 0
-}
-
 const totalUnrealizedPnl = computed(() =>
-  list.value.reduce((sum, row) => sum + calcUnrealizedPnl(row), 0)
+  list.value.reduce((sum, row) => sum + (row.float_profit ?? 0), 0)
 )
 
 function handleSortChange({ prop, order }: { prop?: string; order?: 'ascending' | 'descending' | null }) {
-  if (prop !== 'unrealized_pnl' || !order) return
+  if (prop !== 'float_profit' || !order) return
   list.value.sort((a, b) => {
-    const diff = calcUnrealizedPnl(a) - calcUnrealizedPnl(b)
+    const diff = (a.float_profit ?? 0) - (b.float_profit ?? 0)
     return order === 'ascending' ? diff : -diff
   })
 }

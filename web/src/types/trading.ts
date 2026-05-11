@@ -34,6 +34,7 @@ export interface PositionRecord extends BasicEntity {
   latest_close_price: number
   is_rollover_needed: boolean
   protect_cost_enabled: boolean
+  float_profit: number | null
   indicators?: {
     atr_20: number
     trend_factor: number

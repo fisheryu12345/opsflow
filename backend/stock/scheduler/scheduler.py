@@ -7,6 +7,7 @@ from stock.scheduler.tasks_exit_before_close import execute_exit_before_close
 from stock.scheduler.tasks_daily_close import job_daily_close_calculation
 from stock.scheduler.tasks_daily_open import job_daily_open_process
 from stock.scheduler.tasks_daily_commission import job_daily_commission_query
+from stock.scheduler.tasks_update_float_profit import job_update_float_profit
 
 
 scheduler = BackgroundScheduler(timezone='Asia/Shanghai')
@@ -63,6 +64,18 @@ scheduler.add_job(
     id='job_daily_commission_query',
     name='盘前手续费查询',
     misfire_grace_time=300,
+    replace_existing=True,
+    max_instances=1,
+)
+
+# 持仓浮动盈亏更新（每小时整点执行，交易日和非交易日均可）
+scheduler.add_job(
+    job_update_float_profit,
+    'interval',
+    hours=1,
+    id='job_update_float_profit',
+    name='持仓浮动盈亏更新',
+    misfire_grace_time=600,
     replace_existing=True,
     max_instances=1,
 )

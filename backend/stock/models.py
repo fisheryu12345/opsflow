@@ -701,8 +701,8 @@ class PositionState(models.Model):
     l20_price = models.DecimalField("20日最低价", max_digits=12, decimal_places=2, null=True, blank=True, help_text="20日最低价")
     trend_info = models.CharField("趋势标签", max_length=60, null=True, blank=True, help_text="趋势标签，如：BULL, BEAR, NEUTRAL")
     protect_cost_enabled = models.BooleanField("保护成本",null=True, blank=True,  default=False, help_text="是否保护成本")
-
-
+    float_profit = models.DecimalField("浮动盈亏（实时）", max_digits=15, decimal_places=2, null=True, blank=True,
+                                      help_text="通过 TqSDK 获取的当前合约实时浮动盈亏，定时任务每小时更新")
 
     def __str__(self):
         direction_map = {1: "多", -1: "空", 0: "空仓"}
