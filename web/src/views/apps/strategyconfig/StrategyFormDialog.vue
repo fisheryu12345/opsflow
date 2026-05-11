@@ -87,10 +87,12 @@
           <el-form-item label="运行模式">
             <el-switch
               v-model="form.is_simulation"
-              active-text="模拟盘"
-              inactive-text="实盘"
+              :active-value="false"
+              :inactive-value="true"
+              active-text="实盘"
+              inactive-text="模拟盘"
               inline-prompt
-              style="--el-switch-on-color: #67c23a; --el-switch-off-color: #f56c6c"
+              style="--el-switch-on-color: #f56c6c; --el-switch-off-color: #67c23a"
             />
             <div class="form-helper">
               模拟盘（<b>TqKq</b>）：使用天勤量化虚拟资金撮合交易，仅需TqSDK账号，无需期货账户<br>
