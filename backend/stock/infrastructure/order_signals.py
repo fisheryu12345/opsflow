@@ -129,8 +129,8 @@ def execute_add_on_order(api, account, signal):
                 last_update_time=timezone.now()
             )
 
-        signal.executed_status = 'SUCCESS'
-        signal.save(update_fields=['executed_status', 'updated_at'])
+            signal.executed_status = 'SUCCESS'
+            signal.save(update_fields=['executed_status', 'updated_at'])
 
         # 记录加仓滑点（两步开仓）
         try:
@@ -205,8 +205,8 @@ def execute_add_on_order(api, account, signal):
                     last_update_time=timezone.now()
                 )
 
-            signal.executed_status = 'SUCCESS'
-            signal.save(update_fields=['executed_status', 'updated_at'])
+                signal.executed_status = 'SUCCESS'
+                signal.save(update_fields=['executed_status', 'updated_at'])
 
             # 记录加仓滑点
             try:
@@ -492,11 +492,12 @@ def execute_exit_order(api, position, signal):
         quote = api.get_quote(position.symbol)
         exit_price = float(quote.last_price) if quote and quote.last_price else None
 
-        record_and_reset_position(api, position, signal, total_volume, exit_price)
+        with transaction.atomic():
+            record_and_reset_position(api, position, signal, total_volume, exit_price)
 
-        if signal:
-            signal.executed_status = 'SUCCESS'
-            signal.save(update_fields=['executed_status', 'updated_at'])
+            if signal:
+                signal.executed_status = 'SUCCESS'
+                signal.save(update_fields=['executed_status', 'updated_at'])
 
         # 记录平仓滑点
         try:
