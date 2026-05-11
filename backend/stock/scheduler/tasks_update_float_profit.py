@@ -10,6 +10,7 @@ from decimal import Decimal
 
 from django.db import transaction, close_old_connections
 
+from stock.utils.log_util import log_trade
 from stock.models import PositionState, TradingAccount
 from stock.infrastructure.tqapi import create_tqapi, safe_close_api
 from stock.infrastructure.trade_day import skip_if_not_trade_day
@@ -88,4 +89,4 @@ def job_update_float_profit():
     for account in accounts:
         _update_account_float_profit(account)
 
-    logger.info("[定时任务] 持仓浮动盈亏更新完成")
+    log_trade('job_update_float_profit', '完成持仓浮动盈亏更新', log_level='INFO',account=account)
