@@ -21,10 +21,14 @@
           <el-table-column label="状态" width="100" align="center">
             <template #default="{ row }">
               <el-switch
+                v-if="isAdmin"
                 v-model="row.is_active"
                 :loading="togglingId === row.id"
                 @change="(val: boolean) => toggleActive(row, val)"
               />
+              <el-tag v-else :type="row.is_active ? 'success' : 'info'" size="small">
+                {{ row.is_active ? '激活' : '停用' }}
+              </el-tag>
             </template>
           </el-table-column>
           <template #empty>
@@ -37,9 +41,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useUserInfo } from '/@/stores/userInfo'
 import { getAccountList, patchAccount } from '/@/api/stock/account'
+
+const userInfo = useUserInfo()
+const isAdmin = computed(() => userInfo.userInfos.roles.includes('admin'))
 
 interface AccountItem {
   id: number

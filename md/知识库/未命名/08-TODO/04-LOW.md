@@ -201,3 +201,44 @@ except Exception as e:
 
 **修复内容**: `return True` → `return False`。API 异常时默认非交易日，跳过任务。管理员通过 ErrorLog 排查原因后手动重试。
 
+---
+
+## ✅ LOW-11: 非交易日提前返回时 API 二次关闭 — 已修复 (2026-05-11)
+
+**文件**: [scheduler/tasks_daily_open.py:38](../backend/stock/scheduler/tasks_daily_open.py#L38)
+
+**问题描述**:
+非交易日路径先调用 `safe_close_api(api)` 关闭连接再 `return`，但 `finally` 块会再次调用 `safe_close_api(api)` 在已关闭的连接上。TqApi 二次 `close()` 会抛异常（被 `except: pass` 吞掉），虽功能无影响，但日志可能输出不必要的异常痕迹。
+
+**修复内容**: 移除 `safe_close_api(api)` 调用，由 `finally` 块统一处理关闭。
+
+---
+
+## ✅ LOW-12: 交易账户管理页非管理员看到开关但操作会 403 — 已修复 (2026-05-11)
+
+**文件**: [trading-account/index.vue](../../web/src/views/apps/trading-account/index.vue#L23)
+
+**问题描述**:
+`trading-account/index.vue` 中 `is_active` 开关对所有用户可见。非管理员用户点击时，PATCH 请求因 `IsAdminUserOrReadOnly` 权限被 403 拒绝，前端乐观更新滚回并弹出错误提示。
+
+**修复方案**: 使用 `useUserInfo().userInfos.roles` 判断是否为 admin，非管理员只显示文本状态标签（激活/停用），管理员保留 Switch 开关。
+
+---
+
+## ✅ LOW-13: `TradingAccountSerializer.get_strategy_name` 使用 bare `except:` — 已修复 (2026-05-11)
+
+**文件**: [serializers/serializers.py](../../backend/stock/serializers/serializers.py#L46)
+
+**问题描述**:
+```python
+def get_strategy_name(self, obj):
+    try:
+        return obj.strategyconfig.name if obj.strategyconfig else '-'
+    except:          # ← bare except 吞所有异常
+        return '-'
+```
+
+bare `except` 会吞掉 `AttributeError`、`TypeError` 等编程错误，增加调试难度。
+
+**修复方案**: 改为 `except StrategyConfig.DoesNotExist:`，仅捕获预期的 DoesNotExist 异常。
+

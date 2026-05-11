@@ -42,7 +42,7 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
-
+*.log
 # Translations
 *.mo
 *.pot

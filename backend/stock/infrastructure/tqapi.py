@@ -3,7 +3,28 @@ TqApi lifecycle management — centralized API creation and teardown.
 """
 from tqsdk import TqApi, TqAuth, TqKq, TqAccount
 from stock.core.config_loader import get_config
-from stock.models import StrategyConfig
+from stock.models import StrategyConfig, TradingAccount
+
+
+def _get_default_auth():
+    """获取默认 TqSDK 认证凭据。
+
+    优先使用全局 env 配置 (TQAPI_ACCOUNT/TQAPI_PASSWORD)；
+    未配置时尝试第一个活跃账户的 StrategyConfig 凭据作为降级。
+    """
+    tqapi_account = get_config('TQAPI_ACCOUNT')
+    tqapi_password = get_config('TQAPI_PASSWORD')
+    if tqapi_account and tqapi_password:
+        return tqapi_account, tqapi_password
+    try:
+        acct = TradingAccount.objects.filter(is_active=True).first()
+        if acct:
+            cfg = StrategyConfig.objects.get(account=acct)
+            if cfg.tqapi_account and cfg.tqapi_password:
+                return cfg.tqapi_account, cfg.tqapi_password
+    except (StrategyConfig.DoesNotExist, Exception):
+        pass
+    return tqapi_account, tqapi_password
 
 
 def create_tqapi(account=None):
@@ -24,7 +45,8 @@ def create_tqapi(account=None):
                 )
         except StrategyConfig.DoesNotExist:
             pass
-    return TqApi(TqKq(), auth=TqAuth(get_config('TQAPI_ACCOUNT'), get_config('TQAPI_PASSWORD')))
+    tqapi_account, tqapi_password = _get_default_auth()
+    return TqApi(TqKq(), auth=TqAuth(tqapi_account, tqapi_password))
 
 
 def safe_close_api(api):

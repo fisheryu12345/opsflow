@@ -423,6 +423,10 @@ def update_account_summary(
         account.current_equity = current_equity
         account.save(update_fields=['current_equity', 'updated_at'])
 
+        # 同步累计手续费到 TradingAccount 层级
+        account.total_commission = total_commission
+        account.save(update_fields=['total_commission', 'updated_at'])
+
         action = "创建" if created else "更新"
         log_trade(
             function_name='update_account_summary',

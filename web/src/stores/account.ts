@@ -6,6 +6,7 @@ interface AccountItem {
   name: string;
   initial_balance: string;
   current_equity: string;
+  total_commission: string;
   is_active: boolean;
 }
 
@@ -24,7 +25,11 @@ export const useAccountStore = defineStore('account', {
           this.accounts = res.data || [];
           // 每个用户只能看到自己的账户（后端已过滤），默认选中第一个
           if (this.accounts.length > 0) {
-            this.currentAccountId = this.accounts[0].id;
+            // 保留用户已有的选择（如果还在列表中），否则默认第一个
+            const stillExists = this.currentAccountId && this.accounts.some(a => a.id === this.currentAccountId);
+            if (!stillExists) {
+              this.currentAccountId = this.accounts[0].id;
+            }
           }
         }
       } catch (e) {

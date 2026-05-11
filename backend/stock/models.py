@@ -93,6 +93,12 @@ class TradingAccount(models.Model):
         help_text="实时净值 = 现金 + 持仓盈亏，每次策略循环后更新"
     )
     
+    # 累计手续费总额：每日收盘后/14:58定时任务更新，用于快速查询无需聚合
+    total_commission = models.DecimalField(
+        "累计手续费", max_digits=15, decimal_places=2, default=Decimal('0'),
+        help_text="历史上所有交易的累计手续费总额，每日由定时任务自动更新"
+    )
+
     # 启用状态：软删除标记，如果不想跑策略了，改为 False 即可，保留历史数据
     is_active = models.BooleanField("启用状态", default=True, db_index=True,
                                    help_text="软删除标记，False时暂停策略但保留历史数据")

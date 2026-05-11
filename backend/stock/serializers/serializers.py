@@ -43,7 +43,7 @@ class TradingAccountSerializer(serializers.ModelSerializer):
     def get_strategy_name(self, obj):
         try:
             return obj.strategyconfig.name if obj.strategyconfig else '-'
-        except:
+        except StrategyConfig.DoesNotExist:
             return '-'
 
     def get_user_email(self, obj):

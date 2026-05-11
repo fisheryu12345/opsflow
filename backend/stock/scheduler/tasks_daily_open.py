@@ -35,8 +35,7 @@ def job_daily_open_process():
             if is_first_account:
                 is_first_account = False
                 if skip_if_not_trade_day(api=api):
-                    safe_close_api(api)
-                    return
+                    return  # finally 块会处理 safe_close_api
             redis = get_redis_connection('default')
             lock_key = f'lock:open:{account.id}'
             with redis_lock(redis, lock_key):

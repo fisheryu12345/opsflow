@@ -6,6 +6,7 @@ from django_apscheduler.jobstores import DjangoJobStore
 from stock.scheduler.tasks_exit_before_close import execute_exit_before_close
 from stock.scheduler.tasks_daily_close import job_daily_close_calculation
 from stock.scheduler.tasks_daily_open import job_daily_open_process
+from stock.scheduler.tasks_daily_commission import job_daily_commission_query
 
 
 scheduler = BackgroundScheduler(timezone='Asia/Shanghai')
@@ -47,6 +48,20 @@ scheduler.add_job(
     minute='57',
     id='execute_exit_before_close',
     name='收盘前平仓任务',
+    misfire_grace_time=300,
+    replace_existing=True,
+    max_instances=1,
+)
+
+# 每日手续费查询（14:58 — 早于 15:02 收盘计算，提前捕获手续费数据）
+scheduler.add_job(
+    job_daily_commission_query,
+    'cron',
+    day_of_week='mon-fri',
+    hour=14,
+    minute=58,
+    id='job_daily_commission_query',
+    name='盘前手续费查询',
     misfire_grace_time=300,
     replace_existing=True,
     max_instances=1,
