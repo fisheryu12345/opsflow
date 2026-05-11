@@ -5,17 +5,16 @@
 写入 PositionState.float_profit 字段，供前端持仓明细直接展示。
 """
 import time
-import logging
 from decimal import Decimal
 
 from django.db import transaction, close_old_connections
 
-from stock.utils.log_util import log_trade
+from stock.utils.log_util import log_trade, log_error
 from stock.models import PositionState, TradingAccount
 from stock.infrastructure.tqapi import create_tqapi, safe_close_api
 from stock.infrastructure.trade_day import skip_if_not_trade_day
 
-logger = logging.getLogger(__name__)
+FSM = 'job_update_float_profit'
 
 
 def _update_account_float_profit(account: TradingAccount):
@@ -31,7 +30,7 @@ def _update_account_float_profit(account: TradingAccount):
     try:
         api = create_tqapi(account)
         if api is None:
-            logger.error("[%s] 无法创建 TqApi 连接", account.name)
+            log_error(FSM, f"无法创建 TqApi 连接: {account.name}", account=account)
             return
 
         # 获取 TqSDK 持仓对象引用（wait_update 前订阅）
@@ -40,7 +39,7 @@ def _update_account_float_profit(account: TradingAccount):
             try:
                 tq_positions[pos.symbol] = api.get_position(pos.symbol)
             except Exception as e:
-                logger.warning("[%s] %s get_position 失败: %s", account.name, pos.symbol, e)
+                log_trade(FSM, f"{pos.symbol} get_position 失败: {e}", symbol=pos.symbol, log_level='WARNING', account=account)
 
         if not tq_positions:
             return
@@ -62,13 +61,12 @@ def _update_account_float_profit(account: TradingAccount):
                     PositionState.objects.filter(pk=pos_db.pk).update(float_profit=fp)
                     updated_count += 1
                 except (TypeError, ValueError, AttributeError) as e:
-                    logger.warning("[%s] %s 读取 float_profit 异常: %s",
-                                   account.name, pos_db.symbol, e)
+                    log_trade(FSM, f"{pos_db.symbol} 读取 float_profit 异常: {e}", symbol=pos_db.symbol, log_level='WARNING', account=account)
 
-        logger.info("[%s] 更新完成 %d 笔持仓", account.name, updated_count)
+        log_trade(FSM, f"更新完成 {updated_count} 笔持仓", log_level='INFO', account=account)
 
     except Exception as e:
-        logger.error("[%s] 更新浮动盈亏异常: %s", account.name, e, exc_info=True)
+        log_error(FSM, f"更新浮动盈亏异常: {e}", account=account)
     finally:
         safe_close_api(api)
 
@@ -79,14 +77,14 @@ def job_update_float_profit():
     每小时执行一次，可通过 register_scheduler_jobs 注册。
     """
     close_old_connections()
-    logger.info("[定时任务] 开始更新持仓浮动盈亏")
+    log_trade(FSM, "开始更新持仓浮动盈亏", log_level='INFO')
 
     if skip_if_not_trade_day():
-        logger.info("[定时任务] 今日非交易日，跳过持仓浮动盈亏更新")
+        log_trade(FSM, "今日非交易日，跳过持仓浮动盈亏更新", log_level='INFO')
         return
 
     accounts = TradingAccount.objects.filter(is_active=True)
     for account in accounts:
         _update_account_float_profit(account)
 
-        log_trade('job_update_float_profit', '完成持仓浮动盈亏更新', log_level='INFO',account=account)
+    log_trade(FSM, '持仓浮动盈亏更新完成', log_level='INFO')

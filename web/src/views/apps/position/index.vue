@@ -50,7 +50,7 @@
           </el-table-column>
           <el-table-column label="浮动盈亏" min-width="130" align="right" sortable="custom" prop="float_profit">
             <template #default="{ row }">
-              <ValueCell :value="row.float_profit ?? 0" type="currency" />
+              <ValueCell :value="Number(row.float_profit) || 0" type="currency" />
             </template>
           </el-table-column>
           <el-table-column label="趋势因子" min-width="100" align="right" sortable>
@@ -103,13 +103,13 @@ const {
 } = usePosition()
 
 const totalUnrealizedPnl = computed(() =>
-  list.value.reduce((sum, row) => sum + (row.float_profit ?? 0), 0)
+  list.value.reduce((sum, row) => sum + (Number(row.float_profit) || 0), 0)
 )
 
 function handleSortChange({ prop, order }: { prop?: string; order?: 'ascending' | 'descending' | null }) {
   if (prop !== 'float_profit' || !order) return
   list.value.sort((a, b) => {
-    const diff = (a.float_profit ?? 0) - (b.float_profit ?? 0)
+    const diff = (Number(a.float_profit) || 0) - (Number(b.float_profit) || 0)
     return order === 'ascending' ? diff : -diff
   })
 }

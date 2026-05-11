@@ -207,6 +207,27 @@ return Response({
 
 **Note:** `ModelViewSet` routes auto-handle this wrapping. Custom `APIView` / `APIViewSet` classes must manually wrap — this is easy to miss and has caused repeated failures.
 
+## Logging Convention (重要!)
+
+All scheduler tasks and backend modules **MUST NOT** use `logger.info/warning/error`. Use the dedicated log functions instead:
+
+- **`log_trade(function_name, log_message, symbol='N/A', log_level='INFO', account=None)`** — 正常信息 (INFO) 和警告 (WARNING)
+- **`log_error(function_name, error_message, account=None)`** — 错误级别
+
+Define a module-level constant for `function_name`:
+```python
+FSM = 'my_function_name'
+```
+
+Then use consistently throughout the module:
+```python
+log_trade(FSM, "操作成功", symbol='SHFE.rb2510', log_level='INFO', account=account)
+log_trade(FSM, "something可疑", symbol='SHFE.rb2510', log_level='WARNING', account=account)
+log_error(FSM, f"操作失败: {e}", account=account)
+```
+
+Do **NOT** add a `logging.getLogger(...)` or use `logger.*` anywhere. These two functions persist all logs to DB (`TradeLog`/`ErrorLog`), while raw `logger` calls go to stdout only and are easily lost.
+
 ## Code Quality Status (2026-05-10)
 when you fix a bug you should add the bug to TODO list and after fixing the bug you should update the TODO list
 All known issues resolved:
