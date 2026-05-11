@@ -92,7 +92,10 @@
               inline-prompt
               style="--el-switch-on-color: #67c23a; --el-switch-off-color: #f56c6c"
             />
-            <div class="form-helper">模拟盘使用 TqKq，实盘连接真实交易通道</div>
+            <div class="form-helper">
+              模拟盘（<b>TqKq</b>）：使用天勤量化虚拟资金撮合交易，仅需TqSDK账号，无需期货账户<br>
+              实盘（<b>TqAccount</b>）：连接期货公司CTP柜台真实下单，<span style="color:#f56c6c">必须填写下方期货账户信息</span>
+            </div>
           </el-form-item>
           <el-form-item label="TqSDK账号" prop="tqapi_account">
             <el-input v-model="form.tqapi_account" placeholder="请输入天勤量化账号" />
