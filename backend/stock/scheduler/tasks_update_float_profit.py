@@ -12,6 +12,7 @@ from django.db import transaction, close_old_connections
 
 from stock.models import PositionState, TradingAccount
 from stock.infrastructure.tqapi import create_tqapi, safe_close_api
+from stock.infrastructure.trade_day import skip_if_not_trade_day
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,10 @@ def job_update_float_profit():
     """
     close_old_connections()
     logger.info("[定时任务] 开始更新持仓浮动盈亏")
+
+    if skip_if_not_trade_day():
+        logger.info("[定时任务] 今日非交易日，跳过持仓浮动盈亏更新")
+        return
 
     accounts = TradingAccount.objects.filter(is_active=True)
     for account in accounts:

@@ -68,11 +68,13 @@ scheduler.add_job(
     max_instances=1,
 )
 
-# 持仓浮动盈亏更新（每小时整点执行，交易日和非交易日均可）
+# 持仓浮动盈亏更新（周一到周五 10:00/11:00/14:00/22:00/23:00）
 scheduler.add_job(
     job_update_float_profit,
-    'interval',
-    hours=1,
+    'cron',
+    day_of_week='mon-fri',
+    hour='10,11,14,22,23',
+    minute=0,
     id='job_update_float_profit',
     name='持仓浮动盈亏更新',
     misfire_grace_time=600,
