@@ -15,7 +15,6 @@ from stock.infrastructure.contract_sync import sync_contract_list_from_tqsdk, sy
 from stock.infrastructure.report_sender import generate_daily_signal_report
 from stock.core.indicators import calculate_indicators
 from stock.core.performance import update_all_performance_metrics
-from stock.scheduler.tasks_daily_commission import update_trading_account_total_commission
 from stock.infrastructure.tqapi import create_tqapi, safe_close_api
 from stock.core.config_loader import get_config
 
@@ -695,8 +694,6 @@ def job_daily_close_calculation():
                             print(f"  - 日权益快照: balance={result['snapshot'].balance}")
                             print(f"  - 滚动指标: sharpe_20d={result['rolling_metrics'][20].sharpe_ratio}")
                             print(f"  - 账户总览: total_return={result['summary'].total_return}%")
-                            # 同步累计手续费到 TradingAccount.total_commission
-                            update_trading_account_total_commission(account)
                         except Exception as perf_error:
                             print(f"[ERROR] {account.name} 更新绩效指标失败: {perf_error}")
                             traceback.print_exc()

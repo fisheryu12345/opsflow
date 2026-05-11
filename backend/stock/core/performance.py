@@ -32,6 +32,7 @@ from stock.models import (
     FullContractList,
 )
 from stock.utils.log_util import log_trade, log_error
+from stock.scheduler.tasks_daily_commission import update_trading_account_total_commission
 
 
 # ==================== Layer 1: 日权益快照 ====================
@@ -51,7 +52,15 @@ def save_daily_snapshot(
         margin = Decimal(str(api_account_data.get('margin', 0))).quantize(Decimal('0.01'))
         risk_ratio = Decimal(str(api_account_data.get('risk_ratio', 0))).quantize(Decimal('0.0001'))
         commission = Decimal(str(api_account_data.get('commission', 0))).quantize(Decimal('0.01'))
-        closed_pnl = Decimal(str(api_account_data.get('closed_pnl', 0))).quantize(Decimal('0.01'))
+        closed_pnl = Decimal(str(api_account_data.get('close_profit', 0))).quantize(Decimal('0.01'))
+
+        # 防御：收盘 commission=0 但盘中已有正值 → 保留盘中值（防止 TqSDK 异常归零）
+        if commission == 0:
+            existing = DailyEquitySnapshot.objects.filter(
+                account=account, trade_date=trade_date
+            ).values_list('commission', flat=True).first()
+            if existing and existing > 0:
+                commission = existing
 
         prev_snapshot = DailyEquitySnapshot.objects.filter(
             account=account,
@@ -88,7 +97,7 @@ def save_daily_snapshot(
         log_error(
             function_name='save_daily_snapshot',
             error_message=f"{error_msg}\n{traceback.format_exc()}",
-        , account=account)
+        account=account)
         raise
 
 
@@ -187,8 +196,7 @@ def calculate_rolling_metrics(
             function_name='calculate_rolling_metrics',
             log_message=f"计算滚动绩效指标 - 账户:{account.name}, 窗口:{window_days}日, 夏普:{sharpe_ratio}, 索提诺:{sortino_ratio}, 波动率:{volatility}, 胜率:{win_rate}, 盈亏比:{profit_loss_ratio}, 交易数:{total_trades}, 数据质量:{data_quality}",
             symbol="N/A",
-            log_level='INFO'
-        , account=account)
+            log_level='INFO', account=account)
         return metric
 
     except Exception as e:
@@ -387,9 +395,8 @@ def update_account_summary(
 
         closed_profit = closed_trades.aggregate(total_pnl=Sum('pnl'))['total_pnl'] or Decimal('0')
 
-        total_commission = DailyEquitySnapshot.objects.filter(
-            account=account
-        ).aggregate(total_commission=Sum('commission'))['total_commission'] or Decimal('0')
+        # 直接从 TradingAccount 读取累计手续费（由 14:58 定时任务或收盘任务维护）
+        total_commission = account.total_commission
 
         summary, created = AccountPerformanceSummary.objects.update_or_create(
             account=account,
@@ -421,11 +428,8 @@ def update_account_summary(
         )
 
         account.current_equity = current_equity
-        account.save(update_fields=['current_equity', 'updated_at'])
-
-        # 同步累计手续费到 TradingAccount 层级
         account.total_commission = total_commission
-        account.save(update_fields=['total_commission', 'updated_at'])
+        account.save(update_fields=['current_equity', 'total_commission', 'updated_at'])
 
         action = "创建" if created else "更新"
         log_trade(
@@ -571,6 +575,9 @@ def update_all_performance_metrics(
         for window in [20, 60, 120, 250]:
             metric = calculate_rolling_metrics(account, trade_date, window_days=window)
             rolling_metrics[window] = metric
+
+        # 同步累计手续费（供 update_account_summary 直接读取 account.total_commission）
+        update_trading_account_total_commission(account)
 
         summary = update_account_summary(account, trade_date)
 

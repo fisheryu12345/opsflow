@@ -245,13 +245,12 @@ class AccountCumulativeStatsView(viewsets.ViewSet):
         )
         total_closed_pnl = float(closed_pnl_agg['total_pnl'] or 0)
         
-        # 2. 累计手续费（从 DailyEquitySnapshot 聚合）
-        commission_agg = DailyEquitySnapshot.objects.filter(
-            account_id=account_id
-        ).aggregate(
-            total_commission=Sum('commission')
-        )
-        total_commission = float(commission_agg['total_commission'] or 0)
+        # 2. 累计手续费（从 TradingAccount 直接读取）
+        try:
+            account = TradingAccount.objects.get(id=account_id)
+            total_commission = float(account.total_commission)
+        except TradingAccount.DoesNotExist:
+            total_commission = 0
         
         return Response({
             'code': 2000,
