@@ -89,4 +89,4 @@ def job_update_float_profit():
     for account in accounts:
         _update_account_float_profit(account)
 
-    log_trade('job_update_float_profit', '完成持仓浮动盈亏更新', log_level='INFO',account=account)
+        log_trade('job_update_float_profit', '完成持仓浮动盈亏更新', log_level='INFO',account=account)
