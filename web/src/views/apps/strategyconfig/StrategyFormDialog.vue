@@ -74,6 +74,18 @@
             <el-input-number v-model="form.trend_label_weak_ratio" :min="0" :max="1" :precision="3" :step="0.05" style="width: 100%" />
             <div class="form-helper">trend_strength≥此值时标签显示weak。默认: 0.30</div>
           </el-form-item>
+          <el-form-item label="跳过震荡行情开仓">
+            <el-switch
+              v-model="form.skip_choppy_entry"
+              :active-value="true"
+              :inactive-value="false"
+              active-text="跳过"
+              inactive-text="正常开仓"
+              inline-prompt
+              style="--el-switch-on-color: #e6a23c; --el-switch-off-color: #67c23a"
+            />
+            <div class="form-helper">开启后趋势为震荡(choppy/neutral)时跳过开仓，用于A/B对比验证</div>
+          </el-form-item>
         </el-tab-pane>
 
         <el-tab-pane label="过滤参数">
@@ -181,6 +193,7 @@ const form = reactive({
   future_account: '',
   future_password: '',
   is_simulation: true,
+  skip_choppy_entry: false,
 })
 
 const rules: Record<string, any> = {
@@ -204,6 +217,7 @@ watch(() => props.record, (r) => {
       gap_threshold: 1.5, tqapi_account: '', tqapi_password: '',
       future_broker: '', future_account: '', future_password: '',
       is_simulation: true,
+      skip_choppy_entry: false,
     })
   }
 }, { immediate: true })

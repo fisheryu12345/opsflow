@@ -130,6 +130,8 @@ export interface StrategyConfigRecord extends BasicEntity {
   future_password?: string
   // 模式
   is_simulation: boolean
+  // 跳过震荡行情开仓
+  skip_choppy_entry: boolean
 }
 
 // === Daily Signal ===

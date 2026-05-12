@@ -8,7 +8,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 from tqsdk import TargetPosTask
-from stock.models import TradingAccount, PositionState, DailyStrategySignal, ClosedPositionRecord, FullContractList
+from stock.models import TradingAccount, PositionState, DailyStrategySignal, ClosedPositionRecord, FullContractList, StrategyConfig
 from stock.utils.log_util import log_trade, log_error
 from stock.core.config_loader import get_config
 from stock.infrastructure.tqapi import is_api_connected
@@ -251,6 +251,20 @@ def execute_add_on_order(api, account, signal):
 def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_PROTECTION_RATIO):
     if not is_trading(api, account, signal):
         return False
+
+    # ---- 跳过震荡行情开仓 ----
+    try:
+        config = account.strategyconfig
+        if config.skip_choppy_entry and signal.trend_label in ('choppy', 'neutral'):
+            msg = f"{signal.symbol} 趋势为{signal.trend_label}，跳过开仓（震荡行情不入场）"
+            print(msg)
+            log_trade('execute_entry_order', msg, symbol=signal.symbol, log_level='INFO', account=account)
+            signal.executed_status = 'CANCELLED'
+            signal.remark = '震荡行情不入场'
+            signal.save(update_fields=['executed_status', 'updated_at', 'remark'])
+            return False
+    except StrategyConfig.DoesNotExist:
+        pass
 
     # 预计算 ATR，避免 price_gap_protection 和 calculate_unit_lots 重复计算
     atr_20 = calculate_atr(api, signal.symbol, period=20)
