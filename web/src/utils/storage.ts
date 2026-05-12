@@ -37,7 +37,7 @@ export const Local = {
 export const Session = {
 	// 设置临时缓存
 	set(key: string, val: any) {
-		if (key === 'token') return Cookies.set(key, val);
+		if (key === 'token') return Cookies.set(key, val, { expires: 7 });
 		window.sessionStorage.setItem(key, JSON.stringify(val));
 	},
 	// 获取临时缓存
