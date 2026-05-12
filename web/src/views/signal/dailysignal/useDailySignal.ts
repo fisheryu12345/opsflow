@@ -13,7 +13,7 @@ export function useDailySignal() {
     trade_date__gte: '',
     trade_date__lte: '',
     signal_direction: null as number | null,
-    executed_status: '',
+    executed_status: 'PENDING',
     symbol: '',
     trend_label: '',
   })

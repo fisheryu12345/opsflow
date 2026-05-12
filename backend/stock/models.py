@@ -482,6 +482,8 @@ class AccountPerformanceSummary(models.Model):
                                           help_text="当前净值距离历史最高净值的回撤")
     max_drawdown_duration = models.IntegerField("最大回撤持续天数", default=0,
                                                help_text="最长的一次连续回撤天数")
+    max_drawdown_recovery_days = models.IntegerField("最大回撤恢复天数", default=0,
+                                                     help_text="历史上从回撤谷底恢复到前期高点所需的最长天数（仅统计完整回撤周期）")
     calmar_ratio = models.DecimalField("卡尔玛比率", max_digits=10, decimal_places=4, null=True, blank=True,
                                       help_text="年化收益率 / 历史最大回撤")
     

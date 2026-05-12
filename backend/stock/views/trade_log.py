@@ -22,6 +22,19 @@ class TradeLogViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ['timestamp', 'log_level']
     ordering = ['-timestamp']
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        function_name = self.request.query_params.get('function_name__contains')
+        if function_name:
+            qs = qs.filter(function_name__contains=function_name)
+        timestamp__gte = self.request.query_params.get('timestamp__gte')
+        timestamp__lte = self.request.query_params.get('timestamp__lte')
+        if timestamp__gte:
+            qs = qs.filter(timestamp__gte=timestamp__gte)
+        if timestamp__lte:
+            qs = qs.filter(timestamp__lte=timestamp__lte)
+        return qs
+
 
 class ErrorLogViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
                       mixins.DestroyModelMixin, viewsets.GenericViewSet):

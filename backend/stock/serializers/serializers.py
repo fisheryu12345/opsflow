@@ -242,6 +242,7 @@ class AccountPerformanceSummarySerializer(serializers.ModelSerializer):
             'max_drawdown_all_time',
             'current_drawdown',
             'max_drawdown_duration',
+            'max_drawdown_recovery_days',
             'calmar_ratio',
             # === 全局交易统计 ===
             'total_trades_all_time',

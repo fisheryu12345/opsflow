@@ -264,6 +264,13 @@ const buildNormalItems = (
 			tooltip: '平均每笔交易的滑点（按最小变动价位计）/ 成交价优于信号价的比例'
 		});
 	}
+	items.push({
+		number: 18,
+		label: '最大回撤恢复天数',
+		value: `${summary.max_drawdown_recovery_days ?? 0}天`,
+		colorType: (summary.max_drawdown_recovery_days ?? 0) <= 5 ? 'positive' : (summary.max_drawdown_recovery_days ?? 0) <= 20 ? 'neutral' : 'negative',
+		tooltip: '历史上从回撤谷底恢复到前期高点所需的最长天数。天数越短说明策略恢复能力越强'
+		});
 	return items;
 };
 

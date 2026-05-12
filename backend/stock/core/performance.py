@@ -273,8 +273,11 @@ def update_account_summary(
             max_drawdown = Decimal('0')
             running_peak = equity_list[0][1]
             max_dd_duration = 0
+            max_dd_recovery_days = 0
             peak_date = equity_list[0][0]
             drawdown_start_date = None
+            trough_date = None
+            running_trough_equity = None
 
             for trade_date, equity in equity_list:
                 if equity > running_peak:
@@ -283,7 +286,14 @@ def update_account_summary(
                         recovery_days = (trade_date - drawdown_start_date).days
                         if recovery_days > max_dd_duration:
                             max_dd_duration = recovery_days
+                        # 计算最大回撤恢复天数（从谷底到恢复）
+                        if trough_date is not None:
+                            recovery_days_trough = (trade_date - trough_date).days
+                            if recovery_days_trough > max_dd_recovery_days:
+                                max_dd_recovery_days = recovery_days_trough
                         drawdown_start_date = None
+                        trough_date = None
+                        running_trough_equity = None
                     running_peak = equity
                     peak_date = trade_date
 
@@ -296,13 +306,25 @@ def update_account_summary(
                         # 处于回撤中
                         if drawdown_start_date is None:
                             drawdown_start_date = trade_date
+                            trough_date = trade_date
+                            running_trough_equity = equity
+                        elif equity < running_trough_equity:
+                            running_trough_equity = equity
+                            trough_date = trade_date
                     else:
                         # 已恢复
                         if drawdown_start_date is not None:
                             recovery_days = (trade_date - drawdown_start_date).days
                             if recovery_days > max_dd_duration:
                                 max_dd_duration = recovery_days
+                            # 计算最大回撤恢复天数（从谷底到恢复）
+                            if trough_date is not None:
+                                recovery_days_trough = (trade_date - trough_date).days
+                                if recovery_days_trough > max_dd_recovery_days:
+                                    max_dd_recovery_days = recovery_days_trough
                             drawdown_start_date = None
+                            trough_date = None
+                            running_trough_equity = None
 
             # 如果当前仍处于回撤中，计算到截止日期的持续时间
             if drawdown_start_date is not None:
@@ -319,6 +341,7 @@ def update_account_summary(
             max_drawdown = Decimal('0')
             current_drawdown = Decimal('0')
             max_dd_duration = 0
+            max_dd_recovery_days = 0
 
         if max_drawdown > 0 and annualized_return is not None:
             calmar_ratio = (annualized_return / max_drawdown).quantize(Decimal('0.0001'))
@@ -422,6 +445,7 @@ def update_account_summary(
                 'max_drawdown_all_time': max_drawdown,
                 'current_drawdown': current_drawdown,
                 'max_drawdown_duration': max_dd_duration,
+                'max_drawdown_recovery_days': max_dd_recovery_days,
                 'calmar_ratio': calmar_ratio,
                 'total_trades_all_time': total_trades_all_time,
                 'overall_win_rate': overall_win_rate,

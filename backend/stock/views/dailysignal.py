@@ -23,10 +23,20 @@ class DailyStrategySignalViewSet(viewsets.ModelViewSet):
     serializer_class = DailyStrategySignalSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, UserAccountFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['executed_status', 'trade_type', 'symbol', 'is_breakout', 'signal_direction', 'account']
+    filterset_fields = ['executed_status', 'trade_type', 'symbol', 'is_breakout', 'signal_direction', 'account', 'trend_label']
     search_fields = ['symbol', 'remark','executed_status', 'trade_type']
     ordering_fields = ['trade_date', 'trend_factor']
     ordering = ['-trade_date']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        trade_date__gte = self.request.query_params.get('trade_date__gte')
+        trade_date__lte = self.request.query_params.get('trade_date__lte')
+        if trade_date__gte:
+            qs = qs.filter(trade_date__gte=trade_date__gte)
+        if trade_date__lte:
+            qs = qs.filter(trade_date__lte=trade_date__lte)
+        return qs
 
 
 class SignalExecutionStatsView(APIView):
