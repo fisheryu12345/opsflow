@@ -355,9 +355,9 @@ def update_all_positions_high_low_price(account):
                 # 无论多空，同时跟踪最高价和最低价
                 # 多头：highest_close 上移跟踪浮盈，lowest_close 下移提供 MAE
                 # 空头：lowest_close 下移跟踪浮盈，highest_close 上移提供 MAE
-                if position.latest_close_price > position.highest_close:
+                if position.highest_close is not None and position.latest_close_price > position.highest_close:
                     PositionState.objects.filter(id=position.id).update(highest_close=position.latest_close_price,last_update_time=timezone.now())
-                if position.latest_close_price < position.lowest_close:
+                if position.lowest_close is not None and position.latest_close_price < position.lowest_close:
                     PositionState.objects.filter(id=position.id).update(lowest_close=position.latest_close_price,last_update_time=timezone.now())
                 updated_count += 1
                 
@@ -388,9 +388,12 @@ def update_all_positions_stop_loss_price(api, account):
             account=account,
             units__gt=0  # 只处理有持仓的记录
         ).exclude(direction=0)
-        
+
         updated_count = 0
-        
+
+        # 【修复】确保 TqSDK 持仓数据已加载，避免 get_position() 返回 proxy 默认值 0
+        api.wait_update()
+
         for position in positions:
             try:
                 # 检查必要数据是否存在

@@ -513,8 +513,22 @@ def execute_exit_order(api, position, signal):
                 signal.save(update_fields=['executed_status', 'updated_at', 'remark'])
             return False
 
-        quote = api.get_quote(position.symbol)
-        exit_price = float(quote.last_price) if quote and quote.last_price else None
+        # 从实际成交回报计算均价，而非用 quote.last_price
+        trades = api.get_trades()
+        filled_vol = 0
+        total_cost = Decimal('0')
+        for trade in reversed(trades.values()):
+            if (trade.instrument_id == position.symbol
+                    and trade.offset in ('CLOSE', 'CLOSETODAY')):
+                filled_vol += trade.volume
+                total_cost += Decimal(str(trade.price)) * Decimal(str(trade.volume))
+                if filled_vol >= total_volume:
+                    break
+        if filled_vol > 0:
+            exit_price = float(total_cost / Decimal(str(filled_vol)))
+        else:
+            quote = api.get_quote(position.symbol)
+            exit_price = float(quote.last_price) if quote and quote.last_price else None
 
         with transaction.atomic():
             record_and_reset_position(api, position, signal, total_volume, exit_price)

@@ -4,6 +4,7 @@ TqApi lifecycle management — centralized API creation and teardown.
 from tqsdk import TqApi, TqAuth, TqKq, TqAccount
 from stock.core.config_loader import get_config
 from stock.models import StrategyConfig, TradingAccount
+import time
 
 
 def _get_default_auth():
