@@ -65,6 +65,8 @@ contracts_for_kline_view = ContractsForKlineView.as_view({'get': 'list'})
 urlpatterns = [
     # 策略分析报告（直接渲染 HTML 模板）
     path('strategy-report/', TemplateView.as_view(template_name='策略分析报告-完整数理分析.html'), name='strategy-report'),
+    # 策略综合对比评测（直接渲染 HTML 模板）
+    path('strategy-comparison/', TemplateView.as_view(template_name='策略综合对比-五大策略全面评测.html'), name='strategy-comparison'),
     # K线数据路由（必须放在 router.urls 之前，避免被 router 的 {pk} 路由拦截）
     path('kline-data/trade-markers/', trade_markers_view, name='kline-trade-markers'),
     path('kline-data/available-contracts/', contracts_for_kline_view, name='kline-available-contracts'),

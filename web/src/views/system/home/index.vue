@@ -10,6 +10,10 @@
 						<Document style="width:14px;height:14px;margin-right:4px;" />
 						策略分析报告
 					</el-button>
+						<el-button class="report-btn" type="success" plain @click="openComparison">
+							<TrendCharts style="width:14px;height:14px;margin-right:4px;" />
+							策略综合对比
+						</el-button>
 				</div>
 			</div>
 
@@ -221,6 +225,11 @@ const formatPercent = (value: number | string | null, decimals: number = 2) => {
 	const openReport = () => {
 		const baseUrl = import.meta.env.VITE_API_URL || '';
 		window.open(baseUrl + '/api/stock/strategy-report/', '_blank');
+	};
+
+	const openComparison = () => {
+		const baseUrl = import.meta.env.VITE_API_URL || '';
+		window.open(baseUrl + '/api/stock/strategy-comparison/', '_blank');
 	};
 
 
