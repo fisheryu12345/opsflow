@@ -333,6 +333,10 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
                     'latest_close_price': Decimal(str(two_step_result['avg_price'])),
                     'last_update_time': timezone.now(),
                     'open_date': timezone.now().date(),
+                    # 入场趋势快照
+                    'entry_trend_factor': signal.trend_factor,
+                    'entry_trend_label': signal.trend_label,
+                    'entry_atr': Decimal(str(atr_20)) if atr_20 is not None else None,
                 }
             )
 
@@ -418,6 +422,10 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
                         'last_update_time': timezone.now(),
                         'open_date': timezone.now().date(),
                         'first_open_price': Decimal(str(entry_avg_price)),
+                        # 入场趋势快照
+                        'entry_trend_factor': signal.trend_factor,
+                        'entry_trend_label': signal.trend_label,
+                        'entry_atr': Decimal(str(atr_20)) if atr_20 is not None else None,
                     }
                 )
 
@@ -619,6 +627,28 @@ def execute_rollover_order(api, position, signal):
         if position.open_date:
             holding_days = (timezone.now().date() - position.open_date).days
 
+        # --- 计算出场趋势快照 ---
+        exit_trend_factor = signal.trend_factor if signal else None
+        exit_trend_label = signal.trend_label if signal else None
+
+        # 计算出场 ATR
+        try:
+            exit_atr_raw = calculate_atr(api, position.symbol)
+            exit_atr_roll = Decimal(str(exit_atr_raw)) if exit_atr_raw is not None else None
+        except Exception:
+            exit_atr_roll = None
+
+        # 计算 MFE/MAE
+        mfe = None
+        mae = None
+        if cost_price is not None and position.highest_close is not None and position.lowest_close is not None:
+            if position.direction == 1:
+                mfe = position.highest_close - cost_price
+                mae = cost_price - position.lowest_close
+            elif position.direction == -1:
+                mfe = cost_price - position.lowest_close
+                mae = position.highest_close - cost_price
+
         ClosedPositionRecord.objects.create(
             account=position.account,
             symbol=position.symbol,
@@ -631,6 +661,17 @@ def execute_rollover_order(api, position, signal):
             trade_date=timezone.now().date(),
             executed_at=timezone.now(),
             holding_days=Decimal(str(holding_days)) if holding_days is not None else None,
+            # 入场趋势快照
+            entry_trend_factor=position.entry_trend_factor,
+            entry_trend_label=position.entry_trend_label,
+            entry_atr=position.entry_atr,
+            # 出场趋势快照
+            exit_trend_factor=exit_trend_factor,
+            exit_trend_label=exit_trend_label,
+            exit_atr=exit_atr_roll,
+            # 极值分析
+            max_favorable_excursion=mfe,
+            max_adverse_excursion=mae,
         )
 
         msg = f"{position.symbol} 移仓平仓记录已创建: {filled_volume}手 @ {rollover_exit_price:.2f}, PnL={rollover_pnl:.2f}"

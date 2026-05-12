@@ -706,6 +706,14 @@ class PositionState(models.Model):
     float_profit = models.DecimalField("浮动盈亏（实时）", max_digits=15, decimal_places=2, null=True, blank=True,
                                       help_text="通过 TqSDK 获取的当前合约实时浮动盈亏，定时任务每小时更新")
 
+    # === 入场趋势快照 (开仓时写入，永不修改) ===
+    entry_trend_factor = models.DecimalField("入场趋势因子", max_digits=6, decimal_places=4, null=True, blank=True,
+                                             help_text="入场时的趋势因子值，开仓时从信号记录，永不修改")
+    entry_trend_label = models.CharField("入场趋势标签", max_length=20, null=True, blank=True,
+                                         help_text="入场时的趋势标签，如：strong_bull, weak_bear, choppy，永不修改")
+    entry_atr = models.DecimalField("入场ATR", max_digits=12, decimal_places=2, null=True, blank=True,
+                                    help_text="入场时的 ATR(20) 波动率值，供波动率归因分析")
+
     def __str__(self):
         direction_map = {1: "多", -1: "空", 0: "空仓"}
         return f"{self.symbol} - {direction_map.get(self.direction, '未知')} - {self.units}单位"
@@ -776,8 +784,30 @@ class ClosedPositionRecord(models.Model):
                                       help_text="平仓订单实际成交的时间戳")
     holding_days = models.DecimalField("持仓天数", max_digits=8, decimal_places=2, null=True, blank=True,
                                       help_text="从开仓到平仓的实际持仓天数")
-    
-    
+
+    # === 入场趋势快照 (平仓时从 PositionState 复制) ===
+    entry_trend_factor = models.DecimalField("入场趋势因子", max_digits=6, decimal_places=4, null=True, blank=True,
+                                             help_text="入场时的趋势因子值，从持仓记录复制")
+    entry_trend_label = models.CharField("入场趋势标签", max_length=20, null=True, blank=True,
+                                         help_text="入场时的趋势标签，从持仓记录复制")
+    entry_atr = models.DecimalField("入场ATR", max_digits=12, decimal_places=2, null=True, blank=True,
+                                    help_text="入场时的 ATR(20) 值")
+
+    # === 出场趋势快照 ===
+    exit_trend_factor = models.DecimalField("出场趋势因子", max_digits=6, decimal_places=4, null=True, blank=True,
+                                            help_text="出场时的趋势因子值")
+    exit_trend_label = models.CharField("出场趋势标签", max_length=20, null=True, blank=True,
+                                        help_text="出场时的趋势标签")
+    exit_atr = models.DecimalField("出场ATR", max_digits=12, decimal_places=2, null=True, blank=True,
+                                   help_text="出场时的 ATR(20) 值")
+
+    # === 价格极值分析 ===
+    max_favorable_excursion = models.DecimalField("最大有利偏离", max_digits=12, decimal_places=2, null=True, blank=True,
+                                                  help_text="持仓期间最大有利价格偏移：多头=最高价-成本价，空头=成本价-最低价")
+    max_adverse_excursion = models.DecimalField("最大不利偏离", max_digits=12, decimal_places=2, null=True, blank=True,
+                                                help_text="持仓期间最大不利价格偏移：多头=成本价-最低价，空头=最高价-成本价")
+
+
     class Meta:
         verbose_name = "平仓交易记录"
         verbose_name_plural = "平仓交易记录"

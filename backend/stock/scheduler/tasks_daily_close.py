@@ -352,12 +352,13 @@ def update_all_positions_high_low_price(account):
                 # 查询该合约的历史收盘价
                 # 开仓日期之前的收盘价不考虑
                 # 开仓的时候以开仓价格为初始最高价和最低价，需要再开仓的时候填入。然后每日收盘后更新一次，计算开仓以来的最高价和最低价。
-                if position.direction == 1:
-                    if position.latest_close_price > position.highest_close:
-                        PositionState.objects.filter(id=position.id).update(highest_close=position.latest_close_price,last_update_time=timezone.now())
-                if position.direction == -1:
-                    if position.latest_close_price < position.lowest_close:
-                        PositionState.objects.filter(id=position.id).update(lowest_close=position.latest_close_price,last_update_time=timezone.now())
+                # 无论多空，同时跟踪最高价和最低价
+                # 多头：highest_close 上移跟踪浮盈，lowest_close 下移提供 MAE
+                # 空头：lowest_close 下移跟踪浮盈，highest_close 上移提供 MAE
+                if position.latest_close_price > position.highest_close:
+                    PositionState.objects.filter(id=position.id).update(highest_close=position.latest_close_price,last_update_time=timezone.now())
+                if position.latest_close_price < position.lowest_close:
+                    PositionState.objects.filter(id=position.id).update(lowest_close=position.latest_close_price,last_update_time=timezone.now())
                 updated_count += 1
                 
             except Exception as pos_error:

@@ -137,6 +137,15 @@ class ClosedPositionRecordSerializer(serializers.ModelSerializer):
             'trade_date',
             'executed_at',
             'holding_days',
+            # 趋势分析字段
+            'entry_trend_factor',
+            'entry_trend_label',
+            'entry_atr',
+            'exit_trend_factor',
+            'exit_trend_label',
+            'exit_atr',
+            'max_favorable_excursion',
+            'max_adverse_excursion',
         ]
         read_only_fields = ['id']
 

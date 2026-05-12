@@ -216,6 +216,7 @@ def record_and_reset_position(api, position, signal, filled_volume, avg_price):
     被 execute_exit_order 和 execute_stop_loss_exit 共享。
     """
     from stock.models import ClosedPositionRecord, PositionState, FullContractList
+    from stock.core.atr import calculate_atr
 
     with transaction.atomic():
         quote = api.get_quote(position.symbol)
@@ -240,6 +241,37 @@ def record_and_reset_position(api, position, signal, filled_volume, avg_price):
         else:
             pnl = (cost_price - Decimal(str(exit_price))) * Decimal(str(volume)) * Decimal(str(volume_multiple))
 
+        # --- 计算出场趋势快照 ---
+        if signal is not None:
+            exit_trend_factor = signal.trend_factor
+            exit_trend_label = signal.trend_label
+        elif position.indicators:
+            exit_trend_factor = Decimal(str(position.indicators.get('trend_factor', 0)))
+            exit_trend_label = position.indicators.get('trend_label', '')
+        else:
+            exit_trend_factor = None
+            exit_trend_label = None
+
+        # 计算出场 ATR
+        try:
+            exit_atr_raw = calculate_atr(api, position.symbol)
+            exit_atr_val = Decimal(str(exit_atr_raw)) if exit_atr_raw is not None else None
+        except Exception:
+            exit_atr_val = None
+
+        # 计算 MFE/MAE
+        mfe = None
+        mae = None
+        if cost_price is not None and position.highest_close is not None and position.lowest_close is not None:
+            if direction == 1:
+                # 多头：MFE=最高价-成本价，MAE=成本价-最低价
+                mfe = position.highest_close - cost_price
+                mae = cost_price - position.lowest_close
+            elif direction == -1:
+                # 空头：MFE=成本价-最低价，MAE=最高价-成本价
+                mfe = cost_price - position.lowest_close
+                mae = position.highest_close - cost_price
+
         ClosedPositionRecord.objects.create(
             account=position.account,
             symbol=position.symbol,
@@ -252,6 +284,17 @@ def record_and_reset_position(api, position, signal, filled_volume, avg_price):
             trade_date=timezone.now().date(),
             executed_at=timezone.now(),
             holding_days=Decimal(str(holding_days)) if holding_days is not None else None,
+            # 入场趋势快照
+            entry_trend_factor=position.entry_trend_factor,
+            entry_trend_label=position.entry_trend_label,
+            entry_atr=position.entry_atr,
+            # 出场趋势快照
+            exit_trend_factor=exit_trend_factor,
+            exit_trend_label=exit_trend_label,
+            exit_atr=exit_atr_val,
+            # 极值分析
+            max_favorable_excursion=mfe,
+            max_adverse_excursion=mae,
         )
 
         update_fields = {

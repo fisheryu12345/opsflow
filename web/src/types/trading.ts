@@ -58,6 +58,15 @@ export interface ClosedPositionRecord extends BasicEntity {
   trade_date: string
   executed_at: string
   holding_days: number
+  // 趋势分析字段
+  entry_trend_factor: number | null
+  entry_trend_label: string | null
+  entry_atr: number | null
+  exit_trend_factor: number | null
+  exit_trend_label: string | null
+  exit_atr: number | null
+  max_favorable_excursion: number | null
+  max_adverse_excursion: number | null
 }
 
 // === Trade Log ===
