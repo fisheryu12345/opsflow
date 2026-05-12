@@ -31,12 +31,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "未命名/08-TODO/00-总览.md",
+                "file": "未命名/02-软件功能说明/功能说明-K线数据扩充.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "00-总览"
+              "title": "功能说明-K线数据扩充"
             }
           }
         ]
@@ -203,8 +203,8 @@
   },
   "active": "368a6c5ef6bb399d",
   "lastOpenFiles": [
-    "未命名/08-TODO/05-待实现功能.md",
     "未命名/08-TODO/00-总览.md",
+    "未命名/08-TODO/05-待实现功能.md",
     "未命名/08-TODO/04-LOW.md",
     "未命名/02-软件功能说明/功能说明-手续费查询.md",
     "未命名/08-TODO/03-MEDIUM.md",
