@@ -141,6 +141,7 @@ const getChartOption = (data: any, isMock: boolean) => {
 };
 
 const loadRadarChart = async () => {
+	if (!props.accountId) return;
 	try {
 		const res = await getMultiWindowMetrics(props.accountId);
 		let data: any = null, isMock = false;
