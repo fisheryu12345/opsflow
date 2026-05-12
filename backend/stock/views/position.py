@@ -16,7 +16,7 @@ class PositionStateViewSet(viewsets.ReadOnlyModelViewSet):
     """
     策略持仓状态视图集 - 只读（数据由系统自动生成和维护）
     """
-    queryset = PositionState.objects.annotate(
+    queryset = PositionState.objects.filter(units__gt=0).annotate(
         volume_multiple=Subquery(
             FullContractList.objects.filter(product_code=OuterRef('product_code'))
             .values('volume_multiple')[:1]
