@@ -64,7 +64,9 @@
           </el-table-column>
           <el-table-column label="需移仓" width="80" align="center">
             <template #default="{ row }">
-              <StatusTag type="active" :value="!row.is_rollover_needed" />
+              <el-tag :type="row.is_rollover_needed ? 'warning' : 'info'" size="small" effect="plain">
+                {{ row.is_rollover_needed ? 'YES' : 'NO' }}
+              </el-tag>
             </template>
           </el-table-column>
           <el-table-column label="保本激活" width="80" align="center">
