@@ -1,39 +1,22 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Quantitative futures trading system on django-vue3-admin. Integrates TqSDK for market data and execution.
 
-## Project Overview
-
-This is a **quantitative futures trading system** built on the django-vue3-admin framework. It manages trading strategies, positions, risk parameters, and performance analytics for commodity futures. The system integrates with TqSDK for real-time market data and trade execution.
-
-**Tech Stack:**
-- **Backend:** Python 3.11+, Django 4.2.7, Django REST Framework 3.14, MySQL, Redis, Celery, Channels/WebSocket
-- **Frontend:** Vue 3 (Composition API + TypeScript), Vite 4, Element Plus, Pinia, FastCRUD, ECharts
-- **Trading:** TqSDK (天勤量化), APScheduler
+**Stack:** Python 3.11+ / Django 4.2.7 / DRF 3.14 / MySQL / Redis / Celery | Vue 3 / TypeScript / Vite 4 / Element Plus / Pinia / ECharts | TqSDK / APScheduler
 
 ## Getting Started
 
-### Backend (backend/)
-
 ```bash
-cd backend
-cp conf/env.example.py conf/env.py  # Edit database config
-pip install -r requirements.txt
-python manage.py makemigrations
-python manage.py migrate
-python manage.py init              # Initialize RBAC data
-python manage.py init_area         # Initialize region data
+# Backend
+cd backend && cp conf/env.example.py conf/env.py  # edit DB config
+pip install -r requirements.txt && python manage.py migrate
+python manage.py init && python manage.py init_area
 python manage.py runserver 0.0.0.0:8000
-```
 
-### Frontend (web/)
-
-```bash
-cd web
-npm install --registry=https://registry.npm.taobao.org
-npm run dev       # Dev server at http://localhost:8080
-npm run build     # Production build
-npm run lint-fix  # ESLint fix
+# Frontend
+cd web && npm install --registry=https://registry.npm.taobao.org
+npm run dev    # localhost:8080
+npm run build  # production
 ```
 
 **Default credentials:** superadmin / admin123456
@@ -44,153 +27,119 @@ npm run lint-fix  # ESLint fix
 
 | Directory | Purpose |
 |-----------|---------|
-| `application/` | Django project config (settings, URLs, ASGI/WSGI, Celery, routing) |
-| `conf/` | Environment config (database, Redis, feature flags) |
-| `dvadmin/system/` | RBAC framework (users, roles, menus, depts, permissions, dicts) |
-| `dvadmin/utils/` | Shared utilities (viewsets, serializers, pagination, middleware, permissions, filters) |
-| `stock/` | **Trading application** (models, scheduler, views, serializers, TqSDK integration) |
-| `stock/scheduler/` | APScheduler jobs for daily trading tasks (open/close, ATR, performance) |
-| `stock/deepseek/` | AI integration for trade analysis |
-| `plugins/` | Plugin system for add-on modules |
+| `application/` | Django project config, Celery, routing |
+| `conf/` | Environment config (DB, Redis, feature flags) |
+| `dvadmin/system/` | RBAC framework (users, roles, menus, depts) |
+| `dvadmin/utils/` | Shared utilities (viewsets, serializers, pagination, middleware) |
+| `stock/` | **Trading app** — models, scheduler, views, TqSDK integration |
+| `stock/scheduler/` | APScheduler jobs (open/close, ATR, performance) |
+| `stock/deepseek/` | AI trade analysis |
+| `plugins/` | Plugin system |
 
-### Stock App Data Models (backend/stock/models.py)
+### Stock Models (backend/stock/models.py)
 
-The models follow a layered architecture:
-
-1. **Infrastructure Layer:** `TradingAccount`, `FullContractList` (contract metadata/switch), `StrategyConfig` (parametrized strategy settings)
-2. **Signal Layer:** `DailyStrategySignal` (breakout signals, trend state)
-3. **Performance Layer (3-tier):** `DailyEquitySnapshot` → `RollingPerformanceMetrics` → `AccountPerformanceSummary`
-4. **State Management:** `PositionState` (current positions, stop-loss, add-on tracking), `ClosedPositionRecord` (closed trades)
+1. **Infrastructure:** `TradingAccount`, `FullContractList`, `StrategyConfig`
+2. **Signal:** `DailyStrategySignal`
+3. **Performance (3-tier):** `DailyEquitySnapshot` → `RollingPerformanceMetrics` → `AccountPerformanceSummary`
+4. **State:** `PositionState`, `ClosedPositionRecord`
 5. **Logging:** `ErrorLog`, `TradeLog`
 
 ### Frontend Modules (web/src/)
 
 | Directory | Purpose |
 |-----------|---------|
-| `api/` | Axios API clients grouped by domain |
-| `components/` | Shared components (auth, table, editor, icon, import, cropper) |
-| `layout/` | App shell (nav bars, tags view, menu, breadcrumb, footer, lock screen) |
-| `views/` | Page components by feature |
-| `views/system/` | RBMA pages (home, login, user, role, menu, dept, dict, config, logs) |
-| `views/apps/` | Trading app pages (positions, contracts, strategy config, trade logs, closed positions, error logs) |
-| `views/apps/kline/` | K-line chart page (ECharts candlestick + trade markers + Donchian channel) |
+| `api/` | Axios API clients |
+| `components/` | Shared components (auth, table, editor, etc.) |
+| `layout/` | App shell (nav, menu, tags, breadcrumb, lock screen) |
+| `views/system/` | RBAC pages (login, user, role, menu, dept, config, logs) |
+| `views/apps/` | Trading pages (positions, contracts, strategy config, trade logs, error logs) |
+| `views/apps/kline/` | K-line chart (ECharts candlestick + Donchian channel) |
 | `views/signal/` | Daily signal views |
-| `stores/` | Pinia stores (user, theme, routes, tags, permissions, dictionary, account) |
-| `router/` | Route definitions (frontEnd.ts, backEnd.ts) |
-| `utils/` | Helpers (request, auth, storage, websocket, format, theme) |
-| `i18n/` | Internationalization (zh-cn, en) |
-| `theme/` | SCSS theme system |
+| `stores/` | Pinia stores |
+| `router/` | Route definitions |
+| `utils/` | Helpers (request, auth, websocket, format) |
+| `i18n/` | Internationalization |
+| `theme/` | SCSS theme |
 
 ### API Routes
 
-- `api/system/*` — RBAC system CRUD
-- `api/stock/*` — Trading data endpoints
-  - `contracts`, `strategy`, `position`, `closed-positions`, `trade_log`, `error_log`, `daily_signals`
-  - `kline-data/` — K-line data, trade markers, available contracts
-  - Performance: `equity-snapshots`, `rolling-metrics`, `account-summaries`, `symbol-win-rate`, `cumulative-stats`, `daily-returns-calendar`, `drawdown-curve`
+- `api/system/*` — RBAC CRUD
+- `api/stock/*` — Trading data: `contracts`, `strategy`, `position`, `closed-positions`, `trade_log`, `error_log`, `daily_signals`, `kline-data/`, performance endpoints
 - `api/login/`, `api/logout/`, `api/captcha/`, `api/token/` — Auth
-- Swagger docs at `/`
+- Swagger at `/`
 
-### Key Configuration Files
+### Key Config Files
 
-- `backend/conf/env.py` — Database, Redis, debug, captcha settings
-- `backend/application/settings.py` — Django/DRF/SimpleJWT/CORS/Celery config
-- `backend/stock/parameter_config.py` — Trading parameters (risk, ATR, trend factor, gap protection)
-- `web/.env` — Frontend environment variables
-- `web/.env.development` — Dev environment
+- `backend/conf/env.py` — DB, Redis, debug, captcha
+- `backend/application/settings.py` — Django/DRF/JWT/CORS/Celery
+- `backend/stock/parameter_config.py` — Trading params (risk, ATR, gap protection)
+- `web/.env` / `web/.env.development` — Frontend env
 
 ## Common Tasks
 
-### Create new Django app (trading feature)
-1. Create app structure under `backend/stock/` with `views/`, `serializers/`, etc.
-2. Define model in `backend/stock/models.py`, run `makemigrations && migrate`
-3. Create ViewSet in `backend/stock/views/`, serializer in `backend/stock/serializers/`
-4. Register route in `backend/stock/urls.py`
-5. If using FastCRUD: create CRUD definition in `web/src/api/` and view in `web/src/views/apps/`
+### New trading feature
+1. Model in `stock/models.py` → `makemigrations && migrate`
+2. ViewSet in `stock/views/`, serializer in `stock/serializers/`
+3. Route in `stock/urls.py`
+4. (Optional) FastCRUD in `web/src/api/` + view in `web/src/views/apps/`
 
-### Scheduler tasks (APScheduler)
-Scheduled trading tasks live in `backend/stock/scheduler/`. Jobs handle daily open/close, ATR calculation, performance snapshots, and report sending.
+### Scheduler tasks
+Jobs live in `backend/stock/scheduler/`. Use `redis_lock()` for concurrent safety.
 
 ## Symbol Format Convention
 
-All `symbol` fields across the system use the **exchange-prefixed format**: `{EXCHANGE}.{contract_code}` (e.g., `SHFE.rb2510`, `DCE.m2509`, `CZCE.MA501`).
+All `symbol` fields use exchange-prefixed format `{EXCHANGE}.{contract_code}` (e.g., `SHFE.rb2510`, `DCE.m2509`, `CZCE.MA501`). This applies to `FullContractList`, `PositionState`, `KlineData`, `DailyStrategySignal`, `ClosedPositionRecord`.
 
-- `FullContractList.symbol` — e.g., `SHFE.rb2510` (seed data: `SHFE.rb888` for continuous contract placeholder)
-- `PositionState.symbol` — e.g., `SHFE.rb2510`
-- `KlineData.symbol` — e.g., `SHFE.rb2510`
-- `DailyStrategySignal.symbol` — e.g., `SHFE.rb2510`
-- `ClosedPositionRecord.symbol` — e.g., `SHFE.rb2510`
+**Why:** TqSDK APIs (`TargetPosTask`, `get_kline_serial`, `get_quote`, `get_position`) require this format.
 
-**Why:** TqSDK API functions (`TargetPosTask`, `get_kline_serial`, `get_quote`, `get_position`) all require the exchange-prefixed format.
-
-**Querying by product code:** Use the `product_code` field (bare code like `rb`, `MA`) for filtering by product family.
+Query by product: use `product_code` field (bare code like `rb`, `MA`).
 
 ## Management Commands
 
 | Command | Purpose |
 |---------|---------|
-| `sync_contracts` | Sync contract list from TqSDK, or `--seed` for seed data, `--repair-accounts` for missing accounts |
-| `sync_kline` | Sync K-line data from TqSDK for active contracts |
-| `sync_all` | Combined: contract sync + K-line sync in one step. Options: `--seed`, `--product rb,MA`, `--skip-kline`, `--skip-contract` |
-| `fix_symbol_format` | Migrate DB symbols from bare format (`rb2510`) to exchange-prefixed (`SHFE.rb2510`) |
-| `add_closed_position_menu` | Add closed position menu entry (RBAC setup) |
-| `add_knowledge_base_menu` | Add knowledge base menu entry (RBAC setup) |
+| `sync_contracts` | Sync contracts from TqSDK (`--seed`, `--repair-accounts`) |
+| `sync_kline` | Sync K-line data |
+| `sync_all` | Combined sync (`--seed`, `--product rb,MA`, `--skip-*`) |
+| `fix_symbol_format` | Migrate bare symbols to exchange-prefixed |
+| `add_closed_position_menu` / `add_knowledge_base_menu` | RBAC menu setup |
 
 ## Redis Distributed Lock
 
-Located at `backend/stock/utils/redis_lock.py`. Provides:
-- `redis_lock()` — context manager with auto-renewal (daemon thread renews every 15s)
-- Default TTL: 30s (fast auto-release if process crashes)
-- `LockAcquisitionError` — raised when lock cannot be acquired
-- Used by: `tasks_daily_open.py` (per-account), `tasks_daily_close.py` (global), `tasks_exit_before_close.py` (global)
+`backend/stock/utils/redis_lock.py` — context manager with auto-renewal (15s daemon thread, 30s TTL). Raises `LockAcquisitionError`. Used by open/close/exit scheduler tasks.
 
-## K-line Chart Architecture
+## K-line Chart
 
-The K-line chart page (`web/src/views/apps/kline/`) uses **direct ECharts initialization** (not the `useECharts()` composable):
-
-- `useKline.ts` manages chart lifecycle: `echarts.init()` → `setOption()` → `dispose()`
-- Supports: candlestick, MA10/20/40 lines, Donchian channel (20HL), trade markers (entry/add-on/rollover/exit)
-- dataZoom: slider at bottom + mouse wheel zoom + drag pan
-- Legend: built-in ECharts legend for toggling MA and channel visibility
-- Race condition protection: `fetchSeq` counter discards stale responses on fast contract switch
+Direct ECharts init at `web/src/views/apps/kline/` (not `useECharts()` composable). `useKline.ts` manages lifecycle: `init()` → `setOption()` → `dispose()`. Supports candlestick, MA10/20/40, Donchian 20HL, trade markers, dataZoom slider + wheel, legend toggles. Uses `fetchSeq` counter for stale-response protection.
 
 ## Strategy Design Principles
 
-### Entry Logic
-- **Entry is purely based on 20HL Donchian channel breakout** (closing price breaking the 20-day high/low)
-- No MA filter on entry — MA10/20/40 are **NOT** used to filter signals
-- This is by design: prioritizes capturing all trend starts, uses stop-loss width for risk control instead of pre-filtering
+- **Entry:** Pure 20HL Donchian channel breakout (closing price breaks 20-day high/low). No MA filter — captures all trend starts, controls risk via stop-loss width.
+- **MA/Trend Factor:** MA10/20/40 only used for stop-loss distance adjustment. `trend_factor` dynamically adjusts stop-loss width (2.0 ATR choppy ~ 3.0 ATR strong trend). Trend labels are informational only.
+- **Backtest difference:** Backtest (`backend/stock/backtest/`) is an independent offline tool with extra MA filtering. Live system omits it intentionally — expect ~3-5% lower win rate but more trend trades.
+- **Cost price sync:** `cost_price` is synced daily from TqSDK's `open_price_long`/`open_price_short` during `update_all_positions_stop_loss_price`. Add-on operations do NOT update `cost_price` — the gap between add-on and daily close is harmless since no exits occur in that window.
+- **Add-on window no exit:** Add-on operations (`execute_add_on_order`) do not update `cost_price` (weighted average). No exit occurs between add-on and daily close — the daily close job syncs `cost_price` from TqSDK's `open_price_long`/`open_price_short`, so PnL is unaffected.
+- **Open price at 9:02:** Open-position tasks run at 9:02. At that point `quote.last_price` already reflects the opening price after call auction. The gap-protection logic using `last_price` is correct.
+- **Signal uniqueness per day per symbol:** `DailyStrategySignal` is computed once per symbol per day. `unique_together = ('account', 'symbol', 'trade_date')` guarantees uniqueness — `trade_type` is not part of the constraint and does not cause duplicates.
+- **Domestic commodity futures only:** This system is designed for Chinese commodity futures (SHFE, DCE, CZCE, CFFEX, INE). Contract code patterns, regex parsing, session times, and exchange rules all assume the Chinese futures market.
 
-### MA/Role of Trend Factor
-- MA10/20/40 calculation is **only used for stop-loss distance adjustment**
-- `trend_factor` (computed from MA gap ratio) dynamically adjusts stop-loss: 2.0 ATR (choppy) ~ 3.0 ATR (strong trend)
-- The trend label (bull/bear/choppy) in signals and position state is informational only — it does NOT gate entry
+> **Strategy notes:** Add strategy logic clarifications discovered during bug fixes as bullet points above. This keeps the design rationale visible for future work.
 
-### Key Design Difference from Backtest
-- The backtest system (`backend/stock/backtest/`) is an independent offline analysis tool
-- It includes additional MA filtering that the live system intentionally does not use
-- Live system results will show slightly lower win rate (3~5%) but capture more trend trades
 
 ## Documentation
 
 Knowledge base: `md/知识库/未命名/`
-- `02-软件功能说明/` — Feature docs (strategy signals, performance, K-line buy points, position management)
-- `04-策略设计文档/` — Strategy design docs
-- `08-TODO/` — Issue tracking (all 42 issues resolved as of 2026-05-10)
+- `02-软件功能说明/` — Feature docs
+- `04-策略设计文档/` — Strategy design
+- `08-TODO/` — Issue tracking (all resolved as of 2026-05-10)
 
-## API Response Format Convention (重要!)
+## API Response Format (重要!)
 
-All custom API views (non-ModelViewSet) **MUST** wrap responses in the framework's standard envelope:
-
+Custom API views (non-ModelViewSet) **MUST** wrap responses:
 ```python
-return Response({
-    'code': 2000,
-    'msg': 'success',
-    'data': { ... }
-})
+return Response({'code': 2000, 'msg': 'success', 'data': { ... }})
 ```
-
-**Why:** The frontend axios interceptor (`web/src/utils/service.ts`) checks for `code` field. Missing it causes `"非标准返回"` error and blocks the response from reaching the page.
+Missing `code` field triggers `"非标准返回"` error in frontend axios interceptor (`web/src/utils/service.ts`).
 
 | Code | Meaning |
 |------|---------|
@@ -199,36 +148,17 @@ return Response({
 | `401` | Auth failure |
 | `400` | Bad request |
 
-**Note:** `ModelViewSet` routes auto-handle this wrapping. Custom `APIView` / `APIViewSet` classes must manually wrap — this is easy to miss and has caused repeated failures.
+ModelViewSet routes auto-handle wrapping. Custom `APIView` / `APIViewSet` must manually wrap.
 
 ## Logging Convention (重要!)
 
-All scheduler tasks and backend modules **MUST NOT** use `logger.info/warning/error`. Use the dedicated log functions instead:
+**Do NOT use** `logger.info/warning/error`. Use these DB-persisting functions instead:
 
-- **`log_trade(function_name, log_message, symbol='N/A', log_level='INFO', account=None)`** — 正常信息 (INFO) 和警告 (WARNING)
-- **`log_error(function_name, error_message, account=None)`** — 错误级别
+- **`log_trade(function_name, msg, symbol='N/A', log_level='INFO', account=None)`**
+- **`log_error(function_name, msg, account=None)`**
 
-Define a module-level constant for `function_name`:
-```python
-FSM = 'my_function_name'
-```
+Define a module-level `FSM = 'my_function_name'` constant and reuse it in all calls.
 
-Then use consistently throughout the module:
-```python
-log_trade(FSM, "操作成功", symbol='SHFE.rb2510', log_level='INFO', account=account)
-log_trade(FSM, "something可疑", symbol='SHFE.rb2510', log_level='WARNING', account=account)
-log_error(FSM, f"操作失败: {e}", account=account)
-```
+## Bug Fixes
 
-Do **NOT** add a `logging.getLogger(...)` or use `logger.*` anywhere. These two functions persist all logs to DB (`TradeLog`/`ErrorLog`), while raw `logger` calls go to stdout only and are easily lost.
-
-## Code Quality Status (2026-05-10)
-when you fix a bug you should add the bug to TODO list with bug background ,effect, suggestion and after fixing the bug you should update the TODO list
-All known issues resolved:
-- 🔴 CRITICAL: 6/6 fixed
-- 🟠 HIGH: 15/15 total (14 bug-items fixed, 1 verified as not-a-bug)
-- 🟡 MEDIUM: 29/30 total (28 bug-items fixed, 1 verified not-a-bug, 1 TqSDK pending)
-- 🟢 LOW: 7/9 total (7 fixed, 2 no-plan-to-fix)
-
-# trade strategy 
-
+When fixing a bug, document it with background, effect, suggestion in the TODO list, then update the list after fixing.
