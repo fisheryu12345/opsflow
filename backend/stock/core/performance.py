@@ -52,15 +52,19 @@ def save_daily_snapshot(
         margin = Decimal(str(api_account_data.get('margin', 0))).quantize(Decimal('0.01'))
         risk_ratio = Decimal(str(api_account_data.get('risk_ratio', 0))).quantize(Decimal('0.0001'))
         commission = Decimal(str(api_account_data.get('commission', 0))).quantize(Decimal('0.01'))
-        closed_pnl = Decimal(str(api_account_data.get('close_profit', 0))).quantize(Decimal('0.01'))
 
-        # 【修复】通用 0 值保护：TqSDK 若返回 0 但 DB 已有正值，保留原值
+        # 平仓盈亏从 ClosedPositionRecord 聚合，TqSDK 的 close_profit 在模拟盘不准
+        from django.db.models import Sum
+        closed_pnl_agg = ClosedPositionRecord.objects.filter(
+            account=account, trade_date=trade_date
+        ).aggregate(total=Sum('pnl'))
+        closed_pnl = closed_pnl_agg['total'].quantize(Decimal('0.01')) if closed_pnl_agg['total'] else Decimal('0.00')
+
         raw_values = {
             'balance': balance,
             'float_profit': float_profit,
             'margin': margin,
             'commission': commission,
-            'closed_pnl': closed_pnl,
         }
         existing = DailyEquitySnapshot.objects.filter(
             account=account, trade_date=trade_date
@@ -72,7 +76,6 @@ def save_daily_snapshot(
         float_profit = raw_values['float_profit']
         margin = raw_values['margin']
         commission = raw_values['commission']
-        closed_pnl = raw_values['closed_pnl']
 
         prev_snapshot = DailyEquitySnapshot.objects.filter(
             account=account,
