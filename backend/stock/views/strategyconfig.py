@@ -13,6 +13,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from stock.serializers.serializers import StrategyConfigSerializer
 from stock.models import StrategyConfig
 from stock.filters import UserAccountFilterBackend
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 
 
 class StrategyConfigViewSet(viewsets.ModelViewSet):
@@ -26,3 +27,23 @@ class StrategyConfigViewSet(viewsets.ModelViewSet):
     filterset_fields = ['name', 'account']
     search_fields = ['name']
     ordering_fields = ['name']
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception:
+            return ErrorResponse(msg=str(serializer.errors), code=4000)
+        self.perform_create(serializer)
+        return DetailResponse(data=serializer.data, msg="新增成功")
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception:
+            return ErrorResponse(msg=str(serializer.errors), code=4000)
+        self.perform_update(serializer)
+        return DetailResponse(data=serializer.data, msg="更新成功")
