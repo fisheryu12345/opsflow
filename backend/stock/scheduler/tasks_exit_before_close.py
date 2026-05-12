@@ -2,6 +2,7 @@
 Pre-close stop-loss execution — APScheduler entry point.
 Per-account API connections to support real account mode.
 """
+import time
 from django.db import close_old_connections
 from django_redis import get_redis_connection
 from stock.infrastructure.trade_day import skip_if_not_trade_day
@@ -41,6 +42,7 @@ def execute_exit_before_close():
                 api = None
                 try:
                     api = create_tqapi(account)
+                    api.wait_update(deadline=time.time() + 10)
                     check_and_execute_stop_loss(api, account=account)
                     print(f"[INFO] ✅ {account.name} 收盘前止损检查完成")
                 except Exception as e:

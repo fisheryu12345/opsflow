@@ -58,6 +58,13 @@ def _update_account_float_profit(account: TradingAccount):
                     continue
                 try:
                     fp = Decimal(str(tq_pos.float_profit)).quantize(Decimal('0.01'))
+
+                    # 【修复】0 值保护：TqSDK 返回 0 但 DB 已有非零值 → 跳过本次更新
+                    if fp == 0:
+                        existing_fp = PositionState.objects.filter(pk=pos_db.pk).values_list('float_profit', flat=True).first()
+                        if existing_fp and existing_fp != 0:
+                            continue
+
                     PositionState.objects.filter(pk=pos_db.pk).update(float_profit=fp)
                     updated_count += 1
                 except (TypeError, ValueError, AttributeError) as e:
@@ -77,14 +84,14 @@ def job_update_float_profit():
     每小时执行一次，可通过 register_scheduler_jobs 注册。
     """
     close_old_connections()
-    log_trade(FSM, "开始更新持仓浮动盈亏", log_level='INFO')
+    # log_trade(FSM, "开始更新持仓浮动盈亏", log_level='INFO')
 
     if skip_if_not_trade_day():
-        log_trade(FSM, "今日非交易日，跳过持仓浮动盈亏更新", log_level='INFO')
+        # log_trade(FSM, "今日非交易日，跳过持仓浮动盈亏更新", log_level='INFO')
         return
 
     accounts = TradingAccount.objects.filter(is_active=True)
     for account in accounts:
         _update_account_float_profit(account)
 
-    log_trade(FSM, '持仓浮动盈亏更新完成', log_level='INFO')
+    # log_trade(FSM, '持仓浮动盈亏更新完成', log_level='INFO')

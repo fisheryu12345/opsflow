@@ -27,7 +27,7 @@ class TradingAccountViewSet(viewsets.ModelViewSet):
     - 所有已认证用户可查看有权限的账户
     - 仅超级管理员可创建/修改/删除
     """
-    queryset = TradingAccount.objects.all()
+    queryset = TradingAccount.objects.filter(is_active=True)
     serializer_class = TradingAccountSerializer
     permission_classes = [IsAuthenticated, IsAdminUserOrReadOnly]
     filter_backends = [DjangoFilterBackend, UserAccountFilterBackend]

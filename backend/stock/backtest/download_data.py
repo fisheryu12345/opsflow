@@ -17,6 +17,7 @@ import pandas as pd
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 from tqsdk import TqApi, TqAuth
+from stock.infrastructure.tqapi import create_tqapi
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
@@ -189,7 +190,7 @@ def build_rollover_reference(main_df: pd.DataFrame, contract_info: dict):
 def main():
     print(f"[INFO] 数据目录: {DATA_DIR}")
 
-    api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
+    api = create_tqapi()
     try:
         # 1. 主连合约
         main_df = download_main_contract(api)

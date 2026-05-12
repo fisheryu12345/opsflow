@@ -54,13 +54,25 @@ def save_daily_snapshot(
         commission = Decimal(str(api_account_data.get('commission', 0))).quantize(Decimal('0.01'))
         closed_pnl = Decimal(str(api_account_data.get('close_profit', 0))).quantize(Decimal('0.01'))
 
-        # 防御：收盘 commission=0 但盘中已有正值 → 保留盘中值（防止 TqSDK 异常归零）
-        if commission == 0:
-            existing = DailyEquitySnapshot.objects.filter(
-                account=account, trade_date=trade_date
-            ).values_list('commission', flat=True).first()
-            if existing and existing > 0:
-                commission = existing
+        # 【修复】通用 0 值保护：TqSDK 若返回 0 但 DB 已有正值，保留原值
+        raw_values = {
+            'balance': balance,
+            'float_profit': float_profit,
+            'margin': margin,
+            'commission': commission,
+            'closed_pnl': closed_pnl,
+        }
+        existing = DailyEquitySnapshot.objects.filter(
+            account=account, trade_date=trade_date
+        ).first()
+        for field, val in raw_values.items():
+            if val == 0 and existing and getattr(existing, field, 0) > 0:
+                raw_values[field] = getattr(existing, field)
+        balance = raw_values['balance']
+        float_profit = raw_values['float_profit']
+        margin = raw_values['margin']
+        commission = raw_values['commission']
+        closed_pnl = raw_values['closed_pnl']
 
         prev_snapshot = DailyEquitySnapshot.objects.filter(
             account=account,

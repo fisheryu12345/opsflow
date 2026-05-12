@@ -1,4 +1,5 @@
 import traceback
+import time
 from datetime import date, timedelta
 from typing import Optional, Any
 from django.db import transaction, close_old_connections
@@ -670,6 +671,9 @@ def job_daily_close_calculation():
 
                     if account_api:
                         try:
+                            # 【修复】等待 TqSDK 账户数据到达，最多 15 秒
+                            account_api.wait_update(deadline=time.time() + 15)
+
                             api_account = account_api.get_account()
                             api_account_data = {
                                 'balance': float(api_account.balance),

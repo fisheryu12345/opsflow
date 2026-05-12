@@ -3,6 +3,7 @@ Pre-market order execution — APScheduler entry point.
 Orchestrates signal processing for STOP_LOSS, ENTRY, ROLLOVER, and ADD_ON.
 """
 import traceback
+import time
 from django_redis import get_redis_connection
 from django.db import close_old_connections
 from datetime import datetime
@@ -23,13 +24,15 @@ def job_daily_open_process():
     current_date = datetime.now().date()
     close_old_connections()
 
-    accounts = TradingAccount.objects.all()
+    accounts = TradingAccount.objects.filter(is_active=True)
     is_first_account = True
 
     for account in accounts:
         api = None
         try:
             api = create_tqapi(account)
+            # 等待数据到达，确保 get_position/get_account 能读到有效值
+            api.wait_update(deadline=time.time() + 10)
 
             # 第一个账户的 API 连接复用做交易日检查，避免单独创建连接
             if is_first_account:

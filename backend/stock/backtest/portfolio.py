@@ -64,8 +64,9 @@ def download_all_products(products: list[str] = None, overwrite: bool = False):
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
     from tqsdk import TqApi, TqAuth
+    from stock.infrastructure.tqapi import create_tqapi
 
-    api = TqApi(auth=TqAuth("yupei1986", "yupei1986"))
+    api = create_tqapi()
     try:
         symbols = {code: tqsdk_symbol(code) for code in to_download}
 

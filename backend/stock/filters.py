@@ -20,7 +20,7 @@ def get_user_account_ids(user):
     """
     if user.is_superuser:
         return None
-    return list(TradingAccount.objects.filter(user=user).values_list('id', flat=True))
+    return list(TradingAccount.objects.filter(user=user, is_active=True).values_list('id', flat=True))
 
 
 def validate_account_access(user, account_id):
@@ -31,7 +31,7 @@ def validate_account_access(user, account_id):
     """
     if user.is_superuser:
         return True
-    return TradingAccount.objects.filter(user=user, id=account_id).exists()
+    return TradingAccount.objects.filter(user=user, id=account_id, is_active=True).exists()
 
 
 class UserAccountFilterBackend(filters.BaseFilterBackend):

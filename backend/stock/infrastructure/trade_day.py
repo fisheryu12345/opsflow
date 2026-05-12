@@ -22,8 +22,8 @@ def is_trade_day(check_date: Optional[date] = None, api=None) -> bool:
 
     try:
         if api is None:
-            from tqsdk import TqApi, TqAuth, TqKq
-            api = TqApi(TqKq(), auth=TqAuth("yupei1986", "yupei1986"))
+            from stock.infrastructure.tqapi import create_tqapi
+            api = create_tqapi()
             api_created = True
 
         calendar = api.get_trading_calendar(
@@ -70,5 +70,5 @@ def skip_if_not_trade_day(api=None) -> bool:
         log_trade('skip_if_not_trade_day', f"今日({today})为非交易日，跳过任务", symbol='N/A', log_level='INFO')
         return True
 
-    log_trade('skip_if_not_trade_day', f"今日({today})为交易日，继续执行任务", symbol='N/A', log_level='INFO')
+    # log_trade('skip_if_not_trade_day', f"今日({today})为交易日，继续执行任务", symbol='N/A', log_level='INFO')
     return False

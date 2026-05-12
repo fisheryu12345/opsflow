@@ -3,6 +3,7 @@ Daily commission query — APScheduler entry point.
 Queries each active account's cumulative daily commission from TqSDK at 14:58
 and updates TradingAccount.total_commission for direct access in equity calculations.
 """
+import time
 from decimal import Decimal
 from datetime import date
 from django.db import close_old_connections
@@ -35,7 +36,7 @@ def job_daily_commission_query():
     try:
         with redis_lock(redis, 'lock:daily_commission'):
             close_old_connections()
-            log_trade('job_daily_commission_query', "开始查询当日手续费", symbol='N/A', log_level='INFO')
+            # log_trade('job_daily_commission_query', "开始查询当日手续费", symbol='N/A', log_level='INFO')
 
             accounts = TradingAccount.objects.filter(is_active=True)
             if not accounts.exists():
@@ -57,23 +58,44 @@ def job_daily_commission_query():
                 try:
                     api = create_tqapi(account)
                     api_account = api.get_account()
+
+                    # 【修复】等待数据到达，最多 10 秒
+                    deadline = time.time() + 10
+                    api.wait_update(deadline=deadline)
+
                     today_commission = Decimal(str(getattr(api_account, 'commission', 0))).quantize(Decimal('0.01'))
 
-                    # 更新或创建今日权益快照中的手续费
+                    # 从 TqSDK 读取完整账户数据
+                    raw_data = {
+                        'commission': today_commission,
+                        'balance': Decimal(str(getattr(api_account, 'balance', 0))).quantize(Decimal('0.01')),
+                        'available': Decimal(str(getattr(api_account, 'available', 0))).quantize(Decimal('0.01')),
+                        'float_profit': Decimal(str(getattr(api_account, 'float_profit', 0))).quantize(Decimal('0.01')),
+                        'margin': Decimal(str(getattr(api_account, 'margin', 0))).quantize(Decimal('0.01')),
+                        'risk_ratio': Decimal(str(getattr(api_account, 'risk_ratio', 0))).quantize(Decimal('0.0001')),
+                        'closed_pnl': Decimal(str(getattr(api_account, 'close_profit', 0))).quantize(Decimal('0.01')),
+                    }
+
+                    # 【修复】0 值保护：如果 TqSDK 返回 0 但 DB 已有正值，保留 DB 值
+                    existing = DailyEquitySnapshot.objects.filter(
+                        account=account, trade_date=today
+                    ).first()
+                    defaults = {}
+                    for field, tq_value in raw_data.items():
+                        if tq_value == 0 and existing and getattr(existing, field, 0) > 0:
+                            defaults[field] = getattr(existing, field)
+                        else:
+                            defaults[field] = tq_value
+
+                    # 补充非 TqSDK 直接映射的字段
+                    defaults['daily_pnl'] = Decimal('0')
+                    defaults['daily_return'] = Decimal('0')
+
+                    # 更新或创建今日权益快照
                     snapshot, created = DailyEquitySnapshot.objects.update_or_create(
                         account=account,
                         trade_date=today,
-                        defaults={
-                            'commission': today_commission,
-                            'balance': Decimal(str(getattr(api_account, 'balance', 0))).quantize(Decimal('0.01')),
-                            'available': Decimal(str(getattr(api_account, 'available', 0))).quantize(Decimal('0.01')),
-                            'float_profit': Decimal(str(getattr(api_account, 'float_profit', 0))).quantize(Decimal('0.01')),
-                            'margin': Decimal(str(getattr(api_account, 'margin', 0))).quantize(Decimal('0.01')),
-                            'risk_ratio': Decimal(str(getattr(api_account, 'risk_ratio', 0))).quantize(Decimal('0.0001')),
-                            'closed_pnl': Decimal(str(getattr(api_account, 'close_profit', 0))).quantize(Decimal('0.01')),
-                            'daily_pnl': Decimal('0'),
-                            'daily_return': Decimal('0'),
-                        }
+                        defaults=defaults,
                     )
 
                     update_trading_account_total_commission(account)
