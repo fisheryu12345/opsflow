@@ -332,3 +332,30 @@ export function getDrawdownCurve(accountId: number) {
 		}>;
 	}>(`/api/stock/drawdown-curve/?account=${accountId}`);
 }
+
+// ==================== 滑点统计 ====================
+
+export interface SlippageStats {
+	total_records: number;
+	avg_slippage_ticks: number;
+	favorable_ratio: number;
+	by_type: Array<{
+		trade_type: string;
+		count: number;
+		avg_slippage_ticks: number;
+		favorable_ratio: number;
+	}>;
+}
+
+/**
+ * 获取账户滑点统计汇总
+ * @param accountId 账户ID
+ * @returns Promise<SlippageStats>
+ */
+export function getSlippageStats(accountId: number) {
+	return request.get<{
+		code: number;
+		msg: string;
+		data: SlippageStats;
+	}>(`/api/stock/slippage-stats/?account=${accountId}`);
+}

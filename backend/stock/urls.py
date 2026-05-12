@@ -27,6 +27,7 @@ from stock.views.knowledge_base import KnowledgeBaseTreeView, KnowledgeBaseConte
 from stock.views.account import TradingAccountViewSet
 from stock.views.account_contract import AccountContractConfigViewSet
 from stock.views.kline import KlineDataViewSet, TradeMarkersView, ContractsForKlineView
+from stock.views.slippage import SlippageRecordViewSet, SlippageStatsView
 
 # 创建路由器
 router = DefaultRouter()
@@ -41,6 +42,7 @@ router.register(r'position', PositionStateViewSet, basename='position')
 router.register(r'closed-positions', ClosedPositionRecordViewSet, basename='closed-position')
 router.register(r'tradingaccount', TradingAccountViewSet, basename='tradingaccount')
 router.register(r'account-contracts', AccountContractConfigViewSet, basename='account-contract')
+router.register(r'slippage', SlippageRecordViewSet, basename='slippage')
 
 # ==================== 绩效数据路由 ====================
 router.register(r'equity-snapshots', DailyEquitySnapshotViewSet, basename='equity-snapshot')
@@ -74,4 +76,5 @@ urlpatterns = [
     path('knowledge-base/tree/', knowledge_base_tree_view, name='knowledge-base-tree'),
     path('knowledge-base/content/', knowledge_base_content_view, name='knowledge-base-content'),
     path('signal-stats/', SignalExecutionStatsView.as_view(), name='signal-stats'),
+    path('slippage-stats/', SlippageStatsView.as_view({'get': 'list'}), name='slippage-stats'),
 ]

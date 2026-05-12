@@ -22,6 +22,7 @@
 				:value="item.value"
 				:color-type="item.colorType"
 				:border-color="getBorderColor(index)"
+				:icon="item.icon"
 				:delay="index * 50"
 				:tooltip="item.tooltip"
 				:html="item.html"
@@ -132,7 +133,7 @@
 import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue';
 import * as echarts from 'echarts';
 import { ElMessage } from 'element-plus';
-import { Document, Clock } from '@element-plus/icons-vue';
+import { Document, Clock, TrendCharts } from '@element-plus/icons-vue';
 import MultiWindowRadarChart from './components/MultiWindowRadarChart.vue';
 import MetricCard from '/@/views/apps/components/MetricCard.vue';
 import {
@@ -143,6 +144,7 @@ import {
 	getCumulativeStats,
 	getDailyReturnsCalendar,
 	getDrawdownCurve,
+	getSlippageStats,
 	type AccountSummary,
 	type EquitySnapshot
 } from './api';

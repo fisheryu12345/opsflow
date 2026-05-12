@@ -17,6 +17,7 @@ from stock.models import (
     ClosedPositionRecord,
     AccountContractConfig,
     KlineData,
+    SlippageRecord,
 )
 
 
@@ -312,3 +313,12 @@ class KlineDataSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class SlippageRecordSerializer(serializers.ModelSerializer):
+    """滑点记录序列化器"""
+
+    class Meta:
+        model = SlippageRecord
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at']

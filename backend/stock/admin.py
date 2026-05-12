@@ -1,3 +1,5 @@
 from django.contrib import admin
 
-# Register your models here.
+from stock.models import SlippageRecord
+
+admin.site.register(SlippageRecord)
