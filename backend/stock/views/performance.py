@@ -163,7 +163,8 @@ class SymbolWinRateView(viewsets.ViewSet):
 
         # 使用 Django ORM 聚合查询
         stats = ClosedPositionRecord.objects.filter(
-            account_id=account_id
+            account_id=account_id,
+            product_code__isnull=False
         ).values(
             'product_code'
         ).annotate(

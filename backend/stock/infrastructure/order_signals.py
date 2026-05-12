@@ -613,7 +613,7 @@ def execute_rollover_order(api, position, signal):
         CONFIRM_TIMEOUT = 10  # 最多等待10秒等待成交回报
 
         while time.time() - confirm_start < CONFIRM_TIMEOUT:
-            api.wait_update()
+            api.wait_update(deadline=time.time() + 1)
             trades = api.get_trades()
             filled_volume = 0
             total_cost = Decimal('0')

@@ -319,6 +319,8 @@ def record_and_reset_position(api, position, signal, filled_volume, avg_price):
             'stop_loss_price': None,
             'protect_cost_enabled': False,
             'open_date': None,
+            'cost_price': None,
+            'first_open_price': None,
             'last_update_time': timezone.now(),
         }
         PositionState.objects.filter(id=position.id).update(**update_fields)

@@ -61,7 +61,7 @@ def send_open_report(account=None, current_date=None):
             'current_time': now.strftime('%Y-%m-%d %H:%M:%S'),
         })
 
-        receiver_email = account.user.email if account.user.email else '312711936@qq.com'
+        receiver_email = account.user.email if account.user and account.user.email else '312711936@qq.com'
         send_email(
             subject=f'[量化策略] 今日信号执行报告 - {now.strftime("%Y-%m-%d %H:%M")}',
             body=html_content,
@@ -102,7 +102,7 @@ def generate_daily_signal_report(account=None):
         ).order_by('-trade_date', 'symbol')
 
         # 先解析收件人邮箱，两个分支（无信号/有信号）共用
-        receiver_email = account.user.email if account.user.email else '312711936@qq.com'
+        receiver_email = account.user.email if account.user and account.user.email else '312711936@qq.com'
 
         if not signals:
             print(f"[INFO] {account.name} 今日无策略信号，发送通知邮件")
