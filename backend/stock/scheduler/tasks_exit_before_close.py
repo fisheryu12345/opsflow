@@ -41,6 +41,7 @@ def execute_exit_before_close():
             for account in accounts:
                 api = None
                 try:
+                    log_trade('execute_exit_before_close', f"开始执行账户 {account.name} 的收盘前止损检查",symbol='N/A',log_level='INFO',account=account.name)
                     api = create_tqapi(account)
                     api.wait_update(deadline=time.time() + 10)
                     check_and_execute_stop_loss(api, account=account)
