@@ -347,3 +347,56 @@ GFEX.lc2609 第1步：设置目标持仓 5手
 2. 两步开仓失败路径增加 `signal.remark`，记录计划手数、最小开仓限制、当前持仓、目标手数、开仓增量
 3. 普通 TargetPosTask 失败路径同样增加 `signal.remark`，记录计划手数和目标手数
 4. `signal.save()` 追加更新 `remark` 字段
+
+---
+
+## ✅ HIGH-19: `is_api_connected` 使用 `get_account()` 永远返回 True，连接检测失效 — 已修复 (2026-05-12)
+
+**文件**: [infrastructure/tqapi.py:67-79](../backend/stock/infrastructure/tqapi.py#L67)
+
+**问题描述**:
+`is_api_connected` 调用 `api.get_account()` 检测连接，但 TqSDK 的 `get_account()` 返回懒加载代理对象，不进行网络 I/O。即使 WebSocket 已断开也不会报错。
+
+**影响分析**:
+- `ensure_api_connected()` 实际是空操作，永远不会触发重连
+- `tasks_daily_open.py` 中三个信号批次间的连接健康检查全部无效
+- API 断开后无法自动恢复，后续交易调用全部失败
+
+**修复内容**:
+将 `api.get_account()` 改为 `api.wait_update(deadline=time.time() + 0.5)`，给 TqSDK 机会处理连接事件。
+
+---
+
+## ✅ HIGH-20: 移仓 `update_or_create` 可能覆盖新合约已有持仓 — 已修复 (2026-05-12)
+
+**文件**: [infrastructure/order_signals.py:847-866](../backend/stock/infrastructure/order_signals.py#L847)
+
+**问题描述**:
+`execute_rollover_order` Phase 3 使用 `update_or_create(symbol=new_symbol)` 创建新合约持仓，未检查该合约是否已有持仓记录。如果已有记录会被旧数据覆盖。
+
+**影响分析**:
+- 新合约上已有持仓时，单位数、开仓价等全部被旧数据覆盖
+- 数据不可逆丢失
+
+**修复内容**:
+1. 创建前先查询 `(account, new_symbol)` 是否已有 `units > 0` 的持仓
+2. 有持仓时合并：累加单位数，按持仓量加权均价
+3. 无持仓时正常创建，清理残留的零单位记录
+
+---
+
+## ✅ HIGH-21: 止损平仓超时硬编码 60s — 已修复 (2026-05-12)
+
+**文件**: [infrastructure/stop_loss_executor.py:40](../backend/stock/infrastructure/stop_loss_executor.py#L40)
+
+**问题描述**:
+`execute_stop_loss_exit` 的超时检查使用硬编码 `60` 秒，未使用可配置的 `TIMEOUT_SECONDS`。其他所有超时操作（`wait_for_target_position`、`execute_two_step_opening` 等）均使用配置值。
+
+**影响分析**:
+- `TIMEOUT_SECONDS` 配置值被忽略
+- 如果配置 > 60，止损比其他操作更早超时，流动性差时容易失败
+- 如果配置 < 60，止损等待时间比配置长，延长任务阻塞时间
+
+**修复内容**:
+1. 导入 `TIMEOUT_SECONDS = get_config('TIMEOUT_SECONDS')`
+2. 硬编码 `60` 替换为 `TIMEOUT_SECONDS`

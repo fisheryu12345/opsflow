@@ -67,13 +67,18 @@ def safe_close_api(api):
 def is_api_connected(api) -> bool:
     """检查 TqApi 连接是否仍然有效。
 
-    通过一次轻量级调用来验证连接状态。
-    返回 True 表示连接正常，False 表示已断开。
+    通过 wait_update 执行一次非阻塞 I/O 来验证连接状态。
+    TqSDK 的 get_account() 返回懒加载代理不进行网络 I/O，
+    而 wait_update 会驱动事件循环，连接已断开时可能抛出异常。
+
+    注意：非交易时段无新数据时 wait_update 只超时返回 False，
+    此时连接正常只是无数据更新，仍返回 True。
     """
     if api is None:
         return False
     try:
-        _ = api.get_account()
+        # 给 TqSDK 机会处理连接事件和异常
+        api.wait_update(deadline=time.time() + 0.5)
         return True
     except Exception:
         return False

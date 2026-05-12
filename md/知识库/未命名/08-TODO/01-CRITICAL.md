@@ -249,3 +249,40 @@ for account in accounts:
 **修复内容**:
 1. `tqapi.py` `create_tqapi()`：当 account 是模拟账户时，使用账户自己的 `tqapi_account/tqapi_password` 创建独立的 `TqKq` 连接，不再降级到全局默认凭据
 2. `tasks_daily_close.py`：每个账户（不论模拟/实盘）都调用 `create_tqapi(account)` 获取独立 API 连接，各自关闭
+
+---
+
+## ✅ CRITICAL-09: 两步开仓第2步完成后未 wait_update 就取持仓 — 已修复 (2026-05-12)
+
+**文件**: [infrastructure/order_execution.py:176](../backend/stock/infrastructure/order_execution.py#L176)
+
+**问题描述**:
+`execute_two_step_opening` 第2步完成循环后直接调用 `api.get_position()`。最后一次 `wait_update()` 可能在 `target_pos.is_finished()` 循环中由任务状态更新触发而非持仓数据更新触发，导致 `get_position()` 返回过期数据。
+
+```python
+# 修复前
+target_pos.cancel()
+while not target_pos.is_finished():
+    api.wait_update()
+
+pos_after = api.get_position(symbol)  # ← 数据可能过期
+```
+
+**影响分析**:
+- `actual_final_filled`（取 `pos_after.volume_long` 或 `volume_short`）可能不准确
+- 加仓、开仓、移仓都使用此值设置 `PositionState.contract_total_position`
+- 数据库记录持仓手数与交易所实际持仓手数可能不一致
+- 后续止损计算、仓位管理基于错误手数
+
+**修复内容**:
+在 `get_position()` 前加一次 `api.wait_update()`，确保 position 数据已刷新：
+
+```python
+# 修复后
+target_pos.cancel()
+while not target_pos.is_finished():
+    api.wait_update()
+
+api.wait_update()  # 确保 position 数据刷新
+pos_after = api.get_position(symbol)
+```

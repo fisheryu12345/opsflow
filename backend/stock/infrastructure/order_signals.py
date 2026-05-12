@@ -844,25 +844,61 @@ def execute_rollover_order(api, position, signal):
                 init_lowest_close = Decimal(str(entry_avg_price)) if position.direction == -1 else None
                 init_stop_loss = None
 
-            PositionState.objects.update_or_create(
-                account=position.account,
-                symbol=new_symbol,
-                defaults={
-                    'product_code': signal.product_code,
-                    'direction': position.direction,
-                    'units': position.units,
-                    'contract_total_position': actual_filled,
-                    'last_add_price': Decimal(str(entry_avg_price)),
-                    'first_open_price': Decimal(str(entry_avg_price)),
-                    'highest_close': init_highest_close,
-                    'lowest_close': init_lowest_close,
-                    'latest_close_price': Decimal(str(entry_avg_price)),
-                    'last_update_time': timezone.now(),
-                    'open_date': timezone.now().date(),
-                    'stop_loss_price': init_stop_loss,
-                    'is_rollover_needed': False,
-                }
-            )
+        try:
+            # 检查新合约是否已有持仓，避免 update_or_create 覆盖
+            existing_new = PositionState.objects.filter(
+                account=position.account, symbol=new_symbol
+            ).first()
+
+            if existing_new and existing_new.units > 0:
+                # 已有持仓 — 合并: 累加手数，均价按持仓量加权
+                total_units = existing_new.units + position.units
+                total_pos = existing_new.contract_total_position + actual_filled
+                # 加权平均开仓价
+                old_cost = (existing_new.last_add_price or Decimal('0')) * Decimal(str(existing_new.units))
+                new_cost = Decimal(str(entry_avg_price)) * Decimal(str(position.units))
+                merged_price = (old_cost + new_cost) / Decimal(str(total_units)) if total_units > 0 else Decimal(str(entry_avg_price))
+
+                msg = (f"{new_symbol} 已有持仓({existing_new.units}单位)，移仓合并: "
+                       f"总单位{total_units}, 加权均价{merged_price:.2f}")
+                print(msg)
+                log_trade('execute_rollover_order', msg, symbol=new_symbol, log_level='INFO', account=position.account)
+
+                PositionState.objects.filter(id=existing_new.id).update(
+                    units=total_units,
+                    contract_total_position=total_pos,
+                    last_add_price=merged_price,
+                    first_open_price=existing_new.first_open_price or merged_price,
+                    latest_close_price=Decimal(str(entry_avg_price)),
+                    highest_close=init_highest_close if init_highest_close is not None else existing_new.highest_close,
+                    lowest_close=init_lowest_close if init_lowest_close is not None else existing_new.lowest_close,
+                    stop_loss_price=init_stop_loss if init_stop_loss is not None else existing_new.stop_loss_price,
+                    is_rollover_needed=False,
+                    last_update_time=timezone.now(),
+                )
+            else:
+                # 无持仓 — 正常创建
+                if existing_new:
+                    # 有残留记录(units=0)，删了重建
+                    existing_new.delete()
+
+                PositionState.objects.create(
+                    account=position.account,
+                    symbol=new_symbol,
+                    product_code=signal.product_code,
+                    direction=position.direction,
+                    units=position.units,
+                    contract_total_position=actual_filled,
+                    last_add_price=Decimal(str(entry_avg_price)),
+                    first_open_price=Decimal(str(entry_avg_price)),
+                    highest_close=init_highest_close,
+                    lowest_close=init_lowest_close,
+                    latest_close_price=Decimal(str(entry_avg_price)),
+                    last_update_time=timezone.now(),
+                    open_date=timezone.now().date(),
+                    stop_loss_price=init_stop_loss,
+                    is_rollover_needed=False,
+                )
             PositionState.objects.filter(id=position.id).delete()
             signal.executed_status = 'SUCCESS'
             signal.save(update_fields=['executed_status', 'updated_at'])
@@ -946,7 +982,8 @@ def process_signals_by_type(api, account, trade_type):
             for position in positions:
                 exit_signals = DailyStrategySignal.objects.filter(
                     Q(symbol=position.symbol) & config['query_filter'],
-                    account=account
+                    account=account,
+                    executed_status='PENDING'
                 )
                 for signal in exit_signals:
                     try:

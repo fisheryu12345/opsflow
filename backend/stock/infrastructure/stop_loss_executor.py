@@ -15,6 +15,9 @@ from stock.utils.log_util import log_trade, log_error
 from stock.infrastructure.order_execution import record_and_reset_position
 from stock.infrastructure.slippage_recorder import record_slippage
 from stock.core.signal_checker import check_duplicate_pending_signal
+from stock.core.config_loader import get_config
+
+TIMEOUT_SECONDS = get_config('TIMEOUT_SECONDS')
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +40,7 @@ def execute_stop_loss_exit(api, position):
         start_time = time.time()
         while not target_pos.is_finished():
             api.wait_update(deadline=time.time() + 1)
-            if time.time() - start_time > 60:
+            if time.time() - start_time > TIMEOUT_SECONDS:
                 print(f"⚠️ 止损平仓超时: {position.symbol}")
                 return False, 0, Decimal('0')
 
@@ -187,37 +190,39 @@ def _execute_stop_loss_for_account(api, default_account):
 
                 print(f"[EXIT] 止损信号: {position.symbol} - {remark}")
 
-                # 信号创建 + 止损执行 + 状态更新在同一事务中，
-                # 避免崩溃后残留 EXECUTING 信号导致重复执行
-                with transaction.atomic():
-                    DailyStrategySignal.objects.filter(id=signal.id).update(executed_status='EXECUTING')
+                # 先标记 EXECUTING（防重复执行），不放在后续事务中
+                DailyStrategySignal.objects.filter(id=signal.id).update(executed_status='EXECUTING')
 
-                    success, filled_volume, avg_price = execute_stop_loss_exit(api, position)
+                # 执行止损（TqSDK 下单，不在 DB 事务内）
+                success, filled_volume, avg_price = execute_stop_loss_exit(api, position)
 
-                    if success and filled_volume > 0:
-                        exit_count += 1
-
-                        # record_and_reset_position 异常不阻断事务提交（TqSDK 订单已执行）
-                        try:
+                if success and filled_volume > 0:
+                    exit_count += 1
+                    try:
+                        # 订单已不可逆，DB 写入独立事务
+                        with transaction.atomic():
                             record_and_reset_position(api, position, None, filled_volume, float(avg_price))
-                        except Exception as rp_error:
-                            log_error(
-                                function_name='_execute_stop_loss_for_account',
-                                error_message=f"止损后重置持仓状态失败(订单已执行): {rp_error}\n{traceback.format_exc()}",
-                                account=default_account,
-                            )
+                            DailyStrategySignal.objects.filter(id=signal.id).update(executed_status='SUCCESS')
+                    except Exception as rp_error:
+                        # 下单成功但 DB 写入失败 — 告警人工核对
+                        log_error(
+                            function_name='_execute_stop_loss_for_account',
+                            error_message=f"止损已执行但DB记录失败，需人工核对: {rp_error}\n{traceback.format_exc()}",
+                            account=default_account,
+                        )
+                        signal.remark = f"止损已执行但DB记录异常: {rp_error}"
+                        signal.executed_status = 'SUCCESS'
+                        signal.save(update_fields=['executed_status', 'remark', 'updated_at'])
 
-                        DailyStrategySignal.objects.filter(id=signal.id).update(executed_status='SUCCESS')
+                    log_trade('check_and_execute_stop_loss',
+                              f"✅ 止损平仓成功: {position.symbol} 成交量={filled_volume}, 均价={avg_price:.2f}",
+                              symbol=position.symbol, log_level='SUCCESS')
+                else:
+                    DailyStrategySignal.objects.filter(id=signal.id).update(executed_status='FAILED')
 
-                        log_trade('check_and_execute_stop_loss',
-                                  f"✅ 止损平仓成功: {position.symbol} 成交量={filled_volume}, 均价={avg_price:.2f}",
-                                  symbol=position.symbol, log_level='SUCCESS')
-                    else:
-                        DailyStrategySignal.objects.filter(id=signal.id).update(executed_status='FAILED')
-
-                        log_trade('check_and_execute_stop_loss',
-                                  f"❌ 止损平仓失败: {position.symbol}",
-                                  symbol=position.symbol, log_level='ERROR')
+                    log_trade('check_and_execute_stop_loss',
+                              f"❌ 止损平仓失败: {position.symbol}",
+                              symbol=position.symbol, log_level='ERROR')
 
             except Exception as pos_error:
                 error_msg = f"处理 {position.symbol} 止损检查失败: {pos_error}"

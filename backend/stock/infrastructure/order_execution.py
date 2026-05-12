@@ -173,6 +173,8 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
             log_error(function_name, msg)
             return result
 
+        # 确保 position 数据已刷新（target_pos.is_finished 的 wait_update 可能不是持仓更新）
+        api.wait_update()
         pos_after = api.get_position(symbol)
         if pos_after is None:
             msg = f"[ERROR] {symbol} 无法获取持仓信息"

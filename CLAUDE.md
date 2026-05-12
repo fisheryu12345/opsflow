@@ -229,7 +229,7 @@ log_error(FSM, f"操作失败: {e}", account=account)
 Do **NOT** add a `logging.getLogger(...)` or use `logger.*` anywhere. These two functions persist all logs to DB (`TradeLog`/`ErrorLog`), while raw `logger` calls go to stdout only and are easily lost.
 
 ## Code Quality Status (2026-05-10)
-when you fix a bug you should add the bug to TODO list and after fixing the bug you should update the TODO list
+when you fix a bug you should add the bug to TODO list with bug background ,effect, suggestion and after fixing the bug you should update the TODO list
 All known issues resolved:
 - 🔴 CRITICAL: 6/6 fixed
 - 🟠 HIGH: 15/15 total (14 bug-items fixed, 1 verified as not-a-bug)
