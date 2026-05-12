@@ -108,12 +108,6 @@ The models follow a layered architecture:
 4. Register route in `backend/stock/urls.py`
 5. If using FastCRUD: create CRUD definition in `web/src/api/` and view in `web/src/views/apps/`
 
-### Docker deployment
-```bash
-docker-compose up -d
-docker exec -ti dvadmin-django bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py init_area && python manage.py init"
-```
-
 ### Scheduler tasks (APScheduler)
 Scheduled trading tasks live in `backend/stock/scheduler/`. Jobs handle daily open/close, ATR calculation, performance snapshots, and report sending.
 
@@ -235,3 +229,6 @@ All known issues resolved:
 - 🟠 HIGH: 15/15 total (14 bug-items fixed, 1 verified as not-a-bug)
 - 🟡 MEDIUM: 29/30 total (28 bug-items fixed, 1 verified not-a-bug, 1 TqSDK pending)
 - 🟢 LOW: 7/9 total (7 fixed, 2 no-plan-to-fix)
+
+# trade strategy 
+

@@ -14,6 +14,8 @@ export function usePosition() {
     direction: null as number | null,
   })
   const showHoldingsOnly = ref(false)
+  const todayCommission = ref<string | number>('--')
+  const lastDataUpdateTime = ref<string>('')
   const accountStore = useAccountStore()
 
   async function fetchData() {
@@ -29,6 +31,8 @@ export function usePosition() {
       if (res.code === 2000) {
         list.value = res.data || []
         total.value = res.total || 0
+        todayCommission.value = res.today_commission ?? '--'
+        lastDataUpdateTime.value = res.last_data_update_time ?? ''
       }
     } catch (e) {
       console.error('获取持仓数据失败', e)
@@ -61,6 +65,7 @@ export function usePosition() {
     list, loading, page, pageSize, total,
     filters, showHoldingsOnly,
     totalHoldings, longCount, shortCount, rolloverCount,
+    todayCommission, lastDataUpdateTime,
     onPageChange, onSizeChange, fetchData, refresh,
   }
 }

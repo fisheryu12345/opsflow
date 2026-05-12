@@ -8,6 +8,7 @@
       <MetricCard label="空单品种数" :value="shortCount" color-type="negative" border-color="red" />
       <MetricCard label="当前浮动盈亏" :value="totalUnrealizedPnl" color-type="sign" border-color="purple" :format-currency="true" />
       <MetricCard label="需移仓品种" :value="rolloverCount" color-type="negative" border-color="orange" />
+      <MetricCard label="今日手续费" :value="todayCommission" color-type="neutral" border-color="blue" />
     </div>
 
     <!-- Filter Bar -->
@@ -19,6 +20,9 @@
         <el-option label="空头" :value="-1" />
       </el-select>
       <el-button type="primary" @click="refresh">查询</el-button>
+      <span v-if="lastDataUpdateTime" class="update-time">
+        数据更新于: {{ formatTime(lastDataUpdateTime) }}
+      </span>
     </div>
 
     <!-- Table -->
@@ -99,12 +103,18 @@ import { usePosition } from './usePosition'
 const {
   list, loading, page, pageSize, total,
   filters, totalHoldings, longCount, shortCount, rolloverCount,
+  todayCommission, lastDataUpdateTime,
   onPageChange, onSizeChange, refresh,
 } = usePosition()
 
 const totalUnrealizedPnl = computed(() =>
   list.value.reduce((sum, row) => sum + (Number(row.float_profit) || 0), 0)
 )
+
+function formatTime(iso: string) {
+  if (!iso) return ''
+  return iso.slice(0, 19).replace('T', ' ')
+}
 
 function handleSortChange({ prop, order }: { prop?: string; order?: 'ascending' | 'descending' | null }) {
   if (prop !== 'float_profit' || !order) return
@@ -114,3 +124,13 @@ function handleSortChange({ prop, order }: { prop?: string; order?: 'ascending' 
   })
 }
 </script>
+
+<style scoped>
+.update-time {
+  font-size: 12px;
+  color: #999;
+  margin-left: 12px;
+  line-height: 32px;
+  white-space: nowrap;
+}
+</style>
