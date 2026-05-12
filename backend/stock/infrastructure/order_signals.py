@@ -94,9 +94,11 @@ def execute_add_on_order(api, account, signal):
     min_position_check = check_min_position_requirement(trade_symbol, order_volume)
 
     if min_position_check['need_adjustment']:
-        adjusted_volume = min_position_check['adjusted_volume']
+        min_pos = min_position_check['min_position']
+        adjusted_volume = position.contract_total_position + min_pos
         excess_to_close = min_position_check['excess_to_close']
-        msg = f"{trade_symbol} 采用两步开仓策略: 先开 {adjusted_volume} 手，再平 {excess_to_close} 手"
+        msg = (f"{trade_symbol} 采用两步开仓策略: 当前持仓{position.contract_total_position}手, "
+               f"先开 {adjusted_volume} 手 (含最小开仓限制{min_pos}手)，再平 {excess_to_close} 手")
         print(msg)
         log_trade('execute_add_on_order', msg, symbol=trade_symbol, log_level='INFO', account=account)
 
@@ -113,8 +115,13 @@ def execute_add_on_order(api, account, signal):
         )
 
         if not two_step_result['success']:
+            signal.remark = (
+                f"加仓失败: 计划{order_volume}手 < 最小开仓{min_pos}手, "
+                f"两步开仓超时 (当前持仓{position.contract_total_position}手, 目标{adjusted_volume}手, "
+                f"开仓增量{adjusted_volume - position.contract_total_position}手)"
+            )
             signal.executed_status = 'FAILED'
-            signal.save(update_fields=['executed_status', 'updated_at'])
+            signal.save(update_fields=['executed_status', 'remark', 'updated_at'])
             return False
 
         with transaction.atomic():
@@ -183,11 +190,16 @@ def execute_add_on_order(api, account, signal):
             )
 
             if not result['success']:
+                signal.remark = (
+                    f"加仓失败: 计划{order_volume}手, "
+                    f"TargetPosTask设置目标{target_lots}手超时 "
+                    f"(当前持仓{position.contract_total_position}手)"
+                )
                 msg = f"[ERROR] {trade_symbol} 加仓超时或失败"
                 print(msg)
                 log_error('execute_add_on_order', msg)
                 signal.executed_status = 'FAILED'
-                signal.save(update_fields=['executed_status', 'updated_at'])
+                signal.save(update_fields=['executed_status', 'remark', 'updated_at'])
                 return False
 
             quote = api.get_quote(trade_symbol)

@@ -319,3 +319,31 @@ for _ in range(3):
 2. 每次 `wait_update()` 后重新统计 `api.get_trades()` 中该合约+该方向的成交手数
 3. 全部成交到达后提前退出循环
 4. 超时后仍使用已收集到的部分成交数据（最差情况：fallback 到 `quote.last_price`）
+
+---
+
+## ✅ HIGH-18: 加仓两步策略未考虑已有持仓，min_position 检查失败 — 已修复 (2026-05-12)
+
+**文件**: [infrastructure/order_signals.py:97,118-124,192-198](../backend/stock/infrastructure/order_signals.py#L97)
+
+**问题描述**:
+`execute_add_on_order` 两步开仓策略的 `adjusted_volume` 直接使用 `min_position_check['adjusted_volume']`（= `min_position`），假设起始持仓为 0。但加仓场景当前持仓 > 0（如 1 手），第 1 步目标是 `min_position` 手时，实际开仓增量 = `min_position - 当前持仓 < min_position`，TqSDK 拒绝执行。
+
+失败日志示例：
+```
+GFEX.lc2609 第1步：设置目标持仓 5手
+... TqSDK 警告: 剩余开仓手数 4 小于最小开仓手数 5，不进行开仓
+```
+
+此外，两步开仓失败和普通 TargetPosTask 失败路径均未更新 `signal.remark`，前端显示原始信号描述，无法直观看到失败原因。
+
+**影响分析**:
+- 当 `当前持仓 %gt; 0` 且 `order_volume < min_position` 时，加仓必然失败
+- 失败后 signal 停留在 PENDING，无法自动重试
+- 失败原因不直观，排查困难
+
+**修复内容**:
+1. `adjusted_volume = position.contract_total_position + min_pos` — 第 1 步目标 = 当前持仓 + 最小开仓限制，确保开仓增量 >= min_position
+2. 两步开仓失败路径增加 `signal.remark`，记录计划手数、最小开仓限制、当前持仓、目标手数、开仓增量
+3. 普通 TargetPosTask 失败路径同样增加 `signal.remark`，记录计划手数和目标手数
+4. `signal.save()` 追加更新 `remark` 字段
