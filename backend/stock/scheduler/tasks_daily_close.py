@@ -471,8 +471,8 @@ def update_all_positions_stop_loss_price(api, account):
                     elif position.direction == -1:
                         protect_price = Decimal(str(cost_price)) - tick * Decimal('2')
                 
-                # 首次检查是否满足保本条件
-                if not protect_cost_enabled and cost_price and position.latest_close_price:
+                # 首次检查是否满足保本条件（仅持仓达到3个单位才激活）
+                if not protect_cost_enabled and cost_price and position.latest_close_price and position.units >= 3:
                     if position.direction == 1:
                         # 多头：收盘价 - 成本价 > 2×ATR 时启用保本
                         profit_diff = position.latest_close_price - Decimal(str(cost_price))
