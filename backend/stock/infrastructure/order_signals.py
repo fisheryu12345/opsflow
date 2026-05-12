@@ -134,7 +134,6 @@ def execute_add_on_order(api, account, signal):
                 contract_total_position=new_total_lots,
                 last_add_price=Decimal(str(two_step_result['avg_price'])),
                 latest_close_price=Decimal(str(two_step_result['avg_price'])),
-                last_update_time=timezone.now()
             )
 
             signal.executed_status = 'SUCCESS'
@@ -215,7 +214,6 @@ def execute_add_on_order(api, account, signal):
                     contract_total_position=new_total_lots,
                     last_add_price=Decimal(str(avg_price)),
                     latest_close_price=Decimal(str(avg_price)),
-                    last_update_time=timezone.now()
                 )
 
                 signal.executed_status = 'SUCCESS'
@@ -344,7 +342,6 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
                     'highest_close': Decimal(str(two_step_result['avg_price'])),
                     'lowest_close': Decimal(str(two_step_result['avg_price'])),
                     'latest_close_price': Decimal(str(two_step_result['avg_price'])),
-                    'last_update_time': timezone.now(),
                     'open_date': timezone.now().date(),
                     # 入场趋势快照
                     'entry_trend_factor': signal.trend_factor,
@@ -432,7 +429,6 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
                         'highest_close': Decimal(str(entry_avg_price)),
                         'lowest_close': Decimal(str(entry_avg_price)),
                         'latest_close_price': Decimal(str(entry_avg_price)),
-                        'last_update_time': timezone.now(),
                         'open_date': timezone.now().date(),
                         'first_open_price': Decimal(str(entry_avg_price)),
                         # 入场趋势快照
@@ -890,7 +886,6 @@ def execute_rollover_order(api, position, signal):
                         lowest_close=init_lowest_close if init_lowest_close is not None else existing_new.lowest_close,
                         stop_loss_price=init_stop_loss if init_stop_loss is not None else existing_new.stop_loss_price,
                         is_rollover_needed=False,
-                        last_update_time=timezone.now(),
                     )
                 else:
                     # 无持仓 — 正常创建
@@ -910,7 +905,6 @@ def execute_rollover_order(api, position, signal):
                         highest_close=init_highest_close,
                         lowest_close=init_lowest_close,
                         latest_close_price=Decimal(str(entry_avg_price)),
-                        last_update_time=timezone.now(),
                         open_date=timezone.now().date(),
                         stop_loss_price=init_stop_loss,
                         is_rollover_needed=False,

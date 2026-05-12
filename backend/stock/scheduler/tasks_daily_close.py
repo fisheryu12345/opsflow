@@ -3,7 +3,6 @@ import time
 from datetime import date, timedelta
 from typing import Optional, Any
 from django.db import transaction, close_old_connections
-from django.utils import timezone
 from decimal import Decimal
 from django_redis import get_redis_connection
 from stock.utils.log_util import log_trade, log_error
@@ -357,9 +356,9 @@ def update_all_positions_high_low_price(account):
                 # 多头：highest_close 上移跟踪浮盈，lowest_close 下移提供 MAE
                 # 空头：lowest_close 下移跟踪浮盈，highest_close 上移提供 MAE
                 if position.highest_close is not None and position.latest_close_price > position.highest_close:
-                    PositionState.objects.filter(id=position.id).update(highest_close=position.latest_close_price,last_update_time=timezone.now())
+                    PositionState.objects.filter(id=position.id).update(highest_close=position.latest_close_price)
                 if position.lowest_close is not None and position.latest_close_price < position.lowest_close:
-                    PositionState.objects.filter(id=position.id).update(lowest_close=position.latest_close_price,last_update_time=timezone.now())
+                    PositionState.objects.filter(id=position.id).update(lowest_close=position.latest_close_price)
                 updated_count += 1
                 
             except Exception as pos_error:
@@ -509,7 +508,6 @@ def update_all_positions_stop_loss_price(api, account):
                 PositionState.objects.filter(id=position.id).update(
                     stop_loss_price=dynamic_stop_loss,
                     cost_price=cost_price,
-                    last_update_time=timezone.now(),  # 【修复】手动更新最后更新时间
                     trend_info=f'{atr_value:.2f},  {factor:.2f} , {trend_label}',
                     protect_cost_enabled=protect_cost_enabled,  # 【新增】更新保本状态
 
