@@ -919,6 +919,18 @@ def execute_rollover_order(api, position, signal):
 
             return True
 
+        except Exception as e:
+            msg = f"[ERROR] {new_symbol} 移仓数据库更新失败: {str(e)}"
+            print(msg)
+            traceback.print_exc()
+            log_error('execute_rollover_order', f"{msg}\n{traceback.format_exc()}")
+            try:
+                signal.executed_status = 'FAILED'
+                signal.save(update_fields=['executed_status', 'updated_at'])
+            except Exception:
+                pass
+            return False
+
     except Exception as e:
         msg = f"[ERROR] {new_symbol} 移仓操作中，数据库更新失败: {str(e)}"
         print(msg)
