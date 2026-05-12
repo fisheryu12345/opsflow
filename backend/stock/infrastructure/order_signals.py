@@ -903,7 +903,7 @@ def execute_rollover_order(api, position, signal):
             signal.executed_status = 'SUCCESS'
             signal.save(update_fields=['executed_status', 'updated_at'])
 
-        return True
+            return True
 
     except Exception as e:
         msg = f"[ERROR] {new_symbol} 移仓操作中，数据库更新失败: {str(e)}"
