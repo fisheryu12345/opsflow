@@ -40,10 +40,10 @@ def is_trade_day(check_date: Optional[date] = None, api=None) -> bool:
 
         is_trading = today_record['trading'].iloc[0]
 
-        if is_trading:
-            log_trade('is_trade_day', f"{check_date} 是交易日", symbol='N/A', log_level='INFO')
-        else:
-            log_trade('is_trade_day', f"{check_date} 不是交易日", symbol='N/A', log_level='INFO')
+        # if is_trading:
+        #     log_trade('is_trade_day', f"{check_date} 是交易日", symbol='N/A', log_level='INFO')
+        # else:
+        #     log_trade('is_trade_day', f"{check_date} 不是交易日", symbol='N/A', log_level='INFO')
 
         return is_trading
 
