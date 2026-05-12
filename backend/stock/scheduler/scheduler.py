@@ -8,6 +8,7 @@ from stock.scheduler.tasks_daily_close import job_daily_close_calculation
 from stock.scheduler.tasks_daily_open import job_daily_open_process
 from stock.scheduler.tasks_daily_commission import job_daily_commission_query
 from stock.scheduler.tasks_update_float_profit import job_update_float_profit
+from stock.scheduler.tasks_daily_reconciliation import job_daily_reconciliation
 
 
 scheduler = BackgroundScheduler(timezone='Asia/Shanghai')
@@ -23,6 +24,19 @@ scheduler.add_job(
     minute=32,
     id='job_daily_close_calculation',
     name='盘后指标计算与绩效统计（15:32 执行，确保结算价已最终确定）',
+    misfire_grace_time=300,
+    replace_existing=True,
+    max_instances=1,
+)
+
+scheduler.add_job(
+    job_daily_reconciliation,
+    'cron',
+    day_of_week='mon-fri',
+    hour=15,
+    minute=35,
+    id='job_daily_reconciliation',
+    name='持仓校验（对比DB与交易所持仓，差异邮件通知）',
     misfire_grace_time=300,
     replace_existing=True,
     max_instances=1,

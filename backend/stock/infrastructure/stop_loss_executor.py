@@ -102,6 +102,7 @@ def execute_stop_loss_exit(api, position):
         log_error(
             function_name='execute_stop_loss_exit',
             error_message=f"{error_msg}\n{traceback.format_exc()}",
+            notify=True,
         )
         return False, 0, Decimal('0')
 
@@ -134,6 +135,7 @@ def check_and_execute_stop_loss(api, account=None):
                     function_name='check_and_execute_stop_loss',
                     error_message=f"{error_msg}\n{traceback.format_exc()}",
                     account=acct,
+                    notify=True,
                 )
                 continue
 

@@ -10,7 +10,7 @@ from celery import shared_task
 logger = logging.getLogger(__name__)
 
 
-@shared_task(retry_delay=180, max_retries=1)
+# @shared_task(retry_delay=180, max_retries=1)
 def send_email_task(subject, body, receiver_email,
                     smtp_server='smtp.qq.com', smtp_port=587,
                sender_email=None, sender_pass=None,

@@ -46,3 +46,15 @@ LOGIN_NO_CAPTCHA_AUTH = True
 ALLOWED_HOSTS = ["*"]
 # 列权限中排除App应用
 COLUMN_EXCLUDE_APPS = []
+
+# ================================================= #
+# ****************** 邮件 配置  ******************* #
+# ================================================= #
+# EMAIL_ENABLE = True
+# EMAIL_HOST = "smtp.qq.com"
+# EMAIL_PORT = 465
+# EMAIL_USE_SSL = True
+# EMAIL_HOST_USER = "your_email@qq.com"
+# EMAIL_HOST_PASSWORD = "your_smtp_authorization_code"
+# EMAIL_FROM = "your_email@qq.com"
+# EMAIL_TO = ["receiver@example.com"]

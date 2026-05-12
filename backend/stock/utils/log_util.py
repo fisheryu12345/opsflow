@@ -42,29 +42,17 @@ def log_error(
     function_name: str,
     error_message: str,
     account=None,
+    notify=False,
 ):
     """
-    记录错误日志到数据库
-    
-    :param function_name: 发生错误的函数完整路径（如：stock.scheduler.tasks_daily_open.execute_addon_order）
+    记录错误日志到数据库，可选择发送邮件通知。
+
+    :param function_name: 发生错误的函数完整路径
     :param error_message: 错误详情，建议包含完整的Traceback信息
-    :param error_level: 错误级别，可选值：CRITICAL/ERROR/WARNING，默认ERROR
     :param account: 关联的交易账户对象（TradingAccount实例），可选
-    :param symbol: 关联的合约代码（如：SHFE.rb2610），可选
-    
+    :param notify: 是否发送邮件通知（关键错误建议启用）
+
     :return: 创建的ErrorLog对象，失败返回None
-    
-    使用示例：
-        try:
-            result = execute_addon_order(api, account, signal)
-        except Exception as e:
-            log_error(
-                function_name='stock.scheduler.tasks_daily_open.execute_addon_order',
-                error_message=f"加仓失败: {str(e)}\n{traceback.format_exc()}",
-                error_level='ERROR',
-                account=account,
-                symbol=signal.symbol
-            )
     """
     try:
         from stock.models import ErrorLog
@@ -78,7 +66,10 @@ def log_error(
             account=account,
         )
 
-        
+        # 关键错误 → 邮件通知
+        if notify:
+            _notify_error(function_name, error_message, account)
+
     except Exception as e:
         # 如果日志记录本身失败，打印到控制台避免静默失败
         print(f"[LOG_ERROR] 写入错误日志失败: {str(e)}")
@@ -145,4 +136,23 @@ def log_trade(
         print(f"[LOG_ERROR] 写入交易日志失败: {str(e)}")
         print(f"[LOG_ERROR] 原始日志 - 函数: {function_name}, 消息: {log_message}")
         return None
+
+
+def _notify_error(function_name, error_message, account):
+    """发送关键错误邮件通知。"""
+    try:
+        from stock.tasks.send_mail import send_email_task
+
+        receiver = '312711936@qq.com'
+        if account and hasattr(account, 'user') and account.user and account.user.email:
+            receiver = account.user.email
+
+        send_email_task(
+            subject=f"[交易系统] {function_name.split('.')[-1][:40]} 发生错误",
+            body=f"函数: {function_name}\n\n错误信息:\n{error_message[:2000]}",
+            receiver_email=receiver,
+            is_html=False,
+        )
+    except Exception as e:
+        print(f"[NOTIFY_ERROR] 邮件通知发送失败: {e}")
 

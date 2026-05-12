@@ -74,6 +74,7 @@ def job_daily_open_process():
                         function_name='job_daily_open_process',
                         error_message=f"{error_msg}\n{traceback.format_exc()}",
                         account=account,
+                        notify=True,
                     )
         except LockAcquisitionError:
             print(f"[INFO] 账户 {account.username} 正在处理中, 跳过")

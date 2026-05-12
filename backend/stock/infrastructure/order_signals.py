@@ -62,7 +62,8 @@ def execute_add_on_order(api, account, signal):
         ).exclude(direction=0).first()
         if position is None:
             log_error('execute_add_on_order',
-                       f"{signal.symbol}({signal.product_code}) 未找到对应持仓，无法加仓", account=account)
+                       f"{signal.symbol}({signal.product_code}) 未找到对应持仓，无法加仓", account=account,
+                       notify=True)
             signal.executed_status = 'FAILED'
             signal.save(update_fields=['executed_status', 'updated_at'])
             return False
@@ -197,7 +198,7 @@ def execute_add_on_order(api, account, signal):
                 )
                 msg = f"[ERROR] {trade_symbol} 加仓超时或失败"
                 print(msg)
-                log_error('execute_add_on_order', msg)
+                log_error('execute_add_on_order', msg, notify=True)
                 signal.executed_status = 'FAILED'
                 signal.save(update_fields=['executed_status', 'remark', 'updated_at'])
                 return False
@@ -251,7 +252,7 @@ def execute_add_on_order(api, account, signal):
             msg = f"[ERROR] 加仓失败 {trade_symbol}: {str(e)}"
             print(msg)
             traceback.print_exc()
-            log_error('execute_add_on_order', f"{msg}\n{traceback.format_exc()}")
+            log_error('execute_add_on_order', f"{msg}\n{traceback.format_exc()}", notify=True)
             try:
                 signal.executed_status = 'FAILED'
                 signal.save(update_fields=['executed_status', 'updated_at'])
@@ -405,7 +406,7 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
             if not result['success']:
                 msg = f"[ERROR] {signal.symbol} 开仓超时或失败"
                 print(msg)
-                log_error('execute_entry_order', msg)
+                log_error('execute_entry_order', msg, notify=True)
                 signal.executed_status = 'FAILED'
                 signal.remark = '开仓超时或失败'
                 signal.save(update_fields=['executed_status', 'updated_at', 'remark'])
@@ -475,7 +476,7 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
             msg = f"[ERROR] 开仓失败 {signal.symbol}: {str(e)}"
             print(msg)
             traceback.print_exc()
-            log_error('execute_entry_order', f"{msg}\n{traceback.format_exc()}")
+            log_error('execute_entry_order', f"{msg}\n{traceback.format_exc()}", notify=True)
             try:
                 signal.executed_status = 'FAILED'
                 signal.save(update_fields=['executed_status', 'updated_at'])
@@ -506,7 +507,7 @@ def execute_exit_order(api, position, signal):
         if not result['success']:
             msg = f"[ERROR] {position.symbol} 平仓超时或失败"
             print(msg)
-            log_error('execute_exit_order', msg)
+            log_error('execute_exit_order', msg, notify=True)
             if signal:
                 signal.executed_status = 'FAILED'
                 signal.remark = '平仓超时或失败'
@@ -566,7 +567,7 @@ def execute_exit_order(api, position, signal):
         msg = f"[ERROR] 平仓失败 {position.symbol}: {str(e)}"
         print(msg)
         traceback.print_exc()
-        log_error('execute_exit_order', f"{msg}\n{traceback.format_exc()}")
+        log_error('execute_exit_order', f"{msg}\n{traceback.format_exc()}", notify=True)
         if signal:
             try:
                 signal.executed_status = 'FAILED'
@@ -599,7 +600,7 @@ def execute_rollover_order(api, position, signal):
         if not result['success']:
             msg = f"[ERROR] {position.symbol} 移仓操作中，平仓旧合约失败"
             print(msg)
-            log_error('execute_rollover_order', msg)
+            log_error('execute_rollover_order', msg, notify=True)
             signal.executed_status = 'FAILED'
             signal.save(update_fields=['executed_status', 'updated_at'])
             return False
@@ -640,7 +641,7 @@ def execute_rollover_order(api, position, signal):
             contract_info = FullContractList.objects.get(symbol=position.symbol)
             volume_multiple = contract_info.volume_multiple
         except FullContractList.DoesNotExist:
-            log_error('execute_rollover_order', f"合约 {position.symbol} 未找到，乘数默认10")
+            log_error('execute_rollover_order', f"合约 {position.symbol} 未找到，乘数默认10", notify=True)
             volume_multiple = 10
 
         cost_price = position.cost_price if position.cost_price else None
@@ -708,7 +709,7 @@ def execute_rollover_order(api, position, signal):
         msg = f"[ERROR] {position.symbol} 平仓失败: {str(e)}"
         print(msg)
         traceback.print_exc()
-        log_error('execute_rollover_order', f"{msg}\n{traceback.format_exc()}")
+        log_error('execute_rollover_order', f"{msg}\n{traceback.format_exc()}", notify=True)
         signal.executed_status = 'FAILED'
         signal.save(update_fields=['executed_status', 'updated_at'])
         return False
@@ -721,7 +722,7 @@ def execute_rollover_order(api, position, signal):
     if not main_contract:
         msg = f"[ERROR] {position.product_code} 无法获取新主力合约信息"
         print(msg)
-        log_error('execute_rollover_order', msg)
+        log_error('execute_rollover_order', msg, notify=True)
         signal.executed_status = 'FAILED'
         signal.save(update_fields=['executed_status', 'updated_at'])
         return False
@@ -791,7 +792,7 @@ def execute_rollover_order(api, position, signal):
             if not result['success']:
                 msg = f"[ERROR] {new_symbol} 移仓操作中，开仓新合约失败"
                 print(msg)
-                log_error('execute_rollover_order', msg)
+                log_error('execute_rollover_order', msg, notify=True)
                 signal.executed_status = 'FAILED'
                 signal.save(update_fields=['executed_status', 'updated_at'])
                 return False
@@ -811,7 +812,7 @@ def execute_rollover_order(api, position, signal):
             msg = f"[ERROR] {new_symbol} 移仓操作中，开仓失败: {str(e)}"
             print(msg)
             traceback.print_exc()
-            log_error('execute_rollover_order', f"{msg}\n{traceback.format_exc()}")
+            log_error('execute_rollover_order', f"{msg}\n{traceback.format_exc()}", notify=True)
             try:
                 signal.executed_status = 'FAILED'
                 signal.save(update_fields=['executed_status', 'updated_at'])
@@ -853,7 +854,7 @@ def execute_rollover_order(api, position, signal):
                 msg = f"[WARN] {new_symbol} 计算历史数据失败: {str(hist_e)}，使用开仓价初始化"
                 print(msg)
                 traceback.print_exc()
-                log_error('execute_rollover_order', f"{msg}\n{traceback.format_exc()}")
+                log_error('execute_rollover_order', f"{msg}\n{traceback.format_exc()}", notify=True)
                 init_highest_close = Decimal(str(entry_avg_price)) if position.direction == 1 else None
                 init_lowest_close = Decimal(str(entry_avg_price)) if position.direction == -1 else None
                 init_stop_loss = None
@@ -924,7 +925,7 @@ def execute_rollover_order(api, position, signal):
             msg = f"[ERROR] {new_symbol} 移仓数据库更新失败: {str(e)}"
             print(msg)
             traceback.print_exc()
-            log_error('execute_rollover_order', f"{msg}\n{traceback.format_exc()}")
+            log_error('execute_rollover_order', f"{msg}\n{traceback.format_exc()}", notify=True)
             try:
                 signal.executed_status = 'FAILED'
                 signal.save(update_fields=['executed_status', 'updated_at'])
@@ -936,7 +937,7 @@ def execute_rollover_order(api, position, signal):
         msg = f"[ERROR] {new_symbol} 移仓操作中，数据库更新失败: {str(e)}"
         print(msg)
         traceback.print_exc()
-        log_error('execute_rollover_order', f"{msg}\n{traceback.format_exc()}")
+        log_error('execute_rollover_order', f"{msg}\n{traceback.format_exc()}", notify=True)
         try:
             signal.executed_status = 'FAILED'
             signal.save(update_fields=['executed_status', 'updated_at'])
@@ -992,7 +993,7 @@ def process_signals_by_type(api, account, trade_type):
     # API 连接检查：如果连接已断开，跳过本批次处理并记录日志
     if not is_api_connected(api):
         log_error('process_signals_by_type',
-                   f"API连接已断开，跳过{trade_type}处理")
+                   f"API连接已断开，跳过{trade_type}处理", notify=True)
         return {'success': 0, 'failed': 0, 'skipped': 0}
 
     signals = DailyStrategySignal.objects.filter(
