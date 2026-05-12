@@ -71,7 +71,7 @@ def _update_account_float_profit(account: TradingAccount):
                 except (TypeError, ValueError, AttributeError) as e:
                     log_trade(FSM, f"{pos_db.symbol} 读取 float_profit 异常: {e}", symbol=pos_db.symbol, log_level='WARNING', account=account)
 
-        log_trade(FSM, f"更新完成 {updated_count} 笔持仓", log_level='INFO', account=account)
+        # log_trade(FSM, f"更新完成 {updated_count} 笔持仓", log_level='INFO', account=account)
 
     except Exception as e:
         log_error(FSM, f"更新浮动盈亏异常: {e}", account=account)
