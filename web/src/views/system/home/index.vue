@@ -40,6 +40,17 @@
 			</div>
 		</div>
 
+		<!-- 品种滑点统计 -->
+		<div class="section-card">
+			<div class="section-header">
+				<h3 class="section-title">品种滑点统计</h3>
+			</div>
+			<div class="section-body" style="position: relative;">
+				<div ref="slippageBySymbolRef" class="chart-container"></div>
+				<div v-if="chartLoading.slippageBySymbol" class="chart-skeleton-overlay" />
+			</div>
+		</div>
+
 		<!-- 品种盈亏排行 -->
 		<div class="section-card">
 			<div class="section-header">
@@ -179,9 +190,11 @@ const chartLoading = reactive({
 	closedPnlCurve: true,
 	monthlyReturns: true,
 	symbolPnlRanking: true,
+	slippageBySymbol: true,
 });
 const symbolWinRateRef = ref();
 const symbolPnlRankingRef = ref();
+const slippageBySymbolRef = ref();
 const calendarHeatmapRef = ref();
 const equityCurveRef = ref();
 	const dailyReturnsRef = ref();
@@ -217,12 +230,13 @@ const buildNormalItems = (
 	latestRiskRatio?: number,
 	latestFloatProfit?: number,
 	totalClosedPnl?: number,
-	totalCommission?: number
+	totalCommission?: number,
+	slippageStats?: { avgSlippageTicks: number; favorableRatio: number }
 ) => {
 	const currentEquity = latestBalance !== undefined ? latestBalance : 0;
 	const riskRatio = latestRiskRatio !== undefined ? latestRiskRatio * 100 : 0;
 	const floatProfit = latestFloatProfit !== undefined ? latestFloatProfit : 0;
-	return [
+	const items: any[] = [
 		{ number: 1, label: '当前权益', value: formatCurrency(currentEquity), colorType: 'positive', tooltip: '账户当前总权益 = 可用资金 + 保证金占用 + 浮动盈亏' },
 		{ number: 2, label: '累计收益率/年化收益率', value: `<span style="color:${(parseFloat(summary.total_return) || 0) >= 0 ? '#f5222d' : '#52c41a'}">${formatPercent(summary.total_return)}</span> / <span style="color:${(parseFloat(summary.annualized_return || '0') || 0) >= 0 ? '#f5222d' : '#52c41a'}">${formatPercent(summary.annualized_return)}</span>`, colorType: 'neutral', html: true, tooltip: '累计收益率: 总盈亏 / 初始本金。年化收益率: 按时间折算的年均收益率' },
 		{ number: 3, label: '盈利因子', value: summary.overall_profit_factor ? parseFloat(summary.overall_profit_factor).toFixed(2) : '0.00', colorType: 'positive', tooltip: '总盈利 / 总亏损。>1 表示整体盈利，>2 表示优秀' },
@@ -240,6 +254,17 @@ const buildNormalItems = (
 		{ number: 15, label: '连续亏损/最大连盈', value: `${summary.consecutive_losses}次 / ${summary.consecutive_wins}次`, colorType: 'negative', tooltip: '最大连续亏损次数 / 最大连续盈利次数。连续亏损次数是重要的风控指标' },
 		{ number: 16, label: '最大盈利/最大亏损', value: `<span style="color:#f5222d">${summary.best_single_trade ? formatCurrency(summary.best_single_trade) : '¥0.00'}</span> / <span style="color:#52c41a">${summary.worst_single_trade ? formatCurrency(summary.worst_single_trade) : '¥0.00'}</span>`, colorType: 'neutral', html: true, tooltip: '单笔最佳盈利(红) / 单笔最大亏损(绿)。反映策略的盈亏分布特征' }
 	];
+	if (slippageStats) {
+		const favColor = slippageStats.favorableRatio >= 60 ? 'positive' : slippageStats.favorableRatio >= 40 ? 'neutral' : 'negative';
+		items.push({
+			number: 17,
+			label: '平均滑点/有利滑点率',
+			value: `${slippageStats.avgSlippageTicks.toFixed(2)}跳 / ${slippageStats.favorableRatio.toFixed(1)}%`,
+			colorType: favColor,
+			tooltip: '平均每笔交易的滑点（按最小变动价位计）/ 成交价优于信号价的比例'
+		});
+	}
+	return items;
 };
 
 // ==================== 图表初始化 ====================
@@ -839,7 +864,20 @@ const loadDashboardData = async () => {
 			console.warn('获取累计统计数据失败:', error);
 		}
 
-		normalItems.value = buildNormalItems(summary, latestBalance, latestRiskRatio, latestFloatProfit, totalClosedPnl, totalCommission);
+		let slippageStats: { avgSlippageTicks: number; favorableRatio: number } | undefined;
+		try {
+			const slippageRes: any = await getSlippageStats(accountId.value);
+			if (slippageRes.code === 2000 && slippageRes.data) {
+				slippageStats = {
+					avgSlippageTicks: slippageRes.data.avg_slippage_ticks,
+					favorableRatio: slippageRes.data.favorable_ratio
+				};
+			}
+		} catch (error) {
+			console.warn('获取滑点统计数据失败:', error);
+		}
+
+		normalItems.value = buildNormalItems(summary, latestBalance, latestRiskRatio, latestFloatProfit, totalClosedPnl, totalCommission, slippageStats);
 		lastUpdated.value = summary.updated_at
 			? new Date(summary.updated_at).toLocaleString('zh-CN', { hour12: false })
 			: new Date().toLocaleString('zh-CN', { hour12: false });
@@ -848,6 +886,93 @@ const loadDashboardData = async () => {
 		console.error('加载 Dashboard 数据失败:', error);
 	} finally {
 		loading.value = false;
+	}
+};
+
+
+const initSlippageBySymbolChart = async () => {
+	if (!slippageBySymbolRef.value) return;
+	const chart = echarts.init(slippageBySymbolRef.value);
+	const fontConfig = getResponsiveFontConfig();
+	const isMobile = window.innerWidth < 480;
+
+	try {
+		const res: any = await getSlippageStats(accountId.value);
+		const symbolData = res?.data?.by_symbol;
+		if (!symbolData || !Array.isArray(symbolData) || symbolData.length === 0) {
+			chart.setOption({
+				title: { text: '品种滑点统计', left: 'center', textStyle: { fontSize: fontConfig.title } },
+				graphic: [{ type: 'text', left: 'center', top: 'middle', style: { text: '暂无数据', fontSize: 14, fill: '#999' } }]
+			});
+			return;
+		}
+
+		const sorted = [...symbolData].sort((a: any, b: any) => b.avg_slippage_ticks - a.avg_slippage_ticks);
+
+		chart.setOption({
+			tooltip: {
+				trigger: 'axis', axisPointer: { type: 'shadow' },
+				formatter: (params: any) => {
+					const item = sorted[params[0].dataIndex];
+					const favColor = item.favorable_ratio >= 60 ? '#f5222d' : item.favorable_ratio >= 40 ? '#fa8c16' : '#52c41a';
+					return `<div style="font-weight:600;margin-bottom:4px;">${item.product_code}</div>
+						<div>平均滑点: ${item.avg_slippage_ticks.toFixed(2)} 跳</div>
+						<div>有利滑点率: <span style="color:${favColor};font-weight:700;">${item.favorable_ratio}%</span></div>
+						<div>交易次数: ${item.count} 次</div>`;
+				},
+				textStyle: { fontSize: fontConfig.tooltip }
+			},
+			grid: { left: '3%', right: '4%', bottom: '3%', top: '15%', containLabel: true },
+			xAxis: {
+				type: 'category', data: sorted.map((item: any) => item.product_code),
+				axisLabel: {
+					interval: 0, rotate: 30, fontSize: fontConfig.axisName,
+					formatter: (v: string) => isMobile && v.length > 6 ? v.substring(0, 5) + '...' : v
+				}
+			},
+			yAxis: {
+				type: 'value', name: '平均滑点（跳）',
+				splitLine: { lineStyle: { type: 'dashed', color: '#e8e8e8' } },
+				nameTextStyle: { fontSize: fontConfig.axisName },
+				axisLabel: { fontSize: fontConfig.axisName }
+			},
+			visualMap: {
+				show: false, dimension: 1,
+				pieces: [
+					{ gte: 2, color: '#f5222d' },
+					{ gte: 1, lt: 2, color: '#fa8c16' },
+					{ lt: 1, color: '#52c41a' }
+				]
+			},
+			series: [{
+				name: '平均滑点', type: 'bar',
+				data: sorted.map((item: any) => ({
+					value: item.avg_slippage_ticks,
+					itemStyle: {
+						color: item.favorable_ratio >= 60 ? '#52c41a' : item.favorable_ratio >= 40 ? '#fa8c16' : '#f5222d',
+						borderRadius: [2, 2, 0, 0]
+					}
+				})),
+				barWidth: isMobile ? '50%' : '55%',
+				label: {
+					show: !isMobile, position: 'top',
+					formatter: (p: any) => `${p.value.toFixed(2)}跳`,
+					fontSize: fontConfig.label, fontWeight: 600
+				},
+				markLine: {
+					silent: true,
+					lineStyle: { color: '#999', type: 'dashed', width: 1 },
+					label: { position: 'end', formatter: '基准 1跳', fontSize: fontConfig.label, color: '#999' },
+					data: [{ yAxis: 1 }]
+				}
+			}]
+		});
+
+		window.addEventListener('resize', () => chart.resize());
+	} catch (error: any) {
+		console.error('加载品种滑点数据失败:', error);
+	} finally {
+		chartLoading.slippageBySymbol = false;
 	}
 };
 
@@ -861,6 +986,7 @@ onMounted(async () => {
 	nextTick(() => {
 		initSymbolWinRateChart();
 		initSymbolPnlRankingChart();
+		initSlippageBySymbolChart();
 		initCalendarHeatmap();
 		initDrawdownCurveChart();
 	});
@@ -873,6 +999,7 @@ watch(() => accountStore.currentAccountId, (newId) => {
     nextTick(() => {
       initSymbolWinRateChart();
       initSymbolPnlRankingChart();
+      initSlippageBySymbolChart();
       initCalendarHeatmap();
       initDrawdownCurveChart();
     });

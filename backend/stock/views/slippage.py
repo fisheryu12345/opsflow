@@ -97,6 +97,26 @@ class SlippageStatsView(viewsets.ViewSet):
                 'favorable_ratio': fav_ratio,
             })
 
+        # 按品种统计（by product_code）
+        symbol_stats = base_qs.values('product_code').annotate(
+            count=Count('id'),
+            avg_ticks=Avg('slippage_ticks'),
+            favorable_count=Count('id', filter=Q(is_favorable=True)),
+        ).order_by('-count')
+
+        by_symbol = []
+        for item in symbol_stats:
+            if not item['product_code']:
+                continue
+            fav_ratio = round(item['favorable_count'] / item['count'] * 100, 1) if item['count'] > 0 else 0
+            avg_tick = round(float(item['avg_ticks']), 2) if item['avg_ticks'] is not None else 0
+            by_symbol.append({
+                'product_code': item['product_code'],
+                'count': item['count'],
+                'avg_slippage_ticks': avg_tick,
+                'favorable_ratio': fav_ratio,
+            })
+
         return Response({
             'code': 2000,
             'msg': 'success',
@@ -105,5 +125,6 @@ class SlippageStatsView(viewsets.ViewSet):
                 'avg_slippage_ticks': avg_slippage_ticks,
                 'favorable_ratio': favorable_ratio,
                 'by_type': by_type,
+                'by_symbol': by_symbol,
             }
         })

@@ -901,6 +901,84 @@ class KlineData(models.Model):
     open_interest = models.BigIntegerField("持仓量", null=True, blank=True,
                                           help_text="日持仓量")
 
+    # --- 报价数据 (来自 TqSDK get_quote) ---
+    settlement = models.DecimalField("结算价", max_digits=12, decimal_places=2,
+                                     null=True, blank=True,
+                                     help_text="日结算价（中国期货逐日盯市基准价，非收盘价）")
+    pre_close = models.DecimalField("前收盘价", max_digits=12, decimal_places=2,
+                                    null=True, blank=True,
+                                    help_text="前一交易日收盘价，用于跳空计算")
+    pre_settlement = models.DecimalField("前结算价", max_digits=12, decimal_places=2,
+                                         null=True, blank=True,
+                                         help_text="前一交易日结算价，用于MTM跳空分析")
+    upper_limit = models.DecimalField("涨停板价", max_digits=12, decimal_places=2,
+                                      null=True, blank=True,
+                                      help_text="当日涨停板价格")
+    lower_limit = models.DecimalField("跌停板价", max_digits=12, decimal_places=2,
+                                      null=True, blank=True,
+                                      help_text="当日跌停板价格")
+    average_price = models.DecimalField("当日均价", max_digits=12, decimal_places=2,
+                                        null=True, blank=True,
+                                        help_text="当日成交均价（VWAP）")
+    close_oi = models.BigIntegerField("收盘持仓量", null=True, blank=True,
+                                      help_text="收盘时的持仓量（区别于盘中持仓量）")
+    turnover = models.DecimalField("成交额", max_digits=20, decimal_places=2,
+                                    null=True, blank=True,
+                                    help_text="当日成交额（元）")
+
+    # --- 预计算指标 (Phase 2) ---
+    atr_20 = models.DecimalField("ATR(20)", max_digits=12, decimal_places=2,
+                                 null=True, blank=True,
+                                 help_text="20日平均真实波幅")
+    donchian_upper_20 = models.DecimalField("唐奇安上轨(20)", max_digits=12, decimal_places=2,
+                                            null=True, blank=True,
+                                            help_text="20日唐奇安通道上轨（最高价）")
+    donchian_lower_20 = models.DecimalField("唐奇安下轨(20)", max_digits=12, decimal_places=2,
+                                            null=True, blank=True,
+                                            help_text="20日唐奇安通道下轨（最低价）")
+    ma_10 = models.DecimalField("MA(10)", max_digits=12, decimal_places=2,
+                                null=True, blank=True,
+                                help_text="10日移动平均线")
+    ma_20 = models.DecimalField("MA(20)", max_digits=12, decimal_places=2,
+                                null=True, blank=True,
+                                help_text="20日移动平均线")
+    ma_40 = models.DecimalField("MA(40)", max_digits=12, decimal_places=2,
+                                null=True, blank=True,
+                                help_text="40日移动平均线")
+    trend_factor = models.DecimalField("趋势因子", max_digits=6, decimal_places=4,
+                                       null=True, blank=True,
+                                       help_text="由MA排列计算的趋势强度 [0, 0.5]")
+    trend_label = models.CharField("趋势标签", max_length=20,
+                                   null=True, blank=True,
+                                   help_text="strong_bull / weak_bull / choppy / weak_bear / strong_bear")
+    true_range = models.DecimalField("真实波幅TR", max_digits=12, decimal_places=2,
+                                     null=True, blank=True,
+                                     help_text="真实波幅 = max(H-L, |H-preC|, |L-preC|)")
+
+    # --- K线分析元数据 (Phase 3) ---
+    body_ratio = models.DecimalField("实体比例", max_digits=6, decimal_places=4,
+                                     null=True, blank=True,
+                                     help_text="实体占全幅比例 |C-O|/(H-L)，越大表示K线方向性越强")
+    upper_shadow_ratio = models.DecimalField("上影线比例", max_digits=6, decimal_places=4,
+                                             null=True, blank=True,
+                                             help_text="上影线占全幅比例 (H-max(O,C))/(H-L)")
+    lower_shadow_ratio = models.DecimalField("下影线比例", max_digits=6, decimal_places=4,
+                                             null=True, blank=True,
+                                             help_text="下影线占全幅比例 (min(O,C)-L)/(H-L)")
+    close_in_range = models.DecimalField("收盘位置(0-1)", max_digits=6, decimal_places=4,
+                                         null=True, blank=True,
+                                         help_text="收盘价在当日范围中的位置 (C-L)/(H-L)，接近1=收盘在高位")
+    volume_ratio_20 = models.DecimalField("成交量比值vs20日", max_digits=8, decimal_places=4,
+                                          null=True, blank=True,
+                                          help_text="当日成交量 / 20日均量，>1表示放量")
+    gap_from_pre_close = models.DecimalField("跳空幅度", max_digits=8, decimal_places=4,
+                                             null=True, blank=True,
+                                             help_text="跳空幅度 (O-preC)/preC，正数=向上跳空")
+    hit_upper_limit = models.BooleanField("触及涨停", null=True, blank=True,
+                                          help_text="当日最高价是否触及涨停板")
+    hit_lower_limit = models.BooleanField("触及跌停", null=True, blank=True,
+                                          help_text="当日最低价是否触及跌停板")
+
     # --- 元数据 ---
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
     updated_at = models.DateTimeField("更新时间", auto_now=True)

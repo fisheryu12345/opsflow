@@ -6,6 +6,7 @@ from decimal import Decimal
 import traceback
 import math
 from stock.models import TradingAccount, PositionState, FullContractList, AccountContractConfig, KlineData
+from stock.core.indicators import compute_batch_kline_indicators
 
 
 def _ensure_position_states(symbol, product_code):
@@ -262,6 +263,111 @@ def sync_kline_data_from_tqsdk(api, product_codes=None):
                 KlineData.objects.bulk_create(new_records, ignore_conflicts=True)
 
             saved = len(new_records)
+
+            # 报价数据 enrichment：用 get_quote() 获取结算价、涨跌停板等
+            # 注意：get_quote() 返回的是当前值，仅对最新一根 K 线准确
+            try:
+                quote = api.get_quote(query_key)
+                if quote is not None:
+                    latest_bar = KlineData.objects.filter(symbol=query_key).order_by('-date').first()
+                    if latest_bar:
+                        update_fields = []
+                        settlement = getattr(quote, 'settlement', None)
+                        if settlement is not None:
+                            latest_bar.settlement = Decimal(str(settlement))
+                            update_fields.append('settlement')
+
+                        pre_close = getattr(quote, 'pre_close', None)
+                        if pre_close is not None:
+                            latest_bar.pre_close = Decimal(str(pre_close))
+                            update_fields.append('pre_close')
+
+                        pre_settlement = getattr(quote, 'pre_settlement', None)
+                        if pre_settlement is not None:
+                            latest_bar.pre_settlement = Decimal(str(pre_settlement))
+                            update_fields.append('pre_settlement')
+
+                        upper_limit = getattr(quote, 'upper_limit', None)
+                        if upper_limit is not None:
+                            latest_bar.upper_limit = Decimal(str(upper_limit))
+                            update_fields.append('upper_limit')
+
+                        lower_limit = getattr(quote, 'lower_limit', None)
+                        if lower_limit is not None:
+                            latest_bar.lower_limit = Decimal(str(lower_limit))
+                            update_fields.append('lower_limit')
+
+                        average = getattr(quote, 'average', None)
+                        if average is not None:
+                            latest_bar.average_price = Decimal(str(average))
+                            update_fields.append('average_price')
+
+                        close_oi = getattr(quote, 'close_oi', None)
+                        if close_oi is not None:
+                            try:
+                                latest_bar.close_oi = int(close_oi)
+                                update_fields.append('close_oi')
+                            except (ValueError, TypeError):
+                                pass
+
+                        turnover = getattr(quote, 'turnover', None)
+                        if turnover is not None:
+                            latest_bar.turnover = Decimal(str(turnover))
+                            update_fields.append('turnover')
+
+                        if update_fields:
+                            latest_bar.save(update_fields=update_fields)
+                            print(f"    [ENRICH] 报价数据已更新: {', '.join(update_fields)}")
+            except Exception as quote_error:
+                print(f"    [WARN] {query_key}: 获取报价数据失败: {quote_error}")
+
+            # K线指标批量计算（Phase 2/3）：加载全部K线 → 计算指标 → bulk_update
+            try:
+                import pandas as pd
+                all_klines = KlineData.objects.filter(symbol=query_key).order_by('date').values(
+                    'id', 'date', 'open', 'high', 'low', 'close', 'volume',
+                    'open_interest', 'upper_limit', 'lower_limit'
+                )
+                if len(all_klines) >= 20:
+                    df = pd.DataFrame(all_klines)
+                    # 数值列转 float
+                    for col in ['open', 'high', 'low', 'close', 'volume', 'upper_limit', 'lower_limit']:
+                        df[col] = pd.to_numeric(df[col], errors='coerce')
+                    df2 = compute_batch_kline_indicators(df)
+
+                    # 只更新有 id 的行
+                    update_objs = []
+                    indicator_fields = [
+                        'atr_20', 'donchian_upper_20', 'donchian_lower_20',
+                        'ma_10', 'ma_20', 'ma_40', 'trend_factor', 'trend_label', 'true_range',
+                        'body_ratio', 'upper_shadow_ratio', 'lower_shadow_ratio', 'close_in_range',
+                        'volume_ratio_20', 'gap_from_pre_close', 'hit_upper_limit', 'hit_lower_limit',
+                    ]
+                    for _, row in df2.iterrows():
+                        if pd.isna(row.get('id')):
+                            continue
+                        obj = KlineData(id=int(row['id']))
+                        for field in indicator_fields:
+                            val = row.get(field)
+                            if val is not None and not (isinstance(val, float) and (pd.isna(val) or pd.isinf(val))):
+                                if field in ('hit_upper_limit', 'hit_lower_limit'):
+                                    setattr(obj, field, bool(val))
+                                elif field == 'trend_label':
+                                    setattr(obj, field, str(val) if val else None)
+                                else:
+                                    setattr(obj, field, Decimal(str(val)))
+                        update_objs.append(obj)
+
+                    if update_objs:
+                        KlineData.objects.bulk_update(
+                            update_objs,
+                            fields=indicator_fields,
+                            batch_size=500
+                        )
+                        print(f"    [INDICATORS] 已更新 {len(update_objs)} 条K线指标")
+            except Exception as ind_error:
+                print(f"    [WARN] {query_key}: 计算K线指标失败: {ind_error}")
+                traceback.print_exc()
 
             bar_count += saved
             success_count += 1

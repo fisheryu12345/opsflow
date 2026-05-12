@@ -345,6 +345,12 @@ export interface SlippageStats {
 		avg_slippage_ticks: number;
 		favorable_ratio: number;
 	}>;
+	by_symbol?: Array<{
+		product_code: string;
+		count: number;
+		avg_slippage_ticks: number;
+		favorable_ratio: number;
+	}>;
 }
 
 /**
