@@ -392,7 +392,9 @@ def update_all_positions_stop_loss_price(api, account):
         updated_count = 0
 
         # 【修复】确保 TqSDK 持仓数据已加载，避免 get_position() 返回 proxy 默认值 0
-        api.wait_update()
+        # 注意：必须有 deadline，收盘后无新行情时 wait_update() 不会自动返回
+        if positions.exists():
+            api.wait_update(deadline=time.time() + 5)
 
         for position in positions:
             try:
@@ -661,18 +663,25 @@ def job_daily_close_calculation():
                         print(f"[INFO] {account.name} 开仓信号生成: {open_count}个")
 
                     update_all_positions_high_low_price(account)
+                    print(f"[INFO] {account.name} 更新持仓高低价完成")
                     update_all_positions_stop_loss_price(api=account_api, account=account)
+                    print(f"[INFO] {account.name} 更新持仓止损价完成")
                     check_exit_signals(account)
+                    print(f"[INFO] {account.name} 持仓退出信号生成完成")
                     check_add_position_signals(account)
+                    print(f"[INFO] {account.name} 持仓加仓信号生成完成")
                     check_rollover_signals(account)
+                    print(f"[INFO] {account.name} 持仓轮换信号生成完成")
                     generate_daily_signal_report(account)
+                    print(  f"[INFO] {account.name} 日报生成完成")
 
                     if account_api:
                         try:
-                            # 【修复】等待 TqSDK 账户数据到达，最多 15 秒
-                            account_api.wait_update(deadline=time.time() + 15)
+                            # 账户数据在前序操作中已到达，轻量等待确保最新
+                            account_api.wait_update(deadline=time.time() + 2)
 
                             api_account = account_api.get_account()
+                            print(f"[INFO] {account.name} 更新数据")
                             api_account_data = {
                                 'balance': float(api_account.balance),
                                 'static_balance': float(api_account.static_balance),

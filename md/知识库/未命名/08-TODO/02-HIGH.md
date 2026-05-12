@@ -444,3 +444,43 @@ else:
                   f"{position.symbol} 无成交回报且无行情报价，无法确定平仓价")
         return False, 0, Decimal('0')
 ```
+
+---
+
+## 🔴 HIGH-23: `wait_update()` 无超时导致收盘任务在无持仓账户上无限阻塞 — 已修复 (2026-05-12)
+
+**文件**: [tasks_daily_close.py:395](../backend/stock/scheduler/tasks_daily_close.py#L395)
+
+**问题描述**:
+`update_all_positions_stop_loss_price` 中无条件执行 `api.wait_update()` 且不带 `deadline` 参数：
+
+```python
+def update_all_positions_stop_loss_price(api, account):
+    positions = PositionState.objects.filter(account=account, units__gt=0)
+    # 【修复】确保 TqSDK 持仓数据已加载
+    api.wait_update()  # ← 没有 deadline！
+    for position in positions:
+        ...
+```
+
+收盘后 TqSDK 不再推送新行情，`wait_update()` 永远等不到数据更新。
+
+**触发条件**:
+- 激活了新账户但没有持仓（`units=0`），`positions` queryset 为空
+- 但 `wait_update()` 在 `for position in positions` 之前无条件执行
+- 有持仓的账户（如 510976，9 个持仓）不受影响：TqSDK 连接后会推送持仓数据，`wait_update()` 能正常返回
+
+**影响分析**:
+- 收盘任务无限阻塞，`job_daily_close_calculation` 永远不结束
+- Redis 锁被一直持有，次日调度也失败
+- 所有账户的绩效指标无法更新
+- 必须手动重启 gunicorn 恢复
+
+**修复内容**:
+1. `positions.exists()` 前置判断：无持仓时跳过 `wait_update`
+2. 即使有持仓，也加 `deadline=time.time() + 5` 兜底
+
+```python
+if positions.exists():
+    api.wait_update(deadline=time.time() + 5)
+```

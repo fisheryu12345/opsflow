@@ -34,8 +34,49 @@
 """
 
 import traceback
+import requests
 from typing import Optional
 from django.utils import timezone
+
+SERVERCHAN_SENDKEY = 'SCT348671TbQK2P42RN2CMpz9FKa3udkZ9'
+
+
+def _notify_error(function_name, error_message, account):
+    """发送关键错误邮件通知。"""
+    try:
+        from stock.tasks.send_mail import send_email_task
+
+        receiver = '312711936@qq.com'
+        if account and hasattr(account, 'user') and account.user and account.user.email:
+            receiver = account.user.email
+
+        send_email_task(
+            subject=f"[交易系统] {function_name.split('.')[-1][:40]} 发生错误",
+            body=f"函数: {function_name}\n\n错误信息:\n{error_message[:2000]}",
+            receiver_email=receiver,
+            is_html=False,
+        )
+    except Exception as e:
+        print(f"[NOTIFY_ERROR] 邮件通知发送失败: {e}")
+
+
+def _notify_serverchan(function_name, error_message):
+    """通过 ServerChan 推送错误到微信。"""
+    try:
+        title = f"[交易系统] {function_name.split('.')[-1][:40]} 发生错误"
+        resp = requests.post(
+            f'https://sctapi.ftqq.com/{SERVERCHAN_SENDKEY}.send',
+            json={
+                'title': title,
+                'desp': f"函数: {function_name}\n\n错误信息:\n{error_message[:2000]}",
+            },
+            timeout=10,
+        )
+        result = resp.json()
+        if result.get('code') != 0:
+            print(f"[NOTIFY_SERVERCHAN] 推送失败: {result}")
+    except Exception as e:
+        print(f"[NOTIFY_SERVERCHAN] 推送异常: {e}")
 
 
 def log_error(
@@ -66,9 +107,10 @@ def log_error(
             account=account,
         )
 
-        # 关键错误 → 邮件通知
+        # 关键错误 → 邮件通知 + ServerChan 微信推送
         if notify:
             _notify_error(function_name, error_message, account)
+            _notify_serverchan(function_name, error_message)
 
     except Exception as e:
         # 如果日志记录本身失败，打印到控制台避免静默失败
@@ -136,23 +178,4 @@ def log_trade(
         print(f"[LOG_ERROR] 写入交易日志失败: {str(e)}")
         print(f"[LOG_ERROR] 原始日志 - 函数: {function_name}, 消息: {log_message}")
         return None
-
-
-def _notify_error(function_name, error_message, account):
-    """发送关键错误邮件通知。"""
-    try:
-        from stock.tasks.send_mail import send_email_task
-
-        receiver = '312711936@qq.com'
-        if account and hasattr(account, 'user') and account.user and account.user.email:
-            receiver = account.user.email
-
-        send_email_task(
-            subject=f"[交易系统] {function_name.split('.')[-1][:40]} 发生错误",
-            body=f"函数: {function_name}\n\n错误信息:\n{error_message[:2000]}",
-            receiver_email=receiver,
-            is_html=False,
-        )
-    except Exception as e:
-        print(f"[NOTIFY_ERROR] 邮件通知发送失败: {e}")
 
