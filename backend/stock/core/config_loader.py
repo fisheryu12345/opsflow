@@ -1,9 +1,8 @@
 """
 Centralized config loader — reads from DB (StrategyConfig) with fallback to hardcoded defaults.
-Formerly stock.parameter_config was used; now all callers use get_config() from this module.
+now all callers use get_config() from this module.
 """
 
-# Hardcoded defaults mirroring parameter_config.py
 DEFAULTS = {
     'POSITION_RISK_BASE_AMOUNT': 4000,
     'POSITION_RISK_MULTIPLIER': 2,
