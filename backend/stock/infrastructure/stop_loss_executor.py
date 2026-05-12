@@ -64,8 +64,13 @@ def execute_stop_loss_exit(api, position):
             avg_price = total_cost / Decimal(str(filled_volume))
         else:
             quote = api.get_quote(position.symbol)
-            avg_price = Decimal(str(quote.last_price)) if quote.last_price else Decimal('0')
-            filled_volume = position.contract_total_position
+            if quote and quote.last_price:
+                avg_price = Decimal(str(quote.last_price))
+                filled_volume = position.contract_total_position
+            else:
+                log_error('execute_stop_loss_exit',
+                          f"{position.symbol} 无成交回报且无行情报价，无法确定平仓价")
+                return False, 0, Decimal('0')
 
         print(f"✅ 止损平仓成功: {position.symbol} 成交量={filled_volume}, 均价={avg_price:.2f}")
 

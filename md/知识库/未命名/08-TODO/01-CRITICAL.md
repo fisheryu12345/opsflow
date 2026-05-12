@@ -286,3 +286,85 @@ while not target_pos.is_finished():
 api.wait_update()  # 确保 position 数据刷新
 pos_after = api.get_position(symbol)
 ```
+
+---
+
+## ✅ CRITICAL-10: `Decimal(str(None))` 无保护导致 PnL 计算崩溃 — 已修复 (2026-05-12)
+
+**文件**: [infrastructure/order_execution.py:225-244](../backend/stock/infrastructure/order_execution.py#L225)
+
+**问题描述**:
+`record_and_reset_position` 中 `exit_price` 参数默认值为 `None`。当调用方未传入有效成交价且 `quote.last_price` 也无效时，`Decimal(str(None))` → `Decimal("None")` → `InvalidOperation` 崩溃。该函数整体在 `transaction.atomic()` 内，崩溃导致订单已执行但 DB 回滚 → 市场与 DB 持仓不一致。
+
+```python
+# 修复前
+exit_price = avg_price if avg_price else (float(quote.last_price) if quote and quote.last_price else None)
+# exit_price 可能为 None
+pnl = (Decimal(str(exit_price)) - cost_price) * ...  # exit_price=None → 崩溃
+```
+
+**影响分析**:
+- `transaction.atomic()` 内崩溃 → 订单已发但 DB 回滚
+- 市场持仓已变但 PositionState 未更新 → 次日信号生成基于错误持仓
+- `ClosedPositionRecord` 缺失 → 绩效统计偏差
+
+**修复内容**:
+1. 新增 `safe_decimal(value, default=Decimal('0'))` 工具函数，None 或无效值返回 default
+2. PnL 计算: `Decimal(str(exit_price))` → `safe_decimal(exit_price)`
+3. DB 写入: `Decimal(str(exit_price))` → `safe_decimal(exit_price)`
+4. `cost_price` 为 None 时: `cost_price or Decimal('0')` 防止 TypeError
+5. `position.indicators.get('trend_factor', 0)` 可能返回 None → `safe_decimal()` 包装
+
+---
+
+## ✅ CRITICAL-11: 移仓 Phase 3 DB 写入无事务保护 — 已修复 (2026-05-12)
+
+**文件**: [infrastructure/order_signals.py:861-933](../backend/stock/infrastructure/order_signals.py#L861)
+
+**问题描述**:
+`execute_rollover_order` Phase 3 的 DB 写入操作（delete + create + update + save）在 `transaction.atomic()` 块外。Phase 2（历史指标计算）有 `with transaction.atomic():`，但 Phase 3 被排除在外。
+
+```python
+# 修复前结构
+try:                                    # 外层 try
+    with transaction.atomic():          # Phase 2 — 有事务
+        ...历史指标计算...
+
+    try:                                # Phase 3 — 无事务
+        existing_new.delete()
+        PositionState.objects.create(...)
+        PositionState.objects.filter(id=position.id).delete()
+        signal.save(...)
+        return True
+    except:
+        return False
+except:
+    ...
+```
+
+**影响分析**:
+- `existing_new.delete()` 成功 → `PositionState.create()` 失败 → 新合约持仓数据永久丢失
+- `PositionState.objects.filter(id=position.id).delete()` 成功 → `signal.save()` 失败 → 旧合约已删但信号标记失败 → 无法追溯
+- 上述异常概率低但后果严重（数据不可逆丢失）
+
+**修复内容**:
+Phase 3 套上 `try + with transaction.atomic():` 双层保护:
+
+```python
+# 修复后结构
+try:                                    # 外层 try
+    with transaction.atomic():          # Phase 2
+        ...历史指标计算...
+
+    try:                                # 新增 try
+        with transaction.atomic():      # Phase 3 — 有事务了
+            existing_new.delete()
+            PositionState.objects.create(...)
+            ...
+        return True
+    except Exception as e:              # Phase 3 异常处理
+        ...
+        return False
+except:                                 # 外层异常处理
+    ...
+```

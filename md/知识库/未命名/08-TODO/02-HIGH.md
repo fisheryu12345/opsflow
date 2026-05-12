@@ -400,3 +400,47 @@ GFEX.lc2609 第1步：设置目标持仓 5手
 **修复内容**:
 1. 导入 `TIMEOUT_SECONDS = get_config('TIMEOUT_SECONDS')`
 2. 硬编码 `60` 替换为 `TIMEOUT_SECONDS`
+
+---
+
+## ✅ HIGH-22: 止损无成交价时记录虚假巨亏 PnL — 已修复 (2026-05-12)
+
+**文件**: [infrastructure/stop_loss_executor.py:63-68](../backend/stock/infrastructure/stop_loss_executor.py#L63)
+
+**问题描述**:
+`execute_stop_loss_exit` 中 TargetPosTask 无成交回报 `filled_volume=0` 时，回退到 `quote.last_price`。当 `quote.last_price` 也为 None 时，使用 `Decimal('0')` 作为成交价：
+
+```python
+# 修复前
+if filled_volume > 0:
+    avg_price = total_cost / Decimal(str(filled_volume))
+else:
+    quote = api.get_quote(position.symbol)
+    avg_price = Decimal(str(quote.last_price)) if quote.last_price else Decimal('0')
+    filled_volume = position.contract_total_position
+```
+
+0 价传入 `record_and_reset_position` 后，PnL 计算为 `(0 - cost_price) * volume * volume_multiple`，记录一笔远超实际的虚假巨亏。且 `filled_volume` 被强制设为 `contract_total_position`，即使实际成交为 0。
+
+**影响分析**:
+- `ClosedPositionRecord.pnl` 记录一笔虚假巨额亏损（可达真实止损亏损的数十倍）
+- 品种胜率、盈亏比、累计盈亏全部失真
+- 账户绩效指标被严重扭曲
+
+**修复内容**:
+去掉 `Decimal('0')` 回退，无成交也无行情时返回失败等待人工处理：
+
+```python
+# 修复后
+if filled_volume > 0:
+    avg_price = total_cost / Decimal(str(filled_volume))
+else:
+    quote = api.get_quote(position.symbol)
+    if quote and quote.last_price:
+        avg_price = Decimal(str(quote.last_price))
+        filled_volume = position.contract_total_position
+    else:
+        log_error('execute_stop_loss_exit',
+                  f"{position.symbol} 无成交回报且无行情报价，无法确定平仓价")
+        return False, 0, Decimal('0')
+```

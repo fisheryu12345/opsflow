@@ -13,6 +13,16 @@ from stock.core.config_loader import get_config
 TIMEOUT_SECONDS = get_config('TIMEOUT_SECONDS')
 
 
+def safe_decimal(value, default=Decimal('0')):
+    """安全转换 Decimal，None 或无效值返回 default。"""
+    if value is None:
+        return default
+    try:
+        return Decimal(str(value))
+    except Exception:
+        return default
+
+
 def wait_for_target_position(api, target_pos, symbol, target_lots, function_name, timeout=TIMEOUT_SECONDS):
     """
     通用持仓目标等待与资源释放函数。
@@ -239,16 +249,16 @@ def record_and_reset_position(api, position, signal, filled_volume, avg_price):
             volume_multiple = 10
 
         if direction == 1:
-            pnl = (Decimal(str(exit_price)) - cost_price) * Decimal(str(volume)) * Decimal(str(volume_multiple))
+            pnl = (safe_decimal(exit_price) - (cost_price or Decimal('0'))) * Decimal(str(volume)) * Decimal(str(volume_multiple))
         else:
-            pnl = (cost_price - Decimal(str(exit_price))) * Decimal(str(volume)) * Decimal(str(volume_multiple))
+            pnl = ((cost_price or Decimal('0')) - safe_decimal(exit_price)) * Decimal(str(volume)) * Decimal(str(volume_multiple))
 
         # --- 计算出场趋势快照 ---
         if signal is not None:
             exit_trend_factor = signal.trend_factor
             exit_trend_label = signal.trend_label
         elif position.indicators:
-            exit_trend_factor = Decimal(str(position.indicators.get('trend_factor', 0)))
+            exit_trend_factor = safe_decimal(position.indicators.get('trend_factor', 0))
             exit_trend_label = position.indicators.get('trend_label', '')
         else:
             exit_trend_factor = None
@@ -280,7 +290,7 @@ def record_and_reset_position(api, position, signal, filled_volume, avg_price):
             product_code=position.product_code,
             direction=direction,
             volume=volume,
-            exit_price=Decimal(str(exit_price)),
+            exit_price=safe_decimal(exit_price),
             cost_price=cost_price,
             pnl=pnl,
             trade_date=timezone.now().date(),

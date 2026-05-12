@@ -120,7 +120,13 @@ Direct ECharts init at `web/src/views/apps/kline/` (not `useECharts()` composabl
 - **Cost price sync:** `cost_price` is synced daily from TqSDK's `open_price_long`/`open_price_short` during `update_all_positions_stop_loss_price`. Add-on operations do NOT update `cost_price` — the gap between add-on and daily close is harmless since no exits occur in that window.
 - **Add-on window no exit:** Add-on operations (`execute_add_on_order`) do not update `cost_price` (weighted average). No exit occurs between add-on and daily close — the daily close job syncs `cost_price` from TqSDK's `open_price_long`/`open_price_short`, so PnL is unaffected.
 - **Open price at 9:02:** Open-position tasks run at 9:02. At that point `quote.last_price` already reflects the opening price after call auction. The gap-protection logic using `last_price` is correct.
-- **Signal uniqueness per day per symbol:** `DailyStrategySignal` is computed once per symbol per day. `unique_together = ('account', 'symbol', 'trade_date')` guarantees uniqueness — `trade_type` is not part of the constraint and does not cause duplicates.
+- **Signal uniqueness per day per symbol:** `DailyStrategySignal` is computed once per symbol per day. `unique_together = ('account', 'symbol', 'trade_date')` 不含 `trade_type` 仍不会产生重复，原因如下:
+
+  收盘任务(15:32)对每个账户的按序执行: `check_breakout_signal(ENTRY)` → `check_exit_signals(STOP_LOSS)` → `check_add_position_signals(ADD_ON)` → `check_rollover_signals(ROLLOVER)`。
+
+  - ENTRY 要求 `units=0`（无持仓），其他三类均要求 `units>0`（有持仓）→ **ENTRY 与其余互斥**
+  - STOP_LOSS 与 ADD_ON 价格方向相反 → **逻辑互斥**
+  - ROLLOVER 仅主力合约切换日触发（低频事件），与 STOP_LOSS/ADD_ON 在时间上几乎不重叠。即使重叠，`check_duplicate_pending_signal` 已防止同类型重复，而不同信号类型在同一个 symbol 上同时生成不会产生逻辑冲突。因此 `trade_type` 不需要加入唯一约束。
 - **Domestic commodity futures only:** This system is designed for Chinese commodity futures (SHFE, DCE, CZCE, CFFEX, INE). Contract code patterns, regex parsing, session times, and exchange rules all assume the Chinese futures market.
 
 > **Strategy notes:** Add strategy logic clarifications discovered during bug fixes as bullet points above. This keeps the design rationale visible for future work.
