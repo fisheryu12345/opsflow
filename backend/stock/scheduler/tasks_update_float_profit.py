@@ -8,6 +8,7 @@ import time
 from decimal import Decimal
 
 from django.db import transaction, close_old_connections
+from django.utils import timezone
 
 from stock.utils.log_util import log_trade, log_error
 from stock.models import PositionState, TradingAccount
@@ -65,7 +66,7 @@ def _update_account_float_profit(account: TradingAccount):
                         if existing_fp and existing_fp != 0:
                             continue
 
-                    PositionState.objects.filter(pk=pos_db.pk).update(float_profit=fp)
+                    PositionState.objects.filter(pk=pos_db.pk).update(float_profit=fp, last_update_time=timezone.now())
                     updated_count += 1
                 except (TypeError, ValueError, AttributeError) as e:
                     log_trade(FSM, f"{pos_db.symbol} 读取 float_profit 异常: {e}", symbol=pos_db.symbol, log_level='WARNING', account=account)
