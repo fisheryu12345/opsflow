@@ -100,7 +100,7 @@
     </div>
 
     <!-- Empty State -->
-    <el-empty v-if="!stats && !loading" description="点击「统计」按钮查看信号执行数据" />
+    <el-empty v-if="!stats && !loading" description="暂无信号执行数据" />
   </div>
 </template>
 
@@ -111,7 +111,10 @@ import { useSignalStats } from './useSignalStats'
 
 const { loading, stats, filters, fetchStats } = useSignalStats()
 
-const dateRange = ref<[Date, Date] | null>(null)
+const dateRange = ref<[Date, Date] | null>([
+  new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+  new Date()
+])
 
 function onDateChange(val: [Date, Date] | null) {
   if (val) {

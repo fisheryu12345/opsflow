@@ -1,4 +1,4 @@
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAccountStore } from '/@/stores/account'
 import { GetSignalStats } from './api'
@@ -33,9 +33,14 @@ export function useSignalStats() {
   const stats = ref<SignalStatsData | null>(null)
   const accountStore = useAccountStore()
 
+  // 默认统计最近7天
+  const now = new Date()
+  const sevenDaysAgo = new Date(now)
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
   const filters = reactive({
-    date_from: '',
-    date_to: '',
+    date_from: sevenDaysAgo.toISOString().split('T')[0],
+    date_to: now.toISOString().split('T')[0],
     account: accountStore.currentAccountId ?? undefined,
   })
 
@@ -60,6 +65,11 @@ export function useSignalStats() {
       loading.value = false
     }
   }
+
+  // 指令执行：直接加载数据，只有看指定日期时用按钮筛选
+  onMounted(() => {
+    fetchStats()
+  })
 
   return {
     loading,
