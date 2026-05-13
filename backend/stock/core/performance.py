@@ -32,7 +32,6 @@ from stock.models import (
     FullContractList,
 )
 from stock.utils.log_util import log_trade, log_error
-from stock.scheduler.tasks_daily_commission import update_trading_account_total_commission
 
 
 # ==================== Layer 1: 日权益快照 ====================
@@ -433,7 +432,7 @@ def update_account_summary(
 
         closed_profit = closed_trades.aggregate(total_pnl=Sum('pnl'))['total_pnl'] or Decimal('0')
 
-        # 直接从 TradingAccount 读取累计手续费（由 14:58 定时任务或收盘任务维护）
+    
         total_commission = account.total_commission
 
         summary, created = AccountPerformanceSummary.objects.update_or_create(
@@ -467,8 +466,7 @@ def update_account_summary(
         )
 
         account.current_equity = current_equity
-        account.total_commission = total_commission
-        account.save(update_fields=['current_equity', 'total_commission', 'updated_at'])
+        account.save(update_fields=['current_equity', 'updated_at'])
 
         action = "创建" if created else "更新"
         log_trade(
@@ -615,8 +613,11 @@ def update_all_performance_metrics(
             metric = calculate_rolling_metrics(account, trade_date, window_days=window)
             rolling_metrics[window] = metric
 
-        # 同步累计手续费（供 update_account_summary 直接读取 account.total_commission）
-        update_trading_account_total_commission(account)
+        # 累加当日手续费（避免全量 Sum 覆盖丢失历史累计值）
+        today_commission = Decimal(str(api_account_data.get('commission', 0))).quantize(Decimal('0.01'))
+        if today_commission > 0:
+            account.total_commission += today_commission
+            account.save(update_fields=['total_commission', 'updated_at'])
 
         summary = update_account_summary(account, trade_date)
 

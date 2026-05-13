@@ -33,7 +33,7 @@ scheduler.add_job(
     'cron',
     day_of_week='mon-fri',
     hour=15,
-    minute=35,
+    minute=40,
     id='job_daily_reconciliation',
     name='持仓校验（对比DB与交易所持仓，差异邮件通知）',
     misfire_grace_time=300,
