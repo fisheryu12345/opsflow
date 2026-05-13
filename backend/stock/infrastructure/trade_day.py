@@ -70,7 +70,12 @@ def skip_if_not_trade_day(api=None) -> bool:
     today = date.today()
 
     if not is_trade_day(today, api):
-        log_trade('skip_if_not_trade_day', f"今日({today})为非交易日，跳过任务", symbol='N/A', log_level='INFO')
+        # 补充判断：若为周末则 API 回退判断结果明确，否则可能是 API 异常
+        if today.weekday() >= 5:
+            detail = f"今日({today})为周末"
+        else:
+            detail = f"今日({today})为工作日但 API 判定为非交易日（需检查TqSDK连接/鉴权）"
+        log_trade('skip_if_not_trade_day', f"{detail}，跳过任务", symbol='N/A', log_level='INFO')
         return True
 
     # log_trade('skip_if_not_trade_day', f"今日({today})为交易日，继续执行任务", symbol='N/A', log_level='INFO')
