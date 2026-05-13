@@ -259,9 +259,13 @@ class Command(BaseCommand):
 
                 # === 定时重启检查 ===
                 now = datetime.now()
-                # 8:55-8:59 和 20:55-20:59 区间触发重启
-                restart_key = now.strftime('%Y-%m-%d-%H') if now.hour in (8, 20) else None
-                if restart_key and restart_key != last_restart_key and now.minute == 55:
+                # 8:55, 13:25, 20:55 触发重启
+                restart_key = None
+                if (now.hour == 8 and now.minute == 55) or \
+                   (now.hour == 13 and now.minute == 25) or \
+                   (now.hour == 20 and now.minute == 55):
+                    restart_key = now.strftime('%Y-%m-%d-%H%M')
+                if restart_key and restart_key != last_restart_key:
                     last_restart_key = restart_key
                     self.stdout.write(f"[Turtle] 触法定时重启 ({now.strftime('%H:%M')})")
                     raise RestartSignal()
