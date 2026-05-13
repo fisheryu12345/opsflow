@@ -6,9 +6,18 @@ from typing import Optional
 from stock.utils.log_util import log_error, log_trade
 
 
+def _fallback_is_trade_day(check_date: date) -> bool:
+    """API 失败时的回退方案：按周一到周五判断（无法覆盖法定节假日）。"""
+    is_weekday = check_date.weekday() < 5  # 0=Mon ... 4=Fri
+    log_trade('is_trade_day', f"API 不可用，回退到星期判断: {check_date} weekday={check_date.weekday()} → {'交易日' if is_weekday else '非交易日'}", symbol='N/A', log_level='WARNING')
+    return is_weekday
+
+
 def is_trade_day(check_date: Optional[date] = None, api=None) -> bool:
     """
     检查指定日期是否为交易日。
+
+    优先通过 TqSDK 交易日历 API 判断；API 失败时回退到星期判断。
 
     :param check_date: 要检查的日期，默认为今天
     :param api: TqApi实例。如果提供则复用，否则临时创建并关闭
@@ -35,24 +44,18 @@ def is_trade_day(check_date: Optional[date] = None, api=None) -> bool:
         today_record = calendar[calendar['date'] == check_datetime]
 
         if today_record.empty:
-            log_trade('is_trade_day', f"日期 {check_date} 不在交易日历中", symbol='N/A', log_level='WARNING')
-            return False
+            log_trade('is_trade_day', f"日期 {check_date} 不在交易日历中，回退到星期判断", symbol='N/A', log_level='WARNING')
+            return _fallback_is_trade_day(check_date)
 
         is_trading = today_record['trading'].iloc[0]
-
-        # if is_trading:
-        #     log_trade('is_trade_day', f"{check_date} 是交易日", symbol='N/A', log_level='INFO')
-        # else:
-        #     log_trade('is_trade_day', f"{check_date} 不是交易日", symbol='N/A', log_level='INFO')
-
         return is_trading
 
     except Exception as e:
         log_error(
             function_name='is_trade_day',
-            error_message=f"检查交易日失败: {e}"
+            error_message=f"检查交易日失败 ({e})，回退到星期判断"
         )
-        return False
+        return _fallback_is_trade_day(check_date)
     finally:
         if api_created and api:
             api.close()
