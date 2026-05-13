@@ -132,6 +132,17 @@
 			</div>
 		</div>
 
+		<!-- 多账户资金曲线对比 -->
+		<div class="section-card">
+			<div class="section-header">
+				<h3 class="section-title">多账户资金曲线对比</h3>
+			</div>
+			<div class="section-body" style="position: relative;">
+				<div ref="multiEquityCurveRef" class="chart-container"></div>
+				<div v-if="chartLoading.multiEquityCurve" class="chart-skeleton-overlay" />
+			</div>
+		</div>
+
 		<!-- 多窗口绩效对比雷达图 -->
 		<div class="section-card">
 			<div class="section-header">
@@ -160,6 +171,7 @@ import {
 	getDailyReturnsCalendar,
 	getDrawdownCurve,
 	getSlippageStats,
+	getEquityCurves,
 	type AccountSummary,
 	type EquitySnapshot
 } from './api';
@@ -195,16 +207,18 @@ const chartLoading = reactive({
 	monthlyReturns: true,
 	symbolPnlRanking: true,
 	slippageBySymbol: true,
+	multiEquityCurve: true,
 });
 const symbolWinRateRef = ref();
 const symbolPnlRankingRef = ref();
 const slippageBySymbolRef = ref();
 const calendarHeatmapRef = ref();
 const equityCurveRef = ref();
-	const dailyReturnsRef = ref();
+const dailyReturnsRef = ref();
 const monthlyReturnsRef = ref();
 const drawdownCurveRef = ref();
 const closedPnlCurveRef = ref();
+const multiEquityCurveRef = ref();
 
 // ==================== 辅助函数 ====================
 
@@ -634,6 +648,101 @@ const initDrawdownCurveChart = async () => {
 	}
 };
 
+const initMultiAccountEquityCurveChart = async () => {
+	if (!multiEquityCurveRef.value) {
+		chartLoading.multiEquityCurve = false;
+		return;
+	}
+	const chart = echarts.init(multiEquityCurveRef.value);
+	const fontConfig = getResponsiveFontConfig();
+	const isMobile = window.innerWidth < 480;
+
+	try {
+		const res = await getEquityCurves();
+		if (res.code !== 2000 || !res.data || !Array.isArray(res.data) || res.data.length === 0) {
+			chart.setOption({
+				title: { text: '多账户资金曲线对比', left: 'center', textStyle: { fontSize: fontConfig.title } },
+				graphic: [{ type: 'text', left: 'center', top: 'middle', style: { text: '暂无数据', fontSize: 14, fill: '#999' } }]
+			});
+			return;
+		}
+
+		// 收集所有日期，统一 x 轴
+		const allDates = new Set<string>();
+		res.data.forEach((acct: any) => {
+			acct.curve.forEach((pt: any) => allDates.add(pt.trade_date));
+		});
+		const dates = Array.from(allDates).sort();
+
+		// 色彩盘
+		const colorPalette = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4'];
+
+		// 构建系列：补齐空缺日期
+		const series = res.data.map((acct: any, idx: number) => {
+			const balanceMap = new Map<string, number>();
+			acct.curve.forEach((pt: any) => balanceMap.set(pt.trade_date, pt.balance));
+			const data = dates.map(d => balanceMap.has(d) ? balanceMap.get(d)! : null);
+			const name = acct.strategy ? `${acct.account_name}(${acct.strategy})` : acct.account_name;
+			return {
+				name,
+				type: 'line',
+				smooth: true,
+				data,
+				lineStyle: { color: colorPalette[idx % colorPalette.length], width: isMobile ? 1.5 : 2 },
+				itemStyle: { color: colorPalette[idx % colorPalette.length] },
+				symbolSize: isMobile ? 2 : 3,
+				connectNulls: true,
+			};
+		});
+
+		chart.setOption({
+			tooltip: {
+				trigger: 'axis', axisPointer: { type: 'cross' },
+				formatter: (params: any) => {
+					let html = `<div style="font-weight:600;margin-bottom:6px;">${params[0].axisValue}</div>`;
+					params.forEach((p: any) => {
+						if (p.value !== null && p.value !== undefined) {
+							html += `<div style="display:flex;justify-content:space-between;gap:16px;">
+								<span>${p.marker} ${p.seriesName}</span>
+								<span style="font-weight:600;">¥${Number(p.value).toLocaleString()}</span>
+							</div>`;
+						}
+					});
+					return html;
+				},
+				textStyle: { fontSize: fontConfig.tooltip }
+			},
+			legend: {
+				data: series.map((s: any) => s.name),
+				top: 5,
+				textStyle: { fontSize: fontConfig.legend },
+				type: isMobile ? 'scroll' : 'plain',
+			},
+			grid: { left: isMobile ? '10%' : '3%', right: '4%', bottom: isMobile ? '22%' : '20%', top: '22%', containLabel: true },
+			xAxis: {
+				type: 'category', boundaryGap: false, data: dates,
+				axisLabel: { fontSize: fontConfig.axisName, formatter: (v: string) => isMobile && v.length > 10 ? v.substring(5) : v }
+			},
+			yAxis: {
+				type: 'value', name: '权益',
+				nameTextStyle: { fontSize: fontConfig.axisName },
+				axisLabel: { formatter: (v: number) => `¥${(v / 10000).toFixed(0)}万`, fontSize: fontConfig.axisName }
+			},
+			dataZoom: [
+				{ type: 'slider', show: true, start: 0, end: 100, bottom: isMobile ? 10 : 15, height: isMobile ? 20 : 25, borderColor: '#d0d0d0', textStyle: { fontSize: fontConfig.legend } },
+				{ type: 'inside', start: 0, end: 100 }
+			],
+			series,
+		});
+
+		window.addEventListener('resize', () => chart.resize());
+	} catch (error: any) {
+		console.error('加载多账户资金曲线数据失败:', error);
+	} finally {
+		chartLoading.multiEquityCurve = false;
+	}
+};
+
 const initClosedPnlCurveChart = (snapshots: EquitySnapshot[]) => {
 	if (!closedPnlCurveRef.value || !snapshots.length) {
 		chartLoading.closedPnlCurve = false;
@@ -1005,6 +1114,7 @@ onMounted(async () => {
 		initSlippageBySymbolChart();
 		initCalendarHeatmap();
 		initDrawdownCurveChart();
+		initMultiAccountEquityCurveChart();
 	});
 });
 
@@ -1018,6 +1128,7 @@ watch(() => accountStore.currentAccountId, (newId) => {
       initSlippageBySymbolChart();
       initCalendarHeatmap();
       initDrawdownCurveChart();
+      initMultiAccountEquityCurveChart();
     });
   }
 });

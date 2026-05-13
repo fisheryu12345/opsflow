@@ -418,9 +418,77 @@ class DailyReturnsCalendarView(viewsets.ViewSet):
                 'day': trade_date.day,
                 'year': trade_date.year
             })
-        
+
         return Response({
             'code': 2000,
             'msg': 'success',
             'data': result
+        })
+
+
+class EquityCurvesView(viewsets.ViewSet):
+    """
+    【多账户资金曲线对比数据接口】
+
+    💡 用途：
+    - 返回所有账户的资金曲线，用于绘制多账户对比图
+    - 每条曲线是一个账户的 balance 时间序列
+
+    📊 返回格式：
+    {
+        "code": 2000,
+        "msg": "success",
+        "data": [
+            {
+                "account_id": 1,
+                "account_name": "510988",
+                "strategy": "海龟策略",
+                "curve": [
+                    {"trade_date": "2024-01-15", "balance": 100000.00},
+                    ...
+                ]
+            },
+            ...
+        ]
+    }
+    """
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        accounts = TradingAccount.objects.filter(is_active=True).order_by('id')
+
+        result = []
+        for acct in accounts:
+            snapshots = DailyEquitySnapshot.objects.filter(
+                account=acct
+            ).order_by('trade_date').values('trade_date', 'balance')
+
+            if not snapshots:
+                continue
+
+            curve = [{
+                'trade_date': s['trade_date'].strftime('%Y-%m-%d'),
+                'balance': float(s['balance']),
+            } for s in snapshots]
+
+            # 尝试从 StrategyConfig 获取策略名称
+            strategy = ''
+            try:
+                from stock.models import StrategyConfig
+                cfg = StrategyConfig.objects.get(account=acct)
+                strategy = cfg.strategy_name or ''
+            except Exception:
+                pass
+
+            result.append({
+                'account_id': acct.id,
+                'account_name': acct.name,
+                'strategy': strategy,
+                'curve': curve,
+            })
+
+        return Response({
+            'code': 2000,
+            'msg': 'success',
+            'data': result,
         })

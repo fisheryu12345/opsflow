@@ -51,7 +51,7 @@ export interface AccountSummary {
 	max_drawdown_all_time: string;  // 历史最大回撤 (%)
 	current_drawdown: string;       // 当前回撤 (%)
 	max_drawdown_duration: number;  // 最大回撤持续天数
-t	max_drawdown_recovery_days: number; // 最大回撤恢复天数
+	max_drawdown_recovery_days: number; // 最大回撤恢复天数
 	calmar_ratio: string | null;    // 卡尔玛比率
 	
 	// === 全局交易统计 ===
@@ -332,6 +332,27 @@ export function getDrawdownCurve(accountId: number) {
 			is_new_peak: boolean;
 		}>;
 	}>(`/api/stock/drawdown-curve/?account=${accountId}`);
+}
+
+/**
+ * 获取多账户资金曲线对比数据
+ * @returns Promise 包含所有活跃账户的资金曲线
+ *
+ * @example
+ * const curves = await getEquityCurves();
+ * // 返回: [{account_id: 1, account_name: "510988", strategy: "海龟策略", curve: [{trade_date, balance}, ...]}, ...]
+ */
+export function getEquityCurves() {
+	return request.get<{
+		code: number;
+		msg: string;
+		data: Array<{
+			account_id: number;
+			account_name: string;
+			strategy: string;
+			curve: Array<{ trade_date: string; balance: number }>;
+		}>;
+	}>('/api/stock/equity-curves/');
 }
 
 // ==================== 滑点统计 ====================
