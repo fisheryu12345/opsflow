@@ -211,6 +211,7 @@ class Command(BaseCommand):
                 trade_type='ENTRY',
                 signal_direction=1,
                 executed_status='PENDING',
+            trend_factor=Decimal('0'), trend_label='unknown',
                 donchian_upper=Decimal(str(cand['slope_pct'])).quantize(Decimal('0.0001')),
                 contract_target_number=1,
                 remark=f"MA10排名多头 #{cand['rank']} slope={cand['slope_pct']:+.4f}%",
@@ -242,6 +243,7 @@ class Command(BaseCommand):
                 trade_type='ENTRY',
                 signal_direction=-1,
                 executed_status='PENDING',
+            trend_factor=Decimal('0'), trend_label='unknown',
                 donchian_lower=Decimal(str(cand['slope_pct'])).quantize(Decimal('0.0001')),
                 contract_target_number=1,
                 remark=f"MA10排名空头 #{cand['rank']} slope={cand['slope_pct']:+.4f}%",
@@ -309,6 +311,7 @@ class Command(BaseCommand):
             trade_type='STOP_LOSS',
             signal_direction=-position.direction,
             executed_status='PENDING',
+            trend_factor=Decimal('0'), trend_label='unknown',
             remark=f"MA10排名离场: {reason}",
         )
         log_trade('ma10_exit_signal',
@@ -538,6 +541,7 @@ class Command(BaseCommand):
                 trade_type='STOP_LOSS',
                 signal_direction=-position.direction,
                 executed_status='PENDING',
+            trend_factor=Decimal('0'), trend_label='unknown',
                 remark=reason,
             )
             self._execute_exit(api, account, signal)
@@ -676,6 +680,7 @@ class Command(BaseCommand):
                 trade_type='STOP_LOSS',
                 signal_direction=-pos.direction,
                 executed_status='PENDING',
+            trend_factor=Decimal('0'), trend_label='unknown',
                 remark="MA10强制平仓",
             )
             self._execute_exit(api, account, signal)

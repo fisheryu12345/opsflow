@@ -203,6 +203,7 @@ def execute_add_on_order(api, account, signal):
                 return False
 
             quote = api.get_quote(trade_symbol)
+            api.wait_update(deadline=time.time() + 2)
             avg_price = float(quote.last_price) if quote and quote.last_price else None
 
             with transaction.atomic():
@@ -525,6 +526,7 @@ def execute_exit_order(api, position, signal):
             exit_price = float(total_cost / Decimal(str(filled_vol)))
         else:
             quote = api.get_quote(position.symbol)
+            api.wait_update(deadline=time.time() + 2)
             exit_price = float(quote.last_price) if quote and quote.last_price else None
 
         with transaction.atomic():
@@ -630,6 +632,7 @@ def execute_rollover_order(api, position, signal):
             rollover_exit_price = total_cost / Decimal(str(filled_volume))
         else:
             quote = api.get_quote(position.symbol)
+            api.wait_update(deadline=time.time() + 2)
             rollover_exit_price = Decimal(str(quote.last_price)) if quote.last_price else Decimal('0')
             filled_volume = position.contract_total_position
 

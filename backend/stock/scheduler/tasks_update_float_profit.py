@@ -71,7 +71,15 @@ def _update_account_float_profit(account: TradingAccount):
                         if existing_fp and existing_fp != 0:
                             continue
 
-                    PositionState.objects.filter(pk=pos_db.pk).update(float_profit=fp, last_update_time=timezone.now())
+                    # 同步成本价：多仓用 open_price_long，空仓用 open_price_short
+                    cp_raw = tq_pos.open_price_long if pos_db.direction == 1 else tq_pos.open_price_short
+                    cp = Decimal(str(cp_raw)).quantize(Decimal('0.01')) if cp_raw else None
+
+                    PositionState.objects.filter(pk=pos_db.pk).update(
+                        float_profit=fp,
+                        cost_price=cp,
+                        last_update_time=timezone.now(),
+                    )
                     updated_count += 1
                 except (TypeError, ValueError, AttributeError) as e:
                     log_trade(FSM, f"{pos_db.symbol} 读取 float_profit 异常: {e}", symbol=pos_db.symbol, log_level='WARNING', account=account)

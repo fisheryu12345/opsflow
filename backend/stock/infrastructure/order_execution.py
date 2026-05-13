@@ -193,6 +193,7 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
             return result
 
         quote = api.get_quote(symbol)
+        api.wait_update(deadline=time.time() + 2)
         avg_price = float(quote.last_price) if quote and quote.last_price else None
 
         if direction == 1:
@@ -232,6 +233,7 @@ def record_and_reset_position(api, position, signal, filled_volume, avg_price):
 
     with transaction.atomic():
         quote = api.get_quote(position.symbol)
+        api.wait_update(deadline=time.time() + 2)
         exit_price = avg_price if avg_price else (float(quote.last_price) if quote and quote.last_price else None)
         cost_price = position.cost_price if position.cost_price else None
         volume = filled_volume

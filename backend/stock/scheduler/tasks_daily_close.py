@@ -391,9 +391,15 @@ def update_all_positions_stop_loss_price(api, account):
 
         updated_count = 0
 
-        # 【修复】确保 TqSDK 持仓数据已加载，避免 get_position() 返回 proxy 默认值 0
-        # 注意：必须有 deadline，收盘后无新行情时 wait_update() 不会自动返回
+        # 先统一订阅所有持仓，再一次性 wait_update 填充数据
+        tq_positions = {}
         if positions.exists():
+            for position in positions:
+                try:
+                    tq_positions[position.symbol] = api.get_position(position.symbol)
+                except Exception:
+                    pass
+            # 注意：必须有 deadline，收盘后无新行情时 wait_update() 不会自动返回
             api.wait_update(deadline=time.time() + 5)
 
         for position in positions:
@@ -402,26 +408,21 @@ def update_all_positions_stop_loss_price(api, account):
                 if not position.indicators:
                     print(f"[SKIP] {position.symbol}: indicators字段为空")
                     continue
-                # {"symbol": "SHFE.sp2605", "product_code": "sp", "latest_date": "2026-04-12", "latest_close": 4976.0, "atr_20": 86.0, "ma_10": 5062.2, "ma_20": 5111.5, "ma_40": 5186.6, "close_high_20": 5308.0, "close_low_20": 4978.0, "trend_factor": 0.5, "trend_label": "strong_bear"}
-                # 从 indicators 获取 ATR 和 factor（统一转换为 Decimal）
+
                 atr_value = Decimal(str(position.indicators.get('atr_20', 0)))
                 factor = Decimal(str(position.indicators.get('trend_factor', 0)))
                 trend_label = position.indicators.get('trend_label', '')
                 tick_contract = FullContractList.objects.filter(symbol=position.symbol).first()
                 tick = tick_contract.price_tick if tick_contract else Decimal('0.01')
 
-                # 获取持仓成本（开仓价或加仓加权均价）
+                # 从已加载的 TqSDK 代理读取成本价（数据已在 wait_update 中填充）
                 cost_price = None
-                # 根据持仓方向选择基准价格和计算止损价
+                tq_pos = tq_positions.get(position.symbol)
                 if position.direction == 1:
                     # 多头持仓：使用最高价作为基准
-                    try:
-                        tq_pos = api.get_position(position.symbol)
-                        cost_price = tq_pos.open_price_long
-                    except Exception as e:
-                        log_trade('update_all_positions_stop_loss_price',
-                                   f"API获取{position.symbol}多头成本价失败({e})，使用数据库记录",
-                                   symbol=position.symbol, log_level='WARNING')
+                    if tq_pos is not None and tq_pos.open_price_long:
+                        cost_price = Decimal(str(tq_pos.open_price_long)).quantize(Decimal('0.01'))
+                    else:
                         cost_price = position.cost_price
                         if cost_price is None:
                             log_error('update_all_positions_stop_loss_price',
@@ -430,21 +431,17 @@ def update_all_positions_stop_loss_price(api, account):
                     if not position.highest_close:
                         print(f"[SKIP] {position.symbol}: 缺少最高价数据")
                         continue
-                    
+
                     # 多头止损价 = 最高价 - 2(1+factor) * ATR
                     dynamic_stop_loss = position.highest_close - Decimal('2') * (Decimal('1') + factor) * atr_value
-                    
+
                     print(f"[UPDATE] {position.symbol} 多头止损: 最高价={position.highest_close}, ATR={atr_value}, factor={factor}, 动态止损价={dynamic_stop_loss}")
-                    
+
                 elif position.direction == -1:
                     # 空头持仓：使用最低价作为基准
-                    try:
-                        tq_pos = api.get_position(position.symbol)
-                        cost_price = tq_pos.open_price_short
-                    except Exception as e:
-                        log_trade('update_all_positions_stop_loss_price',
-                                   f"API获取{position.symbol}空头成本价失败({e})，使用数据库记录",
-                                   symbol=position.symbol, log_level='WARNING')
+                    if tq_pos is not None and tq_pos.open_price_short:
+                        cost_price = Decimal(str(tq_pos.open_price_short)).quantize(Decimal('0.01'))
+                    else:
                         cost_price = position.cost_price
                         if cost_price is None:
                             log_error('update_all_positions_stop_loss_price',
@@ -453,10 +450,10 @@ def update_all_positions_stop_loss_price(api, account):
                     if not position.lowest_close:
                         print(f"[SKIP] {position.symbol}: 缺少最低价数据")
                         continue
-                    
+
                     # 空头止损价 = 最低价 + 2(1+factor) * ATR
                     dynamic_stop_loss = position.lowest_close + Decimal('2') * (Decimal('1') + factor) * atr_value
-                    
+
                     print(f"[UPDATE] {position.symbol} 空头止损: 最低价={position.lowest_close}, ATR={atr_value}, factor={factor}, 动态止损价={dynamic_stop_loss}")
                 else:
                     continue
@@ -506,13 +503,11 @@ def update_all_positions_stop_loss_price(api, account):
                             print(f"[PROTECT] {position.symbol} 空头保本兜底: 动态止损 > 保本价={float(protect_price):.2f}, 采用保本价")
                             log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 空头保本兜底: 动态止损 > 保本价={float(protect_price):.2f}, 采用保本价",
                                       symbol=position.symbol, log_level='INFO')
-                # 更新持仓仓位成本价格
+                # 更新持仓止损价和保本状态（成本价由 tasks_update_float_profit 统一同步）
                 PositionState.objects.filter(id=position.id).update(
                     stop_loss_price=dynamic_stop_loss,
-                    cost_price=cost_price,
                     trend_info=f'{atr_value:.2f},  {factor:.2f} , {trend_label}',
-                    protect_cost_enabled=protect_cost_enabled,  # 【新增】更新保本状态
-
+                    protect_cost_enabled=protect_cost_enabled,
                 )
                 updated_count += 1
                 

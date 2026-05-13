@@ -64,6 +64,7 @@ def execute_stop_loss_exit(api, position):
             avg_price = total_cost / Decimal(str(filled_volume))
         else:
             quote = api.get_quote(position.symbol)
+            api.wait_update(deadline=time.time() + 2)
             if quote and quote.last_price:
                 avg_price = Decimal(str(quote.last_price))
                 filled_volume = position.contract_total_position

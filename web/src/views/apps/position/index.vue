@@ -37,9 +37,9 @@
             </template>
           </el-table-column>
           <el-table-column prop="contract_total_position" label="持仓手数" min-width="90" align="right" sortable />
-          <el-table-column prop="last_add_price" label="开仓均价" min-width="110" align="right" sortable>
+          <el-table-column prop="cost_price" label="开仓均价" min-width="110" align="right" sortable>
             <template #default="{ row }">
-              <ValueCell :value="row.last_add_price" type="number" :precision="1" :color-by-sign="false" />
+              <ValueCell :value="row.cost_price" type="number" :precision="1" :color-by-sign="false" />
             </template>
           </el-table-column>
           <el-table-column prop="latest_close_price" label="收盘价" min-width="90" align="right" sortable>

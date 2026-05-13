@@ -249,6 +249,7 @@ class Command(BaseCommand):
                 trade_type='ROLLOVER',
                 signal_direction=position.direction,
                 executed_status='EXECUTING',
+                trend_factor=Decimal('0'), trend_label='unknown',
                 contract_target_number=lots,
                 remark=f"移仓开仓: {position.symbol}->{main_symbol}",
             )
@@ -355,7 +356,8 @@ class Command(BaseCommand):
                 trade_date=timezone.now().date(),
                 trade_type='ENTRY',
                 signal_direction=cross['direction'],
-                executed_status='PENDING',
+                
+                trend_factor=Decimal('0'), trend_label='unknown',
                 contract_target_number=0,
                 remark=f"MA10={cross['ma10']:.2f}, MA20={cross['ma20']:.2f}, Cross={cross_text}",
             )
@@ -435,6 +437,7 @@ class Command(BaseCommand):
                 trade_type='ENTRY',
                 signal_direction=cross['direction'],
                 executed_status='PENDING',
+            trend_factor=Decimal('0'), trend_label='unknown',
                 contract_target_number=0,
                 remark=f"MA10={cross['ma10']:.2f}, MA20={cross['ma20']:.2f}, Cross={cross_text}",
             )
@@ -614,6 +617,7 @@ class Command(BaseCommand):
                 trade_type='STOP_LOSS',
                 signal_direction=-position.direction,
                 executed_status='EXECUTING',
+            trend_factor=Decimal('0'), trend_label='unknown',
                 remark=reason,
             )
 
