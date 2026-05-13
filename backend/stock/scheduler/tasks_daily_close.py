@@ -225,11 +225,12 @@ def check_add_position_signals(account):
     注意：所有计算统一使用 Decimal 类型，避免精度丢失
     """
     try:
-        # 查询所有有持仓且单位数 < 3 的记录
+        # 查询所有有持仓且单位数 < 最大单位数的记录
+        max_units = get_config('POSITION_MAX_UNITS')
         positions = PositionState.objects.filter(
             account=account,
             units__gt=0,
-            units__lt=3  # 仅检查未达到最大持仓单位数的记录
+            units__lt=max_units
         ).exclude(direction=0)
         
         addon_count = 0
@@ -471,7 +472,7 @@ def update_all_positions_stop_loss_price(api, account):
                 # 首次检查是否满足保本条件（仅持仓达到3个单位才激活）
                 if not protect_cost_enabled and cost_price and position.latest_close_price and position.units >= 3:
                     if position.direction == 1:
-                        # 多头：收盘价 - 成本价 > 2×ATR 时启用保本
+                        # 多头：收盘价 - 成本价 > PROTECT_COST_ENABLED_RATIO×ATR 时启用保本
                         profit_diff = position.latest_close_price - Decimal(str(cost_price))
                         if profit_diff > PROTECT_COST_ENABLED_RATIO * float(atr_value):
                             protect_cost_enabled = True
@@ -479,7 +480,7 @@ def update_all_positions_stop_loss_price(api, account):
                             log_trade('update_all_positions_stop_loss_price', f"[PROTECT] {position.symbol} 多头启用保本: 盈利={float(profit_diff):.2f} > {PROTECT_COST_ENABLED_RATIO}×ATR={float(PROTECT_COST_ENABLED_RATIO*float(atr_value)):.2f}, 保本价={protect_price}",
                                     symbol=position.symbol, log_level='INFO') 
                     elif position.direction == -1:
-                        # 空头：成本价 - 收盘价 > 2×ATR 时启用保本
+                        # 空头：成本价 - 收盘价 > PROTECT_COST_ENABLED_RATIO×ATR 时启用保本
                         profit_diff = Decimal(str(cost_price)) - position.latest_close_price
                         if profit_diff > PROTECT_COST_ENABLED_RATIO * float(atr_value):
                             protect_cost_enabled = True
