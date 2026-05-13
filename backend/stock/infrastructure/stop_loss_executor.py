@@ -8,7 +8,6 @@ from decimal import Decimal
 from datetime import date
 from django.db import transaction
 from django.utils import timezone
-from django.db.models import Q, F
 from tqsdk import TargetPosTask
 from stock.models import TradingAccount, PositionState, DailyStrategySignal, ClosedPositionRecord, FullContractList
 from stock.utils.log_util import log_trade, log_error
@@ -152,30 +151,52 @@ def check_and_execute_stop_loss(api, account=None):
 
 def _execute_stop_loss_for_account(api, default_account):
     """
-    为单个账户执行止损检查。
+    为单个账户执行止损检查（使用实时行情判断）。
     """
     try:
-        long_stop_loss = Q(direction=1) & Q(latest_close_price__lt=F('stop_loss_price'))
-        short_stop_loss = Q(direction=-1) & Q(latest_close_price__gt=F('stop_loss_price'))
-
-        positions = PositionState.objects.filter(
+        # 获取所有有持仓品种（不限 latest_close_price）
+        positions = list(PositionState.objects.filter(
             account=default_account,
             units__gt=0,
-            latest_close_price__isnull=False,
-            stop_loss_price__isnull=False
-        ).filter(long_stop_loss | short_stop_loss)
+            stop_loss_price__isnull=False,
+        ))
+
+        if not positions:
+            print(f"[INFO] 账户 {default_account.name} 无持仓，跳过止损检查")
+            return
+
+        # 订阅所有持仓报价，获取实时价格
+        quotes = {}
+        for p in positions:
+            try:
+                quotes[p.symbol] = api.get_quote(p.symbol)
+            except Exception:
+                continue
+                
+
+        api.wait_update(deadline=time.time() + 10)
 
         exit_count = 0
 
         for position in positions:
             try:
-                latest_price = float(position.latest_close_price)
+                quote = quotes.get(position.symbol)
+                if not quote or quote.last_price is None:
+                    continue
+
+                current_price = float(quote.last_price)
                 stop_loss = float(position.stop_loss_price)
 
-                if position.direction == 1:
-                    remark = f"多头止损触发: 最新价{latest_price:.2f} < 止损价{stop_loss:.2f}"
-                else:
-                    remark = f"空头止损触发: 最新价{latest_price:.2f} > 止损价{stop_loss:.2f}"
+                triggered = False
+                if position.direction == 1 and current_price < stop_loss:
+                    triggered = True
+                    remark = f"多头紧急止损: 实时价{current_price:.2f} < 止损价{stop_loss:.2f}"
+                elif position.direction == -1 and current_price > stop_loss:
+                    triggered = True
+                    remark = f"空头紧急止损: 实时价{current_price:.2f} > 止损价{stop_loss:.2f}"
+
+                if not triggered:
+                    continue
 
                 if check_duplicate_pending_signal(default_account, position.symbol, 'STOP_LOSS'):
                     continue
@@ -196,7 +217,7 @@ def _execute_stop_loss_for_account(api, default_account):
                     executed_status='PENDING'
                 )
 
-                print(f"[EXIT] 止损信号: {position.symbol} - {remark}")
+                print(f"[EXIT] 紧急止损信号: {position.symbol} - {remark}")
 
                 # 先标记 EXECUTING（防重复执行），不放在后续事务中
                 DailyStrategySignal.objects.filter(id=signal.id).update(executed_status='EXECUTING')
@@ -223,13 +244,12 @@ def _execute_stop_loss_for_account(api, default_account):
                         signal.save(update_fields=['executed_status', 'remark', 'updated_at'])
 
                     log_trade('check_and_execute_stop_loss',
-                              f"✅ 止损平仓成功: {position.symbol} 成交量={filled_volume}, 均价={avg_price:.2f}",
+                              f"✅ 紧急止损成功: {position.symbol} 成交量={filled_volume}, 均价={avg_price:.2f}",
                               symbol=position.symbol, log_level='SUCCESS')
                 else:
                     DailyStrategySignal.objects.filter(id=signal.id).update(executed_status='FAILED')
-
                     log_trade('check_and_execute_stop_loss',
-                              f"❌ 止损平仓失败: {position.symbol}",
+                              f"❌ 紧急止损失败: {position.symbol}",
                               symbol=position.symbol, log_level='ERROR')
 
             except Exception as pos_error:
@@ -244,12 +264,12 @@ def _execute_stop_loss_for_account(api, default_account):
                 continue
 
         if exit_count > 0:
-            print(f"[SUMMARY] 今日共执行 {exit_count} 个止损平仓")
+            print(f"[SUMMARY] 今日共执行 {exit_count} 个紧急止损平仓")
             log_trade('check_and_execute_stop_loss',
-                      f"[SUMMARY] 今日共执行 {exit_count} 个止损平仓",
+                      f"[SUMMARY] 今日共执行 {exit_count} 个紧急止损平仓",
                       symbol='N/A', log_level='SUCCESS')
         else:
-            print(f"[INFO] 本次检查未发现触发止损的持仓")
+            print(f"[INFO] 紧急止损检查: 未发现触发止损的持仓")
 
     except Exception as e:
         print(f"[ERROR] 检查并执行止损失败: {e}")

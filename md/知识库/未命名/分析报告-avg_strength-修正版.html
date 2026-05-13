@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>修正版 - 账户510976 avg_strength 分析报告</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f6fa; color: #2c3e50; padding: 20px; }
+.container { max-width: 1400px; margin: 0 auto; }
+h1 { font-size: 24px; margin-bottom: 6px; }
+.subtitle { color: #7f8c8d; font-size: 14px; margin-bottom: 24px; }
+.section { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.section h2 { font-size: 17px; font-weight: 600; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #f0f2f5; }
+.chart-wrap { width: 100%; height: 420px; }
+.chart-sm { width: 100%; height: 320px; }
+.stats-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.stat-card { flex: 1; min-width: 140px; background: #f8f9fa; border-radius: 8px; padding: 16px; text-align: center; }
+.stat-card .val { font-size: 26px; font-weight: 700; }
+.stat-card .lbl { font-size: 12px; color: #7f8c8d; margin-top: 4px; }
+.color-green { color: #27ae60; } .color-red { color: #e74c3c; }
+.color-blue { color: #3498db; } .color-orange { color: #f39c12; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: center; border-bottom: 1px solid #ecf0f1; }
+th { background: #f8f9fa; font-weight: 600; color: #555; }
+tr:hover td { background: #f5f7fa; }
+.cap3 { background: #e8f8e8 !important; } .cap2 { background: #fff8e1 !important; } .cap1 { background: #fce4e4 !important; }
+.insight-box { background: #eef2ff; border-left: 4px solid #3498db; padding: 14px 18px; border-radius: 6px; margin-top: 12px; font-size: 13px; line-height: 1.8; }
+.insight-box strong { color: #2c3e50; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>账户 510976 avg_strength 分析报告（修正版）</h1>
+<p class="subtitle">基于 100 个交易日（2025-12-04 ~ 2026-05-08）| 20 个品种 | 数据源: 回测 CSV</p>
+
+<div class="section">
+<h2>核心统计</h2>
+<div class="stats-row">
+<div class="stat-card"><div class="val color-blue">0.3896</div><div class="lbl">100天 avg_strength 均值</div></div>
+<div class="stat-card"><div class="val color-green">7</div><div class="lbl">满仓日 (>=0.6) 7%</div></div>
+<div class="stat-card"><div class="val color-orange">71</div><div class="lbl">限2单位日 (0.3~0.6) 71%</div></div>
+<div class="stat-card"><div class="val color-red">22</div><div class="lbl">不开仓日 (<0.3) 22%</div></div>
+</div>
+</div>
+
+<div class="section"><h2>avg_strength 时间序列</h2><div id="chart-ts" class="chart-wrap"></div></div>
+<div class="section"><h2>仓位上限分布</h2><div style="display:flex;flex-wrap:wrap">
+<div id="chart-pie" style="width:40%;height:320px"></div>
+<div id="chart-monthly" style="width:60%;height:320px"></div>
+</div></div>
+
+<div class="section"><h2>品种级别分析 — 谁在贡献趋势？</h2><div id="chart-products" class="chart-wrap"></div>
+<div class="insight-box">
+<strong>品种分化明显：</strong>100 天中每天平均 12.5/20 个品种有趋势（MA 排列对齐）。SA 有 55/100 天有趋势（avg_ts=0.61），排名第 16/20，属于中等偏低水平。<br>
+<strong>趋势贡献前三：</strong>CF(81天), UR(79天), fu(72天) | <strong>趋势贡献后三：</strong>hc(53天), RM(51天), si(48天)
+</div>
+</div>
+
+<div class="section"><h2>近30日明细表</h2><div style="overflow-x:auto">
+<table><thead><tr><th>日期</th><th>avg_strength</th><th>有趋势品种数</th><th>趋势占比</th><th>强趋势占比</th><th>仓位上限</th></tr></thead><tbody>
+<tr class="cap3"><td>2026-03-24</td><td>0.6437</td><td>18/20</td><td>90%</td><td>50%</td><td>3单位</td></tr>
+<tr class="cap2"><td>2026-03-25</td><td>0.5649</td><td>16/20</td><td>80%</td><td>45%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-03-26</td><td>0.5221</td><td>15/20</td><td>75%</td><td>40%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-03-27</td><td>0.4869</td><td>13/20</td><td>65%</td><td>40%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-03-30</td><td>0.4462</td><td>13/20</td><td>65%</td><td>35%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-03-31</td><td>0.3880</td><td>11/20</td><td>55%</td><td>30%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-04-01</td><td>0.3624</td><td>10/20</td><td>50%</td><td>30%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-04-02</td><td>0.3148</td><td>9/20</td><td>45%</td><td>25%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-04-03</td><td>0.3407</td><td>9/20</td><td>45%</td><td>30%</td><td>2单位</td></tr>
+<tr class="cap1"><td>2026-04-07</td><td>0.2881</td><td>8/20</td><td>40%</td><td>25%</td><td>1单位</td></tr>
+<tr class="cap1"><td>2026-04-08</td><td>0.2684</td><td>6/20</td><td>30%</td><td>25%</td><td>1单位</td></tr>
+<tr class="cap2"><td>2026-04-09</td><td>0.3021</td><td>8/20</td><td>40%</td><td>25%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-04-10</td><td>0.3156</td><td>9/20</td><td>45%</td><td>25%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-04-13</td><td>0.4259</td><td>11/20</td><td>55%</td><td>35%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-04-14</td><td>0.3726</td><td>10/20</td><td>50%</td><td>30%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-04-15</td><td>0.3534</td><td>10/20</td><td>50%</td><td>30%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-04-16</td><td>0.3388</td><td>10/20</td><td>50%</td><td>25%</td><td>2单位</td></tr>
+<tr class="cap1"><td>2026-04-17</td><td>0.2800</td><td>9/20</td><td>45%</td><td>15%</td><td>1单位</td></tr>
+<tr class="cap1"><td>2026-04-20</td><td>0.2195</td><td>8/20</td><td>40%</td><td>15%</td><td>1单位</td></tr>
+<tr class="cap1"><td>2026-04-21</td><td>0.2240</td><td>11/20</td><td>55%</td><td>10%</td><td>1单位</td></tr>
+<tr class="cap1"><td>2026-04-22</td><td>0.1523</td><td>8/20</td><td>40%</td><td>5%</td><td>1单位</td></tr>
+<tr class="cap1"><td>2026-04-23</td><td>0.2563</td><td>11/20</td><td>55%</td><td>15%</td><td>1单位</td></tr>
+<tr class="cap1"><td>2026-04-24</td><td>0.2632</td><td>11/20</td><td>55%</td><td>20%</td><td>1单位</td></tr>
+<tr class="cap1"><td>2026-04-27</td><td>0.2484</td><td>9/20</td><td>45%</td><td>20%</td><td>1单位</td></tr>
+<tr class="cap1"><td>2026-04-28</td><td>0.2806</td><td>10/20</td><td>50%</td><td>20%</td><td>1单位</td></tr>
+<tr class="cap1"><td>2026-04-29</td><td>0.2762</td><td>9/20</td><td>45%</td><td>20%</td><td>1单位</td></tr>
+<tr class="cap1"><td>2026-04-30</td><td>0.2915</td><td>10/20</td><td>50%</td><td>20%</td><td>1单位</td></tr>
+<tr class="cap2"><td>2026-05-06</td><td>0.3177</td><td>8/20</td><td>40%</td><td>25%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-05-07</td><td>0.3546</td><td>9/20</td><td>45%</td><td>30%</td><td>2单位</td></tr>
+<tr class="cap2"><td>2026-05-08</td><td>0.3842</td><td>11/20</td><td>55%</td><td>30%</td><td>2单位</td></tr>
+</tbody></table></div></div>
+</div>
+<script>
+var DATA = {"daily": [{"date": "2025-12-04", "avg": 0.3872, "cap": 2, "pStrong": 25.0, "pChoppy": 30.0, "nTrend": 14, "nTotal": 20}, {"date": "2025-12-05", "avg": 0.3949, "cap": 2, "pStrong": 25.0, "pChoppy": 30.0, "nTrend": 14, "nTotal": 20}, {"date": "2025-12-08", "avg": 0.3364, "cap": 2, "pStrong": 20.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2025-12-09", "avg": 0.294, "cap": 1, "pStrong": 15.0, "pChoppy": 40.0, "nTrend": 12, "nTotal": 20}, {"date": "2025-12-10", "avg": 0.3882, "cap": 2, "pStrong": 30.0, "pChoppy": 25.0, "nTrend": 15, "nTotal": 20}, {"date": "2025-12-11", "avg": 0.4189, "cap": 2, "pStrong": 30.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2025-12-12", "avg": 0.4455, "cap": 2, "pStrong": 35.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2025-12-15", "avg": 0.4371, "cap": 2, "pStrong": 40.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2025-12-16", "avg": 0.4406, "cap": 2, "pStrong": 35.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2025-12-17", "avg": 0.4282, "cap": 2, "pStrong": 35.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2025-12-18", "avg": 0.4314, "cap": 2, "pStrong": 40.0, "pChoppy": 30.0, "nTrend": 14, "nTotal": 20}, {"date": "2025-12-19", "avg": 0.4409, "cap": 2, "pStrong": 45.0, "pChoppy": 25.0, "nTrend": 15, "nTotal": 20}, {"date": "2025-12-22", "avg": 0.4429, "cap": 2, "pStrong": 40.0, "pChoppy": 25.0, "nTrend": 15, "nTotal": 20}, {"date": "2025-12-23", "avg": 0.4494, "cap": 2, "pStrong": 45.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2025-12-24", "avg": 0.44, "cap": 2, "pStrong": 40.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2025-12-25", "avg": 0.4285, "cap": 2, "pStrong": 25.0, "pChoppy": 25.0, "nTrend": 15, "nTotal": 20}, {"date": "2025-12-26", "avg": 0.3847, "cap": 2, "pStrong": 25.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2025-12-29", "avg": 0.3881, "cap": 2, "pStrong": 20.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2025-12-30", "avg": 0.4276, "cap": 2, "pStrong": 30.0, "pChoppy": 30.0, "nTrend": 14, "nTotal": 20}, {"date": "2025-12-31", "avg": 0.3885, "cap": 2, "pStrong": 25.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2026-01-05", "avg": 0.3794, "cap": 2, "pStrong": 30.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2026-01-06", "avg": 0.3579, "cap": 2, "pStrong": 30.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-01-07", "avg": 0.3675, "cap": 2, "pStrong": 35.0, "pChoppy": 50.0, "nTrend": 10, "nTotal": 20}, {"date": "2026-01-08", "avg": 0.3771, "cap": 2, "pStrong": 45.0, "pChoppy": 50.0, "nTrend": 10, "nTotal": 20}, {"date": "2026-01-09", "avg": 0.4508, "cap": 2, "pStrong": 50.0, "pChoppy": 40.0, "nTrend": 12, "nTotal": 20}, {"date": "2026-01-12", "avg": 0.4225, "cap": 2, "pStrong": 45.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-01-13", "avg": 0.3631, "cap": 2, "pStrong": 30.0, "pChoppy": 50.0, "nTrend": 10, "nTotal": 20}, {"date": "2026-01-14", "avg": 0.3717, "cap": 2, "pStrong": 35.0, "pChoppy": 50.0, "nTrend": 10, "nTotal": 20}, {"date": "2026-01-15", "avg": 0.4091, "cap": 2, "pStrong": 35.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2026-01-16", "avg": 0.4199, "cap": 2, "pStrong": 35.0, "pChoppy": 30.0, "nTrend": 14, "nTotal": 20}, {"date": "2026-01-19", "avg": 0.4342, "cap": 2, "pStrong": 40.0, "pChoppy": 30.0, "nTrend": 14, "nTotal": 20}, {"date": "2026-01-20", "avg": 0.4219, "cap": 2, "pStrong": 40.0, "pChoppy": 30.0, "nTrend": 14, "nTotal": 20}, {"date": "2026-01-21", "avg": 0.4648, "cap": 2, "pStrong": 45.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2026-01-22", "avg": 0.434, "cap": 2, "pStrong": 35.0, "pChoppy": 25.0, "nTrend": 15, "nTotal": 20}, {"date": "2026-01-23", "avg": 0.433, "cap": 2, "pStrong": 35.0, "pChoppy": 25.0, "nTrend": 15, "nTotal": 20}, {"date": "2026-01-26", "avg": 0.3745, "cap": 2, "pStrong": 35.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2026-01-27", "avg": 0.4131, "cap": 2, "pStrong": 35.0, "pChoppy": 30.0, "nTrend": 14, "nTotal": 20}, {"date": "2026-01-28", "avg": 0.4047, "cap": 2, "pStrong": 35.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2026-01-29", "avg": 0.4037, "cap": 2, "pStrong": 40.0, "pChoppy": 40.0, "nTrend": 12, "nTotal": 20}, {"date": "2026-01-30", "avg": 0.3926, "cap": 2, "pStrong": 35.0, "pChoppy": 40.0, "nTrend": 12, "nTotal": 20}, {"date": "2026-02-02", "avg": 0.3815, "cap": 2, "pStrong": 35.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-02-03", "avg": 0.3721, "cap": 2, "pStrong": 35.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-02-04", "avg": 0.388, "cap": 2, "pStrong": 35.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-02-05", "avg": 0.3978, "cap": 2, "pStrong": 35.0, "pChoppy": 40.0, "nTrend": 12, "nTotal": 20}, {"date": "2026-02-06", "avg": 0.2955, "cap": 1, "pStrong": 30.0, "pChoppy": 50.0, "nTrend": 10, "nTotal": 20}, {"date": "2026-02-09", "avg": 0.2907, "cap": 1, "pStrong": 25.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-02-10", "avg": 0.2578, "cap": 1, "pStrong": 15.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-02-11", "avg": 0.2452, "cap": 1, "pStrong": 15.0, "pChoppy": 40.0, "nTrend": 12, "nTotal": 20}, {"date": "2026-02-12", "avg": 0.2394, "cap": 1, "pStrong": 15.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-02-13", "avg": 0.1995, "cap": 1, "pStrong": 10.0, "pChoppy": 50.0, "nTrend": 10, "nTotal": 20}, {"date": "2026-02-24", "avg": 0.245, "cap": 1, "pStrong": 15.0, "pChoppy": 40.0, "nTrend": 12, "nTotal": 20}, {"date": "2026-02-25", "avg": 0.24, "cap": 1, "pStrong": 15.0, "pChoppy": 40.0, "nTrend": 12, "nTotal": 20}, {"date": "2026-02-26", "avg": 0.2737, "cap": 1, "pStrong": 15.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2026-02-27", "avg": 0.303, "cap": 2, "pStrong": 25.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2026-03-02", "avg": 0.3433, "cap": 2, "pStrong": 25.0, "pChoppy": 30.0, "nTrend": 14, "nTotal": 20}, {"date": "2026-03-03", "avg": 0.3691, "cap": 2, "pStrong": 25.0, "pChoppy": 25.0, "nTrend": 15, "nTotal": 20}, {"date": "2026-03-04", "avg": 0.4244, "cap": 2, "pStrong": 25.0, "pChoppy": 10.0, "nTrend": 18, "nTotal": 20}, {"date": "2026-03-05", "avg": 0.416, "cap": 2, "pStrong": 25.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2026-03-06", "avg": 0.4545, "cap": 2, "pStrong": 35.0, "pChoppy": 25.0, "nTrend": 15, "nTotal": 20}, {"date": "2026-03-09", "avg": 0.4914, "cap": 2, "pStrong": 40.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2026-03-10", "avg": 0.4956, "cap": 2, "pStrong": 35.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2026-03-11", "avg": 0.4843, "cap": 2, "pStrong": 35.0, "pChoppy": 25.0, "nTrend": 15, "nTotal": 20}, {"date": "2026-03-12", "avg": 0.4962, "cap": 2, "pStrong": 45.0, "pChoppy": 30.0, "nTrend": 14, "nTotal": 20}, {"date": "2026-03-13", "avg": 0.5482, "cap": 2, "pStrong": 50.0, "pChoppy": 30.0, "nTrend": 14, "nTotal": 20}, {"date": "2026-03-16", "avg": 0.6276, "cap": 3, "pStrong": 55.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2026-03-17", "avg": 0.6293, "cap": 3, "pStrong": 60.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2026-03-18", "avg": 0.6251, "cap": 3, "pStrong": 60.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2026-03-19", "avg": 0.6287, "cap": 3, "pStrong": 60.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2026-03-20", "avg": 0.6183, "cap": 3, "pStrong": 55.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2026-03-23", "avg": 0.6078, "cap": 3, "pStrong": 50.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2026-03-24", "avg": 0.6437, "cap": 3, "pStrong": 50.0, "pChoppy": 10.0, "nTrend": 18, "nTotal": 20}, {"date": "2026-03-25", "avg": 0.5649, "cap": 2, "pStrong": 45.0, "pChoppy": 20.0, "nTrend": 16, "nTotal": 20}, {"date": "2026-03-26", "avg": 0.5221, "cap": 2, "pStrong": 40.0, "pChoppy": 25.0, "nTrend": 15, "nTotal": 20}, {"date": "2026-03-27", "avg": 0.4869, "cap": 2, "pStrong": 40.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2026-03-30", "avg": 0.4462, "cap": 2, "pStrong": 35.0, "pChoppy": 35.0, "nTrend": 13, "nTotal": 20}, {"date": "2026-03-31", "avg": 0.388, "cap": 2, "pStrong": 30.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-04-01", "avg": 0.3624, "cap": 2, "pStrong": 30.0, "pChoppy": 50.0, "nTrend": 10, "nTotal": 20}, {"date": "2026-04-02", "avg": 0.3148, "cap": 2, "pStrong": 25.0, "pChoppy": 55.0, "nTrend": 9, "nTotal": 20}, {"date": "2026-04-03", "avg": 0.3407, "cap": 2, "pStrong": 30.0, "pChoppy": 55.0, "nTrend": 9, "nTotal": 20}, {"date": "2026-04-07", "avg": 0.2881, "cap": 1, "pStrong": 25.0, "pChoppy": 60.0, "nTrend": 8, "nTotal": 20}, {"date": "2026-04-08", "avg": 0.2684, "cap": 1, "pStrong": 25.0, "pChoppy": 70.0, "nTrend": 6, "nTotal": 20}, {"date": "2026-04-09", "avg": 0.3021, "cap": 2, "pStrong": 25.0, "pChoppy": 60.0, "nTrend": 8, "nTotal": 20}, {"date": "2026-04-10", "avg": 0.3156, "cap": 2, "pStrong": 25.0, "pChoppy": 55.0, "nTrend": 9, "nTotal": 20}, {"date": "2026-04-13", "avg": 0.4259, "cap": 2, "pStrong": 35.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-04-14", "avg": 0.3726, "cap": 2, "pStrong": 30.0, "pChoppy": 50.0, "nTrend": 10, "nTotal": 20}, {"date": "2026-04-15", "avg": 0.3534, "cap": 2, "pStrong": 30.0, "pChoppy": 50.0, "nTrend": 10, "nTotal": 20}, {"date": "2026-04-16", "avg": 0.3388, "cap": 2, "pStrong": 25.0, "pChoppy": 50.0, "nTrend": 10, "nTotal": 20}, {"date": "2026-04-17", "avg": 0.28, "cap": 1, "pStrong": 15.0, "pChoppy": 55.0, "nTrend": 9, "nTotal": 20}, {"date": "2026-04-20", "avg": 0.2195, "cap": 1, "pStrong": 15.0, "pChoppy": 60.0, "nTrend": 8, "nTotal": 20}, {"date": "2026-04-21", "avg": 0.224, "cap": 1, "pStrong": 10.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-04-22", "avg": 0.1523, "cap": 1, "pStrong": 5.0, "pChoppy": 60.0, "nTrend": 8, "nTotal": 20}, {"date": "2026-04-23", "avg": 0.2563, "cap": 1, "pStrong": 15.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-04-24", "avg": 0.2632, "cap": 1, "pStrong": 20.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}, {"date": "2026-04-27", "avg": 0.2484, "cap": 1, "pStrong": 20.0, "pChoppy": 55.0, "nTrend": 9, "nTotal": 20}, {"date": "2026-04-28", "avg": 0.2806, "cap": 1, "pStrong": 20.0, "pChoppy": 50.0, "nTrend": 10, "nTotal": 20}, {"date": "2026-04-29", "avg": 0.2762, "cap": 1, "pStrong": 20.0, "pChoppy": 55.0, "nTrend": 9, "nTotal": 20}, {"date": "2026-04-30", "avg": 0.2915, "cap": 1, "pStrong": 20.0, "pChoppy": 50.0, "nTrend": 10, "nTotal": 20}, {"date": "2026-05-06", "avg": 0.3177, "cap": 2, "pStrong": 25.0, "pChoppy": 60.0, "nTrend": 8, "nTotal": 20}, {"date": "2026-05-07", "avg": 0.3546, "cap": 2, "pStrong": 30.0, "pChoppy": 55.0, "nTrend": 9, "nTotal": 20}, {"date": "2026-05-08", "avg": 0.3842, "cap": 2, "pStrong": 30.0, "pChoppy": 45.0, "nTrend": 11, "nTotal": 20}], "products": [{"code": "CF", "trendDays": 81, "avgTs": 0.52}, {"code": "UR", "trendDays": 79, "avgTs": 0.61}, {"code": "fu", "trendDays": 72, "avgTs": 0.93}, {"code": "sp", "trendDays": 72, "avgTs": 0.49}, {"code": "MA", "trendDays": 71, "avgTs": 0.81}, {"code": "ru", "trendDays": 68, "avgTs": 0.5}, {"code": "TA", "trendDays": 67, "avgTs": 0.82}, {"code": "al", "trendDays": 67, "avgTs": 0.58}, {"code": "lh", "trendDays": 66, "avgTs": 0.67}, {"code": "rb", "trendDays": 61, "avgTs": 0.25}, {"code": "AP", "trendDays": 60, "avgTs": 0.74}, {"code": "p", "trendDays": 59, "avgTs": 0.68}, {"code": "jd", "trendDays": 58, "avgTs": 0.83}, {"code": "FG", "trendDays": 56, "avgTs": 0.77}, {"code": "SR", "trendDays": 56, "avgTs": 0.36}, {"code": "SA", "trendDays": 55, "avgTs": 0.61}, {"code": "m", "trendDays": 54, "avgTs": 0.68}, {"code": "hc", "trendDays": 53, "avgTs": 0.26}, {"code": "RM", "trendDays": 51, "avgTs": 0.69}, {"code": "si", "trendDays": 48, "avgTs": 0.54}], "monthly": {"2025-12": 0.4096, "2026-01": 0.4048, "2026-02": 0.2949, "2026-03": 0.5142, "2026-04": 0.294, "2026-05": 0.3522}, "stats": {"meanAvg": 0.3896, "cap3": 7, "cap2": 71, "cap1": 22, "nDays": 100, "nProducts": 20}, "nameMap": {"AP": "苹果", "CF": "棉花", "FG": "玻璃", "MA": "甲醇", "RM": "菜粕", "SA": "纯碱", "SR": "白糖", "TA": "PTA", "UR": "尿素", "al": "铝", "fu": "燃油", "hc": "热卷", "jd": "鸡蛋", "lh": "生猪", "m": "豆粕", "p": "棕榈", "rb": "螺纹钢", "ru": "橡胶", "si": "工业硅", "sp": "纸浆"}};
+
+var dates = DATA.daily.map(function(r) { return r.date; });
+var avgVals = DATA.daily.map(function(r) { return r.avg; });
+var capVals = DATA.daily.map(function(r) { return r.cap; });
+
+// ---- Time series ----
+(function() {
+  var chart = echarts.init(document.getElementById('chart-ts'));
+  var capAreas = [];
+  var curCap = capVals[0], curStart = 0;
+  for (var i = 1; i <= capVals.length; i++) {
+    if (i === capVals.length || capVals[i] !== curCap) {
+      var color = curCap === 3 ? 'rgba(39,174,96,0.12)' : (curCap === 2 ? 'rgba(243,156,18,0.12)' : 'rgba(231,76,60,0.12)');
+      capAreas.push({ xAxis: dates[curStart], xAxis1: dates[i-1], itemStyle: { color: color } });
+      if (i < capVals.length) { curCap = capVals[i]; curStart = i; }
+    }
+  }
+  chart.setOption({
+    tooltip: { trigger: 'axis', formatter: function(ps) {
+      var d = ps[0].axisValueLabel;
+      var r = DATA.daily.find(function(x) { return x.date === d; });
+      if (!r) return d;
+      var ct = {3:'3单位(满仓)',2:'2单位',1:'1单位(不开仓)'}[r.cap];
+      return '<strong>'+d+'</strong><br/>avg_strength: '+r.avg.toFixed(4)+'<br/>有趋势: '+r.nTrend+'/'+r.nTotal+'<br/>上限: '+ct;
+    }},
+    legend: { data: ['avg_strength', '阈值0.6', '阈值0.3'], bottom: -2, left: 'center' },
+    grid: { top: 20, bottom: 48, left: 65, right: 30 },
+    dataZoom: [{ type: 'inside', start: 0, end: 100 }, { type: 'slider', start: 0, end: 100, bottom: 24, height: 20 }],
+    xAxis: { type: 'category', data: dates, boundaryGap: false, axisLabel: { rotate: 45, fontSize: 10 } },
+    yAxis: { type: 'value', name: 'avg_strength', min: 0, max: 0.75, splitLine: { lineStyle: { type: 'dashed', color: '#f0f0f0' } } },
+    series: [{
+      name: 'avg_strength', type: 'line', data: avgVals, smooth: true, symbol: 'none',
+      lineStyle: { color: '#3498db', width: 2 },
+      areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1, [{offset:0,color:'rgba(52,152,219,0.25)'},{offset:1,color:'rgba(52,152,219,0.02)'}]) },
+      markLine: { silent: true, data: [
+        { yAxis: 0.6, label: { formatter: '满仓线 0.6', color: '#27ae60', position: 'insideEndTop' }, lineStyle: { color: '#27ae60', type: 'dashed', width: 2 } },
+        { yAxis: 0.3, label: { formatter: '限仓线 0.3', color: '#e67e22', position: 'insideEndTop' }, lineStyle: { color: '#e67e22', type: 'dashed', width: 2 } }
+      ]},
+      markArea: { silent: true, data: capAreas.map(function(a) { return [{ xAxis: a.xAxis, itemStyle: a.itemStyle }, { xAxis: a.xAxis1 }]; }) }
+    }]
+  });
+  window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// ---- Pie ----
+(function() {
+  var chart = echarts.init(document.getElementById('chart-pie'));
+  var s = DATA.stats;
+  chart.setOption({
+    tooltip: { formatter: function(p) { return p.name + '<br/>' + p.percent.toFixed(0) + '% (' + p.value + '\u5929)'; } },
+    series: [{
+      type: 'pie', radius: ['35%', '65%'],
+      data: [
+        { value: s.cap3, name: '满仓 (3u)', itemStyle: { color: '#27ae60' } },
+        { value: s.cap2, name: '限2u', itemStyle: { color: '#f39c12' } },
+        { value: s.cap1, name: '不开仓 (1u)', itemStyle: { color: '#e74c3c' } }
+      ],
+      label: { formatter: '{b}\n{d}%', fontSize: 12 },
+      emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.2)' } }
+    }]
+  });
+  window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// ---- Monthly ----
+(function() {
+  var chart = echarts.init(document.getElementById('chart-monthly'));
+  var keys = Object.keys(DATA.monthly);
+  var vals = keys.map(function(k) { return DATA.monthly[k]; });
+  var colors = vals.map(function(v) { return v >= 0.6 ? '#27ae60' : (v >= 0.3 ? '#f39c12' : '#e74c3c'); });
+  chart.setOption({
+    tooltip: { formatter: function(p) { return p.name + '<br/>avg_strength: ' + p.value.toFixed(4); } },
+    grid: { top: 20, bottom: 48, left: 65, right: 30 },
+    xAxis: { type: 'category', data: keys, axisLabel: { rotate: 30, fontSize: 10 } },
+    yAxis: { type: 'value', name: 'avg_strength', min: 0, max: 0.65, splitLine: { lineStyle: { type: 'dashed', color: '#f0f0f0' } } },
+    series: [{
+      type: 'bar', data: vals,
+      itemStyle: { color: function(p) { return colors[p.dataIndex]; } },
+      markLine: { silent: true, data: [
+        { yAxis: 0.6, label: { formatter: '0.6', color: '#27ae60' }, lineStyle: { color: '#27ae60', type: 'dashed' } },
+        { yAxis: 0.3, label: { formatter: '0.3', color: '#e67e22' }, lineStyle: { color: '#e67e22', type: 'dashed' } }
+      ]}
+    }]
+  });
+  window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// ---- Products ----
+(function() {
+  var chart = echarts.init(document.getElementById('chart-products'));
+  var codes = DATA.products.map(function(p) { return p.code + ' ' + (DATA.nameMap[p.code]||''); });
+  var td = DATA.products.map(function(p) { return p.trendDays; });
+  chart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: function(ps) {
+      var idx = ps[0].dataIndex;
+      var p = DATA.products[idx];
+      return '<strong>'+p.code+'</strong><br/>\u6709\u8d8b\u52bf\u5929\u6570: '+p.trendDays+'/100<br/>\u5e73\u5747\u8d8b\u52bf\u5f3a\u5ea6: '+p.avgTs;
+    }},
+    grid: { top: 20, bottom: 10, left: 60, right: 60 },
+    xAxis: { type: 'value', max: 100, axisLabel: { fontSize: 10 } },
+    yAxis: { type: 'category', data: codes, axisLabel: { fontSize: 11 }, inverse: true },
+    series: [{
+      type: 'bar', data: td,
+      itemStyle: { color: function(p) {
+        return DATA.products[p.dataIndex].code === 'SA' ? '#e74c3c' : '#3498db';
+      }},
+      label: { show: true, position: 'right', fontSize: 10, formatter: function(p) { return p.value; } }
+    }]
+  });
+  window.addEventListener('resize', function() { chart.resize(); });
+})();
+</script>
+</body>
+</html>

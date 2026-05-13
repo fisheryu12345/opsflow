@@ -491,16 +491,20 @@ class Command(BaseCommand):
         self.stdout.write(f"[Turtle] 加仓 {position.symbol}: +1 Unit × {unit_lots}手 = "
                           f"{order_volume}手 (总{new_total}手)")
 
-        signal = DailyStrategySignal.objects.create(
+        # 用 update_or_create 避免与实盘同天信号的唯一键冲突
+        signal, _ = DailyStrategySignal.objects.update_or_create(
             account=account, symbol=position.symbol,
-            product_code=position.product_code,
             trade_date=timezone.now().date(),
-            trade_type='ADD_ON',
-            signal_direction=position.direction,
-            executed_status='EXECUTING',
-            trend_factor=Decimal('0'), trend_label='unknown',
-            contract_target_number=1,
-            remark=f"Turtle加仓: 0.5N触发, 价格={price:.2f}",
+            defaults={
+                'product_code': position.product_code,
+                'trade_type': 'ADD_ON',
+                'signal_direction': position.direction,
+                'executed_status': 'EXECUTING',
+                'trend_factor': Decimal('0'),
+                'trend_label': 'unknown',
+                'contract_target_number': 1,
+                'remark': f"Turtle加仓(覆盖已有信号): 0.5N触发, 价格={price:.2f}",
+            },
         )
 
         target_pos = TargetPosTask(api, position.symbol)
