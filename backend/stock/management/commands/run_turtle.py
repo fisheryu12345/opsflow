@@ -337,6 +337,7 @@ class Command(BaseCommand):
             trade_type='ENTRY',
             signal_direction=direction,
             executed_status='EXECUTING',
+            trend_factor=Decimal('0'), trend_label='unknown',
             donchian_upper=Decimal(str(level['h20'])) if level['h20'] else None,
             donchian_lower=Decimal(str(level['l20'])) if level['l20'] else None,
             remark=f"Turtle突破入场: 价格={price:.2f}",
@@ -493,6 +494,7 @@ class Command(BaseCommand):
             trade_type='ADD_ON',
             signal_direction=position.direction,
             executed_status='EXECUTING',
+            trend_factor=Decimal('0'), trend_label='unknown',
             contract_target_number=1,
             remark=f"Turtle加仓: 0.5N触发, 价格={price:.2f}",
         )
@@ -556,6 +558,7 @@ class Command(BaseCommand):
             trade_type='STOP_LOSS',
             signal_direction=-position.direction,
             executed_status='EXECUTING',
+            trend_factor=Decimal('0'), trend_label='unknown',
             remark=reason,
         )
 
@@ -646,6 +649,7 @@ class Command(BaseCommand):
             trade_type='ROLLOVER',
             signal_direction=direction,
             executed_status='EXECUTING',
+            trend_factor=Decimal('0'), trend_label='unknown',
             remark=f'移仓: {old_symbol} → {new_symbol}',
         )
 

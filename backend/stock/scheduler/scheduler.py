@@ -6,7 +6,6 @@ from django_apscheduler.jobstores import DjangoJobStore
 from stock.scheduler.tasks_exit_before_close import execute_exit_before_close
 from stock.scheduler.tasks_daily_close import job_daily_close_calculation
 from stock.scheduler.tasks_daily_open import job_daily_open_process
-from stock.scheduler.tasks_daily_commission import job_daily_commission_query
 from stock.scheduler.tasks_update_float_profit import job_update_float_profit
 from stock.scheduler.tasks_daily_reconciliation import job_daily_reconciliation
 
@@ -68,33 +67,22 @@ scheduler.add_job(
     max_instances=1,
 )
 
-# 每日手续费查询（14:58 — 早于 15:02 收盘计算，提前捕获手续费数据）
-scheduler.add_job(
-    job_daily_commission_query,
-    'cron',
-    day_of_week='mon-fri',
-    hour=14,
-    minute=58,
-    id='job_daily_commission_query',
-    name='盘前手续费查询',
-    misfire_grace_time=300,
-    replace_existing=True,
-    max_instances=1,
-)
 
-# 持仓浮动盈亏更新（周一到周五 10:00/11:00/14:00/22:00/23:00）
+# 持仓浮动盈亏 + 当日手续费更新（覆盖上午、下午、夜盘各时段）
+# 合并了原 job_daily_commission_query（14:58）的功能
 scheduler.add_job(
     job_update_float_profit,
     'cron',
     day_of_week='mon-fri',
-    hour='10,11,14,22,23',
+    hour='10,11,14,15,22,23',
     minute=0,
     id='job_update_float_profit',
-    name='持仓浮动盈亏更新',
+    name='持仓浮动盈亏+手续费更新',
     misfire_grace_time=600,
     replace_existing=True,
     max_instances=1,
 )
+
 
 # ==================== 绩效报告任务（依赖 WeasyPrint） ====================
 

@@ -1,17 +1,22 @@
 """
-每小时定时任务：更新持仓浮动盈亏。
+定时任务：更新持仓浮动盈亏 + 当日手续费（合并任务）。
 
-遍历所有活跃账户，通过 TqSDK 获取每个持仓合约的实时浮动盈亏，
-写入 PositionState.float_profit 字段，供前端持仓明细直接展示。
+遍历所有活跃账户，通过 TqSDK 获取：
+1. 每个持仓合约的实时浮动盈亏 → PositionState.float_profit
+2. 账户级当日累计手续费 → DailyEquitySnapshot / TradingAccount.total_commission
+
+供前端持仓明细和权益概览直接展示。
 """
 import time
 from decimal import Decimal
+from datetime import date
 
 from django.db import transaction, close_old_connections
+from django.db.models import Sum
 from django.utils import timezone
 
 from stock.utils.log_util import log_trade, log_error
-from stock.models import PositionState, TradingAccount
+from stock.models import PositionState, TradingAccount, DailyEquitySnapshot
 from stock.infrastructure.tqapi import create_tqapi, safe_close_api
 from stock.infrastructure.trade_day import skip_if_not_trade_day
 
@@ -73,10 +78,64 @@ def _update_account_float_profit(account: TradingAccount):
 
         # log_trade(FSM, f"更新完成 {updated_count} 笔持仓", log_level='INFO', account=account)
 
+        # ② 同一连接获取当日手续费
+        _update_account_commission(api, account)
+
     except Exception as e:
         log_error(FSM, f"更新浮动盈亏异常: {e}", account=account)
     finally:
         safe_close_api(api)
+
+
+def _update_account_commission(api, account: TradingAccount) -> None:
+    """从 TqApi 读取账户级当日累计手续费并更新 DailyEquitySnapshot。"""
+    today = date.today()
+    try:
+        api_account = api.get_account()
+        deadline = time.time() + 10
+        api.wait_update(deadline=deadline)
+
+        today_commission = Decimal(str(getattr(api_account, 'commission', 0))).quantize(Decimal('0.01'))
+
+        raw_data = {
+            'commission': today_commission,
+            'balance': Decimal(str(getattr(api_account, 'balance', 0))).quantize(Decimal('0.01')),
+            'available': Decimal(str(getattr(api_account, 'available', 0))).quantize(Decimal('0.01')),
+            'float_profit': Decimal(str(getattr(api_account, 'float_profit', 0))).quantize(Decimal('0.01')),
+            'margin': Decimal(str(getattr(api_account, 'margin', 0))).quantize(Decimal('0.01')),
+            'risk_ratio': Decimal(str(getattr(api_account, 'risk_ratio', 0))).quantize(Decimal('0.0001')),
+            'closed_pnl': Decimal(str(getattr(api_account, 'close_profit', 0))).quantize(Decimal('0.01')),
+        }
+
+        # 0 值保护：TqSDK 返回 0 但 DB 已有正值 → 保留 DB 值
+        existing = DailyEquitySnapshot.objects.filter(
+            account=account, trade_date=today
+        ).first()
+        defaults = {}
+        for field, tq_value in raw_data.items():
+            if tq_value == 0 and existing and getattr(existing, field, 0) > 0:
+                defaults[field] = getattr(existing, field)
+            else:
+                defaults[field] = tq_value
+        defaults['daily_pnl'] = Decimal('0')
+        defaults['daily_return'] = Decimal('0')
+
+        DailyEquitySnapshot.objects.update_or_create(
+            account=account,
+            trade_date=today,
+            defaults=defaults,
+        )
+
+        # 更新累计手续费
+        total = DailyEquitySnapshot.objects.filter(
+            account=account
+        ).aggregate(total=Sum('commission'))['total'] or Decimal('0')
+        if account.total_commission != total:
+            account.total_commission = total
+            account.save(update_fields=['total_commission', 'updated_at'])
+
+    except Exception as e:
+        log_error(FSM, f"更新账户 {account.name} 手续费异常: {e}", account=account)
 
 
 def job_update_float_profit():

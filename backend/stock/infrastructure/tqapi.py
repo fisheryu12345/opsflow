@@ -10,21 +10,21 @@ import time
 def _get_default_auth():
     """获取默认 TqSDK 认证凭据。
 
-    优先使用全局 env 配置 (TQAPI_ACCOUNT/TQAPI_PASSWORD)；
-    未配置时尝试第一个活跃账户的 StrategyConfig 凭据作为降级。
+    优先使用活跃账户的 StrategyConfig 凭据（保证有效）；
+    无可用账户时回退到全局 DEFAULTS。
     """
+    try:
+        for acct in TradingAccount.objects.filter(is_active=True):
+            try:
+                cfg = StrategyConfig.objects.get(account=acct)
+                if cfg.tqapi_account and cfg.tqapi_password:
+                    return cfg.tqapi_account, cfg.tqapi_password
+            except StrategyConfig.DoesNotExist:
+                continue
+    except Exception:
+        pass
     tqapi_account = get_config('TQAPI_ACCOUNT')
     tqapi_password = get_config('TQAPI_PASSWORD')
-    if tqapi_account and tqapi_password:
-        return tqapi_account, tqapi_password
-    try:
-        acct = TradingAccount.objects.filter(is_active=True).first()
-        if acct:
-            cfg = StrategyConfig.objects.get(account=acct)
-            if cfg.tqapi_account and cfg.tqapi_password:
-                return cfg.tqapi_account, cfg.tqapi_password
-    except (StrategyConfig.DoesNotExist, Exception):
-        pass
     return tqapi_account, tqapi_password
 
 
