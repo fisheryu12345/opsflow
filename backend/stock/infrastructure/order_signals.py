@@ -17,7 +17,7 @@ TIMEOUT_SECONDS = get_config('TIMEOUT_SECONDS')
 POSITION_MAX_UNITS = get_config('POSITION_MAX_UNITS')
 GAP_PROTECTION_RATIO = get_config('GAP_PROTECTION_RATIO')
 
-logger = logging.getLogger(__name__)
+
 from stock.core.atr import price_gap_protection, calculate_atr
 from stock.core.position_sizing import calculate_unit_lots
 from stock.infrastructure.order_execution import (
@@ -159,7 +159,9 @@ def execute_add_on_order(api, account, signal):
                     signal=signal,
                 )
         except Exception as slip_err:
-            logger.warning('记录加仓滑点失败（两步）: %s', slip_err)
+            log_error('execute_add_on_order',
+                       f"{slip_err}\n{traceback.format_exc()}", account=account,
+                       )
 
         msg = (f"{trade_symbol} 加仓成功（两步开仓）: +{unit_lots} Unit ({order_volume}手) @ "
                f"{two_step_result['avg_price']:.2f}, 总持仓:{new_units} Unit")
@@ -240,7 +242,9 @@ def execute_add_on_order(api, account, signal):
                         signal=signal,
                     )
             except Exception as slip_err:
-                logger.warning('记录加仓滑点失败: %s', slip_err)
+                log_error('execute_add_on_order',
+                           f"{slip_err}\n{traceback.format_exc()}", account=account
+                           )
 
             msg = f"{trade_symbol} 加仓成功: +{unit_lots} Unit({order_volume}手) @ {avg_price:.2f}, 总持仓:{new_units} Unit"
             print(msg)
@@ -374,7 +378,11 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
                     signal=signal,
                 )
         except Exception as slip_err:
-            logger.warning('记录两步开仓滑点失败: %s', slip_err)
+            log_error(
+                function_name='execute_entry_order',
+                error_message=f"记录滑点异常: {slip_err}",
+                account=account
+            )
 
         msg = f"{signal.symbol} 开仓成功（两步开仓）: 1 Unit({two_step_result['actual_filled']}手) @ {two_step_result['avg_price']:.2f}"
         print(msg)
@@ -462,7 +470,11 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
                         signal=signal,
                     )
             except Exception as slip_err:
-                logger.warning('记录开仓滑点失败: %s', slip_err)
+                log_error(
+                    function_name='execute_entry_order',
+                    error_message=f"记录滑点异常: {slip_err}",
+                    account=account
+                )
 
             msg = f"{signal.symbol} 开仓成功: 1 Unit({actual_filled}手) @ {entry_avg_price:.2f}"
             print(msg)
@@ -821,42 +833,51 @@ def execute_rollover_order(api, position, signal):
 
     # ===== Phase 3: Update database =====
     try:
-        with transaction.atomic():
-            try:
-                klines = api.get_kline_serial(new_symbol, duration_seconds=86400, data_length=25)
-                if klines is not None and len(klines) >= 20:
-                    historical_high = float(klines['close'].rolling(window=20).max().iloc[-1])
-                    historical_low = float(klines['close'].rolling(window=20).min().iloc[-1])
-                    atr_value = calculate_atr(api, new_symbol, period=20)
+        # 计算新合约初始数据 + init_stop_loss（合并，只需一次get_kline_serial）
+        old_profit = abs(rollover_exit_price - cost_price) if (cost_price and rollover_exit_price) else None
+        holding_days = (timezone.now().date() - position.open_date).days if position.open_date else 0
+        data_length = max(25, (holding_days or 0) + 10)
+        klines = api.get_kline_serial(new_symbol, duration_seconds=86400, data_length=data_length)
 
-                    if position.direction == 1:
-                        init_highest_close = Decimal(str(historical_high))
-                        init_lowest_close = None
-                        init_stop_loss = init_highest_close - Decimal('2') * Decimal(str(atr_value)) if atr_value else None
-                    else:
-                        init_highest_close = None
-                        init_lowest_close = Decimal(str(historical_low))
-                        init_stop_loss = init_lowest_close + Decimal('2') * Decimal(str(atr_value)) if atr_value else None
+        if klines is not None and len(klines) >= 20:
+            # 完整历史 → H_full/L_full
+            H_full = float(klines['close'].max())
+            L_full = float(klines['close'].min())
 
-                    msg = (f"{new_symbol} 基于20日历史数据初始化: highest={historical_high:.2f}, "
-                           f"lowest={historical_low:.2f}, ATR={atr_value:.2f}")
-                    print(msg)
-                    log_trade('execute_rollover_order', msg, symbol=new_symbol, log_level='INFO', account=position.account)
-                else:
-                    msg = f"{new_symbol} 历史数据不足({len(klines) if klines else 0}根)，使用开仓价初始化"
-                    print(msg)
-                    log_trade('execute_rollover_order', msg, symbol=new_symbol, log_level='WARNING', account=position.account)
-                    init_highest_close = Decimal(str(entry_avg_price)) if position.direction == 1 else None
-                    init_lowest_close = Decimal(str(entry_avg_price)) if position.direction == -1 else None
-                    init_stop_loss = None
-            except Exception as hist_e:
-                msg = f"[WARN] {new_symbol} 计算历史数据失败: {str(hist_e)}，使用开仓价初始化"
-                print(msg)
-                traceback.print_exc()
-                log_error('execute_rollover_order', f"{msg}\n{traceback.format_exc()}", notify=True)
-                init_highest_close = Decimal(str(entry_avg_price)) if position.direction == 1 else None
-                init_lowest_close = Decimal(str(entry_avg_price)) if position.direction == -1 else None
-                init_stop_loss = None
+            # 跟踪止损参考值（直接用完整历史最高/最低）
+            if position.direction == 1:
+                init_highest_close = Decimal(str(H_full))
+                init_lowest_close = None
+            else:
+                init_highest_close = None
+                init_lowest_close = Decimal(str(L_full))
+
+            # ATR + stop_distance
+            atr_val = calculate_atr(api, new_symbol, period=20)
+            # trend_factor 来自老合约信号，同品种均线类同偏差可忽略
+            # 且收盘任务会按新合约的 ATR+自身指标重新计算，此处只需一个合理初始值
+            tf_val = float(signal.trend_factor) if (signal and signal.trend_factor) else 0
+            stop_dist = Decimal(str(2 * (1 + tf_val) * atr_val))
+
+            # 新公式：init_stop_loss = max(H_full - stop_dist, entry - old_profit)
+            entry_dec = Decimal(str(entry_avg_price))
+            if position.direction == 1:
+                loss_budget = entry_dec - old_profit
+                init_stop_loss = max(Decimal(str(H_full)) - stop_dist, loss_budget)
+            else:
+                loss_budget = entry_dec + old_profit
+                init_stop_loss = min(Decimal(str(L_full)) + stop_dist, loss_budget)
+            msg = f"{new_symbol} 移仓初始化: stop={init_stop_loss}, budget={loss_budget}, H_full={H_full:.2f}"
+
+            print(msg)
+            log_trade('execute_rollover_order', msg, symbol=new_symbol, log_level='INFO', account=position.account)
+        else:
+            msg = f"{new_symbol} 历史数据不足({len(klines) if klines else 0}根)，使用开仓价初始化"
+            print(msg)
+            log_trade('execute_rollover_order', msg, symbol=new_symbol, log_level='WARNING', account=position.account)
+            init_highest_close = Decimal(str(entry_avg_price)) if position.direction == 1 else None
+            init_lowest_close = Decimal(str(entry_avg_price)) if position.direction == -1 else None
+            init_stop_loss = None
 
         try:
             with transaction.atomic():
@@ -910,6 +931,7 @@ def execute_rollover_order(api, position, signal):
                         latest_close_price=Decimal(str(entry_avg_price)),
                         open_date=timezone.now().date(),
                         stop_loss_price=init_stop_loss,
+                        protect_cost_enabled=position.protect_cost_enabled,
                         is_rollover_needed=False,
                     )
                 PositionState.objects.filter(id=position.id).delete()
