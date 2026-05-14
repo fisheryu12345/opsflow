@@ -380,10 +380,12 @@ export interface SlippageStats {
  * @param accountId 账户ID
  * @returns Promise<SlippageStats>
  */
-export function getSlippageStats(accountId: number) {
+export function getSlippageStats(accountId: number, tradeType?: string) {
+	let url = `/api/stock/slippage-stats/?account=${accountId}`;
+	if (tradeType) url += `&trade_type=${tradeType}`;
 	return request.get<{
 		code: number;
 		msg: string;
 		data: SlippageStats;
-	}>(`/api/stock/slippage-stats/?account=${accountId}`);
+	}>(url);
 }

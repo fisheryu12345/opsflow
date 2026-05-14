@@ -69,8 +69,12 @@ class SlippageStatsView(viewsets.ViewSet):
                 'data': {}
             }, status=status.HTTP_403_FORBIDDEN)
 
-        # 总览统计
+        # 总览统计（支持按交易类型筛选）
         base_qs = SlippageRecord.objects.filter(account_id=account_id)
+        trade_type = request.query_params.get('trade_type')
+        if trade_type:
+            types = [t.strip() for t in trade_type.split(',')]
+            base_qs = base_qs.filter(trade_type__in=types)
         total_records = base_qs.count()
 
         avg_slippage = base_qs.aggregate(avg=Avg('slippage_ticks'))['avg']
