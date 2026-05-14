@@ -15,6 +15,7 @@ from stock.infrastructure.order_execution import record_and_reset_position
 from stock.infrastructure.slippage_recorder import record_slippage
 from stock.core.signal_checker import check_duplicate_pending_signal
 from stock.core.config_loader import get_config
+from stock.core.indicators import calculate_indicators
 
 TIMEOUT_SECONDS = get_config('TIMEOUT_SECONDS')
 
@@ -185,15 +186,41 @@ def _execute_stop_loss_for_account(api, default_account):
                     continue
 
                 current_price = float(quote.last_price)
-                stop_loss = float(position.stop_loss_price)
+
+                # ── 实时止损重算 ──
+                recalc_stop_loss = None
+                try:
+                    indicators = calculate_indicators(api, position.symbol)
+                    if indicators and indicators.get('atr_20') is not None:
+                        fresh_atr = Decimal(str(indicators['atr_20']))
+                        fresh_factor = Decimal(str(indicators.get('trend_factor', 0)))
+                        highest_close = position.highest_close
+                        lowest_close = position.lowest_close
+
+                        if position.direction == 1 and highest_close:
+                            # 多头止损 = 最高价 - 2(1+factor) × ATR
+                            recalc_stop_loss = highest_close - Decimal('2') * (Decimal('1') + fresh_factor) * fresh_atr
+                        elif position.direction == -1 and lowest_close:
+                            # 空头止损 = 最低价 + 2(1+factor) × ATR
+                            recalc_stop_loss = lowest_close + Decimal('2') * (Decimal('1') + fresh_factor) * fresh_atr
+
+                        print(f"[RECALC] {position.symbol} 方向={position.direction} 现价={current_price:.2f} "
+                              f"highest_close={highest_close} lowest_close={lowest_close} "
+                              f"atr={fresh_atr} factor={fresh_factor} "
+                              f"DB止损={float(position.stop_loss_price):.2f} 重算止损={float(recalc_stop_loss):.2f}")
+                except Exception as e:
+                    print(f"[WARN] {position.symbol} 止损重算失败: {e}，使用原止损价")
+
+                # 使用重算止损价（若成功）或原止损价（若失败）
+                final_stop_loss = float(recalc_stop_loss) if recalc_stop_loss is not None else float(position.stop_loss_price)
 
                 triggered = False
-                if position.direction == 1 and current_price < stop_loss:
+                if position.direction == 1 and current_price < final_stop_loss:
                     triggered = True
-                    remark = f"多头紧急止损: 实时价{current_price:.2f} < 止损价{stop_loss:.2f}"
-                elif position.direction == -1 and current_price > stop_loss:
+                    remark = f"多头紧急止损: 实时价{current_price:.2f} < 重算止损{final_stop_loss:.2f}"
+                elif position.direction == -1 and current_price > final_stop_loss:
                     triggered = True
-                    remark = f"空头紧急止损: 实时价{current_price:.2f} > 止损价{stop_loss:.2f}"
+                    remark = f"空头紧急止损: 实时价{current_price:.2f} > 重算止损{final_stop_loss:.2f}"
 
                 if not triggered:
                     continue
