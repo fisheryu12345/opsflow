@@ -520,7 +520,7 @@ def execute_exit_order(api, position, signal):
             return False
 
         # 从实际成交回报计算均价，而非用 quote.last_price
-        trades = api.get_trades()
+        trades = api.get_trade()
         filled_vol = 0
         total_cost = Decimal('0')
         for trade in reversed(trades.values()):
@@ -620,7 +620,7 @@ def execute_rollover_order(api, position, signal):
 
         while time.time() - confirm_start < CONFIRM_TIMEOUT:
             api.wait_update(deadline=time.time() + 1)
-            trades = api.get_trades()
+            trades = api.get_trade()
             filled_volume = 0
             total_cost = Decimal('0')
             for trade in reversed(trades.values()):
