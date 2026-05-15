@@ -239,11 +239,28 @@ def check_add_position_signals(account):
             # 确保必要数据存在
             if not position.latest_close_price or not position.first_open_price:
                 continue
-            
+
             if not position.indicators:
                 continue
-            
+
             try:
+                # === 移仓换月检测：老合约禁止开仓，切换到新合约 ===
+                target_symbol = position.symbol
+                target_product_code = position.product_code
+
+                if position.is_rollover_needed:
+                    main_contract = FullContractList.objects.filter(
+                        product_code=position.product_code
+                    ).first()
+                    if main_contract and main_contract.symbol != position.symbol:
+                        target_symbol = main_contract.symbol
+                        target_product_code = main_contract.product_code
+                        msg = (f"{position.symbol} 移仓换月标记激活，ADD_ON 切换到 {target_symbol}")
+                        print(msg)
+                        log_trade('check_add_position_signals', msg, symbol=position.symbol, log_level='INFO', account=account)
+                    else:
+                        continue
+
                 # 从 indicators 获取 ATR（转换为 Decimal）
                 atr_value = Decimal(str(position.indicators.get('atr_20', 0)))
                 
@@ -254,42 +271,41 @@ def check_add_position_signals(account):
                 first_open_price = position.first_open_price
                 current_units = position.units
                 
-                add_units = 0  # 需要加仓的单位数
-                price_diff = Decimal('0')  # 用于日志记录的价格变动
-                
-                if current_units == 1:
-                    # 1单位时：以 first_open_price 为基准计算价差
-                    price_diff = latest_price - first_open_price
-                    
-                    if position.direction == 1:
-                        # 多头持仓：价格上涨才加仓
-                        if price_diff > Decimal('1') * atr_value:
-                            # 涨幅超过 1×ATR，直接加2单位满仓
-                            add_units = 2
-                        elif price_diff > Decimal('0.5') * atr_value:
-                            # 涨幅超过 0.5×ATR，加仓1单位
-                            add_units = 1
-                    
-                    elif position.direction == -1:
-                        # 空头持仓：价格下跌才加仓
-                        if price_diff < Decimal('-1') * atr_value:
-                            # 跌幅超过 1×ATR，直接加2单位满仓
-                            add_units = 2
-                        elif price_diff < Decimal('-0.5') * atr_value:
-                            # 跌幅超过 0.5×ATR，加仓1单位
-                            add_units = 1
-                
-                elif current_units == 2:
-                    # 2单位时：以 first_open_price 为基准判断累计波动
-                    # 第3单位加仓点 = 开仓价 ± 1.0×ATR（即距离第2单位又走了0.5×ATR）
-                    if position.direction == 1:
-                        price_diff = latest_price - first_open_price
-                        if price_diff > Decimal('1') * atr_value:
-                            add_units = 1
-                    elif position.direction == -1:
-                        price_diff = first_open_price - latest_price
-                        if price_diff > Decimal('1') * atr_value:
-                            add_units = 1
+                # ============================================================
+                # 加仓条件计算（海龟金字塔加仓）
+                #
+                # 基准价: first_open_price（首次开仓价，统一基准）
+                #
+                # 规则（多头为例，空头对称）：
+                #   units=1: 价格从开仓价涨超 0.5×ATR → +1 单位
+                #                    涨超 1.0×ATR → +2 单位（直接满仓）
+                #   units=2: 价格从开仓价涨超 1.0×ATR → +1 单位
+                #
+                # favorable_diff: 价格朝有利方向移动的距离（正数），用于判断阈值
+                #   direction=1（多头）: favorable_diff = latest_price - first_open_price
+                #   direction=-1（空头）: favorable_diff = first_open_price - latest_price
+                #
+                # price_diff: 有符号价差（latest - first_open），仅用于 remark 日志
+                #   空头时此值为负，但日志可读性由文本拼接保证
+                #
+                # 加仓点总结（距开仓价）：
+                #   units=1:  0.5×ATR → +1 单位   1.0×ATR → +2 单位
+                #   units=2:  (累计) 1.0×ATR → +1 单位
+                # ============================================================
+                add_units = 0
+                price_diff = latest_price - first_open_price  # 有符号价差，用于日志
+                if position.direction == 1:
+                    favorable_diff = price_diff  # 多头：涨为正方向
+                else:
+                    favorable_diff = first_open_price - latest_price  # 空头：跌为正方向
+
+                if favorable_diff > Decimal('0.5') * atr_value:
+                    if current_units == 1:
+                        # units=1: 超 0.5×ATR 加1，超 1.0×ATR 加2（满仓）
+                        add_units = 2 if favorable_diff > Decimal('1') * atr_value else 1
+                    elif current_units == 2 and favorable_diff > Decimal('1') * atr_value:
+                        # units=2: 超 1.0×ATR 加1
+                        add_units = 1
               
                 # 如果满足加仓条件，生成加仓信号
                 if add_units > 0:
@@ -298,13 +314,21 @@ def check_add_position_signals(account):
                     if new_units > 3:
                         add_units = 3 - current_units
                     
-                    if check_duplicate_pending_signal(account, position.symbol, 'ADD_ON'):
+                    if check_duplicate_pending_signal(account, target_symbol, 'ADD_ON'):
                         continue
+
+                    remark = (
+                        f"加仓信号: {'多头' if position.direction == 1 else '空头'} "
+                        f"价格差={float(price_diff):.2f}, ATR={float(atr_value):.2f}, "
+                        f"建议加仓{add_units}单位 (当前{current_units}→{current_units + add_units})"
+                    )
+                    if target_symbol != position.symbol:
+                        remark += f" [移仓换月，从{position.symbol}切换到{target_symbol}加仓]"
 
                     DailyStrategySignal.objects.create(
                         account=account,
-                        symbol=position.symbol,
-                        product_code=position.product_code,
+                        symbol=target_symbol,
+                        product_code=target_product_code,
                         trade_date=date.today(),
                         trend_factor=Decimal(str(position.indicators.get('trend_factor', 0))),
                         trend_label=position.indicators.get('trend_label', ''),
@@ -314,9 +338,7 @@ def check_add_position_signals(account):
                         signal_direction=position.direction,
                         trade_type='ADD_ON',
                         contract_target_number=add_units,
-                        remark=f"加仓信号: {'多头' if position.direction == 1 else '空头'} "
-                               f"价格差={float(price_diff):.2f}, ATR={float(atr_value):.2f}, "
-                               f"建议加仓{add_units}单位 (当前{current_units}→{current_units + add_units})"
+                        remark=remark,
                     )
                     addon_count += 1
             except Exception as pos_error:
