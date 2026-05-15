@@ -315,7 +315,6 @@ def record_and_reset_position(api, position, signal, filled_volume, avg_price):
             'units': 0,
             'contract_total_position': 0,
             'direction': 0,
-            'last_add_price': None,
             'highest_close': None,
             'lowest_close': None,
             'stop_loss_price': None,

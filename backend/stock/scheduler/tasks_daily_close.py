@@ -214,7 +214,7 @@ def check_add_position_signals(account):
 
     加仓规则：
     - 仅对持仓单位数 < 3 的持仓进行检查
-    - 1单位持仓时，以 last_add_price（首次开仓价）为基准：
+    - 1单位持仓时，以 first_open_price（首次开仓价）为基准：
       - 多头：价格涨超 0.5×ATR → 加1单位；涨超 1.0×ATR → 加2单位（直接满仓）
       - 空头：价格跌超 0.5×ATR → 加1单位；跌超 1.0×ATR → 加2单位（直接满仓）
     - 2单位持仓时，以 first_open_price（首次开仓价）为基准：
@@ -237,7 +237,7 @@ def check_add_position_signals(account):
         
         for position in positions:
             # 确保必要数据存在
-            if not position.latest_close_price or not position.last_add_price:
+            if not position.latest_close_price or not position.first_open_price:
                 continue
             
             if not position.indicators:
@@ -251,16 +251,15 @@ def check_add_position_signals(account):
                     continue
                 
                 latest_price = position.latest_close_price
-                last_add_price = position.last_add_price
-                first_open_price = position.first_open_price if position.first_open_price else last_add_price
+                first_open_price = position.first_open_price
                 current_units = position.units
                 
                 add_units = 0  # 需要加仓的单位数
                 price_diff = Decimal('0')  # 用于日志记录的价格变动
                 
                 if current_units == 1:
-                    # 1单位时：以 last_add_price 为基准计算价差
-                    price_diff = latest_price - last_add_price
+                    # 1单位时：以 first_open_price 为基准计算价差
+                    price_diff = latest_price - first_open_price
                     
                     if position.direction == 1:
                         # 多头持仓：价格上涨才加仓

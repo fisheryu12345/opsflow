@@ -89,8 +89,8 @@ prior_20_day_low  = min(low[-21:-1])    # 前20根K线的最低价
     - 从首次开仓价累计移动 1.0×ATR → 加1单位
   最大总持仓: 3单位
 
-  多头基准: latest_price - last_add_price (第2次: latest_price - first_open_price)
-  空头基准: last_add_price - latest_price (第2次: first_open_price - latest_price)
+  多头基准: latest_price - first_open_price（统一基准）
+  空头基准: first_open_price - latest_price（统一基准）
 ```
 
 ### 3. 止损价格 — 动态跟踪止损
