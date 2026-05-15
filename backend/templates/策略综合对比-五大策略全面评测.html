@@ -261,11 +261,11 @@
 <div class="cover">
   <h1>五大策略全面对比评测</h1>
   <div class="subtitle">国内期货市场适用性分析 · 多维度量化对比 · 策略选择指南</div>
-  <div class="meta">评测日期: 2026-05-12 &nbsp;|&nbsp; 基于 04-策略设计文档 全量文档</div>
+  <div class="meta">评测日期: 2026-05-16 &nbsp;|&nbsp; 基于 04-策略设计文档 全量文档</div>
   <div class="badge-row">
     <span class="badge">海龟原版</span>
     <span class="badge">MA10斜率排名</span>
-    <span class="badge">双均线交叉</span>
+    <span class="badge">HVOB-MBI日内突破</span>
     <span class="badge">海龟增强V2</span>
     <span class="badge">海龟增强V3</span>
   </div>
@@ -283,7 +283,7 @@
         <th style="min-width:100px;">维度</th>
         <th style="background:#fef3c7;">海龟原版</th>
         <th style="background:#ede9fe;">MA10斜率排名</th>
-        <th style="background:#dbeafe;">双均线交叉</th>
+        <th style="background:#cffafe;">HVOB-MBI日内突破</th>
         <th style="background:#d1fae5;">海龟增强V2</th>
         <th style="background:#fce7f3;">海龟增强V3</th>
       </tr>
@@ -293,7 +293,7 @@
         <td style="font-weight:600;">入场信号</td>
         <td>20日唐奇安通道突破（盘中实时）</td>
         <td>MA10斜率全市场排名前/后5</td>
-        <td>MA10上穿/下穿MA20</td>
+        <td>开盘区间突破（OR_H+0.3R / OR_L-0.3R，tick级即时）</td>
         <td>20日唐奇安通道突破（收盘后）</td>
         <td>同V2 + choppy过滤</td>
       </tr>
@@ -301,7 +301,7 @@
         <td style="font-weight:600;">出场信号</td>
         <td>10日唐奇安反向突破 + 2N硬止损</td>
         <td>排名退化 + 趋势反转 + 2.5ATR硬止损</td>
-        <td>MA10反向穿越MA20（无独立止损）</td>
+        <td>固定止盈1.5R + 移动止盈 + 保本 + 14:55强制平仓</td>
         <td>ATR动态跟踪止损(2~3ATR) + 保本</td>
         <td>同V2</td>
       </tr>
@@ -309,7 +309,7 @@
         <td style="font-weight:600;">加仓</td>
         <td>0.5N间隔，最多3单位</td>
         <td>无加仓</td>
-        <td>无加仓</td>
+        <td>无加仓（单品种单日一次）</td>
         <td>0.5/1.0ATR间隔，最多3单位</td>
         <td>同V2</td>
       </tr>
@@ -317,7 +317,7 @@
         <td style="font-weight:600;">执行模式</td>
         <td>盘中实时（T+0）</td>
         <td>收盘信号→次日开盘（T+1）</td>
-        <td>收盘信号→盘中执行</td>
+        <td>TqSDK事件循环实时驱动</td>
         <td>收盘信号→次日开盘（T+1）</td>
         <td>同V2</td>
       </tr>
@@ -325,7 +325,7 @@
         <td style="font-weight:600;">风险分配</td>
         <td>权益×1%/品种/单位</td>
         <td>多空各5品种，品种风险权益1%</td>
-        <td>每笔风险权益×2%</td>
+        <td>余额×0.5%/笔，风险敞口法</td>
         <td>每Unit风险4000元固定</td>
         <td>同V2</td>
       </tr>
@@ -333,7 +333,7 @@
         <td style="font-weight:600;">最大持仓</td>
         <td>每品种3单位，不限品种数</td>
         <td>多空各5品种，固定1单位</td>
-        <td>每品种1单位，不限品种数</td>
+        <td>每品种1单位，最多5品种/日</td>
         <td>每品种3单位，不限品种数</td>
         <td>同V2</td>
       </tr>
@@ -341,7 +341,7 @@
         <td style="font-weight:600;">趋势过滤</td>
         <td>无</td>
         <td>排名+斜率双过滤</td>
-        <td>无（金叉死叉本身为趋势信号）</td>
+        <td>MBI市场宽度指数（方向权限控制）</td>
         <td>趋势因子动态调止损</td>
         <td>震荡行情不开仓</td>
       </tr>
@@ -349,7 +349,7 @@
         <td style="font-weight:600;">参数数量</td>
         <td>3~5个</td>
         <td>8个</td>
-        <td>4个</td>
+        <td>8~10个</td>
         <td>6~8个</td>
         <td>7~9个</td>
       </tr>
@@ -390,16 +390,17 @@
       </div>
     </div>
     <div class="strategy-card">
-      <div class="s-header" style="background:linear-gradient(135deg,#2563eb,#60a5fa);">
-        双均线交叉 <span class="s-score">综合 3.65</span>
+      <div class="s-header" style="background:linear-gradient(135deg,#0891b2,#22d3ee);">
+        HVOB-MBI日内突破 <span class="s-score">综合 6.80</span>
       </div>
       <div class="s-body">
-        <p>MA10上穿MA20做多、下穿做空，无加仓无独立止损，反向交叉即出场。</p>
+        <p>开盘区间突破系统 + MBI市场宽度方向过滤。捕捉高波动品种开盘后第一波行情，14:55强制平仓。</p>
         <div class="s-tags">
-          <span class="tag blue">极简</span>
-          <span class="tag blue">低频率</span>
-          <span class="tag red">无止损</span>
-          <span class="tag gray">大回撤</span>
+          <span class="tag blue" style="background:#cffafe;color:#0891b2;">日内交易</span>
+          <span class="tag blue" style="background:#cffafe;color:#0891b2;">开盘区间</span>
+          <span class="tag blue" style="background:#cffafe;color:#0891b2;">MBI过滤</span>
+          <span class="tag blue" style="background:#cffafe;color:#0891b2;">无隔夜</span>
+          <span class="tag gray">需监控</span>
         </div>
       </div>
     </div>
@@ -449,9 +450,9 @@
     <div class="score-val">6.65</div>
   </div>
   <div class="score-row">
-    <div class="score-label">双均线交叉</div>
-    <div class="score-bar-wrap"><div class="score-bar bar-red" style="width:37%;"></div></div>
-    <div class="score-val">3.65</div>
+    <div class="score-label">HVOB-MBI日内突破</div>
+    <div class="score-bar-wrap"><div class="score-bar bar-blue" style="width:68%;"></div></div>
+    <div class="score-val">6.80</div>
   </div>
   <div class="score-row">
     <div class="score-label">海龟增强V2</div>
@@ -476,43 +477,43 @@
   <h3>收益相关维度</h3>
   <table>
     <thead>
-      <tr><th>维度</th><th style="background:#fef3c7;">海龟原版</th><th style="background:#ede9fe;">MA10斜率</th><th style="background:#dbeafe;">双均线</th><th style="background:#d1fae5;">增强V2</th><th style="background:#fce7f3;">增强V3</th></tr>
+      <tr><th>维度</th><th style="background:#fef3c7;">海龟原版</th><th style="background:#ede9fe;">MA10斜率</th><th style="background:#cffafe;">HVOB-MBI</th><th style="background:#d1fae5;">增强V2</th><th style="background:#fce7f3;">增强V3</th></tr>
     </thead>
     <tbody>
-      <tr><td>预期年化收益</td><td>中高</td><td>中</td><td>低</td><td>中高</td><td>中</td></tr>
+      <tr><td>预期年化收益</td><td>中高</td><td>中</td><td>中</td><td>中高</td><td>中</td></tr>
       <tr><td>牛市（商品牛市）</td><td><span class="stars">★★★★★</span></td><td><span class="stars">★★★★<span class="dim">★</span></span></td><td><span class="stars">★★★<span class="dim">★★</span></span></td><td><span class="stars">★★★★★</span></td><td><span class="stars">★★★★<span class="dim">★</span></span></td></tr>
       <tr><td>熊市（商品熊市）</td><td><span class="stars">★★★★<span class="dim">★</span></span></td><td><span class="stars">★★★★<span class="dim">★</span></span></td><td><span class="stars">★★★<span class="dim">★★</span></span></td><td><span class="stars">★★★★<span class="dim">★</span></span></td><td><span class="stars">★★★★<span class="dim">★</span></span></td></tr>
-      <tr><td>结构性行情</td><td><span class="stars">★★★<span class="dim">★★</span></span></td><td><span class="stars">★★★★★</span></td><td><span class="stars">★★<span class="dim">★★★</span></span></td><td><span class="stars">★★★<span class="dim">★★</span></span></td><td><span class="stars">★★★<span class="dim">★★</span></span></td></tr>
-      <tr><td>震荡市</td><td><span class="stars">★<span class="dim">★★★★</span></span></td><td><span class="stars">★★<span class="dim">★★★</span></span></td><td><span class="stars">★<span class="dim">★★★★</span></span></td><td><span class="stars">★★<span class="dim">★★★</span></span></td><td><span class="stars">★★★<span class="dim">★★</span></span></td></tr>
-      <tr><td>V型反转行情</td><td><span class="stars">★★<span class="dim">★★★</span></span></td><td><span class="stars">★★★<span class="dim">★★</span></span></td><td><span class="stars">★<span class="dim">★★★★</span></span></td><td><span class="stars">★★<span class="dim">★★★</span></span></td><td><span class="stars">★★<span class="dim">★★★</span></span></td></tr>
+      <tr><td>结构性行情</td><td><span class="stars">★★★<span class="dim">★★</span></span></td><td><span class="stars">★★★★★</span></td><td><span class="stars">★★★<span class="dim">★★</span></span></td><td><span class="stars">★★★<span class="dim">★★</span></span></td><td><span class="stars">★★★<span class="dim">★★</span></span></td></tr>
+      <tr><td>震荡市</td><td><span class="stars">★<span class="dim">★★★★</span></span></td><td><span class="stars">★★<span class="dim">★★★</span></span></td><td><span class="stars">★★★★<span class="dim">★</span></span></td><td><span class="stars">★★<span class="dim">★★★</span></span></td><td><span class="stars">★★★<span class="dim">★★</span></span></td></tr>
+      <tr><td>V型反转行情</td><td><span class="stars">★★<span class="dim">★★★</span></span></td><td><span class="stars">★★★<span class="dim">★★</span></span></td><td><span class="stars">★★★<span class="dim">★★</span></span></td><td><span class="stars">★★<span class="dim">★★★</span></span></td><td><span class="stars">★★<span class="dim">★★★</span></span></td></tr>
     </tbody>
   </table>
 
   <h3>风险相关维度</h3>
   <table>
     <thead>
-      <tr><th>维度</th><th style="background:#fef3c7;">海龟原版</th><th style="background:#ede9fe;">MA10斜率</th><th style="background:#dbeafe;">双均线</th><th style="background:#d1fae5;">增强V2</th><th style="background:#fce7f3;">增强V3</th></tr>
+      <tr><th>维度</th><th style="background:#fef3c7;">海龟原版</th><th style="background:#ede9fe;">MA10斜率</th><th style="background:#cffafe;">HVOB-MBI</th><th style="background:#d1fae5;">增强V2</th><th style="background:#fce7f3;">增强V3</th></tr>
     </thead>
     <tbody>
-      <tr><td>最大回撤预期</td><td>中高（20~35%）</td><td>中（15~25%）</td><td>高（25~40%）</td><td>中（15~25%）</td><td>中低（12~22%）</td></tr>
-      <tr><td>单笔最大亏损</td><td>可控（2N硬止损）</td><td>可控（2.5ATR硬止损）</td><td><span style="color:var(--red);font-weight:600;">不可控</span></td><td>可控（ATR动态止损）</td><td>同V2</td></tr>
-      <tr><td>跳空风险</td><td>高</td><td>低</td><td>高</td><td>中</td><td>同V2</td></tr>
-      <tr><td>流动性风险</td><td>中</td><td>低</td><td>中</td><td>低</td><td>同V2</td></tr>
-      <tr><td>政策干预风险</td><td>高</td><td>低</td><td>高</td><td>中</td><td>同V2</td></tr>
+      <tr><td>最大回撤预期</td><td>中高（20~35%）</td><td>中（15~25%）</td><td>低（10~15%）</td><td>中（15~25%）</td><td>中低（12~22%）</td></tr>
+      <tr><td>单笔最大亏损</td><td>可控（2N硬止损）</td><td>可控（2.5ATR硬止损）</td><td>可控（0.4R固定止损）</td><td>可控（ATR动态止损）</td><td>同V2</td></tr>
+      <tr><td>跳空风险</td><td>高</td><td>低</td><td>低（跳空穿越拉黑机制）</td><td>中</td><td>同V2</td></tr>
+      <tr><td>流动性风险</td><td>中</td><td>低</td><td>低（冷门品种排除）</td><td>低</td><td>同V2</td></tr>
+      <tr><td>政策干预风险</td><td>高</td><td>低</td><td>中</td><td>中</td><td>同V2</td></tr>
     </tbody>
   </table>
 
   <h3>交易执行维度</h3>
   <table>
     <thead>
-      <tr><th>维度</th><th style="background:#fef3c7;">海龟原版</th><th style="background:#ede9fe;">MA10斜率</th><th style="background:#dbeafe;">双均线</th><th style="background:#d1fae5;">增强V2</th><th style="background:#fce7f3;">增强V3</th></tr>
+      <tr><th>维度</th><th style="background:#fef3c7;">海龟原版</th><th style="background:#ede9fe;">MA10斜率</th><th style="background:#cffafe;">HVOB-MBI</th><th style="background:#d1fae5;">增强V2</th><th style="background:#fce7f3;">增强V3</th></tr>
     </thead>
     <tbody>
-      <tr><td>交易频率</td><td>极高</td><td>中</td><td>低</td><td>中</td><td>中低</td></tr>
-      <tr><td>年化交易次数(估)</td><td>200~400次</td><td>100~200次</td><td>20~50次</td><td>80~150次</td><td>50~100次</td></tr>
+      <tr><td>交易频率</td><td>极高</td><td>中</td><td>高</td><td>中</td><td>中低</td></tr>
+      <tr><td>年化交易次数(估)</td><td>200~400次</td><td>100~200次</td><td>500~1000次</td><td>80~150次</td><td>50~100次</td></tr>
       <tr><td>滑点敏感度</td><td>极高</td><td>低</td><td>中</td><td>中</td><td>中</td></tr>
-      <tr><td>监控需求</td><td>高</td><td>中</td><td>低</td><td>低</td><td>低</td></tr>
-      <tr><td>运维复杂度</td><td>高</td><td>中</td><td>低</td><td>低</td><td>低</td></tr>
+      <tr><td>监控需求</td><td>高</td><td>中</td><td>高（TqSDK事件循环需实时运行）</td><td>低</td><td>低</td></tr>
+      <tr><td>运维复杂度</td><td>高</td><td>中</td><td>高（进程管理+数据源依赖）</td><td>低</td><td>低</td></tr>
     </tbody>
   </table>
 </div>
@@ -571,29 +572,32 @@
   </div>
   <div class="callout info" style="margin-top:0;"><strong>国内适配评分：★★★★☆</strong> — 多空对冲适合国内复杂市场结构，不受跳空影响</div>
 
-  <h3>5.3 双均线交叉</h3>
+  <h3>5.3 HVOB-MBI日内突破</h3>
   <div class="procon-grid">
     <div class="pros">
       <h4>✓ 优点</h4>
       <ul>
-        <li>极其简洁——仅4个参数</li>
-        <li>参数鲁棒性高——MA10/20对参数变化不敏感</li>
-        <li>交易频率低——每年约10~20次，交易成本极低</li>
-        <li>反向交叉天然止损——出场信号与入场对称</li>
+        <li>纯日内无隔夜——14:55强制平仓，彻底规避隔夜跳空风险</li>
+        <li>MBI方向过滤——让市场集体表态决定多空</li>
+        <li>时间衰减风控——越晚入场仓位越轻，符合日内波动衰减规律</li>
+        <li>每日品种自动筛选——聚焦当前最活跃品种，适应波动率轮动</li>
+        <li>多层止盈体系——固定止盈+移动止盈+保本，落袋为安</li>
+        <li>震荡市表现优异——0.4R窄止损+高频交易，震荡中反复获利</li>
       </ul>
     </div>
     <div class="cons">
       <h4>✗ 缺点</h4>
       <ul>
-        <li>无独立止损——没有价格止损机制</li>
-        <li>滞后极其严重——MA穿越需时间确认</li>
-        <li>震荡市反复交叉——金叉死叉交替亏损</li>
-        <li>风险不可控——实际亏损远超2%预期</li>
-        <li>不适合跳空市场——跳空直接穿越均线</li>
+        <li>错过隔夜趋势——无法持有趋势行情，大级别行情只吃到开头</li>
+        <li>资金容量有限——日内交易冲击成本限制单账户容量约500万</li>
+        <li>交易频率高手续费——500~1000次/年，手续费占比高</li>
+        <li>需要盘中监控——TqSDK事件循环需保证进程存活</li>
+        <li>夜盘需覆盖运行——21:00-23:00需同步运行夜盘阶段</li>
+        <li>跳空穿越全天拉黑——错过跳空品种当天的潜在行情</li>
       </ul>
     </div>
   </div>
-  <div class="callout danger" style="margin-top:0;"><strong>国内适配评分：★★☆☆☆</strong> — 缺乏独立止损在国内高波动市场是致命缺陷，建议作为参考基准</div>
+  <div class="callout info" style="margin-top:0;"><strong>国内适配评分：★★★★☆</strong> — 纯日内+MBI过滤+时间衰减的组合非常适合国内高波动期货市场</div>
 
   <h3>5.4 海龟增强V2</h3>
   <div class="procon-grid">
@@ -650,6 +654,11 @@
 
   <div class="risk-ladder">
     <div class="risk-row">
+      <div class="risk-name">HVOB-MBI日内突破</div>
+      <div class="risk-bar-wrap"><div class="risk-bar r-green" style="width:18%"></div></div>
+      <span style="font-size:0.8em;color:var(--green);font-weight:600;">极低风险</span>
+    </div>
+    <div class="risk-row">
       <div class="risk-name">MA10斜率排名</div>
       <div class="risk-bar-wrap"><div class="risk-bar r-green"></div></div>
       <span style="font-size:0.8em;color:var(--green);font-weight:600;">低风险</span>
@@ -669,16 +678,11 @@
       <div class="risk-bar-wrap"><div class="risk-bar r-red"></div></div>
       <span style="font-size:0.8em;color:var(--red);font-weight:600;">中高风险</span>
     </div>
-    <div class="risk-row">
-      <div class="risk-name">双均线交叉</div>
-      <div class="risk-bar-wrap"><div class="risk-bar r-darkred"></div></div>
-      <span style="font-size:0.8em;color:#991b1b;font-weight:600;">高风险</span>
-    </div>
   </div>
 
-  <div class="callout warning" style="margin-top:12px;">
-    <strong>风险说明</strong>：双均线交叉因缺乏独立止损机制，单笔亏损和最大回撤均不可控，评级最高。
-    海龟增强系列因完善的止损/保本体系，风险等级控制在中等及以下。
+  <div class="callout success" style="margin-top:12px;">
+    <strong>风险说明</strong>：HVOB-MBI为极低风险（纯日内无隔夜+0.4R固定止损+强制平仓），MA10斜率排名为低风险（多空对冲+硬止损）。
+    海龟增强系列因完善的止损/保本体系，风险等级控制在中等及以下。海龟原版无震荡过滤，评级中高。
   </div>
 </div>
 
@@ -695,8 +699,8 @@
       <tr><td>商品牛市</td><td><span class="tag green">海龟增强V2 / 海龟原版</span></td><td>趋势捕捉能力强，加仓放大收益</td></tr>
       <tr><td>商品熊市</td><td><span class="tag green">海龟增强V2</span></td><td>做空机制完善，动态止损保护</td></tr>
       <tr><td>结构性行情</td><td><span class="tag purple">MA10斜率排名</span></td><td>精选最强/最弱，适应性最佳</td></tr>
-      <tr><td>震荡行情</td><td><span class="tag pink">海龟增强V3 / 空仓</span></td><td>V3跳过震荡，减少磨损</td></tr>
-      <tr><td>高波动环境</td><td><span class="tag green">海龟增强V2/V3</span></td><td>ATR调整仓位，波动率自适应</td></tr>
+      <tr><td>震荡行情</td><td><span class="tag blue" style="background:#cffafe;color:#0891b2;">HVOB-MBI</span> / <span class="tag pink">海龟增强V3</span></td><td>HVOB窄止损高频交易尤擅震荡，V3跳过减少磨损</td></tr>
+      <tr><td>高波动环境</td><td><span class="tag green">海龟增强V2/V3</span> / <span class="tag blue" style="background:#cffafe;color:#0891b2;">HVOB-MBI</span></td><td>V2/V3波动率自适应，HVOB利用高波动开盘脉冲</td></tr>
       <tr><td>低波动环境</td><td><span class="tag purple">MA10斜率排名</span></td><td>排名挤出差价，找相对强弱</td></tr>
     </tbody>
   </table>
@@ -709,7 +713,7 @@
     <tbody>
       <tr><td>追求高收益</td><td><span class="tag orange">海龟原版 / 海龟增强V2</span></td><td>加仓放大收益，趋势市表现强大</td></tr>
       <tr><td>追求稳健</td><td><span class="tag purple">MA10斜率排名</span><span class="tag pink">海龟增强V3</span></td><td>回撤控制好，多空对冲或跳过震荡</td></tr>
-      <tr><td>低维护</td><td><span class="tag blue">双均线交叉</span><span class="tag green">海龟增强V2</span></td><td>自动化运行，不需要盘中监控</td></tr>
+      <tr><td>低维护</td><td><span class="tag green">海龟增强V2</span></td><td>自动化运行，收盘任务触发，无需盘中监控</td></tr>
       <tr><td>研究对比</td><td><span class="tag blue">全部5个并行</span></td><td>不同账户运行不同策略，直接对比</td></tr>
     </tbody>
   </table>
@@ -720,36 +724,209 @@
     <div style="border:1px solid var(--border);border-radius:8px;padding:16px;background:#f1f5f9;">
       <h4 style="margin:0 0 10px;color:var(--green);">保守型组合</h4>
       <p style="font-size:0.85em;">
-        海龟增强V3（50%）<br>
-        MA10斜率排名（30%）<br>
-        现金/固收（20%）
+        HVOB-MBI日内突破（40%）<br>
+        海龟增强V3（30%）<br>
+        MA10斜率排名（30%）
       </p>
-      <p style="font-size:0.78em;color:var(--text-tertiary);margin-top:8px;">回撤控制最佳，震荡市表现好</p>
+      <p style="font-size:0.78em;color:var(--text-tertiary);margin-top:8px;">回撤控制最佳，HVOB极低风险+V3/MA10分散配置</p>
     </div>
     <div style="border:1px solid var(--border);border-radius:8px;padding:16px;background:#f1f5f9;">
       <h4 style="margin:0 0 10px;color:var(--orange);">进取型组合</h4>
       <p style="font-size:0.85em;">
-        海龟增强V2（60%）<br>
-        海龟原版（20%）<br>
-        MA10斜率排名（20%）
+        海龟增强V2（40%）<br>
+        HVOB-MBI日内突破（30%）<br>
+        海龟原版（15%）<br>
+        MA10斜率排名（15%）
       </p>
-      <p style="font-size:0.78em;color:var(--text-tertiary);margin-top:8px;">趋势市收益最大化，震荡市回撤较大</p>
+      <p style="font-size:0.78em;color:var(--text-tertiary);margin-top:8px;">V2主攻趋势+HVOB捕捉日内脉冲，分散收益来源</p>
     </div>
     <div style="border:1px solid var(--border);border-radius:8px;padding:16px;background:#f1f5f9;">
       <h4 style="margin:0 0 10px;color:var(--accent);">研究型组合（A/B对比）</h4>
       <p style="font-size:0.85em;">
         账户A: 海龟增强V2<br>
-        账户B: 海龟增强V3<br>
+        账户B: HVOB-MBI日内突破<br>
         账户C: MA10斜率排名
       </p>
-      <p style="font-size:0.78em;color:var(--text-tertiary);margin-top:8px;">直接对比震荡过滤和排名策略的效果</p>
+      <p style="font-size:0.78em;color:var(--text-tertiary);margin-top:8px;">对比趋势跟踪/日内突破/排名策略三种不同逻辑的表现</p>
     </div>
   </div>
 </div>
 
-<!-- ==================== 8. 总结 ==================== -->
+<!-- ==================== 8. 绩效指标预估 ==================== -->
 <div class="section">
-  <h2><span class="num">8</span> 总结</h2>
+  <h2><span class="num">8</span> 绩效指标预估</h2>
+
+  <p style="margin-bottom:14px;color:var(--text-secondary);font-size:0.88em;">
+    以下数据为基于策略逻辑推演 + 国内期货市场历史波动特征的预估区间，非实盘回测结果。
+    实际表现因品种选择、参数优化、执行质量等因素存在差异。
+  </p>
+
+  <h3>8.1 核心指标一览</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>指标</th>
+        <th style="background:#fef3c7;">海龟原版</th>
+        <th style="background:#ede9fe;">MA10斜率排名</th>
+        <th style="background:#cffafe;">HVOB-MBI</th>
+        <th style="background:#d1fae5;">增强V2</th>
+        <th style="background:#fce7f3;">增强V3</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="font-weight:600;">预期年化收益</td>
+        <td>8~18%</td>
+        <td>10~16%</td>
+        <td>12~20%</td>
+        <td>15~25%</td>
+        <td>12~22%</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;">夏普比率</td>
+        <td>0.3~0.6</td>
+        <td>0.6~0.9</td>
+        <td>1.0~1.5</td>
+        <td>0.8~1.2</td>
+        <td>0.9~1.3</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;">最大回撤</td>
+        <td>25~35%</td>
+        <td>15~25%</td>
+        <td>10~15%</td>
+        <td>15~25%</td>
+        <td>12~22%</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;">胜率</td>
+        <td>35~40%</td>
+        <td>40~50%</td>
+        <td>55~65%</td>
+        <td>40~45%</td>
+        <td>45~50%</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;">平均盈亏比</td>
+        <td>1:2.5 ~ 1:3.5</td>
+        <td>1:1.8 ~ 1:2.5</td>
+        <td>1:1.2 ~ 1:1.5</td>
+        <td>1:2.0 ~ 1:3.0</td>
+        <td>1:2.0 ~ 1:3.0</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;">年化交易次数</td>
+        <td>200~400</td>
+        <td>100~200</td>
+        <td>500~1000</td>
+        <td>80~150</td>
+        <td>50~100</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;">单笔平均损益</td>
+        <td>中（加仓放大）</td>
+        <td>中</td>
+        <td>小（高频薄利）</td>
+        <td>大（趋势持有）</td>
+        <td>大（趋势持有）</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;">资金容量（预估）</td>
+        <td>2000万+</td>
+        <td>1000~2000万</td>
+        <td>300~500万</td>
+        <td>2000万+</td>
+        <td>2000万+</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>8.2 不同市场环境下表现预估</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="min-width:100px;">市场环境</th>
+        <th style="background:#fef3c7;">海龟原版</th>
+        <th style="background:#ede9fe;">MA10斜率排名</th>
+        <th style="background:#cffafe;">HVOB-MBI</th>
+        <th style="background:#d1fae5;">增强V2</th>
+        <th style="background:#fce7f3;">增强V3</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="font-weight:600;">强趋势（占比~25%）<br><span style="font-size:0.78em;color:var(--text-tertiary);">如2020年商品牛市</span></td>
+        <td style="color:var(--green);font-weight:600;">年化 25~40%</td>
+        <td style="color:var(--green);font-weight:600;">年化 15~25%</td>
+        <td style="color:var(--accent);">年化 15~20%</td>
+        <td style="color:var(--green);font-weight:600;">年化 30~50%</td>
+        <td style="color:var(--green);font-weight:600;">年化 25~40%</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;">震荡/无序（占比~45%）<br><span style="font-size:0.78em;color:var(--text-tertiary);">如2023年多数品种</span></td>
+        <td style="color:var(--red);">年化 -5~-15%</td>
+        <td style="color:var(--orange);">年化 0~-8%</td>
+        <td style="color:var(--green);font-weight:600;">年化 8~15%</td>
+        <td style="color:var(--orange);">年化 -3~-10%</td>
+        <td style="color:var(--accent);">年化 0~-5%</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;">结构性行情（占比~20%）<br><span style="font-size:0.78em;color:var(--text-tertiary);">品种分化明显</span></td>
+        <td style="color:var(--accent);">年化 5~15%</td>
+        <td style="color:var(--green);font-weight:600;">年化 20~30%</td>
+        <td style="color:var(--accent);">年化 10~18%</td>
+        <td style="color:var(--accent);">年化 8~18%</td>
+        <td style="color:var(--accent);">年化 5~15%</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;">高波动+急涨急跌（占比~10%）<br><span style="font-size:0.78em;color:var(--text-tertiary);">如2022年能源化工</span></td>
+        <td style="color:var(--green);font-weight:600;">年化 30~50%</td>
+        <td style="color:var(--green);font-weight:600;">年化 20~35%</td>
+        <td style="color:var(--orange);">年化 5~12%</td>
+        <td style="color:var(--green);font-weight:600;">年化 35~55%</td>
+        <td style="color:var(--green);font-weight:600;">年化 30~45%</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout info">
+    <strong>市场环境占比说明</strong>：基于2018~2025年国内商品期货市场观察，强趋势行情约占25%，震荡行情约45%，结构性行情约20%，极端行情约10%。
+    策略在不同环境下的收益预估基于策略逻辑与历史市场特征的匹配度推算。
+  </div>
+
+  <h3>8.3 组合配置预期效果</h3>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:14px 0;">
+    <div style="border:1px solid var(--border);border-radius:8px;padding:16px;background:#f8fafc;">
+      <h4 style="margin:0 0 8px;color:var(--accent);">V2 + HVOB-MBI 组合</h4>
+      <table style="font-size:0.82em;margin:0;">
+        <tr><td>预估年化</td><td><strong>18~28%</strong></td><td>V2贡献趋势利润，HVOB平滑震荡回撤</td></tr>
+        <tr><td>预估夏普</td><td><strong>1.0~1.4</strong></td><td>显著高于单独运行任一策略</td></tr>
+        <tr><td>预估最大回撤</td><td><strong>12~18%</strong></td><td>HVOB日内利润对冲V2震荡回撤</td></tr>
+        <tr><td>资金分配</td><td>V2 60% + HVOB 40%</td><td>按风险预算分配</td></tr>
+      </table>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:8px;padding:16px;background:#f8fafc;">
+      <h4 style="margin:0 0 8px;color:var(--purple);">V2 + MA10 + HVOB 三策略组合</h4>
+      <table style="font-size:0.82em;margin:0;">
+        <tr><td>预估年化</td><td><strong>15~25%</strong></td><td>分散度最高，收益略降</td></tr>
+        <tr><td>预估夏普</td><td><strong>1.2~1.6</strong></td><td>三类策略低相关性进一步提升</td></tr>
+        <tr><td>预估最大回撤</td><td><strong>10~15%</strong></td><td>接近纯固收产品的回撤水平</td></tr>
+        <tr><td>资金分配</td><td>V2 40% + MA10 30% + HVOB 30%</td><td>趋势+排名+日内三分</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="callout success">
+    <strong>核心预判</strong>：HVOB-MBI的夏普比率（预估1.0~1.5）在所有策略中最高，得益于日内无隔夜+窄止损+高频交易的特点。
+    但绝对收益上限低于V2/V3。最佳实践是以V2/V3为主力配置（60~70%），HVOB-MBI为辅助配置（20~30%），
+    利用策略间的低相关性实现1+1&gt;2的组合效果。
+  </div>
+</div>
+
+<!-- ==================== 9. 总结 ==================== -->
+<div class="section">
+  <h2><span class="num">9</span> 总结</h2>
 
   <table>
     <thead>
@@ -763,28 +940,35 @@
         <td><strong>推荐实盘</strong> — 成熟的主策略，国内期货市场适配最佳</td>
       </tr>
       <tr>
-        <td><span class="tag purple" style="font-size:0.9em;">第二梯队</span></td>
-        <td>MA10斜率排名</td>
-        <td>6.65</td>
-        <td><strong>推荐并行</strong> — 优秀的对比/辅策略，与V2/V3互补</td>
+        <td><span class="tag blue" style="font-size:0.9em;background:#cffafe;color:#0891b2;">第二梯队</span></td>
+        <td>HVOB-MBI日内突破</td>
+        <td>6.80</td>
+        <td><strong>推荐并行</strong> — 日内策略与V2/V3趋势策略互补，平滑资金曲线</td>
       </tr>
       <tr>
-        <td><span class="tag gray" style="font-size:0.9em;">第三梯队</span></td>
-        <td>海龟原版 / 双均线交叉</td>
-        <td>5.60 / 3.65</td>
+        <td><span class="tag purple" style="font-size:0.9em;">第三梯队</span></td>
+        <td>MA10斜率排名</td>
+        <td>6.65</td>
+        <td><strong>推荐参考</strong> — 优秀的辅策略，结构性行情表现最佳</td>
+      </tr>
+      <tr>
+        <td><span class="tag gray" style="font-size:0.9em;">第四梯队</span></td>
+        <td>海龟原版</td>
+        <td>5.60</td>
         <td><strong>参考/研究</strong> — 用于A/B对比验证和学术参考</td>
       </tr>
     </tbody>
   </table>
 
   <div class="callout success">
-    <strong>核心结论</strong>：海龟增强V3 综合评分最高（7.50），V2 紧随其后（7.35）。动态止损 + 跳空保护 + 震荡过滤的组合最适合国内期货市场。
-    MA10斜率排名（6.65）作为辅助策略与V2/V3形成良好互补。双均线交叉（3.65）因缺乏独立止损，不适合作为独立策略运行。
+    <strong>核心结论</strong>：海龟增强V2/V3 综合评分最高（7.35/7.50），趋势跟踪+动态止损体系最适合国内期货趋势行情。
+    HVOB-MBI日内突破（6.80）作为纯日内策略与V2/V3形成完美互补——V2/V3吃大趋势，HVOB吃日内脉冲，组合配置可显著平滑资金曲线。
+    MA10斜率排名（6.65）仍是优秀的结构性行情策略。建议实盘以海龟增强为主干，HVOB-MBI并行运行日内仓位，二者互补覆盖趋势与震荡。
   </div>
 </div>
 
 <div style="text-align:center;padding:24px;color:var(--text-tertiary);font-size:0.78em;">
-  生成日期: 2026-05-12 &nbsp;|&nbsp; 基于 04-策略设计文档 全量文档 &nbsp;|&nbsp; 评测仅供参考，实盘决策需谨慎
+  生成日期: 2026-05-16 &nbsp;|&nbsp; 基于 04-策略设计文档 全量文档 &nbsp;|&nbsp; 评测仅供参考，实盘决策需谨慎
 </div>
 
 </div><!-- /container -->

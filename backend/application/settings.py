@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "django_extensions",   
     "dvadmin.system",
     "stock",
+    "hvob_mbi",
 ]
 
 MIDDLEWARE = [
