@@ -1017,7 +1017,11 @@ def process_signals_by_type(api, account, trade_type):
                         print(config['fail_msg'](position, signal))
                         failed_count += 1
                 except PositionState.DoesNotExist:
-                    print(f"⚠️ 移仓信号未找到对应持仓: {signal.symbol}")
+                    print(f"⚠️ 移仓信号未找到对应持仓: {signal.symbol}，已取消")
+                    signal.executed_status = 'CANCELLED'
+                    signal.remark = '持仓已平仓，无需移仓'
+                    log_error('process_signals_by_type', f"{signal.symbol} 移仓信号未找到对应持仓，已取消",account=account,notify=True)
+                    signal.save(update_fields=['executed_status', 'remark', 'updated_at'])
                     skipped_count += 1
                 except Exception as e:
                     print(f"[ERROR] 处理{trade_type}信号异常: {str(e)}")
