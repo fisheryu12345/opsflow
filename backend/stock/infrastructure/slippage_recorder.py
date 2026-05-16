@@ -58,7 +58,15 @@ def record_slippage(
     fill_price = Decimal(str(fill_price))
     price_tick = Decimal(str(price_tick))
 
-    slippage = fill_price - signal_price
+    # 归一化滑点: 正值始终 = 不利成本, 负值始终 = 有利成本
+    # 入场: (fill - signal) × direction   → 多头买高为正, 空头卖低为正
+    # 出场: (fill - signal) × (-direction) → 多头卖低为正, 空头买高为正
+    if trade_type in ('ENTRY', 'ADD_ON'):
+        slippage = (fill_price - signal_price) * position_direction
+    elif trade_type in ('EXIT', 'STOP_LOSS'):
+        slippage = (fill_price - signal_price) * (-position_direction)
+    else:
+        slippage = fill_price - signal_price
     slippage_ticks = slippage / price_tick if price_tick != 0 else Decimal('0')
 
     # 判断滑点方向: 成交价是否优于信号价

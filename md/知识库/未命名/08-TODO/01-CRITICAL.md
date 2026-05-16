@@ -368,3 +368,85 @@ try:                                    # 外层 try
 except:                                 # 外层异常处理
     ...
 ```
+
+---
+
+## ✅ CRITICAL-12: `api.get_trades()` 不存在 + `get_trade()` 在 `wait_update` 后创建导致空引用 — 已修复 (2026-05-16)
+
+**涉及文件**:
+- [infrastructure/stop_loss_executor.py:48](../backend/stock/infrastructure/stop_loss_executor.py#L48)
+- [infrastructure/order_signals.py:523, 626](../backend/stock/infrastructure/order_signals.py#L523)
+- [management/commands/run_turtle.py:585, 676](../backend/stock/management/commands/run_turtle.py#L585)
+- [management/commands/run_ma10_slope.py:477](../backend/stock/management/commands/run_ma10_slope.py#L477)
+
+**问题描述**:
+
+**Bug 1 — `api.get_trades()` (复数) 不存在:**
+TqSDK 的 API 命名规范是所有 getter 都是单数形式：`get_trade()`、`get_position()`、`get_account()`、`get_order()`。代码中 6 处使用了 `api.get_trades()` (复数)，导致运行时 `AttributeError: 'TqApi' object has no attribute 'get_trades'`，TargetPosTask 平仓完成后无法读取成交回报，整个平仓函数崩溃。
+
+**Bug 2 — `get_trade()` 在 `wait_update()` 后创建（空引用）:**
+`get_trade()` 返回的是**活引用**（live reference），底层数据仅在 `wait_update()` 执行时刷新。如果在 `wait_update()` 之后创建引用，该引用初始即为空。
+
+```python
+# 错误模式：get_trade() 在 wait_update 后创建，引用为空
+while not target_pos.is_finished():
+    api.wait_update(deadline=time.time() + 1)
+
+trades = api.get_trade()          # ← 引用在 wait_update 后创建，可能为空
+filled_vol = 0
+for trade in trades.values():     # ← 读取空引用
+```
+
+```python
+# 正确模式：先创建引用，再 wait_update 刷新数据
+trades = api.get_trade()          # ← 引用在 wait_update 前创建
+
+while not target_pos.is_finished():
+    api.wait_update(deadline=time.time() + 1)
+
+# get_trade() 引用已在 wait_update 循环中填充数据
+filled_vol = 0
+for trade in trades.values():
+```
+
+**Bug 3 — 循环内重复调用 `get_trade()` :**
+`order_signals.py` 移仓函数 (原行 623) 中，`get_trade()` 被放在 while 循环内部，每次迭代都创建新的活引用。正确做法是循环外创建一次，循环内只调用 `wait_update()` 刷新数据。
+
+**改进 — 成交回报确认改用 deadline 替代固定次数:**
+原代码使用 `for _ in range(3): api.wait_update()` 等待成交回报，网络正常时浪费、网络波动时不够。改为 deadline 超时模式：
+```python
+# 改进前
+api.wait_update()
+api.wait_update()
+api.wait_update()  # 固定 3 次，网络慢时不够，快时浪费
+
+# 改进后
+deadline = time.time() + 3
+while time.time() < deadline:
+    api.wait_update(deadline=min(time.time() + 0.5, deadline))
+```
+
+**改进 — 成交回报排序:**
+原代码使用 `reversed(trades.values())` 按插入顺序反向取最新成交。改为 `sorted(trades.values(), key=lambda t: getattr(t, 'trade_date_time', 0) or 0)` 按实际成交时间排序，更可靠。
+
+```python
+# 改进前
+for trade in reversed(trades.values()):
+
+# 改进后
+sorted_trades = sorted(trades.values(), key=lambda t: getattr(t, 'trade_date_time', 0) or 0)
+for trade in sorted_trades:
+```
+
+**影响分析**:
+- `api.get_trades()` 崩溃导致 TargetPosTask 平仓成功后无法记录成交价
+- 降级逻辑使用 `quote.last_price` 作为替代，但实际成交价可能偏离报价
+- 导致 PnL 计算不准确、滑点记录失真
+- 循环内重复 `get_trade()` 浪费对象创建，不影响正确性但性能劣化
+
+**修复内容**:
+1. 全部 6 处 `get_trades()` → `get_trade()`
+2. `stop_loss_executor.py`: `get_trade()` 移到 `wait_update()` 循环前
+3. `order_signals.py` 移仓函数: 移除循环内 `get_trade()`，改为循环外创建引用
+4. 固定次数 wait_update → deadline 超时模式
+5. `reversed(trades.values())` → `sorted(..., key=trade_date_time)`

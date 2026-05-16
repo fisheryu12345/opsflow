@@ -636,7 +636,7 @@ class SlippageRecord(models.Model):
     fill_price = models.DecimalField("实际成交价", max_digits=12, decimal_places=2,
                                      help_text="实际成交均价")
     slippage = models.DecimalField("滑点(价格)", max_digits=12, decimal_places=2,
-                                   help_text="fill_price - signal_price (价格点)")
+                                   help_text="归一化滑点: 正值=不利, 入场=(fill-signal)*dir, 出场=(fill-signal)*(-dir)")
     slippage_ticks = models.DecimalField("滑点(跳动)", max_digits=8, decimal_places=1,
                                          help_text="滑点换算为最小变动价位的倍数")
     is_favorable = models.BooleanField("是否有利",
