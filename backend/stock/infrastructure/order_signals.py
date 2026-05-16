@@ -523,7 +523,8 @@ def execute_exit_order(api, position, signal):
         trades = api.get_trade()
         filled_vol = 0
         total_cost = Decimal('0')
-        for trade in reversed(trades.values()):
+        sorted_trades = sorted(trades.values(), key=lambda t: getattr(t, "trade_date_time", 0) or 0)
+        for trade in sorted_trades:
             if (trade.instrument_id == position.symbol
                     and trade.offset in ('CLOSE', 'CLOSETODAY')):
                 filled_vol += trade.volume
@@ -562,7 +563,11 @@ def execute_exit_order(api, position, signal):
                     signal=signal,
                 )
         except Exception as slip_err:
-            logger.warning('记录平仓滑点失败: %s', slip_err)
+            log_error(
+                function_name='execute_entry_order',
+                error_message=f"记录滑点异常: {slip_err}",
+                account=position.account
+            )
 
         msg = f"{position.symbol} 平仓成功"
         print(msg)
@@ -618,12 +623,13 @@ def execute_rollover_order(api, position, signal):
         confirm_start = time.time()
         CONFIRM_TIMEOUT = 10  # 最多等待10秒等待成交回报
 
+        trades = api.get_trade()
         while time.time() - confirm_start < CONFIRM_TIMEOUT:
             api.wait_update(deadline=time.time() + 1)
-            trades = api.get_trade()
             filled_volume = 0
             total_cost = Decimal('0')
-            for trade in reversed(trades.values()):
+            sorted_trades = sorted(trades.values(), key=lambda t: getattr(t, 'trade_date_time', 0) or 0)
+            for trade in sorted_trades:
                 if (trade.instrument_id == position.symbol and
                         trade.offset in ('CLOSE', 'CLOSETODAY')):
                     filled_volume += trade.volume

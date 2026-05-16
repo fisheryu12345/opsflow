@@ -582,16 +582,17 @@ class Command(BaseCommand):
             signal.save(update_fields=['executed_status'])
             return
 
-        # 等待成交回报
-        for _ in range(3):
-            api.wait_update()
-
         # 获取成交信息
-        trades = api.get_trades()
+        trades = api.get_trade()
+        deadline = time.time() + 3
+        while time.time() < deadline:
+            api.wait_update(deadline=min(time.time() + 0.5, deadline))
+
         filled_volume = 0
         total_cost = Decimal('0')
         try:
-            for trade in reversed(list(trades.values())):
+            sorted_trades = sorted(trades.values(), key=lambda t: getattr(t, 'trade_date_time', 0) or 0)
+            for trade in sorted_trades:
                 if (trade.instrument_id == symbol and
                         trade.offset in ('CLOSE', 'CLOSETODAY')):
                     filled_volume += trade.volume
@@ -605,6 +606,8 @@ class Command(BaseCommand):
             avg_price = float(total_cost / Decimal(str(filled_volume)))
         else:
             quote = api.get_quote(symbol)
+            api.wait_update()
+            avg_price = float(quote.last_price) if quote and quote.last_price else 0
             avg_price = float(quote.last_price) if quote and quote.last_price else 0
             filled_volume = volume
 
@@ -674,15 +677,17 @@ class Command(BaseCommand):
             signal.save(update_fields=['executed_status'])
             return
 
-        for _ in range(3):
-            api.wait_update()
-
         # 获取旧合约平仓信息
-        trades = api.get_trades()
+        trades = api.get_trade()
+        deadline = time.time() + 3
+        while time.time() < deadline:
+            api.wait_update(deadline=min(time.time() + 0.5, deadline))
+
         filled_volume = 0
         total_cost = Decimal('0')
         try:
-            for trade in reversed(list(trades.values())):
+            sorted_trades = sorted(trades.values(), key=lambda t: getattr(t, 'trade_date_time', 0) or 0)
+            for trade in sorted_trades:
                 if (trade.instrument_id == old_symbol and
                         trade.offset in ('CLOSE', 'CLOSETODAY')):
                     filled_volume += trade.volume
@@ -696,6 +701,7 @@ class Command(BaseCommand):
             exit_price = float(total_cost / Decimal(str(filled_volume)))
         else:
             quote = api.get_quote(old_symbol)
+            api.wait_update()
             exit_price = float(quote.last_price) if quote and quote.last_price else 0
             filled_volume = volume
 

@@ -45,14 +45,16 @@ def execute_stop_loss_exit(api, position):
                 return False, 0, Decimal('0')
 
         # TargetPosTask 完成后，等待成交回报到达
-        for _ in range(3):
-            api.wait_update()
+        trades = api.get_trade()
+        deadline = time.time() + 3
+        while time.time() < deadline:
+            api.wait_update(deadline=min(time.time() + 0.5, deadline))
 
-        trades = api.get_trades()
         filled_volume = 0
         total_cost = Decimal('0')
 
-        for trade in reversed(trades.values()):
+        sorted_trades = sorted(trades.values(), key=lambda t: getattr(t, 'trade_date_time', 0) or 0)
+        for trade in sorted_trades:
             if (trade.instrument_id == position.symbol and
                     trade.offset in ('CLOSE', 'CLOSETODAY')):
                 filled_volume += trade.volume
