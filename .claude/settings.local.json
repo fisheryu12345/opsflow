@@ -67,7 +67,13 @@
       "Bash(python manage.py shell -c \"from dvadmin.system.models import Users; users = Users.objects.all\\(\\); print\\([\\(u.id, u.username, u.name\\) for u in users]\\)\")",
       "Bash(python manage.py sync_contracts --activate-user 4)",
       "Bash(node -e ' *)",
-      "Bash(python -c \"import py_compile; py_compile.compile\\('stock/infrastructure/order_signals.py', doraise=True\\); print\\('syntax OK'\\)\")"
+      "Bash(python -c \"import py_compile; py_compile.compile\\('stock/infrastructure/order_signals.py', doraise=True\\); print\\('syntax OK'\\)\")",
+      "Bash(cat \"/c/Users/dell/.claude/skills/parameter-scanner-workspace/iteration-1/eval-1/with_skill/outputs/parameter_scan_ATR_PERIOD_20260517.html\" | grep -i \"cross\\\\|variation\\\\|uniform\\\\|CV\\\\|coeff\" || echo \"NOT FOUND\")",
+      "Read(//c/c/Users/dell/.claude/skills/parameter-scanner-workspace/iteration-1/eval-1/with_skill/outputs/**)",
+      "Bash(python)",
+      "Read(//c/Users/dell/.claude/skills/skill-creator/**)",
+      "Bash(python -m scripts.aggregate_benchmark \"/c/Users/dell/.claude/skills/parameter-scanner-workspace/iteration-1\" --skill-name \"parameter-scanner\")",
+      "Bash(python eval-viewer/generate_review.py \"/c/Users/dell/.claude/skills/parameter-scanner-workspace/iteration-1\" --skill-name \"parameter-scanner\" --benchmark \"/c/Users/dell/.claude/skills/parameter-scanner-workspace/iteration-1/benchmark.json\" --static \"/c/Users/dell/.claude/skills/parameter-scanner-workspace/iteration-1/review.html\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",
