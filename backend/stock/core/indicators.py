@@ -10,7 +10,7 @@ import traceback
 from stock.utils.log_util import log_error
 from stock.core.config_loader import get_config
 
-TREND_GAP_LIMIT = get_config('TREND_GAP_LIMIT')
+GAP_ATR_LIMIT = get_config('GAP_ATR_LIMIT')       # ATR归一化后的gap阈值 (默认2.0 = 2倍ATR)
 TREND_FACTOR_MAX = get_config('TREND_FACTOR_MAX')
 TREND_LABEL_STRONG_RATIO = get_config('TREND_LABEL_STRONG_RATIO')
 TREND_LABEL_WEAK_RATIO = get_config('TREND_LABEL_WEAK_RATIO')
@@ -137,19 +137,23 @@ def calculate_indicators(api, symbol="SHFE.rb2610", product_code="rb", days=60):
             is_bear = ma_10_value < ma_20_value < ma_40_value
 
             if is_bull or is_bear:
-                gap_10_20 = abs(ma_10_value - ma_20_value) / abs(ma_20_value)
-                gap_20_40 = abs(ma_20_value - ma_40_value) / abs(ma_20_value)
-                max_gap = max(gap_10_20, gap_20_40)
-
-                trend_strength = min(max_gap / TREND_GAP_LIMIT, 1.0)
-                trend_factor = round(trend_strength * TREND_FACTOR_MAX, 3)
-
-                if trend_strength >= TREND_LABEL_STRONG_RATIO:
-                    trend_label = "strong_bull" if is_bull else "strong_bear"
-                elif trend_strength >= TREND_LABEL_WEAK_RATIO:
-                    trend_label = "weak_bull" if is_bull else "weak_bear"
-                else:
+                if not (atr_20_value and atr_20_value > 0):
+                    trend_factor = 0.0
                     trend_label = "choppy"
+                else:
+                    gap_10_20 = abs(ma_10_value - ma_20_value) / atr_20_value
+                    gap_20_40 = abs(ma_20_value - ma_40_value) / atr_20_value
+                    max_gap = max(gap_10_20, gap_20_40)
+
+                    trend_strength = min(max_gap / GAP_ATR_LIMIT, 1.0)
+                    trend_factor = round(trend_strength * TREND_FACTOR_MAX, 3)
+
+                    if trend_strength >= TREND_LABEL_STRONG_RATIO:
+                        trend_label = "strong_bull" if is_bull else "strong_bear"
+                    elif trend_strength >= TREND_LABEL_WEAK_RATIO:
+                        trend_label = "weak_bull" if is_bull else "weak_bear"
+                    else:
+                        trend_label = "choppy"
 
         breakout_info = check_breakout_signal(klines, entry_period=20)
 
@@ -238,12 +242,14 @@ def compute_batch_kline_indicators(df: pd.DataFrame) -> pd.DataFrame:
         ma10 = row.get('ma_10')
         ma20 = row.get('ma_20')
         ma40 = row.get('ma_40')
+        atr = row.get('atr_20')
+        atr_val = float(atr) if pd.notna(atr) and atr > 0 else None
         if pd.isna(ma10) or pd.isna(ma20) or pd.isna(ma40):
             trend_factor_list.append(None)
             trend_label_list.append(None)
         else:
             tf, tl = compute_trend_factor_from_backtest(
-                float(ma10), float(ma20), float(ma40)
+                float(ma10), float(ma20), float(ma40), atr=atr_val
             )
             trend_factor_list.append(tf)
             trend_label_list.append(tl)
@@ -290,11 +296,14 @@ def compute_trend_factor_from_backtest(
     ma_10: float,
     ma_20: float,
     ma_40: float,
-    trend_gap_limit: float = 0.03,
+    atr: float = None,
+    gap_atr_limit: float = 2.0,
     trend_factor_max: float = 0.5,
 ) -> tuple[float, str]:
     """
     纯函数计算趋势因子和标签（与 backtest/indicators.py compute_trend_factor 一致）
+
+    atr 不可用时返回 (0.0, 'choppy')。
 
     Returns:
         (trend_factor, trend_label)
@@ -302,15 +311,14 @@ def compute_trend_factor_from_backtest(
     is_bull = ma_10 > ma_20 > ma_40
     is_bear = ma_10 < ma_20 < ma_40
 
-    if not (is_bull or is_bear):
+    if not (is_bull or is_bear) or not (atr and atr > 0):
         return 0.0, 'choppy'
 
-    denom = abs(ma_20) if abs(ma_20) > 1e-10 else 1
-    gap_10_20 = abs(ma_10 - ma_20) / denom
-    gap_20_40 = abs(ma_20 - ma_40) / denom
+    gap_10_20 = abs(ma_10 - ma_20) / atr
+    gap_20_40 = abs(ma_20 - ma_40) / atr
     max_gap = max(gap_10_20, gap_20_40)
 
-    trend_strength = min(max_gap / trend_gap_limit, 1.0)
+    trend_strength = min(max_gap / gap_atr_limit, 1.0)
     trend_factor = round(trend_strength * trend_factor_max, 3)
 
     if trend_strength >= 0.80:

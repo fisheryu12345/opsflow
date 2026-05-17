@@ -226,7 +226,7 @@ class StrategyConfig(models.Model):
     timeout_seconds = models.IntegerField("交易执行超时(秒)", default=60, help_text="TargetPosTask订单等待超时时间，防止长时间挂单")
     protect_cost_enabled_ratio = models.DecimalField("保本启用比例(ATR倍数)", max_digits=5, decimal_places=2, default=Decimal('2.5'), help_text="盈利超过 N×ATR 时启用保本价保护，默认2.5倍")
     # --- 趋势因子参数 ---
-    trend_gap_limit = models.DecimalField("趋势因子封顶上限", max_digits=6, decimal_places=4, default=Decimal('0.03'), help_text="均线间距达到此比例时trend_factor封顶，默认3%")
+    gap_atr_limit = models.DecimalField("趋势因子封顶上限(ATR倍数)", max_digits=5, decimal_places=2, default=Decimal('2.0'), help_text="MA乖离达到此ATR倍数时trend_factor封顶，默认2.0倍ATR")
     trend_factor_max = models.DecimalField("趋势因子最大值", max_digits=5, decimal_places=3, default=Decimal('0.5'), help_text="trend_factor上限，默认0.5对应止损倍数放大至3.0ATR")
     trend_label_strong_ratio = models.DecimalField("强趋势比例阈值", max_digits=5, decimal_places=3, default=Decimal('0.80'), help_text="trend_strength≥此值判定为强趋势，默认80%")
     trend_label_weak_ratio = models.DecimalField("弱趋势比例阈值", max_digits=5, decimal_places=3, default=Decimal('0.30'), help_text="trend_strength≥此值判定为弱趋势，默认30%")

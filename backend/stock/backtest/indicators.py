@@ -59,18 +59,21 @@ def compute_trend_factor(
     ma_10: float,
     ma_20: float,
     ma_40: float,
-    trend_gap_limit: float = 0.03,
+    atr: float = None,
+    gap_atr_limit: float = 2.0,
     trend_factor_max: float = 0.5,
 ) -> tuple[float, str]:
-    """Compute trend factor and label from MA alignment.
+    """Compute trend factor and label from MA alignment with ATR normalization.
 
     Same logic as core/indicators.py calculate_indicators().
+    atr 不可用时返回 (0.0, 'choppy').
 
     Args:
         ma_10: 10-period MA value
         ma_20: 20-period MA value
         ma_40: 40-period MA value
-        trend_gap_limit: Gap threshold for full factor (default 0.03 = 3%)
+        atr: ATR value (必须)
+        gap_atr_limit: ATR-based gap threshold (默认2.0 = 2倍ATR)
         trend_factor_max: Maximum factor value (default 0.5)
 
     Returns:
@@ -84,15 +87,14 @@ def compute_trend_factor(
     is_bull = ma_10 > ma_20 > ma_40
     is_bear = ma_10 < ma_20 < ma_40
 
-    if not (is_bull or is_bear):
+    if not (is_bull or is_bear) or not (atr and atr > 0):
         return 0.0, 'choppy'
 
-    denom = abs(ma_20) if abs(ma_20) > 1e-10 else 1
-    gap_10_20 = abs(ma_10 - ma_20) / denom
-    gap_20_40 = abs(ma_20 - ma_40) / denom
+    gap_10_20 = abs(ma_10 - ma_20) / atr
+    gap_20_40 = abs(ma_20 - ma_40) / atr
     max_gap = max(gap_10_20, gap_20_40)
 
-    trend_strength = min(max_gap / trend_gap_limit, 1.0)
+    trend_strength = min(max_gap / gap_atr_limit, 1.0)
     trend_factor = round(trend_strength * trend_factor_max, 3)
 
     LABEL_STRONG = 0.80

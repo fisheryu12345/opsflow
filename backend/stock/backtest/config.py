@@ -14,7 +14,7 @@ class BacktestConfig:
     max_units: int = 3
     protect_cost_ratio: float = 2.5       # PROTECT_COST_ENABLED_RATIO
     gap_protection_ratio: float = 1.5     # GAP_PROTECTION_RATIO
-    trend_gap_limit: float = 0.03          # TREND_GAP_LIMIT
+    gap_atr_limit: float = 2.0           # GAP_ATR_LIMIT (ATR倍数)
     trend_factor_max: float = 0.5          # TREND_FACTOR_MAX
 
     # ── Backtest-specific ──

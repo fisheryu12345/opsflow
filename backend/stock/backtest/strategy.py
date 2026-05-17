@@ -105,7 +105,9 @@ def run_close_step(
 
     trend_factor, trend_label = compute_trend_factor(
         ma_10, ma_20, ma_40,
-        config.trend_gap_limit, config.trend_factor_max,
+        atr=atr_val,
+        gap_atr_limit=config.gap_atr_limit,
+        trend_factor_max=config.trend_factor_max,
     )
 
     # Save latest indicators to position
