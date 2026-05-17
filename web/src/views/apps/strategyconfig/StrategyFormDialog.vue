@@ -58,9 +58,9 @@
         </el-tab-pane>
 
         <el-tab-pane label="趋势因子">
-          <el-form-item label="封顶上限" prop="trend_gap_limit">
-            <el-input-number v-model="form.trend_gap_limit" :min="0.001" :max="0.1" :precision="4" :step="0.005" style="width: 100%" />
-            <div class="form-helper">均线间距达此比例时trend_factor封顶。默认: 0.03 (3%)</div>
+          <el-form-item label="封顶上限(ATR倍数)" prop="gap_atr_limit">
+            <el-input-number v-model="form.gap_atr_limit" :min="0.5" :max="5" :precision="1" :step="0.5" style="width: 100%" />
+            <div class="form-helper">MA乖离达到此ATR倍数时trend_factor封顶。默认: 2.0 (2倍ATR)</div>
           </el-form-item>
           <el-form-item label="趋势因子最大值" prop="trend_factor_max">
             <el-input-number v-model="form.trend_factor_max" :min="0" :max="1" :precision="3" :step="0.1" style="width: 100%" />
@@ -182,7 +182,7 @@ const form = reactive({
   atr_period: 20,
   entry_period: 20,
   ma_periods: '10,20,40',
-  trend_gap_limit: 0.03,
+  gap_atr_limit: 2.0,
   trend_factor_max: 0.5,
   trend_label_strong_ratio: 0.80,
   trend_label_weak_ratio: 0.30,
@@ -212,7 +212,7 @@ watch(() => props.record, (r) => {
       name: '', max_units: 3, entry_units: 1, risk_per_unit: 4000,
       position_risk_multiplier: 2, protect_cost_enabled_ratio: 2.5,
       timeout_seconds: 60, atr_period: 20, entry_period: 20,
-      ma_periods: '10,20,40', trend_gap_limit: 0.03, trend_factor_max: 0.5,
+      ma_periods: '10,20,40', gap_atr_limit: 2.0, trend_factor_max: 0.5,
       trend_label_strong_ratio: 0.80, trend_label_weak_ratio: 0.30,
       gap_threshold: 1.5, tqapi_account: '', tqapi_password: '',
       future_broker: '', future_account: '', future_password: '',

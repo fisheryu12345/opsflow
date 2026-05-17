@@ -123,7 +123,7 @@ export interface StrategyConfigRecord extends BasicEntity {
   entry_period: number
   ma_periods: string
   // 趋势因子
-  trend_gap_limit: number
+  gap_atr_limit: number
   trend_factor_max: number
   trend_label_strong_ratio: number
   trend_label_weak_ratio: number
