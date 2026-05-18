@@ -17,7 +17,7 @@ from decimal import Decimal
 from datetime import date, datetime
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
+from django.db import transaction, close_old_connections
 from django.utils import timezone
 
 from tqsdk import TargetPosTask
@@ -271,6 +271,7 @@ class Command(BaseCommand):
                     raise RestartSignal()
 
                 for symbol in symbols:
+                    close_old_connections()  # 防止MySQL连接超时断开
                     quote = quotes.get(symbol)
                     if not quote or quote.last_price is None:
                         continue
@@ -784,6 +785,7 @@ class Command(BaseCommand):
                 price = 0
 
             try:
+                close_old_connections()
                 pos = PositionState.objects.get(account=account, symbol=symbol, units__gt=0)
                 has_pos = f"持仓 {pos.units} Unit {pos.direction == 1 and '多' or '空'}"
             except PositionState.DoesNotExist:
