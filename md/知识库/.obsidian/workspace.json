@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "未命名/08-TODO/03-MEDIUM.md",
+                "file": "未命名/08-TODO/04-LOW.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "03-MEDIUM"
+              "title": "04-LOW"
             }
           }
         ]
@@ -185,10 +185,11 @@
   },
   "active": "d7d82acde8322577",
   "lastOpenFiles": [
-    "未命名/08-TODO/03-MEDIUM.md.tmp.10140.7571c0ad2952",
-    "未命名/08-TODO/02-HIGH.md",
     "未命名/08-TODO/03-MEDIUM.md",
+    "未命名/08-TODO/02-HIGH.md",
+    "未命名/08-TODO/01-CRITICAL.md",
     "未命名/08-TODO/00-总览.md",
+    "未命名/08-TODO/03-MEDIUM.md.tmp.10140.7571c0ad2952",
     "未命名/04-策略设计文档/指标-趋势因子.md",
     "未命名/04-策略设计文档/策略说明-止损系统.md.tmp.11760.cf4fc3ba5760",
     "未命名/02-软件功能说明/功能说明-策略配置.md.tmp.11760.8ed41f7a527f",
@@ -212,14 +213,12 @@
     "未命名/02-软件功能说明/功能说明-策略配置.md",
     "未命名/02-软件功能说明/功能说明-交易日志与错误监控.md",
     "未命名/02-软件功能说明/功能说明-平仓记录.md",
-    "未命名/08-TODO/01-CRITICAL.md",
     "未命名/08-TODO/05-待实现功能.md",
     "未命名/08-TODO/04-LOW.md",
     "未命名/09-回测逻辑",
     "未命名/08-TODO",
     "08-TODO",
     "未命名/分类说明",
-    "未命名/07-本地备忘",
-    "未命名/06-策略分析"
+    "未命名/07-本地备忘"
   ]
 }
