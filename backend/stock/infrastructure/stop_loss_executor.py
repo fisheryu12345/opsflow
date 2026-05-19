@@ -38,17 +38,38 @@ def execute_stop_loss_exit(api, position):
         target_pos.set_target_volume(0)
 
         start_time = time.time()
-        while not target_pos.is_finished():
-            api.wait_update(deadline=time.time() + 1)
-            if time.time() - start_time > TIMEOUT_SECONDS:
-                print(f"⚠️ 止损平仓超时: {position.symbol}")
-                return False, 0, Decimal('0')
+        pos_current = None
+        while time.time() - start_time < TIMEOUT_SECONDS:
+            remaining = TIMEOUT_SECONDS - (time.time() - start_time)
+            if remaining <= 0:
+                break
+            api.wait_update(deadline=time.time() + min(1, remaining))
+            pos_current = api.get_position(position.symbol)
+            if pos_current and pos_current.pos == 0:
+                print(f"[INFO] {position.symbol} 止损平仓完成: 持仓已归零")
+                break
+
+        try:
+            target_pos.cancel()
+            while not target_pos.is_finished():
+                api.wait_update()
+        except Exception as e:
+            log_error('execute_stop_loss_exit', f"释放TargetPosTask资源时出错: {str(e)}",account=position.account)
+
+        if time.time() - start_time > TIMEOUT_SECONDS and (not pos_current or pos_current.pos != 0):
+            print(f"⚠️ 止损平仓超时: {position.symbol}")
+            log_trade('execute_stop_loss_exit', f"{position.symbol} 止损平仓超时", symbol=position.symbol, log_level='ERROR', account=position.account)
+            return False, 0, Decimal('0')
 
         # TargetPosTask 完成后，等待成交回报到达
         trades = api.get_trade()
-        deadline = time.time() + 3
-        while time.time() < deadline:
-            api.wait_update(deadline=min(time.time() + 0.5, deadline))
+        trade_wait_start = time.time()
+        # trade_timeout = 3
+        while time.time() - trade_wait_start < TIMEOUT_SECONDS:
+            remaining = TIMEOUT_SECONDS - (time.time() - trade_wait_start)
+            if remaining <= 0:
+                break
+            api.wait_update(deadline=time.time() + min(0.5, remaining))
 
         filled_volume = 0
         total_cost = Decimal('0')
@@ -72,10 +93,11 @@ def execute_stop_loss_exit(api, position):
                 filled_volume = position.contract_total_position
             else:
                 log_error('execute_stop_loss_exit',
-                          f"{position.symbol} 无成交回报且无行情报价，无法确定平仓价")
+                          f"{position.symbol} 无成交回报且无行情报价，无法确定平仓价",account=position.account)
                 return False, 0, Decimal('0')
 
         print(f"✅ 止损平仓成功: {position.symbol} 成交量={filled_volume}, 均价={avg_price:.2f}")
+        log_trade('execute_stop_loss_exit', f"{position.symbol} 止损平仓成功: 成交手数={filled_volume}, 成交均价={avg_price:.2f}", symbol=position.symbol, log_level='INFO', account=position.account)
 
         # 记录止损滑点
         try:
@@ -94,7 +116,7 @@ def execute_stop_loss_exit(api, position):
                     price_tick=price_tick,
                 )
         except Exception as slip_err:
-            logger.warning('记录止损滑点失败: %s', slip_err)
+            log_error('execute_stop_loss_exit', f"{error_msg}\n{traceback.format_exc()}",account=position.account)
 
         return True, filled_volume, avg_price
 
@@ -148,7 +170,7 @@ def check_and_execute_stop_loss(api, account=None):
         traceback.print_exc()
         log_error(
             function_name='check_and_execute_stop_loss',
-            error_message=f"{error_msg}\n{traceback.format_exc()}",
+            error_message=f"{error_msg}\n{traceback.format_exc()}",account=acct
         )
 
 
@@ -274,12 +296,12 @@ def _execute_stop_loss_for_account(api, default_account):
 
                     log_trade('check_and_execute_stop_loss',
                               f"✅ 紧急止损成功: {position.symbol} 成交量={filled_volume}, 均价={avg_price:.2f}",
-                              symbol=position.symbol, log_level='SUCCESS')
+                              symbol=position.symbol, log_level='SUCCESS',account=default_account)
                 else:
                     DailyStrategySignal.objects.filter(id=signal.id).update(executed_status='FAILED')
                     log_trade('check_and_execute_stop_loss',
                               f"❌ 紧急止损失败: {position.symbol}",
-                              symbol=position.symbol, log_level='ERROR')
+                              symbol=position.symbol, log_level='ERROR',account=default_account)
 
             except Exception as pos_error:
                 error_msg = f"处理 {position.symbol} 止损检查失败: {pos_error}"
@@ -296,9 +318,12 @@ def _execute_stop_loss_for_account(api, default_account):
             print(f"[SUMMARY] 今日共执行 {exit_count} 个紧急止损平仓")
             log_trade('check_and_execute_stop_loss',
                       f"[SUMMARY] 今日共执行 {exit_count} 个紧急止损平仓",
-                      symbol='N/A', log_level='SUCCESS')
+                      symbol='N/A', log_level='SUCCESS',account=default_account)
         else:
             print(f"[INFO] 紧急止损检查: 未发现触发止损的持仓")
+            log_trade('check_and_execute_stop_loss',
+                      f"[INFO] 紧急止损检查: 未发现触发止损的持仓",
+                      symbol='N/A', log_level='SUCCESS',account=default_account)
 
     except Exception as e:
         print(f"[ERROR] 检查并执行止损失败: {e}")
