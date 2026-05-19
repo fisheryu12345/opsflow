@@ -144,7 +144,7 @@ export function getAccountSummary(accountId: number) {
 		params: {
 			account: accountId,
 			ordering: '-snapshot_date',
-			page_size: 1
+			limit: 1
 		}
 	});
 }
@@ -161,7 +161,7 @@ export function getAccountSummary(accountId: number) {
  *   trade_date__gte: '2024-01-01',
  *   trade_date__lte: '2024-12-31',
  *   ordering: 'trade_date',
- *   page_size: 100
+ *   limit: 100
  * });
  */
 export function getEquitySnapshots(params: {
@@ -170,7 +170,7 @@ export function getEquitySnapshots(params: {
 	trade_date__lte?: string;
 	ordering?: string;
 	page?: number;
-	page_size?: number;
+	limit?: number;
 }) {
 	return request({
 		url: '/api/stock/equity-snapshots/',
@@ -201,7 +201,7 @@ export function getRollingMetrics(params: {
 	calc_date__lte?: string;
 	ordering?: string;
 	page?: number;
-	page_size?: number;
+	limit?: number;
 }) {
 	return request({
 		url: '/api/stock/rolling-metrics/',
@@ -229,7 +229,7 @@ export function getLatestRollingMetric(accountId: number, windowDays: number = 2
 			account: accountId,
 			window_days: windowDays,
 			ordering: '-calc_date',
-			page_size: 1
+			limit: 1
 		}
 	});
 }

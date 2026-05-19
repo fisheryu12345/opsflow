@@ -979,7 +979,7 @@ const loadDashboardData = async () => {
 			trade_date__gte: startDate.toISOString().split('T')[0],
 			trade_date__lte: endDate.toISOString().split('T')[0],
 			ordering: 'trade_date',
-			page_size: 500
+			limit: 500
 		});
 
 		let latestBalance = 0, latestRiskRatio = 0, latestFloatProfit = 0;
