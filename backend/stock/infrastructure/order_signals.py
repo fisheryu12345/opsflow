@@ -298,7 +298,7 @@ def execute_entry_order(api, account, signal, gap_threshold_atr_multiplier=GAP_P
     if not can_trade:
         msg = f"{signal.symbol} 跳空幅度过大，禁止开仓"
         print(msg)
-        log_trade('execute_entry_order', msg, signal=signal.symbol, log_level='WARNING', account=account)
+        log_trade('execute_entry_order', msg, symbol=signal.symbol, log_level='WARNING', account=account)
         signal.executed_status = 'CANCELLED'
         signal.remark = '跳空保护'
         signal.save(update_fields=['executed_status', 'updated_at', 'remark'])

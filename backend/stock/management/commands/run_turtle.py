@@ -376,7 +376,6 @@ class Command(BaseCommand):
                     'direction': direction,
                     'units': 1,
                     'contract_total_position': order_volume,
-                    'last_add_price': Decimal(str(fill_price)),
                     'first_open_price': Decimal(str(fill_price)),
                     'cost_price': Decimal(str(fill_price)),
                     'highest_close': Decimal(str(fill_price)),
@@ -453,7 +452,13 @@ class Command(BaseCommand):
         if position.units >= 3:
             return
 
-        if self._already_signaled_today(account, position.symbol, 'ADD_ON'):
+        # 仅防止重复的 PENDING/EXECUTING 信号，不拦截已成功的（同天可多次加仓）
+        if DailyStrategySignal.objects.filter(
+            account=account, symbol=position.symbol,
+            trade_type='ADD_ON',
+            trade_date=timezone.now().date(),
+            executed_status__in=('PENDING', 'EXECUTING'),
+        ).exists():
             return
 
         indicators = position.indicators or {}
@@ -533,7 +538,6 @@ class Command(BaseCommand):
             PositionState.objects.filter(id=position.id).update(
                 units=new_units,
                 contract_total_position=new_total,
-                last_add_price=Decimal(str(fill_price)),
                 latest_close_price=Decimal(str(fill_price)),
                 # 加仓不更新 cost_price（策略设计原则）
                 indicators={
@@ -742,7 +746,6 @@ class Command(BaseCommand):
                 account=account, symbol=new_symbol, product_code=new_product_code,
                 direction=direction, units=old_position.units,
                 contract_total_position=volume,
-                last_add_price=Decimal(str(new_price)),
                 first_open_price=Decimal(str(new_price)),
                 cost_price=Decimal(str(new_price)),
                 highest_close=Decimal(str(new_price)),
