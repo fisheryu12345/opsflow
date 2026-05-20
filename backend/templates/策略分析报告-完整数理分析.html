@@ -200,7 +200,7 @@
   <h1>FT 量化期货交易系统</h1>
   <div class="subtitle">完整数理分析报告</div>
   <div class="subtitle" style="font-size:0.9em; margin-top:4px;">策略逻辑 · 数理建模 · 实盘场景 · 绩效分析</div>
-  <div class="meta">生成日期: 2026-05-13 &nbsp;|&nbsp; 基于知识库全量文档 + 后端代码 v3.1</div>
+  <div class="meta">生成日期: 2026-05-20 &nbsp;|&nbsp; 基于知识库全量文档 + 后端代码 v3.1</div>
 </div>
 
 <div class="container">
@@ -269,10 +269,10 @@
 
 <h3>1.5 账户概览</h3>
 <table>
-  <tr><th>账户</th><th>当前权益</th><th>初始权益</th><th>状态</th></tr>
-  <tr><td>510976</td><td>¥1,001,477.78</td><td>¥1,000,000.00</td><td><span class="tag green">运行中</span></td></tr>
-  <tr><td>510977</td><td>¥999,533.61</td><td>¥1,000,000.00</td><td><span class="tag green">运行中</span></td></tr>
-  <tr><td>510988</td><td>¥998,870.98</td><td>¥1,000,000.00</td><td><span class="tag green">运行中</span></td></tr>
+  <tr><th>账户</th><th>当前权益</th><th>累计收益率</th><th>最大回撤</th><th>持仓品种</th><th>状态</th></tr>
+  <tr><td>510976</td><td>¥930,928.15</td><td>-6.91%</td><td>9.01%</td><td>11</td><td><span class="tag green">运行中</span></td></tr>
+  <tr><td>510977</td><td>¥992,760.10</td><td>-0.72%</td><td>0.72%</td><td>4</td><td><span class="tag green">运行中</span></td></tr>
+  <tr><td>510988</td><td>¥975,662.82</td><td>-2.43%</td><td>3.12%</td><td>8</td><td><span class="tag green">运行中</span></td></tr>
 </table>
 
 <h3>1.4 核心代码文件</h3>
@@ -297,11 +297,11 @@
 <table>
   <tr><th>参数</th><th>值</th><th>含义</th><th>数学表达式</th></tr>
   <tr><td><code>POSITION_RISK_BASE_AMOUNT</code></td><td>¥4,000</td><td>每 Unit 固定风险资金基数</td><td><em>R</em> = 4,000</td></tr>
-  <tr><td><code>POSITION_RISK_MULTIPLIER</code></td><td>2</td><td>ATR 风险倍数</td><td><em>k</em> = 2</td></tr>
+  <tr><td><code>POSITION_RISK_MULTIPLIER</code></td><td>2.0</td><td>ATR 风险倍数</td><td><em>k</em> = 2.0</td></tr>
   <tr><td><code>POSITION_MAX_UNITS</code></td><td>3</td><td>单品种最大 Unit</td><td><em>U<sub>max</sub></em> = 3</td></tr>
   <tr><td><code>PROTECT_COST_ENABLED_RATIO</code></td><td>2.5</td><td>保本触发阈值（满仓激活）</td><td><em>R<sub>pc</sub></em> = 2.5</td></tr>
   <tr><td><code>GAP_PROTECTION_RATIO</code></td><td>1.5</td><td>跳空保护阈值（方向区分）</td><td><em>R<sub>gap</sub></em> = 1.5</td></tr>
-  <tr><td><code>TREND_GAP_LIMIT</code></td><td>0.03 (3%)</td><td>趋势因子封顶上限</td><td><em>G<sub>limit</sub></em> = 0.03</td></tr>
+  <tr><td><code>TREND_GAP_LIMIT</code></td><td>2.0 (200%)</td><td>趋势因子封顶上限</td><td><em>G<sub>limit</sub></em> = 2.0</td></tr>
   <tr><td><code>TREND_FACTOR_MAX</code></td><td>0.5</td><td>趋势因子最大值</td><td><em>F<sub>max</sub></em> = 0.5</td></tr>
   <tr><td><code>TIMEOUT_SECONDS</code></td><td>60</td><td>订单等待超时</td><td><em>T<sub>out</sub></em> = 60</td></tr>
 </table>
@@ -530,7 +530,13 @@
 
 <h3>10.2 实盘绩效指标（账户 510976）</h3>
 <div class="metrics">
-  <div class="metric"><div class="value green">14.78%</div><div class="label">累计收益率</div></div>
+  <div class="metric"><div class="value red">-6.91%</div><div class="label">累计收益率</div></div>
+  <div class="metric"><div class="value red">-4.10</div><div class="label">夏普比率(20d)</div></div>
+  <div class="metric"><div class="value red">9.01%</div><div class="label">最大回撤</div></div>
+  <div class="metric"><div class="value green">25.0%</div><div class="label">胜率（已平仓）</div></div>
+  <div class="metric"><div class="value green">0.63</div><div class="label">盈亏比（已平仓）</div></div>
+  <div class="metric"><div class="value red">-6.77</div><div class="label">卡玛比率</div></div>
+</div>
   <div class="metric"><div class="value purple">5.54</div><div class="label">夏普比率(20d)</div></div>
   <div class="metric"><div class="value red">2.38%</div><div class="label">最大回撤</div></div>
   <div class="metric"><div class="value green">0.00%</div><div class="label">胜率（已平仓）</div></div>
@@ -538,36 +544,45 @@
   <div class="metric"><div class="value green">1.21</div><div class="label">卡玛比率</div></div>
 </div>
 
-<h3>10.3 滚动绩效指标（账户 510976）</h3>
+<h3>10.3 滚动绩效指标（账户 510976，2026-05-19）</h3>
 <table>
   <tr><th>窗口</th><th>夏普</th><th>索提诺</th><th>波动率</th><th>胜率</th><th>盈亏比</th><th>交易数</th></tr>
-  <tr><td>20日</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>0</td></tr>  <tr><td>60日</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>0</td></tr>  <tr><td>120日</td><td>—</td><td>—</td><td>—</td><td>5000.00%</td><td>50.00</td><td>2</td></tr>  <tr><td>250日</td><td>—</td><td>—</td><td>—</td><td>5000.00%</td><td>50.00</td><td>2</td></tr>
+  <tr><td>20日</td><td>-4.1006</td><td>-16.7341</td><td>32.2353%</td><td>25.0%</td><td>0.63</td><td>4</td></tr>
+  <tr><td>60日</td><td>-4.1006</td><td>-16.7341</td><td>32.2353%</td><td>25.0%</td><td>0.63</td><td>4</td></tr>
+  <tr><td>120日</td><td>-4.1006</td><td>-16.7341</td><td>32.2353%</td><td>25.0%</td><td>0.63</td><td>4</td></tr>
+  <tr><td>250日</td><td>-4.1006</td><td>-16.7341</td><td>32.2353%</td><td>25.0%</td><td>0.63</td><td>4</td></tr>
 </table>
 
 <h3>10.4 权益曲线（账户 510976）</h3>
 <div class="chart-container">
   <div class="bar-chart" style="height:200px;">
-    <div class="bar green" style="height:23%;" title="2026-04-30: ¥997,978 (+0.00%)"><span class="label">04/30</span><span class="tooltip">¥997,978</span></div>
-    <div class="bar green" style="height:23%;" title="2026-05-01: ¥997,978 (+0.00%)"><span class="label">05/01</span><span class="tooltip">¥997,978</span></div>
-    <div class="bar green" style="height:25%;" title="2026-05-06: ¥998,820 (+0.08%)"><span class="label">05/06</span><span class="tooltip">¥998,820</span></div>
-    <div class="bar green" style="height:54%;" title="2026-05-07: ¥1,008,288 (+0.95%)"><span class="label">05/07</span><span class="tooltip">¥1,008,288</span></div>
-    <div class="bar red" style="height:4%;" title="2026-05-08: ¥990,614 (-1.75%)"><span class="label">05/08</span><span class="tooltip">¥990,614</span></div>
-    <div class="bar green" style="height:100%;" title="2026-05-11: ¥1,023,114 (+3.28%)"><span class="label">05/11</span><span class="tooltip">¥1,023,114</span></div>
-    <div class="bar green" style="height:25%;" title="2026-05-12: ¥998,728 (+0.00%)"><span class="label">05/12</span><span class="tooltip">¥998,728</span></div>
-    <div class="bar green" style="height:33%;" title="2026-05-13: ¥1,001,478 (+0.28%)"><span class="label">05/13</span><span class="tooltip">¥1,001,478</span></div>
+    <div class="bar green" style="height:72%;" title="2026-04-30: ¥997,978.14 (+0.00%)"><span class="label">04-30</span><span class="tooltip">¥997,978.14</span></div>
+    <div class="bar green" style="height:72%;" title="2026-05-01: ¥997,978.14 (+0.00%)"><span class="label">05-01</span><span class="tooltip">¥997,978.14</span></div>
+    <div class="bar green" style="height:73%;" title="2026-05-06: ¥998,820.14 (+0.08%)"><span class="label">05-06</span><span class="tooltip">¥998,820.14</span></div>
+    <div class="bar green" style="height:83%;" title="2026-05-07: ¥1,008,288.07 (+0.95%)"><span class="label">05-07</span><span class="tooltip">¥1,008,288.07</span></div>
+    <div class="bar red" style="height:64%;" title="2026-05-08: ¥990,614.39 (-1.75%)"><span class="label">05-08</span><span class="tooltip">¥990,614.39</span></div>
+    <div class="bar green" style="height:100%;" title="2026-05-11: ¥1,023,114.39 (+3.28%)"><span class="label">05-11</span><span class="tooltip">¥1,023,114.39</span></div>
+    <div class="bar green" style="height:73%;" title="2026-05-12: ¥998,727.78 (+0.00%)"><span class="label">05-12</span><span class="tooltip">¥998,727.78</span></div>
+    <div class="bar green" style="height:71%;" title="2026-05-13: ¥997,037.78 (+0.00%)"><span class="label">05-13</span><span class="tooltip">¥997,037.78</span></div>
+    <div class="bar red" style="height:39%;" title="2026-05-14: ¥967,487.78 (-2.96%)"><span class="label">05-14</span><span class="tooltip">¥967,487.78</span></div>
+    <div class="bar red" style="height:11%;" title="2026-05-15: ¥941,643.02 (-2.67%)"><span class="label">05-15</span><span class="tooltip">¥941,643.02</span></div>
+    <div class="bar green" style="height:20%;" title="2026-05-18: ¥949,509.44 (+0.84%)"><span class="label">05-18</span><span class="tooltip">¥949,509.44</span></div>
+    <div class="bar red" style="height:4%;" title="2026-05-19: ¥930,928.15 (-1.96%)"><span class="label">05-19</span><span class="tooltip">¥930,928.15</span></div>
   </div>
+  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">绿色=正收益日, 红色=负收益日 | 悬停查看详细数值 | 数据区间: 2026-04-30 ~ 2026-05-19</div>
+</div>
   <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">绿色=正收益日, 红色=负收益日 | 悬停查看详细数值</div>
 </div>
 
 <h3>10.5 当前运行概览</h3>
 <table>
   <tr><th>指标</th><th>账户 510976</th><th>账户 510977</th><th>账户 510988</th></tr>
-  <tr><td>当前权益</td><td>¥1,001,477.78</td><td>¥999,533.61</td><td>¥998,870.98</td></tr>
-  <tr><td>累计收益率</td><td>14.78%</td><td>—</td><td>—</td></tr>
-  <tr><td>持仓品种数</td><td>10</td><td>1</td><td>2</td></tr>
-  <tr><td>总信号数</td><td>25</td><td>3</td><td>3</td></tr>
-  <tr><td>已平仓交易</td><td>2</td><td>0</td><td>0</td></tr>
-  <tr><td>累计平仓盈亏</td><td>¥-6,930.00</td><td>¥0.00</td><td>¥0.00</td></tr>
+  <tr><td>当前权益</td><td>¥930,928.15</td><td>¥992,760.10</td><td>¥975,662.82</td></tr>
+  <tr><td>累计收益率</td><td>-6.91%</td><td>-0.72%</td><td>-2.43%</td></tr>
+  <tr><td>持仓品种数</td><td>11</td><td>4</td><td>8</td></tr>
+  <tr><td>总信号数</td><td>38</td><td>12</td><td>19</td></tr>
+  <tr><td>已平仓交易</td><td>6</td><td>0</td><td>3</td></tr>
+  <tr><td>累计平仓盈亏</td><td>¥-6,950.20</td><td>¥-1,050.00</td><td>¥-12,880.00</td></tr>
 </table>
 
 <h3>10.6 数据流</h3>
@@ -732,25 +747,31 @@
   <strong>年化收益率 = ~21.8%</strong> (修正后: 12~18%)
 </div>
 
-<h3>15.3 权益走势（账户 510976，2026-04-30 ~ 2026-05-13）</h3>
+<h3>15.3 权益走势（账户 510976，2026-04-30 ~ 2026-05-19）</h3>
 <div class="chart-container">
   <div class="bar-chart" style="height:200px;">
-    <div class="bar green" style="height:23%;" title="2026-04-30: ¥997,978 (+0.00%)"><span class="label">04/30</span><span class="tooltip">¥997,978</span></div>
-    <div class="bar green" style="height:23%;" title="2026-05-01: ¥997,978 (+0.00%)"><span class="label">05/01</span><span class="tooltip">¥997,978</span></div>
-    <div class="bar green" style="height:25%;" title="2026-05-06: ¥998,820 (+0.08%)"><span class="label">05/06</span><span class="tooltip">¥998,820</span></div>
-    <div class="bar green" style="height:54%;" title="2026-05-07: ¥1,008,288 (+0.95%)"><span class="label">05/07</span><span class="tooltip">¥1,008,288</span></div>
-    <div class="bar red" style="height:4%;" title="2026-05-08: ¥990,614 (-1.75%)"><span class="label">05/08</span><span class="tooltip">¥990,614</span></div>
-    <div class="bar green" style="height:100%;" title="2026-05-11: ¥1,023,114 (+3.28%)"><span class="label">05/11</span><span class="tooltip">¥1,023,114</span></div>
-    <div class="bar green" style="height:25%;" title="2026-05-12: ¥998,728 (+0.00%)"><span class="label">05/12</span><span class="tooltip">¥998,728</span></div>
-    <div class="bar green" style="height:33%;" title="2026-05-13: ¥1,001,478 (+0.28%)"><span class="label">05/13</span><span class="tooltip">¥1,001,478</span></div>
+    <div class="bar green" style="height:72%;" title="2026-04-30: ¥997,978.14 (+0.00%)"><span class="label">04-30</span><span class="tooltip">¥997,978.14</span></div>
+    <div class="bar green" style="height:72%;" title="2026-05-01: ¥997,978.14 (+0.00%)"><span class="label">05-01</span><span class="tooltip">¥997,978.14</span></div>
+    <div class="bar green" style="height:73%;" title="2026-05-06: ¥998,820.14 (+0.08%)"><span class="label">05-06</span><span class="tooltip">¥998,820.14</span></div>
+    <div class="bar green" style="height:83%;" title="2026-05-07: ¥1,008,288.07 (+0.95%)"><span class="label">05-07</span><span class="tooltip">¥1,008,288.07</span></div>
+    <div class="bar red" style="height:64%;" title="2026-05-08: ¥990,614.39 (-1.75%)"><span class="label">05-08</span><span class="tooltip">¥990,614.39</span></div>
+    <div class="bar green" style="height:100%;" title="2026-05-11: ¥1,023,114.39 (+3.28%)"><span class="label">05-11</span><span class="tooltip">¥1,023,114.39</span></div>
+    <div class="bar green" style="height:73%;" title="2026-05-12: ¥998,727.78 (+0.00%)"><span class="label">05-12</span><span class="tooltip">¥998,727.78</span></div>
+    <div class="bar green" style="height:71%;" title="2026-05-13: ¥997,037.78 (+0.00%)"><span class="label">05-13</span><span class="tooltip">¥997,037.78</span></div>
+    <div class="bar red" style="height:39%;" title="2026-05-14: ¥967,487.78 (-2.96%)"><span class="label">05-14</span><span class="tooltip">¥967,487.78</span></div>
+    <div class="bar red" style="height:11%;" title="2026-05-15: ¥941,643.02 (-2.67%)"><span class="label">05-15</span><span class="tooltip">¥941,643.02</span></div>
+    <div class="bar green" style="height:20%;" title="2026-05-18: ¥949,509.44 (+0.84%)"><span class="label">05-18</span><span class="tooltip">¥949,509.44</span></div>
+    <div class="bar red" style="height:4%;" title="2026-05-19: ¥930,928.15 (-1.96%)"><span class="label">05-19</span><span class="tooltip">¥930,928.15</span></div>
   </div>
+  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">每个柱代表一个交易日，绿色=权益增长，红色=权益下降 | 当前余额: ¥930,928.15 (2026-05-19)</div>
+</div>
   <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">每个柱代表一个交易日，绿色=权益增长，红色=权益下降 | 当前余额: ¥1,001,477.78 (2026-05-13)</div>
 </div>
 
 <h3>15.4 不同初始权益的预期</h3>
 <table>
   <tr><th>初始权益</th><th>实际累计收益</th><th>最大回撤</th><th>品种数量</th><th>评价</th></tr>
-  <tr><td><strong>¥1,000,000</strong></td><td><strong>14.78%</strong></td><td><strong>2.38%</strong></td><td><strong>10</strong></td><td><strong>当前账户 510976</strong></td></tr>
+  <tr><td><strong>¥1,000,000</strong></td><td><strong>-6.91%</strong></td><td><strong>9.01%</strong></td><td><strong>11</strong></td><td><strong>当前账户 510976</strong></td></tr>
   <tr><td>¥300,000</td><td>—</td><td>—</td><td>3~5</td><td>偏小，集中度高</td></tr>
   <tr><td>¥500,000</td><td>—</td><td>—</td><td>6~9</td><td>可运行核心品种</td></tr>
   <tr><td>¥2,000,000</td><td>—</td><td>—</td><td>12~18</td><td>分散充分</td></tr>
@@ -762,10 +783,10 @@
 <h2>十六、综合结论</h2>
 
 <div class="metrics">
-  <div class="metric"><div class="value green">14.78%</div><div class="label">累计收益率</div></div>
-  <div class="metric"><div class="value purple">5.54</div><div class="label">夏普比率(20d)</div></div>
-  <div class="metric"><div class="value red">2.38%</div><div class="label">最大回撤</div></div>
-  <div class="metric"><div class="value green">0.00%</div><div class="label">胜率（已平仓）</div></div>
+  <div class="metric"><div class="value red">-6.91%</div><div class="label">累计收益率</div></div>
+  <div class="metric"><div class="value red">-4.10</div><div class="label">夏普比率(20d)</div></div>
+  <div class="metric"><div class="value red">9.01%</div><div class="label">最大回撤</div></div>
+  <div class="metric"><div class="value green">25.0%</div><div class="label">胜率（已平仓）</div></div>
 </div>
 
 <div class="callout success">
@@ -795,7 +816,7 @@
 
 <div style="text-align:center;padding:40px 0 20px;color:var(--text-secondary);font-size:0.85em;border-top:1px solid var(--border);">
   <p>FT 量化期货交易系统 — 完整数理分析报告</p>
-  <p>生成日期: 2026-05-13 | 基于知识库全量文档 + 后端代码 v3.1</p>
+  <p>生成日期: 2026-05-20 | 基于知识库全量文档 + 后端代码 v3.1</p>
   <p style="margin-top:8px;font-size:0.8em;">本文档由 AI 自动生成，所有数据为基于策略参数的估算，不构成投资建议。</p>
 </div>
 
