@@ -23,6 +23,7 @@ def calculate_mbi(api, watchlist, opening_ranges):
         if or_data is None or or_data.get('R') is None:
             continue
 
+        product_code = item['product_code'] if isinstance(item, dict) else ''
         pre_close = float(getattr(quote, 'pre_close', 0) or 0)
         open_price = float(getattr(quote, 'open', 0) or 0)
         last_price = float(getattr(quote, 'last_price', 0) or 0)

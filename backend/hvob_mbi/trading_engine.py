@@ -100,10 +100,12 @@ class HvobTradingEngine:
         self.banned = set()           # 跳空穿越拉黑
         self.traded = set()           # 已交易品种
         self.mbi_value = Decimal('0.5')
+        self.mbi_label = ''
         self.target_pos_tasks = {}    # {symbol: TargetPosTask}
         self.daily_pnl = Decimal('0')
         self.total_trades = 0
         self._night_trading_map = None  # {product_code: bool} 懒加载
+        self._last_restart_key = None  # 定时重启防重复标记
 
     # ==================== 夜盘分类查询 ====================
 
@@ -136,6 +138,10 @@ class HvobTradingEngine:
         while self.phase != 'done':
             self.api.wait_update()
             now = datetime.now()
+
+            # 定时重启连接（8:55 / 13:25 / 20:55）
+            self._check_restart(now)
+
             self._check_phase(now, last_phase_log)
 
         # 收盘后记录
@@ -171,6 +177,35 @@ class HvobTradingEngine:
                 print(f"[HVOB] → done")
             else:
                 self._on_quote('day_breakout')
+
+    # ==================== 连接管理 ====================
+
+    def _check_restart(self, now):
+        """检查是否需要定时重启 TqSDK 连接（8:55 / 13:25 / 20:55）"""
+        restart_key = None
+        if (now.hour == 8 and now.minute == 55) or \
+           (now.hour == 13 and now.minute == 25) or \
+           (now.hour == 20 and now.minute == 55):
+            restart_key = now.strftime('%Y-%m-%d-%H%M')
+        if restart_key and restart_key != self._last_restart_key:
+            self._last_restart_key = restart_key
+            print(f"[HVOB] ⏰ 触法定时重启 ({now.strftime('%H:%M')}, phase={self.phase})")
+            self._reconnect()
+
+    def _reconnect(self):
+        """关闭旧 TqSDK 连接并重新建立，保留全部内存状态"""
+        from stock.infrastructure.tqapi import create_tqapi, safe_close_api
+        safe_close_api(self.api)
+        print("[HVOB] 等待 35s 后重建连接...")
+        time.sleep(35)
+        self.api = create_tqapi(self.account)
+        self.api.wait_update(deadline=time.time() + 15)
+        # 重新订阅行情（新 api 实例需重新 get_quote/get_kline_serial）
+        self._subscribe_all()
+        self.api.wait_update(deadline=time.time() + 10)
+        # 旧的 TargetPosTask 已绑定旧连接，清空后按需重新创建
+        self.target_pos_tasks.clear()
+        print(f"[HVOB] ✅ 连接已重建，继续运行 (phase={self.phase})")
 
     # ==================== 盘前筛选 ====================
 
@@ -296,7 +331,7 @@ class HvobTradingEngine:
     def _calc_mbi(self):
         """计算 MBI"""
         from .mbi import calculate_mbi
-        self.mbi_value, _ = calculate_mbi(self.api, self.watchlist, self.opening_ranges)
+        self.mbi_value, self.mbi_label = calculate_mbi(self.api, self.watchlist, self.opening_ranges)
 
     # ==================== 入场检查 ====================
 
@@ -535,6 +570,7 @@ class HvobTradingEngine:
 
         if not self.dry_run:
             try:
+                self.api.wait_update()
                 account_info = self.api.get_account()
                 balance = float(getattr(account_info, 'balance', 0) or 0)
                 record_daily_equity(self.account, self.trade_date, balance, self.daily_pnl)
@@ -568,6 +604,7 @@ class HvobTradingEngine:
                                    'open_interest': item['open_interest']}
                                   for item in self.watchlist],
                     'mbi_value': self.mbi_value,
+                    'mbi_label': self.mbi_label,
                     'opening_ranges': or_data,
                     'banned_symbols': list(self.banned),
                     'traded_symbols': list(self.traded),
