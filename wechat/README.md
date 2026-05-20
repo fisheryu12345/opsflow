@@ -61,6 +61,24 @@
   - **使用边界：** 强趋势/震荡/V型反转/品种波动差异四类场景分别评估
   - 红色尾部风险提示
 
+### 4. TqSDK入门教程-公众号文章.html
+
+- **标题：** 《TqSDK 量化入门：从安装到第一个策略——Python期货自动交易实战指南》
+- **发布日期：** 2026-05-20
+- **字数：** ~2800字
+- **风格：** 科普型（面向量化入门读者）
+- **公众号适配：** 全部内联样式，代码块等宽字体，已优化可直接粘贴到公众号编辑器
+- **内容概要：**
+  TqSDK（天勤量化）入门教程，从安装到写出第一个策略的完整指南：
+  - **TqSDK 是什么：** 统一行情/交易/仿真三合一 API，对比 CTP/爬虫/文华等替代方案
+  - **安装与连接：** pip install → TqApi → TqSim/TqKq/TqAccount 三种模式切换
+  - **行情数据：** get_quote（实时行情） + get_kline_serial（K线数据），合约代码格式说明
+  - **wait_update 驱动循环：** TqSDK 的心脏，数据更新与订单执行的驱动力
+  - **下单交易：** insert_order（直接下单） vs TargetPosTask（目标持仓，推荐）
+  - **完整示例：** 双均线交叉策略完整代码（含 is_changing 判断、TargetPosTask 调仓）
+  - **常见坑：** 忘记 wait_update、合约过期、is_changing 误用、非交易时间下单
+  - **进阶方向：** 多账户、回测、DataDownloader、TargetPosScheduler、TqScenario
+
 ---
 
 ## 待撰写
