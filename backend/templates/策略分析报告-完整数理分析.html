@@ -278,7 +278,6 @@
   <tr><th>时段</th><th>权重</th><th>意义</th></tr>
   <tr><td>9:30 - 10:30</td><td>1.0</td><td>正常仓位</td></tr>
   <tr><td>10:30 - 11:30</td><td>0.7</td><td>减少 30%</td></tr>
-  <tr><td>11:30 - 13:30</td><td>0.5</td><td>减半</td></tr>
   <tr><td>13:30 - 14:30</td><td>0.3</td><td>仅 30% 仓位，14:30 后停止开仓</td></tr>
 </table>
 
@@ -297,7 +296,7 @@
   <tr><td>保本机制</td><td>2.5xATR, 3U</td><td>2.5xATR, 3U</td><td>2.5xATR, 3U</td><td>无（日内平仓）</td><td>-</td></tr>
   <tr><td>跳空保护</td><td>1.5xATR</td><td>1.5xATR</td><td>1.5xATR</td><td>拉黑处理</td><td>-</td></tr>
   <tr><td>skip_choppy</td><td>✗</td><td>✗</td><td>✓</td><td>-</td><td>-</td></tr>
-  <tr><td>时间衰减</td><td>无</td><td>无</td><td>无</td><td>9:30->100% -> 13:30->30%</td><td>-</td></tr>
+  <tr><td>时间衰减</td><td>无</td><td>无</td><td>无</td><td>9:30->100% -> 14:30->30%</td><td>-</td></tr>
   <tr><td>MBI 过滤</td><td>无</td><td>无</td><td>无</td><td>有 [0,1]</td><td>-</td></tr>
   <tr><td>持仓周期</td><td>数天~数月</td><td>数天~数月</td><td>数天~数月</td><td>日内（1~5hr）</td><td>-</td></tr>
   <tr><td>运行时段</td><td>收盘/开盘/14:57</td><td>收盘/开盘/14:57</td><td>收盘/开盘/14:57</td><td>持续运行至14:30</td><td>-</td></tr>
