@@ -1,0 +1,438 @@
+<!--
+  微信公众号专用版 - HVOB-MBI日内突破系统入门科普
+  所有样式已内联化，兼容公众号编辑器粘贴
+-->
+<div style="max-width:680px;margin:0 auto;padding:20px 16px 30px;font-family:-apple-system,'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif;font-size:16px;line-height:1.8;color:#333;background:#fff;">
+
+  <!-- ====== HEADER ====== -->
+  <div style="margin-bottom:24px;">
+    <div style="font-size:1.5em;font-weight:700;line-height:1.4;margin-bottom:10px;color:#1a1a1a;letter-spacing:0.5px;">量化交易入门：HVOB-MBI日内突破系统<br>——三个阶段的博弈艺术</div>
+    <div style="font-size:0.8em;color:#999;display:flex;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid #eee;">
+      <span>FT 量化期货交易系统</span>
+      <span>2026-05-20</span>
+    </div>
+  </div>
+
+  <!-- ====== 引子 ====== -->
+  <div style="margin:24px 0;">
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">你有没有想过这样一个问题：国内商品期货有夜盘和日盘两个交易时段，中间还隔着一个隔夜休市期。这种"碎片化"的交易时间，对量化策略来说到底是机会还是陷阱？</p>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">今天要介绍的<span style="background:linear-gradient(to top,transparent 40%,#dbeafe 40%);font-weight:600;">HVOB-MBI 策略</span>，就是一个专门为这种"碎片化"时间结构设计的日内突破系统。它把一天的交易拆解成三个阶段，每个阶段各有各的逻辑、各有各的风控规则。</p>
+
+    <div style="padding:14px 16px;margin:14px 0;font-size:0.9em;line-height:1.6;background:#fff7ed;border-left:4px solid #d97706;border-radius:4px;">
+      <b>太长不看版：</b>HVOB = High Volatility Opening Range Breakout（高波动开盘区间突破），MBI = Market Breadth Index（市场宽度指数）。一句话概括——<b>高波动品种开盘后价格突破区间就追进去，同时用整个市场品种集体"投票"判断当前多空氛围，顺势而为。收盘前必平仓，不留隔夜单。</b>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin:28px 0 20px;color:#ddd;font-size:1.2em;letter-spacing:6px;">◆ ◆ ◆</div>
+
+  <!-- ====== 一、策略定位 ====== -->
+  <div style="margin:24px 0;">
+    <h2 style="font-size:1.15em;font-weight:700;color:#1a1a1a;margin-bottom:14px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.4;">一、它捕捉什么样的行情？</h2>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">先问一个最基础的问题：价格为什么会动？</p>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">因为市场参与者对"合理价格"有分歧。而开盘后的第一波行情，恰恰是信息差最集中爆发的时刻——隔夜积累的新闻、外盘波动、产业消息，所有信息在开盘这一刻集中定价。如果这个"定价"方向高度一致，就会形成开盘区间突破。</p>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;"><b>HVOB-MBI 的核心逻辑就是：找到今天最活跃、波动最大的品种，盯着它们的开盘区间，一旦价格明确朝一个方向突破，就跟随入场，吃第一波趋势行情。</b></p>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">至于为什么是"开盘区间"而非任意时间段的突破？开盘区间是经过一夜或一中午信息沉淀后，多空双方博弈形成的"均衡带"——一旦价格突破这个区间，意味着博弈的天平已经倾斜。</p>
+  </div>
+
+  <div style="text-align:center;margin:28px 0 20px;color:#ddd;font-size:1.2em;letter-spacing:6px;">◆ ◆ ◆</div>
+
+  <!-- ====== 二、三步工作流 ====== -->
+  <div style="margin:24px 0;">
+    <h2 style="font-size:1.15em;font-weight:700;color:#1a1a1a;margin-bottom:14px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.4;">二、三阶段工作流：一天的完整交易</h2>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">一天之内，系统经历三个主阶段和一个中间检查步骤。下面这张时间线概览可以先帮你建立整体印象：</p>
+
+    <!-- 三阶段卡片 -->
+    <div style="margin:18px 0;">
+      <!-- 阶段一 -->
+      <div style="background:#f0f7ff;border:1px solid #dbeafe;border-radius:8px;padding:14px 16px;margin-bottom:6px;">
+        <div style="font-weight:700;color:#1e40af;font-size:0.95em;margin-bottom:6px;">夜盘突破 (21:00 ~ 23:00) — 暴利的种子</div>
+        <div style="font-size:0.88em;color:#555;line-height:1.6;">
+          21:00~21:30 收集夜盘开盘区间 H/L → 21:30 关闭区间，计算区间宽度 R<br>
+          → 价格突破 <b>H + 0.3R</b> 做多 / 跌破 <b>L - 0.3R</b> 做空<br>
+          → 无 MBI 过滤，纯技术突破入场
+        </div>
+      </div>
+
+      <!-- 连接箭头 -->
+      <div style="display:flex;justify-content:center;margin:4px 0 10px;">
+        <svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="0" x2="10" y2="18" stroke="#bfdbfe" stroke-width="2"/><polygon points="4,14 10,22 16,14" fill="#bfdbfe"/></svg>
+      </div>
+
+      <!-- 阶段一和阶段二之间的插曲：跳空检查 + MBI -->
+      <div style="background:#fff7ed;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;margin-bottom:6px;">
+        <div style="font-weight:700;color:#92400e;font-size:0.95em;margin-bottom:6px;">中间步骤 (9:00 ~ 9:30) — 跳空检查 + MBI 计算</div>
+        <div style="font-size:0.88em;color:#555;line-height:1.6;">
+          9:00 检查夜盘品种是否跳空穿越开盘区间 → 跳空品种全天拉黑不交易<br>
+          9:00~9:30 收集日盘开盘区间 → 9:30 关闭区间，计算 R<br>
+          → 用观察池全部品种的实时行情计算 MBI，确立今日多空基调
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:center;margin:4px 0 10px;">
+        <svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="0" x2="10" y2="18" stroke="#fde68a" stroke-width="2"/><polygon points="4,14 10,22 16,14" fill="#fde68a"/></svg>
+      </div>
+
+      <!-- 阶段二 -->
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px 16px;margin-bottom:6px;">
+        <div style="font-weight:700;color:#991b1b;font-size:0.95em;margin-bottom:6px;">日盘突破 (9:30 ~ 14:55) — 顺势收割</div>
+        <div style="font-size:0.88em;color:#555;line-height:1.6;">
+          MBI 决定多空权重 → 突破信号 + MBI 权限检查<br>
+          → 时间衰减（越晚入场仓位越小）<br>
+          → 持续检查止损/止盈/保本/移动止盈<br>
+          → <b>14:55 强制平仓所有持仓</b>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">三阶段的精妙之处在于，<b>夜盘仅做技术突破，不做任何方向过滤</b>——因为夜盘开盘是外盘消息最直接的反映窗口，此时的突破往往最具攻击性，量价关系最真实。日盘则加上 MBI 过滤，因为经过一上午的信息消化，市场逻辑更加清晰，更应该顺势而为。</p>
+  </div>
+
+  <div style="text-align:center;margin:28px 0 20px;color:#ddd;font-size:1.2em;letter-spacing:6px;">◆ ◆ ◆</div>
+
+  <!-- ====== 三、品种筛选 ====== -->
+  <div style="margin:24px 0;">
+    <h2 style="font-size:1.15em;font-weight:700;color:#1a1a1a;margin-bottom:14px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.4;">三、每天选哪些品种？——评分淘汰制</h2>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">期货市场有好几十个品种，不可能每个都盯着。策略每天启动时会做一个"盘前筛选"——扫遍全市场主力合约，给每个品种打分，只留下评分最高的 5~10 个作为"观察池"。</p>
+
+    <p style="margin-bottom:10px;font-size:0.95em;color:#444;font-weight:600;">评分公式（满分约 10 分）：</p>
+
+    <div style="background:#f8fafc;border-left:3px solid #2563eb;padding:14px 16px;margin:10px 0 14px;font-family:'Courier New',monospace;font-size:0.85em;line-height:1.7;color:#333;border-radius:0 4px 4px 0;">
+      总分 = ATR分 + 振幅分 + 量比分 + 品种奖惩<br><br>
+      ATR分：ATR% &gt; 2% 时取 ATR% &#x2716; 100（否则 0 分）<br>
+      振幅分：5日平均振幅 &gt; 1.5% 时取 振幅 &#x2716; 50（否则 0 分）<br>
+      量比分：量比 &gt; 1.0 时取 (量比-1) &#x2716; 10，上限 5 分<br>
+      品种奖惩：优先品种 +3 分（SA/FG/RB/HC/MA 等高波动品种）<br>
+      &emsp;&emsp;&emsp;&emsp;&emsp;回避品种 -2 分（NI/SN/PB 等双边收费品种）<br>
+      &emsp;&emsp;&emsp;&emsp;&emsp;冷门品种直接淘汰（FB/BB/RR 等流动性差的品种）
+    </div>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">这里面有一个重要的理念：<b>波动率优先</b>。一个品种今天波动大（ATR% 高）、日内振幅大、成交量异常放大，说明它"有行情"，值得关注。反之，如果波动率不足 2%，大概率在震荡，没必要浪费交易成本。</p>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">同时，持仓量低于 2 万手的品种直接排除——流动性差的品种滑点成本高，日内出入不易。中金所（股指期货）因为与商品市场逻辑不同，也直接排除。</p>
+
+    <div style="padding:14px 16px;margin:14px 0;font-size:0.9em;line-height:1.6;background:#eef3ff;border-left:4px solid #2563eb;border-radius:4px;">
+      <b>一句话：</b>A 股选股看 PE、看 PB，期货选品种看 ATR%、看振幅、看成交量。波动就是期货的"价值"。
+    </div>
+  </div>
+
+  <div style="text-align:center;margin:28px 0 20px;color:#ddd;font-size:1.2em;letter-spacing:6px;">◆ ◆ ◆</div>
+
+  <!-- ====== 四、MBI详解 ====== -->
+  <div style="margin:24px 0;">
+    <h2 style="font-size:1.15em;font-weight:700;color:#1a1a1a;margin-bottom:14px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.4;">四、MBI：让市场"集体投票"</h2>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">MBI（Market Breadth Index，市场宽度指数）是 HVOB-MBI 区别于大多数日内突破系统的核心设计。它要解决一个很实际的问题：<b>当某个品种出现突破信号时，如何判断该不该跟？</b></p>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">最简单的做法是：只要有突破就入场。但问题是——</p>
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">如果今天整体市场氛围是空头，某个品种却出现了向上突破，这个突破有多大可信度？大概率是假突破。反过来，如果全市场都在涨，顺势做多的成功率天然就更高。</p>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;"><b>MBI 的本质就是：用观察池里所有品种的行情数据，让市场"集体表决"今天的方向偏好。</b>它不是 K 线形态，不是技术指标，不是均线系统——它是用全市场品种的集体行为来判断方向。单个品种的信号可以伪造，但 10 个品种同时投票的方向，可信度远高于单一信号。</p>
+
+    <h3 style="font-size:1.02em;font-weight:600;color:#333;margin:18px 0 10px;">三票制：每个品种三张票</h3>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">在计算 MBI 时，观察池里的每个品种都会从三个维度投票，每票 +1（多）或 -1（空）：</p>
+
+    <table style="width:100%;border-collapse:collapse;font-size:0.85em;margin:12px 0;border:1px solid #e8e8ee;">
+      <tr>
+        <th style="background:#f8fafc;padding:8px 10px;font-weight:600;text-align:left;border-bottom:2px solid #e8e8ee;white-space:nowrap;">维度</th>
+        <th style="background:#f8fafc;padding:8px 10px;font-weight:600;text-align:left;border-bottom:2px solid #e8e8ee;">投多票 (+1) 条件</th>
+        <th style="background:#f8fafc;padding:8px 10px;font-weight:600;text-align:left;border-bottom:2px solid #e8e8ee;">投空票 (-1) 条件</th>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;font-weight:500;white-space:nowrap;">隔夜跳空</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">开盘价 &gt; 前收盘（高开），说明外盘支撑</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">开盘价 &lt; 前收盘（低开），外盘压制</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;font-weight:500;white-space:nowrap;">区间重心</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">开盘区间中点 &gt; 前收盘，说明买方主导</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">开盘区间中点 &lt; 前收盘，卖方主导</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:none;font-weight:500;white-space:nowrap;">突破方向</td>
+        <td style="padding:7px 10px;border-bottom:none;">当前价格已突破区间上沿</td>
+        <td style="padding:7px 10px;border-bottom:none;">当前价格跌破区间下沿</td>
+      </tr>
+    </table>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">每个品种最多贡献 +3 分（三票全多）或 -3 分（三票全空）。基本平开（涨跌幅小于 0.05%）的品种在"隔夜跳空"维度不投票——不给噪音投票权。</p>
+
+    <p style="margin-bottom:10px;font-size:0.95em;color:#444;font-weight:600;">汇总计算：</p>
+    <div style="background:#f8fafc;border-left:3px solid #2563eb;padding:14px 16px;margin:10px 0 14px;font-family:'Courier New',monospace;font-size:0.85em;line-height:1.7;color:#333;border-radius:0 4px 4px 0;">
+      总分 = 所有品种得分之和（每位 -3 ~ +3）<br>
+      有效品种数 = N<br><br>
+      MBI = (总分 + 3N) / 6N &emsp;→ 映射到 [0, 1]<br><br>
+      例：10 个品种，总分 +18 → MBI = (18 + 30) / 60 = 0.80（极强多头）<br>
+      例：10 个品种，总分 -6 → MBI = (-6 + 30) / 60 = 0.40（空头）
+    </div>
+
+    <h3 style="font-size:1.02em;font-weight:600;color:#333;margin:18px 0 10px;">MBI 怎么用？——权限权重映射</h3>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">MBI 不是一个"开/关"信号，而是一个<b>连续权重调节器</b>。它不直接禁止交易（极端情况除外），而是告诉系统：今天的顺方向可以重仓，逆方向应当减仓。</p>
+
+    <table style="width:100%;border-collapse:collapse;font-size:0.85em;margin:12px 0;border:1px solid #e8e8ee;">
+      <tr>
+        <th style="background:#f8fafc;padding:8px 10px;font-weight:600;text-align:left;border-bottom:2px solid #e8e8ee;">MBI 区间</th>
+        <th style="background:#f8fafc;padding:8px 10px;font-weight:600;text-align:center;border-bottom:2px solid #e8e8ee;">定性</th>
+        <th style="background:#f8fafc;padding:8px 10px;font-weight:600;text-align:center;border-bottom:2px solid #e8e8ee;">多单权重</th>
+        <th style="background:#f8fafc;padding:8px 10px;font-weight:600;text-align:center;border-bottom:2px solid #e8e8ee;">空单权重</th>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">&gt; 0.75</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#dc2626;">极强多头</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#059669;">100%</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#dc2626;">禁止</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">0.65 ~ 0.75</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#dc2626;">多头</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#059669;">100%</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#d97706;">50%</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">0.45 ~ 0.65</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#6b7280;">中性</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#059669;">100%</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#059669;">100%</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">0.35 ~ 0.45</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#059669;">空头</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#d97706;">50%</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#059669;">100%</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:none;">&lt; 0.35</td>
+        <td style="padding:7px 10px;border-bottom:none;text-align:center;color:#059669;">极强空头</td>
+        <td style="padding:7px 10px;border-bottom:none;text-align:center;color:#dc2626;">禁止</td>
+        <td style="padding:7px 10px;border-bottom:none;text-align:center;color:#059669;">100%</td>
+      </tr>
+    </table>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">举例说明：如果 MBI = 0.70（多头），某个品种出现做空信号，系统仍可入场，但仓位只有正常的 50%。如果 MBI = 0.80（极强多头），则禁止做空。这就是"不禁止，但提示风险"的柔性控制思路。</p>
+
+    <div style="padding:14px 16px;margin:14px 0;font-size:0.9em;line-height:1.6;background:#ecfdf5;border-left:4px solid #059669;border-radius:4px;">
+      <b>MBI 的精髓：</b>它不是 K 线形态、不是技术指标、不是均线——它是用<b>全市场品种的集体行为</b>来判断方向。单个品种的信号可以伪造，但 10 个品种同时投票的方向，可信度远高于单一信号。这也是它叫"市场宽度指数"的原因——你感受到的是一整个市场的宽度和广度，而不是一个品种的窄幅波动。
+    </div>
+  </div>
+
+  <div style="text-align:center;margin:28px 0 20px;color:#ddd;font-size:1.2em;letter-spacing:6px;">◆ ◆ ◆</div>
+
+  <!-- ====== 五、风控体系 ====== -->
+  <div style="margin:24px 0;">
+    <h2 style="font-size:1.15em;font-weight:700;color:#1a1a1a;margin-bottom:14px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.4;">五、风控体系：七层保护伞</h2>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">日内交易最大的风险不是方向判断错误，而是<b>判断错误后没有及时离场</b>。HVOB-MBI 设计了多层次风控：</p>
+
+    <h3 style="font-size:1.02em;font-weight:600;color:#333;margin:18px 0 10px;">第一层：品种筛选</h3>
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">冷门品种、低持仓品种、CFFEX 品种在盘前就被过滤掉了，不进入观察池，根本上杜绝了流动性风险。</p>
+
+    <h3 style="font-size:1.02em;font-weight:600;color:#333;margin:18px 0 10px;">第二层：MBI 权重过滤</h3>
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">日盘阶段，MBI 极值会完全禁止逆势方向（MBI &gt; 0.75 禁止做空，MBI &lt; 0.35 禁止做多）。次极值将逆势仓位减至 50%。</p>
+
+    <h3 style="font-size:1.02em;font-weight:600;color:#333;margin:18px 0 10px;">第三层：跳空拉黑</h3>
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">如果夜盘品种次日开盘价跳出了夜盘区间，说明发生了信息断层——这种行情通常不可持续，全天拉黑不交易。</p>
+
+    <h3 style="font-size:1.02em;font-weight:600;color:#333;margin:18px 0 10px;">第四层：时间衰减</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:0.85em;margin:12px 0;border:1px solid #e8e8ee;">
+      <tr>
+        <th style="background:#f8fafc;padding:8px 10px;font-weight:600;text-align:left;border-bottom:2px solid #e8e8ee;">时间段</th>
+        <th style="background:#f8fafc;padding:8px 10px;font-weight:600;text-align:center;border-bottom:2px solid #e8e8ee;">仓位比例</th>
+        <th style="background:#f8fafc;padding:8px 10px;font-weight:600;text-align:left;border-bottom:2px solid #e8e8ee;">说明</th>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;">9:30 ~ 10:30</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#059669;font-weight:600;">100%</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">开盘第一小时，行情最活跃</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;">10:30 ~ 11:30</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;text-align:center;color:#d97706;font-weight:600;">70%</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">早盘尾声，风险回报比下降</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:none;white-space:nowrap;">13:30 ~ 14:30</td>
+        <td style="padding:7px 10px;border-bottom:none;text-align:center;color:#dc2626;font-weight:600;">30%</td>
+        <td style="padding:7px 10px;border-bottom:none;">下午接近收盘，仅少量参与</td>
+      </tr>
+    </table>
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">越晚入场，行情剩余空间越有限，仓位自然越小。这是对"风险回报比随时间递减"这个常识的量化表达。</p>
+
+    <h3 style="font-size:1.02em;font-weight:600;color:#333;margin:18px 0 10px;">第五层：永久锚定止损 + 风险敞口仓位</h3>
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">开仓那一刻，止损价就计算好并<b>永久固定</b>，持仓期间永不重算。</p>
+
+    <div style="background:#f8fafc;border-left:3px solid #2563eb;padding:14px 16px;margin:10px 0 14px;font-family:'Courier New',monospace;font-size:0.85em;line-height:1.7;color:#333;border-radius:0 4px 4px 0;">
+      止损价：<br>
+      多单止损 = OR_L - 0.2 &#x2716; R（开盘区间下沿往下推 0.2R）<br>
+      空单止损 = OR_H + 0.2 &#x2716; R（开盘区间上沿往上推 0.2R）<br><br>
+      仓位计算（风险敞口法）：<br>
+      每手风险 = 止损距离 &#x2716; 合约乘数<br>
+      开仓手数 = min( 账户权益 &#x2716; 0.5% / 每手风险, 单日最大持仓数 )
+    </div>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">这样天然保证了：波动越大的品种开仓越少，波动越小开仓越多——每笔交易承担的风险金额是固定的。</p>
+
+    <h3 style="font-size:1.02em;font-weight:600;color:#333;margin:18px 0 10px;">第六层：保本 + 移动止盈</h3>
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">当浮盈超过 1 倍 R 时，止损拉至开仓价，确保这笔交易不会亏钱（保本）。当浮盈超过 2 倍止损距离时，止损跟随行情移动锁定利润（移动止盈）。同时还有一个 1:1.5 的固定盈亏比止盈挂着——三层止盈逻辑，既吃得到趋势行情，又不让盈利回吐。</p>
+
+    <h3 style="font-size:1.02em;font-weight:600;color:#333;margin:18px 0 10px;">第七层：14:55 强制平仓</h3>
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">不管盈亏，收盘前 5 分钟强制平掉所有持仓。这是日内交易的最高铁律——<b>不做隔夜，不留尾巴。</b></p>
+
+    <div style="padding:14px 16px;margin:14px 0;font-size:0.9em;line-height:1.6;background:#fff7ed;border-left:4px solid #d97706;border-radius:4px;">
+      <b>七层保护一览：</b><br>
+      品种筛选降维 &#x2794; MBI 权重过滤 &#x2794; 跳空拉黑保护 &#x2794; 时间衰减降仓 &#x2794; 永久锚定止损 &#x2794; 保本/移动止盈 &#x2794; 14:55 强制平仓<br><br>
+      <b>每一层都在告诉市场："我可以承受亏损，但不会承受失控。"</b>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin:28px 0 20px;color:#ddd;font-size:1.2em;letter-spacing:6px;">◆ ◆ ◆</div>
+
+  <!-- ====== 六、实战推演 ====== -->
+  <div style="margin:24px 0;">
+    <h2 style="font-size:1.15em;font-weight:700;color:#1a1a1a;margin-bottom:14px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.4;">六、实战推演：完整的一天</h2>
+
+    <p style="margin-bottom:10px;font-size:0.95em;color:#444;">假设今天是 2026 年 5 月 20 日，系统正常启动，我们看看一天的时间线上发生了什么：</p>
+
+    <table style="width:100%;border-collapse:collapse;font-size:0.85em;margin:12px 0;border:1px solid #e8e8ee;">
+      <tr>
+        <th style="background:#f8fafc;padding:7px 10px;font-weight:600;text-align:left;border-bottom:2px solid #e8e8ee;white-space:nowrap;">时间</th>
+        <th style="background:#f8fafc;padding:7px 10px;font-weight:600;text-align:left;border-bottom:2px solid #e8e8ee;">事件</th>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;background:#fafafa;">20:55</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">定时重启 TqSDK 连接，为夜盘做准备</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;background:#fafafa;">21:00</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">启动盘前筛选→30 秒拉取全市场日线→计算 ATR%/振幅/量比→选出评分前 N 个品种→开启夜盘区间跟踪</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;background:#fafafa;">21:00~21:30</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">收集夜盘有夜盘品种的开盘区间 H/L，每个品种 tick 级更新</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;background:#fafafa;">21:30</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">关闭夜盘区间，计算 R = H - L。转入夜盘突破监测</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;background:#fafafa;">21:30~23:00</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">夜盘突破监测：价格突破 H+0.3R 做多 / L-0.3R 做空。无 MBI 过滤</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;background:#fafafa;">23:00~次日 9:00</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">系统持续运行等待（如有夜盘持仓则保持监控）</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;background:#fafafa;">08:55</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">再次定时重启连接，为日盘做准备</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;background:#fafafa;">9:00</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">日盘开盘→检查夜盘品种是否跳空（开盘价在夜盘区间外）→拉黑跳空品种→开启日盘区间跟踪</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;background:#fafafa;">9:00~9:30</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">收集日盘品种开盘区间 H/L</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;background:#fafafa;">9:30</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">关闭日盘区间，计算 R → 用所有品种实时行情计算 MBI</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;background:#fafafa;">9:30~14:55</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">日盘突破监测 + MBI 过滤 + 时间衰减权重 + 持续检查止损/止盈/保本/移动止盈</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;border-bottom:none;white-space:nowrap;background:#fafafa;">14:55</td>
+        <td style="padding:6px 10px;border-bottom:none;">强制平仓所有持仓 → 刷新账户权益 → 记录日盈亏 → 保存完整日状态 → 程序退出</td>
+      </tr>
+    </table>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">注意 13:25 还会做一次连接重启。因为国内期货下午盘从 13:30 开始，经过午休后行情通道可能不够新鲜，重启确保下午数据质量。整个运行过程中，系统通过 TqSDK 的 wait_update 事件循环驱动，不需要人工干预。</p>
+  </div>
+
+  <div style="text-align:center;margin:28px 0 20px;color:#ddd;font-size:1.2em;letter-spacing:6px;">◆ ◆ ◆</div>
+
+  <!-- ====== 七、边界处理 ====== -->
+  <div style="margin:24px 0;">
+    <h2 style="font-size:1.15em;font-weight:700;color:#1a1a1a;margin-bottom:14px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.4;">七、边界情况：机器也会"小心谨慎"</h2>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">一个好的量化策略，不仅要考虑"正常情况怎么赚钱"，还要考虑"异常情况怎么保命"。HVOB-MBI 在代码中处理了大量边界情况：</p>
+
+    <table style="width:100%;border-collapse:collapse;font-size:0.85em;margin:12px 0;border:1px solid #e8e8ee;">
+      <tr>
+        <th style="background:#f8fafc;padding:8px 10px;font-weight:600;text-align:left;border-bottom:2px solid #e8e8ee;">场景</th>
+        <th style="background:#f8fafc;padding:8px 10px;font-weight:600;text-align:left;border-bottom:2px solid #e8e8ee;">处理方式</th>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">品种数据不足（日线 &lt; 25 根）</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">直接跳过，不纳入评分</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">开盘价平开（gap &lt; 0.05%）</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">隔夜跳空维度不投票，不给噪音表决权</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">止损距离为零</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">至少开 1 手，防止除零</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">账户余额 &le; 0</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">使用 100,000 作为备用金计算仓位</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">所有品种 MBI 数据无效</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #f0f0f0;">MBI = 0.5（中性），不偏不倚</td>
+      </tr>
+      <tr>
+        <td style="padding:7px 10px;border-bottom:none;">TqSDK 连接异常</td>
+        <td style="padding:7px 10px;border-bottom:none;">定时重启+35s 等待+重新订阅，内存状态完整保留</td>
+      </tr>
+    </table>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">还有一个值得一提的设计细节：系统在 20:55、08:55、13:25 做了三次定时重启。重启流程是关闭旧连接 - 等待 35 秒 - 重建新连接 - 重新订阅行情。35 秒的等待是为了确保交易所网关连接完全刷新。重启期间内存中的持仓、区间、拉黑名单全部保留，不受影响。</p>
+  </div>
+
+  <div style="text-align:center;margin:28px 0 20px;color:#ddd;font-size:1.2em;letter-spacing:6px;">◆ ◆ ◆</div>
+
+  <!-- ====== 八、总结 ====== -->
+  <div style="margin:24px 0;">
+    <h2 style="font-size:1.15em;font-weight:700;color:#1a1a1a;margin-bottom:14px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.4;">八、写在最后</h2>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">HVOB-MBI 不是一个试图"战胜市场"的策略。它的设计哲学很朴素：</p>
+
+    <ul style="padding-left:18px;margin-bottom:12px;font-size:0.95em;color:#444;">
+      <li style="margin-bottom:8px;"><b>波动不是风险，没有退出计划才是。</b> 所以它用多层次风控确保每一笔交易都有明确的止损和退出规则。</li>
+      <li style="margin-bottom:8px;"><b>方向重要，但仓位管理同样重要。</b> 所以它用 MBI 动态调整权重，用时间衰减控制入场时机。</li>
+      <li style="margin-bottom:8px;"><b>日内的核心是纪律。</b> 所以它强制收盘平仓，不留隔夜单到第二天。</li>
+    </ul>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">对于量化交易的入门者来说，HVOB-MBI 提供了一个很好的范例：<b>一个完整的交易系统，远不只是一个入场信号。</b>品种筛选怎么选、仓位怎么算、什么情况下不交易、什么情况下减仓、怎么止盈止损——这些加起来才是一个系统。</p>
+
+    <div style="background:#f8fafc;border:1px solid #e8e8ee;border-radius:8px;padding:16px 18px;margin:18px 0;">
+      <div style="font-size:0.9em;font-weight:700;color:#1a1a1a;margin-bottom:10px;">策略档案</div>
+      <div style="font-size:0.82em;color:#555;line-height:1.8;">
+        <b>策略名称：</b>HVOB-MBI 日内高波动突破系统<br>
+        <b>策略类型：</b>日内开盘区间突破 + 市场宽度指数<br>
+        <b>运行账户：</b>510978（初始资金 1,000,000）<br>
+        <b>启动时间：</b>2026-05-20<br>
+        <b>品种池：</b>商品期货全市场动态筛选（CFFEX 除外）<br>
+        <b>单笔风险：</b>账户权益的 0.5% | <b>盈亏比：</b>1:1.5<br>
+        <b>最大持仓：</b>5 个/天 | <b>平仓规则：</b>14:55 强制平仓<br>
+        <b>核心创新：</b>MBI 市场宽度指数 + 三阶段工作流
+      </div>
+    </div>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#444;">最后，用一句话总结这个策略的设计思想：<b>"开盘区间是你的锚，MBI 是你的帆，风控是你的救生衣。"</b></p>
+
+    <p style="margin-bottom:12px;font-size:0.95em;color:#999;text-align:center;margin-top:30px;padding-top:16px;border-top:1px solid #eee;">--- END ---</p>
+  </div>
+
+</div>
