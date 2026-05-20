@@ -44,10 +44,10 @@
 			</div>
 		</div>
 
-		<!-- 品种滑点统计 -->
+		<!-- 入场滑点统计 -->
 		<div class="section-card">
 			<div class="section-header">
-				<h3 class="section-title">品种滑点统计</h3>
+				<h3 class="section-title">入场滑点统计</h3>
 			</div>
 			<div class="section-body" style="position: relative;">
 				<div ref="slippageBySymbolRef" class="chart-container"></div>
@@ -1058,11 +1058,11 @@ const initSlippageBySymbolChart = async () => {
 	const isMobile = window.innerWidth < 480;
 
 	try {
-		const res: any = await getSlippageStats(accountId.value);
+		const res: any = await getSlippageStats(accountId.value, 'ENTRY,ADD_ON');
 		const symbolData = res?.data?.by_symbol;
 		if (!symbolData || !Array.isArray(symbolData) || symbolData.length === 0) {
 			chart.setOption({
-				title: { text: '品种滑点统计', left: 'center', textStyle: { fontSize: fontConfig.title } },
+				title: { text: '入场滑点统计', left: 'center', textStyle: { fontSize: fontConfig.title } },
 				graphic: [{ type: 'text', left: 'center', top: 'middle', style: { text: '暂无数据', fontSize: 14, fill: '#999' } }]
 			});
 			return;
