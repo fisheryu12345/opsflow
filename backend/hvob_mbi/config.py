@@ -18,7 +18,7 @@ NIGHT_OR_CLOSE = time(21, 30)  # 夜盘开盘区间结束
 DAY_OPEN = time(9, 0)
 DAY_OR_CLOSE = time(9, 30)     # 日盘开盘区间结束
 FORCE_CLOSE_TIME = time(14, 55)
-LAST_ENTRY_TIME = time(13, 30)
+LAST_ENTRY_TIME = time(14, 30)
 
 # === 筛选参数（默认值，可被 HvobMbiConfig 覆盖） ===
 ATR_PERCENT_RANK_TOP = 0.02    # ATR% > 2%
@@ -36,5 +36,5 @@ TIME_DECAY_SLOTS = [
     (time(9, 30), time(10, 30), 1.0),    # 9:30-10:30 正常仓位
     (time(10, 30), time(11, 30), 0.7),   # 10:30-11:30 70%
     (time(11, 30), time(13, 30), 0.5),   # 11:30-13:30 50%
-    (time(13, 30), time(14, 55), 0.3),   # 13:30-14:55 30%
+    (time(13, 30), time(14, 30), 0.3),   # 13:30-14:30 30%
 ]

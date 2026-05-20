@@ -3,7 +3,7 @@ HVOB-MBI 交易引擎：TqSDK wait_update 事件循环，时间相位驱动。
 
 相位流程：
   screening(启动) → night_or(21:00-21:30) → night_breakout(21:30-23:00)
-  → gap_check(9:00) → day_or(9:00-9:30) → day_breakout(9:30-14:55)
+  → gap_check(9:00) → day_or(9:00-9:30) → day_breakout(9:30-14:30)
   → force_close(14:55) → done
 """
 import time

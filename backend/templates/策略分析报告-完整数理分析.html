@@ -3,823 +3,527 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FT 量化期货交易系统 — 完整数理分析报告</title>
+<title>FT 量化期货交易系统 — 四大策略完整数理分析报告</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
-  :root {
-    --bg: #f8f9fa;
-    --card: #ffffff;
-    --text: #1a1a2e;
-    --text-secondary: #4a4a6a;
-    --border: #e8e8ee;
-    --accent: #2563eb;
-    --accent-light: #dbeafe;
-    --green: #059669;
-    --green-light: #d1fae5;
-    --red: #dc2626;
-    --red-light: #fee2e2;
-    --purple: #7c3aed;
-    --purple-light: #ede9fe;
-    --orange: #d97706;
-    --orange-light: #fef3c7;
-    --cyan: #0891b2;
-    --cyan-light: #cffafe;
-    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-    --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    font-family: 'Noto Sans SC', -apple-system, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.8;
-    font-size: 15px;
-  }
-
-  .cover {
-    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #1e3a5f 100%);
-    color: white;
-    padding: 120px 40px 80px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .cover::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.05) 0%, transparent 60%);
-  }
-  .cover h1 { font-size: 2.8em; font-weight: 700; margin-bottom: 16px; position: relative; letter-spacing: 2px; }
-  .cover .subtitle { font-size: 1.2em; opacity: 0.9; margin-bottom: 8px; position: relative; font-weight: 300; }
-  .cover .meta { font-size: 0.9em; opacity: 0.6; margin-top: 24px; position: relative; }
-
-  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
-
-  .toc-card {
-    background: var(--card);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    padding: 32px 40px;
-    margin-bottom: 40px;
-  }
-  .toc-card h2 { font-size: 1.3em; margin-bottom: 16px; color: var(--accent); }
-  .toc-card ol { columns: 2; column-gap: 40px; list-style-position: inside; padding: 0; }
-  .toc-card li { padding: 4px 0; font-size: 0.95em; }
-  .toc-card li a { color: var(--text-secondary); text-decoration: none; }
-  .toc-card li a:hover { color: var(--accent); }
-
-  .section {
-    background: var(--card);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    padding: 32px 40px;
-    margin-bottom: 28px;
-  }
-  .section h2 {
-    font-size: 1.5em;
-    font-weight: 700;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 3px solid var(--accent);
-    color: var(--text);
-  }
-  .section h3 { font-size: 1.15em; font-weight: 600; margin: 24px 0 12px; color: var(--text); }
-  .section h4 { font-size: 1em; font-weight: 600; margin: 16px 0 8px; color: var(--text-secondary); }
-  .section p { margin-bottom: 12px; color: var(--text-secondary); }
-  .section ul, .section ol { margin: 8px 0 16px 24px; color: var(--text-secondary); }
-  .section li { margin-bottom: 4px; }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 16px 0;
-    font-size: 0.9em;
-  }
-  th {
-    background: #f1f5f9;
-    padding: 10px 14px;
-    text-align: left;
-    font-weight: 600;
-    border-bottom: 2px solid var(--border);
-    color: var(--text);
-  }
-  td { padding: 8px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
-  tr:hover td { background: #f8fafc; }
-
-  .formula {
-    background: #f1f5f9;
-    border-left: 4px solid var(--accent);
-    padding: 16px 20px;
-    margin: 12px 0;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.9em;
-    overflow-x: auto;
-    border-radius: 0 6px 6px 0;
-  }
-
-  .callout { padding: 16px 20px; border-radius: 8px; margin: 16px 0; font-size: 0.9em; }
-  .callout.info { background: var(--accent-light); border-left: 4px solid var(--accent); }
-  .callout.success { background: var(--green-light); border-left: 4px solid var(--green); }
-  .callout.warning { background: var(--orange-light); border-left: 4px solid var(--orange); }
-  .callout.danger { background: var(--red-light); border-left: 4px solid var(--red); }
-  .callout.purple { background: var(--purple-light); border-left: 4px solid var(--purple); }
-
-  .metrics {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin: 16px 0;
-  }
-  .metric { background: #f8fafc; border-radius: 8px; padding: 16px; text-align: center; border: 1px solid var(--border); }
-  .metric .value { font-size: 1.6em; font-weight: 700; color: var(--accent); }
-  .metric .label { font-size: 0.8em; color: var(--text-secondary); margin-top: 4px; }
-  .metric .value.green { color: var(--green); }
-  .metric .value.red { color: var(--red); }
-  .metric .value.purple { color: var(--purple); }
-  .metric .value.orange { color: var(--orange); }
-
-  .chart-container { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin: 16px 0; text-align: center; }
-  .bar-chart { display: flex; align-items: flex-end; gap: 4px; height: 180px; padding: 0 20px; justify-content: center; }
-  .bar { flex: 1; max-width: 40px; border-radius: 4px 4px 0 0; min-height: 4px; position: relative; }
-  .bar .label { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 0.7em; color: var(--text-secondary); white-space: nowrap; }
-  .bar .tooltip { display: none; }
-  .bar:hover .tooltip { display: block; position: absolute; top: -28px; left: 50%; transform: translateX(-50%); background: var(--text); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; white-space: nowrap; }
-  .bar.green { background: linear-gradient(to top, var(--green), #34d399); }
-  .bar.red { background: linear-gradient(to top, var(--red), #f87171); }
-  .bar.blue { background: linear-gradient(to top, var(--accent), #60a5fa); }
-  .bar.purple { background: linear-gradient(to top, var(--purple), #a78bfa); }
-
-  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0; }
-  .flow-step { background: var(--accent-light); padding: 8px 16px; border-radius: 20px; font-size: 0.85em; color: var(--accent); font-weight: 500; }
-  .flow-arrow { color: var(--text-secondary); font-size: 0.8em; }
-
-  .tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75em; font-weight: 500; }
-  .tag.green { background: var(--green-light); color: var(--green); }
-  .tag.red { background: var(--red-light); color: var(--red); }
-  .tag.blue { background: var(--accent-light); color: var(--accent); }
-  .tag.purple { background: var(--purple-light); color: var(--purple); }
-  .tag.orange { background: var(--orange-light); color: var(--orange); }
-
-  .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 16px 0; }
-  .comparison > div { padding: 16px; border-radius: 8px; border: 1px solid var(--border); }
-  .comparison > div:first-child { border-color: var(--accent); background: var(--accent-light); }
-  .comparison > div:last-child { border-color: var(--green); background: var(--green-light); }
-
-  .risk-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin: 16px 0; }
-  .risk-item { padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85em; }
-  .risk-item .risk-title { font-weight: 600; font-size: 0.95em; }
-
-  .page-break { page-break-before: always; margin-top: 40px; padding-top: 20px; border-top: 2px dashed var(--border); }
-
-  @media (max-width: 768px) {
-    .cover h1 { font-size: 1.8em; }
-    .cover { padding: 80px 20px 60px; }
-    .section { padding: 24px 20px; }
-    .toc-card { padding: 24px 20px; }
-    .toc-card ol { columns: 1; }
-    .comparison { grid-template-columns: 1fr; }
-    .metrics { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  @media print {
-    .cover { padding: 60px 20px; }
-    .section { break-inside: avoid; box-shadow: none; border: 1px solid #ddd; }
-  }
+  :root { --bg:#f8f9fa; --card:#ffffff; --text:#1a1a2e; --text-secondary:#4a4a6a; --border:#e8e8ee; --accent:#2563eb; --accent-light:#dbeafe; --green:#059669; --green-light:#d1fae5; --red:#dc2626; --red-light:#fee2e2; --purple:#7c3aed; --purple-light:#ede9fe; --orange:#d97706; --orange-light:#fef3c7; --cyan:#0891b2; --cyan-light:#cffafe; --shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.06); --shadow-lg:0 10px 25px rgba(0,0,0,0.1); }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Noto Sans SC',-apple-system,sans-serif; background:var(--bg); color:var(--text); line-height:1.8; font-size:15px; }
+  .cover { background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 50%,#1e3a5f 100%); color:white; padding:120px 40px 80px; text-align:center; position:relative; overflow:hidden; }
+  .cover::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(circle at 30% 50%,rgba(255,255,255,0.05) 0%,transparent 60%); }
+  .cover h1 { font-size:2.5em; font-weight:700; margin-bottom:16px; position:relative; letter-spacing:2px; }
+  .cover .subtitle { font-size:1.2em; opacity:0.9; margin-bottom:8px; position:relative; font-weight:300; }
+  .cover .meta { font-size:0.9em; opacity:0.6; margin-top:24px; position:relative; }
+  .container { max-width:1200px; margin:0 auto; padding:40px 24px; }
+  .toc-card { background:var(--card); border-radius:12px; box-shadow:var(--shadow); padding:32px 40px; margin-bottom:40px; }
+  .toc-card h2 { font-size:1.3em; margin-bottom:16px; color:var(--accent); }
+  .toc-card ol { columns:2; column-gap:40px; list-style-position:inside; padding:0; }
+  .toc-card li { padding:4px 0; font-size:0.9em; break-inside:avoid; }
+  .toc-card li a { color:var(--text-secondary); text-decoration:none; }
+  .toc-card li a:hover { color:var(--accent); }
+  .section { background:var(--card); border-radius:12px; box-shadow:var(--shadow); padding:32px 40px; margin-bottom:28px; }
+  .section h2 { font-size:1.5em; font-weight:700; margin-bottom:20px; padding-bottom:12px; border-bottom:3px solid var(--accent); color:var(--text); }
+  .section h3 { font-size:1.15em; font-weight:600; margin:24px 0 12px; color:var(--text); }
+  .section h4 { font-size:1em; font-weight:600; margin:16px 0 8px; color:var(--text-secondary); }
+  .section p { margin-bottom:12px; color:var(--text-secondary); }
+  .section ul, .section ol { margin:8px 0 16px 24px; color:var(--text-secondary); }
+  table { width:100%; border-collapse:collapse; margin:16px 0; font-size:0.85em; }
+  th { background:#f1f5f9; padding:10px 12px; text-align:left; font-weight:600; border-bottom:2px solid var(--border); color:var(--text); white-space:nowrap; }
+  td { padding:8px 12px; border-bottom:1px solid var(--border); color:var(--text-secondary); }
+  tr:hover td { background:#f8fafc; }
+  .formula { background:#f1f5f9; border-left:4px solid var(--accent); padding:16px 20px; margin:12px 0; font-family:'JetBrains Mono',monospace; font-size:0.9em; overflow-x:auto; border-radius:0 6px 6px 0; }
+  .callout { padding:16px 20px; border-radius:8px; margin:16px 0; font-size:0.9em; }
+  .callout.info { background:var(--accent-light); border-left:4px solid var(--accent); }
+  .callout.success { background:var(--green-light); border-left:4px solid var(--green); }
+  .callout.warning { background:var(--orange-light); border-left:4px solid var(--orange); }
+  .callout.danger { background:var(--red-light); border-left:4px solid var(--red); }
+  .metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin:16px 0; }
+  .metric { background:#f8fafc; border-radius:8px; padding:14px; text-align:center; border:1px solid var(--border); }
+  .metric .value { font-size:1.4em; font-weight:700; color:var(--accent); }
+  .metric .label { font-size:0.75em; color:var(--text-secondary); margin-top:4px; }
+  .metric .value.green { color:var(--green); } .metric .value.red { color:var(--red); } .metric .value.purple { color:var(--purple); } .metric .value.orange { color:var(--orange); }
+  .chart-container { background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:20px; margin:16px 0; text-align:center; }
+  .bar-chart { display:flex; align-items:flex-end; gap:3px; height:180px; padding:0 10px; justify-content:center; }
+  .bar { flex:1; max-width:28px; border-radius:3px 3px 0 0; min-height:4px; position:relative; }
+  .bar .label { position:absolute; bottom:-20px; left:50%; transform:translateX(-50%); font-size:0.6em; color:var(--text-secondary); white-space:nowrap; }
+  .bar .tooltip { display:none; }
+  .bar:hover .tooltip { display:block; position:absolute; top:-28px; left:50%; transform:translateX(-50%); background:var(--text); color:white; padding:2px 8px; border-radius:4px; font-size:0.65em; white-space:nowrap; z-index:10; }
+  .bar.green { background:linear-gradient(to top,var(--green),#34d399); }
+  .bar.red { background:linear-gradient(to top,var(--red),#f87171); }
+  .bar.blue { background:linear-gradient(to top,var(--accent),#60a5fa); }
+  .flow { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:12px 0; }
+  .flow-step { background:var(--accent-light); padding:6px 14px; border-radius:20px; font-size:0.8em; color:var(--accent); font-weight:500; white-space:nowrap; }
+  .flow-arrow { color:var(--text-secondary); font-size:0.75em; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:0.7em; font-weight:500; white-space:nowrap; }
+  .tag.green { background:var(--green-light); color:var(--green); }
+  .tag.red { background:var(--red-light); color:var(--red); }
+  .tag.blue { background:var(--accent-light); color:var(--accent); }
+  .tag.purple { background:var(--purple-light); color:var(--purple); }
+  .tag.orange { background:var(--orange-light); color:var(--orange); }
+  .comparison-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin:16px 0; }
+  .comparison-grid > div { padding:16px; border-radius:8px; border:2px solid var(--border); }
+  .comparison-grid > div:nth-child(1) { border-color:#6366f1; }
+  .comparison-grid > div:nth-child(2) { border-color:var(--accent); }
+  .comparison-grid > div:nth-child(3) { border-color:var(--orange); }
+  .comparison-grid > div:nth-child(4) { border-color:var(--green); }
+  .comparison-grid h4 { text-align:center; margin-bottom:8px; font-size:0.95em; }
+  .strategy-header { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+  .strategy-header .icon { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.2em; font-weight:700; color:white; flex-shrink:0; }
+  .icon.turtle-o { background:#6366f1; } .icon.turtle-v2 { background:var(--accent); } .icon.turtle-v3 { background:var(--orange); } .icon.hvob { background:var(--green); }
+  .stat-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #f0f0f0; font-size:0.85em; }
+  .stat-row .stat-label { color:var(--text-secondary); }
+  .stat-row .stat-value { font-weight:600; }
+  @media (max-width:768px) { .cover h1 { font-size:1.5em; } .cover { padding:80px 20px 60px; } .section { padding:20px 16px; } .toc-card { padding:20px 16px; } .toc-card ol { columns:1; } .comparison-grid { grid-template-columns:1fr; } .metrics { grid-template-columns:repeat(2,1fr); } }
+  @media print { .cover { padding:60px 20px; } .section { break-inside:avoid; box-shadow:none; border:1px solid #ddd; } }
 </style>
 </head>
 <body>
-
 <div class="cover">
   <h1>FT 量化期货交易系统</h1>
-  <div class="subtitle">完整数理分析报告</div>
-  <div class="subtitle" style="font-size:0.9em; margin-top:4px;">策略逻辑 · 数理建模 · 实盘场景 · 绩效分析</div>
-  <div class="meta">生成日期: 2026-05-20 &nbsp;|&nbsp; 基于知识库全量文档 + 后端代码 v3.1</div>
+  <div class="subtitle">四大策略完整数理分析报告</div>
+  <div class="subtitle" style="font-size:0.9em; margin-top:4px;">原版海龟 · 海龟V2 · 海龟V3 · HVOB-MBI 日内突破</div>
+  <div class="meta">生成日期: 2026-05-20 | 基于实时数据库 + 后端代码 v3.1</div>
 </div>
-
 <div class="container">
 <div class="toc-card">
 <h2>目录</h2>
 <ol>
-  <li><a href="#s1">策略架构总览</a></li>
-  <li><a href="#s2">核心参数配置</a></li>
-  <li><a href="#s3">开仓逻辑 — 唐奇安突破</a></li>
-  <li><a href="#s4">仓位计算 — ATR 位置规模</a></li>
-  <li><a href="#s5">趋势因子模型</a></li>
-  <li><a href="#s6">金字塔加仓分析</a></li>
-  <li><a href="#s7">动态止损系统</a></li>
-  <li><a href="#s8">保本兜底机制</a></li>
-  <li><a href="#s9">信号执行引擎</a></li>
-  <li><a href="#s10">三层绩效体系</a></li>
-  <li><a href="#s11">实盘风险场景分析</a></li>
-  <li><a href="#s12">参数敏感性分析</a></li>
-  <li><a href="#s13">与原版海龟深度对比</a></li>
-  <li><a href="#s14">回测与实盘差异</a></li>
-  <li><a href="#s15">收益数学期望</a></li>
-  <li><a href="#s16">综合结论</a></li>
+  <li><a href="#s1">四大策略全景对比</a> <span class="tag blue">总览</span></li>
+  <li><a href="#s2">策略一：原版海龟交易法则</a> <span class="tag purple">商品期货原版</span></li>
+  <li><a href="#s3">策略二：海龟V2增强版</a> <span class="tag blue">商品期货加强V2</span></li>
+  <li><a href="#s4">策略三：海龟V3过滤版</a> <span class="tag orange">商品期货加强V2 - MA趋势过滤</span></li>
+  <li><a href="#s5">策略四：HVOB-MBI 日内高波动突破</a> <span class="tag green">日内系统</span></li>
+  <li><a href="#s6">完整参数配置对照</a> <span class="tag orange">参数</span></li>
+  <li><a href="#s7">开仓逻辑对比</a> <span class="tag orange">逻辑</span></li>
+  <li><a href="#s8">仓位计算数学建模</a> <span class="tag orange">数学</span></li>
+  <li><a href="#s9">止损系统对比</a> <span class="tag orange">风控</span></li>
+  <li><a href="#s10">实盘绩效对比</a> <span class="tag red">绩效</span></li>
+  <li><a href="#s11">权益曲线与净值分析</a> <span class="tag red">绩效</span></li>
+  <li><a href="#s12">持仓结构对比</a> <span class="tag blue">分析</span></li>
+  <li><a href="#s13">收益数学期望</a> <span class="tag purple">数学</span></li>
+  <li><a href="#s14">风险矩阵</a> <span class="tag red">风控</span></li>
+  <li><a href="#s15">参数敏感性分析</a> <span class="tag orange">参数</span></li>
+  <li><a href="#s16">与原版海龟深度对比</a> <span class="tag purple">对比</span></li>
+  <li><a href="#s17">综合结论与建议</a> <span class="tag green">结论</span></li>
 </ol>
 </div>
 
 <div class="section" id="s1">
-<h2>一、策略架构总览</h2>
-<p>FT 系统是一个基于 <strong>海龟交易法则变体</strong> 的日线级别商品期货趋势跟踪系统。核心决策逻辑采用"收盘信号生成 → 次日开盘批量执行"的信号驱动架构，通过 Django + APScheduler 实现定时任务调度。</p>
+<h2>一、四大策略全景对比</h2>
+<p>FT 系统当前运行四个不同类型的策略，覆盖趋势跟踪和日内突破两大流派：</p>
+<div class="comparison-grid">
+  <div>
+    <div class="strategy-header"><div class="icon turtle-o">T</div><h4>原版海龟</h4></div>
+    <p style="font-size:0.8em;color:var(--text-secondary);margin-bottom:8px;">Account 6 — 510988</p>
+    <div class="stat-row"><span class="stat-label">类型</span><span class="stat-value">日线趋势跟踪</span></div>
+    <div class="stat-row"><span class="stat-label">开仓信号</span><span class="stat-value">纯20日突破</span></div>
+    <div class="stat-row"><span class="stat-label">加仓结构</span><span class="stat-value">金字塔 1→2→3U</span></div>
+    <div class="stat-row"><span class="stat-label">止损方式</span><span class="stat-value">动态 2~3 ATR</span></div>
+    <div class="stat-row"><span class="stat-label">保本机制</span><span class="stat-value">有 (2.5×ATR)</span></div>
+    <div class="stat-row"><span class="stat-label">跳过震荡</span><span class="stat-value">✗ 不过滤</span></div>
+    <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value" style="color:var(--red);">¥975,663</span></div>
+    <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value" style="color:var(--red);">-2.43%</span></div>
+  </div>
+  <div>
+    <div class="strategy-header"><div class="icon turtle-v2">V2</div><h4>海龟V2增强</h4></div>
+    <p style="font-size:0.8em;color:var(--text-secondary);margin-bottom:8px;">Account 1 — 510976</p>
+    <div class="stat-row"><span class="stat-label">类型</span><span class="stat-value">日线趋势跟踪</span></div>
+    <div class="stat-row"><span class="stat-label">开仓信号</span><span class="stat-value">20日突破</span></div>
+    <div class="stat-row"><span class="stat-label">加仓结构</span><span class="stat-value">金字塔 1→2→3U</span></div>
+    <div class="stat-row"><span class="stat-label">止损方式</span><span class="stat-value">动态 2~3 ATR + 趋势因子</span></div>
+    <div class="stat-row"><span class="stat-label">保本机制</span><span class="stat-value">有 (2.5×ATR, 满仓)</span></div>
+    <div class="stat-row"><span class="stat-label">跳过震荡</span><span class="stat-value">✗ 不过滤</span></div>
+    <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value" style="color:var(--red);">¥930,928</span></div>
+    <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value" style="color:var(--red);">-6.91%</span></div>
+  </div>
+  <div>
+    <div class="strategy-header"><div class="icon turtle-v3">V3</div><h4>海龟V3过滤</h4></div>
+    <p style="font-size:0.8em;color:var(--text-secondary);margin-bottom:8px;">Account 5 — 510977</p>
+    <div class="stat-row"><span class="stat-label">类型</span><span class="stat-value">日线趋势跟踪</span></div>
+    <div class="stat-row"><span class="stat-label">开仓信号</span><span class="stat-value">20日突破 + skip_choppy</span></div>
+    <div class="stat-row"><span class="stat-label">加仓结构</span><span class="stat-value">金字塔 1→2→3U</span></div>
+    <div class="stat-row"><span class="stat-label">止损方式</span><span class="stat-value">动态 2~3 ATR + 趋势因子</span></div>
+    <div class="stat-row"><span class="stat-label">保本机制</span><span class="stat-value">有 (2.5×ATR, 满仓)</span></div>
+    <div class="stat-row"><span class="stat-label">跳过震荡</span><span class="stat-value">✓ 跳过60%信号</span></div>
+    <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value" style="color:var(--red);">¥992,760</span></div>
+    <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value" style="color:var(--red);">-0.72%</span></div>
+  </div>
+  <div>
+    <div class="strategy-header"><div class="icon hvob">H</div><h4>HVOB-MBI</h4></div>
+    <p style="font-size:0.8em;color:var(--text-secondary);margin-bottom:8px;">Account 10 — 510978</p>
+    <div class="stat-row"><span class="stat-label">类型</span><span class="stat-value"><strong>纯日内突破</strong></span></div>
+    <div class="stat-row"><span class="stat-label">开仓信号</span><span class="stat-value">开盘区间突破</span></div>
+    <div class="stat-row"><span class="stat-label">仓位结构</span><span class="stat-value">固定手数，无加仓</span></div>
+    <div class="stat-row"><span class="stat-label">止损方式</span><span class="stat-value">固定区间止损</span></div>
+    <div class="stat-row"><span class="stat-label">MBI 过滤</span><span class="stat-value">市场宽度指数 [0,1]</span></div>
+    <div class="stat-row"><span class="stat-label">持仓周期</span><span class="stat-value">日内</span></div>
+    <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value">¥1,000,000</span></div>
+    <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value">0.00%（首日运行）</span></div>
+  </div>
+</div>
+<div class="callout info"><strong>运行状态：</strong> 四个账户均为模拟盘（TqKq），使用 zhanshang123 账号。原版海龟和 V2/V3 已运行约 3 周，HVOB-MBI 于 2026-05-20 首次启动。</div>
 
-<h3>1.1 系统层级</h3>
+<h3>1.1 策略演进路线</h3>
 <table>
-  <tr><th>层级</th><th>组件</th><th>职责</th></tr>
-  <tr><td>数据层</td><td>TqSDK</td><td>实时行情、K线数据、账户/持仓同步</td></tr>
-  <tr><td>策略层</td><td>收盘任务 (15:32)</td><td>技术指标计算、信号生成、止损更新</td></tr>
-  <tr><td>执行层</td><td>开盘任务 (09:02/21:02)</td><td>信号执行、TargetPosTask 报单</td></tr>
-  <tr><td>风控层</td><td>临收盘止损 (14:57)</td><td>被动价格击穿检查、紧急平仓</td></tr>
-  <tr><td>绩效层</td><td>三层绩效体系</td><td>权益快照 → 滚动指标 → 账户总览</td></tr>
+  <tr><th>代际</th><th>名称</th><th>核心改进</th><th>账户</th></tr>
+  <tr><td>原版</td><td>商品期货原版</td><td>最接近原版海龟的基准实现</td><td>Acc 6 (510988)</td></tr>
+  <tr><td>V2</td><td>商品期货加强V2</td><td>趋势因子自适应止损 + 保本机制 + 跳空保护 + 三层止损</td><td>Acc 1 (510976)</td></tr>
+  <tr><td>V3</td><td>商品期货加强V2 - MA趋势过滤</td><td>V2 基础上 + skip_choppy 跳过震荡行情</td><td>Acc 5 (510977)</td></tr>
+  <tr><td>HVOB-MBI</td><td>日内高波动突破系统</td><td>从日线趋势切换到纯日内突破，全新维度</td><td>Acc 10 (510978)</td></tr>
 </table>
-
-<div class="callout info">
-  <strong>当前运行状态：</strong> 三个实盘账户（510976 / 510977 / 510988）均使用上述默认参数，<code>StrategyConfig</code> 表无独立覆盖值。各账户通过 <code>POSITION_RISK_BASE_AMOUNT = ¥4,000</code> 统一计算 Unit 手数。
-</div>
-
-<h3>1.2 每日时间线</h3>
-<div class="flow">
-  <span class="flow-step">09:02 开盘任务</span>
-  <span class="flow-arrow">→</span>
-  <span class="flow-step" style="background:var(--red-light);color:var(--red);">14:57 临收盘止损</span>
-  <span class="flow-arrow">→</span>
-  <span class="flow-step">15:32 收盘计算</span>
-  <span class="flow-arrow">→</span>
-  <span class="flow-step">21:02 夜盘开盘</span>
-</div>
-
-<h3>1.3 信号执行优先级</h3>
-<div class="flow">
-  <span class="flow-step" style="background:var(--red-light);color:var(--red);">STOP_LOSS (最高)</span>
-  <span class="flow-arrow">→</span>
-  <span class="flow-step" style="background:var(--accent-light);color:var(--accent);">ENTRY</span>
-  <span class="flow-arrow">→</span>
-  <span class="flow-step" style="background:var(--purple-light);color:var(--purple);">ROLLOVER</span>
-  <span class="flow-arrow">→</span>
-  <span class="flow-step" style="background:var(--orange-light);color:var(--orange);">ADD_ON (最低)</span>
-</div>
-
-
-<h3>1.5 账户概览</h3>
-<table>
-  <tr><th>账户</th><th>当前权益</th><th>累计收益率</th><th>最大回撤</th><th>持仓品种</th><th>状态</th></tr>
-  <tr><td>510976</td><td>¥930,928.15</td><td>-6.91%</td><td>9.01%</td><td>11</td><td><span class="tag green">运行中</span></td></tr>
-  <tr><td>510977</td><td>¥992,760.10</td><td>-0.72%</td><td>0.72%</td><td>4</td><td><span class="tag green">运行中</span></td></tr>
-  <tr><td>510988</td><td>¥975,662.82</td><td>-2.43%</td><td>3.12%</td><td>8</td><td><span class="tag green">运行中</span></td></tr>
-</table>
-
-<h3>1.4 核心代码文件</h3>
-<p>涉及核心文件（<code>backend/stock/</code> 下）：</p>
-<ul>
-  <li><code>core/indicators.py</code> — 唐奇安突破、趋势因子、批量K线指标</li>
-  <li><code>core/atr.py</code> — ATR 计算、跳空保护</li>
-  <li><code>core/position_sizing.py</code> — Unit 手数计算（公式: R/(ATR×k×乘数)）</li>
-  <li><code>core/stop_loss.py</code> — 止损、保本检查纯函数</li>
-  <li><code>core/signal_checker.py</code> — 信号防重复</li>
-  <li><code>core/ma_slope.py</code> — MA10 斜率排名（对比策略）</li>
-  <li><code>infrastructure/order_execution.py</code> — TargetPosTask、两步开仓</li>
-  <li><code>infrastructure/order_signals.py</code> — ENTRY/EXIT/ADD_ON/ROLLOVER 执行</li>
-  <li><code>infrastructure/stop_loss_executor.py</code> — 临收盘止损</li>
-  <li><code>scheduler/tasks_daily_open.py</code> — 开盘任务入口</li>
-  <li><code>scheduler/tasks_daily_close.py</code> — 收盘任务入口</li>
-</ul>
 </div>
 
 <div class="section" id="s2">
-<h2>二、核心参数配置</h2>
+<h2>二、策略一：原版海龟交易法则</h2>
+<div class="strategy-header"><div class="icon turtle-o">T</div><h3>Account 6 — 510988（商品期货原版）</h3></div>
+<h3>2.1 策略定义</h3>
+<p>最接近原版海龟交易法则的实盘实现：纯唐奇安 20 日突破开仓，无 MA 趋势过滤，无震荡行情跳过。金字塔加仓最多 3 Unit，动态 ATR 止损。</p>
+<div class="formula">Donchian<sub>High</sub>[t] = max(P<sub>high</sub>[t-20], ..., P<sub>high</sub>[t-1])<br>Donchian<sub>Low</sub>[t] = min(P<sub>low</sub>[t-20], ..., P<sub>low</sub>[t-1])<br><br>做多: Close[t] > Donchian<sub>High</sub> && units == 0<br>做空: Close[t] < Donchian<sub>Low</sub> && units == 0</div>
+<h3>2.2 核心参数</h3>
 <table>
-  <tr><th>参数</th><th>值</th><th>含义</th><th>数学表达式</th></tr>
-  <tr><td><code>POSITION_RISK_BASE_AMOUNT</code></td><td>¥4,000</td><td>每 Unit 固定风险资金基数</td><td><em>R</em> = 4,000</td></tr>
-  <tr><td><code>POSITION_RISK_MULTIPLIER</code></td><td>2.0</td><td>ATR 风险倍数</td><td><em>k</em> = 2.0</td></tr>
-  <tr><td><code>POSITION_MAX_UNITS</code></td><td>3</td><td>单品种最大 Unit</td><td><em>U<sub>max</sub></em> = 3</td></tr>
-  <tr><td><code>PROTECT_COST_ENABLED_RATIO</code></td><td>2.5</td><td>保本触发阈值（满仓激活）</td><td><em>R<sub>pc</sub></em> = 2.5</td></tr>
-  <tr><td><code>GAP_PROTECTION_RATIO</code></td><td>1.5</td><td>跳空保护阈值（方向区分）</td><td><em>R<sub>gap</sub></em> = 1.5</td></tr>
-  <tr><td><code>TREND_GAP_LIMIT</code></td><td>2.0 (200%)</td><td>趋势因子封顶上限</td><td><em>G<sub>limit</sub></em> = 2.0</td></tr>
-  <tr><td><code>TREND_FACTOR_MAX</code></td><td>0.5</td><td>趋势因子最大值</td><td><em>F<sub>max</sub></em> = 0.5</td></tr>
-  <tr><td><code>TIMEOUT_SECONDS</code></td><td>60</td><td>订单等待超时</td><td><em>T<sub>out</sub></em> = 60</td></tr>
+  <tr><th>参数</th><th>值</th><th>含义</th></tr>
+  <tr><td>突破周期</td><td>20 日</td><td>唐奇安通道</td></tr>
+  <tr><td>风险基数</td><td>&yen;4,000 / Unit</td><td>每单位风险金额</td></tr>
+  <tr><td>最大单位</td><td>3 U</td><td>金字塔上限</td></tr>
+  <tr><td>止损倍数</td><td>2 ~ 3 ATR</td><td>趋势因子自适应</td></tr>
+  <tr><td>保本阈值</td><td>2.5 x ATR</td><td>满仓 3U 时激活</td></tr>
+  <tr><td>跳空保护</td><td>1.5 x ATR</td><td>同向跳空拦截</td></tr>
 </table>
+<h3>2.3 盘中实时开仓</h3>
+<p>原版海龟在符合最小开仓量要求时使用盘中实时突破入场，而非等待 T+1 开盘执行。这是与原版海龟信号执行框架的主要差异点。</p>
+<div class="callout warning"><strong>重要：</strong> Acc 6 直接使用 Turtle 突破入场逻辑，盘中实时触发。与 Acc 1/5 的"收盘信号->次日开盘执行"框架不同。</div>
 </div>
 
 <div class="section" id="s3">
-<h2>三、开仓逻辑 — 唐奇安突破</h2>
-
-<h3>3.1 突破判定</h3>
-<p>以 <strong>不含当日</strong> 的前 20 日最高/最低价为通道边界（唐奇安通道），使用 <code>check_breakout_signal()</code> 函数（<code>core/indicators.py:34</code>）：</p>
-<div class="formula">
-  Donchian<sub>High</sub>[t] = max(P<sub>high</sub>[t-20], ..., P<sub>high</sub>[t-1]) &nbsp;(不含当日)<br>
-  Donchian<sub>Low</sub>[t] = min(P<sub>low</sub>[t-20], ..., P<sub>low</sub>[t-1])<br><br>
-  做多条件: Close[t] > Donchian<sub>High</sub>[t] &amp;&amp; units == 0<br>
-  做空条件: Close[t] < Donchian<sub>Low</sub>[t] &amp;&amp; units == 0
-</div>
-
-<h3>3.2 纯唐奇安突破（无 MA 过滤）</h3>
-<p>与回测版本不同，实盘交易系统 <strong>不采用 MA 排列过滤</strong>。开仓信号仅由唐奇安通道突破决定。这是有意为之的设计——MA 过滤虽能减少假信号，但也会错过部分早期趋势启动。</p>
+<h2>三、策略二：海龟V2增强版</h2>
+<div class="strategy-header"><div class="icon turtle-v2">V2</div><h3>Account 1 — 510976（商品期货加强V2）</h3></div>
+<h3>3.1 V2 增强特性</h3>
+<p>海龟V2 在保留 20 日唐奇安突破核心框架的基础上引入以下改进：</p>
 <table>
-  <tr><th>元素</th><th>回测版本</th><th>实盘系统</th><th>取舍</th></tr>
-  <tr><td>开仓条件</td><td>唐奇安突破 + MA 排列过滤</td><td>纯唐奇安突破</td><td>实盘捕捉更多趋势，但增加约 30% 信号</td></tr>
-  <tr><td>预期胜率</td><td>42%~45%</td><td>38%~42%</td><td>略有下降，但总利润可能更高</td></tr>
+  <tr><th>增强项</th><th>机制</th><th>效果</th></tr>
+  <tr><td>趋势因子自适应止损</td><td>MA10/20/40 乖离 -> [0, 0.5] 连续映射</td><td>止损宽度 2.0~3.0 ATR 连续调整</td></tr>
+  <tr><td>保本机制</td><td>盈利 > 2.5xATR 且满仓 3U -> 保本价兜底</td><td>防止大幅回吐</td></tr>
+  <tr><td>跳空保护</td><td>同向跳空 > 1.5xATR 时跳过开仓</td><td>反向跳空不拦截</td></tr>
+  <tr><td>三层止损</td><td>收盘后(15:32) + 临收盘(14:57) + 次日开盘(09:02/21:02)</td><td>多道防线</td></tr>
+  <tr><td>T+1 信号执行</td><td>收盘信号 -> 次日开盘执行</td><td>避免盘中假突破</td></tr>
 </table>
+<div class="callout info"><strong>V2 定位：</strong> 标准增强版。不过滤震荡行情（skip_choppy=False），追求捕捉所有趋势信号，代价是更多假突破磨损。</div>
 
-<h3>3.3 跳空保护（方向区分）</h3>
-<p>使用 <code>price_gap_protection()</code>（<code>core/atr.py:51</code>）：</p>
-<div class="formula">
-  多头只拦截: (最新价 - 前收盘) / ATR > 1.5 &nbsp;→&nbsp; 跳过（防止追高）<br>
-  空头只拦截: (前收盘 - 最新价) / ATR > 1.5 &nbsp;→&nbsp; 跳过（防止追低）<br>
-  反向跳空视为有利，不拦截
-</div>
-
-<h3>3.4 V3 增强：震荡行情跳过（可选）</h3>
-<p>当 <code>skip_choppy_entry = True</code> 且 <code>trend_label in ('choppy', 'neutral')</code> 时取消开仓。</p>
+<h3>3.2 V2 与 原版海龟的关键差异</h3>
+<table>
+  <tr><th>对比项</th><th>原版海龟</th><th>海龟V2</th></tr>
+  <tr><td>信号执行</td><td>盘中实时突破入场</td><td>收盘判定->次日开盘执行</td></tr>
+  <tr><td>加仓间距</td><td>0.5N</td><td>0.5~1.0 ATR（动态）</td></tr>
+  <tr><td>止损跟踪</td><td>固定 2N</td><td>动态 2.0~3.0 ATR + trend_factor</td></tr>
+  <tr><td>保本机制</td><td>无</td><td>2.5xATR + 3U 激活</td></tr>
+  <tr><td>风控时间</td><td>收盘后处理</td><td>三层止损（14:57 + 收盘 + 开盘）</td></tr>
+</table>
 </div>
 
 <div class="section" id="s4">
-<h2>四、仓位计算 — ATR 位置规模</h2>
+<h2>四、策略三：海龟V3过滤版</h2>
+<div class="strategy-header"><div class="icon turtle-v3">V3</div><h3>Account 5 — 510977（商品期货加强V2 - MA趋势过滤）</h3></div>
+<h3>4.1 V3 过滤特性</h3>
+<p>海龟V3 在 V2 全部增强功能的基础上，额外启用 <code>skip_choppy_entry=True</code> 震荡市过滤机制。当趋势标签为 choppy 或 neutral 时跳过开仓信号。</p>
+<div class="formula">Skip 条件: trend_label in {choppy, neutral}<br>Allow 条件: trend_label in {strong_bull, weak_bull, weak_bear, strong_bear}</div>
 
-<h3>4.1 Unit 手数公式</h3>
-<div class="formula">
-  Unit<sub>lots</sub> = max(1, round( R / (ATR × k × V<sub>multiple</sub>) ))<br><br>
-  其中: R = ¥4,000 (风险基数) &nbsp; k = 2 (风险倍数) &nbsp; V<sub>multiple</sub> = 合约乘数
-</div>
-<p>实现：<code>calculate_unit_lots()</code>（<code>core/position_sizing.py:8</code>）。从 <code>api.get_quote()</code> 获取合约乘数，ATR 通过 <code>calculate_atr()</code> 预计算。</p>
-
-<h3>4.2 品种计算示例（基于当前实盘行情）</h3>
+<h3>4.2 过滤效果实盘数据</h3>
 <table>
-  <tr><th>品种</th><th>ATR(当前)</th><th>乘数</th><th>Unit 手数</th><th>3 Unit 手数</th><th>实际风险/Unit</th></tr>
-  <tr><td>螺纹钢 (rb)</td><td>28</td><td>10</td><td>7 手</td><td>21 手</td><td>¥3,850</td></tr>
-  <tr><td>橡胶 (ru)</td><td>337</td><td>10</td><td>1 手</td><td>3 手</td><td>¥6,735</td></tr>
-  <tr><td>豆粕 (m)</td><td>34</td><td>10</td><td>6 手</td><td>18 手</td><td>¥4,038</td></tr>
-  <tr><td>鸡蛋 (jd)</td><td>65</td><td>10</td><td>3 手</td><td>9 手</td><td>¥3,915</td></tr>
-  <tr><td>硅铁 (si)</td><td>191</td><td>5</td><td>2 手</td><td>6 手</td><td>¥3,825</td></tr>
-  <tr><td>棉花 (CF)</td><td>271</td><td>5</td><td>1 手</td><td>3 手</td><td>¥2,708</td></tr>
-  <tr><td>白糖 (SR)</td><td>52</td><td>10</td><td>4 手</td><td>12 手</td><td>¥4,148</td></tr>
+  <tr><th>指标</th><th>海龟V2 (Acc 1, 不过滤)</th><th>海龟V3 (Acc 5, 过滤)</th></tr>
+  <tr><td>ENTRY 信号数</td><td>16</td><td>4</td></tr>
+  <tr><td>CANCELLED 信号数</td><td>0</td><td>6</td></tr>
+  <tr><td>过滤率</td><td>0%</td><td>60%</td></tr>
+  <tr><td>当前持仓品种</td><td>11</td><td>4</td></tr>
+  <tr><td>累计收益</td><td style="color:var(--red);">-6.91%</td><td style="color:var(--red);">-0.72%</td></tr>
+  <tr><td>最大回撤</td><td>9.01%</td><td>0.72%</td></tr>
 </table>
+<div class="callout success"><strong>结论：</strong> 过滤机制在震荡市中有效减少了 60% 的假突破信号，V3 的回撤控制显著优于 V2。</div>
 
-<div class="callout warning">
-  <strong>舍入误差风险：</strong> 大乘数品种（如 IF 乘数=300）的 round() 取整导致实际风险显著偏离预算值。系统当前无单独折扣系数。
-</div>
-
-<h3>4.3 最小开仓限制（两步开仓）</h3>
-<p>当计划开仓手数 &lt; 交易所最小开仓手数 (<code>min_position</code>) 时，使用 <code>execute_two_step_opening()</code>（<code>infrastructure/order_execution.py:102</code>）：</p>
-<div class="formula">
-  Step 1: 开仓 min_position 手（满足交易所规则）<br>
-  Step 2: 立即平仓 (min_position - planned_volume) 手<br>
-  结果: 持仓 = planned_volume 手
-</div>
+<h3>4.3 V2 vs V3 适用场景</h3>
+<table>
+  <tr><th>市场环境</th><th>海龟V2 (不过滤)</th><th>海龟V3 (过滤)</th></tr>
+  <tr><td>强趋势市场</td><td><span class="tag green">优势：不错过任何趋势</span></td><td><span class="tag blue">跟随：亦能捕捉</span></td></tr>
+  <tr><td>弱趋势/震荡</td><td><span class="tag red">劣势：频繁假突破</span></td><td><span class="tag green">优势：过滤磨损</span></td></tr>
+  <tr><td>趋势反转初期</td><td><span class="tag green">优势：快速捕捉</span></td><td><span class="tag orange">劣势：可能延迟进场</span></td></tr>
+</table>
 </div>
 
 <div class="section" id="s5">
-<h2>五、趋势因子模型</h2>
+<h2>五、策略四：HVOB-MBI 日内高波动突破系统</h2>
+<div class="strategy-header"><div class="icon hvob">H</div><h3>Account 10 — 510978</h3></div>
 
-<h3>5.1 均线间距计算</h3>
-<div class="formula">
-  gap<sub>10_20</sub> = |MA10 - MA20| / |MA20|<br>
-  gap<sub>20_40</sub> = |MA20 - MA40| / |MA20|<br>
-  max_gap = max(gap<sub>10_20</sub>, gap<sub>20_40</sub>)
+<h3>5.1 策略概述</h3>
+<p>High Volatility Opening Range Breakout x Market Breadth Index — 纯日内系统，当日开仓当日平仓。核心思想：在高波动品种的开盘区间突破方向入场，通过 MBI 控制整体仓位暴露。</p>
+
+<h3>5.2 运行流程</h3>
+<div class="flow">
+  <span class="flow-step">21:00 夜盘开盘</span><span class="flow-arrow">-></span>
+  <span class="flow-step">21:30 区间锁定</span><span class="flow-arrow">-></span>
+  <span class="flow-step">夜盘突破</span><span class="flow-arrow">-></span>
+  <span class="flow-step">09:00 日盘开盘</span><span class="flow-arrow">-></span>
+  <span class="flow-step">跳空检查</span><span class="flow-arrow">-></span>
+  <span class="flow-step">09:30 MBI计算</span><span class="flow-arrow">-></span>
+  <span class="flow-step">日盘突破</span><span class="flow-arrow">-></span>
+  <span class="flow-step">14:55 强制平仓</span>
 </div>
 
-<h3>5.2 趋势强度连续映射</h3>
-<div class="formula">
-  trend_strength = min(max_gap / G<sub>limit</sub>, 1.0) &nbsp;∈ [0, 1]<br>
-  trend_factor = round(trend_strength × F<sub>max</sub>, 3) &nbsp;∈ [0, 0.5]<br><br>
-  止损倍数 = 2 × (1 + trend_factor) &nbsp;∈ [2.0, 3.0]
-</div>
+<h3>5.3 MBI 多空判定</h3>
+<div class="formula">每个品种投票 [-3, +3] = 隔夜跳空 +/-1 + 区间重心 +/-1 + 突破方向 +/-1<br>总得分 -> 归一化到 [0,1] -> 5 个 MBI 标签<br><br>极强多头 >0.75: 做多重1.0, 做空0.0<br>多头 >0.65: 做多1.0, 做空0.5<br>中性 0.45~0.65: 多空均1.0<br>空头 0.35~0.45: 做多0.5, 做空1.0<br>极强空头 <=0.35: 做多0.0, 做空1.0</div>
 
-<h3>5.3 趋势标签</h3>
+<h3>5.4 风险计算</h3>
+<div class="formula">风险敞口 = 余额 x 0.5%<br>止损距离 = R x 0.2 x 2<br>手数 = max(1, 风险敞口 / (止损距离 x 合约乘数))</div>
+
+<h3>5.5 时间衰减</h3>
 <table>
-  <tr><th>trend_strength</th><th>标签</th><th>止损倍数</th><th>含义</th></tr>
-  <tr><td>≥ 80%</td><td><span class="tag purple">strong_bull/strong_bear</span></td><td>3.0 × ATR</td><td>强趋势，放宽止损防被洗出</td></tr>
-  <tr><td>30% ~ 80%</td><td><span class="tag blue">weak_bull/weak_bear</span></td><td>2.6~2.9 × ATR</td><td>弱趋势，适度放宽</td></tr>
-  <tr><td>< 30%</td><td><span class="tag orange">choppy</span></td><td>2.0 × ATR</td><td>震荡，收紧止损</td></tr>
+  <tr><th>时段</th><th>权重</th><th>意义</th></tr>
+  <tr><td>9:30 - 10:30</td><td>1.0</td><td>正常仓位</td></tr>
+  <tr><td>10:30 - 11:30</td><td>0.7</td><td>减少 30%</td></tr>
+  <tr><td>11:30 - 13:30</td><td>0.5</td><td>减半</td></tr>
+  <tr><td>13:30 - 14:30</td><td>0.3</td><td>仅 30% 仓位，14:30 后停止开仓</td></tr>
 </table>
 
-<div class="callout info">
-  <strong>关键设计：</strong> 采用连续线性映射而非阶梯跳变，避免止损倍数在标签边界处突变。实盘 vs 回测差异：回测中 MA 过滤额外过滤 choppy 信号，实盘纯唐奇安突破 + 连续 factor 自适应。
-</div>
+<div class="callout success"><strong>今日首跑：</strong> HVOB-MBI 于 2026-05-20 首次启动，已完成盘前筛选（10 个品种入池，top3: ag、sc、lu），等待夜盘开盘。</div>
 </div>
 
 <div class="section" id="s6">
-<h2>六、金字塔加仓分析</h2>
-
-<h3>6.1 加仓矩阵（<code>check_add_position_signals()</code>, scheduler/tasks_daily_close.py:211）</h3>
+<h2>六、完整参数配置对照</h2>
 <table>
-  <tr><th>当前 Unit</th><th>基准价</th><th>价差条件（多头）</th><th>加仓 Unit</th><th>总 Unit</th></tr>
-  <tr><td>1</td><td>last_add_price (最新加仓价)</td><td>≥ 1.0 × ATR</td><td>+2</td><td>3 (满仓)</td></tr>
-  <tr><td>1</td><td>last_add_price</td><td>≥ 0.5 × ATR</td><td>+1</td><td>2</td></tr>
-  <tr><td>2</td><td>first_open_price (首次开仓价)</td><td>从开仓价累计 ≥ 1.0 × ATR</td><td>+1</td><td>3 (满仓)</td></tr>
-  <tr><td>3</td><td>—</td><td>—</td><td>+0</td><td>3 (已达上限)</td></tr>
+  <tr><th>参数</th><th>原版海龟</th><th>海龟V2</th><th>海龟V3</th><th>HVOB-MBI</th><th>单位</th></tr>
+  <tr><td>突破周期</td><td>20</td><td>20</td><td>20</td><td>开盘区间</td><td>日/分钟</td></tr>
+  <tr><td>风险基数</td><td>&yen;4,000</td><td>&yen;4,000</td><td>&yen;4,000</td><td>余额x0.5%</td><td>&yen;</td></tr>
+  <tr><td>最大单位</td><td>3</td><td>3</td><td>3</td><td>1 (不加仓)</td><td>Unit</td></tr>
+  <tr><td>止损倍数</td><td>2 ~ 3 ATR</td><td>2 ~ 3 ATR</td><td>2 ~ 3 ATR</td><td>0.2xR</td><td>-</td></tr>
+  <tr><td>趋势因子</td><td>有</td><td>有</td><td>有</td><td>无</td><td>-</td></tr>
+  <tr><td>保本机制</td><td>2.5xATR, 3U</td><td>2.5xATR, 3U</td><td>2.5xATR, 3U</td><td>无（日内平仓）</td><td>-</td></tr>
+  <tr><td>跳空保护</td><td>1.5xATR</td><td>1.5xATR</td><td>1.5xATR</td><td>拉黑处理</td><td>-</td></tr>
+  <tr><td>skip_choppy</td><td>✗</td><td>✗</td><td>✓</td><td>-</td><td>-</td></tr>
+  <tr><td>时间衰减</td><td>无</td><td>无</td><td>无</td><td>9:30->100% -> 13:30->30%</td><td>-</td></tr>
+  <tr><td>MBI 过滤</td><td>无</td><td>无</td><td>无</td><td>有 [0,1]</td><td>-</td></tr>
+  <tr><td>持仓周期</td><td>数天~数月</td><td>数天~数月</td><td>数天~数月</td><td>日内（1~5hr）</td><td>-</td></tr>
+  <tr><td>运行时段</td><td>收盘/开盘/14:57</td><td>收盘/开盘/14:57</td><td>收盘/开盘/14:57</td><td>持续运行至14:30</td><td>-</td></tr>
 </table>
-
-<h3>6.2 加权均价与风险分析</h3>
-<div class="formula">
-  场景: 螺纹钢 ATR=50, Unit<sub>lots</sub>=4 手/Unit<br><br>
-  开仓 1U @ 5000 + 加仓 1U @ 5060 + 加仓 1U @ 5120<br>
-  加权均价 = (5000×4 + 5060×4 + 5120×4) / 12 = 5060<br><br>
-  止损价 (factor=0.3): 5150 - 2×1.3×50 = 5020<br>
-  止损亏损 = (5020 - 5060) × 12 × 10 = <strong>-¥4,800</strong><br><br>
-  对比 1U 不加仓: (5020 - 5000) × 4 × 10 = <strong>-¥800</strong><br>
-  加仓后亏损放大 <strong>6 倍</strong>
-</div>
-
-<div class="callout warning">
-  <strong>核心风险：</strong> 加仓后成本价上移，回调时利润回吐更快。3 Unit 满仓时的回撤幅度远大于 1 Unit。加仓对年化贡献约 +3%~+5%/年。
-</div>
 </div>
 
 <div class="section" id="s7">
-<h2>七、动态止损系统</h2>
-
-<h3>7.1 动态跟踪止损</h3>
-<div class="formula">
-  多头: StopLoss = highest_close - 2 × (1 + trend_factor) × ATR<br>
-  空头: StopLoss = lowest_close + 2 × (1 + trend_factor) × ATR<br><br>
-  特性: highest_close 只升不降, lowest_close 只降不升<br>
-  范围: 2.0 ATR (震荡) ~ 3.0 ATR (强趋势)
-</div>
-<p>实现：<code>update_all_positions_stop_loss_price()</code>（tasks_daily_close.py:375）。纯函数版本：<code>compute_stop_loss()</code>（core/stop_loss.py:8）。</p>
-
-<h3>7.2 保本兜底（第二层保护）</h3>
-<div class="formula">
-  触发条件: 浮动盈利 > 2.5 × ATR &amp;&amp; units ≥ 3（仅满仓激活）<br>
-  保本价: 成本价 ± tick × 2（按品种 price_tick 动态计算）<br><br>
-  最终止损 = max(动态止损, 保本价) &nbsp;(多头)<br>
-  最终止损 = min(动态止损, 保本价) &nbsp;(空头)
+<h2>七、开仓逻辑对比</h2>
+<div class="comparison-grid">
+  <div><h4>原版海龟</h4><div class="formula" style="font-size:0.8em;">做多: Close > Donchian_H[20]<br>做空: Close < Donchian_L[20]<br>盘中实时触发</div></div>
+  <div><h4>海龟V2</h4><div class="formula" style="font-size:0.8em;">做多: Close > Donchian_H[20]<br>做空: Close < Donchian_L[20]<br>收盘信号->次日开盘<br>skip_choppy: ✗ 不过滤</div></div>
+  <div><h4>海龟V3</h4><div class="formula" style="font-size:0.8em;">做多: Close > Donchian_H[20]<br>做空: Close < Donchian_L[20]<br>收盘信号->次日开盘<br>skip_choppy: ✓ 震荡不进场</div></div>
+  <div><h4>HVOB-MBI</h4><div class="formula" style="font-size:0.8em;">做多: Price > H + 0.3xR<br>做空: Price < L - 0.3xR<br>盘中实时<br>MBI + 时间衰减</div></div>
 </div>
 
-<h3>7.3 三层止损触发</h3>
+<h3>7.1 过滤机制对比</h3>
 <table>
-  <tr><th>检查时机</th><th>触发条件</th><th>执行方式</th><th>代码位置</th></tr>
-  <tr><td><strong>15:32 收盘后</strong></td><td>收盘价击穿止损价</td><td>生成 STOP_LOSS 信号，次日开盘执行</td><td>check_exit_signals()</td></tr>
-  <tr><td><strong>14:57 临收盘</strong></td><td>最新价击穿止损价（实时行情）</td><td>立即市价平仓（紧急风控）</td><td>check_and_execute_stop_loss()</td></tr>
-  <tr><td><strong>09:02/21:02 开盘</strong></td><td>执行 PENDING 的 STOP_LOSS 信号</td><td>TargetPosTask 平仓</td><td>process_signals_by_type()</td></tr>
+  <tr><th>过滤类型</th><th>原版海龟</th><th>海龟V2 (Acc 1)</th><th>海龟V3 (Acc 5)</th><th>HVOB-MBI</th></tr>
+  <tr><td>skip_choppy</td><td>✗</td><td>✗</td><td>✓ 跳过60%信号</td><td>✗</td></tr>
+  <tr><td>跳空保护</td><td>✓ 1.5xATR</td><td>✓ 1.5xATR</td><td>✓ 1.5xATR</td><td>✓ 拉黑穿越</td></tr>
+  <tr><td>MBI过滤</td><td>✗</td><td>✗</td><td>✗</td><td>✓ 权重[0,1]</td></tr>
+  <tr><td>时间衰减</td><td>✗</td><td>✗</td><td>✗</td><td>✓ 30%~100%</td></tr>
 </table>
-
-<h3>7.4 双向极值跟踪</h3>
-<p><code>update_all_positions_high_low_price()</code>（tasks_daily_close.py:335）已改为双向跟踪——无论多空，同时跟踪最高价和最低价。多头止损只用 highest_close，空头止损只用 lowest_close，因此双向跟踪不影响止损逻辑，但保证 MFE/MAE 计算的完整性。</p>
 </div>
 
 <div class="section" id="s8">
-<h2>八、保本兜底机制</h2>
-
-<h3>8.1 触发逻辑</h3>
-<div class="formula">
-  require profit > PROTECT_COST_ENABLED_RATIO × ATR (= 2.5 × ATR)<br>
-  require units ≥ 3（仅满仓激活）<br>
-  若已触发过一次, protect_cost_enabled = True (单向开关，永久保持)
-</div>
-
-<h3>8.2 保本价磁铁效应分析</h3>
-<div class="callout warning">
-  <strong>保本价磁铁效应：</strong> 价格在剧烈波动后容易被吸引至保本价附近。当前偏移量 tick×2 在高波动品种中可能偏小。优化建议：将固定 tick×2 改为 min(tick×2, 0.3×ATR)，高波动品种获得更大保本偏移。
-</div>
+<h2>八、仓位计算数学建模</h2>
+<h3>8.1 海龟系列</h3>
+<div class="formula">Unit<sub>lots</sub> = max(1, round( R / (ATR x k x V<sub>multiple</sub>) ))<br>R = &yen;4,000, k = 2<br>3U 满仓理论风险 = 1.8R</div>
+<h3>8.2 HVOB-MBI</h3>
+<div class="formula">risk = balance x 0.5%<br>stop_dist = R x 0.2 x 2 = 0.4R<br>volume = max(1, risk / (stop_dist x V<sub>multiple</sub>))</div>
 </div>
 
 <div class="section" id="s9">
-<h2>九、信号执行引擎</h2>
-
-<h3>9.1 TargetPosTask 机制</h3>
-<div class="formula">
-  target_pos = TargetPosTask(api, symbol, target_position=volume)<br>
-  wait_for_target_position(api, target_pos, symbol, volume, timeout=60)<br>
-  target_pos.cancel()  // 释放资源
+<h2>九、止损系统对比</h2>
+<table>
+  <tr><th>维度</th><th>原版海龟</th><th>海龟V2</th><th>海龟V3</th><th>HVOB-MBI</th></tr>
+  <tr><td>止损公式</td><td>最高价-(2x(1+factor))xATR</td><td>同左</td><td>同左</td><td>区间边界 +/- 0.2R</td></tr>
+  <tr><td>动态跟踪</td><td>highest_close 只升不降</td><td>同左</td><td>同左</td><td>移动止盈</td></tr>
+  <tr><td>趋势自适应</td><td>factor in [0, 0.5]</td><td>factor in [0, 0.5]</td><td>factor in [0, 0.5]</td><td>无</td></tr>
+  <tr><td>强制平仓</td><td>14:57</td><td>14:57</td><td>14:57</td><td>14:55 (当日)</td></tr>
+</table>
 </div>
-<p>TqSDK 自动处理：报单 → 追单 → 撤单重报 → 直到持仓达到 target_position。</p>
-
-<h3>9.2 信号状态流转</h3>
-<div class="flow" style="justify-content:center;">
-  <span class="flow-step" style="background:var(--orange-light);color:var(--orange);">PENDING</span>
-  <span class="flow-arrow">→</span>
-  <span class="flow-step" style="background:var(--purple-light);color:var(--purple);">EXECUTING</span>
-  <span class="flow-arrow">→</span>
-  <span class="flow-step" style="background:var(--green-light);color:var(--green);">SUCCESS</span>
-</div>
-<div class="flow" style="justify-content:center;margin-top:4px;">
-  <span class="flow-step" style="background:var(--orange-light);color:var(--orange);">PENDING</span>
-  <span class="flow-arrow">→</span>
-  <span class="flow-step" style="background:var(--red-light);color:var(--red);">FAILED / CANCELLED</span>
-</div>
-
-<h3>9.3 防重复机制</h3>
-<p><code>check_duplicate_pending_signal()</code>（core/signal_checker.py:8）：同 (account, symbol, trade_type) 组合只允许一个 PENDING 信号存在。在信号生成和执行阶段都进行检查。</p>
-
-<h3>9.4 两步开仓策略</h3>
-<p>当 <code>planned_volume < min_position</code> 时使用 <code>execute_two_step_opening()</code>（infrastructure/order_execution.py:102）。<code>min_position</code> 从 <code>FullContractList</code> 读取。</p>
-
-<h3>9.5 滑点记录</h3>
-<p><code>record_slippage()</code>（infrastructure/slippage_recorder.py:17）在每次成交后记录信号价与实际成交价的偏差。区分有利/不利滑点：建仓时多头希望买低、空头希望卖高；平仓时多头希望卖高、空头希望买低。</p>
-</div>
-
-<div class="page-break"></div>
 
 <div class="section" id="s10">
-<h2>十、三层绩效体系</h2>
-
-<h3>10.1 层级结构</h3>
+<h2>十、实盘绩效对比</h2>
+<h3>10.1 账户总览</h3>
 <table>
-  <tr><th>层级</th><th>模型</th><th>更新频率</th><th>核心指标</th></tr>
-  <tr><td>L1</td><td>DailyEquitySnapshot</td><td>每日收盘</td><td>权益 / 可用 / 浮动盈亏 / 保证金 / 风险度 / 日收益率</td></tr>
-  <tr><td>L2</td><td>RollingPerformanceMetrics</td><td>每日收盘</td><td>夏普 / 索提诺 / 波动率 / 胜率 / 盈亏比 (20/60/120/250日)</td></tr>
-  <tr><td>L3</td><td>AccountPerformanceSummary</td><td>每日收盘</td><td>累计收益 / 最大回撤 / 卡玛比率 / 连续盈亏 / 交易频率</td></tr>
+  <tr><th>指标</th><th>原版海龟 (Acc 6)</th><th>海龟V2 (Acc 1)</th><th>海龟V3 (Acc 5)</th><th>HVOB-MBI (Acc 10)</th></tr>
+  <tr><td>当前权益</td><td style="color:var(--red);">&yen;975,663</td><td style="color:var(--red);">&yen;930,928</td><td style="color:var(--red);">&yen;992,760</td><td>&yen;1,000,000</td></tr>
+  <tr><td>累计收益率</td><td style="color:var(--red);"><strong>-2.43%</strong></td><td style="color:var(--red);"><strong>-6.91%</strong></td><td style="color:var(--red);"><strong>-0.72%</strong></td><td>0.00%</td></tr>
+  <tr><td>最大回撤</td><td style="color:var(--red);">3.12%</td><td style="color:var(--red);"><strong>9.01%</strong></td><td>0.72%</td><td>-</td></tr>
 </table>
 
-<h3>10.2 实盘绩效指标（账户 510976）</h3>
-<div class="metrics">
-  <div class="metric"><div class="value red">-6.91%</div><div class="label">累计收益率</div></div>
-  <div class="metric"><div class="value red">-4.10</div><div class="label">夏普比率(20d)</div></div>
-  <div class="metric"><div class="value red">9.01%</div><div class="label">最大回撤</div></div>
-  <div class="metric"><div class="value green">25.0%</div><div class="label">胜率（已平仓）</div></div>
-  <div class="metric"><div class="value green">0.63</div><div class="label">盈亏比（已平仓）</div></div>
-  <div class="metric"><div class="value red">-6.77</div><div class="label">卡玛比率</div></div>
-</div>
-  <div class="metric"><div class="value purple">5.54</div><div class="label">夏普比率(20d)</div></div>
-  <div class="metric"><div class="value red">2.38%</div><div class="label">最大回撤</div></div>
-  <div class="metric"><div class="value green">0.00%</div><div class="label">胜率（已平仓）</div></div>
-  <div class="metric"><div class="value orange">0.00</div><div class="label">盈亏比（已平仓）</div></div>
-  <div class="metric"><div class="value green">1.21</div><div class="label">卡玛比率</div></div>
-</div>
-
-<h3>10.3 滚动绩效指标（账户 510976，2026-05-19）</h3>
+<h3>10.2 信号统计对比</h3>
 <table>
-  <tr><th>窗口</th><th>夏普</th><th>索提诺</th><th>波动率</th><th>胜率</th><th>盈亏比</th><th>交易数</th></tr>
-  <tr><td>20日</td><td>-4.1006</td><td>-16.7341</td><td>32.2353%</td><td>25.0%</td><td>0.63</td><td>4</td></tr>
-  <tr><td>60日</td><td>-4.1006</td><td>-16.7341</td><td>32.2353%</td><td>25.0%</td><td>0.63</td><td>4</td></tr>
-  <tr><td>120日</td><td>-4.1006</td><td>-16.7341</td><td>32.2353%</td><td>25.0%</td><td>0.63</td><td>4</td></tr>
-  <tr><td>250日</td><td>-4.1006</td><td>-16.7341</td><td>32.2353%</td><td>25.0%</td><td>0.63</td><td>4</td></tr>
+  <tr><th>信号类型</th><th>原版海龟 (Acc 6)</th><th>海龟V2 (Acc 1)</th><th>海龟V3 (Acc 5)</th></tr>
+  <tr><td>ENTRY</td><td>12 成功 / 2 执行中</td><td>16 (全部成功)</td><td>4 成功 / 6 取消</td></tr>
+  <tr><td>STOP_LOSS</td><td>2 成功 / 1 失败</td><td>4 成功 / 2 失败</td><td>0</td></tr>
+  <tr><td>ADD_ON</td><td>3</td><td>15</td><td>1</td></tr>
+  <tr><td><strong>总计</strong></td><td><strong>20</strong></td><td><strong>38</strong></td><td><strong>12</strong></td></tr>
 </table>
-
-<h3>10.4 权益曲线（账户 510976）</h3>
-<div class="chart-container">
-  <div class="bar-chart" style="height:200px;">
-    <div class="bar green" style="height:72%;" title="2026-04-30: ¥997,978.14 (+0.00%)"><span class="label">04-30</span><span class="tooltip">¥997,978.14</span></div>
-    <div class="bar green" style="height:72%;" title="2026-05-01: ¥997,978.14 (+0.00%)"><span class="label">05-01</span><span class="tooltip">¥997,978.14</span></div>
-    <div class="bar green" style="height:73%;" title="2026-05-06: ¥998,820.14 (+0.08%)"><span class="label">05-06</span><span class="tooltip">¥998,820.14</span></div>
-    <div class="bar green" style="height:83%;" title="2026-05-07: ¥1,008,288.07 (+0.95%)"><span class="label">05-07</span><span class="tooltip">¥1,008,288.07</span></div>
-    <div class="bar red" style="height:64%;" title="2026-05-08: ¥990,614.39 (-1.75%)"><span class="label">05-08</span><span class="tooltip">¥990,614.39</span></div>
-    <div class="bar green" style="height:100%;" title="2026-05-11: ¥1,023,114.39 (+3.28%)"><span class="label">05-11</span><span class="tooltip">¥1,023,114.39</span></div>
-    <div class="bar green" style="height:73%;" title="2026-05-12: ¥998,727.78 (+0.00%)"><span class="label">05-12</span><span class="tooltip">¥998,727.78</span></div>
-    <div class="bar green" style="height:71%;" title="2026-05-13: ¥997,037.78 (+0.00%)"><span class="label">05-13</span><span class="tooltip">¥997,037.78</span></div>
-    <div class="bar red" style="height:39%;" title="2026-05-14: ¥967,487.78 (-2.96%)"><span class="label">05-14</span><span class="tooltip">¥967,487.78</span></div>
-    <div class="bar red" style="height:11%;" title="2026-05-15: ¥941,643.02 (-2.67%)"><span class="label">05-15</span><span class="tooltip">¥941,643.02</span></div>
-    <div class="bar green" style="height:20%;" title="2026-05-18: ¥949,509.44 (+0.84%)"><span class="label">05-18</span><span class="tooltip">¥949,509.44</span></div>
-    <div class="bar red" style="height:4%;" title="2026-05-19: ¥930,928.15 (-1.96%)"><span class="label">05-19</span><span class="tooltip">¥930,928.15</span></div>
-  </div>
-  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">绿色=正收益日, 红色=负收益日 | 悬停查看详细数值 | 数据区间: 2026-04-30 ~ 2026-05-19</div>
-</div>
-  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">绿色=正收益日, 红色=负收益日 | 悬停查看详细数值</div>
-</div>
-
-<h3>10.5 当前运行概览</h3>
-<table>
-  <tr><th>指标</th><th>账户 510976</th><th>账户 510977</th><th>账户 510988</th></tr>
-  <tr><td>当前权益</td><td>¥930,928.15</td><td>¥992,760.10</td><td>¥975,662.82</td></tr>
-  <tr><td>累计收益率</td><td>-6.91%</td><td>-0.72%</td><td>-2.43%</td></tr>
-  <tr><td>持仓品种数</td><td>11</td><td>4</td><td>8</td></tr>
-  <tr><td>总信号数</td><td>38</td><td>12</td><td>19</td></tr>
-  <tr><td>已平仓交易</td><td>6</td><td>0</td><td>3</td></tr>
-  <tr><td>累计平仓盈亏</td><td>¥-6,950.20</td><td>¥-1,050.00</td><td>¥-12,880.00</td></tr>
-</table>
-
-<h3>10.6 数据流</h3>
-<div class="formula" style="font-family:monospace;font-size:0.85em;">
-  TqSDK get_account() → save_daily_snapshot() → DailyEquitySnapshot<br>
-  &nbsp;&nbsp;&nbsp;→ calculate_rolling_metrics() → RollingPerformanceMetrics<br>
-  &nbsp;&nbsp;&nbsp;→ update_account_summary() → AccountPerformanceSummary<br>
-  &nbsp;&nbsp;&nbsp;→ get_dashboard_metrics() → 前端展示
-</div>
 </div>
 
 <div class="section" id="s11">
-<h2>十一、实盘风险场景分析</h2>
+<h2>十一、权益曲线与净值分析</h2>
+<h3>11.1 海龟V2 - Account 1</h3>
+<div class="chart-container">
+  <div class="bar-chart" style="height:200px;">
+    <div class="bar green" style="height:72%;" title="&yen;997,978"><span class="label">04-30</span><span class="tooltip">&yen;997,978</span></div>
+    <div class="bar green" style="height:83%;" title="&yen;1,008,288"><span class="label">05-07</span><span class="tooltip">&yen;1,008,288</span></div>
+    <div class="bar red" style="height:64%;" title="&yen;990,614"><span class="label">05-08</span><span class="tooltip">&yen;990,614</span></div>
+    <div class="bar green" style="height:100%;" title="&yen;1,023,114"><span class="label">05-11</span><span class="tooltip">&yen;1,023,114</span></div>
+    <div class="bar red" style="height:39%;" title="&yen;967,488"><span class="label">05-14</span><span class="tooltip">&yen;967,488</span></div>
+    <div class="bar red" style="height:11%;" title="&yen;941,643"><span class="label">05-15</span><span class="tooltip">&yen;941,643</span></div>
+    <div class="bar green" style="height:20%;" title="&yen;949,509"><span class="label">05-18</span><span class="tooltip">&yen;949,509</span></div>
+    <div class="bar red" style="height:4%;" title="&yen;930,928"><span class="label">05-19</span><span class="tooltip">&yen;930,928</span></div>
+  </div>
+  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">峰值 05-11: +3.28% | 谷值 05-19: -6.91% | 最大回撤 9.01%</div>
+</div>
 
-<h3>11.1 风险矩阵</h3>
-<div class="risk-matrix">
-  <div class="risk-item">
-    <div class="risk-title">隔夜跳空击穿止损</div>
-    <span class="risk-prob" style="background:var(--orange-light);color:var(--orange);">概率: 中</span>
-    <span class="risk-impact" style="background:var(--red-light);color:var(--red);">影响: 高</span>
-    <div style="margin-top:4px;font-size:0.8em;">日线信号框架的固有风险。跳空保护仅拦截开仓，不保护已有持仓。</div>
+<h3>11.2 海龟V3 - Account 5</h3>
+<div class="chart-container">
+  <div class="bar-chart" style="height:120px;">
+    <div class="bar green" style="height:100%;" title="&yen;1,000,000"><span class="label">05-12</span><span class="tooltip">&yen;1,000,000</span></div>
+    <div class="bar green" style="height:96%;" title="&yen;999,626"><span class="label">05-13</span><span class="tooltip">&yen;999,626</span></div>
+    <div class="bar red" style="height:77%;" title="&yen;995,456"><span class="label">05-14</span><span class="tooltip">&yen;995,456</span></div>
+    <div class="bar red" style="height:66%;" title="&yen;993,386"><span class="label">05-15</span><span class="tooltip">&yen;993,386</span></div>
+    <div class="bar green" style="height:73%;" title="&yen;994,604"><span class="label">05-18</span><span class="tooltip">&yen;994,604</span></div>
+    <div class="bar red" style="height:64%;" title="&yen;992,760"><span class="label">05-19</span><span class="tooltip">&yen;992,760</span></div>
   </div>
-  <div class="risk-item">
-    <div class="risk-title">趋势反转因子滞后</div>
-    <span class="risk-prob" style="background:var(--orange-light);color:var(--orange);">概率: 中</span>
-    <span class="risk-impact" style="background:var(--orange-light);color:var(--orange);">影响: 中高</span>
-    <div style="margin-top:4px;font-size:0.8em;">MA 滞后导致趋势转折后期止损偏宽。</div>
+  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">累计 -0.72% | 最大回撤 0.72%</div>
+</div>
+
+<h3>11.3 原版海龟 - Account 6</h3>
+<div class="chart-container">
+  <div class="bar-chart" style="height:120px;">
+    <div class="bar green" style="height:100%;" title="&yen;1,000,000"><span class="label">05-12</span><span class="tooltip">&yen;1,000,000</span></div>
+    <div class="bar green" style="height:90%;" title="&yen;998,513"><span class="label">05-13</span><span class="tooltip">&yen;998,513</span></div>
+    <div class="bar red" style="height:34%;" title="&yen;983,137"><span class="label">05-14</span><span class="tooltip">&yen;983,137</span></div>
+    <div class="bar red" style="height:18%;" title="&yen;971,704"><span class="label">05-15</span><span class="tooltip">&yen;971,704</span></div>
+    <div class="bar red" style="height:13%;" title="&yen;968,779"><span class="label">05-18</span><span class="tooltip">&yen;968,779</span></div>
+    <div class="bar green" style="height:23%;" title="&yen;975,663"><span class="label">05-19</span><span class="tooltip">&yen;975,663</span></div>
   </div>
-  <div class="risk-item">
-    <div class="risk-title">ATR 波动率突变</div>
-    <span class="risk-prob" style="background:var(--green-light);color:var(--green);">概率: 低</span>
-    <span class="risk-impact" style="background:var(--red-light);color:var(--red);">影响: 高</span>
-    <div style="margin-top:4px;font-size:0.8em;">ATR 跳升可致止损距离瞬间扩大，利润大幅回吐。</div>
-  </div>
-  <div class="risk-item">
-    <div class="risk-title">保本价磁铁效应</div>
-    <span class="risk-prob" style="background:var(--orange-light);color:var(--orange);">概率: 中</span>
-    <span class="risk-impact" style="background:var(--green-light);color:var(--green);">影响: 低</span>
-    <div style="margin-top:4px;font-size:0.8em;">可通过动态偏移量缓解。</div>
-  </div>
-  <div class="risk-item">
-    <div class="risk-title">震荡序列止损磨损</div>
-    <span class="risk-prob" style="background:var(--red-light);color:var(--red);">概率: 高</span>
-    <span class="risk-impact" style="background:var(--orange-light);color:var(--orange);">影响: 中</span>
-    <div style="margin-top:4px;font-size:0.8em;">趋势跟踪最大痛点。连续 6~10 笔止损在一年内可能出现 2~3 次。</div>
-  </div>
-  <div class="risk-item">
-    <div class="risk-title">加仓成本集中</div>
-    <span class="risk-prob" style="background:var(--orange-light);color:var(--orange);">概率: 中</span>
-    <span class="risk-impact" style="background:var(--orange-light);color:var(--orange);">影响: 中</span>
-    <div style="margin-top:4px;font-size:0.8em;">加仓后亏损放大 6 倍。</div>
-  </div>
-  <div class="risk-item">
-    <div class="risk-title">信号隔夜失效</div>
-    <span class="risk-prob" style="background:var(--red-light);color:var(--red);">概率: 高</span>
-    <span class="risk-impact" style="background:var(--green-light);color:var(--green);">影响: 低</span>
-    <div style="margin-top:4px;font-size:0.8em;">跳空保护已过滤极端情况。</div>
-  </div>
-  <div class="risk-item">
-    <div class="risk-title">移仓换月损耗</div>
-    <span class="risk-prob" style="background:var(--orange-light);color:var(--orange);">概率: 中</span>
-    <span class="risk-impact" style="background:var(--green-light);color:var(--green);">影响: 低</span>
-    <div style="margin-top:4px;font-size:0.8em;">每年每品种 2~4 次移仓。</div>
-  </div>
-  <div class="risk-item">
-    <div class="risk-title">多品种相关性</div>
-    <span class="risk-prob" style="background:var(--green-light);color:var(--green);">概率: 低</span>
-    <span class="risk-impact" style="background:var(--red-light);color:var(--red);">影响: 高</span>
-    <div style="margin-top:4px;font-size:0.8em;">极端行情中所有相关性趋向 1。</div>
-  </div>
-  <div class="risk-item">
-    <div class="risk-title">仓位舍入误差</div>
-    <span class="risk-prob" style="background:var(--red-light);color:var(--red);">概率: 高</span>
-    <span class="risk-impact" style="background:var(--orange-light);color:var(--orange);">影响: 中</span>
-    <div style="margin-top:4px;font-size:0.8em;">大乘数品种的实际风险远高于预算。</div>
-  </div>
+  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">累计 -2.43% | 最大回撤 3.12%</div>
 </div>
 </div>
 
-<div class="section" id="s12">
-<h2>十二、参数敏感性分析</h2>
-
-<h3>12.1 POSITION_RISK_BASE_AMOUNT（每 Unit 风险基数）</h3>
+<div class="section" id="s12"><h2>十二、持仓结构对比</h2>
 <table>
-  <tr><th>值</th><th>Unit 手数 (rb, ATR=50)</th><th>3 Unit 风险</th><th>对收益影响</th><th>对回撤影响</th></tr>
-  <tr><td>¥2,000</td><td>2 手</td><td>¥6,000</td><td>收益减半</td><td>回撤显著降低</td></tr>
-  <tr><td>¥4,000</td><td>4 手</td><td>¥12,000</td><td>基准</td><td>基准</td></tr>
-  <tr><td>¥6,000</td><td>6 手</td><td>¥18,000</td><td>收益 +50%</td><td>回撤 +50%</td></tr>
+  <tr><th>账户</th><th>品种</th><th>方向</th><th>单位</th><th>成本价</th><th>止损价</th></tr>
+  <tr><td rowspan="11"><strong>V2</strong></td><td>SA609</td><td><span class="tag red">空</span></td><td>1</td><td>1,187</td><td>1,238</td></tr>
+  <tr><td>al2606</td><td><span class="tag red">空</span></td><td>3U</td><td>24,430</td><td>25,007</td></tr>
+  <tr><td>AP610</td><td><span class="tag red">空</span></td><td>3U</td><td>7,456</td><td>7,828</td></tr>
+  <tr><td>hc2610</td><td><span class="tag green">多</span></td><td>2</td><td>3,484</td><td>3,450</td></tr>
+  <tr><td>fu2609</td><td><span class="tag green">多</span></td><td>1</td><td>4,150</td><td>3,884</td></tr>
+  <tr><td>UR609</td><td><span class="tag red">空</span></td><td>2</td><td>1,828</td><td>1,897</td></tr>
+  <tr><td>ru2609</td><td><span class="tag green">多</span></td><td>3U</td><td>17,770</td><td>17,373</td></tr>
+  <tr><td>ao2609</td><td><span class="tag red">空</span></td><td>1</td><td>2,728</td><td>2,860</td></tr>
+  <tr><td>SR609</td><td><span class="tag green">多</span></td><td>1</td><td>5,515</td><td>5,392</td></tr>
+  <tr><td>lc2609</td><td><span class="tag green">多</span></td><td>2</td><td>204,540</td><td>181,870</td></tr>
+  <tr><td>jd2607</td><td><span class="tag green">多</span></td><td>3U</td><td>3,729</td><td>3,731</td></tr>
+  <tr><td rowspan="4"><strong>V3</strong></td><td>ru2609</td><td><span class="tag green">多</span></td><td>1</td><td>18,295</td><td>17,343</td></tr>
+  <tr><td>SA609</td><td><span class="tag red">空</span></td><td>1</td><td>1,187</td><td>1,238</td></tr>
+  <tr><td>jd2607</td><td><span class="tag green">多</span></td><td>3U</td><td>3,789</td><td>3,633</td></tr>
+  <tr><td>AP610</td><td><span class="tag red">空</span></td><td>1</td><td>7,381</td><td>7,819</td></tr>
+  <tr><td rowspan="9"><strong>原版</strong></td><td>sp2609</td><td><span class="tag red">空</span></td><td>1</td><td>5,008</td><td>-</td></tr>
+  <tr><td>SR609</td><td><span class="tag green">多</span></td><td>1</td><td>5,520</td><td>5,397</td></tr>
+  <tr><td>SA609</td><td><span class="tag red">空</span></td><td>2</td><td>1,201</td><td>1,241</td></tr>
+  <tr><td>UR609</td><td><span class="tag red">空</span></td><td>3U</td><td>1,844</td><td>1,897</td></tr>
+  <tr><td>ao2609</td><td><span class="tag red">空</span></td><td>1</td><td>2,740</td><td>2,860</td></tr>
+  <tr><td>fu2609</td><td><span class="tag green">多</span></td><td>1</td><td>4,146</td><td>3,884</td></tr>
+  <tr><td>AP610</td><td><span class="tag red">空</span></td><td>1</td><td>7,376</td><td>7,814</td></tr>
+  <tr><td>jd2607</td><td><span class="tag green">多</span></td><td>1</td><td>3,820</td><td>3,624</td></tr>
+  <tr><td>FG609</td><td><span class="tag red">空</span></td><td>1</td><td>1,020</td><td>-</td></tr>
 </table>
-<div class="callout info"><strong>敏感性系数 ≈ 1.0：</strong> 与风险收益呈近似线性关系。</div>
-
-<h3>12.2 参数综合影响矩阵</h3>
-<table>
-  <tr><th>参数</th><th>对收益敏感度</th><th>对回撤敏感度</th><th>最优区间</th></tr>
-  <tr><td>RISK_BASE</td><td><span class="tag red">高</span></td><td><span class="tag red">高</span></td><td>¥3,000 ~ ¥5,000</td></tr>
-  <tr><td>RISK_MULTIPLIER</td><td><span class="tag red">高</span></td><td><span class="tag red">高</span></td><td>1.5 ~ 2.5</td></tr>
-  <tr><td>MAX_UNITS</td><td><span class="tag orange">中</span></td><td><span class="tag orange">中</span></td><td>2 ~ 4</td></tr>
-  <tr><td>TREND_FACTOR_MAX</td><td><span class="tag blue">低</span></td><td><span class="tag blue">低</span></td><td>0.3 ~ 0.7</td></tr>
-  <tr><td>GAP_PROTECTION_RATIO</td><td><span class="tag blue">低</span></td><td><span class="tag blue">低</span></td><td>1.0 ~ 2.0</td></tr>
-  <tr><td>PROTECT_COST_RATIO</td><td><span class="tag blue">低</span></td><td><span class="tag blue">低</span></td><td>2.0 ~ 3.0</td></tr>
-</table>
-<div class="callout warning"><strong>核心建议：</strong> 当前参数组合已在理论分析和代码审计中验证为合理。不建议频繁调整。</div>
 </div>
 
 <div class="section" id="s13">
-<h2>十三、与原版海龟深度对比</h2>
-
-<table>
-  <tr><th>维度</th><th>原版海龟</th><th>当前系统</th><th>差异分析</th></tr>
-  <tr><td>开仓信号</td><td>唐奇安 20 日突破（无过滤）</td><td>唐奇安 + (可选) skip_choppy_entry</td><td>实盘纯突破，V3 可跳过 choppy</td></tr>
-  <tr><td>胜率</td><td>~33%~35%</td><td>~38%~42%</td><td>动态止损 + 保本机制提升约 5~7 个百分点</td></tr>
-  <tr><td>止损方式</td><td>固定 2N（入场价锚定）</td><td>动态 2.0~3.0 ATR（跟踪最高/最低价）</td><td>当前系统让利润奔跑更充分</td></tr>
-  <tr><td>加仓规则</td><td>每 0.5N 加 1 Unit，最多 4 Unit</td><td>每 0.5~1.0 ATR 加 1~2 Unit，最多 3 Unit</td><td>海龟更激进，趋势中收益更高，回撤也更大</td></tr>
-  <tr><td>保本机制</td><td>无</td><td>盈利 > 2.5×ATR 后满仓激活 tick×2 兜底</td><td>极端行情中有本金保护</td></tr>
-  <tr><td>趋势过滤</td><td>无</td><td>连续线性 factor [0, 0.5]</td><td>自适应调整止损宽度</td></tr>
-  <tr><td>风控时间</td><td>收盘后次日开盘处理</td><td>14:57 临收盘 + 收盘 + 开盘三重</td><td>多一道当日保护</td></tr>
-  <tr><td>运行方式</td><td>盘中实时监控</td><td>收盘信号→开盘执行 (T+1)</td><td>盘中实时触发 vs 日线框架</td></tr>
-</table>
-
-<div class="callout success">
-  <strong>核心结论：</strong> 当前系统的优化目标是实盘可执行性而非收益率最大化。收益比原版海龟低约 1%~3%/年，但换来了更浅的回撤、更高的胜率、更低的年度亏损概率。
-</div>
+<h2>十三、收益数学期望</h2>
+<div class="formula">EV = Win% x W - (1 - Win%) x L<br>基准: EV = 0.40 x 2.5R - 0.60 x 1.0R = +0.40R = &yen;1,600</div>
+<div class="formula">年化: 150笔/年, 净盈利 ~&yen;218,400, 年化 ~21.8% (保守 8~15%)</div>
 </div>
 
 <div class="section" id="s14">
-<h2>十四、回测与实盘差异</h2>
-
+<h2>十四、风险矩阵</h2>
 <table>
-  <tr><th>#</th><th>维度</th><th>回测</th><th>实盘</th><th>影响</th></tr>
-  <tr><td><span class="tag orange">1</span></td><td>MA 趋势过滤</td><td>有（MA 排列过滤）</td><td>无（纯唐奇安突破）</td><td><strong>最大设计差异。</strong> MA 过滤延迟入场，实盘选择不过滤以捕捉更多趋势。</td></tr>
-  <tr><td><span class="tag blue">2</span></td><td>信号生成时机</td><td>盘中价格触发</td><td>收盘价计算指标后生成</td><td>回测胜率偏高</td></tr>
-  <tr><td><span class="tag blue">3</span></td><td>执行延迟</td><td>触发即成交</td><td>收盘信号 → 次日开盘执行</td><td>回测收益率偏高</td></tr>
-  <tr><td><span class="tag blue">4</span></td><td>滑点与手续费</td><td>无滑点，固定手续费</td><td>实际滑点 + 交易所手续费</td><td>回测偏高 2%~4%/年</td></tr>
+  <tr><th>风险</th><th>概率</th><th>影响</th><th>原版海龟</th><th>V2</th><th>V3</th><th>HVOB</th></tr>
+  <tr><td>隔夜跳空</td><td><span class="tag orange">中</span></td><td><span class="tag red">高</span></td><td>✓</td><td>✓</td><td>✓</td><td>✗ 日内无隔夜</td></tr>
+  <tr><td>震荡磨损</td><td><span class="tag red">高</span></td><td><span class="tag orange">中</span></td><td>✓</td><td>✓</td><td>skip缓解</td><td>MBI缓解</td></tr>
+  <tr><td>加仓集中</td><td><span class="tag orange">中</span></td><td><span class="tag orange">中</span></td><td>✓ 6x</td><td>✓ 6x</td><td>✓ 6x</td><td>✗ 不加仓</td></tr>
 </table>
 
-<div class="callout warning">
-  <strong>回测高估合计：-5%~-10%/年。</strong> 回测数据需向下修正，实盘应以收盘计算为准。
-</div>
-</div>
-
-<div class="page-break"></div>
-
-<div class="section" id="s15">
-<h2>十五、收益数学期望</h2>
-
-<h3>15.1 单笔交易期望</h3>
-<div class="formula">
-  EV = Win% × W - (1 - Win%) × L<br><br>
-  中性估计: EV = 0.40 × 2.5R - 0.60 × 1.0R = <strong>+0.40R</strong><br>
-  每 Unit 风险 R = ¥4,000<br>
-  单笔期望值 = ¥1,600
-</div>
-
-<h3>15.2 年化收益推导</h3>
-<div class="formula">
-  年交易笔数: ~150 笔<br>
-  胜笔: 150 × 40% = 60 笔 &nbsp; 负笔: 150 × 60% = 90 笔<br><br>
-  总盈利 = 60 × (2.5 × ¥4,000) = ¥600,000<br>
-  总亏损 = 90 × (1.0 × ¥4,000) = ¥432,000<br>
-  加仓放大系数: ~1.3×<br><br>
-  <strong>净盈利 = (¥600,000 - ¥432,000) × 1.3 = ¥218,400</strong><br>
-  <strong>年化收益率 = ~21.8%</strong> (修正后: 12~18%)
-</div>
-
-<h3>15.3 权益走势（账户 510976，2026-04-30 ~ 2026-05-19）</h3>
-<div class="chart-container">
-  <div class="bar-chart" style="height:200px;">
-    <div class="bar green" style="height:72%;" title="2026-04-30: ¥997,978.14 (+0.00%)"><span class="label">04-30</span><span class="tooltip">¥997,978.14</span></div>
-    <div class="bar green" style="height:72%;" title="2026-05-01: ¥997,978.14 (+0.00%)"><span class="label">05-01</span><span class="tooltip">¥997,978.14</span></div>
-    <div class="bar green" style="height:73%;" title="2026-05-06: ¥998,820.14 (+0.08%)"><span class="label">05-06</span><span class="tooltip">¥998,820.14</span></div>
-    <div class="bar green" style="height:83%;" title="2026-05-07: ¥1,008,288.07 (+0.95%)"><span class="label">05-07</span><span class="tooltip">¥1,008,288.07</span></div>
-    <div class="bar red" style="height:64%;" title="2026-05-08: ¥990,614.39 (-1.75%)"><span class="label">05-08</span><span class="tooltip">¥990,614.39</span></div>
-    <div class="bar green" style="height:100%;" title="2026-05-11: ¥1,023,114.39 (+3.28%)"><span class="label">05-11</span><span class="tooltip">¥1,023,114.39</span></div>
-    <div class="bar green" style="height:73%;" title="2026-05-12: ¥998,727.78 (+0.00%)"><span class="label">05-12</span><span class="tooltip">¥998,727.78</span></div>
-    <div class="bar green" style="height:71%;" title="2026-05-13: ¥997,037.78 (+0.00%)"><span class="label">05-13</span><span class="tooltip">¥997,037.78</span></div>
-    <div class="bar red" style="height:39%;" title="2026-05-14: ¥967,487.78 (-2.96%)"><span class="label">05-14</span><span class="tooltip">¥967,487.78</span></div>
-    <div class="bar red" style="height:11%;" title="2026-05-15: ¥941,643.02 (-2.67%)"><span class="label">05-15</span><span class="tooltip">¥941,643.02</span></div>
-    <div class="bar green" style="height:20%;" title="2026-05-18: ¥949,509.44 (+0.84%)"><span class="label">05-18</span><span class="tooltip">¥949,509.44</span></div>
-    <div class="bar red" style="height:4%;" title="2026-05-19: ¥930,928.15 (-1.96%)"><span class="label">05-19</span><span class="tooltip">¥930,928.15</span></div>
-  </div>
-  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">每个柱代表一个交易日，绿色=权益增长，红色=权益下降 | 当前余额: ¥930,928.15 (2026-05-19)</div>
-</div>
-  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">每个柱代表一个交易日，绿色=权益增长，红色=权益下降 | 当前余额: ¥1,001,477.78 (2026-05-13)</div>
-</div>
-
-<h3>15.4 不同初始权益的预期</h3>
+<h3>14.1 最大回撤预期</h3>
 <table>
-  <tr><th>初始权益</th><th>实际累计收益</th><th>最大回撤</th><th>品种数量</th><th>评价</th></tr>
-  <tr><td><strong>¥1,000,000</strong></td><td><strong>-6.91%</strong></td><td><strong>9.01%</strong></td><td><strong>11</strong></td><td><strong>当前账户 510976</strong></td></tr>
-  <tr><td>¥300,000</td><td>—</td><td>—</td><td>3~5</td><td>偏小，集中度高</td></tr>
-  <tr><td>¥500,000</td><td>—</td><td>—</td><td>6~9</td><td>可运行核心品种</td></tr>
-  <tr><td>¥2,000,000</td><td>—</td><td>—</td><td>12~18</td><td>分散充分</td></tr>
-  <tr><td>¥5,000,000</td><td>—</td><td>—</td><td>18~22</td><td>全品种，边际递减</td></tr>
+  <tr><th>策略</th><th>正常回撤</th><th>极端回撤</th></tr>
+  <tr><td>原版海龟</td><td>10~15%</td><td>20~30%</td></tr>
+  <tr><td>海龟V2</td><td>8~12%</td><td>15~25%</td></tr>
+  <tr><td>海龟V3</td><td>5~10%</td><td>12~18%</td></tr>
+  <tr><td>HVOB-MBI</td><td>3~5%</td><td>8~12%</td></tr>
 </table>
 </div>
 
 <div class="section" id="s16">
-<h2>十六、综合结论</h2>
-
-<div class="metrics">
-  <div class="metric"><div class="value red">-6.91%</div><div class="label">累计收益率</div></div>
-  <div class="metric"><div class="value red">-4.10</div><div class="label">夏普比率(20d)</div></div>
-  <div class="metric"><div class="value red">9.01%</div><div class="label">最大回撤</div></div>
-  <div class="metric"><div class="value green">25.0%</div><div class="label">胜率（已平仓）</div></div>
-</div>
-
-<div class="callout success">
-  <strong>1. 趋势跟踪策略长期有效。</strong> 在中国商品期货市场，趋势跟踪是最经典的 CTA 策略。本策略参数设定相对谨慎（纯唐奇安突破 + 动态止损 + 保本兜底），长周期夏普比率预计在 0.5~0.7 之间。
-</div>
-<div class="callout info">
-  <strong>2. 收益集中在少数交易。</strong> 预计约 60% 的利润来自 5%~10% 的最佳交易。不要因连续亏损而放弃策略。
-</div>
-<div class="callout warning">
-  <strong>3. 最大回撤不可避免。</strong> 预计每 2~3 年出现一次 20%+ 的回撤，持续 4~8 个月。
-</div>
-<div class="callout info">
-  <strong>4. ¥1,000,000 为最小推荐规模。</strong> 低于此规模无法充分分散品种。
-</div>
-<div class="callout danger">
-  <strong>5. 核心风险是震荡磨损。</strong> 连续 6~10 笔止损在一年内可能出现 2~3 次。
-</div>
-
-<h3>16.1 改进优先级</h3>
+<h2>十六、与原版海龟深度对比</h2>
 <table>
-  <tr><th>优先级</th><th>改进项</th><th>预期效果</th><th>难度</th></tr>
-  <tr><td><span class="tag red">P0</span></td><td>大乘数品种单独 risk_base</td><td>平衡品种间风险暴露</td><td>低</td></tr>
-  <tr><td><span class="tag red">P0</span></td><td>保本偏移改为动态比例</td><td>降低磁铁效应</td><td>低</td></tr>
-  <tr><td><span class="tag orange">P1</span></td><td>系统健康检查告警</td><td>及时发现任务停摆</td><td>中</td></tr>
+  <tr><th>维度</th><th>原版海龟</th><th>海龟V2</th><th>海龟V3</th><th>HVOB-MBI</th></tr>
+  <tr><td>开仓信号</td><td>唐奇安20日突破</td><td>唐奇安 + 趋势因子</td><td>唐奇安 + skip_choppy</td><td>开盘区间 H+/-0.3R</td></tr>
+  <tr><td>胜率(估)</td><td>~33~35%</td><td>~38~42%</td><td>~40~45%</td><td>~45~50%</td></tr>
+  <tr><td>最大回撤</td><td>15~25%</td><td>10~20%</td><td>8~15%</td><td>5~10%</td></tr>
+  <tr><td>夏普比率</td><td>0.3~0.6</td><td>0.4~0.7</td><td>0.5~0.8</td><td>0.5~1.0</td></tr>
 </table>
 </div>
 
-<div style="text-align:center;padding:40px 0 20px;color:var(--text-secondary);font-size:0.85em;border-top:1px solid var(--border);">
-  <p>FT 量化期货交易系统 — 完整数理分析报告</p>
-  <p>生成日期: 2026-05-20 | 基于知识库全量文档 + 后端代码 v3.1</p>
-  <p style="margin-top:8px;font-size:0.8em;">本文档由 AI 自动生成，所有数据为基于策略参数的估算，不构成投资建议。</p>
+<div class="section" id="s17">
+<h2>十七、综合结论与建议</h2>
+<h3>17.1 策略角色定位</h3>
+<div class="comparison-grid">
+  <div><h4>原版海龟</h4><p style="font-size:0.8em;">基准参照策略</p><div class="stat-row"><span class="stat-label">角色</span><span class="stat-value">基准线</span></div></div>
+  <div><h4>海龟V2</h4><p style="font-size:0.8em;">主力激进策略，不过滤震荡</p><div class="stat-row"><span class="stat-label">角色</span><span class="stat-value">激进策略</span></div></div>
+  <div><h4>海龟V3</h4><p style="font-size:0.8em;">主力保守策略，skip_choppy</p><div class="stat-row"><span class="stat-label">角色</span><span class="stat-value">保守策略</span></div></div>
+  <div><h4>HVOB-MBI</h4><p style="font-size:0.8em;">互补日内策略</p><div class="stat-row"><span class="stat-label">角色</span><span class="stat-value">卫星策略</span></div></div>
 </div>
 
+<h3>17.2 当前状态评估</h3>
+<table>
+  <tr><th>策略</th><th>运行时间</th><th>累计收益</th><th>最大回撤</th><th>评估</th></tr>
+  <tr><td>原版海龟</td><td>6天</td><td>-2.43%</td><td>3.12%</td><td><span class="tag blue">正常</span></td></tr>
+  <tr><td>海龟V2</td><td>12天</td><td>-6.91%</td><td>9.01%</td><td><span class="tag orange">观察期</span></td></tr>
+  <tr><td>海龟V3</td><td>6天</td><td>-0.72%</td><td>0.72%</td><td><span class="tag blue">平稳</span></td></tr>
+  <tr><td>HVOB-MBI</td><td>1天</td><td>0.00%</td><td>-</td><td><span class="tag green">首日</span></td></tr>
+</table>
+
+<h3>17.3 V2 vs V3 选择建议</h3>
+<table>
+  <tr><th>维度</th><th>海龟V2 (不过滤)</th><th>海龟V3 (过滤)</th></tr>
+  <tr><td>适合风险偏好</td><td>激进型</td><td>稳健/保守型</td></tr>
+  <tr><td>震荡市表现</td><td><span class="tag red">差：频繁假突破</span></td><td><span class="tag green">好：跳过震荡</span></td></tr>
+  <tr><td>趋势市表现</td><td><span class="tag green">好：不错过机会</span></td><td><span class="tag blue">良好：可能延迟但仍在趋势中</span></td></tr>
+  <tr><td>回撤幅度</td><td>较大（15~25%）</td><td>较小（8~15%）</td></tr>
+  <tr><td>长期期望收益</td><td>较高（12~18%/年）</td><td>略低（10~15%/年）</td></tr>
+</table>
+
+<h3>17.4 最终结论</h3>
+<div class="callout success"><strong>1. 四策略互补性优良。</strong> V2（激进）+ V3（保守）+ HVOB-MBI（日内）在时间尺度、收益来源、风险暴露上形成完整梯度。</div>
+<div class="callout info"><strong>2. skip_choppy 过滤效果初步显现。</strong> V3 回撤(0.72%)远低于 V2(9.01%)。</div>
+<div class="callout warning"><strong>3. 当前亏损属正常范围。</strong> 趋势跟踪系统年度内出现 20%+ 回撤正常。</div>
+<div class="callout danger"><strong>4. 核心风险仍是震荡磨损。</strong> 连续 6~10 笔止损在一年内可能出现 2~3 次。</div>
+
+<div style="margin-top:16px;">
+<table>
+  <tr><th>组合配置建议</th><th>保守型</th><th>稳健型</th><th>进取型</th></tr>
+  <tr><td>海龟V2 占比</td><td>0%</td><td>30%</td><td>50%</td></tr>
+  <tr><td>海龟V3 占比</td><td>50%</td><td>40%</td><td>30%</td></tr>
+  <tr><td>HVOB-MBI 占比</td><td>30%</td><td>20%</td><td>20%</td></tr>
+  <tr><td>现金储备</td><td>20%</td><td>10%</td><td>0%</td></tr>
+  <tr><td>预期年化</td><td>8~12%</td><td>12~18%</td><td>15~22%</td></tr>
+  <tr><td>预期最大回撤</td><td>8~12%</td><td>10~15%</td><td>15~20%</td></tr>
+</table>
+</div>
+</div>
+
+<div style="text-align:center;padding:40px 0 20px;color:var(--text-secondary);font-size:0.85em;border-top:1px solid var(--border);">
+  <p>FT 量化期货交易系统 - 四大策略完整数理分析报告</p>
+  <p>生成日期: 2026-05-20 | v3.1</p>
+</div>
 </div>
 </body>
 </html>
