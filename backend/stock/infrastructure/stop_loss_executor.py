@@ -34,7 +34,7 @@ def execute_stop_loss_exit(api, position):
         if position.contract_total_position <= 0:
             return True, 0, Decimal('0')
 
-        target_pos = TargetPosTask(api, position.symbol)
+        target_pos = TargetPosTask(api, position.symbol, support_open_min_volume=True)
         target_pos.set_target_volume(0)
 
         start_time = time.time()

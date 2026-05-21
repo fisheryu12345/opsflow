@@ -300,8 +300,9 @@ class Command(BaseCommand):
                                           product_codes.get(symbol, ''), price, level)
                     else:
                         self._check_exit(api, account, position, price, level)
-                        self._check_hard_stop(api, account, position, price, level)
-                        self._check_add_on(api, account, position, price, level)
+                        self._check_hard_stop(api, account, position, price)
+                        if self._check_add_on(api, account, position, price):
+                            last_prices[symbol] = None  # 加仓后重置，让后续加仓能继续触发
                         self._check_rollover(api, account, position)
         finally:
             signal.signal(signal.SIGINT, orig_handler)
@@ -383,11 +384,6 @@ class Command(BaseCommand):
                     'latest_close_price': Decimal(str(fill_price)),
                     'open_date': timezone.now().date(),
                     'entry_atr': Decimal(str(n_value)),
-                    'indicators': {
-                        'locked_n': n_value,
-                        'unit_prices': [fill_price],
-                        'hard_stop_price': hard_stop,
-                    },
                 }
             )
             signal.executed_status = 'SUCCESS'
@@ -422,15 +418,17 @@ class Command(BaseCommand):
 
     # ==================== 硬止损检查 ====================
 
-    def _check_hard_stop(self, api, account, position, price, level):
-        """检查2N硬止损"""
-        indicators = position.indicators or {}
-        hard_stop = indicators.get('hard_stop_price')
-        if hard_stop is None:
+    def _check_hard_stop(self, api, account, position, price):
+        """检查2N硬止损（基于 entry_atr：first_open_price ± 2×N）"""
+        n_value = float(position.entry_atr or 0)
+        if not n_value:
             return
 
         if self._already_signaled_today(account, position.symbol, 'STOP_LOSS'):
             return
+
+        first_price = float(position.first_open_price)
+        hard_stop = first_price - 2.0 * n_value if position.direction == 1 else first_price + 2.0 * n_value
 
         triggered = False
         reason = ''
@@ -447,10 +445,10 @@ class Command(BaseCommand):
 
     # ==================== 加仓检查 ====================
 
-    def _check_add_on(self, api, account, position, price, level):
-        """检查0.5N加仓"""
+    def _check_add_on(self, api, account, position, price):
+        """检查0.5N加仓，返回是否触发了加仓"""
         if position.units >= 3:
-            return
+            return False
 
         # 仅防止重复的 PENDING/EXECUTING 信号，不拦截已成功的（同天可多次加仓）
         if DailyStrategySignal.objects.filter(
@@ -459,37 +457,37 @@ class Command(BaseCommand):
             trade_date=timezone.now().date(),
             executed_status__in=('PENDING', 'EXECUTING'),
         ).exists():
-            return
+            return False
 
-        indicators = position.indicators or {}
-        locked_n = indicators.get('locked_n')
-        unit_prices = indicators.get('unit_prices', [])
-        if not locked_n or not unit_prices:
-            return
+        n_value = float(position.entry_atr or 0)
+        if not n_value:
+            return False
 
-        last_unit_price = unit_prices[-1]
-        trigger_distance = 0.5 * locked_n
+        first_price = float(position.first_open_price)
+        # 累加触发距离：units × 0.5 × N（第1单位已入场，第2单位在 0.5×N，第3在 1.0×N）
+        trigger_distance = position.units * 0.5 * n_value
 
         triggered = False
-        if position.direction == 1 and price >= last_unit_price + trigger_distance:
+        if position.direction == 1 and price >= first_price + trigger_distance:
             triggered = True
-        elif position.direction == -1 and price <= last_unit_price - trigger_distance:
+        elif position.direction == -1 and price <= first_price - trigger_distance:
             triggered = True
 
         if triggered:
             self.stdout.write(f"[Turtle] 加仓信号: {position.symbol} "
-                              f"价格{price:.2f} >= {last_unit_price + trigger_distance:.2f} (0.5N)")
-            self._execute_add_on(api, account, position, price, level)
+                              f"价格{price:.2f} >= {first_price + trigger_distance:.2f} (0.5N)")
+            self._execute_add_on(api, account, position, price)
+            return True
+        return False
 
     # ==================== 加仓执行 ====================
 
-    def _execute_add_on(self, api, account, position, price, level):
+    def _execute_add_on(self, api, account, position, price):
         """执行加仓: 增加1个单位"""
-        indicators = position.indicators or {}
-        locked_n = indicators.get('locked_n', 0)
-        unit_prices = list(indicators.get('unit_prices', []))
-
-        n_value = locked_n or level['n_value']
+        n_value = float(position.entry_atr or 0)
+        if not n_value:
+            self.stdout.write(self.style.WARNING(f"[Turtle] 加仓跳过 {position.symbol}: 无N值"))
+            return
         unit_lots = self._turtle_unit_lots(api, position.symbol, account, n_value)
         order_volume = 1 * unit_lots
         new_total = position.contract_total_position + order_volume
@@ -531,7 +529,6 @@ class Command(BaseCommand):
         quote = api.get_quote(position.symbol)
         fill_price = float(quote.last_price) if quote and quote.last_price else price
 
-        unit_prices.append(fill_price)
         new_units = position.units + 1
 
         with transaction.atomic():
@@ -540,11 +537,6 @@ class Command(BaseCommand):
                 contract_total_position=new_total,
                 latest_close_price=Decimal(str(fill_price)),
                 # 加仓不更新 cost_price（策略设计原则）
-                indicators={
-                    'locked_n': locked_n or n_value,
-                    'unit_prices': unit_prices,
-                    'hard_stop_price': indicators.get('hard_stop_price'),
-                },
             )
             signal.executed_status = 'SUCCESS'
             signal.save(update_fields=['executed_status'])
