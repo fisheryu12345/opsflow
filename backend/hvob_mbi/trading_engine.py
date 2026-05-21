@@ -432,6 +432,8 @@ class HvobTradingEngine:
             target = volume if direction == 1 else -volume
             self.target_pos_tasks[symbol].set_target_volume(target)
             self.api.wait_update(deadline=time.time() + 60)
+            self.target_pos_tasks[symbol].cancel()
+            del self.target_pos_tasks[symbol]
 
             # 记录持仓
             pos = Position(symbol, product_code, direction, volume, price,
