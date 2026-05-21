@@ -118,7 +118,7 @@ def record_daily_equity(account, trade_date, balance, pnl):
     """写入 DailyEquitySnapshot"""
     DailyEquitySnapshot.objects.update_or_create(
         account=account,
-        date=trade_date,
+        trade_date=trade_date,
         defaults={
             'balance': Decimal(str(balance)),
             'daily_pnl': Decimal(str(pnl)),
@@ -130,7 +130,7 @@ def record_symbol_pnl(account, trade_date, symbol, product_code, pnl):
     """写入 SymbolDailyPnl"""
     SymbolDailyPnl.objects.update_or_create(
         account=account,
-        date=trade_date,
+        trade_date=trade_date,
         symbol=symbol,
         defaults={
             'product_code': product_code,

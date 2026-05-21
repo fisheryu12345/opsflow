@@ -231,7 +231,7 @@ class HvobTradingEngine:
     # ==================== 订阅 ====================
 
     def _subscribe_all(self):
-        """订阅所有 watchlist 品种的 Quote + 5min Kline"""
+        """订阅所有 watchlist 品种的 Quote + 60min Kline"""
         for item in self.watchlist:
             try:
                 self.api.get_quote(item['symbol'])
@@ -428,10 +428,10 @@ class HvobTradingEngine:
         try:
             # TargetPosTask
             if symbol not in self.target_pos_tasks:
-                self.target_pos_tasks[symbol] = TargetPosTask(self.api, symbol)
+                self.target_pos_tasks[symbol] = TargetPosTask(self.api, symbol, support_open_min_volume=True)
             target = volume if direction == 1 else -volume
             self.target_pos_tasks[symbol].set_target_volume(target)
-            self.api.wait_update(deadline=time.time() + 5)
+            self.api.wait_update(deadline=time.time() + 60)
 
             # 记录持仓
             pos = Position(symbol, product_code, direction, volume, price,
@@ -490,9 +490,12 @@ class HvobTradingEngine:
         if self.dry_run:
             print(f"[HVOB] ⚠️ DRY-RUN 止损: {symbol} {pos.volume}手@{price} PnL={exit_pnl}")
         else:
-            if symbol in self.target_pos_tasks:
-                self.target_pos_tasks[symbol].set_target_volume(0)
-                self.api.wait_update(deadline=time.time() + 5)
+            if symbol not in self.target_pos_tasks:
+                self.target_pos_tasks[symbol] = TargetPosTask(self.api, symbol, support_open_min_volume=True)
+            self.target_pos_tasks[symbol].set_target_volume(0)
+            self.api.wait_update(deadline=time.time() + 60)
+            self.target_pos_tasks[symbol].cancel()
+            del self.target_pos_tasks[symbol]
 
             record_stop_loss_signal(
                 self.account, symbol, pos.product_code, self.trade_date,
@@ -511,9 +514,12 @@ class HvobTradingEngine:
         if self.dry_run:
             print(f"[HVOB] ⚠️ DRY-RUN 止盈: {symbol} {pos.volume}手@{price} PnL={exit_pnl} ({reason})")
         else:
-            if symbol in self.target_pos_tasks:
-                self.target_pos_tasks[symbol].set_target_volume(0)
-                self.api.wait_update(deadline=time.time() + 5)
+            if symbol not in self.target_pos_tasks:
+                self.target_pos_tasks[symbol] = TargetPosTask(self.api, symbol, support_open_min_volume=True)
+            self.target_pos_tasks[symbol].set_target_volume(0)
+            self.api.wait_update(deadline=time.time() + 60)
+            self.target_pos_tasks[symbol].cancel()
+            del self.target_pos_tasks[symbol]
 
             record_exit_signal(
                 self.account, symbol, pos.product_code, self.trade_date,
@@ -540,9 +546,12 @@ class HvobTradingEngine:
             exit_pnl = self._calc_pnl(pos, price)
 
             if not self.dry_run:
-                if symbol in self.target_pos_tasks:
-                    self.target_pos_tasks[symbol].set_target_volume(0)
-                    self.api.wait_update(deadline=time.time() + 5)
+                if symbol not in self.target_pos_tasks:
+                    self.target_pos_tasks[symbol] = TargetPosTask(self.api, symbol, support_open_min_volume=True)
+                self.target_pos_tasks[symbol].set_target_volume(0)
+                self.api.wait_update(deadline=time.time() + 60)
+                self.target_pos_tasks[symbol].cancel()
+                del self.target_pos_tasks[symbol]
 
                 record_exit_signal(
                     self.account, symbol, pos.product_code, self.trade_date,
