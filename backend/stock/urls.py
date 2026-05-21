@@ -29,6 +29,7 @@ from stock.views.account import TradingAccountViewSet
 from stock.views.account_contract import AccountContractConfigViewSet
 from stock.views.kline import KlineDataViewSet, TradeMarkersView, ContractsForKlineView
 from stock.views.slippage import SlippageRecordViewSet, SlippageStatsView
+from hvob_mbi.views import HvobMbiWatchlistViewSet, HvobMbiDailyStateViewSet
 
 # 创建路由器
 router = DefaultRouter()
@@ -44,6 +45,7 @@ router.register(r'closed-positions', ClosedPositionRecordViewSet, basename='clos
 router.register(r'tradingaccount', TradingAccountViewSet, basename='tradingaccount')
 router.register(r'account-contracts', AccountContractConfigViewSet, basename='account-contract')
 router.register(r'slippage', SlippageRecordViewSet, basename='slippage')
+router.register(r'hvob-watchlist', HvobMbiWatchlistViewSet, basename='hvob-watchlist')
 
 # ==================== 绩效数据路由 ====================
 router.register(r'equity-snapshots', DailyEquitySnapshotViewSet, basename='equity-snapshot')
@@ -82,4 +84,5 @@ urlpatterns = [
     path('knowledge-base/content/', knowledge_base_content_view, name='knowledge-base-content'),
     path('signal-stats/', SignalExecutionStatsView.as_view(), name='signal-stats'),
     path('slippage-stats/', SlippageStatsView.as_view({'get': 'list'}), name='slippage-stats'),
+    path('hvob-daily-states/', HvobMbiDailyStateViewSet.as_view({'get': 'list'}), name='hvob-daily-states'),
 ]

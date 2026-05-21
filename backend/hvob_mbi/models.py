@@ -51,3 +51,31 @@ class HvobMbiDailyState(models.Model):
 
     def __str__(self):
         return f"HVOB-{self.account.name}-{self.trade_date}"
+
+
+class HvobMbiWatchlistItem(models.Model):
+    """HVOB-MBI 每日观察池条目"""
+    account = models.ForeignKey('stock.TradingAccount', on_delete=models.CASCADE, verbose_name='交易账户')
+    trade_date = models.DateField('交易日期', db_index=True)
+    rank = models.IntegerField('排名')
+    symbol = models.CharField('合约代码', max_length=50)
+    product_code = models.CharField('品种代码', max_length=20)
+    score = models.FloatField('综合评分', default=0)
+    atr_pct = models.FloatField('ATR%', default=0)
+    avg_amp = models.FloatField('5日平均振幅', default=0)
+    vol_ratio = models.FloatField('量比', default=0)
+    atr_score = models.FloatField('ATR得分', default=0)
+    amp_score = models.FloatField('振幅得分', default=0)
+    vol_score = models.FloatField('量能得分', default=0)
+    bonus = models.IntegerField('品种奖惩', default=0)
+    open_interest = models.IntegerField('持仓量', default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'HVOB 观察池条目'
+        verbose_name_plural = verbose_name
+        ordering = ['-trade_date', 'rank']
+        unique_together = ('account', 'trade_date', 'symbol')
+
+    def __str__(self):
+        return f"{self.trade_date} #{self.rank} {self.symbol} ({self.score:.2f})"
