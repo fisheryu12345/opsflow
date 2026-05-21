@@ -32,7 +32,6 @@ from stock.models import (
     ClosedPositionRecord, FullContractList, AccountContractConfig,
 )
 from stock.utils.log_util import log_trade, log_error
-from stock.core.signal_checker import check_duplicate_pending_signal
 from stock.core.atr import calculate_atr
 
 
