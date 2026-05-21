@@ -224,6 +224,7 @@ class HvobTradingEngine:
 
         from .screening import select_watchlist
         self.watchlist = select_watchlist(self.api)
+        self._save_watchlist_items()
         self.phase = 'night_or'
         print(f"[HVOB] → night_or (等待夜盘开盘区间)")
 
@@ -580,10 +581,39 @@ class HvobTradingEngine:
         # 保存日状态
         self._save_daily_state()
 
-    def _save_daily_state(self):
-        """保存每日状态到 HvobMbiDailyState，同时写入独立观察池条目"""
+    def _save_watchlist_items(self):
+        """将观察池条目写入 HvobMbiWatchlistItem（筛选完成后立即保存）"""
+        if not self.watchlist:
+            return
         try:
-            from .models import HvobMbiDailyState, HvobMbiWatchlistItem
+            from .models import HvobMbiWatchlistItem
+            items = []
+            for i, item in enumerate(self.watchlist, start=1):
+                items.append(HvobMbiWatchlistItem(
+                    account=self.account,
+                    trade_date=self.trade_date,
+                    rank=i,
+                    symbol=item['symbol'],
+                    product_code=item['product_code'],
+                    score=item.get('score', 0),
+                    atr_pct=item.get('atr_pct', 0),
+                    avg_amp=item.get('avg_amp', 0),
+                    vol_ratio=item.get('vol_ratio', 0),
+                    atr_score=item.get('atr_score', 0),
+                    amp_score=item.get('amp_score', 0),
+                    vol_score=item.get('vol_score', 0),
+                    bonus=item.get('bonus', 0),
+                    open_interest=item.get('open_interest', 0),
+                ))
+            HvobMbiWatchlistItem.objects.bulk_create(items, ignore_conflicts=True)
+            print(f"[HVOB] 观察池已写入数据库: {len(items)} 个品种")
+        except Exception as e:
+            print(f"[HVOB] 保存观察池失败: {e}")
+
+    def _save_daily_state(self):
+        """保存每日状态到 HvobMbiDailyState"""
+        try:
+            from .models import HvobMbiDailyState
             or_data = {}
             for sym, or_ in self.opening_ranges.items():
                 or_data[sym] = {
@@ -614,26 +644,7 @@ class HvobTradingEngine:
                 }
             )
 
-            # 写入独立观察池条目
-            items = []
-            for i, item in enumerate(self.watchlist, start=1):
-                items.append(HvobMbiWatchlistItem(
-                    account=self.account,
-                    trade_date=self.trade_date,
-                    rank=i,
-                    symbol=item['symbol'],
-                    product_code=item['product_code'],
-                    score=item.get('score', 0),
-                    atr_pct=item.get('atr_pct', 0),
-                    avg_amp=item.get('avg_amp', 0),
-                    vol_ratio=item.get('vol_ratio', 0),
-                    atr_score=item.get('atr_score', 0),
-                    amp_score=item.get('amp_score', 0),
-                    vol_score=item.get('vol_score', 0),
-                    bonus=item.get('bonus', 0),
-                    open_interest=item.get('open_interest', 0),
-                ))
-            if items:
-                HvobMbiWatchlistItem.objects.bulk_create(items, ignore_conflicts=True)
+            # 观察池条目已在 _do_screening 中写入，此处仅更新状态摘要
+            self._save_watchlist_items()
         except Exception as e:
             print(f"[HVOB] 保存日状态失败: {e}")

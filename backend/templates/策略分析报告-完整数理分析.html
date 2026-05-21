@@ -145,8 +145,8 @@
     <div class="stat-row"><span class="stat-label">止损方式</span><span class="stat-value">动态 2~3 ATR + 趋势因子</span></div>
     <div class="stat-row"><span class="stat-label">保本机制</span><span class="stat-value">有 (2.5×ATR, 满仓)</span></div>
     <div class="stat-row"><span class="stat-label">跳过震荡</span><span class="stat-value">✓ 跳过60%信号</span></div>
-    <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value" style="color:var(--red);">¥992,760</span></div>
-    <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value" style="color:var(--red);">-0.72%</span></div>
+    <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value" style="color:var(--green);">¥1,003,710</span></div>
+    <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value" style="color:var(--green);">+0.37%</span></div>
   </div>
   <div>
     <div class="strategy-header"><div class="icon hvob">H</div><h4>HVOB-MBI</h4></div>
@@ -158,10 +158,10 @@
     <div class="stat-row"><span class="stat-label">MBI 过滤</span><span class="stat-value">市场宽度指数 [0,1]</span></div>
     <div class="stat-row"><span class="stat-label">持仓周期</span><span class="stat-value">日内</span></div>
     <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value">¥1,000,000</span></div>
-    <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value">0.00%（首日运行）</span></div>
+    <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value">0.00%（运行2天）</span></div>
   </div>
 </div>
-<div class="callout info"><strong>运行状态：</strong> 四个账户均为模拟盘（TqKq），使用 zhanshang123 账号。原版海龟和 V2/V3 已运行约 3 周，HVOB-MBI 于 2026-05-20 首次启动。</div>
+<div class="callout info"><strong>运行状态：</strong> 四个账户均为模拟盘（TqKq），使用 zhanshang123 账号。原版海龟和 V2/V3 已运行约 3 周，HVOB-MBI 于 2026-05-20 首次启动。V3 于 05-20 首次实现正收益（+1.22%）。</div>
 
 <h3>1.1 策略演进路线</h3>
 <table>
@@ -230,14 +230,14 @@
 <h3>4.2 过滤效果实盘数据</h3>
 <table>
   <tr><th>指标</th><th>海龟V2 (Acc 1, 不过滤)</th><th>海龟V3 (Acc 5, 过滤)</th></tr>
-  <tr><td>ENTRY 信号数</td><td>16</td><td>4</td></tr>
-  <tr><td>CANCELLED 信号数</td><td>0</td><td>6</td></tr>
-  <tr><td>过滤率</td><td>0%</td><td>60%</td></tr>
-  <tr><td>当前持仓品种</td><td>11</td><td>4</td></tr>
-  <tr><td>累计收益</td><td style="color:var(--red);">-6.91%</td><td style="color:var(--red);">-0.72%</td></tr>
-  <tr><td>最大回撤</td><td>9.01%</td><td>0.72%</td></tr>
+  <tr><td>ENTRY 信号数</td><td>18</td><td>12</td></tr>
+  <tr><td>STOP_LOSS 信号数</td><td>9</td><td>1</td></tr>
+  <tr><td>ADD_ON 信号数</td><td>17</td><td>3</td></tr>
+  <tr><td>当前持仓品种</td><td>10</td><td>5</td></tr>
+  <tr><td>累计收益</td><td style="color:var(--red);">-8.30%</td><td style="color:var(--green);">+0.37%</td></tr>
+  <tr><td>最大回撤</td><td>10.37%</td><td>0.72%</td></tr>
 </table>
-<div class="callout success"><strong>结论：</strong> 过滤机制在震荡市中有效减少了 60% 的假突破信号，V3 的回撤控制显著优于 V2。</div>
+<div class="callout success"><strong>结论：</strong> 过滤机制在震荡市中有效减少了假突破信号。V3 于 05-20 实现首次正收益（+1.22%），累计收益已转正。</div>
 
 <h3>4.3 V2 vs V3 适用场景</h3>
 <table>
@@ -281,7 +281,8 @@
   <tr><td>13:30 - 14:30</td><td>0.3</td><td>仅 30% 仓位，14:30 后停止开仓</td></tr>
 </table>
 
-<div class="callout success"><strong>今日首跑：</strong> HVOB-MBI 于 2026-05-20 首次启动，已完成盘前筛选（10 个品种入池，top3: ag、sc、lu），等待夜盘开盘。</div>
+<div class="callout success"><strong>运行状态：</strong> HVOB-MBI 于 2026-05-20 首次启动，已完成两个交易日（05-20/05-21）的盘前筛选，观察池数据已持久化到 `HvobMbiWatchlistItem` 表。筛选品种入池（每日 10 个），暂未产生交易信号。</div>
+<div class="callout info"><strong>观察池持久化：</strong> 筛选完成后立即写入独立数据表，可通过 `GET /api/stock/hvob-watchlist/` 按日期和账户查询每日观察池明细。</div>
 </div>
 
 <div class="section" id="s6">
@@ -346,18 +347,18 @@
 <h3>10.1 账户总览</h3>
 <table>
   <tr><th>指标</th><th>原版海龟 (Acc 6)</th><th>海龟V2 (Acc 1)</th><th>海龟V3 (Acc 5)</th><th>HVOB-MBI (Acc 10)</th></tr>
-  <tr><td>当前权益</td><td style="color:var(--red);">&yen;976,683</td><td style="color:var(--red);">&yen;916,993</td><td style="color:var(--red);">&yen;992,760</td><td>&yen;1,000,000</td></tr>
-  <tr><td>累计收益率</td><td style="color:var(--red);"><strong>-2.33%</strong></td><td style="color:var(--red);"><strong>-6.91%</strong></td><td style="color:var(--red);"><strong>-0.72%</strong></td><td>0.00%</td></tr>
+  <tr><td>当前权益</td><td style="color:var(--red);">&yen;976,683</td><td style="color:var(--red);">&yen;916,993</td><td style="color:var(--green);">&yen;1,003,710</td><td>&yen;1,000,000</td></tr>
+  <tr><td>累计收益率</td><td style="color:var(--red);"><strong>-2.33%</strong></td><td style="color:var(--red);"><strong>-8.30%</strong></td><td style="color:var(--green);"><strong>+0.37%</strong></td><td>0.00%</td></tr>
   <tr><td>最大回撤</td><td style="color:var(--red);">3.12%</td><td style="color:var(--red);"><strong>10.37%</strong></td><td>0.72%</td><td>-</td></tr>
 </table>
 
 <h3>10.2 信号统计对比</h3>
 <table>
   <tr><th>信号类型</th><th>原版海龟 (Acc 6)</th><th>海龟V2 (Acc 1)</th><th>海龟V3 (Acc 5)</th></tr>
-  <tr><td>ENTRY</td><td>12 成功 / 2 执行中</td><td>16 (全部成功)</td><td>4 成功 / 6 取消</td></tr>
-  <tr><td>STOP_LOSS</td><td>2 成功 / 1 失败</td><td>4 成功 / 2 失败</td><td>0</td></tr>
-  <tr><td>ADD_ON</td><td>3</td><td>15</td><td>1</td></tr>
-  <tr><td><strong>总计</strong></td><td><strong>20</strong></td><td><strong>38</strong></td><td><strong>12</strong></td></tr>
+  <tr><td>ENTRY</td><td>14</td><td>18</td><td>12</td></tr>
+  <tr><td>STOP_LOSS</td><td>4</td><td>9</td><td>1</td></tr>
+  <tr><td>ADD_ON</td><td>7</td><td>17</td><td>3</td></tr>
+  <tr><td><strong>总计</strong></td><td><strong>25</strong></td><td><strong>44</strong></td><td><strong>16</strong></td></tr>
 </table>
 </div>
 
@@ -366,16 +367,16 @@
 <h3>11.1 海龟V2 - Account 1</h3>
 <div class="chart-container">
   <div class="bar-chart" style="height:200px;">
-    <div class="bar green" style="height:72%;" title="&yen;997,978"><span class="label">04-30</span><span class="tooltip">&yen;997,978</span></div>
-    <div class="bar green" style="height:83%;" title="&yen;1,008,288"><span class="label">05-07</span><span class="tooltip">&yen;1,008,288</span></div>
-    <div class="bar red" style="height:64%;" title="&yen;990,614"><span class="label">05-08</span><span class="tooltip">&yen;990,614</span></div>
+    <div class="bar green" style="height:76%;" title="&yen;997,978"><span class="label">04-30</span><span class="tooltip">&yen;997,978</span></div>
+    <div class="bar green" style="height:86%;" title="&yen;1,008,288"><span class="label">05-07</span><span class="tooltip">&yen;1,008,288</span></div>
+    <div class="bar red" style="height:69%;" title="&yen;990,614"><span class="label">05-08</span><span class="tooltip">&yen;990,614</span></div>
     <div class="bar green" style="height:100%;" title="&yen;1,023,114"><span class="label">05-11</span><span class="tooltip">&yen;1,023,114</span></div>
-    <div class="bar red" style="height:39%;" title="&yen;967,488"><span class="label">05-14</span><span class="tooltip">&yen;967,488</span></div>
-    <div class="bar red" style="height:11%;" title="&yen;941,643"><span class="label">05-15</span><span class="tooltip">&yen;941,643</span></div>
-    <div class="bar green" style="height:20%;" title="&yen;949,509"><span class="label">05-18</span><span class="tooltip">&yen;949,509</span></div>
-    <div class="bar red" style="height:4%;" title="&yen;930,928"><span class="label">05-19</span><span class="tooltip">&yen;930,928</span></div>
-    <div class="bar green" style="height:6%;" title="&yen;933,512"><span class="label">05-20</span><span class="tooltip">&yen;933,512</span></div>
-    <div class="bar red" style="height:4%;" title="&yen;916,993"><span class="label">05-21</span><span class="tooltip">&yen;916,993</span></div>
+    <div class="bar red" style="height:48%;" title="&yen;967,488"><span class="label">05-14</span><span class="tooltip">&yen;967,488</span></div>
+    <div class="bar red" style="height:23%;" title="&yen;941,643"><span class="label">05-15</span><span class="tooltip">&yen;941,643</span></div>
+    <div class="bar green" style="height:31%;" title="&yen;949,509"><span class="label">05-18</span><span class="tooltip">&yen;949,509</span></div>
+    <div class="bar red" style="height:13%;" title="&yen;930,928"><span class="label">05-19</span><span class="tooltip">&yen;930,928</span></div>
+    <div class="bar green" style="height:16%;" title="&yen;933,512"><span class="label">05-20</span><span class="tooltip">&yen;933,512</span></div>
+    <div class="bar red" style="height:0%;" title="&yen;916,993"><span class="label">05-21</span><span class="tooltip">&yen;916,993</span></div>
   </div>
   <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">峰值 05-11: +3.28% | 谷值 05-21: -8.30% | 最大回撤 10.37%</div>
 </div>
@@ -383,26 +384,28 @@
 <h3>11.2 海龟V3 - Account 5</h3>
 <div class="chart-container">
   <div class="bar-chart" style="height:120px;">
-    <div class="bar green" style="height:100%;" title="&yen;1,000,000"><span class="label">05-12</span><span class="tooltip">&yen;1,000,000</span></div>
-    <div class="bar green" style="height:96%;" title="&yen;999,626"><span class="label">05-13</span><span class="tooltip">&yen;999,626</span></div>
-    <div class="bar red" style="height:77%;" title="&yen;995,456"><span class="label">05-14</span><span class="tooltip">&yen;995,456</span></div>
-    <div class="bar red" style="height:66%;" title="&yen;993,386"><span class="label">05-15</span><span class="tooltip">&yen;993,386</span></div>
-    <div class="bar green" style="height:73%;" title="&yen;994,604"><span class="label">05-18</span><span class="tooltip">&yen;994,604</span></div>
-    <div class="bar red" style="height:64%;" title="&yen;992,760"><span class="label">05-19</span><span class="tooltip">&yen;992,760</span></div>
+    <div class="bar green" style="height:60%;" title="&yen;1,000,000"><span class="label">05-12</span><span class="tooltip">&yen;1,000,000</span></div>
+    <div class="bar green" style="height:57%;" title="&yen;999,626"><span class="label">05-13</span><span class="tooltip">&yen;999,626</span></div>
+    <div class="bar red" style="height:22%;" title="&yen;995,456"><span class="label">05-14</span><span class="tooltip">&yen;995,456</span></div>
+    <div class="bar red" style="height:5%;" title="&yen;993,386"><span class="label">05-15</span><span class="tooltip">&yen;993,386</span></div>
+    <div class="bar green" style="height:15%;" title="&yen;994,604"><span class="label">05-18</span><span class="tooltip">&yen;994,604</span></div>
+    <div class="bar red" style="height:0%;" title="&yen;992,760"><span class="label">05-19</span><span class="tooltip">&yen;992,760</span></div>
+    <div class="bar green" style="height:100%;" title="&yen;1,004,830"><span class="label">05-20</span><span class="tooltip">&yen;1,004,830</span></div>
+    <div class="bar green" style="height:91%;" title="&yen;1,003,710"><span class="label">05-21</span><span class="tooltip">&yen;1,003,710</span></div>
   </div>
-  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">累计 -0.72% | 最大回撤 0.72%</div>
+  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">累计 +0.37% | 最大回撤 0.72% | 05-20 首次转正（+1.22%）</div>
 </div>
 
 <h3>11.3 原版海龟 - Account 6</h3>
 <div class="chart-container">
   <div class="bar-chart" style="height:120px;">
     <div class="bar green" style="height:100%;" title="&yen;1,000,000"><span class="label">05-12</span><span class="tooltip">&yen;1,000,000</span></div>
-    <div class="bar green" style="height:90%;" title="&yen;998,513"><span class="label">05-13</span><span class="tooltip">&yen;998,513</span></div>
-    <div class="bar red" style="height:34%;" title="&yen;983,137"><span class="label">05-14</span><span class="tooltip">&yen;983,137</span></div>
-    <div class="bar red" style="height:18%;" title="&yen;971,704"><span class="label">05-15</span><span class="tooltip">&yen;971,704</span></div>
-    <div class="bar red" style="height:13%;" title="&yen;968,779"><span class="label">05-18</span><span class="tooltip">&yen;968,779</span></div>
-    <div class="bar green" style="height:23%;" title="&yen;975,663"><span class="label">05-19</span><span class="tooltip">&yen;975,663</span></div>
-    <div class="bar red" style="height:21%;" title="&yen;973,685"><span class="label">05-20</span><span class="tooltip">&yen;973,685</span></div>
+    <div class="bar green" style="height:95%;" title="&yen;998,513"><span class="label">05-13</span><span class="tooltip">&yen;998,513</span></div>
+    <div class="bar red" style="height:46%;" title="&yen;983,137"><span class="label">05-14</span><span class="tooltip">&yen;983,137</span></div>
+    <div class="bar red" style="height:9%;" title="&yen;971,704"><span class="label">05-15</span><span class="tooltip">&yen;971,704</span></div>
+    <div class="bar red" style="height:0%;" title="&yen;968,779"><span class="label">05-18</span><span class="tooltip">&yen;968,779</span></div>
+    <div class="bar green" style="height:22%;" title="&yen;975,663"><span class="label">05-19</span><span class="tooltip">&yen;975,663</span></div>
+    <div class="bar red" style="height:16%;" title="&yen;973,685"><span class="label">05-20</span><span class="tooltip">&yen;973,685</span></div>
     <div class="bar green" style="height:25%;" title="&yen;976,683"><span class="label">05-21</span><span class="tooltip">&yen;976,683</span></div>
   </div>
   <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">累计 -2.33% | 最大回撤 3.12% | 运行 8 个交易日</div>
@@ -487,10 +490,10 @@
 <h3>17.2 当前状态评估</h3>
 <table>
   <tr><th>策略</th><th>运行时间</th><th>累计收益</th><th>最大回撤</th><th>评估</th></tr>
-  <tr><td>原版海龟</td><td>6天</td><td>-2.43%</td><td>3.12%</td><td><span class="tag blue">正常</span></td></tr>
-  <tr><td>海龟V2</td><td>12天</td><td>-6.91%</td><td>9.01%</td><td><span class="tag orange">观察期</span></td></tr>
-  <tr><td>海龟V3</td><td>6天</td><td>-0.72%</td><td>0.72%</td><td><span class="tag blue">平稳</span></td></tr>
-  <tr><td>HVOB-MBI</td><td>1天</td><td>0.00%</td><td>-</td><td><span class="tag green">首日</span></td></tr>
+  <tr><td>原版海龟</td><td>8天</td><td>-2.33%</td><td>3.12%</td><td><span class="tag blue">正常</span></td></tr>
+  <tr><td>海龟V2</td><td>14天</td><td>-8.30%</td><td>10.37%</td><td><span class="tag orange">观察期</span></td></tr>
+  <tr><td>海龟V3</td><td>8天</td><td style="color:var(--green);"><strong>+0.37%</strong></td><td>0.72%</td><td><span class="tag green">已转正</span></td></tr>
+  <tr><td>HVOB-MBI</td><td>2天</td><td>0.00%</td><td>-</td><td><span class="tag blue">观察期</span></td></tr>
 </table>
 
 <h3>17.3 V2 vs V3 选择建议</h3>
@@ -505,8 +508,8 @@
 
 <h3>17.4 最终结论</h3>
 <div class="callout success"><strong>1. 四策略互补性优良。</strong> V2（激进）+ V3（保守）+ HVOB-MBI（日内）在时间尺度、收益来源、风险暴露上形成完整梯度。</div>
-<div class="callout info"><strong>2. skip_choppy 过滤效果初步显现。</strong> V3 回撤(0.72%)远低于 V2(9.01%)。</div>
-<div class="callout warning"><strong>3. 当前亏损属正常范围。</strong> 趋势跟踪系统年度内出现 20%+ 回撤正常。</div>
+<div class="callout success"><strong>2. V3 累计收益已转正（+0.37%）。</strong> skip_choppy 过滤效果显著：V3 回撤(0.72%)远低于 V2(10.37%)，05-20 单日收益 +1.22% 是首日转正的关键。</div>
+<div class="callout warning"><strong>3. V2 仍处回撤期。</strong> 累计 -8.30%，最大回撤 10.37%，属预期范围内但需持续观察。V2 不过滤震荡的特性在 5 月震荡行情中磨损加大。</div>
 <div class="callout danger"><strong>4. 核心风险仍是震荡磨损。</strong> 连续 6~10 笔止损在一年内可能出现 2~3 次。</div>
 
 <div style="margin-top:16px;">

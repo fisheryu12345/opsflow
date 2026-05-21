@@ -1,6 +1,6 @@
 # HVOB-MBI 日内高波动突破系统
 
-> 涉及文件: `hvob_mbi/config.py`, `hvob_mbi/screening.py`, `hvob_mbi/mbi.py`, `hvob_mbi/trading_engine.py`, `hvob_mbi/signal_recorder.py`, `hvob_mbi/models.py`, `stock/models.py` (FullContractList.night_trading)
+> 涉及文件: `hvob_mbi/config.py`, `hvob_mbi/screening.py`, `hvob_mbi/mbi.py`, `hvob_mbi/trading_engine.py`, `hvob_mbi/signal_recorder.py`, `hvob_mbi/models.py`, `stock/models.py` (FullContractList.night_trading), `hvob_mbi/management/commands/hvob_trading.py`
 
 ---
 
@@ -212,7 +212,7 @@ score = (atr_pct >= 0.02 ? atr_pct × 100 : 0)
 
 **选取数量：** 取评分前 `max(min_watchlist_size, min(max_positions_per_day × 2, 10))` 个品种。
 
-**返回结果：** 每条包含 `symbol, product_code, score, atr_pct, avg_amp, vol_ratio, atr_score, amp_score, vol_score, bonus, open_interest`，写入 `HvobMbiDailyState.watchlist`。
+**返回结果：** 每条包含 `symbol, product_code, score, atr_pct, avg_amp, vol_ratio, atr_score, amp_score, vol_score, bonus, open_interest`。筛选完成后立即通过 `_save_watchlist_items()` 写入 `HvobMbiWatchlistItem` 表（独立记录），同时保存在内存 `self.watchlist` 中供后续使用。EOD `_save_daily_state()` 也会再次持久化到 `HvobMbiDailyState.watchlist` JSON 字段。
 
 ### 5.2 入场条件
 
@@ -248,6 +248,8 @@ score = (atr_pct >= 0.02 ? atr_pct × 100 : 0)
 screening(启动)
     │ 盘前筛选：TqSDK 拉取日线计算 ATR%/振幅/成交量
     │ 返回 dict 格式评分明细
+    │ 调用 _save_watchlist_items() 写入 HvobMbiWatchlistItem 表
+    │ 内存 self.watchlist 中保留完整列表供交易使用
     ↓
 night_or(21:00-21:30)
     │ 跟踪有夜盘品种（FullContractList.night_trading=True）tick 级 H/L
@@ -336,7 +338,8 @@ done
 - `_reconnect` 中 `safe_close_api` → `time.sleep(35)` → `create_tqapi`，确保交易所网关连接完全刷新
 - 重建后调用 `_subscribe_all()` 重新获取所有品种的 `get_quote` / `get_kline_serial` 代理引用
 - 旧 `TargetPosTask` 绑定已关闭的连接，需清空后按需重新创建
-- 重建期间内存状态（`positions`、`opening_ranges`、`banned`、`traded`）完整保留，不受影响
+- 重建期间内存状态（`positions`、`opening_ranges`、`banned`、`traded`、`watchlist`）完整保留，不受影响
+- 重连**不会**重新执行筛选（`_do_screening`），仅恢复行情订阅和交易执行。`watchlist` 使用重建前已在内存中的数据，避免了重复筛选改变观察池导致持仓不一致
 
 ### 7.8 `_finalize` 数据保鲜
 
@@ -364,6 +367,29 @@ done
 | trailing_stop_trigger_times | Decimal(4,1) | 2.0 | 移动止盈触发倍数 |
 | min_watchlist_size | IntegerField | 5 | 观察池最小数量 |
 | max_positions_per_day | IntegerField | 5 | 单日最大持仓数 |
+
+### HvobMbiWatchlistItem（观察池条目）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| account | FK→TradingAccount | 关联账户 |
+| trade_date | DateField(db_index) | 交易日 |
+| rank | IntegerField | 排名 1~N |
+| symbol | CharField(50) | 合约代码 |
+| product_code | CharField(20) | 品种代码 |
+| score | FloatField | 综合评分 |
+| atr_pct | FloatField | ATR% |
+| avg_amp | FloatField | 5日平均振幅 |
+| vol_ratio | FloatField | 量比 |
+| atr_score | FloatField | ATR得分 |
+| amp_score | FloatField | 振幅得分 |
+| vol_score | FloatField | 量能得分 |
+| bonus | IntegerField | 品种奖惩（+3优选/-2回避） |
+| open_interest | IntegerField | 持仓量 |
+
+唯一约束：`unique_together = (account, trade_date, symbol)`。筛选完成后立即通过 `_save_watchlist_items()` 批量写入（`bulk_create` + `ignore_conflicts=True`），EOD `_save_daily_state()` 再次调用以覆盖可能遗漏的品种。
+
+前端通过 `GET /api/stock/hvob-watchlist/` 接口分页查询，支持按日期和账户筛选。
 
 ### HvobMbiDailyState（每日状态快照）
 
