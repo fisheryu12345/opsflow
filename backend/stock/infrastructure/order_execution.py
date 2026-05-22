@@ -322,5 +322,11 @@ def record_and_reset_position(api, position, signal, filled_volume, avg_price):
             'open_date': None,
             'cost_price': None,
             'first_open_price': None,
+            'latest_close_price': None,
+            'indicators': None,
+            'h20_price': None,
+            'l20_price': None,
+            'trend_info': None,
+            'is_rollover_needed': False,
         }
         PositionState.objects.filter(id=position.id).update(**update_fields)

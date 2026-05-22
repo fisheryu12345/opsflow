@@ -1,6 +1,7 @@
 """
 TqApi lifecycle management — centralized API creation and teardown.
 """
+from django.db import close_old_connections
 from tqsdk import TqApi, TqAuth, TqKq, TqAccount
 from stock.core.config_loader import get_config
 from stock.models import StrategyConfig, TradingAccount
@@ -14,6 +15,7 @@ def _get_default_auth():
     无可用账户时回退到全局 DEFAULTS。
     """
     try:
+        close_old_connections()
         for acct in TradingAccount.objects.filter(is_active=True):
             try:
                 cfg = StrategyConfig.objects.get(account=acct)
@@ -37,6 +39,7 @@ def create_tqapi(account=None):
     """
     if account is not None:
         try:
+            close_old_connections()
             acct_id = account.id if hasattr(account, 'id') else account
             config = StrategyConfig.objects.get(account_id=acct_id)
             if not config.is_simulation:

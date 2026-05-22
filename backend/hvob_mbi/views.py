@@ -1,6 +1,7 @@
 """
 HVOB-MBI viewsets
 """
+from django.db.models import Max
 from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
@@ -21,6 +22,14 @@ class HvobMbiWatchlistViewSet(viewsets.ReadOnlyModelViewSet):
         'product_code': ['exact'],
     }
     ordering = ['-trade_date', 'rank']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if not self.request.query_params.get('trade_date'):
+            latest = qs.aggregate(max_date=Max('trade_date'))['max_date']
+            if latest:
+                qs = qs.filter(trade_date=latest)
+        return qs
 
 
 class HvobMbiDailyStateViewSet(viewsets.ReadOnlyModelViewSet):

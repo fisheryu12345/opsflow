@@ -651,10 +651,12 @@ def execute_rollover_order(api, position, signal):
             filled_volume = position.contract_total_position
 
         try:
-            contract_info = FullContractList.objects.get(symbol=position.symbol)
-            volume_multiple = contract_info.volume_multiple
-        except FullContractList.DoesNotExist:
-            log_error('execute_rollover_order', f"合约 {position.symbol} 未找到，乘数默认10", notify=True)
+            contract_info = FullContractList.objects.filter(product_code=position.product_code).first()
+            volume_multiple = contract_info.volume_multiple if contract_info else 10
+            if not contract_info:
+                log_error('execute_rollover_order', f"品种 {position.product_code} 未找到，乘数默认10", notify=True)
+        except Exception:
+            log_error('execute_rollover_order', f"查询品种 {position.product_code} 乘数失败，默认10", notify=True)
             volume_multiple = 10
 
         cost_price = position.cost_price if position.cost_price else None
@@ -717,6 +719,26 @@ def execute_rollover_order(api, position, signal):
         msg = f"{position.symbol} 移仓平仓记录已创建: {filled_volume}手 @ {rollover_exit_price:.2f}, PnL={rollover_pnl:.2f}"
         print(msg)
         log_trade('execute_rollover_order', msg, symbol=position.symbol, log_level='SUCCESS', account=position.account)
+
+        # 平仓完成后立即重置持仓状态，避免 Phase 2 开仓失败后残留脏数据影响后续开仓
+        PositionState.objects.filter(id=position.id).update(**{
+            'units': 0,
+            'contract_total_position': 0,
+            'direction': 0,
+            'highest_close': None,
+            'lowest_close': None,
+            'stop_loss_price': None,
+            'protect_cost_enabled': False,
+            'open_date': None,
+            'cost_price': None,
+            'first_open_price': None,
+            'latest_close_price': None,
+            'indicators': None,
+            'h20_price': None,
+            'l20_price': None,
+            'trend_info': None,
+            'is_rollover_needed': False,
+        })
 
     except Exception as e:
         msg = f"[ERROR] {position.symbol} 平仓失败: {str(e)}"
