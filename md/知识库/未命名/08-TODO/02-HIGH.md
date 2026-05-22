@@ -484,3 +484,53 @@ def update_all_positions_stop_loss_price(api, account):
 if positions.exists():
     api.wait_update(deadline=time.time() + 5)
 ```
+
+
+## ✅ HIGH-24: 重连后 MySQL gone away 导致进程崩溃 — 已修复 (2026-05-22)
+
+**文件**: [infrastructure/tqapi.py](../../backend/stock/infrastructure/tqapi.py#L42)
+
+**问题描述**:
+`_reconnect()` 执行 `safe_close_api` → `time.sleep(35)` → `create_tqapi(self.account)`。`create_tqapi()` 内部 `StrategyConfig.objects.get()` 在 35s 空闲后使用已关闭的 MySQL 连接，抛出 `MySQL server has gone away`。
+
+**影响分析**:
+- HVOB 引擎 20:55 夜盘重启时崩溃，整个 TradingEngine 进程中断
+- 错过夜盘交易时段
+
+**修复内容**:
+在 `create_tqapi()` 和 `_get_default_auth()` 的 ORM 查询前添加 `close_old_connections()`:
+
+```python
+close_old_connections()
+config = StrategyConfig.objects.get(account_id=acct_id)
+```
+
+同时添加 `from django.db import close_old_connections` 导入。
+
+
+## ✅ HIGH-25: 移仓换月 Phase 2 失败后 PositionState 残留脏数据 — 已修复 (2026-05-22)
+
+**文件**: [infrastructure/order_signals.py](../../backend/stock/infrastructure/order_signals.py#L723)
+
+**问题描述**:
+`execute_rollover_order` 中 Phase 1（平旧仓）成功后，Phase 2（开新仓）可能因行情、资金等原因失败。但 PositionState 未被重置，残留 `units>0`、`contract_total_position>0`、`direction!=0`，系统误以为还有持仓，阻止后续开仓。
+
+**影响分析**:
+- 移仓失败后该品种无法再次开仓
+- 需人工修复数据库才能恢复交易
+- 影响所有通过 `execute_rollover_order` 移仓的品种
+
+**修复内容**:
+Phase 1 平仓完成后立即重置 PositionState，无论 Phase 2 是否成功：
+
+```python
+PositionState.objects.filter(id=position.id).update(**{
+    'units': 0, 'contract_total_position': 0, 'direction': 0,
+    'highest_close': None, 'lowest_close': None,
+    'stop_loss_price': None, 'protect_cost_enabled': False,
+    'open_date': None, 'cost_price': None, 'first_open_price': None,
+    'latest_close_price': None, 'indicators': None,
+    'h20_price': None, 'l20_price': None,
+    'trend_info': None, 'is_rollover_needed': False,
+})
+```

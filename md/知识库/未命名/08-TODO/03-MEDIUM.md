@@ -655,3 +655,48 @@ finally:
 2. 完成判断改为检查实际持仓 `api.get_position().pos == 0`
 3. deadline 使用 `min(1, remaining)` 递减
 4. 超时退出前调用 `target_pos.cancel()` + 等待 `is_finished()` 确保资源释放
+
+
+## ✅ MEDIUM-40: record_and_reset_position 缺少 6 个重置字段 — 已修复 (2026-05-22)
+
+**文件**: [infrastructure/order_execution.py](../../backend/stock/infrastructure/order_execution.py#L314-L332)
+
+**问题描述**:
+`record_and_reset_position` 只重置了 9 个核心字段（units、contract_total_position、direction 等），但遗漏了 `latest_close_price`、`indicators`、`h20_price`、`l20_price`、`trend_info`、`is_rollover_needed` 共 6 个字段。
+
+平仓后这些字段仍保留着持仓期间的数据，若 PositionState 被复用可能导致指标计算偏差。
+
+**影响分析**:
+- 平仓后 `latest_close_price` 残留旧数据
+- 平仓后 `h20_price`/`l20_price` 残留可能导致新开仓时止损参考值错误
+- 当前 PositionState 在平仓后不再复用（新开仓创建新记录），实际影响有限，但不一致存在隐患
+
+**修复内容**:
+`update_fields` 字典追加 6 个字段：
+
+```python
+'latest_close_price': None,
+'indicators': None,
+'h20_price': None,
+'l20_price': None,
+'trend_info': None,
+'is_rollover_needed': False,
+```
+
+
+## ✅ MEDIUM-41: 移仓换月查询合约乘数使用旧合约 symbol — 已修复 (2026-05-22)
+
+**文件**: [infrastructure/order_signals.py](../../backend/stock/infrastructure/order_signals.py#L653-L660)
+
+**问题描述**:
+`execute_rollover_order` Phase 1 计算平仓盈亏时，使用 `position.symbol`（旧合约代码）查询 `FullContractList`。移仓后旧合约可能已过期并从合约列表中移除，导致查询失败，兜底使用默认乘数 10。
+
+对于乘数非 10 的品种（如沪银 15、原油 1000），PnL 计算错误。
+
+**影响分析**:
+- 沪银(ag) PnL 少算 33%（15  vs 10）
+- 原油(sc) PnL 少算 99%（1000 vs 10）
+- 仅影响移仓换月时的平仓 PnL 记录，不影响持仓成本（由 TqSDK 同步）
+
+**修复内容**:
+`FullContractList.objects.get(symbol=position.symbol)` → `FullContractList.objects.filter(product_code=position.product_code).first()`，使用品种代码查询，合约乘数与具体合约无关。
