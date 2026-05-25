@@ -33,6 +33,20 @@
               <StatusTag type="direction" :value="row.direction" />
             </template>
           </el-table-column>
+          <el-table-column prop="entry_trend_label" label="入场趋势" min-width="100" align="center" sortable>
+            <template #default="{ row }">
+              <el-tag :type="row.entry_trend_label?.includes('多头') ? 'success' : row.entry_trend_label?.includes('空头') ? 'danger' : 'info'" size="small" effect="plain">
+                {{ row.entry_trend_label || '-' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="exit_trend_label" label="出场趋势" min-width="100" align="center" sortable>
+            <template #default="{ row }">
+              <el-tag :type="row.exit_trend_label?.includes('多头') ? 'success' : row.exit_trend_label?.includes('空头') ? 'danger' : 'info'" size="small" effect="plain">
+                {{ row.exit_trend_label || '-' }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="volume" label="手数" min-width="70" align="right" sortable />
           <el-table-column prop="cost_price" label="开仓价" min-width="110" align="right" sortable>
             <template #default="{ row }">
