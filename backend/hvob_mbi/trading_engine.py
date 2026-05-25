@@ -126,13 +126,8 @@ class HvobTradingEngine:
         # Phase 1: 盘前筛选
         self._do_screening()
 
-        # 根据当前时间修正相位（避免白天启动卡在 night_or）
+        # 根据当前时间修正相位
         self._init_phase()
-
-        if self.phase == 'done':
-            print("[HVOB] 当前时间已收盘，引擎结束")
-            self._finalize()
-            return
 
         # 订阅 watchlist 数据
         self._subscribe_all()
@@ -162,8 +157,8 @@ class HvobTradingEngine:
             self.phase = 'night_breakout'
         elif t >= NIGHT_OPEN:             # 21:00-21:30
             self.phase = 'night_or'       # 保持，正常跟踪夜盘 OR
-        elif t >= FORCE_CLOSE_TIME:       # 14:55-21:00（收盘后）
-            self.phase = 'done'
+        elif t >= FORCE_CLOSE_TIME:       # 14:55-21:00（收盘后→等待夜盘）
+            self.phase = 'idle'
         elif t >= DAY_OR_CLOSE:           # 9:30-14:55
             self.phase = 'day_breakout'
         elif t >= DAY_OPEN:               # 9:00-9:30
@@ -184,13 +179,11 @@ class HvobTradingEngine:
             else:
                 self._on_quote('night_or')
 
-        elif self.phase == 'night_breakout':
-            if t >= DAY_OPEN:
-                self._check_gap()
-                self.phase = 'gap_check'
-                print(f"[HVOB] → gap_check")
-            else:
-                self._on_quote('night_breakout')
+        elif self.phase == 'idle':
+            if t >= NIGHT_OPEN:
+                self.phase = 'night_or'
+                print(f"[HVOB] → night_or")
+            # idle 阶段不处理行情，仅等待时间到达
 
         elif self.phase == 'gap_check':
             if t >= DAY_OR_CLOSE:
