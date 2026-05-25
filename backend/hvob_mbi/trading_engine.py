@@ -130,11 +130,11 @@ class HvobTradingEngine:
             self.phase = 'done'
             return
 
-        # Phase 1: 盘前筛选
-        self._do_screening()
-
-        # 根据当前时间修正相位
+        # 根据当前时间确定初始相位
         self._init_phase()
+
+        # Phase 1: 盘前筛选（不改变相位）
+        self._do_screening()
 
         # 订阅 watchlist 数据（仅注册引用，未实际发送）
         self._subscribe_all()
@@ -215,7 +215,8 @@ class HvobTradingEngine:
             # idle 阶段不处理行情，仅等待时间到达
 
         elif self.phase == 'night_breakout':
-            if t >= DAY_OPEN:
+            # 9:00-21:00 属于凌晨时段 → 切换 gap_check；21:00+ 仍属夜盘
+            if DAY_OPEN <= t < NIGHT_OPEN:
                 self._check_gap()
                 self.phase = 'gap_check'
                 print(f"[HVOB] → gap_check")
@@ -284,8 +285,7 @@ class HvobTradingEngine:
         from .screening import select_watchlist
         self.watchlist = select_watchlist(self.api)
         self._save_watchlist_items()
-        self.phase = 'night_or'
-        print(f"[HVOB] → night_or (等待夜盘开盘区间)")
+        print(f"[HVOB] → {self.phase}")
 
     # ==================== 订阅 ====================
 
