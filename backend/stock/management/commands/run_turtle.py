@@ -26,6 +26,8 @@ from stock.infrastructure.tqapi import create_tqapi, safe_close_api
 from stock.infrastructure.order_execution import (
     wait_for_target_position,
     record_and_reset_position,
+    check_min_position_requirement,
+    execute_two_step_opening,
 )
 from stock.models import (
     TradingAccount, PositionState, DailyStrategySignal,
@@ -348,24 +350,40 @@ class Command(BaseCommand):
             remark=f"Turtle突破入场: 价格={price:.2f}",
         )
 
-        target_pos = TargetPosTask(api, symbol)
-        target_lots = order_volume if direction == 1 else -order_volume
-        target_pos.set_target_volume(target_lots)
+        min_check = check_min_position_requirement(symbol, order_volume)
+        if min_check['need_adjustment']:
+            self.stdout.write(f"[Turtle] {symbol} 最小开仓限制{min_check['min_position']}手，采用两步开仓")
+            two_step = execute_two_step_opening(
+                api=api, symbol=symbol, direction=direction,
+                adjusted_volume=min_check['adjusted_volume'],
+                excess_to_close=min_check['excess_to_close'],
+                target_volume=order_volume,
+                function_name='turtle_entry',
+                account=account, signal=signal,
+            )
+            if not two_step['success']:
+                self.stdout.write(self.style.ERROR(f"[Turtle] 入场失败: {symbol}"))
+                signal.executed_status = 'FAILED'
+                signal.save(update_fields=['executed_status'])
+                return
+            fill_price = two_step['avg_price'] or price
+        else:
+            target_pos = TargetPosTask(api, symbol, support_open_min_volume=True)
+            target_lots = order_volume if direction == 1 else -order_volume
+            target_pos.set_target_volume(target_lots)
+            result = wait_for_target_position(api, target_pos, symbol,
+                                              target_lots, 'turtle_entry')
+            if not result['success']:
+                self.stdout.write(self.style.ERROR(f"[Turtle] 入场失败: {symbol}"))
+                signal.executed_status = 'FAILED'
+                signal.save(update_fields=['executed_status'])
+                return
+            # 获取成交价(用最后报价近似)
+            for _ in range(3):
+                api.wait_update()
+            quote = api.get_quote(symbol)
+            fill_price = float(quote.last_price) if quote and quote.last_price else price
 
-        result = wait_for_target_position(api, target_pos, symbol,
-                                          target_lots, 'turtle_entry')
-
-        if not result['success']:
-            self.stdout.write(self.style.ERROR(f"[Turtle] 入场失败: {symbol}"))
-            signal.executed_status = 'FAILED'
-            signal.save(update_fields=['executed_status'])
-            return
-
-        # 获取成交价(用最后报价近似)
-        for _ in range(3):
-            api.wait_update()
-        quote = api.get_quote(symbol)
-        fill_price = float(quote.last_price) if quote and quote.last_price else price
         hard_stop = self._calc_hard_stop(direction, fill_price, n_value)
 
         with transaction.atomic():
@@ -510,23 +528,45 @@ class Command(BaseCommand):
             },
         )
 
-        target_pos = TargetPosTask(api, position.symbol)
-        target_lots = new_total if position.direction == 1 else -new_total
-        target_pos.set_target_volume(target_lots)
-
-        result = wait_for_target_position(api, target_pos, position.symbol,
-                                          target_lots, 'turtle_add_on')
-
-        if not result['success']:
-            self.stdout.write(self.style.ERROR(f"[Turtle] 加仓失败: {position.symbol}"))
-            signal.executed_status = 'FAILED'
-            signal.save(update_fields=['executed_status'])
-            return
-
-        for _ in range(3):
-            api.wait_update()
-        quote = api.get_quote(position.symbol)
-        fill_price = float(quote.last_price) if quote and quote.last_price else price
+        min_check = check_min_position_requirement(position.symbol, order_volume)
+        if min_check['need_adjustment']:
+            # 加仓增量低于最小开仓限制: 先开到 current + min_pos，再平 excess
+            adjusted = position.contract_total_position + min_check['min_position']
+            excess = min_check['min_position'] - order_volume
+            self.stdout.write(
+                f"[Turtle] {position.symbol} 最小开仓限制{min_check['min_position']}手，"
+                f"采用两步开仓(目标{new_total}手)"
+            )
+            two_step = execute_two_step_opening(
+                api=api, symbol=position.symbol,
+                direction=position.direction,
+                adjusted_volume=adjusted,
+                excess_to_close=excess,
+                target_volume=new_total,
+                function_name='turtle_add_on',
+                account=account, signal=signal,
+            )
+            if not two_step['success']:
+                self.stdout.write(self.style.ERROR(f"[Turtle] 加仓失败: {position.symbol}"))
+                signal.executed_status = 'FAILED'
+                signal.save(update_fields=['executed_status'])
+                return
+            fill_price = two_step['avg_price'] or price
+        else:
+            target_pos = TargetPosTask(api, position.symbol, support_open_min_volume=True)
+            target_lots = new_total if position.direction == 1 else -new_total
+            target_pos.set_target_volume(target_lots)
+            result = wait_for_target_position(api, target_pos, position.symbol,
+                                              target_lots, 'turtle_add_on')
+            if not result['success']:
+                self.stdout.write(self.style.ERROR(f"[Turtle] 加仓失败: {position.symbol}"))
+                signal.executed_status = 'FAILED'
+                signal.save(update_fields=['executed_status'])
+                return
+            for _ in range(3):
+                api.wait_update()
+            quote = api.get_quote(position.symbol)
+            fill_price = float(quote.last_price) if quote and quote.last_price else price
 
         new_units = position.units + 1
 
@@ -566,7 +606,7 @@ class Command(BaseCommand):
             remark=reason,
         )
 
-        target_pos = TargetPosTask(api, symbol)
+        target_pos = TargetPosTask(api, symbol, support_open_min_volume=True)
         target_pos.set_target_volume(0)
 
         result = wait_for_target_position(api, target_pos, symbol, 0, 'turtle_exit')
@@ -662,7 +702,7 @@ class Command(BaseCommand):
 
         # Phase 1: 平旧合约
         self.stdout.write(f"[Turtle] 移仓 Phase 1: 平 {old_symbol}")
-        old_target = TargetPosTask(api, old_symbol)
+        old_target = TargetPosTask(api, old_symbol, support_open_min_volume=True)
         old_target.set_target_volume(0)
         result = wait_for_target_position(api, old_target, old_symbol, 0,
                                           'turtle_rollover_close')
@@ -706,22 +746,40 @@ class Command(BaseCommand):
 
         # Phase 2: 开新合约
         self.stdout.write(f"[Turtle] 移仓 Phase 2: 开 {new_symbol} {volume}手")
-        new_target = TargetPosTask(api, new_symbol)
-        target_lots = volume if direction == 1 else -volume
-        new_target.set_target_volume(target_lots)
-        result = wait_for_target_position(api, new_target, new_symbol, target_lots,
-                                          'turtle_rollover_open')
-
-        if not result['success']:
-            self.stdout.write(self.style.ERROR(f"[Turtle] 移仓开新合约失败: {new_symbol}"))
-            signal.remark = f'{signal.remark}, 开{new_symbol}失败'
-            signal.save(update_fields=['remark'])
-            return
-
-        for _ in range(3):
-            api.wait_update()
-        quote = api.get_quote(new_symbol)
-        new_price = float(quote.last_price) if quote and quote.last_price else 0
+        min_check = check_min_position_requirement(new_symbol, volume)
+        if min_check['need_adjustment']:
+            self.stdout.write(
+                f"[Turtle] {new_symbol} 最小开仓限制{min_check['min_position']}手，采用两步开仓"
+            )
+            two_step = execute_two_step_opening(
+                api=api, symbol=new_symbol, direction=direction,
+                adjusted_volume=min_check['adjusted_volume'],
+                excess_to_close=min_check['excess_to_close'],
+                target_volume=volume,
+                function_name='turtle_rollover_open',
+                account=account, signal=signal,
+            )
+            if not two_step['success']:
+                self.stdout.write(self.style.ERROR(f"[Turtle] 移仓开新合约失败: {new_symbol}"))
+                signal.remark = f'{signal.remark}, 开{new_symbol}失败'
+                signal.save(update_fields=['remark'])
+                return
+            new_price = two_step['avg_price'] or 0
+        else:
+            new_target = TargetPosTask(api, new_symbol, support_open_min_volume=True)
+            target_lots = volume if direction == 1 else -volume
+            new_target.set_target_volume(target_lots)
+            result = wait_for_target_position(api, new_target, new_symbol, target_lots,
+                                              'turtle_rollover_open')
+            if not result['success']:
+                self.stdout.write(self.style.ERROR(f"[Turtle] 移仓开新合约失败: {new_symbol}"))
+                signal.remark = f'{signal.remark}, 开{new_symbol}失败'
+                signal.save(update_fields=['remark'])
+                return
+            for _ in range(3):
+                api.wait_update()
+            quote = api.get_quote(new_symbol)
+            new_price = float(quote.last_price) if quote and quote.last_price else 0
 
         # Phase 3: 创建新持仓
         contract = FullContractList.objects.filter(symbol=new_symbol).first()
