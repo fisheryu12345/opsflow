@@ -596,14 +596,18 @@ class Command(BaseCommand):
 
         self.stdout.write(f"[Turtle] 平仓 {symbol}: {volume}手, 原因: {reason}")
 
-        signal = DailyStrategySignal.objects.create(
-            account=account, symbol=symbol, product_code=position.product_code,
+        signal, _ = DailyStrategySignal.objects.update_or_create(
+            account=account, symbol=symbol,
             trade_date=timezone.now().date(),
-            trade_type='STOP_LOSS',
-            signal_direction=-position.direction,
-            executed_status='EXECUTING',
-            trend_factor=Decimal('0'), trend_label='unknown',
-            remark=reason,
+            defaults={
+                'product_code': position.product_code,
+                'trade_type': 'STOP_LOSS',
+                'signal_direction': -position.direction,
+                'executed_status': 'EXECUTING',
+                'trend_factor': Decimal('0'),
+                'trend_label': 'unknown',
+                'remark': reason,
+            },
         )
 
         target_pos = TargetPosTask(api, symbol, support_open_min_volume=True)

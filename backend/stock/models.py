@@ -234,6 +234,12 @@ class StrategyConfig(models.Model):
     is_simulation = models.BooleanField("模拟盘模式", default=True, help_text="True=模拟盘(TqKq)，False=实盘(TqAccount)")
     skip_choppy_entry = models.BooleanField("跳过震荡行情开仓", default=False,
                                             help_text="True=趋势标签为choppy/neutral时跳过开仓，False=正常开仓(默认)")
+    strategy_type = models.CharField(
+        "策略类型", max_length=20,
+        choices=[('V2', '海龟增强V2'), ('V3', '海龟增强V3'), ('TURTLE', '原版海龟'), ('HVOB', 'HVOB-MBI')],
+        default='V2',
+        help_text="标识策略类型，用于调度器区分处理逻辑",
+    )
     # pause_open_task_job = models.BooleanField("暂停开仓时段任务", default=False, help_text="暂停开仓任务，用于临时关闭策略")
     class Meta:
         verbose_name = "策略参数配置"

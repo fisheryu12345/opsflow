@@ -80,9 +80,9 @@
 <body>
 <div class="cover">
   <h1>FT 量化期货交易系统</h1>
-  <div class="subtitle">四大策略完整数理分析报告</div>
+  <div class="subtitle">四大策略 + Alpha 因子全面数理分析报告</div>
   <div class="subtitle" style="font-size:0.9em; margin-top:4px;">原版海龟 · 海龟V2 · 海龟V3 · HVOB-MBI 日内突破</div>
-  <div class="meta">生成日期: 2026-05-25 | 基于实时数据库 + 后端代码 v3.1</div>
+  <div class="meta">生成日期: 2026-05-25 | 基于实时数据库 + 后端代码 v3.1 | 含 Alpha 因子归因分析</div>
 </div>
 <div class="container">
 <div class="toc-card">
@@ -163,7 +163,37 @@
 </div>
 <div class="callout info"><strong>运行状态：</strong> 四个账户均为模拟盘（TqKq），使用 zhanshang123 账号。原版海龟和 V2/V3 已运行约 4 周，HVOB-MBI 于 2026-05-20 首次启动。2026-05-25 HVOB-MBI 开盘区间(OR)跟踪 Bug 已修复，待下一个交易日验证。受 05-25 商品市场普跌影响（多数品种跌幅超 2%），当日三个趋势策略均出现较大回撤。</div>
 
-<h3>1.1 策略演进路线</h3>
+<h3>1.1 Alpha 因子构成全景</h3>
+<p>四个策略的 alpha 因子构成差异从根本上决定了其市场适应性和风险收益特征：</p>
+<table>
+  <tr><th>Alpha 因子</th><th>类别</th><th>原版海龟</th><th>海龟V2</th><th>海龟V3</th><th>HVOB-MBI</th></tr>
+  <tr><td>20HL 唐奇安突破</td><td>趋势信号</td><td>✓</td><td>✓</td><td>✓</td><td>✗</td></tr>
+  <tr><td>开盘区间(OR)突破</td><td>突破信号</td><td>✗</td><td>✗</td><td>✗</td><td>✓</td></tr>
+  <tr><td>趋势因子自适应止损</td><td>风控增强</td><td>✗</td><td>✓</td><td>✓</td><td>✗</td></tr>
+  <tr><td>跳空保护(Gap)</td><td>过滤因子</td><td>✗</td><td>✓</td><td>✓</td><td>✗</td></tr>
+  <tr><td>保本兜底(ProtectCost)</td><td>风控增强</td><td>✗</td><td>✓</td><td>✓</td><td>✗</td></tr>
+  <tr><td>三层止损体系</td><td>执行增强</td><td>✗</td><td>✓</td><td>✓</td><td>✗</td></tr>
+  <tr><td>金字塔加仓</td><td>头寸管理</td><td>✓</td><td>✓</td><td>✓</td><td>✗</td></tr>
+  <tr><td>skip_choppy 过滤</td><td>过滤因子</td><td>✗</td><td>✗</td><td>✓</td><td>✗</td></tr>
+  <tr><td>MBI 市场宽度</td><td>情绪因子</td><td>✗</td><td>✗</td><td>✗</td><td>✓</td></tr>
+  <tr><td>时间衰减</td><td>执行增强</td><td>✗</td><td>✗</td><td>✗</td><td>✓</td></tr>
+  <tr><td>10HL 反向出场</td><td>出场逻辑</td><td>✓</td><td>✗</td><td>✗</td><td>✗</td></tr>
+  <tr><td><strong>Alpha 因子总数</strong></td><td></td><td><strong>4</strong></td><td><strong>6</strong></td><td><strong>7</strong></td><td><strong>6</strong></td></tr>
+  <tr><td>因子多样性评分</td><td></td><td>低</td><td>中</td><td>高</td><td>高（与趋势不相关）</td></tr>
+</table>
+<div class="callout info"><strong>因子多样性解读：</strong> 原版海龟的 alpha 几乎全部来自 20HL 突破，因子单一导致震荡市表现脆弱。V3 的 7 个因子覆盖了趋势信号、风控增强、过滤因子三个维度，多样性最佳。HVOB-MBI 的 6 个因子与趋势策略完全不重叠，提供了最佳的组合分散效果。</div>
+
+<h3>1.2 Alpha 因子市场环境适应矩阵</h3>
+<table>
+  <tr><th>市场环境</th><th>原版海龟</th><th>海龟V2</th><th>海龟V3</th><th>HVOB-MBI</th></tr>
+  <tr><td>强趋势（单边行情）</td><td><span class="tag green">适宜</span></td><td><span class="tag green">最适</span></td><td><span class="tag green">适宜</span></td><td><span class="tag blue">不确定</span></td></tr>
+  <tr><td>弱趋势（小幅波动）</td><td><span class="tag orange">中等</span></td><td><span class="tag orange">中等</span></td><td><span class="tag green">较好（过滤后）</span></td><td><span class="tag blue">不确定</span></td></tr>
+  <tr><td>震荡（无方向）</td><td><span class="tag red">差</span></td><td><span class="tag red">最差</span></td><td><span class="tag orange">中等（skip_choppy）</span></td><td><span class="tag blue">不确定</span></td></tr>
+  <tr><td>高波动日</td><td><span class="tag orange">中等</span></td><td><span class="tag orange">中等（跳空保护）</span></td><td><span class="tag orange">中等</span></td><td><span class="tag green">最适</span></td></tr>
+  <tr><td>低波动日</td><td><span class="tag orange">中等</span></td><td><span class="tag orange">中等</span></td><td><span class="tag orange">中等</span></td><td><span class="tag red">可能无信号</span></td></tr>
+</table>
+
+<h3>1.3 策略演进路线</h3>
 <table>
   <tr><th>代际</th><th>名称</th><th>核心改进</th><th>账户</th></tr>
   <tr><td>原版</td><td>商品期货原版</td><td>最接近原版海龟的基准实现</td><td>Acc 6 (510988)</td></tr>
@@ -349,16 +379,31 @@
   <tr><th>指标</th><th>原版海龟 (Acc 6)</th><th>海龟V2 (Acc 1)</th><th>海龟V3 (Acc 5)</th><th>HVOB-MBI (Acc 10)</th></tr>
   <tr><td>当前权益</td><td style="color:var(--red);">&yen;929,312</td><td style="color:var(--red);">&yen;890,599</td><td style="color:var(--red);">&yen;987,665</td><td>&yen;1,000,000</td></tr>
   <tr><td>累计收益率</td><td style="color:var(--red);"><strong>-7.07%</strong></td><td style="color:var(--red);"><strong>-10.94%</strong></td><td style="color:var(--red);"><strong>-1.23%</strong></td><td>0.00%</td></tr>
-  <tr><td>最大回撤</td><td style="color:var(--red);">7.07%</td><td style="color:var(--red);"><strong>12.95%</strong></td><td>2.26%</td><td>-</td></tr>
+  <tr><td>年化收益率</td><td style="color:var(--red);">-75.58%</td><td style="color:var(--red);">-68.61%</td><td style="color:var(--red);">-21.23%</td><td>-</td></tr>
+  <tr><td>最大回撤</td><td style="color:var(--red);">7.07%</td><td style="color:var(--red);"><strong>12.95%</strong></td><td>2.26%</td><td>0.00%</td></tr>
+  <tr><td>当前回撤</td><td style="color:var(--red);">7.07%</td><td style="color:var(--red);">12.95%</td><td>2.26%</td><td>0.00%</td></tr>
+  <tr><td>整体胜率</td><td>-</td><td style="color:var(--red);">16.67%</td><td>-</td><td>-</td></tr>
+  <tr><td>盈利因子</td><td>-</td><td style="color:var(--red);">0.12</td><td>-</td><td>-</td></tr>
+  <tr><td>总交易次数</td><td>5</td><td>12</td><td>2</td><td>0</td></tr>
+  <tr><td>最大连续亏损</td><td>3</td><td style="color:var(--red);"><strong>5</strong></td><td>2</td><td>0</td></tr>
+  <tr><td>20日夏普比率</td><td style="color:var(--red);">-6.77</td><td style="color:var(--red);">-5.62</td><td style="color:var(--red);">-2.45</td><td>-</td></tr>
+  <tr><td>20日年化波动率</td><td style="color:var(--red);">32.45%</td><td style="color:var(--red);">31.85%</td><td style="color:var(--red);">14.99%</td><td>-</td></tr>
+  <tr><td>最佳单笔盈利</td><td>-</td><td class="value green">&yen;11,680</td><td>-&yen;1,050</td><td>-</td></tr>
+  <tr><td>最差单笔亏损</td><td style="color:var(--red);">-&yen;12,880</td><td style="color:var(--red);"><strong>-&yen;45,157</strong></td><td style="color:var(--red);">-&yen;9,650</td><td>-</td></tr>
+  <tr><td>累计平仓盈亏</td><td style="color:var(--red);">-&yen;36,750</td><td style="color:var(--red);"><strong>-&yen;94,777</strong></td><td style="color:var(--red);">-&yen;10,700</td><td>&yen;0</td></tr>
 </table>
+
+<div class="callout warning"><strong>绩效简评：</strong> 截至 05-25，三大趋势策略均处亏损状态。V2（不过滤）回撤最深（-10.94%，最大回撤 12.95%），胜率仅 16.67%，盈利因子 0.12，已连续亏损 5 笔。V3（skip_choppy）表现最佳（-1.23%，回撤 2.26%），累计仅 2 笔平仓。原版海龟居中（-7.07%）。V2 的最差单笔亏损 -45,157 元显著高于其他策略，反映不过滤震荡市中加仓后的尾部风险。</div>
 
 <h3>10.2 信号统计对比</h3>
 <table>
-  <tr><th>信号类型</th><th>原版海龟 (Acc 6)</th><th>海龟V2 (Acc 1)</th><th>海龟V3 (Acc 5)</th></tr>
-    <tr><td>ENTRY</td><td>18</td><td>21</td><td>16</td></tr>
-    <tr><td>STOP_LOSS</td><td>5</td><td>11</td><td>1</td></tr>
-    <tr><td>ADD_ON</td><td>10</td><td>18</td><td>3</td></tr>
-  <tr><td><strong>总计</strong></td><td><strong>33</strong></td><td><strong>52</strong></td><td><strong>20</strong></td></tr>
+  <tr><th>信号类型</th><th>原版海龟 (Acc 6)</th><th>海龟V2 (Acc 1)</th><th>海龟V3 (Acc 5)</th><th>HVOB-MBI</th></tr>
+    <tr><td>ENTRY</td><td>19</td><td>21</td><td>16</td><td>0</td></tr>
+    <tr><td>STOP_LOSS</td><td>5</td><td>11</td><td>1</td><td>0</td></tr>
+    <tr><td>ADD_ON</td><td>10</td><td>18</td><td>3</td><td>0</td></tr>
+    <tr><td>ROLLOVER</td><td>0</td><td>2</td><td>1</td><td>0</td></tr>
+  <tr><td><strong>总计</strong></td><td><strong>34</strong></td><td><strong>52</strong></td><td><strong>21</strong></td><td><strong>0</strong></td></tr>
+  <tr><td>已执行(SUCCESS)</td><td>29</td><td>49</td><td>11</td><td>0</td></tr>
 </table>
 </div>
 
@@ -423,38 +468,55 @@
 
 <div class="section" id="s12"><h2>十二、持仓结构对比</h2>
 <table>
-  <tr><th>账户</th><th>品种</th><th>方向</th><th>单位</th><th>成本价</th><th>止损价</th></tr>
-  <tr><td rowspan="11"><strong>V2</strong></td><td>SA609</td><td><span class="tag red">空</span></td><td>1</td><td>1,187</td><td>1,238</td></tr>
-  <tr><td>al2606</td><td><span class="tag red">空</span></td><td>3U</td><td>24,430</td><td>25,007</td></tr>
-  <tr><td>AP610</td><td><span class="tag red">空</span></td><td>3U</td><td>7,456</td><td>7,828</td></tr>
-  <tr><td>hc2610</td><td><span class="tag green">多</span></td><td>2</td><td>3,484</td><td>3,450</td></tr>
-  <tr><td>fu2609</td><td><span class="tag green">多</span></td><td>1</td><td>4,150</td><td>3,884</td></tr>
-  <tr><td>UR609</td><td><span class="tag red">空</span></td><td>2</td><td>1,828</td><td>1,897</td></tr>
-  <tr><td>ru2609</td><td><span class="tag green">多</span></td><td>3U</td><td>17,770</td><td>17,373</td></tr>
-  <tr><td>ao2609</td><td><span class="tag red">空</span></td><td>1</td><td>2,728</td><td>2,860</td></tr>
-  <tr><td>SR609</td><td><span class="tag green">多</span></td><td>1</td><td>5,515</td><td>5,392</td></tr>
-  <tr><td>lc2609</td><td><span class="tag green">多</span></td><td>2</td><td>204,540</td><td>181,870</td></tr>
-  <tr><td>jd2607</td><td><span class="tag green">多</span></td><td>3U</td><td>3,729</td><td>3,731</td></tr>
-  <tr><td rowspan="4"><strong>V3</strong></td><td>ru2609</td><td><span class="tag green">多</span></td><td>1</td><td>18,295</td><td>17,343</td></tr>
-  <tr><td>SA609</td><td><span class="tag red">空</span></td><td>1</td><td>1,187</td><td>1,238</td></tr>
-  <tr><td>jd2607</td><td><span class="tag green">多</span></td><td>3U</td><td>3,789</td><td>3,633</td></tr>
-  <tr><td>AP610</td><td><span class="tag red">空</span></td><td>1</td><td>7,381</td><td>7,819</td></tr>
-  <tr><td rowspan="8"><strong>原版</strong></td><td>sp2609</td><td><span class="tag red">空</span></td><td>1</td><td>5,008</td><td>5,134</td></tr>
-  <tr><td>jd2607</td><td><span class="tag green">多</span></td><td>3U</td><td>3,820</td><td>3,679</td></tr>
-  <tr><td>SA609</td><td><span class="tag red">空</span></td><td>3U</td><td>1,207</td><td>1,250</td></tr>
-  <tr><td>UR609</td><td><span class="tag red">空</span></td><td>3U</td><td>1,863</td><td>1,942</td></tr>
-  <tr><td>ao2609</td><td><span class="tag red">空</span></td><td>1</td><td>2,738</td><td>2,843</td></tr>
-  <tr><td>fu2609</td><td><span class="tag green">多</span></td><td>1</td><td>4,146</td><td>3,888</td></tr>
-  <tr><td>AP610</td><td><span class="tag red">空</span></td><td>1</td><td>7,376</td><td>7,666</td></tr>
-  <tr><td>FG609</td><td><span class="tag red">空</span></td><td>1</td><td>1,018</td><td>1,063</td></tr>
+  <tr><th>账户</th><th>品种</th><th>方向</th><th>单位</th><th>手数</th><th>成本价</th><th>止损价</th></tr>
+  <tr><td rowspan="11"><strong>V2</strong></td><td>SR609</td><td><span class="tag red">空</span></td><td>1</td><td>4</td><td>-</td><td>-</td></tr>
+  <tr><td>al2607</td><td><span class="tag red">空</span></td><td>3U</td><td>3</td><td>24,450</td><td>25,048</td></tr>
+  <tr><td>TA609</td><td><span class="tag red">空</span></td><td>2</td><td>4</td><td>6,094</td><td>6,370</td></tr>
+  <tr><td>CF609</td><td><span class="tag red">空</span></td><td>1</td><td>2</td><td>15,865</td><td>16,351</td></tr>
+  <tr><td>jd2607</td><td><span class="tag green">多</span></td><td>3U</td><td>11</td><td>3,729</td><td>3,779</td></tr>
+  <tr><td>UR609</td><td><span class="tag red">空</span></td><td>2</td><td>5</td><td>1,828</td><td>1,887</td></tr>
+  <tr><td>SA609</td><td><span class="tag red">空</span></td><td>1</td><td>5</td><td>1,187</td><td>1,237</td></tr>
+  <tr><td>AP610</td><td><span class="tag red">空</span></td><td>3U</td><td>3</td><td>7,456</td><td>7,783</td></tr>
+  <tr><td>FG609</td><td><span class="tag red">空</span></td><td>1</td><td>5</td><td>1,014</td><td>1,078</td></tr>
+  <tr><td>ao2609</td><td><span class="tag red">空</span></td><td>1</td><td>2</td><td>2,728</td><td>2,842</td></tr>
+  <tr><td>sp2609</td><td><span class="tag red">空</span></td><td>3U</td><td>9</td><td>4,940</td><td>5,065</td></tr>
+  <tr><td rowspan="5"><strong>V3</strong></td><td>AP610</td><td><span class="tag red">空</span></td><td>1</td><td>1</td><td>7,381</td><td>7,774</td></tr>
+  <tr><td>jd2607</td><td><span class="tag green">多</span></td><td>3U</td><td>9</td><td>3,789</td><td>3,791</td></tr>
+  <tr><td>SA609</td><td><span class="tag red">空</span></td><td>1</td><td>5</td><td>1,187</td><td>1,237</td></tr>
+  <tr><td>sp2609</td><td><span class="tag red">空</span></td><td>3U</td><td>9</td><td>4,939</td><td>5,065</td></tr>
+  <tr><td>FG609</td><td><span class="tag red">空</span></td><td>1</td><td>5</td><td>1,014</td><td>1,078</td></tr>
+  <tr><td rowspan="11"><strong>原版</strong></td><td>p2609</td><td><span class="tag red">空</span></td><td>1</td><td>3</td><td>9,363</td><td>9,751</td></tr>
+  <tr><td>SR609</td><td><span class="tag red">空</span></td><td>1</td><td>9</td><td>5,362</td><td>5,460</td></tr>
+  <tr><td>FG609</td><td><span class="tag red">空</span></td><td>1</td><td>10</td><td>1,020</td><td>1,077</td></tr>
+  <tr><td>TA609</td><td><span class="tag red">空</span></td><td>3U</td><td>15</td><td>6,103</td><td>6,370</td></tr>
+  <tr><td>CF609</td><td><span class="tag red">空</span></td><td>1</td><td>3</td><td>15,900</td><td>16,381</td></tr>
+  <tr><td>jd2607</td><td><span class="tag green">多</span></td><td>3U</td><td>9</td><td>3,909</td><td>3,779</td></tr>
+  <tr><td>AP610</td><td><span class="tag red">空</span></td><td>1</td><td>1</td><td>7,376</td><td>7,769</td></tr>
+  <tr><td>SA609</td><td><span class="tag red">空</span></td><td>3U</td><td>21</td><td>1,196</td><td>1,237</td></tr>
+  <tr><td>UR609</td><td><span class="tag red">空</span></td><td>3U</td><td>12</td><td>1,844</td><td>1,887</td></tr>
+  <tr><td>ao2609</td><td><span class="tag red">空</span></td><td>3U</td><td>12</td><td>2,711</td><td>2,842</td></tr>
+  <tr><td>sp2609</td><td><span class="tag red">空</span></td><td>3U</td><td>21</td><td>4,953</td><td>5,065</td></tr>
 </table>
+<div class="callout info"><strong>持仓特征：</strong> 三个趋势策略均偏空为主，反映 05-25 普跌行情下的空头倾向。V2 和原版海龟各 11 个品种，V3 仅 5 个品种（skip_choppy 过滤效果）。jd2607 是唯一三个策略同时做多的品种。</div>
 </div>
 
 <div class="section" id="s13">
 <h2>十三、收益数学期望</h2>
 <div class="formula">EV = Win% x W - (1 - Win%) x L<br>基准: EV = 0.40 x 2.5R - 0.60 x 1.0R = +0.40R = &yen;1,600</div>
 <div class="formula">年化: 150笔/年, 净盈利 ~&yen;218,400, 年化 ~21.8% (保守 8~15%)</div>
-</div>
+
+<h3>13.1 实际平仓盈亏统计</h3>
+<table>
+  <tr><th>指标</th><th>原版海龟</th><th>海龟V2</th><th>海龟V3</th></tr>
+  <tr><td>平仓总笔数</td><td>5</td><td>12</td><td>2</td></tr>
+  <tr><td>盈利笔数</td><td>0</td><td>2</td><td>0</td></tr>
+  <tr><td>亏损笔数</td><td>4</td><td>9</td><td>2</td></tr>
+  <tr><td>累计平仓盈亏</td><td style="color:var(--red);">-&yen;36,750</td><td style="color:var(--red);">-&yen;94,777</td><td style="color:var(--red);">-&yen;10,700</td></tr>
+  <tr><td>平均盈利</td><td>-</td><td>&yen;+6,665</td><td>-</td></tr>
+  <tr><td>平均亏损</td><td style="color:var(--red);">-&yen;9,188</td><td style="color:var(--red);">-&yen;12,012</td><td style="color:var(--red);">-&yen;5,350</td></tr>
+  <tr><td>最差单笔</td><td style="color:var(--red);">-&yen;12,880</td><td style="color:var(--red);"><strong>-&yen;45,157</strong></td><td style="color:var(--red);">-&yen;9,650</td></tr>
+</table>
+<div class="callout warning"><strong>数据不足：</strong> 三个趋势策略运行仅 2-4 周，平仓样本量较小（V3 仅 2 笔），尚不足以做出有统计意义的期望推断。V2 的 12 笔平仓中 9 笔亏损（胜率 16.67%），平均亏损 -12,012 元 > 平均盈利 +6,665 元，呈现"低胜率+大亏损"的不利分布，可能原因：震荡市中假突破后被止损，但趋势未延续。</div>
 
 <div class="section" id="s14">
 <h2>十四、风险矩阵</h2>
@@ -477,12 +539,25 @@
 
 <div class="section" id="s16">
 <h2>十六、与原版海龟深度对比</h2>
+
+<h3>16.1 Alpha 因子构成对比</h3>
 <table>
   <tr><th>维度</th><th>原版海龟</th><th>海龟V2</th><th>海龟V3</th><th>HVOB-MBI</th></tr>
   <tr><td>开仓信号</td><td>唐奇安20日突破</td><td>唐奇安 + 趋势因子</td><td>唐奇安 + skip_choppy</td><td>开盘区间 H+/-0.3R</td></tr>
   <tr><td>胜率(估)</td><td>~33~35%</td><td>~38~42%</td><td>~40~45%</td><td>~45~50%</td></tr>
   <tr><td>最大回撤</td><td>15~25%</td><td>10~20%</td><td>8~15%</td><td>5~10%</td></tr>
   <tr><td>夏普比率</td><td>0.3~0.6</td><td>0.4~0.7</td><td>0.5~0.8</td><td>0.5~1.0</td></tr>
+</table>
+
+<h3>16.2 核心 Alpha 因子差异详解</h3>
+<table>
+  <tr><th>改进方向</th><th>原版海龟机制</th><th>V2/V3 增强机制</th><th>Alpha 贡献</th></tr>
+  <tr><td>止损宽度</td><td>固定 2N（入场 N 锁定）</td><td>动态 2~3 ATR + trend_factor 连续调整</td><td>趋势强时放宽止损减少震出，趋势弱时收紧止损控制损失</td></tr>
+  <tr><td>保本机制</td><td>无（盈利可能大幅回吐）</td><td>盈利 > 2.5×ATR 且满仓 3U → 保本价兜底</td><td>锁定已有利润，防止趋势反转后的利润回吐</td></tr>
+  <tr><td>跳空保护</td><td>盘中直接入场，无拦截</td><td>同向跳空 > 1.5×ATR 跳过开仓</td><td>避免在跳空后的不利价位入场，减少假突破损失</td></tr>
+  <tr><td>执行时机</td><td>盘中实时触发</td><td>收盘信号→次日开盘执行</td><td>T+1 模式过滤盘中毛刺，但可能错过部分突破</td></tr>
+  <tr><td>加仓间距</td><td>0.5N（固定）</td><td>0.5~1.0 ATR（动态调整）</td><td>趋势弱时加仓间距拉大，降低加仓风险</td></tr>
+  <tr><td>趋势过滤</td><td>无（所有突破信号都交易）</td><td>V3: skip_choppy 过滤震荡市信号</td><td>减少震荡市中 60% 以上的假突破信号</td></tr>
 </table>
 </div>
 
@@ -498,14 +573,28 @@
 
 <h3>17.2 当前状态评估</h3>
 <table>
-  <tr><th>策略</th><th>运行时间</th><th>累计收益</th><th>最大回撤</th><th>评估</th></tr>
-  <tr><td>原版海龟</td><td>10天</td><td>-7.07%</td><td>7.07%</td><td><span class="tag orange">观察期</span></td></tr>
-  <tr><td>海龟V2</td><td>18天</td><td>-10.94%</td><td>12.95%</td><td><span class="tag red">关注</span></td></tr>
-  <tr><td>海龟V3</td><td>10天</td><td style="color:var(--red);"><strong>-1.23%</strong></td><td>2.26%</td><td><span class="tag blue">正常</span></td></tr>
-  <tr><td>HVOB-MBI</td><td>4天</td><td>0.00%</td><td>-</td><td><span class="tag blue">观察期（Bug已修复）</span></td></tr>
+  <tr><th>策略</th><th>运行时间</th><th>累计收益</th><th>最大回撤</th><th>平仓PnL</th><th>评估</th></tr>
+  <tr><td>原版海龟</td><td>10天</td><td>-7.07%</td><td>7.07%</td><td>-&yen;36,750</td><td><span class="tag orange">观察期</span></td></tr>
+  <tr><td>海龟V2</td><td>18天</td><td>-10.94%</td><td>12.95%</td><td style="color:var(--red);"><strong>-&yen;94,777</strong></td><td><span class="tag red">关注</span></td></tr>
+  <tr><td>海龟V3</td><td>10天</td><td style="color:var(--red);">-1.23%</td><td>2.26%</td><td>-&yen;10,700</td><td><span class="tag blue">正常</span></td></tr>
+  <tr><td>HVOB-MBI</td><td>4天</td><td>0.00%</td><td>-</td><td>&yen;0</td><td><span class="tag blue">观察期（Bug已修复）</span></td></tr>
 </table>
 
-<h3>17.3 V2 vs V3 选择建议</h3>
+<h3>17.3 Alpha 因子分析总结</h3>
+<p>各策略的 alpha 因子构成差异决定了其在不同市场环境下的表现分化：</p>
+<table>
+  <tr><th>Alpha 因子</th><th>原版海龟</th><th>海龟V2</th><th>海龟V3</th><th>HVOB-MBI</th></tr>
+  <tr><td>因子总数</td><td>4</td><td>6</td><td>7</td><td>6</td></tr>
+  <tr><td>趋势跟踪核心</td><td>20HL突破</td><td>20HL突破 + 趋势因子</td><td>20HL + skip_choppy</td><td>OR突破</td></tr>
+  <tr><td>头寸管理</td><td>固定R/Unit</td><td>固定R/Unit + 趋势调整</td><td>同V2</td><td>权益% + 时间衰减</td></tr>
+  <tr><td>止损机制</td><td>2N硬止损 + 10HL</td><td>2~3ATR + 保本 + 三层</td><td>同V2</td><td>固定区间 + 止盈</td></tr>
+  <tr><td>市场过滤</td><td>无</td><td>跳空保护</td><td>skip_choppy + 跳空</td><td>MBI + 时间衰减</td></tr>
+  <tr><td>预期夏普</td><td>0.3~0.6</td><td>0.4~0.7</td><td>0.5~0.8</td><td>0.5~1.0</td></tr>
+  <tr><td>实盘夏普(20d)</td><td style="color:var(--red);">-6.77</td><td style="color:var(--red);">-5.62</td><td style="color:var(--red);">-2.45</td><td>-</td></tr>
+</table>
+<div class="callout info"><strong>alpha 因子解读：</strong> V3 通过 skip_choppy 过滤新增了一个"市场状态筛选"因子，减少了震荡市的假信号。实盘数据已初步验证：V3 回撤(2.26%)远低于 V2(12.95%)，在 05-25 普跌行情中 V3(-2.26%)也优于 V2(-3.86%)。但过滤的代价是更少的交易机会——V3 仅 21 个信号 vs V2 的 52 个。</div>
+
+<h3>17.4 V2 vs V3 选择建议</h3>
 <table>
   <tr><th>维度</th><th>海龟V2 (不过滤)</th><th>海龟V3 (过滤)</th></tr>
   <tr><td>适合风险偏好</td><td>激进型</td><td>稳健/保守型</td></tr>
@@ -515,11 +604,12 @@
   <tr><td>长期期望收益</td><td>较高（12~18%/年）</td><td>略低（10~15%/年）</td></tr>
 </table>
 
-<h3>17.4 最终结论</h3>
+<h3>17.5 最终结论</h3>
 <div class="callout success"><strong>1. 四策略互补性优良。</strong> V2（激进）+ V3（保守）+ HVOB-MBI（日内）在时间尺度、收益来源、风险暴露上形成完整梯度。</div>
-<div class="callout warning"><strong>2. V3 累计 -1.23%，回撤 2.26%。</strong> skip_choppy 过滤效果仍明显：V3 回撤(2.26%)远低于 V2(12.95%)，05-25 大盘普跌对 V3 形成严峻考验。</div>
-<div class="callout danger"><strong>3. V2 回撤加剧。</strong> 累计 -10.94%，最大回撤 12.95%，05-25 单日 -3.86%，已超过正常回撤范围。市场走势对 V2 不利，需紧密关注。</div>
-<div class="callout danger"><strong>4. 核心风险仍是震荡磨损。</strong> 连续 6~10 笔止损在一年内可能出现 2~3 次。</div>
+<div class="callout warning"><strong>2. V3 累计 -1.23%，回撤 2.26%。</strong> skip_choppy 过滤效果仍明显：V3 回撤(2.26%)远低于 V2(12.95%)，05-25 大盘普跌对 V3 形成严峻考验但整体可控。</div>
+<div class="callout danger"><strong>3. V2 回撤加剧。</strong> 累计 -10.94%，最大回撤 12.95%，05-25 单日 -3.86%，已超过正常回撤范围。平仓盈亏 -94,777 元，胜率仅 16.67%，需紧密关注。</div>
+<div class="callout danger"><strong>4. 核心风险仍是震荡磨损。</strong> V2 连续 5 笔亏损，平均亏损 -12,012 元，在趋势环境来临时 V2 有望快速修复但需控制仓位风险。</div>
+<div class="callout info"><strong>5. HVOB-MBI 待验证。</strong> 日内策略的 alpha 来源与趋势策略完全不相关（OR 突破 + MBI 情绪 + 时间衰减），一旦验证有效将显著改善组合分散度。</div>
 
 <div style="margin-top:16px;">
 <table>

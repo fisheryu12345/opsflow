@@ -10,7 +10,7 @@ from stock.utils.redis_lock import redis_lock, LockAcquisitionError
 from stock.infrastructure.trade_day import skip_if_not_trade_day
 from stock.core.signal_checker import check_duplicate_pending_signal
 
-from stock.models import TradingAccount, DailyStrategySignal, PositionState, FullContractList, AccountContractConfig
+from stock.models import TradingAccount, DailyStrategySignal, PositionState, FullContractList, AccountContractConfig, StrategyConfig
 from stock.infrastructure.contract_sync import sync_contract_list_from_tqsdk, sync_kline_data_from_tqsdk
 from stock.infrastructure.report_sender import generate_daily_signal_report
 from stock.core.indicators import calculate_indicators
@@ -661,7 +661,14 @@ def job_daily_close_calculation():
                         if r['product_code'] in account_product_codes
                     ]
 
-                    if account_results:
+                    # 判断是否原版海龟账户（该账户盘中实时检测信号，收盘任务不干预）
+                    is_turtle = False
+                    try:
+                        is_turtle = (account.strategyconfig.strategy_type == 'TURTLE')
+                    except StrategyConfig.DoesNotExist:
+                        pass
+
+                    if not is_turtle and account_results:
                         open_count = 0
                         for result in account_results:
                             breakout_info = result.get('breakout_info', {})
@@ -681,12 +688,21 @@ def job_daily_close_calculation():
 
                     update_all_positions_high_low_price(account)
                     print(f"[INFO] {account.name} 更新持仓高低价完成")
-                    update_all_positions_stop_loss_price(api=account_api, account=account)
-                    print(f"[INFO] {account.name} 更新持仓止损价完成")
-                    check_exit_signals(account)
-                    print(f"[INFO] {account.name} 持仓退出信号生成完成")
-                    check_add_position_signals(account)
-                    print(f"[INFO] {account.name} 持仓加仓信号生成完成")
+                    if not is_turtle:
+                        update_all_positions_stop_loss_price(api=account_api, account=account)
+                        print(f"[INFO] {account.name} 更新持仓止损价完成")
+                    else:
+                        print(f"[INFO] {account.name} 原版海龟跳过止损价更新")
+                    if not is_turtle:
+                        check_exit_signals(account)
+                        print(f"[INFO] {account.name} 持仓退出信号生成完成")
+                    else:
+                        print(f"[INFO] {account.name} 原版海龟跳过退出信号")
+                    if not is_turtle:
+                        check_add_position_signals(account)
+                        print(f"[INFO] {account.name} 持仓加仓信号生成完成")
+                    else:
+                        print(f"[INFO] {account.name} 原版海龟跳过加仓信号")
                     check_rollover_signals(account)
                     print(f"[INFO] {account.name} 持仓轮换信号生成完成")
                     generate_daily_signal_report(account)
