@@ -338,16 +338,20 @@ class Command(BaseCommand):
         self.stdout.write(f"[Turtle] 入场 {symbol}: {direction == 1 and '多' or '空'} "
                           f"1 Unit × {unit_lots}手 = {order_volume}手, N={n_value:.2f}")
 
-        signal = DailyStrategySignal.objects.create(
-            account=account, symbol=symbol, product_code=product_code,
+        signal, _ = DailyStrategySignal.objects.update_or_create(
+            account=account, symbol=symbol,
             trade_date=timezone.now().date(),
-            trade_type='ENTRY',
-            signal_direction=direction,
-            executed_status='EXECUTING',
-            trend_factor=Decimal('0'), trend_label='unknown',
-            donchian_upper=Decimal(str(level['h20'])) if level['h20'] else None,
-            donchian_lower=Decimal(str(level['l20'])) if level['l20'] else None,
-            remark=f"Turtle突破入场: 价格={price:.2f}",
+            defaults={
+                'product_code': product_code,
+                'trade_type': 'ENTRY',
+                'signal_direction': direction,
+                'executed_status': 'EXECUTING',
+                'trend_factor': Decimal('0'),
+                'trend_label': 'unknown',
+                'donchian_upper': Decimal(str(level['h20'])) if level['h20'] else None,
+                'donchian_lower': Decimal(str(level['l20'])) if level['l20'] else None,
+                'remark': f"Turtle突破入场: 价格={price:.2f}",
+            },
         )
 
         min_check = check_min_position_requirement(symbol, order_volume)
@@ -694,14 +698,18 @@ class Command(BaseCommand):
 
         self.stdout.write(f"[Turtle] 移仓 {old_symbol} → {new_symbol} {volume}手")
 
-        signal = DailyStrategySignal.objects.create(
-            account=account, symbol=old_symbol, product_code=old_position.product_code,
+        signal, _ = DailyStrategySignal.objects.update_or_create(
+            account=account, symbol=old_symbol,
             trade_date=timezone.now().date(),
-            trade_type='ROLLOVER',
-            signal_direction=direction,
-            executed_status='EXECUTING',
-            trend_factor=Decimal('0'), trend_label='unknown',
-            remark=f'移仓: {old_symbol} → {new_symbol}',
+            defaults={
+                'product_code': old_position.product_code,
+                'trade_type': 'ROLLOVER',
+                'signal_direction': direction,
+                'executed_status': 'EXECUTING',
+                'trend_factor': Decimal('0'),
+                'trend_label': 'unknown',
+                'remark': f'移仓: {old_symbol} → {new_symbol}',
+            },
         )
 
         # Phase 1: 平旧合约
