@@ -361,6 +361,18 @@ class HvobTradingEngine:
             if self.opening_ranges[sym].get('night'):
                 del self.opening_ranges[sym]
 
+        # 用当前行情价为所有 watchlist 品种初始化日盘 OR 基线
+        # 防止 gap_check 阶段启动时已过 DAY_OR_CLOSE 导致 MBI 永远为 0.5
+        for item in self.watchlist:
+            symbol = item['symbol']
+            quote = self.api.get_quote(symbol)
+            if quote and quote.last_price and quote.last_price > 0:
+                price = float(quote.last_price)
+                if symbol not in self.opening_ranges:
+                    self.opening_ranges[symbol] = {
+                        'H': price, 'L': price, 'R': None, 'closed': False, 'night': False
+                    }
+
     # ==================== MBI ====================
 
     def _calc_mbi(self):
@@ -677,7 +689,6 @@ class HvobTradingEngine:
                 }
             )
 
-            # 观察池条目已在 _do_screening 中写入，此处仅更新状态摘要
-            self._save_watchlist_items()
+            pass  # 观察池条目已在 _do_screening 中写入
         except Exception as e:
             print(f"[HVOB] 保存日状态失败: {e}")
