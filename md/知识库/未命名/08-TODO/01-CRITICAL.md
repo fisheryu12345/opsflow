@@ -450,3 +450,29 @@ for trade in sorted_trades:
 3. `order_signals.py` 移仓函数: 移除循环内 `get_trade()`，改为循环外创建引用
 4. 固定次数 wait_update → deadline 超时模式
 5. `reversed(trades.values())` → `sorted(..., key=trade_date_time)`
+
+---
+
+## ✅ CRITICAL-13: HVOB-MBI 开仓区间(OR)跟踪缺陷导致零成交 — 已修复 (2026-05-25)
+
+**文件**: [trading_engine.py](../../backend/hvob_mbi/trading_engine.py)
+
+**问题描述**:
+HVOB-MBI 策略自上线以来从未产生过一笔交易。`_on_quote()` 未在 `night_or` 和 `gap_check` 阶段被调用，导致 OR 条目从未创建、R 值从未计算、`_check_entry()` 始终 return。
+
+**Bug 链路 (4 个缺陷连锁)**:
+1. `_check_phase` 中 `night_or` 阶段只有时间判断 + 过渡，没有调用 `_on_quote()` → 21:00-21:30 之间没有任何价格跟踪
+2. `night_breakout` 阶段才开始调用 `_on_quote()` 创建 OR 条目，但 `_close_night_opening_range()` 已在过渡瞬间执行完毕 → 条目永不关闭，R 为 None
+3. 日盘同理：`gap_check`(9:00-9:30)没有 `_on_quote()` 调用，`day_breakout` 阶段创建的日盘 OR 条目无法关闭
+4. 即使夜盘 OR 条目存在，日盘 `_track_opening_range(is_night=False)` 因 `is_night` 不匹配跳过更新，且因 `closed=True` 直接 return，无法创建新条目
+
+**影响分析**:
+- 数据库 4 个交易日全部 trades=0, daily_pnl=0, opening_ranges={}
+- 筛选正常: 每天 10-11 个候选品种，但永远无法入场
+- MBI 永远返回 0.5 '中性'（所有品种因 R=None 被跳过）
+
+**修复内容**:
+1. `_check_phase`: `night_or` 和 `gap_check` 阶段调用 `_on_quote()`，跟踪 OR
+2. `_on_quote`: 新增 `night_or`(夜盘 OR) 和 `gap_check`(日盘 OR) 阶段的 OR 跟踪逻辑
+3. `_check_gap`: 末尾清除夜盘 OR 条目，避免阻塞日盘 OR 跟踪
+4. `_init_phase`: 新增方法，根据当前时间确定启动相位（同时修复 HIGH-26）

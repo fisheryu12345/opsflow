@@ -523,6 +523,29 @@ config = StrategyConfig.objects.get(account_id=acct_id)
 **修复内容**:
 Phase 1 平仓完成后立即重置 PositionState，无论 Phase 2 是否成功：
 
+---
+
+## ✅ HIGH-26: HVOB-MBI 白天启动引擎卡死在 night_or 阶段 — 已修复 (2026-05-25)
+
+**文件**: [trading_engine.py](../../backend/hvob_mbi/trading_engine.py#L158-L173)
+
+**问题描述**:
+引擎固定从 `night_or` 阶段启动。若引擎在 9:00-21:00 之间启动（如进程崩溃重启、服务器重启），会卡在 `night_or` 直到 21:30 才前进，期间不做任何有用工作。
+
+**影响分析**:
+- 白天启动后需等待 8-12 小时才进入下一相位
+- 错过日盘开盘区间跟踪，当天无法交易
+- 进程看起来在运行但实际不处理行情数据
+
+**修复内容**:
+新增 `_init_phase()` 方法，按时间降序检查当前时刻设定正确相位：
+- 21:30+ → night_breakout
+- 21:00-21:30 → night_or
+- 14:55-21:00 → done（提前退出）
+- 9:30-14:55 → day_breakout
+- 9:00-9:30 → gap_check
+- 0:00-9:00 → night_breakout
+
 ```python
 PositionState.objects.filter(id=position.id).update(**{
     'units': 0, 'contract_total_position': 0, 'direction': 0,

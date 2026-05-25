@@ -2,9 +2,9 @@
 HVOB-MBI 交易引擎：TqSDK wait_update 事件循环，时间相位驱动。
 
 相位流程：
-  screening(启动) → night_or(21:00-21:30) → night_breakout(21:30-23:00)
-  → gap_check(9:00) → day_or(9:00-9:30) → day_breakout(9:30-14:30)
-  → force_close(14:55) → done
+  screening(启动) → night_or(21:00-21:30) → night_breakout(21:30-9:00)
+  → gap_check(9:00-9:30) → day_breakout(9:30-14:55)
+  → force_close → done
 """
 import time
 import json
@@ -18,7 +18,7 @@ from django.db import close_old_connections
 from stock.models import FullContractList, TradingAccount
 from stock.infrastructure.order_execution import wait_for_target_position
 from .config import (
-    NIGHT_OR_CLOSE, DAY_OPEN, DAY_OR_CLOSE, FORCE_CLOSE_TIME,
+    NIGHT_OPEN, NIGHT_OR_CLOSE, DAY_OPEN, DAY_OR_CLOSE, FORCE_CLOSE_TIME,
     BREAKOUT_OFFSET_RATIO, STOP_OFFSET_RATIO, DEFAULT_RISK_PERCENT,
     TIME_DECAY_SLOTS,
 )
@@ -126,6 +126,14 @@ class HvobTradingEngine:
         # Phase 1: 盘前筛选
         self._do_screening()
 
+        # 根据当前时间修正相位（避免白天启动卡在 night_or）
+        self._init_phase()
+
+        if self.phase == 'done':
+            print("[HVOB] 当前时间已收盘，引擎结束")
+            self._finalize()
+            return
+
         # 订阅 watchlist 数据
         self._subscribe_all()
 
@@ -147,14 +155,34 @@ class HvobTradingEngine:
         # 收盘后记录
         self._finalize()
 
+    def _init_phase(self):
+        """根据当前时间确定启动相位"""
+        t = datetime.now().time()
+        if t >= NIGHT_OR_CLOSE:          # 21:30+
+            self.phase = 'night_breakout'
+        elif t >= NIGHT_OPEN:             # 21:00-21:30
+            self.phase = 'night_or'       # 保持，正常跟踪夜盘 OR
+        elif t >= FORCE_CLOSE_TIME:       # 14:55-21:00（收盘后）
+            self.phase = 'done'
+        elif t >= DAY_OR_CLOSE:           # 9:30-14:55
+            self.phase = 'day_breakout'
+        elif t >= DAY_OPEN:               # 9:00-9:30
+            self.phase = 'gap_check'
+        else:                              # 0:00-9:00
+            self.phase = 'night_breakout'
+        print(f"[HVOB] 初始化相位: {self.phase}")
+
     def _check_phase(self, now, last_phase_log):
         """时间相位切换"""
         t = now.time()
 
-        if self.phase == 'night_or' and t >= NIGHT_OR_CLOSE:
-            self._close_night_opening_range()
-            self.phase = 'night_breakout'
-            print(f"[HVOB] → night_breakout")
+        if self.phase == 'night_or':
+            if t >= NIGHT_OR_CLOSE:
+                self._close_night_opening_range()
+                self.phase = 'night_breakout'
+                print(f"[HVOB] → night_breakout")
+            else:
+                self._on_quote('night_or')
 
         elif self.phase == 'night_breakout':
             if t >= DAY_OPEN:
@@ -164,11 +192,14 @@ class HvobTradingEngine:
             else:
                 self._on_quote('night_breakout')
 
-        elif self.phase == 'gap_check' and t >= DAY_OR_CLOSE:
-            self._close_day_opening_range()
-            self._calc_mbi()
-            self.phase = 'day_breakout'
-            print(f"[HVOB] → day_breakout (MBI={self.mbi_value:.4f})")
+        elif self.phase == 'gap_check':
+            if t >= DAY_OR_CLOSE:
+                self._close_day_opening_range()
+                self._calc_mbi()
+                self.phase = 'day_breakout'
+                print(f"[HVOB] → day_breakout (MBI={self.mbi_value:.4f})")
+            else:
+                self._on_quote('gap_check')
 
         elif self.phase == 'day_breakout':
             if t >= FORCE_CLOSE_TIME:
@@ -244,7 +275,7 @@ class HvobTradingEngine:
         for item in self.watchlist:
             symbol, product_code = item['symbol'], item['product_code']
             # 夜盘阶段跳过无夜盘品种
-            if current_phase == 'night_breakout' and not self._is_night_product(product_code):
+            if current_phase in ('night_or', 'night_breakout') and not self._is_night_product(product_code):
                 continue
 
             quote = self.api.get_quote(symbol)
@@ -253,17 +284,17 @@ class HvobTradingEngine:
 
             price = float(quote.last_price)
 
-            # 开盘区间跟踪
-            if current_phase in ('night_breakout',):
+            # 开盘区间跟踪（仅在收集阶段）
+            if current_phase == 'night_or':
                 self._track_opening_range(symbol, price, is_night=True)
-            elif current_phase == 'day_breakout':
+            elif current_phase == 'gap_check':
                 self._track_opening_range(symbol, price, is_night=False)
 
-            # 检查已有持仓的止损/止盈
+            # 检查已有持仓的止损/止盈（所有阶段）
             if symbol in self.positions:
                 self._check_exit(symbol, price)
 
-            # 突破检查（只在对应阶段检查）
+            # 突破检查（仅在突破阶段）
             if current_phase in ('night_breakout', 'day_breakout'):
                 self._check_entry(symbol, product_code, price, current_phase)
 
@@ -324,6 +355,11 @@ class HvobTradingEngine:
                 print(f"  ⛔ {symbol} 跳空穿越: 区间[{or_['L']:.2f},{or_['H']:.2f}] 开盘{open_price:.2f} → 拉黑")
             else:
                 print(f"  ✓ {symbol} 正常: 开盘{open_price:.2f} 在区间内")
+
+        # 跳空检查完成，清理夜盘 OR 数据，让出日盘 OR 跟踪
+        for sym in list(self.opening_ranges.keys()):
+            if self.opening_ranges[sym].get('night'):
+                del self.opening_ranges[sym]
 
     # ==================== MBI ====================
 
