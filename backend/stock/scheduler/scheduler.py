@@ -122,3 +122,27 @@ else:
         misfire_grace_time=7200,
         replace_existing=True, max_instances=1, coalesce=True,
     )
+
+
+# ==================== HVOB-MBI 日内突破交易 ====================
+
+try:
+    from hvob_mbi.tasks import hvob_mbi_trading_task
+except ImportError:
+    import logging
+    logging.getLogger(__name__).warning('跳过 HVOB-MBI 任务注册（hvob_mbi 未安装）')
+else:
+    # 20:30 启动，覆盖夜盘(21:00-) + 次日日盘(9:00-14:55)
+    scheduler.add_job(
+        hvob_mbi_trading_task,
+        'cron',
+        day_of_week='mon-fri',
+        hour=20,
+        minute=45,
+        id='hvob_mbi_trading',
+        name='HVOB-MBI 日内突破交易（20:30 启动，含夜盘+次日日盘）',
+        misfire_grace_time=600,
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )

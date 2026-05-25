@@ -123,23 +123,52 @@ class HvobTradingEngine:
         """主事件循环"""
         print(f"[HVOB] 引擎启动 | 账户: {self.account.name} | 日期: {self.trade_date}")
 
+        # 交易日检查
+        from stock.infrastructure.trade_day import is_trade_day
+        if not is_trade_day(self.trade_date, self.api):
+            print(f"[HVOB] {self.trade_date} 非交易日，引擎退出")
+            self.phase = 'done'
+            return
+
         # Phase 1: 盘前筛选
         self._do_screening()
 
         # 根据当前时间修正相位
         self._init_phase()
 
-        # 订阅 watchlist 数据
+        # 订阅 watchlist 数据（仅注册引用，未实际发送）
         self._subscribe_all()
 
-        # 等待数据就绪
+        # 先 pump 一次以实际发送订阅请求到服务器
+        self.api.wait_update()
+
+        # 等待行情数据就绪（循环检测，最多等 30 秒）
         print("[HVOB] 等待行情数据就绪...")
-        self.api.wait_update(deadline=time.time() + 20)
+        wait_start = time.time()
+        data_ready = False
+        while time.time() - wait_start < 30:
+            self.api.wait_update(deadline=time.time() + 5)
+            # 检查是否有任意 watchlist 品种收到行情
+            for item in self.watchlist:
+                quote = self.api.get_quote(item['symbol'])
+                if quote and quote.last_price and quote.last_price > 0:
+                    data_ready = True
+                    break
+            if data_ready:
+                elapsed = time.time() - wait_start
+                print(f"[HVOB] 行情数据就绪 ({elapsed:.1f}s)")
+                break
+            print(f"[HVOB] 等待行情中... ({int(time.time()-wait_start)}s)")
+
+        if not data_ready:
+            print(f"[HVOB] ⚠️ 等待行情超时 (30s)，部分品种可能无数据，继续运行")
 
         # 进入事件循环
         last_phase_log = ''
         while self.phase != 'done':
-            self.api.wait_update()
+            if not self.api.wait_update(deadline=time.time() + 30):
+                # 30 秒无任何行情更新 → 保底 pump
+                continue
             now = datetime.now()
 
             # 定时重启连接（8:55 / 13:25 / 20:55）
@@ -184,6 +213,14 @@ class HvobTradingEngine:
                 self.phase = 'night_or'
                 print(f"[HVOB] → night_or")
             # idle 阶段不处理行情，仅等待时间到达
+
+        elif self.phase == 'night_breakout':
+            if t >= DAY_OPEN:
+                self._check_gap()
+                self.phase = 'gap_check'
+                print(f"[HVOB] → gap_check")
+            else:
+                self._on_quote('night_breakout')
 
         elif self.phase == 'gap_check':
             if t >= DAY_OR_CLOSE:
