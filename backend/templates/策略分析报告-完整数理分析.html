@@ -330,7 +330,7 @@
   <tr><td>时间衰减</td><td>无</td><td>无</td><td>无</td><td>9:30->100% -> 14:30->30%</td><td>-</td></tr>
   <tr><td>MBI 过滤</td><td>无</td><td>无</td><td>无</td><td>有 [0,1]</td><td>-</td></tr>
   <tr><td>持仓周期</td><td>数天~数月</td><td>数天~数月</td><td>数天~数月</td><td>日内（1~5hr）</td><td>-</td></tr>
-  <tr><td>运行时段</td><td>收盘/开盘/14:57</td><td>收盘/开盘/14:57</td><td>收盘/开盘/14:57</td><td>持续运行至14:30</td><td>-</td></tr>
+  <tr><td>运行时段</td><td>收盘/开盘</td><td>收盘/开盘/14:57</td><td>收盘/开盘/14:57</td><td>持续运行至14:30</td><td>-</td></tr>
 </table>
 </div>
 
@@ -368,7 +368,7 @@
   <tr><td>止损公式</td><td>最高价-(2x(1+factor))xATR</td><td>同左</td><td>同左</td><td>区间边界 +/- 0.2R</td></tr>
   <tr><td>动态跟踪</td><td>highest_close 只升不降</td><td>同左</td><td>同左</td><td>移动止盈</td></tr>
   <tr><td>趋势自适应</td><td>factor in [0, 0.5]</td><td>factor in [0, 0.5]</td><td>factor in [0, 0.5]</td><td>无</td></tr>
-  <tr><td>强制平仓</td><td>14:57</td><td>14:57</td><td>14:57</td><td>14:55 (当日)</td></tr>
+  <tr><td>强制平仓</td><td>-</td><td>14:57</td><td>14:57</td><td>14:55 (当日)</td></tr>
 </table>
 </div>
 
@@ -449,6 +449,7 @@
   <tr><td><strong>V2</strong></td><td colspan="6" style="text-align:center;color:var(--text-secondary);">暂无持仓 — 实盘启动首日</td></tr>
   <tr><td><strong>V3</strong></td><td colspan="6" style="text-align:center;color:var(--text-secondary);">暂无持仓 — 实盘启动首日</td></tr>
   <tr><td><strong>原版海龟</strong></td><td colspan="6" style="text-align:center;color:var(--text-secondary);">暂无持仓 — 实盘启动首日</td></tr>
+  <tr><td><strong>HVOB</strong></td><td colspan="6" style="text-align:center;color:var(--text-secondary);">暂无持仓 — 实盘启动首日</td></tr>
 </table>
 <div class="callout info"><strong>持仓状态：</strong> 2026-05-26 实盘启动首日，所有账户均无持仓。首个持仓将在 20HL 突破信号产生并执行后出现。</div>
 </div>
@@ -460,14 +461,14 @@
 
 <h3>13.1 实际平仓盈亏统计</h3>
 <table>
-  <tr><th>指标</th><th>原版海龟</th><th>海龟V2</th><th>海龟V3</th></tr>
-  <tr><td>平仓总笔数</td><td>0</td><td>0</td><td>0</td></tr>
-  <tr><td>盈利笔数</td><td>0</td><td>0</td><td>0</td></tr>
-  <tr><td>亏损笔数</td><td>0</td><td>0</td><td>0</td></tr>
-  <tr><td>累计平仓盈亏</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td></tr>
-  <tr><td>平均盈利</td><td>-</td><td>-</td><td>-</td></tr>
-  <tr><td>平均亏损</td><td>-</td><td>-</td><td>-</td></tr>
-  <tr><td>最差单笔</td><td>-</td><td>-</td><td>-</td></tr>
+  <tr><th>指标</th><th>原版海龟</th><th>海龟V2</th><th>海龟V3</th><th>HVOB</th></tr>
+  <tr><td>平仓总笔数</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td>盈利笔数</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td>亏损笔数</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td>累计平仓盈亏</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td></tr>
+  <tr><td>平均盈利</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+  <tr><td>平均亏损</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+  <tr><td>最差单笔</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
 </table>
 <div class="callout success"><strong>实盘启动日：</strong> 2026-05-26 所有账户无已平仓记录。收益期望将在首个完整交易周期（约 2-4 周）后开始有统计意义的样本积累。</div>
 

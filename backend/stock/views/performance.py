@@ -455,7 +455,9 @@ class EquityCurvesView(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
-        accounts = TradingAccount.objects.filter(is_active=True).order_by('id')
+        accounts = TradingAccount.objects.filter(
+            is_active=True
+        ).order_by('id')
 
         result = []
         for acct in accounts:
@@ -471,12 +473,11 @@ class EquityCurvesView(viewsets.ViewSet):
                 'balance': float(s['balance']),
             } for s in snapshots]
 
-            # 尝试从 StrategyConfig 获取策略名称
             strategy = ''
             try:
                 from stock.models import StrategyConfig
                 cfg = StrategyConfig.objects.get(account=acct)
-                strategy = cfg.strategy_name or ''
+                strategy = cfg.strategy_type or ''
             except Exception:
                 pass
 
