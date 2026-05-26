@@ -163,6 +163,13 @@ class HvobTradingEngine:
         if not data_ready:
             print(f"[HVOB] ⚠️ 等待行情超时 (30s)，部分品种可能无数据，继续运行")
 
+        # day_breakout 阶段启动：从 DB 恢复 OR/MBI/banned/traded
+        if self.phase == 'day_breakout':
+            if not self._restore_day_breakout_state():
+                print(f"[HVOB] ❌ 无已保存 OR 数据，day_breakout 阶段无法交易，跳过今日")
+                self.phase = 'done'
+                return
+
         # 进入事件循环
         last_phase_log = ''
         while self.phase != 'done':
@@ -227,6 +234,7 @@ class HvobTradingEngine:
             if t >= DAY_OR_CLOSE:
                 self._close_day_opening_range()
                 self._calc_mbi()
+                self._save_midday_state()
                 self.phase = 'day_breakout'
                 print(f"[HVOB] → day_breakout (MBI={self.mbi_value:.4f})")
             else:
@@ -409,6 +417,111 @@ class HvobTradingEngine:
         """计算 MBI"""
         from .mbi import calculate_mbi
         self.mbi_value, self.mbi_label = calculate_mbi(self.api, self.watchlist, self.opening_ranges)
+
+    # ==================== 日中状态持久化 ====================
+
+    def _save_midday_state(self):
+        """gap_check→day_breakout 转换时保存 OR/MBI/banned/traded 到 HvobMbiDailyState"""
+        try:
+            from .models import HvobMbiDailyState
+            close_old_connections()
+
+            or_data = {}
+            for sym, or_ in self.opening_ranges.items():
+                or_data[sym] = {
+                    'H': round(or_['H'], 4) if or_['H'] else None,
+                    'L': round(or_['L'], 4) if or_['L'] else None,
+                    'R': round(or_['R'], 4) if or_['R'] else None,
+                }
+
+            HvobMbiDailyState.objects.update_or_create(
+                account=self.account,
+                trade_date=self.trade_date,
+                defaults={
+                    'watchlist': [
+                        {'symbol': item['symbol'], 'product_code': item['product_code'],
+                         'score': item['score'], 'atr_pct': item['atr_pct'],
+                         'avg_amp': item['avg_amp'], 'vol_ratio': item['vol_ratio'],
+                         'atr_score': item['atr_score'], 'amp_score': item['amp_score'],
+                         'vol_score': item['vol_score'], 'bonus': item['bonus'],
+                         'open_interest': item['open_interest']}
+                        for item in self.watchlist
+                    ],
+                    'mbi_value': self.mbi_value,
+                    'mbi_label': self.mbi_label,
+                    'opening_ranges': or_data,
+                    'banned_symbols': list(self.banned),
+                    'traded_symbols': list(self.traded),
+                    'total_trades': self.total_trades,
+                    'daily_pnl': self.daily_pnl,
+                    'is_complete': False,
+                }
+            )
+            print(f"[HVOB] 日中状态已保存 (OR={len(or_data)}, MBI={self.mbi_value:.4f})")
+        except Exception as e:
+            print(f"[HVOB] 保存日中状态失败: {e}")
+
+    def _restore_day_breakout_state(self):
+        """day_breakout 启动时从 HvobMbiDailyState 恢复 OR/MBI/banned/traded"""
+        try:
+            from .models import HvobMbiDailyState
+            close_old_connections()
+
+            state = HvobMbiDailyState.objects.filter(
+                account=self.account, trade_date=self.trade_date
+            ).first()
+            if state is None or not state.opening_ranges:
+                return False
+
+            # 恢复 opening_ranges
+            restored = 0
+            for sym, data in state.opening_ranges.items():
+                if data.get('R') is None:
+                    continue
+                self.opening_ranges[sym] = {
+                    'H': data['H'], 'L': data['L'], 'R': data['R'],
+                    'closed': True, 'night': False,
+                }
+                restored += 1
+
+            if restored == 0:
+                return False
+
+            # 恢复 MBI
+            if state.mbi_value is not None:
+                self.mbi_value = state.mbi_value
+                self.mbi_label = state.mbi_label or ''
+
+            # 恢复 banned
+            self.banned = set(state.banned_symbols or [])
+
+            # 恢复 traded（保存状态 + DB 信号双保险）
+            self.traded = set(state.traded_symbols or [])
+            self._supplement_traded_from_db()
+
+            # 恢复计数器
+            self.total_trades = state.total_trades or 0
+            self.daily_pnl = state.daily_pnl or Decimal('0')
+
+            print(f"[HVOB] ✅ day_breakout 状态恢复: OR={restored}, "
+                  f"MBI={self.mbi_value:.4f}, banned={len(self.banned)}, traded={len(self.traded)}")
+            return True
+        except Exception as e:
+            print(f"[HVOB] 恢复日中状态失败: {e}")
+            return False
+
+    def _supplement_traded_from_db(self):
+        """从 DailyStrategySignal 补全 traded 集合（捕获保存后已成交的品种）"""
+        try:
+            from stock.models import DailyStrategySignal
+            close_old_connections()
+            for sym in DailyStrategySignal.objects.filter(
+                account=self.account, trade_date=self.trade_date,
+                trade_type='ENTRY',
+            ).values_list('symbol', flat=True):
+                self.traded.add(sym)
+        except Exception as e:
+            print(f"[HVOB] 从DB补全traded失败: {e}")
 
     # ==================== 入场检查 ====================
 

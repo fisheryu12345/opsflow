@@ -754,11 +754,69 @@ stop_loss_price=Decimal(str(opening_range_l - Decimal('0.2') * opening_range_r i
 - 自 HVOB 首次使用开仓功能（ag2608 空头 5 手）即触发
 
 **修复内容**:
-`opening_range_l/h/r` 提前转为 Decimal，避免 float 与 Decimal 直接运算：
+1. `opening_range_l/h/r` 提前转为 Decimal，避免 float 与 Decimal 直接运算
+2. `entry_price`/`stop_loss_price`/`exit_price` 非 `DailyStrategySignal` 模型字段，移入 `remark` JSON
+3. 同步修复 `record_exit_signal`、`record_stop_loss_signal` 中同一个问题
 
 ```python
+# 修复后
 or_l = Decimal(str(opening_range_l))
 or_h = Decimal(str(opening_range_h))
 or_r = Decimal(str(opening_range_r))
-stop_loss_price=or_l - Decimal('0.2') * or_r if direction == 1 else or_h + Decimal('0.2') * or_r,
+stop_loss_price = or_l - Decimal('0.2') * or_r if direction == 1 else or_h + Decimal('0.2') * or_r
+signal = DailyStrategySignal.objects.create(
+    ...,
+    remark=json.dumps({
+        'strategy': 'HVOB-MBI',
+        'entry_price': float(entry_price),
+        'stop_loss_price': float(stop_loss_price),  # 移入 remark
+        ...
+    })
+)
 ```
+
+---
+
+## ✅ MEDIUM-44: HVOB 引擎缺少 OR 持久化，day_breakout 阶段重启后全天无法交易 — 已修复 (2026-05-26)
+
+**涉及文件**:
+- [trading_engine.py:423-520](../../backend/hvob_mbi/trading_engine.py#L421)
+- [trading_engine.py:237](../../backend/hvob_mbi/trading_engine.py#L237)
+- [trading_engine.py:166-171](../../backend/hvob_mbi/trading_engine.py#L166)
+
+**问题描述**:
+HVOB 引擎依赖 `gap_check`(9:00-9:30) 阶段实时收集开盘区间(OR)。9:30 关闭 OR、计算 MBI 后进入 `day_breakout`。若引擎在此期间崩溃重启，新实例 `_init_phase()` 直接跳到 `day_breakout`（9:30+），`opening_ranges={}`，`_check_entry` 因 `or_ is None` 跳过所有品种，全天无法交易。
+
+**连锁错误**:
+- 2026-05-26 09:33 DE 修复开仓信号 Decimal*float bug（MEDIUM-43）
+- 09:42 引擎重启直接进入 `day_breakout`，OR 数据全部丢失 → 全天零交易
+- MBI 停留在默认 `0.5`（中性），无实际意义
+
+**影响分析**:
+- 重启后的引擎虽然正常运行，但所有品种的突破检查都因缺少 OR 数据被跳过
+- 14:55 强制平仓无持仓可平 → 完全空转一天
+- 次日 gap_check 正常收集 OR，不影响后续交易日
+- 仅在 `day_breakout` 阶段启动时触发
+
+**修复内容**:
+新增 OR/MBI/banned/traded 的日中持久化机制，三个核心方法：
+
+1. **`_save_midday_state()`** — 在 `gap_check→day_breakout` 转换时（紧接 `_calc_mbi()` 之后），将 OR、MBI、banned、traded 写入 `HvobMbiDailyState`，标记 `is_complete=False`。使用 `update_or_create` 保证幂等。
+
+2. **`_restore_day_breakout_state()`** — `run()` 中数据就绪后调用。从 `HvobMbiDailyState` 恢复 OR 数据（H/L/R→`opening_ranges`）、MBI 值、banned 集合、traded 集合。若无已保存状态（`state is None` 或 OR 为空），返回 `False` 触发引擎退出。
+
+3. **`_supplement_traded_from_db()`** — 从 `DailyStrategySignal.trade_type='ENTRY'` 查询当日已成交信号，补全 `traded` 集合。防止日中保存点之后又交易了新品种但未被记录。
+
+**数据流**:
+```
+正常流程:
+  gap_check → close OR → calc MBI → _save_midday_state() → day_breakout → 交易 → _finalize(覆盖, is_complete=True)
+
+崩溃恢复:
+  day_breakout 启动 → 筛选/订阅/等行情 → _restore_day_breakout_state() → 恢复 OR/MBI/banned/traded → 正常交易
+```
+
+**边界情况**:
+- 从未运行过（无 DB 记录）→ _restore 返回 False → engine 退出，不空转
+- 夜盘/凌晨启动 → _init_phase 设为 night_or/night_breakout，不走恢复路径
+- _finalize 覆盖 → `update_or_create` 同一条记录，`is_complete=True`，覆盖日中快照

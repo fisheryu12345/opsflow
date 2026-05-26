@@ -33,10 +33,10 @@ def record_entry_signal(account, symbol, product_code, trade_date, direction, qu
         trade_type='ENTRY',
         signal_direction=direction,
         contract_target_number=quantity,
-        entry_price=Decimal(str(entry_price)),
-        stop_loss_price=stop_loss_price,
         remark=json.dumps({
             'strategy': 'HVOB-MBI',
+            'entry_price': float(entry_price),
+            'stop_loss_price': float(stop_loss_price),
             'or_h': float(opening_range_h),
             'or_l': float(opening_range_l),
             'or_r': float(opening_range_r),
@@ -63,10 +63,10 @@ def record_exit_signal(account, symbol, product_code, trade_date, direction,
         trade_type='EXIT',
         signal_direction=direction,
         contract_target_number=volume,
-        exit_price=Decimal(str(exit_price)),
         remark=json.dumps({
             'strategy': 'HVOB-MBI',
             'exit_reason': exit_reason,
+            'exit_price': float(exit_price),
         }, ensure_ascii=False)
     )
     _create_closed_record(account, symbol, product_code, trade_date,
@@ -89,10 +89,10 @@ def record_stop_loss_signal(account, symbol, product_code, trade_date, direction
         trade_type='STOP_LOSS',
         signal_direction=direction,
         contract_target_number=volume,
-        exit_price=Decimal(str(exit_price)),
         remark=json.dumps({
             'strategy': 'HVOB-MBI',
             'exit_reason': '止损',
+            'exit_price': float(exit_price),
         }, ensure_ascii=False)
     )
     _create_closed_record(account, symbol, product_code, trade_date,
