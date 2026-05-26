@@ -20,6 +20,11 @@ def record_entry_signal(account, symbol, product_code, trade_date, direction, qu
     写入 DailyStrategySignal:
       trade_type='ENTRY'
     """
+    or_l = Decimal(str(opening_range_l))
+    or_h = Decimal(str(opening_range_h))
+    or_r = Decimal(str(opening_range_r))
+    stop_loss_price = or_l - Decimal('0.2') * or_r if direction == 1 else or_h + Decimal('0.2') * or_r
+
     signal = DailyStrategySignal.objects.create(
         account=account,
         symbol=symbol,
@@ -29,8 +34,7 @@ def record_entry_signal(account, symbol, product_code, trade_date, direction, qu
         signal_direction=direction,
         contract_target_number=quantity,
         entry_price=Decimal(str(entry_price)),
-        stop_loss_price=Decimal(str(opening_range_l - Decimal('0.2') * opening_range_r if direction == 1
-                                   else opening_range_h + Decimal('0.2') * opening_range_r)),
+        stop_loss_price=stop_loss_price,
         remark=json.dumps({
             'strategy': 'HVOB-MBI',
             'or_h': float(opening_range_h),

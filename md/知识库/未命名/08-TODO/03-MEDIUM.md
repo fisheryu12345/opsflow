@@ -728,3 +728,37 @@ finally:
 3. **`tasks_daily_open.py`**: 独立策略账户直接 `continue`，跳过开盘信号处理
 4. **`tasks_exit_before_close.py`**: 独立策略账户直接 `continue`，跳过收盘前止损检查
 5. **`tasks_daily_close.py`**: 独立策略账户跳过持仓高低价更新、止损价更新、退出/加仓/移仓信号生成（日报生成仍正常执行）
+
+---
+
+## ✅ MEDIUM-43: HVOB record_entry_signal Decimal 与 float 混用导致开仓信号写入崩溃 — 已修复 (2026-05-26)
+
+**文件**: [signal_recorder.py:32-33](../../backend/hvob_mbi/signal_recorder.py#L32)
+
+**问题描述**:
+`record_entry_signal` 中计算 `stop_loss_price` 时，`opening_range_r` 是 float 类型，直接与 `Decimal('0.2')` 相乘：
+
+```python
+stop_loss_price=Decimal(str(opening_range_l - Decimal('0.2') * opening_range_r if direction == 1
+                                   else opening_range_h + Decimal('0.2') * opening_range_r)),
+```
+
+`Decimal('0.2') * opening_range_r` → `Decimal * float` → `TypeError: unsupported operand type(s) for *: 'decimal.Decimal' and 'float'`
+
+**影响分析**:
+- HVOB 引擎开仓后，`record_entry_signal` 写入 `DailyStrategySignal` 时崩溃
+- 持仓已在市场成交（TargetPosTask 完成），引擎内存中 `self.positions` 和 `self.traded` 正确跟踪
+- 但 `DailyStrategySignal` 未写入数据库 → 信号审计缺失
+- 用户看到"开仓失败"误导信息（实际开仓成功）
+- 引擎重启后该笔持仓无法恢复（引擎非持久化状态）
+- 自 HVOB 首次使用开仓功能（ag2608 空头 5 手）即触发
+
+**修复内容**:
+`opening_range_l/h/r` 提前转为 Decimal，避免 float 与 Decimal 直接运算：
+
+```python
+or_l = Decimal(str(opening_range_l))
+or_h = Decimal(str(opening_range_h))
+or_r = Decimal(str(opening_range_r))
+stop_loss_price=or_l - Decimal('0.2') * or_r if direction == 1 else or_h + Decimal('0.2') * or_r,
+```
