@@ -5,6 +5,9 @@
       <el-tag type="success" effect="dark" size="large" class="active-count-tag">
         已激活 {{ activeCount }} / {{ list.length }}
       </el-tag>
+      <el-checkbox v-model="showActiveOnly" border size="large" style="margin-right: 12px;">
+        仅显示已激活
+      </el-checkbox>
       <el-select v-model="filterExchange" placeholder="交易所" clearable class="filter-item" @clear="fetchData">
         <el-option v-for="(label, key) in exchangeLabels" :key="key" :label="label" :value="key" />
       </el-select>
@@ -79,6 +82,7 @@ const {
   filteredList,
   filterText,
   filterExchange,
+  showActiveOnly,
   activeCount,
   selectedCount,
   initError,

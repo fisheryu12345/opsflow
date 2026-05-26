@@ -12,6 +12,7 @@ export function useAccountContract() {
   const list = ref<any[]>([])
   const filterText = ref('')
   const filterExchange = ref('')
+  const showActiveOnly = ref(false)
   const initError = ref('')
   const selectedProductCodes = ref<string[]>([])
 
@@ -25,6 +26,9 @@ export function useAccountContract() {
 
   const filteredList = computed(() => {
     let data = list.value
+    if (showActiveOnly.value) {
+      data = data.filter((item) => item.is_active)
+    }
     if (filterText.value) {
       const q = filterText.value.toLowerCase()
       data = data.filter(
@@ -141,6 +145,7 @@ export function useAccountContract() {
     filteredList,
     filterText,
     filterExchange,
+    showActiveOnly,
     activeCount,
     selectedCount,
     selectedProductCodes,
