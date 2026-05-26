@@ -30,3 +30,16 @@ class AgentMemorySerializer(serializers.ModelSerializer):
     class Meta:
         model = AgentMemory
         fields = '__all__'
+
+
+class TaskRunInputSerializer(serializers.Serializer):
+    input = serializers.CharField(help_text="Natural language task description")
+    environment_id = serializers.IntegerField(required=False, allow_null=True, help_text="EnvironmentContext ID")
+
+
+class TaskRunResultSerializer(serializers.Serializer):
+    session_id = serializers.CharField()
+    user_input = serializers.CharField()
+    output = serializers.CharField()
+    status = serializers.CharField()
+    tool_calls = serializers.ListField(child=serializers.DictField(), default=[])
