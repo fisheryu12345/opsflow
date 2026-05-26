@@ -323,9 +323,9 @@
   <tr><td>风险基数</td><td>权益×1%</td><td>&yen;4,000</td><td>&yen;4,000</td><td>余额x0.5%</td><td>&yen;</td></tr>
   <tr><td>最大单位</td><td>3</td><td>3</td><td>3</td><td>1 (不加仓)</td><td>Unit</td></tr>
   <tr><td>止损倍数</td><td>2 × N (固定)</td><td>2 ~ 3 ATR</td><td>2 ~ 3 ATR</td><td>0.2xR</td><td>-</td></tr>
-  <tr><td>趋势因子</td><td>无</td><td>有</td><td>有</td><td>无</td><td>-</td></tr>
-  <tr><td>保本机制</td><td>无</td><td>2.5xATR, 3U</td><td>2.5xATR, 3U</td><td>无（日内平仓）</td><td>-</td></tr>
-  <tr><td>跳空保护</td><td>无</td><td>1.5xATR</td><td>1.5xATR</td><td>拉黑处理</td><td>-</td></tr>
+  <tr><td>趋势因子</td><td>—</td><td>有</td><td>有</td><td>无</td><td>-</td></tr>
+  <tr><td>保本机制</td><td>—</td><td>2.5xATR, 3U</td><td>2.5xATR, 3U</td><td>无（日内平仓）</td><td>-</td></tr>
+  <tr><td>跳空保护</td><td>—</td><td>1.5xATR</td><td>1.5xATR</td><td>拉黑处理</td><td>-</td></tr>
   <tr><td>skip_choppy</td><td>✗</td><td>✗</td><td>✓</td><td>-</td><td>-</td></tr>
   <tr><td>时间衰减</td><td>无</td><td>无</td><td>无</td><td>9:30->100% -> 14:30->30%</td><td>-</td></tr>
   <tr><td>MBI 过滤</td><td>无</td><td>无</td><td>无</td><td>有 [0,1]</td><td>-</td></tr>
@@ -347,7 +347,7 @@
 <table>
   <tr><th>过滤类型</th><th>原版海龟</th><th>海龟V2 (Acc 1)</th><th>海龟V3 (Acc 5)</th><th>HVOB-MBI</th></tr>
   <tr><td>skip_choppy</td><td>✗</td><td>✗</td><td>✓ 跳过60%信号</td><td>✗</td></tr>
-  <tr><td>跳空保护</td><td>✗</td><td>✓ 1.5xATR</td><td>✓ 1.5xATR</td><td>✓ 拉黑穿越</td></tr>
+  <tr><td>跳空保护</td><td>—</td><td>✓ 1.5xATR</td><td>✓ 1.5xATR</td><td>✓ 拉黑穿越</td></tr>
   <tr><td>MBI过滤</td><td>✗</td><td>✗</td><td>✗</td><td>✓ 权重[0,1]</td></tr>
   <tr><td>时间衰减</td><td>✗</td><td>✗</td><td>✗</td><td>✓ 30%~100%</td></tr>
 </table>
