@@ -7,6 +7,7 @@ HVOB-MBI 交易引擎：TqSDK wait_update 事件循环，时间相位驱动。
   → force_close → done
 """
 import time
+import math
 import json
 from datetime import datetime, date
 from decimal import Decimal
@@ -264,15 +265,21 @@ class HvobTradingEngine:
 
     def _check_restart(self, now):
         """检查是否需要定时重启 TqSDK 连接（8:55 / 13:25 / 20:55）"""
-        restart_key = None
-        if (now.hour == 8 and now.minute == 55) or \
-           (now.hour == 13 and now.minute == 25) or \
-           (now.hour == 20 and now.minute == 55):
-            restart_key = now.strftime('%Y-%m-%d-%H%M')
-        if restart_key and restart_key != self._last_restart_key:
-            self._last_restart_key = restart_key
-            print(f"[HVOB] ⏰ 触法定时重启 ({now.strftime('%H:%M')}, phase={self.phase})")
-            self._reconnect()
+        restart_hour_minutes = [(8, 55), (13, 25), (20, 55)]
+        now_total = now.hour * 60 + now.minute
+        in_window = any(
+            h * 60 + m - 1 <= now_total <= h * 60 + m + 1
+            for h, m in restart_hour_minutes
+        )
+        if not in_window:
+            return
+
+        restart_key = now.strftime('%Y-%m-%d-%H%M')
+        if restart_key == self._last_restart_key:
+            return
+        self._last_restart_key = restart_key
+        print(f"[HVOB] ⏰ 触法定时重启 ({now.strftime('%H:%M')}, phase={self.phase})")
+        self._reconnect()
 
     def _reconnect(self):
         """关闭旧 TqSDK 连接并重新建立，保留全部内存状态"""
@@ -329,7 +336,7 @@ class HvobTradingEngine:
                 continue
 
             quote = self.api.get_quote(symbol)
-            if quote is None or quote.last_price is None or quote.last_price == 0:
+            if quote is None or quote.last_price is None or quote.last_price == 0 or math.isnan(quote.last_price):
                 continue
 
             price = float(quote.last_price)
@@ -453,7 +460,7 @@ class HvobTradingEngine:
                 continue
             symbol = item['symbol']
             quote = self.api.get_quote(symbol)
-            if quote is None or quote.last_price is None:
+            if quote is None or quote.last_price is None or math.isnan(quote.last_price):
                 continue
             or_ = self.opening_ranges.get(symbol)
             if or_ is None or or_['R'] is None:
@@ -855,9 +862,9 @@ class HvobTradingEngine:
         print(f"[HVOB] ⏰ 强制平仓 {len(self.positions)} 个持仓")
         for symbol, pos in list(self.positions.items()):
             quote = self.api.get_quote(symbol)
-            price = float(quote.last_price) if quote and quote.last_price else 0
-            if price <= 0:
+            if quote is None or quote.last_price is None or math.isnan(quote.last_price):
                 continue
+            price = float(quote.last_price)
 
             exit_pnl = self._calc_pnl(pos, price)
 
@@ -893,7 +900,7 @@ class HvobTradingEngine:
 
         if not self.dry_run:
             try:
-                self.api.wait_update()
+                self.api.wait_update(deadline=time.time() + 5)
                 account_info = self.api.get_account()
                 balance = float(getattr(account_info, 'balance', 0) or 0)
                 record_daily_equity(self.account, self.trade_date, balance, self.daily_pnl)

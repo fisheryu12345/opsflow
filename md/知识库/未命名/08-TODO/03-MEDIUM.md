@@ -820,3 +820,27 @@ HVOB 引擎依赖 `gap_check`(9:00-9:30) 阶段实时收集开盘区间(OR)。9:
 - 从未运行过（无 DB 记录）→ _restore 返回 False → engine 退出，不空转
 - 夜盘/凌晨启动 → _init_phase 设为 night_or/night_breakout，不走恢复路径
 - _finalize 覆盖 → `update_or_create` 同一条记录，`is_complete=True`，覆盖日中快照
+
+---
+
+## ✅ MEDIUM-45: HVOB `_finalize` 中 `wait_update()` 无 deadline 可能永久阻塞 — 已修复 (2026-05-26)
+
+**文件**: [trading_engine.py:903](../../backend/hvob_mbi/trading_engine.py#L903)
+
+**问题描述**:
+`_finalize()` 中无条件调用 `self.api.wait_update()`（无 `deadline` 参数）：
+```python
+self.api.wait_update()
+account_info = self.api.get_account()
+```
+收盘后 TqSDK 不再推送新行情，`wait_update()` 永远等不到数据更新，整个引擎无法退出。
+
+**影响分析**:
+- HVOB 进程在 `_finalize()` 处永久阻塞
+- 虽已无交易，但进程残留浪费资源
+- 若调度系统依赖进程正常退出（如 systemd/PM2），可能触发误告警
+
+**修复内容**: 追加 5 秒 deadline：
+```python
+self.api.wait_update(deadline=time.time() + 5)
+```

@@ -557,3 +557,50 @@ PositionState.objects.filter(id=position.id).update(**{
     'trend_info': None, 'is_rollover_needed': False,
 })
 ```
+
+---
+
+## ✅ HIGH-27: HVOB 跳空检查 `_check_gap` NaN 漏检 — 已修复 (2026-05-26)
+
+**文件**: [trading_engine.py:457](../../backend/hvob_mbi/trading_engine.py#L457)
+
+**问题描述**:
+`_check_gap()` 中 NaN 价格漏检，与 `_on_quote` 同样的问题：
+```python
+if quote is None or quote.last_price is None:
+    continue
+```
+NaN 行情通过检查后，后续判断 `nan < or_['L']` 和 `nan > or_['H']` 均为 False（NaN 比较特性），打印"正常"但实际上无有效数据。同时该 NaN 价格被用于初始化日盘 OR 基线。
+
+**影响分析**:
+- 跳空检查打印"正常"误导日志
+- 日盘 OR 基线可能被 NaN 污染
+- gap_check 阶段（9:00-9:30）行情应已就绪，实际影响极低，但健壮性不足
+
+**修复内容**: 追加 `math.isnan(quote.last_price)` 过滤。
+
+---
+
+## ✅ HIGH-28: HVOB `_check_restart` 精确分钟匹配可能漏触发 — 已修复 (2026-05-26)
+
+**文件**: [trading_engine.py:267-276](../../backend/hvob_mbi/trading_engine.py#L267)
+
+**问题描述**:
+`_check_restart` 使用精确分钟匹配判断重启时间：
+```python
+if (now.hour == 8 and now.minute == 55):
+```
+`wait_update` 最长阻塞 30 秒（`deadline=time.time() + 30`）。如果循环恰好在 8:55:00 时处于 wait_update 阻塞中，直到 8:55:30 才返回，此时 `now.minute == 55` 已不成立，重启被漏过。
+
+**影响分析**:
+- TqSDK 连接每天最多错过 3 次定时重启
+- 长时间运行后连接可能因累计问题（内存泄漏/网络抖动）退化
+- 8:55 重启失败 → 9:00 日盘开始时连接可能不稳定
+- 实际概率较低（1 秒窗口 + 30 秒阻塞 = ~3% / 次），但完全可避免
+
+**修复内容**: 改为 ±1 分钟范围匹配：
+```python
+restart_hour_minutes = [(8, 55), (13, 25), (20, 55)]
+now_total = now.hour * 60 + now.minute
+in_window = any(h * 60 + m - 1 <= now_total <= h * 60 + m + 1 for h, m in restart_hour_minutes)
+```

@@ -476,3 +476,58 @@ HVOB-MBI 策略自上线以来从未产生过一笔交易。`_on_quote()` 未在
 2. `_on_quote`: 新增 `night_or`(夜盘 OR) 和 `gap_check`(日盘 OR) 阶段的 OR 跟踪逻辑
 3. `_check_gap`: 末尾清除夜盘 OR 条目，避免阻塞日盘 OR 跟踪
 4. `_init_phase`: 新增方法，根据当前时间确定启动相位（同时修复 HIGH-26）
+
+---
+
+## ✅ CRITICAL-14: HVOB 引擎行情价格 NaN 漏检导致 decimal.InvalidOperation 崩溃 — 已修复 (2026-05-26)
+
+**文件**: [trading_engine.py:333](../../backend/hvob_mbi/trading_engine.py#L333)
+
+**问题描述**:
+`_on_quote()` 中 `quote.last_price` 检查了 `None` 和 `== 0`，但未检查 `float('nan')`。TqSDK 在某些品种数据未就绪时返回 NaN 价格：
+- `nan != 0` 为 `True`，所以 `== 0` 检查无效
+- `Decimal(str(float('nan')))` → `Decimal('NaN')`
+- `Decimal('NaN') >= h_break` → `decimal.InvalidOperation` 崩溃
+
+**影响分析**:
+- 引擎在 night_breakout 阶段收到 NaN 行情时崩溃
+- 整个 TradingEngine 进程退出
+- 必须手动重启才能恢复交易
+- 错过交易时段
+
+**修复内容**:
+1. 导入 `import math`（文件顶部）
+2. 行情过滤条件追加 `math.isnan(quote.last_price)`:
+```python
+if quote is None or quote.last_price is None or quote.last_price == 0 or math.isnan(quote.last_price):
+    continue
+```
+
+---
+
+## ✅ CRITICAL-15: HVOB 强制平仓 NaN 价格导致 daily_pnl 被 NaN 污染 — 已修复 (2026-05-26)
+
+**文件**: [trading_engine.py:858-861](../../backend/hvob_mbi/trading_engine.py#L858)
+
+**问题描述**:
+`_force_close_all()` 中 NaN 价格同样漏检：
+```python
+price = float(quote.last_price) if quote and quote.last_price else 0
+if price <= 0:
+    continue
+```
+NaN 行情下：`float(nan)` → `nan`，`nan <= 0` → `False` → 继续执行 → `_calc_pnl(pos, nan)` → `Decimal('NaN')` → `self.daily_pnl += Decimal('NaN')` → 后续所有 PnL 聚合值永久为 NaN。
+
+**影响分析**:
+- 强制平仓时的盈亏记录全部为 NaN
+- `daily_pnl` 被 NaN 污染，后续任何 `+=` 操作结果均为 NaN
+- `_finalize` 中的 `record_daily_equity` 写入 NaN 权益
+- 日终绩效数据失真
+
+**修复内容**:
+```python
+quote = self.api.get_quote(symbol)
+if quote is None or quote.last_price is None or math.isnan(quote.last_price):
+    continue
+price = float(quote.last_price)
+```
