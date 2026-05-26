@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "dvadmin.system",
     "stock",
     "hvob_mbi",
+    "opsagent",
 ]
 
 MIDDLEWARE = [
