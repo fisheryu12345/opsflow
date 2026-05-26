@@ -110,7 +110,16 @@
       "Bash(python backend/manage.py add_opsagent_menu)",
       "Bash(cd c:\\\\\\\\Users\\\\\\\\dell\\\\\\\\Desktop\\\\\\\\Vue)",
       "Bash(python manage.py makemigrations hvob_mbi)",
-      "Bash(python manage.py migrate hvob_mbi)"
+      "Bash(python manage.py migrate hvob_mbi)",
+      "Bash(cat)",
+      "Bash(python /tmp/query_db.py)",
+      "Bash(python /d/temp/query_db.py)",
+      "Bash(python query_db.py)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('hvob_mbi/trading_engine.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(xxd)",
+      "Bash(python manage.py calc_night_breakout --account=1 --dry-run)",
+      "Bash(python manage.py calc_night_breakout --help)",
+      "Bash(python manage.py calc_night_breakout --account=1)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

@@ -121,8 +121,10 @@
     <div class="stat-row"><span class="stat-label">止损方式</span><span class="stat-value">2N硬止损 + 10HL出场</span></div>
     <div class="stat-row"><span class="stat-label">保本机制</span><span class="stat-value">✗ 无</span></div>
     <div class="stat-row"><span class="stat-label">跳过震荡</span><span class="stat-value">✗ 不过滤</span></div>
-    <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value" style="color:var(--green);">¥502,000</span></div>
+    <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value">¥502,000</span></div>
     <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value">0.00%</span></div>
+    <div class="stat-row"><span class="stat-label">手续费</span><span class="stat-value">¥0</span></div>
+    <div class="stat-row"><span class="stat-label">持仓</span><span class="stat-value">rb2610 空7手</span></div>
   </div>
   <div>
     <div class="strategy-header"><div class="icon turtle-v2">V2</div><h4>海龟V2增强 <span class="tag green" style="font-size:0.6em;">实盘</span></h4></div>
@@ -133,8 +135,10 @@
     <div class="stat-row"><span class="stat-label">止损方式</span><span class="stat-value">动态 2~3 ATR + 趋势因子</span></div>
     <div class="stat-row"><span class="stat-label">保本机制</span><span class="stat-value">有 (2.5×ATR, 满仓)</span></div>
     <div class="stat-row"><span class="stat-label">跳过震荡</span><span class="stat-value">✗ 不过滤</span></div>
-    <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value" style="color:var(--green);">¥502,000</span></div>
+    <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value" style="color:var(--green);">¥502,001</span></div>
     <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value">0.00%</span></div>
+    <div class="stat-row"><span class="stat-label">手续费</span><span class="stat-value">¥0</span></div>
+    <div class="stat-row"><span class="stat-label">持仓</span><span class="stat-value">rb2610 空1U</span></div>
   </div>
   <div>
     <div class="strategy-header"><div class="icon turtle-v3">V3</div><h4>海龟V3过滤 <span class="tag blue" style="font-size:0.6em;">对照组</span></h4></div>
@@ -147,6 +151,8 @@
     <div class="stat-row"><span class="stat-label">跳过震荡</span><span class="stat-value">✓ 跳过60%信号</span></div>
     <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value" style="color:var(--green);">¥502,000</span></div>
     <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value">0.00%</span></div>
+    <div class="stat-row"><span class="stat-label">手续费</span><span class="stat-value">¥0</span></div>
+    <div class="stat-row"><span class="stat-label">持仓</span><span class="stat-value">无</span></div>
   </div>
   <div>
     <div class="strategy-header"><div class="icon hvob">H</div><h4>HVOB-MBI <span class="tag blue" style="font-size:0.6em;">对照组</span></h4></div>
@@ -159,6 +165,8 @@
     <div class="stat-row"><span class="stat-label">持仓周期</span><span class="stat-value">日内</span></div>
     <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value" style="color:var(--green);">¥502,000</span></div>
     <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value">0.00%</span></div>
+    <div class="stat-row"><span class="stat-label">手续费</span><span class="stat-value">¥0</span></div>
+    <div class="stat-row"><span class="stat-label">持仓</span><span class="stat-value">无</span></div>
   </div>
 </div>
 <div class="callout success"><strong>⚡ 实盘启动日：</strong> 2026-05-26 所有账户已完成重置。初始权益统一 ¥502,000，所有历史持仓/信号/日志/绩效数据已清空。各账户配置 12 个交易品种。<br><br><strong>账户分配：</strong> <span class="tag green">实盘</span> Acc 1 (510976) = V2 激进 | <span class="tag blue">对照组</span> Acc 5 (510977) = V3 保守 | <span class="tag blue">对照组</span> Acc 6 (510988) = 原版海龟 | <span class="tag blue">对照组</span> Acc 10 (510978) = HVOB-MBI。V2 的 APScheduler 任务已跳过 TURTLE 和 HVOB 账户，独立策略自行管理全生命周期。</div>
@@ -377,14 +385,15 @@
 <h3>10.1 账户总览</h3>
 <table>
   <tr><th>指标</th><th>原版海龟 (Acc 6)</th><th>海龟V2 (Acc 1)</th><th>海龟V3 (Acc 5)</th><th>HVOB-MBI (Acc 10)</th></tr>
-  <tr><td>当前权益</td><td>&yen;502,000</td><td>&yen;502,000</td><td>&yen;502,000</td><td>&yen;502,000</td></tr>
+  <tr><td>当前权益</td><td>&yen;502,000</td><td>&yen;502,001</td><td>&yen;502,000</td><td>&yen;502,000</td></tr>
   <tr><td>累计收益率</td><td>0.00%</td><td>0.00%</td><td>0.00%</td><td>0.00%</td></tr>
   <tr><td>年化收益率</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
   <tr><td>最大回撤</td><td>0.00%</td><td>0.00%</td><td>0.00%</td><td>0.00%</td></tr>
   <tr><td>当前回撤</td><td>0.00%</td><td>0.00%</td><td>0.00%</td><td>0.00%</td></tr>
   <tr><td>整体胜率</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
   <tr><td>盈利因子</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
-  <tr><td>总交易次数</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td>总交易次数</td><td>1</td><td>1</td><td>1</td><td>0</td></tr>
+	  <tr><td>累计手续费</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td></tr>
   <tr><td>最大连续亏损</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
   <tr><td>20日夏普比率</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
   <tr><td>20日年化波动率</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
@@ -393,19 +402,19 @@
   <tr><td>累计平仓盈亏</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td></tr>
 </table>
 
-<div class="callout success"><strong>实盘启动日：</strong> 2026-05-26 所有账户已完成重置，初始权益统一 ¥502,000。无历史持仓、无已平仓记录、无绩效数据。当前处于等待首个交易信号阶段。</div>
+<div class="callout success"><strong>实盘首个交易日：</strong> 2026-05-26 各账户已产生初始信号和持仓。TURTLE(Acc 6) 与 V2(Acc 1) 已执行 rb2610 空单，V3(Acc 5) 信号因 skip_choppy 被 CANCELLED，HVOB 暂无信号。所有权益数据反映实盘启动第一天的状态。</div>
 
 <h3>10.2 信号统计对比</h3>
 <table>
   <tr><th>信号类型</th><th>原版海龟 (Acc 6)</th><th>海龟V2 (Acc 1)</th><th>海龟V3 (Acc 5)</th><th>HVOB-MBI</th></tr>
-    <tr><td>ENTRY</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>ENTRY</td><td>1</td><td>1</td><td>1</td><td>0</td></tr>
     <tr><td>STOP_LOSS</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
     <tr><td>ADD_ON</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
     <tr><td>ROLLOVER</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
-  <tr><td><strong>总计</strong></td><td><strong>0</strong></td><td><strong>0</strong></td><td><strong>0</strong></td><td><strong>0</strong></td></tr>
-  <tr><td>已执行(SUCCESS)</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td><strong>总计</strong></td><td><strong>1</strong></td><td><strong>1</strong></td><td><strong>1</strong></td><td><strong>0</strong></td></tr>
+  <tr><td>已执行(SUCCESS)</td><td>1</td><td>1</td><td>0</td><td>0</td></tr>
 </table>
-<div class="callout info"><strong>信号数据将在首个交易日（2026-05-26）收盘后由 APScheduler 生成。</strong></div>
+<div class="callout info"><strong>首个交易日数据：</strong> 2026-05-26 收盘后已生成信号。TURTLE 和 V2 的 rb2610 空单 ENTRY 已执行；V3 因 skip_choppy 趋势标签过滤，ENTRY 状态为 CANCELLED；HVOB 日内系统当天无有效突破信号。</div>
 </div>
 
 <div class="section" id="s11">
@@ -413,9 +422,9 @@
 <h3>11.1 <span class="tag green">实盘</span> 海龟V2 - Account 1</h3>
 <div class="chart-container">
   <div class="bar-chart" style="height:200px;">
-    <div class="bar blue" style="height:100%;" title="&yen;502,000"><span class="label">05-26</span><span class="tooltip">&yen;502,000</span></div>
+    <div class="bar blue" style="height:100%;" title="&yen;502,001"><span class="label">05-26</span><span class="tooltip">&yen;502,001</span></div>
   </div>
-  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">实盘启动首日 | 初始权益 ¥502,000 | 暂无历史净值数据</div>
+  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">实盘启动首日 | 当前权益 ¥502,001 | 暂无历史净值数据</div>
 </div>
 
 <h3>11.2 <span class="tag blue">对照组</span> 海龟V3 - Account 5</h3>
@@ -423,7 +432,7 @@
   <div class="bar-chart" style="height:120px;">
     <div class="bar blue" style="height:100%;" title="&yen;502,000"><span class="label">05-26</span><span class="tooltip">&yen;502,000</span></div>
   </div>
-  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">实盘启动首日 | 初始权益 ¥502,000 | 暂无历史净值数据</div>
+  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">实盘启动首日 | 当前权益 ¥502,000 | 暂无历史净值数据</div>
 </div>
 
 <h3>11.3 <span class="tag blue">对照组</span> 原版海龟 - Account 6</h3>
@@ -431,7 +440,7 @@
   <div class="bar-chart" style="height:120px;">
     <div class="bar blue" style="height:100%;" title="&yen;502,000"><span class="label">05-26</span><span class="tooltip">&yen;502,000</span></div>
   </div>
-  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">实盘启动首日 | 初始权益 ¥502,000 | 暂无历史净值数据</div>
+  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">实盘启动首日 | 当前权益 ¥502,000 | 暂无历史净值数据</div>
 </div>
 
 <h3>11.4 <span class="tag blue">对照组</span> HVOB-MBI - Account 10</h3>
@@ -439,19 +448,19 @@
   <div class="bar-chart" style="height:120px;">
     <div class="bar blue" style="height:100%;" title="&yen;502,000"><span class="label">05-26</span><span class="tooltip">&yen;502,000</span></div>
   </div>
-  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">实盘启动首日 | 初始权益 ¥502,000 | 暂无历史净值数据</div>
+  <div style="margin-top:24px;font-size:0.8em;color:var(--text-secondary);">实盘启动首日 | 当前权益 ¥502,000 | 暂无历史净值数据</div>
 </div>
 </div>
 
 <div class="section" id="s12"><h2>十二、持仓结构对比</h2>
 <table>
   <tr><th>账户</th><th>品种</th><th>方向</th><th>单位</th><th>手数</th><th>成本价</th><th>止损价</th></tr>
-  <tr><td><strong>V2</strong></td><td colspan="6" style="text-align:center;color:var(--text-secondary);">暂无持仓 — 实盘启动首日</td></tr>
-  <tr><td><strong>V3</strong></td><td colspan="6" style="text-align:center;color:var(--text-secondary);">暂无持仓 — 实盘启动首日</td></tr>
-  <tr><td><strong>原版海龟</strong></td><td colspan="6" style="text-align:center;color:var(--text-secondary);">暂无持仓 — 实盘启动首日</td></tr>
-  <tr><td><strong>HVOB</strong></td><td colspan="6" style="text-align:center;color:var(--text-secondary);">暂无持仓 — 实盘启动首日</td></tr>
+  <tr><td><strong>V2</strong></td><td>rb2610</td><td>空</td><td>1 U</td><td>1</td><td>—</td><td>—</td></tr>
+  <tr><td><strong>V3</strong></td><td colspan="6" style="text-align:center;color:var(--text-secondary);">暂无持仓 — 首日V3信号被CANCELLED</td></tr>
+  <tr><td><strong>原版海龟</strong></td><td>rb2610</td><td>空</td><td>Turtle</td><td>7</td><td>—</td><td>—</td></tr>
+  <tr><td><strong>HVOB</strong></td><td colspan="6" style="text-align:center;color:var(--text-secondary);">暂无持仓 — 日内策略无隔夜持仓</td></tr>
 </table>
-<div class="callout info"><strong>持仓状态：</strong> 2026-05-26 实盘启动首日，所有账户均无持仓。首个持仓将在 20HL 突破信号产生并执行后出现。</div>
+<div class="callout info"><strong>持仓状态：</strong> 2026-05-26 首个交易日。V2(Acc 1) 持有 rb2610 空单 1U（已完成 2-step 开仓）；原版海龟(Acc 6) 持有 rb2610 空单 7 手；V3(Acc 5) 信号被 CANCELLED 无持仓；HVOB(Acc 10) 日内无隔夜持仓。</div>
 </div>
 
 <div class="section" id="s13">
@@ -527,11 +536,11 @@
 
 <h3>17.2 当前状态评估</h3>
 <table>
-  <tr><th>策略</th><th>运行时间</th><th>累计收益</th><th>最大回撤</th><th>平仓PnL</th><th>评估</th></tr>
-  <tr><td>原版海龟</td><td>首日</td><td>0.00%</td><td>0.00%</td><td>&yen;0</td><td><span class="tag blue">实盘启动</span></td></tr>
-  <tr><td>海龟V2</td><td>首日</td><td>0.00%</td><td>0.00%</td><td>&yen;0</td><td><span class="tag blue">实盘启动</span></td></tr>
-  <tr><td>海龟V3</td><td>首日</td><td>0.00%</td><td>0.00%</td><td>&yen;0</td><td><span class="tag blue">实盘启动</span></td></tr>
-  <tr><td>HVOB-MBI</td><td>首日</td><td>0.00%</td><td>0.00%</td><td>&yen;0</td><td><span class="tag blue">实盘启动</span></td></tr>
+  <tr><th>策略</th><th>运行时间</th><th>当前权益</th><th>累计收益</th><th>最大回撤</th><th>持仓</th><th>评估</th></tr>
+  <tr><td>原版海龟</td><td>首日</td><td>&yen;502,000</td><td>0.00%</td><td>0.00%</td><td>rb2610 空7手</td><td><span class="tag orange">已持仓</span></td></tr>
+  <tr><td>海龟V2</td><td>首日</td><td>&yen;502,001</td><td>0.00%</td><td>0.00%</td><td>rb2610 空1U</td><td><span class="tag green">已持仓</span></td></tr>
+  <tr><td>海龟V3</td><td>首日</td><td>&yen;502,000</td><td>0.00%</td><td>0.00%</td><td>无</td><td><span class="tag blue">信号CANCELLED</span></td></tr>
+  <tr><td>HVOB-MBI</td><td>首日</td><td>&yen;502,000</td><td>0.00%</td><td>0.00%</td><td>无</td><td><span class="tag blue">等待突破</span></td></tr>
 </table>
 
 <h3>17.3 Alpha 因子分析总结</h3>
