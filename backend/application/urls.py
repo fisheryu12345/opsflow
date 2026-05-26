@@ -90,6 +90,8 @@ urlpatterns = (
             
             # Stock app URLs
             path("api/stock/", include("stock.urls")),
+            # OpsAgent URLs
+            path("api/ops/", include("opsagent.urls")),
             re_path(r'^admin/', admin.site.urls),  # Django admin route
         ]
         + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
