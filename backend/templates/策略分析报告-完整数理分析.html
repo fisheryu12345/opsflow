@@ -82,7 +82,7 @@
   <h1>FT 量化期货交易系统</h1>
   <div class="subtitle">四大策略 + Alpha 因子全面数理分析报告</div>
   <div class="subtitle" style="font-size:0.9em; margin-top:4px;">原版海龟 · 海龟V2 · 海龟V3 · HVOB-MBI 日内突破</div>
-  <div class="meta">生成日期: 2026-05-25 | 基于实时数据库 + 后端代码 v3.1 | 含 Alpha 因子归因分析</div>
+  <div class="meta">生成日期: 2026-05-26 | 基于实时数据库 + 后端代码 v3.1 | 含 Alpha 因子归因分析</div>
 </div>
 <div class="container">
 <div class="toc-card">
@@ -161,7 +161,7 @@
     <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value">0.00%（运行4天）</span></div>
   </div>
 </div>
-<div class="callout info"><strong>运行状态：</strong> 四个账户均为模拟盘（TqKq），使用 zhanshang123 账号。原版海龟和 V2/V3 已运行约 4 周，HVOB-MBI 于 2026-05-20 首次启动。2026-05-25 HVOB-MBI 开盘区间(OR)跟踪 Bug 已修复，待下一个交易日验证。受 05-25 商品市场普跌影响（多数品种跌幅超 2%），当日三个趋势策略均出现较大回撤。</div>
+<div class="callout info"><strong>运行状态：</strong> 四个账户均为模拟盘（TqKq），使用 zhanshang123 账号。原版海龟和 V2/V3 已运行约 4 周，HVOB-MBI 于 2026-05-20 首次启动。2026-05-25 HVOB-MBI 开盘区间(OR)跟踪 Bug 已修复，待下一个交易日验证。受 05-25 商品市场普跌影响（多数品种跌幅超 2%），当日三个趋势策略均出现较大回撤。<br><br><strong>策略隔离：</strong> V2 的三个 APScheduler 任务（开盘/收盘/临收盘）均已跳过 TURTLE 和 HVOB 策略账户，防止 MySQL 唯一约束冲突。独立策略自行管理全生命周期。</div>
 
 <h3>1.1 Alpha 因子构成全景</h3>
 <p>四个策略的 alpha 因子构成差异从根本上决定了其市场适应性和风险收益特征：</p>
@@ -626,7 +626,7 @@
 
 <div style="text-align:center;padding:40px 0 20px;color:var(--text-secondary);font-size:0.85em;border-top:1px solid var(--border);">
   <p>FT 量化期货交易系统 - 四大策略完整数理分析报告</p>
-  <p>生成日期: 2026-05-25 | v3.1</p>
+  <p>生成日期: 2026-05-26 | v3.1</p>
 </div>
 </div>
 </body>

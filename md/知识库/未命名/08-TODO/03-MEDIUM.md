@@ -700,3 +700,31 @@ finally:
 
 **修复内容**:
 `FullContractList.objects.get(symbol=position.symbol)` → `FullContractList.objects.filter(product_code=position.product_code).first()`，使用品种代码查询，合约乘数与具体合约无关。
+
+---
+
+## ✅ MEDIUM-42: V2/V3 策略调度任务未排除 HVOB/TURTLE 独立策略账户 — 已修复 (2026-05-26)
+
+**涉及文件**:
+- [tasks_daily_close.py:665-710](../../backend/stock/scheduler/tasks_daily_close.py#L665)
+- [tasks_daily_open.py:34-41](../../backend/stock/scheduler/tasks_daily_open.py#L34)
+- [tasks_exit_before_close.py:45-52](../../backend/stock/scheduler/tasks_exit_before_close.py#L45)
+
+**问题描述**:
+`tasks_daily_open`、`tasks_daily_close`、`tasks_exit_before_close` 三个调度任务遍历所有活跃账户执行信号生成/止损管理，未排除 TURTLE 和 HVOB 类型的独立策略账户。这些账户有自己的交易引擎管理信号和止损，主策略调度任务不应干预。
+
+`tasks_daily_close.py` 原有 `is_turtle` 检查排除了 TURTLE 账户，但 HVOB 类型未覆盖，且变量命名未体现通用性。
+
+**影响分析**:
+- HVOB 账户同时被主策略收盘任务生成开仓/加仓/止损信号 → 与 HVOB 引擎自身信号冲突
+- HVOB 账户的开盘任务执行入场 → 可能开仓时机/价格与 HVOB 策略逻辑不一致
+- HVOB 账户的收盘前止损执行 → 可能提前平掉 HVOB 引擎管理的持仓
+- 多策略共存的账户数据错乱，绩效失真
+- 纯 V2/V3 部署无影响
+
+**修复内容**:
+1. **重构命名**: `is_turtle` → `is_independent_strategy`，语义更清晰
+2. **扩展检查范围**: `strategy_type == 'TURTLE'` → `strategy_type in ('TURTLE', 'HVOB')`
+3. **`tasks_daily_open.py`**: 独立策略账户直接 `continue`，跳过开盘信号处理
+4. **`tasks_exit_before_close.py`**: 独立策略账户直接 `continue`，跳过收盘前止损检查
+5. **`tasks_daily_close.py`**: 独立策略账户跳过持仓高低价更新、止损价更新、退出/加仓/移仓信号生成（日报生成仍正常执行）

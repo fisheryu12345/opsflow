@@ -661,14 +661,14 @@ def job_daily_close_calculation():
                         if r['product_code'] in account_product_codes
                     ]
 
-                    # 判断是否原版海龟账户（该账户盘中实时检测信号，收盘任务不干预）
-                    is_turtle = False
+                    # 判断是否独立运行策略（TURTLE/HVOB 自管信号，收盘任务不干预）
+                    is_independent_strategy = False
                     try:
-                        is_turtle = (account.strategyconfig.strategy_type == 'TURTLE')
+                        is_independent_strategy = account.strategyconfig.strategy_type in ('TURTLE', 'HVOB')
                     except StrategyConfig.DoesNotExist:
                         pass
 
-                    if not is_turtle and account_results:
+                    if not is_independent_strategy and account_results:
                         open_count = 0
                         for result in account_results:
                             breakout_info = result.get('breakout_info', {})
@@ -686,31 +686,31 @@ def job_daily_close_calculation():
                                     open_count += 1
                         print(f"[INFO] {account.name} 开仓信号生成: {open_count}个")
 
-                    if not is_turtle:
+                    if not is_independent_strategy:
                         update_all_positions_high_low_price(account)
                         print(f"[INFO] {account.name} 更新持仓高低价完成")
                     else:
-                        print(f"[INFO] {account.name} 原版海龟跳过持仓高低价更新")
-                    if not is_turtle:
+                        print(f"[INFO] {account.name} 独立策略跳过持仓高低价更新")
+                    if not is_independent_strategy:
                         update_all_positions_stop_loss_price(api=account_api, account=account)
                         print(f"[INFO] {account.name} 更新持仓止损价完成")
                     else:
-                        print(f"[INFO] {account.name} 原版海龟跳过止损价更新")
-                    if not is_turtle:
+                        print(f"[INFO] {account.name} 独立策略跳过止损价更新")
+                    if not is_independent_strategy:
                         check_exit_signals(account)
                         print(f"[INFO] {account.name} 持仓退出信号生成完成")
                     else:
-                        print(f"[INFO] {account.name} 原版海龟跳过退出信号")
-                    if not is_turtle:
+                        print(f"[INFO] {account.name} 独立策略跳过退出信号")
+                    if not is_independent_strategy:
                         check_add_position_signals(account)
                         print(f"[INFO] {account.name} 持仓加仓信号生成完成")
                     else:
-                        print(f"[INFO] {account.name} 原版海龟跳过加仓信号")
-                    if not is_turtle:
+                        print(f"[INFO] {account.name} 独立策略跳过加仓信号")
+                    if not is_independent_strategy:
                         check_rollover_signals(account)
                         print(f"[INFO] {account.name} 持仓轮换信号生成完成")
                     else:
-                        print(f"[INFO] {account.name} 原版海龟跳过移仓换月信号")
+                        print(f"[INFO] {account.name} 独立策略跳过移仓换月信号")
                     generate_daily_signal_report(account)
                     print(  f"[INFO] {account.name} 日报生成完成")
 

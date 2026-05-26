@@ -7,7 +7,7 @@ import time
 from django_redis import get_redis_connection
 from django.db import close_old_connections
 from datetime import datetime
-from stock.models import TradingAccount
+from stock.models import TradingAccount, StrategyConfig
 from stock.infrastructure.trade_day import skip_if_not_trade_day
 from stock.utils.log_util import log_trade, log_error
 from stock.infrastructure.report_sender import send_open_report
@@ -30,6 +30,16 @@ def job_daily_open_process():
     for account in accounts:
         api = None
         try:
+            # 判断是否独立运行策略（TURTLE/HVOB 自管信号，开盘任务不干预）
+            is_independent_strategy = False
+            try:
+                is_independent_strategy = account.strategyconfig.strategy_type in ('TURTLE', 'HVOB')
+            except StrategyConfig.DoesNotExist:
+                pass
+            if is_independent_strategy:
+                print(f"[INFO] {account.name} 独立策略跳过开盘信号处理")
+                continue
+
             api = create_tqapi(account)
             # 等待数据到达，确保 get_position/get_account 能读到有效值
             api.wait_update(deadline=time.time() + 10)

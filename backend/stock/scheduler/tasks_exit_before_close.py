@@ -41,6 +41,16 @@ def execute_exit_before_close():
             for account in accounts:
                 api = None
                 try:
+                    # 判断是否独立运行策略（TURTLE/HVOB 自管止损，收盘前不干预）
+                    is_independent_strategy = False
+                    try:
+                        is_independent_strategy = account.strategyconfig.strategy_type in ('TURTLE', 'HVOB')
+                    except StrategyConfig.DoesNotExist:
+                        pass
+                    if is_independent_strategy:
+                        print(f"[INFO] {account.name} 独立策略跳过收盘前止损")
+                        continue
+
                     log_trade('execute_exit_before_close', f"开始执行账户 {account.name} 的收盘前止损检查",symbol='N/A',log_level='INFO',account=account)
                     api = create_tqapi(account)
                     api.wait_update(deadline=time.time() + 10)
