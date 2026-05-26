@@ -320,24 +320,24 @@
 <table>
   <tr><th>参数</th><th>原版海龟</th><th>海龟V2</th><th>海龟V3</th><th>HVOB-MBI</th><th>单位</th></tr>
   <tr><td>突破周期</td><td>20</td><td>20</td><td>20</td><td>开盘区间</td><td>日/分钟</td></tr>
-  <tr><td>风险基数</td><td>&yen;4,000</td><td>&yen;4,000</td><td>&yen;4,000</td><td>余额x0.5%</td><td>&yen;</td></tr>
+  <tr><td>风险基数</td><td>权益×1%</td><td>&yen;4,000</td><td>&yen;4,000</td><td>余额x0.5%</td><td>&yen;</td></tr>
   <tr><td>最大单位</td><td>3</td><td>3</td><td>3</td><td>1 (不加仓)</td><td>Unit</td></tr>
-  <tr><td>止损倍数</td><td>2 ~ 3 ATR</td><td>2 ~ 3 ATR</td><td>2 ~ 3 ATR</td><td>0.2xR</td><td>-</td></tr>
-  <tr><td>趋势因子</td><td>有</td><td>有</td><td>有</td><td>无</td><td>-</td></tr>
-  <tr><td>保本机制</td><td>2.5xATR, 3U</td><td>2.5xATR, 3U</td><td>2.5xATR, 3U</td><td>无（日内平仓）</td><td>-</td></tr>
-  <tr><td>跳空保护</td><td>1.5xATR</td><td>1.5xATR</td><td>1.5xATR</td><td>拉黑处理</td><td>-</td></tr>
+  <tr><td>止损倍数</td><td>2 × N (固定)</td><td>2 ~ 3 ATR</td><td>2 ~ 3 ATR</td><td>0.2xR</td><td>-</td></tr>
+  <tr><td>趋势因子</td><td>无</td><td>有</td><td>有</td><td>无</td><td>-</td></tr>
+  <tr><td>保本机制</td><td>无</td><td>2.5xATR, 3U</td><td>2.5xATR, 3U</td><td>无（日内平仓）</td><td>-</td></tr>
+  <tr><td>跳空保护</td><td>无</td><td>1.5xATR</td><td>1.5xATR</td><td>拉黑处理</td><td>-</td></tr>
   <tr><td>skip_choppy</td><td>✗</td><td>✗</td><td>✓</td><td>-</td><td>-</td></tr>
   <tr><td>时间衰减</td><td>无</td><td>无</td><td>无</td><td>9:30->100% -> 14:30->30%</td><td>-</td></tr>
   <tr><td>MBI 过滤</td><td>无</td><td>无</td><td>无</td><td>有 [0,1]</td><td>-</td></tr>
   <tr><td>持仓周期</td><td>数天~数月</td><td>数天~数月</td><td>数天~数月</td><td>日内（1~5hr）</td><td>-</td></tr>
-  <tr><td>运行时段</td><td>收盘/开盘</td><td>收盘/开盘/14:57</td><td>收盘/开盘/14:57</td><td>持续运行至14:30</td><td>-</td></tr>
+  <tr><td>运行时段</td><td>盘中实时</td><td>收盘/开盘/14:57</td><td>收盘/开盘/14:57</td><td>持续运行至14:30</td><td>-</td></tr>
 </table>
 </div>
 
 <div class="section" id="s7">
 <h2>七、开仓逻辑对比</h2>
 <div class="comparison-grid">
-  <div><h4>原版海龟</h4><div class="formula" style="font-size:0.8em;">做多: Close > Donchian_H[20]<br>做空: Close < Donchian_L[20]<br>盘中实时触发</div></div>
+  <div><h4>原版海龟</h4><div class="formula" style="font-size:0.8em;">做多: 最新价 > Donchian_H[20]<br>做空: 最新价 < Donchian_L[20]<br>盘中实时触发</div></div>
   <div><h4>海龟V2</h4><div class="formula" style="font-size:0.8em;">做多: Close > Donchian_H[20]<br>做空: Close < Donchian_L[20]<br>收盘信号->次日开盘<br>skip_choppy: ✗ 不过滤</div></div>
   <div><h4>海龟V3</h4><div class="formula" style="font-size:0.8em;">做多: Close > Donchian_H[20]<br>做空: Close < Donchian_L[20]<br>收盘信号->次日开盘<br>skip_choppy: ✓ 震荡不进场</div></div>
   <div><h4>HVOB-MBI</h4><div class="formula" style="font-size:0.8em;">做多: Price > H + 0.3xR<br>做空: Price < L - 0.3xR<br>盘中实时<br>MBI + 时间衰减</div></div>
@@ -347,7 +347,7 @@
 <table>
   <tr><th>过滤类型</th><th>原版海龟</th><th>海龟V2 (Acc 1)</th><th>海龟V3 (Acc 5)</th><th>HVOB-MBI</th></tr>
   <tr><td>skip_choppy</td><td>✗</td><td>✗</td><td>✓ 跳过60%信号</td><td>✗</td></tr>
-  <tr><td>跳空保护</td><td>✓ 1.5xATR</td><td>✓ 1.5xATR</td><td>✓ 1.5xATR</td><td>✓ 拉黑穿越</td></tr>
+  <tr><td>跳空保护</td><td>✗</td><td>✓ 1.5xATR</td><td>✓ 1.5xATR</td><td>✓ 拉黑穿越</td></tr>
   <tr><td>MBI过滤</td><td>✗</td><td>✗</td><td>✗</td><td>✓ 权重[0,1]</td></tr>
   <tr><td>时间衰减</td><td>✗</td><td>✗</td><td>✗</td><td>✓ 30%~100%</td></tr>
 </table>
@@ -356,7 +356,7 @@
 <div class="section" id="s8">
 <h2>八、仓位计算数学建模</h2>
 <h3>8.1 海龟系列</h3>
-<div class="formula">Unit<sub>lots</sub> = max(1, round( R / (ATR x k x V<sub>multiple</sub>) ))<br>R = &yen;4,000, k = 2<br>3U 满仓理论风险 = 1.8R</div>
+<div class="formula"><strong>原版海龟：</strong><br>Unit<sub>lots</sub> = max(1, int( Equity × 1% / (2 × N × V<sub>multiple</sub>) ))<br>Equity = TradingAccount.current_equity, N = ATR(20)<br><br><strong>V2/V3：</strong><br>Unit<sub>lots</sub> = max(1, round( R / (ATR × 2 × V<sub>multiple</sub>) ))<br>R = &yen;4,000<br>3U 满仓理论风险 = 1.8R</div>
 <h3>8.2 HVOB-MBI</h3>
 <div class="formula">risk = balance x 0.5%<br>stop_dist = R x 0.2 x 2 = 0.4R<br>volume = max(1, risk / (stop_dist x V<sub>multiple</sub>))</div>
 </div>
@@ -365,9 +365,9 @@
 <h2>九、止损系统对比</h2>
 <table>
   <tr><th>维度</th><th>原版海龟</th><th>海龟V2</th><th>海龟V3</th><th>HVOB-MBI</th></tr>
-  <tr><td>止损公式</td><td>最高价-(2x(1+factor))xATR</td><td>同左</td><td>同左</td><td>区间边界 +/- 0.2R</td></tr>
-  <tr><td>动态跟踪</td><td>highest_close 只升不降</td><td>同左</td><td>同左</td><td>移动止盈</td></tr>
-  <tr><td>趋势自适应</td><td>factor in [0, 0.5]</td><td>factor in [0, 0.5]</td><td>factor in [0, 0.5]</td><td>无</td></tr>
+  <tr><td>止损公式</td><td>first_open ± 2×entry_atr (硬止损) + 10HL反向突破出场</td><td>最高价-(2x(1+factor))xATR</td><td>同左</td><td>区间边界 +/- 0.2R</td></tr>
+  <tr><td>动态跟踪</td><td>无（固定距离止损，N 值锁定）</td><td>highest_close 只升不降</td><td>同左</td><td>移动止盈</td></tr>
+  <tr><td>趋势自适应</td><td>无</td><td>factor in [0, 0.5]</td><td>同左</td><td>无</td></tr>
   <tr><td>强制平仓</td><td>-</td><td>14:57</td><td>14:57</td><td>14:55 (当日)</td></tr>
 </table>
 </div>
