@@ -106,7 +106,6 @@ class HvobTradingEngine:
         self.total_trades = 0
         self._night_trading_map = None  # {product_code: bool} 懒加载
         self._last_restart_key = None  # 定时重启防重复标记
-        self._last_night_or_save = 0.0  # 夜盘 OR 保存计时
 
     # ==================== 夜盘分类查询 ====================
 
@@ -166,8 +165,7 @@ class HvobTradingEngine:
 
         # night_breakout 阶段启动：从 DB 恢复夜盘 OR（应对夜盘中重启）
         if self.phase == 'night_breakout':
-            if self._restore_night_breakout_state():
-                self._last_night_or_save = time.time()
+            self._restore_night_breakout_state()
 
         # day_breakout 阶段启动：从 DB 恢复 OR/MBI/banned/traded
         if self.phase == 'day_breakout':
@@ -236,8 +234,8 @@ class HvobTradingEngine:
             # idle 阶段不处理行情，仅等待时间到达
 
         elif self.phase == 'night_breakout':
-            # 9:00-21:00 属于凌晨时段 → 切换 gap_check；21:00+ 仍属夜盘
-            if DAY_OPEN <= t < NIGHT_OPEN:
+            # 9:00-9:30 切换到 gap_check；其他时间仍属夜盘
+            if DAY_OPEN <= t < DAY_OR_CLOSE:
                 self._check_gap()
                 self.phase = 'gap_check'
                 print(f"[HVOB] → gap_check")
@@ -337,9 +335,8 @@ class HvobTradingEngine:
             price = float(quote.last_price)
 
             # 开盘区间跟踪（仅在收集阶段）
-            if current_phase == 'night_or':
-                self._track_opening_range(symbol, price, is_night=True)
-            elif current_phase == 'gap_check':
+            # 夜盘OR改用K线计算，见 _close_night_opening_range()
+            if current_phase == 'gap_check':
                 self._track_opening_range(symbol, price, is_night=False)
 
             # 检查已有持仓的止损/止盈（所有阶段）
@@ -366,31 +363,85 @@ class HvobTradingEngine:
                 or_['H'] = max(or_['H'], price)
                 or_['L'] = min(or_['L'], price)
 
-        # 夜盘 OR 收集期间定期持久化（每 30 秒，崩溃恢复用）
-        if is_night and time.time() - self._last_night_or_save >= 30:
-            cur = self.opening_ranges.get(symbol)
-            if cur and not cur['closed']:
-                self._last_night_or_save = time.time()
-                self._save_night_or_state()
-
     def _close_night_opening_range(self):
-        """关闭夜盘开盘区间"""
-        print("[HVOB] 夜盘开盘区间关闭")
-        for sym, or_ in self.opening_ranges.items():
-            if or_.get('night') and not or_['closed']:
-                or_['R'] = or_['H'] - or_['L']
-                or_['closed'] = True
-                print(f"  {sym}: H={or_['H']:.2f} L={or_['L']:.2f} R={or_['R']:.2f}")
-        self._save_night_or_state()
+        """使用1分钟K线计算夜盘开盘区间 H/L/R（崩溃安全，数据来源TqSDK服务器）"""
+        print("[HVOB] 夜盘开盘区间关闭（基于1分钟K线）")
+        count = 0
+        for item in self.watchlist:
+            if not self._is_night_product(item['product_code']):
+                continue
+            symbol = item['symbol']
+            try:
+                klines = self.api.get_kline_serial(symbol, 60, 30)
+                for _ in range(10):
+                    self.api.wait_update(deadline=time.time() + 1)
+                    if len(klines) >= 30:
+                        break
+
+                if len(klines) < 30:
+                    print(f"  ⚠️ {symbol} K线数据不足({len(klines)}根)，跳过")
+                    continue
+
+                h = float(max(klines.iloc[-i]['high'] for i in range(1, 31)))
+                l_val = float(min(klines.iloc[-i]['low'] for i in range(1, 31)))
+                r = round(h - l_val, 4)
+
+                self.opening_ranges[symbol] = {
+                    'H': h, 'L': l_val, 'R': r,
+                    'closed': True, 'night': True,
+                }
+                print(f"  {symbol}: H={h:.2f} L={l_val:.2f} R={r:.2f}")
+                count += 1
+            except Exception as e:
+                print(f"  ⚠️ {symbol} K线获取失败: {e}")
+
+        if count > 0:
+            self._save_night_or_state()
+        print(f"[HVOB] ✅ 夜盘OR已关闭，共{count}个品种")
 
     def _close_day_opening_range(self):
-        """关闭日盘开盘区间"""
-        print("[HVOB] 日盘开盘区间关闭")
-        for sym, or_ in self.opening_ranges.items():
+        """关闭日盘开盘区间：用1分钟K线计算完整OR（崩溃安全，gap_check阶段启动也可正确计算）"""
+        print("[HVOB] 日盘开盘区间关闭（基于1分钟K线）")
+        count = 0
+        for item in self.watchlist:
+            symbol = item['symbol']
+            try:
+                klines = self.api.get_kline_serial(symbol, 60, 30)
+                for _ in range(10):
+                    self.api.wait_update(deadline=time.time() + 1)
+                    if len(klines) >= 30:
+                        break
+
+                if len(klines) >= 30:
+                    h = float(max(klines.iloc[-i]['high'] for i in range(1, 31)))
+                    l_val = float(min(klines.iloc[-i]['low'] for i in range(1, 31)))
+                    self.opening_ranges[symbol] = {
+                        'H': h, 'L': l_val, 'R': round(h - l_val, 4),
+                        'closed': True, 'night': False,
+                    }
+                    print(f"  {symbol}: H={h:.2f} L={l_val:.2f} R={h-l_val:.2f}")
+                    count += 1
+                else:
+                    # K线不足，tick跟踪数据兜底
+                    or_ = self.opening_ranges.get(symbol)
+                    if or_ and not or_.get('night') and not or_['closed']:
+                        or_['R'] = round(or_['H'] - or_['L'], 4)
+                        or_['closed'] = True
+                        print(f"  {symbol}: H={or_['H']:.2f} L={or_['L']:.2f} R={or_['R']:.2f} (tick兜底)")
+                        count += 1
+            except Exception as e:
+                print(f"  ⚠️ {symbol} 日盘OR计算失败: {e}")
+
+        # 清理未被覆盖的残余条目
+        for sym, or_ in list(self.opening_ranges.items()):
             if not or_.get('night') and not or_['closed']:
-                or_['R'] = or_['H'] - or_['L']
+                or_['R'] = round(or_['H'] - or_['L'], 4)
                 or_['closed'] = True
-                print(f"  {sym}: H={or_['H']:.2f} L={or_['L']:.2f} R={or_['R']:.2f}")
+                print(f"  {sym}: H={or_['H']:.2f} L={or_['L']:.2f} R={or_['R']:.2f} (残余)")
+                count += 1
+
+        if count > 0:
+            print(f"[HVOB] ✅ 日盘OR已关闭，共{count}个品种")
 
     # ==================== 跳空检查 ====================
 
@@ -407,14 +458,15 @@ class HvobTradingEngine:
             or_ = self.opening_ranges.get(symbol)
             if or_ is None or or_['R'] is None:
                 continue
-            open_price = float(getattr(quote, 'open', 0) or 0)
-            if open_price <= 0:
+            # 用现价（9:00集合竞价后的第一口价）判断是否跳空穿越夜盘区间
+            current_price = float(quote.last_price)
+            if current_price <= 0:
                 continue
-            if open_price < or_['L'] or open_price > or_['H']:
+            if current_price < or_['L'] or current_price > or_['H']:
                 self.banned.add(symbol)
-                print(f"  ⛔ {symbol} 跳空穿越: 区间[{or_['L']:.2f},{or_['H']:.2f}] 开盘{open_price:.2f} → 拉黑")
+                print(f"  ⛔ {symbol} 跳空穿越: 区间[{or_['L']:.2f},{or_['H']:.2f}] 现价{current_price:.2f} → 拉黑")
             else:
-                print(f"  ✓ {symbol} 正常: 开盘{open_price:.2f} 在区间内")
+                print(f"  ✓ {symbol} 正常: 现价{current_price:.2f} 在区间内")
 
         # 跳空检查完成，清理夜盘 OR 数据，让出日盘 OR 跟踪
         for sym in list(self.opening_ranges.keys()):
@@ -508,31 +560,38 @@ class HvobTradingEngine:
             print(f"[HVOB] 保存夜盘 OR 失败: {e}")
 
     def _restore_night_breakout_state(self):
-        """night_breakout 启动时从 DB 恢复夜盘 OR"""
+        """night_breakout 启动时从 DB 恢复夜盘 OR，无数据时直接 K 线计算"""
+        # 先尝试从 DB 恢复
         try:
             from .models import HvobMbiDailyState
             close_old_connections()
             state = HvobMbiDailyState.objects.filter(
                 account=self.account, trade_date=self.trade_date
             ).first()
-            if state is None or not state.night_opening_ranges:
-                return False
-            restored = 0
-            for sym, data in state.night_opening_ranges.items():
-                if data.get('R') is None:
-                    continue
-                self.opening_ranges[sym] = {
-                    'H': data['H'], 'L': data['L'], 'R': data['R'],
-                    'closed': data.get('closed', True), 'night': True,
-                }
-                restored += 1
-            if restored == 0:
-                return False
-            print(f"[HVOB] ✅ 夜盘 OR 已恢复: {restored} 个品种")
-            return True
+            if state is not None and state.night_opening_ranges:
+                restored = 0
+                for sym, data in state.night_opening_ranges.items():
+                    if data.get('R') is None:
+                        continue
+                    self.opening_ranges[sym] = {
+                        'H': data['H'], 'L': data['L'], 'R': data['R'],
+                        'closed': data.get('closed', True), 'night': True,
+                    }
+                    restored += 1
+                if restored > 0:
+                    print(f"[HVOB] ✅ 夜盘 OR 已恢复: {restored} 个品种")
+                    return True
         except Exception as e:
             print(f"[HVOB] 恢复夜盘 OR 失败: {e}")
-            return False
+
+        # 无已保存数据，且当前时间已过 21:30 → 直接 K 线计算
+        now = datetime.now().time()
+        if now >= NIGHT_OR_CLOSE:
+            print("[HVOB] 无已保存夜盘 OR，从 K 线直接计算")
+            self._close_night_opening_range()
+            return True
+
+        return False
 
     def _restore_day_breakout_state(self):
         """day_breakout 启动时从 HvobMbiDailyState 恢复 OR/MBI/banned/traded"""
@@ -641,8 +700,10 @@ class HvobTradingEngine:
                     weight *= slot_weight
                     break
 
-        # 计算手数
+        # 计算手数（基础风险敞口）
         volume = self._calc_volume(symbol, direction, r)
+        # MBI 权重 + 时间衰减系数
+        volume = max(1, int(volume * weight))
         if volume <= 0:
             return
 
@@ -669,9 +730,9 @@ class HvobTradingEngine:
             balance = 100000  # fallback
 
         # risk = balance * risk_pct
-        # stop_distance = or_r * STOP_OFFSET_RATIO * 2 (双向止损总距离)
+        # stop_distance = 入场到止损的实际距离 = R + 0.3R + 0.2R = 1.5R
         risk_amount = balance * risk_pct
-        stop_distance = float(or_r) * STOP_OFFSET_RATIO * 2
+        stop_distance = float(or_r) * (1 + BREAKOUT_OFFSET_RATIO + STOP_OFFSET_RATIO)
         if stop_distance <= 0:
             return 1
 
