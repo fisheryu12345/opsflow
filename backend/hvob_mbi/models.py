@@ -35,6 +35,7 @@ class HvobMbiDailyState(models.Model):
     mbi_value = models.DecimalField('MBI 值', max_digits=8, decimal_places=4, null=True, blank=True)
     mbi_label = models.CharField('MBI 标签', max_length=20, blank=True)
     opening_ranges = models.JSONField('开盘区间 {symbol: {H,L,R}}', default=dict)
+    night_opening_ranges = models.JSONField('夜盘开盘区间 {symbol: {H,L,R,closed}}', default=dict)
     banned_symbols = models.JSONField('拉黑品种', default=list)
     traded_symbols = models.JSONField('已交易品种', default=list)
     total_trades = models.IntegerField('总交易次数', default=0)

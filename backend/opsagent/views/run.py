@@ -1,10 +1,9 @@
 import asyncio
 import datetime
-import json
 import os
+import re
 import uuid
 from rest_framework import status, viewsets
-from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from openai import AsyncOpenAI
@@ -47,9 +46,26 @@ class TaskRunViewSet(viewsets.GenericViewSet):
         )
 
         try:
-            api_key = os.environ.get('OPENAI_API_KEY', 'sk-placeholder')
-            base_url = os.environ.get('OPENAI_BASE_URL')
-            model_name = os.environ.get('OPENAI_MODEL_NAME', 'gpt-4o')
+            from conf.env import OPSAGENT_API_KEY, OPSAGENT_BASE_URL, OPSAGENT_MODEL
+        except ImportError:
+            OPSAGENT_API_KEY = ''
+            OPSAGENT_BASE_URL = None
+            OPSAGENT_MODEL = 'gpt-4o'
+
+        try:
+            api_key = os.environ.get('OPENAI_API_KEY') or OPSAGENT_API_KEY
+            base_url = os.environ.get('OPENAI_BASE_URL') or OPSAGENT_BASE_URL
+            model_name = os.environ.get('OPENAI_MODEL') or os.environ.get('OPENAI_MODEL_NAME') or OPSAGENT_MODEL
+
+            if not api_key:
+                raise ValueError(
+                    "No API key configured. Set OPSAGENT_API_KEY in conf/env.py, "
+                    "or OPENAI_API_KEY env var."
+                )
+
+            # Strip 4-byte UTF-8 (emoji etc.) to avoid MySQL utf8mb4 connection issues
+            def _sanitize(text: str) -> str:
+                return re.sub(r'[\U00010000-\U0010FFFF]', '', text) if text else ''
 
             client = AsyncOpenAI(api_key=api_key, base_url=base_url)
             client.model_name = model_name
@@ -94,10 +110,10 @@ class TaskRunViewSet(viewsets.GenericViewSet):
                 on_response=on_response,
             ))
 
-            session.summary = result_text[:2000]
+            session.summary = _sanitize(result_text[:2000])
             session.result_json = {
                 'tool_calls': tool_calls_log,
-                'final_output': result_text,
+                'final_output': _sanitize(result_text),
             }
             session.status = 'completed'
             session.task_status = 'completed'

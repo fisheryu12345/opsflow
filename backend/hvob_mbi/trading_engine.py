@@ -106,6 +106,7 @@ class HvobTradingEngine:
         self.total_trades = 0
         self._night_trading_map = None  # {product_code: bool} 懒加载
         self._last_restart_key = None  # 定时重启防重复标记
+        self._last_night_or_save = 0.0  # 夜盘 OR 保存计时
 
     # ==================== 夜盘分类查询 ====================
 
@@ -162,6 +163,11 @@ class HvobTradingEngine:
 
         if not data_ready:
             print(f"[HVOB] ⚠️ 等待行情超时 (30s)，部分品种可能无数据，继续运行")
+
+        # night_breakout 阶段启动：从 DB 恢复夜盘 OR（应对夜盘中重启）
+        if self.phase == 'night_breakout':
+            if self._restore_night_breakout_state():
+                self._last_night_or_save = time.time()
 
         # day_breakout 阶段启动：从 DB 恢复 OR/MBI/banned/traded
         if self.phase == 'day_breakout':
@@ -360,6 +366,13 @@ class HvobTradingEngine:
                 or_['H'] = max(or_['H'], price)
                 or_['L'] = min(or_['L'], price)
 
+        # 夜盘 OR 收集期间定期持久化（每 30 秒，崩溃恢复用）
+        if is_night and time.time() - self._last_night_or_save >= 30:
+            cur = self.opening_ranges.get(symbol)
+            if cur and not cur['closed']:
+                self._last_night_or_save = time.time()
+                self._save_night_or_state()
+
     def _close_night_opening_range(self):
         """关闭夜盘开盘区间"""
         print("[HVOB] 夜盘开盘区间关闭")
@@ -368,6 +381,7 @@ class HvobTradingEngine:
                 or_['R'] = or_['H'] - or_['L']
                 or_['closed'] = True
                 print(f"  {sym}: H={or_['H']:.2f} L={or_['L']:.2f} R={or_['R']:.2f}")
+        self._save_night_or_state()
 
     def _close_day_opening_range(self):
         """关闭日盘开盘区间"""
@@ -468,6 +482,57 @@ class HvobTradingEngine:
             print(f"[HVOB] 日中状态已保存 (OR={len(or_data)}, MBI={self.mbi_value:.4f})")
         except Exception as e:
             print(f"[HVOB] 保存日中状态失败: {e}")
+
+    def _save_night_or_state(self):
+        """夜盘 OR 持久化（崩溃恢复用：定时保存 + OR 关闭时保存）"""
+        try:
+            from .models import HvobMbiDailyState
+            close_old_connections()
+            or_data = {}
+            for sym, or_ in self.opening_ranges.items():
+                if or_.get('night'):
+                    or_data[sym] = {
+                        'H': round(or_['H'], 4) if or_['H'] else None,
+                        'L': round(or_['L'], 4) if or_['L'] else None,
+                        'R': round(or_['R'], 4) if or_['R'] else None,
+                        'closed': or_['closed'],
+                    }
+            if not or_data:
+                return
+            HvobMbiDailyState.objects.update_or_create(
+                account=self.account,
+                trade_date=self.trade_date,
+                defaults={'night_opening_ranges': or_data},
+            )
+        except Exception as e:
+            print(f"[HVOB] 保存夜盘 OR 失败: {e}")
+
+    def _restore_night_breakout_state(self):
+        """night_breakout 启动时从 DB 恢复夜盘 OR"""
+        try:
+            from .models import HvobMbiDailyState
+            close_old_connections()
+            state = HvobMbiDailyState.objects.filter(
+                account=self.account, trade_date=self.trade_date
+            ).first()
+            if state is None or not state.night_opening_ranges:
+                return False
+            restored = 0
+            for sym, data in state.night_opening_ranges.items():
+                if data.get('R') is None:
+                    continue
+                self.opening_ranges[sym] = {
+                    'H': data['H'], 'L': data['L'], 'R': data['R'],
+                    'closed': data.get('closed', True), 'night': True,
+                }
+                restored += 1
+            if restored == 0:
+                return False
+            print(f"[HVOB] ✅ 夜盘 OR 已恢复: {restored} 个品种")
+            return True
+        except Exception as e:
+            print(f"[HVOB] 恢复夜盘 OR 失败: {e}")
+            return False
 
     def _restore_day_breakout_state(self):
         """day_breakout 启动时从 HvobMbiDailyState 恢复 OR/MBI/banned/traded"""
