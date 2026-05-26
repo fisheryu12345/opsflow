@@ -82,4 +82,7 @@ class OpsREPL:
             if user_input.lower() in ('exit', 'quit', 'q'):
                 break
 
-            await self.run_once(user_input)
+            try:
+                await self.run_once(user_input)
+            except Exception as e:
+                print(f"Error: {e}")

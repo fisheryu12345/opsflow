@@ -18,8 +18,14 @@ class Command(BaseCommand):
         from openai import AsyncOpenAI
         from opsagent.cli.repl import OpsREPL
 
-        api_key = options['api_key'] or os.environ.get('OPENAI_API_KEY', 'sk-placeholder')
+        api_key = options['api_key'] or os.environ.get('OPENAI_API_KEY', '')
         base_url = options['base_url'] or os.environ.get('OPENAI_BASE_URL')
+
+        if not api_key:
+            self.stderr.write(self.style.ERROR(
+                "No API key configured. Set OPENAI_API_KEY env var or use --api-key."
+            ))
+            return
 
         client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         client.model_name = options['model']
@@ -27,8 +33,11 @@ class Command(BaseCommand):
         repl = OpsREPL(llm_client=client)
 
         if options['run']:
-            result = asyncio.run(repl.run_once(options['run'], auto_approve=options['yes']))
-            self.stdout.write(self.style.SUCCESS("Done."))
+            try:
+                result = asyncio.run(repl.run_once(options['run'], auto_approve=options['yes']))
+                self.stdout.write(self.style.SUCCESS("Done."))
+            except Exception as e:
+                self.stderr.write(self.style.ERROR(f"Error: {e}"))
         else:
             try:
                 asyncio.run(repl.repl_loop())

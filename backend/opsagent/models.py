@@ -40,6 +40,14 @@ class Session(models.Model):
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(null=True, blank=True)
     summary = models.TextField(blank=True)
+    user_input = models.TextField(blank=True, help_text="User's original input text")
+    result_json = models.JSONField(default=dict, blank=True, help_text="Full execution result (tool_calls, final output, timeline)")
+    task_status = models.CharField(
+        max_length=16,
+        choices=[('pending', 'Pending'), ('running', 'Running'), ('completed', 'Completed'), ('failed', 'Failed')],
+        default='pending',
+        help_text="Execution status for async polling",
+    )
 
     class Meta:
         db_table = 'ops_session'
