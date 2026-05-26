@@ -1,4 +1,5 @@
 # backend/opsagent/core/agent_loop.py
+from __future__ import annotations
 import json
 from opsagent.core.types import AgentContext, ToolResult, SafetyDecision
 from opsagent.core.tool_registry import get, get_openai_schemas
