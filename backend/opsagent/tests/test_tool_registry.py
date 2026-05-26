@@ -19,13 +19,13 @@ def test_register_and_get():
     assert len(list_all()) == 1
 
 
-def test_duplicate_raises():
+def test_duplicate_is_idempotent():
     clear()
     td = ToolDef(name="dup.tool", description="Dup", parameters={},
                  risk_level=RiskLevel.READ, handler=_noop)
     register(td)
-    with pytest.raises(ValueError):
-        register(td)
+    register(td)  # Should not raise — idempotent
+    assert len(list_all()) == 1  # Still only one registration
 
 
 def test_tool_decorator():

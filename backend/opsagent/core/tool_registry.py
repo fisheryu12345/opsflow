@@ -7,7 +7,7 @@ _registry: dict[str, ToolDef] = {}
 
 def register(tool_def: ToolDef) -> None:
     if tool_def.name in _registry:
-        raise ValueError(f"Tool '{tool_def.name}' already registered")
+        return  # already registered — idempotent re-registration is a no-op
     _registry[tool_def.name] = tool_def
 
 
