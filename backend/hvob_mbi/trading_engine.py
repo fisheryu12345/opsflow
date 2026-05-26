@@ -172,6 +172,7 @@ class HvobTradingEngine:
 
         # 进入事件循环
         last_phase_log = ''
+        last_heartbeat = 0.0
         while self.phase != 'done':
             if not self.api.wait_update(deadline=time.time() + 30):
                 # 30 秒无任何行情更新 → 保底 pump
@@ -182,6 +183,13 @@ class HvobTradingEngine:
             self._check_restart(now)
 
             self._check_phase(now, last_phase_log)
+
+            # 每 5 分钟心跳，确认引擎存活
+            elapsed = time.time() - last_heartbeat
+            if elapsed >= 300:
+                last_heartbeat = time.time()
+                now_str = now.strftime('%H:%M:%S')
+                print(f"[HVOB] 心跳 | phase={self.phase} | {now_str} | {'持仓中' if self.positions else '等待突破信号'}")
 
         # 收盘后记录
         self._finalize()
