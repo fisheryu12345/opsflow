@@ -220,6 +220,26 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("该账户没有配置活跃品种"))
             return
 
+        # 启动时清理残留的 EXECUTING 信号（来自上次中断）
+        stale = DailyStrategySignal.objects.filter(
+            account=account, trade_date=timezone.now().date(),
+            trade_type='ENTRY', executed_status='EXECUTING',
+        )
+        if stale.exists():
+            count = stale.update(executed_status='FAILED')
+            self.stdout.write(self.style.WARNING(
+                f"[Turtle] 清理 {count} 个残留 EXECUTING 信号 → FAILED"))
+
+        # 检查是否有持仓品种不在当前活跃列表中（被停用的残留持仓）
+        active_codes = {c.product_code for c in contracts}
+        orphaned = PositionState.objects.filter(
+            account=account, units__gt=0
+        ).exclude(product_code__in=active_codes)
+        for op in orphaned:
+            self.stdout.write(self.style.WARNING(
+                f"[Turtle] ⚠️ 发现孤儿持仓: {op.symbol} {op.direction==1 and '多' or '空'} "
+                f"units={op.units} — 该品种已停用，策略不会管理出场/止损！"))
+
         symbols = [c.symbol for c in contracts]
         product_codes = {c.symbol: c.product_code for c in contracts}
         last_prices = {}
@@ -345,6 +365,7 @@ class Command(BaseCommand):
                 'product_code': product_code,
                 'trade_type': 'ENTRY',
                 'signal_direction': direction,
+                'contract_target_number': order_volume,
                 'executed_status': 'EXECUTING',
                 'trend_factor': Decimal('0'),
                 'trend_label': 'unknown',
@@ -408,7 +429,8 @@ class Command(BaseCommand):
                 }
             )
             signal.executed_status = 'SUCCESS'
-            signal.save(update_fields=['executed_status'])
+            signal.contract_target_number = order_volume
+            signal.save(update_fields=['executed_status', 'contract_target_number'])
 
         log_trade('turtle_entry',
                   f"{symbol} 入场 {direction == 1 and '多' or '空'} {order_volume}手 @ {fill_price:.2f}, "
