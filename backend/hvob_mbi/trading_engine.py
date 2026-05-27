@@ -949,7 +949,8 @@ class HvobTradingEngine:
                 self.api.wait_update(deadline=time.time() + 5)
                 account_info = self.api.get_account()
                 balance = float(getattr(account_info, 'balance', 0) or 0)
-                record_daily_equity(self.account, self.trade_date, balance, self.daily_pnl)
+                available = float(getattr(account_info, 'available', 0) or 0)
+                record_daily_equity(self.account, self.trade_date, balance, self.daily_pnl, available=available)
             except Exception as e:
                 print(f"[HVOB] 记录日权益失败: {e}")
 

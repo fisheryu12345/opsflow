@@ -155,15 +155,18 @@ def _create_closed_record(account, symbol, product_code, trade_date,
     )
 
 
-def record_daily_equity(account, trade_date, balance, pnl):
+def record_daily_equity(account, trade_date, balance, pnl, available=None):
     """写入 DailyEquitySnapshot"""
+    defaults = {
+        'balance': Decimal(str(balance)),
+        'daily_pnl': Decimal(str(pnl)),
+    }
+    if available is not None:
+        defaults['available'] = Decimal(str(available))
     DailyEquitySnapshot.objects.update_or_create(
         account=account,
         trade_date=trade_date,
-        defaults={
-            'balance': Decimal(str(balance)),
-            'daily_pnl': Decimal(str(pnl)),
-        }
+        defaults=defaults,
     )
 
 
