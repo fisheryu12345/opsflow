@@ -33,6 +33,7 @@ def record_entry_signal(account, symbol, product_code, trade_date, direction, qu
         trade_type='ENTRY',
         signal_direction=direction,
         contract_target_number=quantity,
+        executed_status='SUCCESS',
         trend_factor=Decimal('0'),
         trend_label='HVOB',
         remark=json.dumps({
