@@ -5,8 +5,8 @@ import json
 from decimal import Decimal
 from datetime import date
 from stock.models import (
-    DailyStrategySignal, ClosedPositionRecord,
-    DailyEquitySnapshot, SymbolDailyPnl,
+    DailyStrategySignal, ClosedPositionRecord, PositionState,
+    DailyEquitySnapshot, SymbolDailyPnl, TradingAccount,
 )
 from stock.utils.log_util import log_trade
 
@@ -47,6 +47,29 @@ def record_entry_signal(account, symbol, product_code, trade_date, direction, qu
             'weight': position_weight,
         }, ensure_ascii=False)
     )
+
+    # 同步持仓表
+    PositionState.objects.update_or_create(
+        account=account,
+        symbol=symbol,
+        defaults={
+            'product_code': product_code,
+            'units': 1,
+            'direction': direction,
+            'contract_total_position': quantity,
+            'first_open_price': Decimal(str(entry_price)),
+            'open_date': trade_date if isinstance(trade_date, date) else date.today(),
+            'cost_price': Decimal(str(entry_price)),
+            'stop_loss_price': Decimal(str(stop_loss_price)),
+            'entry_trend_factor': Decimal('0'),
+            'entry_trend_label': 'HVOB',
+            'h20_price': Decimal(str(opening_range_h)),
+            'l20_price': Decimal(str(opening_range_l)),
+            'protect_cost_enabled': False,
+            'is_rollover_needed': False,
+        }
+    )
+
     log_trade(FSM, f"HVOB ENTRY {symbol} {'多' if direction > 0 else '空'} {quantity}手@{entry_price}",
               symbol=symbol, log_level='INFO', account=account)
     return signal
@@ -76,6 +99,7 @@ def record_exit_signal(account, symbol, product_code, trade_date, direction,
     )
     _create_closed_record(account, symbol, product_code, trade_date,
                           direction, exit_price, pnl, cost_price, volume)
+    _reset_position_state(account, symbol)
     log_trade(FSM, f"HVOB EXIT {symbol} {exit_reason} {volume}手@{exit_price} PnL={pnl}",
               symbol=symbol, log_level='INFO', account=account)
     return exit_signal
@@ -104,9 +128,15 @@ def record_stop_loss_signal(account, symbol, product_code, trade_date, direction
     )
     _create_closed_record(account, symbol, product_code, trade_date,
                           direction, exit_price, 'STOP_LOSS', pnl, cost_price, volume)
+    _reset_position_state(account, symbol)
     log_trade(FSM, f"HVOB STOP_LOSS {symbol} {volume}手@{exit_price} PnL={pnl}",
               symbol=symbol, log_level='INFO', account=account)
     return stop_signal
+
+
+def _reset_position_state(account, symbol):
+    """平仓时删除持仓记录"""
+    PositionState.objects.filter(account=account, symbol=symbol).delete()
 
 
 def _create_closed_record(account, symbol, product_code, trade_date,

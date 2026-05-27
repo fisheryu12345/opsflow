@@ -17,7 +17,11 @@ from tqsdk import TargetPosTask
 from django.db import close_old_connections
 
 from stock.models import FullContractList, TradingAccount
-from stock.infrastructure.order_execution import wait_for_target_position
+from stock.infrastructure.order_execution import (
+    wait_for_target_position,
+    check_min_position_requirement,
+    execute_two_step_opening,
+)
 from .config import (
     NIGHT_OPEN, NIGHT_OR_CLOSE, DAY_OPEN, DAY_OR_CLOSE, FORCE_CLOSE_TIME,
     BREAKOUT_OFFSET_RATIO, STOP_OFFSET_RATIO, DEFAULT_RISK_PERCENT,
@@ -753,6 +757,36 @@ class HvobTradingEngine:
             print(f"[HVOB] ⚠️ DRY-RUN 开仓: {symbol} {'多' if direction > 0 else '空'} {volume}手@{price}")
             self.traded.add(symbol)
             self.total_trades += 1
+            return
+
+        # 两步开仓：满足交易所最小开仓手数限制
+        min_check = check_min_position_requirement(symbol, volume)
+        if min_check['need_adjustment']:
+            print(f"[HVOB] {symbol} 最小开仓限制{min_check['min_position']}手，采用两步开仓")
+            two_step = execute_two_step_opening(
+                api=self.api, symbol=symbol, direction=direction,
+                adjusted_volume=min_check['adjusted_volume'],
+                excess_to_close=min_check['excess_to_close'],
+                target_volume=volume, function_name='hvob_entry',
+                account=self.account,
+            )
+            if not two_step['success']:
+                print(f"[HVOB] ❌ 两步开仓失败 {symbol}")
+                self.banned.add(symbol)
+                return
+            fill_price = two_step['avg_price'] or price
+            pos = Position(symbol, product_code, direction, volume, fill_price,
+                           or_['H'], or_['L'], or_['R'], weight)
+            self.positions[symbol] = pos
+            self.traded.add(symbol)
+            self.total_trades += 1
+            record_entry_signal(
+                self.account, symbol, product_code, self.trade_date,
+                direction, volume, fill_price,
+                or_['H'], or_['L'], or_['R'],
+                self.mbi_value, weight,
+            )
+            print(f"[HVOB] ✅ 两步开仓: {symbol} {'多' if direction > 0 else '空'} {volume}手@{fill_price}")
             return
 
         try:

@@ -21,6 +21,8 @@ npm run build  # production
 
 **Default credentials:** superadmin / admin123456
 
+**Database:** 开发环境与生产环境共用同一个数据库，所有 `python manage.py` 命令（migrate、init 等）直接在本地执行即可生效。
+
 ## Architecture
 
 ### Backend Modules
