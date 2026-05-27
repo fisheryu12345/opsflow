@@ -253,6 +253,9 @@ class HvobTradingEngine:
                 self._calc_mbi()
                 self._save_midday_state()
                 self.phase = 'day_breakout'
+                # 恢复持仓（night_breakout 阶段启动的重启后，仓位于此时恢复）
+                if not self.positions:
+                    self._restore_positions()
                 print(f"[HVOB] → day_breakout (MBI={self.mbi_value:.4f})")
             else:
                 self._on_quote('gap_check')
@@ -646,8 +649,12 @@ class HvobTradingEngine:
             self.total_trades = state.total_trades or 0
             self.daily_pnl = state.daily_pnl or Decimal('0')
 
+            # 恢复持仓（从 PositionState 重建 self.positions）
+            self._restore_positions()
+
             print(f"[HVOB] ✅ day_breakout 状态恢复: OR={restored}, "
-                  f"MBI={self.mbi_value:.4f}, banned={len(self.banned)}, traded={len(self.traded)}")
+                  f"MBI={self.mbi_value:.4f}, banned={len(self.banned)}, "
+                  f"traded={len(self.traded)}, positions={len(self.positions)}")
             return True
         except Exception as e:
             print(f"[HVOB] 恢复日中状态失败: {e}")
@@ -665,6 +672,36 @@ class HvobTradingEngine:
                 self.traded.add(sym)
         except Exception as e:
             print(f"[HVOB] 从DB补全traded失败: {e}")
+
+    def _restore_positions(self):
+        """从 PositionState 重建 self.positions（崩溃恢复后使用）"""
+        try:
+            from stock.models import PositionState as PsModel
+            close_old_connections()
+            qs = PsModel.objects.filter(account=self.account)
+            restored = 0
+            for ps in qs:
+                if ps.h20_price is None or ps.l20_price is None:
+                    continue
+                or_r = ps.h20_price - ps.l20_price
+                if or_r <= 0:
+                    continue
+                self.positions[ps.symbol] = Position(
+                    symbol=ps.symbol,
+                    product_code=ps.product_code or '',
+                    direction=ps.direction,
+                    volume=ps.contract_total_position,
+                    entry_price=float(ps.cost_price or 0),
+                    or_h=float(ps.h20_price),
+                    or_l=float(ps.l20_price),
+                    or_r=float(or_r),
+                    weight=1.0,
+                )
+                restored += 1
+            if restored:
+                print(f"[HVOB] ✅ 恢复持仓: {restored} 个品种")
+        except Exception as e:
+            print(f"[HVOB] 恢复持仓失败: {e}")
 
     # ==================== 入场检查 ====================
 
