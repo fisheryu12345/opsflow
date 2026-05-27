@@ -8,6 +8,7 @@ from stock.scheduler.tasks_daily_close import job_daily_close_calculation
 from stock.scheduler.tasks_daily_open import job_daily_open_process
 from stock.scheduler.tasks_update_float_profit import job_update_float_profit
 from stock.scheduler.tasks_daily_reconciliation import job_daily_reconciliation
+from stock.scheduler.tasks_daily_report import job_daily_consolidated_report
 
 
 scheduler = BackgroundScheduler(timezone='Asia/Shanghai')
@@ -39,6 +40,20 @@ scheduler.add_job(
     misfire_grace_time=300,
     replace_existing=True,
     max_instances=1,
+)
+
+scheduler.add_job(
+    job_daily_consolidated_report,
+    'cron',
+    day_of_week='mon-fri',
+    hour=15,
+    minute=40,
+    id='job_daily_consolidated_report',
+    name='每日综合交易日报（15:40 发送至 312711936@qq.com）',
+    misfire_grace_time=600,
+    replace_existing=True,
+    max_instances=1,
+    coalesce=True,
 )
 
 scheduler.add_job(
