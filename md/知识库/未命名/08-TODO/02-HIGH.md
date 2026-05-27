@@ -604,3 +604,57 @@ restart_hour_minutes = [(8, 55), (13, 25), (20, 55)]
 now_total = now.hour * 60 + now.minute
 in_window = any(h * 60 + m - 1 <= now_total <= h * 60 + m + 1 for h, m in restart_hour_minutes)
 ```
+
+---
+
+## ❌ HIGH-29: 两步开仓使用 `volume_short`/`volume_long` 记录错误持仓量 — 已修复 (2026-05-27)
+
+**文件**: [infrastructure/order_execution.py:199-202](../../backend/stock/infrastructure/order_execution.py#L199)
+
+**问题描述**:
+
+两步开仓策略中，`execute_two_step_opening` 使用 `pos_after.volume_short`/`pos_after.volume_long` 记录实际成交手数：
+
+```python
+# 修复前
+if direction == 1:
+    actual_final_filled = pos_after.volume_long
+else:
+    actual_final_filled = pos_after.volume_short
+```
+
+`volume_short`/`volume_long` 反映的是**总持仓量**而非**净持仓量**。当第二步 TargetPosTask 因 `support_open_min_volume=True` 触发"反向开仓"（用开仓替代平仓来满足最小开仓限制），实际净持仓与总持仓不一致。
+
+**实盘案例（CZCE.MA609，2026-05-27）**:
+
+```
+calculate_unit_lots → 4手/Unit，order_volume=4手
+min_position=4，两步开仓: 先开4手，再平1手
+
+第1步: TargetPosTask.set_target_volume(-4) → 开空4手
+第2步: TargetPosTask(api, symbol, support_open_min_volume=True).set_target_volume(-3)
+       → 调整量1手 < min_position(4)，TqSDK 不开平仓，而是"开多1手"
+       → 净持仓 = -4 + 1 = -3（交易所显示3手空单，正确）
+       → 但 volume_short = 4（空头总持仓未减少）
+
+DB 记录: contract_total_position = volume_short = 4 ❌
+交易所实际: 3手 ✅
+```
+
+**影响分析**:
+- `contract_total_position` 多记 1 手，持仓管理页面显示与交易所不一致
+- 加仓和止损计算依赖 `contract_total_position`，但加仓手数通过 `order_volume` 计算不受影响
+- 止损平仓使用 TargetPosTask 设目标 0，不受 `contract_total_position` 影响
+- 主要影响持仓记录准确性
+
+**修复内容**: 在 `execute_two_step_opening()` 中，将 `volume_long`/`volume_short` 改为 `abs(pos_after.pos)`，使用净持仓作为实际成交手数：
+
+```python
+# 修复后
+# 使用 net 净持仓而非 volume_long/volume_short，因为 support_open_min_volume=True 时
+# TqSDK 可能用反向开仓代替平仓来满足最小开仓限制，导致 volume_long 或 volume_short
+# 反映的是总持仓而非净持仓。
+actual_final_filled = abs(pos_after.pos)
+```
+
+**验证方法**: 两步开仓成功后，打印日志对比 `pos.pos`（净持仓）和 `volume_short`/`volume_long`（总持仓），两者在 `support_open_min_volume=True` 触发反向开仓时会出现差异。
