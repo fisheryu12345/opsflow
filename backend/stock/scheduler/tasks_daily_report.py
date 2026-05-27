@@ -19,6 +19,7 @@ from stock.tasks.send_mail import send_email_task
 from stock.models import (
     TradingAccount, DailyStrategySignal, PositionState,
     ClosedPositionRecord, DailyEquitySnapshot, AccountPerformanceSummary,
+    ErrorLog,
 )
 from stock.utils.log_util import log_trade, log_error
 
@@ -172,6 +173,31 @@ def query_performance_summary(account):
         return None
 
 
+def query_error_log_summary(today):
+    """Query today's ErrorLog entries grouped by function_name."""
+    errors = ErrorLog.objects.filter(timestamp__date=today).order_by('-timestamp')
+    total_count = errors.count()
+    if total_count == 0:
+        return {'total_count': 0, 'groups': []}
+
+    from collections import Counter
+    func_counts = Counter(errors.values_list('function_name', flat=True))
+    # Get latest error per function group
+    seen_funcs = set()
+    groups = []
+    for e in errors:
+        if e.function_name in seen_funcs:
+            continue
+        seen_funcs.add(e.function_name)
+        groups.append({
+            'function_name': e.function_name,
+            'count': func_counts[e.function_name],
+            'account_name': e.account.name if e.account else '系统',
+            'latest_message': (e.error_message[:200] + '…') if e.error_message and len(e.error_message) > 200 else (e.error_message or ''),
+        })
+    return {'total_count': total_count, 'groups': groups}
+
+
 def _build_account_section(account, today):
     """Build the full data section for one account."""
     label = get_strategy_label(account)
@@ -249,6 +275,7 @@ def job_daily_consolidated_report():
                 'account_sections': account_sections,
                 'summary_rows': summary_rows,
                 'total_accounts': len(account_sections),
+                'error_log': query_error_log_summary(today),
             })
 
             success = send_email_task(

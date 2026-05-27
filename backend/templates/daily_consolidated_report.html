@@ -67,12 +67,18 @@ body { margin: 0; padding: 0; font-family: -apple-system, "PingFang SC", "Micros
 /* ===== Direction & P&L ===== */
 .dir-long { color: #28a745; font-weight: bold; }
 .dir-short { color: #dc3545; font-weight: bold; }
-.pnl-pos { color: #28a745; font-weight: bold; }
-.pnl-neg { color: #dc3545; font-weight: bold; }
+.pnl-pos { color: #dc3545; font-weight: bold; }
+.pnl-neg { color: #28a745; font-weight: bold; }
 
 /* ===== Position Cards ===== */
 .pos-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
 .pos-card { flex: 1 1 calc(50% - 6px); min-width: 140px; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 6px; background: #fafafa; font-size: 12px; line-height: 1.7; }
+
+/* ===== Error Log Summary ===== */
+.err-ok { background: #e8f5e9; border-color: #c8e6c9; text-align: center; }
+.err-ok-text { color: #2e7d32; font-size: 14px; font-weight: 600; }
+.err-ok-sub { font-size: 11px; color: #666; margin-top: 2px; }
+.err-warn { background: #fff3e0; border-color: #ffe0b2; }
 
 /* ===== Empty State ===== */
 .empty-state { text-align: center; padding: 20px; color: #999; font-size: 13px; }
@@ -149,6 +155,8 @@ body { margin: 0; padding: 0; font-family: -apple-system, "PingFang SC", "Micros
   .pos-card { background: #2c2c2e; border-color: #3a3a3c; color: #ddd; }
   .empty-state { color: #666; }
   .footer { background: #2c2c2e; border-color: #3a3a3c; color: #666; }
+  .err-ok { background: #1a2a1a !important; border-color: #2e7d32 !important; }
+  .err-warn { background: #2a2a1a !important; border-color: #f57c00 !important; }
   .acct-hdr-turtle { background: #1a2a3a; border-left-color: #1976d2; }
   .acct-hdr-v2 { background: #1a2a1a; border-left-color: #388e3c; }
   .acct-hdr-v3 { background: #2a2a1a; border-left-color: #f57c00; }
@@ -388,6 +396,50 @@ body { margin: 0; padding: 0; font-family: -apple-system, "PingFang SC", "Micros
     </div><!-- /section-body -->
 </div><!-- /acct-section -->
 {% endfor %}
+
+<!-- ============ ERROR LOG SUMMARY ============ -->
+<div class="comparison-wrap" style="padding-top:4px;">
+    <div class="section-title">⚙ 今日错误日志</div>
+    {% if error_log.total_count == 0 %}
+    <div class="compact-row err-ok">
+        <div class="err-ok-text">今日无系统错误</div>
+        <div class="err-ok-sub">系统运行平稳</div>
+    </div>
+    {% else %}
+    <div class="compact-row err-warn">
+        <div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span>共 <strong style="color:#d32f2f;">{{ error_log.total_count }}</strong> 条错误</span>
+            <span>涉及 <strong>{{ error_log.groups|length }}</strong> 个函数</span>
+        </div>
+    </div>
+    {% if error_log.groups %}
+    <div class="table-scroll">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>函数</th>
+                <th>次数</th>
+                <th>账户</th>
+                <th>最新错误</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for eg in error_log.groups %}
+            <tr>
+                <td style="font-size:10px;word-break:break-all;">{{ eg.function_name }}</td>
+                <td style="text-align:center;">
+                    <span class="badge {% if eg.count >= 5 %}badge-stop-loss{% else %}badge-exit{% endif %}">{{ eg.count }}</span>
+                </td>
+                <td style="font-size:11px;">{{ eg.account_name }}</td>
+                <td style="font-size:10px;color:#666;word-break:break-all;max-width:150px;">{{ eg.latest_message|truncatechars:80 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
 
 <!-- ============ FOOTER ============ -->
 <div class="footer">
