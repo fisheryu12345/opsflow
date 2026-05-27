@@ -166,7 +166,7 @@
     <div class="stat-row"><span class="stat-label">当前权益</span><span class="stat-value" style="color:var(--green);">¥514,637</span></div>
     <div class="stat-row"><span class="stat-label">累计收益</span><span class="stat-value" style="color:var(--green);">+2.55%</span></div>
     <div class="stat-row"><span class="stat-label">手续费</span><span class="stat-value">¥0</span></div>
-    <div class="stat-row"><span class="stat-label">持仓</span><span class="stat-value">7品种+1平仓+¥4,200</span></div>
+    <div class="stat-row"><span class="stat-label">持仓</span><span class="stat-value">全部平仓+¥12,745</span></div>
   </div>
 </div>
 <div class="callout success"><strong>⚡ 实盘第2日：</strong> 2026-05-27 两日运行完毕。各策略已产生实盘信号和持仓：Turtle(Acc 6) 3品种持仓 +0.40%，V2(Acc 1) rb2610空单 -0.02%，V3(Acc 5) 2笔PENDING，HVOB(Acc 10) 日内爆发 +2.55%。</div>
@@ -319,7 +319,7 @@
   <tr><td>13:30 - 14:30</td><td>0.3</td><td>仅 30% 仓位，14:30 后停止开仓</td></tr>
 </table>
 
-<div class="callout warning"><strong>运行状态：</strong> HVOB-MBI 于 2026-05-26 夜盘已验证修复效果，2026-05-27 日盘产生强劲表现：当日产生 9 笔 ENTRY 和 1 笔已平仓盈利（sc2607 空单 +¥4,200），当前持仓 7 个品种，权益从 ¥502,000 增至 ¥514,637（+2.55%）。CRITICAL-13 Bug 已确认修复。</div>
+<div class="callout warning"><strong>运行状态：</strong> HVOB-MBI 于 2026-05-26 夜盘已验证修复效果，2026-05-27 日盘产生强劲表现：当日产生 9 笔 ENTRY 和 1 笔 STOP_LOSS，累计 8 笔已平仓盈利 +¥12,745。全部持仓已平仓，权益从 ¥502,000 增至 ¥514,637（+2.55%）。CRITICAL-13 Bug 已确认修复。</div>
 <div class="callout info"><strong>观察池持久化：</strong> 筛选完成后立即写入独立数据表，可通过 `GET /api/stock/hvob-watchlist/` 按日期和账户查询每日观察池明细。</div>
 </div>
 
@@ -393,16 +393,16 @@
   <tr><td>整体胜率</td><td>-</td><td>-</td><td>-</td><td>100%</td></tr>
   <tr><td>盈利因子</td><td>-</td><td>-</td><td>-</td><td>999.99</td></tr>
   <tr><td>总交易次数</td><td>3</td><td>1</td><td>0</td><td>10</td></tr>
-	  <tr><td>累计手续费</td><td>&yen;93.04</td><td>&yen;18.96</td><td>&yen;0.00</td><td>&yen;107.90</td></tr>
+	  <tr><td>累计手续费</td><td>&yen;93.04</td><td>&yen;18.96</td><td>&yen;0.00</td><td>&yen;216.00</td></tr>
   <tr><td>最大连续亏损</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
   <tr><td>20日夏普比率</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
   <tr><td>20日年化波动率</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
   <tr><td>最佳单笔盈利</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
   <tr><td>最差单笔亏损</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
-  <tr><td>累计平仓盈亏</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td><td>&yen;4,200</td></tr>
+  <tr><td>累计平仓盈亏</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td><td>&yen;12,745</td></tr>
 </table>
 
-<div class="callout success"><strong>实盘第2日数据：</strong> 截至 2026-05-27，各账户已完整运行两个交易日。TURTLE(Acc 6) 新增 jd2607 加仓和 MA609 开仓，HVOB(Acc 10) 日内系统表现强劲（+2.55%），V2(Acc 1) 小幅浮亏（-0.02%），V3(Acc 5) 继续等待有效突破信号。</div>
+<div class="callout success"><strong>实盘第2日数据：</strong> 截至 2026-05-27，各账户已完整运行两个交易日。TURTLE(Acc 6) 新增 jd2607 加仓和 MA609 开仓，V2(Acc 1) 小幅浮亏（-0.02%），V3(Acc 5) 继续等待有效突破信号。HVOB(Acc 10) 全部持仓已平仓，累计平仓盈亏 +¥12,745。</div>
 
 <h3>10.2 信号统计对比</h3>
 <table>
@@ -414,7 +414,7 @@
   <tr><td><strong>总计</strong></td><td><strong>3</strong></td><td><strong>3</strong></td><td><strong>3</strong></td><td><strong>10</strong></td></tr>
   <tr><td>已执行(SUCCESS)</td><td>3</td><td>1</td><td>0</td><td>10</td></tr>
 </table>
-<div class="callout info"><strong>两日数据累计：</strong> 2026-05-26 ~ 05-27。TURTLE 表现活跃（3笔操作：rb2610空+MA609空+jd2607多加仓）；HVOB 日内系统爆发（9笔ENTRY+1笔STOP_LOSS，唯一平仓盈利¥4,200）；V2 维持 rb2610 空单浮亏；V3 继续等待趋势信号。</div>
+<div class="callout info"><strong>两日数据累计：</strong> 2026-05-26 ~ 05-27。TURTLE 表现活跃（3笔操作：rb2610空+MA609空+jd2607多加仓）；HVOB 日内系统爆发（9笔ENTRY+1笔STOP_LOSS，累计平仓盈利¥12,745）；V2 维持 rb2610 空单浮亏；V3 继续等待趋势信号。</div>
 </div>
 
 <div class="section" id="s11">
@@ -464,15 +464,9 @@
   <tr><td><strong>原版海龟</strong></td><td>rb2610</td><td>空</td><td>7</td><td>3,146</td><td>-</td></tr>
   <tr><td><strong>原版海龟</strong></td><td>jd2607</td><td>多</td><td>4</td><td>4,098</td><td>-</td></tr>
   <tr><td><strong>原版海龟</strong></td><td>MA609</td><td>空</td><td>3</td><td>2,813</td><td>-</td></tr>
-  <tr><td><strong>HVOB</strong></td><td>jm2609</td><td>多</td><td>1</td><td>1,275</td><td>1,248</td></tr>
-  <tr><td><strong>HVOB</strong></td><td>MA609</td><td>空</td><td>5</td><td>2,828</td><td>2,857</td></tr>
-  <tr><td><strong>HVOB</strong></td><td>TA609</td><td>多</td><td>5</td><td>6,034</td><td>5,990</td></tr>
-  <tr><td><strong>HVOB</strong></td><td>ag2608</td><td>空</td><td>1</td><td>18,602</td><td>18,957</td></tr>
-  <tr><td><strong>HVOB</strong></td><td>FG609</td><td>多</td><td>5</td><td>1,034</td><td>1,026</td></tr>
-  <tr><td><strong>HVOB</strong></td><td>fu2609</td><td>空</td><td>4</td><td>3,823</td><td>3,882</td></tr>
-  <tr><td><strong>HVOB</strong></td><td>lu2607</td><td>空</td><td>3</td><td>4,715</td><td>4,789</td></tr>
+
 </table>
-<div class="callout info"><strong>持仓状态：</strong> 截至 2026-05-27。V2(Acc 1) 持有 rb2610 空单 1U (6手) 浮亏 -¥78.96；原版海龟(Acc 6) 3 笔持仓（rb2610空7手+jd2607多4手+MA609空3手）；V3(Acc 5) 无持仓 2笔PENDING；HVOB(Acc 10) 7 笔日内持仓 覆盖黑链/化工/有色。</div>
+<div class="callout info"><strong>持仓状态：</strong> 截至 2026-05-27。V2(Acc 1) 持有 rb2610 空单 1U (6手) 浮亏 -¥78.96；原版海龟(Acc 6) 3 笔持仓（rb2610空7手+jd2607多4手+MA609空3手）；V3(Acc 5) 无持仓 2笔PENDING；HVOB(Acc 10) 已全部平仓，累计平仓盈利 +¥12,745。</div>
 </div>
 
 <div class="section" id="s13">
@@ -486,12 +480,12 @@
   <tr><td>平仓总笔数</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
   <tr><td>盈利笔数</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
   <tr><td>亏损笔数</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
-  <tr><td>累计平仓盈亏</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td><td>&yen;4,200</td></tr>
-  <tr><td>平均盈利</td><td>-</td><td>-</td><td>-</td><td>&yen;4,200</td></tr>
+  <tr><td>累计平仓盈亏</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td><td>&yen;12,745</td></tr>
+  <tr><td>平均盈利</td><td>-</td><td>-</td><td>-</td><td>&yen;1,821</td></tr>
   <tr><td>平均亏损</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
   <tr><td>最差单笔</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
 </table>
-<div class="callout success"><strong>实盘第2日：</strong> 2026-05-27 HVOB(Acc 10) 已产生首笔平仓盈利（sc2607空单 +¥4,200）。海龟系列持仓均为浮动盈亏，尚未平仓。收益期望将在更多平仓样本积累后进行计算。</div>
+<div class="callout success"><strong>实盘第2日：</strong> 2026-05-27 HVOB(Acc 10) 累计 8 笔已平仓，总盈利 +¥12,745，平均盈利 +¥1,821。海龟系列持仓均为浮动盈亏，尚未平仓。</div>
 
 <div class="section" id="s14">
 <h2>十四、风险矩阵</h2>
@@ -552,7 +546,7 @@
   <tr><td>原版海龟</td><td>第2日</td><td>&yen;504,025</td><td>+0.40%</td><td>0.00%</td><td>rb2610空7+jd2607多4+MA609空3</td><td><span class="tag green">3笔持仓</span></td></tr>
   <tr><td>海龟V2</td><td>第2日</td><td>&yen;501,922</td><td>-0.02%</td><td>0.02%</td><td>rb2610空1U(6L)</td><td><span class="tag orange">小幅浮亏</span></td></tr>
   <tr><td>海龟V3</td><td>第2日</td><td>&yen;502,000</td><td>0.00%</td><td>0.00%</td><td>无(2笔PENDING)</td><td><span class="tag blue">等待突破</span></td></tr>
-  <tr><td>HVOB-MBI</td><td>第2日</td><td>&yen;514,637</td><td>+2.55%</td><td>0.00%</td><td>7品种+1平仓+&yen;4,200</td><td><span class="tag green">强劲表现</span></td></tr>
+  <tr><td>HVOB-MBI</td><td>第2日</td><td>&yen;514,637</td><td>+2.55%</td><td>0.00%</td><td>全部平仓+&yen;12,745</td><td><span class="tag green">强劲表现</span></td></tr>
 </table>
 
 <h3>17.3 Alpha 因子分析总结</h3>
@@ -583,7 +577,7 @@
 <div class="callout success"><strong>1. 实盘+对照组架构运行中。</strong> <span class="tag green">V2 实盘</span>作为主力策略运行，<span class="tag blue">三个对照组</span>并行运行。所有账户初始资金统一 ¥502,000。</div>
 <div class="callout info"><strong>2. 两交易日已完成。</strong> V2 首个 rb2610 空单已执行（浮亏 -¥78.96），TURTLE 已扩展至3品种持仓（+0.40%），HVOB 日内系统首日爆发（+2.55%）。</div>
 <div class="callout info"><strong>3. V2 vs V3 过滤效果初显。</strong> V2 已执行 rb2610 空单，V3 同信号被 CANCELLED（skip_choppy过滤）。V3 的 2 笔新 PENDING 信号（MA609空/jd2607多）将验证次日是否执行。</div>
-<div class="callout info"><strong>4. HVOB-MBI 首日表现验证。</strong> 日内策略修复后首日即贡献 +2.55% 日收益（+¥12,637），7品种持仓 + 1笔已平仓盈利（+¥4,200），验证了 OR 跟踪修复和策略有效性。</div>
+<div class="callout info"><strong>4. HVOB-MBI 首日表现验证。</strong> 日内策略修复后首日即贡献 +2.55% 日收益（+¥12,637），8笔已平仓总盈利 +¥12,745，验证了 OR 跟踪修复和策略有效性。</div>
 <div class="callout success"><strong>5. 风险监控持续运行。</strong> 三层止损体系已正常运作两日。V2 rb2610 空单止损价 3,214.30（动态 2~3 ATR），TURTLE 和 HVOB 均有止损保护。</div>
 
 <div style="margin-top:16px;">
