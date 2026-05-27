@@ -301,7 +301,6 @@ class DailyStrategySignal(models.Model):
     class Meta:
         verbose_name = "每日策略信号"
         verbose_name_plural = "每日策略信号"
-        unique_together = ('account', 'symbol', 'trade_date')
         ordering = ['-trade_date']
         indexes = [
             models.Index(fields=['symbol', '-trade_date']),

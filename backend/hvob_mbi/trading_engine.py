@@ -12,7 +12,7 @@ import json
 from datetime import datetime, date
 from decimal import Decimal
 from collections import defaultdict
-
+from stock.utils.log_util import log_trade, log_error
 from tqsdk import TargetPosTask
 from django.db import close_old_connections
 
@@ -823,10 +823,14 @@ class HvobTradingEngine:
             target_pos.set_target_volume(0)
             wait_for_target_position(self.api, target_pos, symbol, 0, 'hvob_stop_loss')
 
-            record_stop_loss_signal(
-                self.account, symbol, pos.product_code, self.trade_date,
-                pos.direction, float(price), exit_pnl, pos.entry_price, pos.volume,
-            )
+            try:
+                record_stop_loss_signal(
+                    self.account, symbol, pos.product_code, self.trade_date,
+                    pos.direction, float(price), exit_pnl, pos.entry_price, pos.volume,
+                )
+            except Exception as e:
+                print(f"[HVOB] ⚠️ 止损信号写入失败 {symbol}: {e}")
+                log_error('execute_stop_loss', f"止损信号写入失败: {str(e)}",account=self.account,notify=True)
 
         self.daily_pnl += exit_pnl
         del self.positions[symbol]
@@ -844,10 +848,14 @@ class HvobTradingEngine:
             target_pos.set_target_volume(0)
             wait_for_target_position(self.api, target_pos, symbol, 0, 'hvob_take_profit')
 
-            record_exit_signal(
-                self.account, symbol, pos.product_code, self.trade_date,
-                pos.direction, float(price), reason, exit_pnl, pos.entry_price, pos.volume,
-            )
+            try:
+                record_exit_signal(
+                    self.account, symbol, pos.product_code, self.trade_date,
+                    pos.direction, float(price), reason, exit_pnl, pos.entry_price, pos.volume,
+                )
+            except Exception as e:
+                print(f"[HVOB] ⚠️ 止盈信号写入失败 {symbol}: {e}")
+                log_error('execute_take_profit', f"止盈信号写入失败: {str(e)}",account=self.account,notify=True)
 
         self.daily_pnl += exit_pnl
         del self.positions[symbol]
@@ -873,10 +881,14 @@ class HvobTradingEngine:
                 target_pos.set_target_volume(0)
                 wait_for_target_position(self.api, target_pos, symbol, 0, 'hvob_force_close')
 
-                record_exit_signal(
-                    self.account, symbol, pos.product_code, self.trade_date,
-                    pos.direction, price, '强制平仓', exit_pnl, pos.entry_price, pos.volume,
-                )
+                try:
+                    record_exit_signal(
+                        self.account, symbol, pos.product_code, self.trade_date,
+                        pos.direction, price, '强制平仓', exit_pnl, pos.entry_price, pos.volume,
+                    )
+                except Exception as e:
+                    print(f"[HVOB] ⚠️ 强制平仓信号写入失败 {symbol}: {e}")
+                    log_error('execute_force_close', f"强制平仓信号写入失败: {str(e)}",account=self.account,notify=True)
 
             self.daily_pnl += exit_pnl
             del self.positions[symbol]
