@@ -119,7 +119,15 @@
       "Bash(xxd)",
       "Bash(python manage.py calc_night_breakout --account=1 --dry-run)",
       "Bash(python manage.py calc_night_breakout --help)",
-      "Bash(python manage.py calc_night_breakout --account=1)"
+      "Bash(python manage.py calc_night_breakout --account=1)",
+      "Bash(python manage.py shell)",
+      "Bash(cd /d c:\\\\Users\\\\dell\\\\Desktop\\\\Vue\\\\backend)",
+      "Bash(python query_report_data.py)",
+      "Bash(python c:/Users/dell/Desktop/Vue/backend/query_report_data.py)",
+      "Bash(python c:/Users/dell/Desktop/Vue/backend/update_html.py \"c:/Users/dell/Desktop/Vue/backend/templates/策略分析报告-完整数理分析.html\")",
+      "Bash(python fix_s1.py)",
+      "Bash(python fix_all.py)",
+      "Bash(python debug_s11.py)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",
