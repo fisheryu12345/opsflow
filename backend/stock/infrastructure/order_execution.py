@@ -196,10 +196,10 @@ def execute_two_step_opening(api, symbol, direction, adjusted_volume, excess_to_
         api.wait_update(deadline=time.time() + 2)
         avg_price = float(quote.last_price) if quote and quote.last_price else None
 
-        if direction == 1:
-            actual_final_filled = pos_after.volume_long
-        else:
-            actual_final_filled = pos_after.volume_short
+        # 使用 net 净持仓而非 volume_long/volume_short，因为 support_open_min_volume=True 时
+        # TqSDK 可能用反向开仓代替平仓来满足最小开仓限制，导致 volume_long 或 volume_short
+        # 反映的是总持仓而非净持仓（例如开4手空+1手多，volume_short=4但净持仓=3）。
+        actual_final_filled = abs(pos_after.pos)
 
         result['success'] = True
         result['actual_filled'] = actual_final_filled
