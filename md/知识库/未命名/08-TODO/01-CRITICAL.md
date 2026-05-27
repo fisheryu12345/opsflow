@@ -531,3 +531,35 @@ if quote is None or quote.last_price is None or math.isnan(quote.last_price):
     continue
 price = float(quote.last_price)
 ```
+
+---
+
+## ✅ CRITICAL-16: HVOB signal_recorder 未传 trend_factor/trend_label，成功开仓后写入 DB 崩溃 — 已修复 (2026-05-26)
+
+**文件**: [signal_recorder.py:28-46](../../backend/hvob_mbi/signal_recorder.py#L28)
+
+**问题描述**:
+`record_entry_signal` 创建 `DailyStrategySignal` 时未传入 `trend_factor` 和 `trend_label`：
+```python
+signal = DailyStrategySignal.objects.create(
+    account=account, symbol=symbol, ...,
+    # trend_factor 缺失 ← 模型定义中 NOT NULL
+    # trend_label 缺失  ← 模型定义中 NOT NULL
+)
+```
+
+`DailyStrategySignal` 模型中这两个字段没有 `null=True, blank=True`，默认值为 `None`，MySQL 拒绝写入，抛出 `(1048, "Column 'trend_factor' cannot be null")`。
+
+同理 `record_exit_signal` (line 58) 和 `record_stop_loss_signal` (line 84) 也存在相同的遗漏。
+
+**影响分析**:
+- TargetPosTask 实际已成交，持仓在引擎内存中正确跟踪 (`self.positions`、`self.traded`)
+- 但 `DailyStrategySignal` 未写入 DB → 信号审计缺失
+- 用户看到"❌ 开仓失败"误导信息（实际开仓成功）
+- 引擎重启后 `_supplement_traded_from_db()` 查不到该笔信号 → `traded` 集合为空 → 同一品种可能被重复入场
+
+**修复内容**: 三个函数中的 `DailyStrategySignal.objects.create()` 均补传：
+```python
+trend_factor=Decimal('0'),
+trend_label='HVOB',
+```

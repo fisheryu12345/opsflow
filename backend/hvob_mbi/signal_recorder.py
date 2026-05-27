@@ -33,6 +33,8 @@ def record_entry_signal(account, symbol, product_code, trade_date, direction, qu
         trade_type='ENTRY',
         signal_direction=direction,
         contract_target_number=quantity,
+        trend_factor=Decimal('0'),
+        trend_label='HVOB',
         remark=json.dumps({
             'strategy': 'HVOB-MBI',
             'entry_price': float(entry_price),
@@ -63,6 +65,8 @@ def record_exit_signal(account, symbol, product_code, trade_date, direction,
         trade_type='EXIT',
         signal_direction=direction,
         contract_target_number=volume,
+        trend_factor=Decimal('0'),
+        trend_label='HVOB',
         remark=json.dumps({
             'strategy': 'HVOB-MBI',
             'exit_reason': exit_reason,
@@ -89,6 +93,8 @@ def record_stop_loss_signal(account, symbol, product_code, trade_date, direction
         trade_type='STOP_LOSS',
         signal_direction=direction,
         contract_target_number=volume,
+        trend_factor=Decimal('0'),
+        trend_label='HVOB',
         remark=json.dumps({
             'strategy': 'HVOB-MBI',
             'exit_reason': '止损',
