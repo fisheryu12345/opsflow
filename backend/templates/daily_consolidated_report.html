@@ -441,6 +441,49 @@ body { margin: 0; padding: 0; font-family: -apple-system, "PingFang SC", "Micros
     {% endif %}
 </div>
 
+<!-- ============ RECONCILIATION (持仓对比) ============ -->
+<div class="comparison-wrap" style="padding-top:4px;">
+    <div class="section-title">📊 持仓校验（DB vs 交易所）</div>
+    {% if reconciliation.all_ok %}
+    <div class="compact-row err-ok">
+        <div class="err-ok-text">持仓一致</div>
+        <div class="err-ok-sub">各账户 DB 与交易所持仓均匹配</div>
+    </div>
+    {% else %}
+    <div class="compact-row err-warn">
+        <div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span>发现 <strong style="color:#d32f2f;">{{ reconciliation.total }}</strong> 项差异</span>
+            <span>涉及 <strong>{{ reconciliation.accounts|length }}</strong> 个账户</span>
+        </div>
+    </div>
+    {% for acc_name, disc_list in reconciliation.accounts.items %}
+    <div style="font-size:12px;font-weight:600;margin:8px 0 4px 4px;color:#555;">{{ acc_name }}</div>
+    <div class="table-scroll">
+    <table class="data-table">
+        <thead>
+            <tr><th>合约</th><th>类型</th><th>详情</th></tr>
+        </thead>
+        <tbody>
+            {% for d in disc_list %}
+            <tr>
+                <td style="font-size:11px;">{{ d.symbol }}</td>
+                <td>
+                    {% if d.type == 'DB_HAS_TQ_HAS_NOT' %}<span class="badge badge-stop-loss">DB多余</span>
+                    {% elif d.type == 'TQ_HAS_DB_HAS_NOT' %}<span class="badge badge-add-on">交易所多余</span>
+                    {% elif d.type == 'DIRECTION_MISMATCH' %}<span class="badge badge-rollover">方向不符</span>
+                    {% elif d.type == 'VOLUME_MISMATCH' %}<span class="badge badge-exit">手数不符</span>
+                    {% else %}<span class="badge badge-stop-loss">异常</span>{% endif %}
+                </td>
+                <td style="font-size:11px;color:#666;word-break:break-all;">{{ d.detail }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+
 <!-- ============ FOOTER ============ -->
 <div class="footer">
     <p>本报告由量化交易系统自动生成</p>

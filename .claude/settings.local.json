@@ -127,7 +127,8 @@
       "Bash(python c:/Users/dell/Desktop/Vue/backend/update_html.py \"c:/Users/dell/Desktop/Vue/backend/templates/策略分析报告-完整数理分析.html\")",
       "Bash(python fix_s1.py)",
       "Bash(python fix_all.py)",
-      "Bash(python debug_s11.py)"
+      "Bash(python debug_s11.py)",
+      "Bash(python -m py_compile backend/stock/scheduler/tasks_daily_close.py)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

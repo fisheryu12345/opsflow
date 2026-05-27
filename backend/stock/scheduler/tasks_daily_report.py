@@ -15,6 +15,7 @@ from django.utils import timezone
 from django_redis import get_redis_connection
 from stock.utils.redis_lock import redis_lock, LockAcquisitionError
 from stock.infrastructure.trade_day import skip_if_not_trade_day
+from stock.infrastructure.position_reconciliation import reconcile_all_accounts
 from stock.tasks.send_mail import send_email_task
 from stock.models import (
     TradingAccount, DailyStrategySignal, PositionState,
@@ -276,6 +277,7 @@ def job_daily_consolidated_report():
                 'summary_rows': summary_rows,
                 'total_accounts': len(account_sections),
                 'error_log': query_error_log_summary(today),
+                'reconciliation': reconcile_all_accounts(),
             })
 
             success = send_email_task(

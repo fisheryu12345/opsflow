@@ -83,7 +83,13 @@ def reconcile_positions(api, account):
 
 def reconcile_all_accounts():
     """
-    Run reconciliation for all active accounts. Called by 15:35 scheduler task.
+    Run reconciliation for all active accounts. Called by 15:35 scheduler task
+    and also consumed by the 15:40 consolidated report.
+
+    Returns a dict with:
+      - all_ok: bool — True if no discrepancies
+      - total: int — total discrepancy count
+      - accounts: dict keyed by account name, each value is a list of discrepancies
     """
     from stock.models import TradingAccount
     from stock.infrastructure.tqapi import create_tqapi, safe_close_api
@@ -91,9 +97,9 @@ def reconcile_all_accounts():
     accounts = TradingAccount.objects.filter(is_active=True)
     if not accounts.exists():
         print("[INFO] 无活跃账户，跳过持仓校验")
-        return
+        return {'all_ok': True, 'total': 0, 'accounts': {}}
 
-    all_discrepancies = []
+    account_groups = {}
     for account in accounts:
         api = None
         try:
@@ -102,7 +108,8 @@ def reconcile_all_accounts():
             discrepancies = reconcile_positions(api, account)
             for d in discrepancies:
                 d['account'] = account.name
-            all_discrepancies.extend(discrepancies)
+            if discrepancies:
+                account_groups[account.name] = discrepancies
 
             for d in discrepancies:
                 msg = f"[RECONCILE] [{account.name}] {d['detail']}"
@@ -115,11 +122,8 @@ def reconcile_all_accounts():
         finally:
             safe_close_api(api)
 
-    if all_discrepancies:
-        _send_reconciliation_email(all_discrepancies)
-        print(f"[INFO] 持仓差异邮件已发送，共 {len(all_discrepancies)} 项差异")
-    else:
-        print("[INFO] 持仓校验完成，无差异")
+    total = sum(len(v) for v in account_groups.values())
+    return {'all_ok': total == 0, 'total': total, 'accounts': account_groups}
 
 
 # ── helpers ──────────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ from stock.infrastructure.tqapi import create_tqapi, safe_close_api
 def job_daily_reconciliation():
     """
     每日持仓校验任务（15:35 执行）。
-    对比 DB 与 TqSDK 持仓，差异通过邮件通知用户手动处理。
+    对比 DB 与 TqSDK 持仓，结果在 15:40 综合日报中汇总展示。
     """
     redis = get_redis_connection('default')
     try:

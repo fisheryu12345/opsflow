@@ -12,7 +12,6 @@ from stock.core.signal_checker import check_duplicate_pending_signal
 
 from stock.models import TradingAccount, DailyStrategySignal, PositionState, FullContractList, AccountContractConfig, StrategyConfig
 from stock.infrastructure.contract_sync import sync_contract_list_from_tqsdk, sync_kline_data_from_tqsdk
-from stock.infrastructure.report_sender import generate_daily_signal_report
 from stock.core.indicators import calculate_indicators
 from stock.core.performance import update_all_performance_metrics
 from stock.infrastructure.tqapi import create_tqapi, safe_close_api
@@ -711,39 +710,35 @@ def job_daily_close_calculation():
                         print(f"[INFO] {account.name} 持仓轮换信号生成完成")
                     else:
                         print(f"[INFO] {account.name} 独立策略跳过移仓换月信号")
-                    generate_daily_signal_report(account)
-                    print(  f"[INFO] {account.name} 日报生成完成")
 
-                    if account_api:
-                        try:
-                            # 账户数据在前序操作中已到达，轻量等待确保最新
-                            account_api.wait_update(deadline=time.time() + 2)
+                    account_api.wait_update(deadline=time.time() + 2)
 
-                            api_account = account_api.get_account()
-                            print(f"[INFO] {account.name} 更新数据")
-                            api_account_data = {
-                                'balance': float(api_account.balance),
-                                'static_balance': float(api_account.static_balance),
-                                'available': float(api_account.available),
-                                'margin': float(api_account.margin),
-                                'float_profit': float(api_account.float_profit),
-                                'close_profit': float(api_account.close_profit),
-                                'commission': float(api_account.commission),
-                                'risk_ratio': float(api_account.risk_ratio),
-                                'pre_balance': float(api_account.pre_balance),
-                            }
-                            result = update_all_performance_metrics(
-                                account=account,
-                                api_account_data=api_account_data,
-                                trade_date=date.today()
-                            )
-                            print(f"[SUCCESS] {account.name} ✅ 三层绩效数据已更新")
-                            print(f"  - 日权益快照: balance={result['snapshot'].balance}")
-                            print(f"  - 滚动指标: sharpe_20d={result['rolling_metrics'][20].sharpe_ratio}")
-                            print(f"  - 账户总览: total_return={result['summary'].total_return}%")
-                        except Exception as perf_error:
-                            print(f"[ERROR] {account.name} 更新绩效指标失败: {perf_error}")
-                            traceback.print_exc()
+                    try:
+                        api_account = account_api.get_account()
+                        print(f"[INFO] {account.name} 更新数据")
+                        api_account_data = {
+                            'balance': float(api_account.balance),
+                            'static_balance': float(api_account.static_balance),
+                            'available': float(api_account.available),
+                            'margin': float(api_account.margin),
+                            'float_profit': float(api_account.float_profit),
+                            'close_profit': float(api_account.close_profit),
+                            'commission': float(api_account.commission),
+                            'risk_ratio': float(api_account.risk_ratio),
+                            'pre_balance': float(api_account.pre_balance),
+                        }
+                        result = update_all_performance_metrics(
+                            account=account,
+                            api_account_data=api_account_data,
+                            trade_date=date.today()
+                        )
+                        print(f"[SUCCESS] {account.name} \u4e09\u5c42\u7ee9\u6548\u6570\u636e\u5df2\u66f4\u65b0")
+                        print(f"  - \u65e5\u6743\u76ca\u5feb\u7167: balance={result['snapshot']['balance']}")
+                        print(f"  - \u6eda\u52a8\u6307\u6807: sharpe_20d={result['rolling_metrics'][20].sharpe_ratio}")
+                        print(f"  - \u8d26\u6237\u603b\u89c8: total_return={result['summary']['total_return']}%")
+                    except Exception as perf_error:
+                        print(f"[ERROR] {account.name} \u66f4\u65b0\u7ee9\u6548\u6307\u6807\u5931\u8d25: {perf_error}")
+                        traceback.print_exc()
 
                 except Exception as account_error:
                     print(f"[ERROR] 处理账户 {account.name} 任务失败: {account_error}")
