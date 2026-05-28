@@ -127,7 +127,7 @@ def record_stop_loss_signal(account, symbol, product_code, trade_date, direction
         }, ensure_ascii=False)
     )
     _create_closed_record(account, symbol, product_code, trade_date,
-                          direction, exit_price, 'STOP_LOSS', pnl, cost_price, volume)
+                          direction, exit_price, pnl, cost_price, volume)
     _reset_position_state(account, symbol)
     log_trade(FSM, f"HVOB STOP_LOSS {symbol} {volume}手@{exit_price} PnL={pnl}",
               symbol=symbol, log_level='INFO', account=account)
