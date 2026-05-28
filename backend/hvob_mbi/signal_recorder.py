@@ -90,6 +90,7 @@ def record_exit_signal(account, symbol, product_code, trade_date, direction,
         trade_type='EXIT',
         signal_direction=direction,
         contract_target_number=volume,
+        executed_status='SUCCESS',
         trend_factor=Decimal('0'),
         trend_label='HVOB',
         remark=json.dumps({
@@ -119,6 +120,7 @@ def record_stop_loss_signal(account, symbol, product_code, trade_date, direction
         trade_type='STOP_LOSS',
         signal_direction=direction,
         contract_target_number=volume,
+        executed_status='SUCCESS',
         trend_factor=Decimal('0'),
         trend_label='HVOB',
         remark=json.dumps({
