@@ -417,17 +417,17 @@ _check_restart → _reconnect
 
 ### HvobMbiConfig（每账户策略配置）
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| account | FK→TradingAccount | - | 关联账户 |
-| is_active | BooleanField | True | 是否启用 |
-| risk_percent | Decimal(5,4) | 0.005 | 单笔风险比例 |
-| max_daily_loss_percent | Decimal(5,4) | 0.02 | 单日最大亏损比例 |
-| fix_reward_risk_ratio | Decimal(4,2) | 1.5 | 固定盈亏比 |
-| trailing_stop_enabled | BooleanField | True | 启用移动止盈 |
-| trailing_stop_trigger_times | Decimal(4,1) | 2.0 | 移动止盈触发倍数 |
-| min_watchlist_size | IntegerField | 5 | 观察池最小数量 |
-| max_positions_per_day | IntegerField | 5 | 单日最大持仓数 |
+| 字段                          | 类型                | 默认值   | 说明       |
+| --------------------------- | ----------------- | ----- | -------- |
+| account                     | FK→TradingAccount | -     | 关联账户     |
+| is_active                   | BooleanField      | True  | 是否启用     |
+| risk_percent                | Decimal(5,4)      | 0.005 | 单笔风险比例   |
+| max_daily_loss_percent      | Decimal(5,4)      | 0.02  | 单日最大亏损比例 |
+| fix_reward_risk_ratio       | Decimal(4,2)      | 1.5   | 固定盈亏比    |
+| trailing_stop_enabled       | BooleanField      | True  | 启用移动止盈   |
+| trailing_stop_trigger_times | Decimal(4,1)      | 2.0   | 移动止盈触发倍数 |
+| min_watchlist_size          | IntegerField      | 5     | 观察池最小数量  |
+| max_positions_per_day       | IntegerField      | 5     | 单日最大持仓数  |
 
 ### HvobMbiWatchlistItem（观察池条目）
 

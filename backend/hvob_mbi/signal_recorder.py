@@ -4,6 +4,7 @@
 import json
 from decimal import Decimal
 from datetime import date
+from django.utils import timezone
 from stock.models import (
     DailyStrategySignal, ClosedPositionRecord, PositionState,
     DailyEquitySnapshot, SymbolDailyPnl, TradingAccount,
@@ -152,6 +153,7 @@ def _create_closed_record(account, symbol, product_code, trade_date,
         cost_price=Decimal(str(cost_price)) if cost_price else Decimal('0'),
         exit_price=Decimal(str(exit_price)),
         pnl=Decimal(str(pnl)) if pnl else Decimal('0'),
+        executed_at=timezone.now(),
     )
 
 
