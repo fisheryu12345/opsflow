@@ -1,0 +1,6 @@
+---
+- name: 回滚 — 删除已上传文件
+  ansible.builtin.file:
+    path: "{{ dest }}"
+    state: absent
+  when: dest is defined

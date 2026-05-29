@@ -1,0 +1,6 @@
+---
+- name: 回滚 — 反转服务操作
+  ansible.builtin.systemd:
+    name: "{{ service }}"
+    state: "{{ 'stopped' if action == 'start' else 'started' if action == 'stop' else 'started' }}"
+  when: service is defined and action is defined

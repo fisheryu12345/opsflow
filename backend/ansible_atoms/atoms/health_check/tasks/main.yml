@@ -1,0 +1,15 @@
+---
+- name: 执行 HTTP 健康检查
+  ansible.builtin.uri:
+    url: "{{ url }}"
+    method: GET
+    timeout: "{{ timeout | default(10) }}"
+    validate_certs: no
+  register: _health_result
+  ignore_errors: true
+
+- name: 判定健康状态
+  ansible.builtin.set_fact:
+    status: "{{ 'healthy' if _health_result.status | int == expected_status | default(200) else 'unhealthy' }}"
+    response_time_ms: "{{ ((_health_result.content | length > 0) | ternary(_health_result.elapsed_total if 'elapsed_total' in _health_result else 0, 0)) | int }}"
+    body: "{{ _health_result.content | default('') | truncate(500) }}"

@@ -1,0 +1,13 @@
+---
+- name: 检查磁盘使用率
+  ansible.builtin.shell: |
+    df {{ mount_point | default('/') }} --output=pcent,size,used,avail | tail -1
+  register: _df_result
+  changed_when: false
+
+- name: 解析磁盘信息
+  ansible.builtin.set_fact:
+    usage_percent: "{{ _df_result.stdout.split()[0] | replace('%', '') | int }}"
+    total_gb: "{{ (_df_result.stdout.split()[1] | int / 1024 / 1024) | round(1) }}"
+    used_gb: "{{ (_df_result.stdout.split()[2] | int / 1024 / 1024) | round(1) }}"
+    avail_gb: "{{ (_df_result.stdout.split()[3] | int / 1024 / 1024) | round(1) }}"

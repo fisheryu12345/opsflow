@@ -15,6 +15,7 @@ from opsagent.serializers import TaskRunInputSerializer, TaskRunResultSerializer
 
 class TaskRunViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
+    serializer_class = TaskRunInputSerializer
 
     def create(self, request):
         ser = TaskRunInputSerializer(data=request.data)

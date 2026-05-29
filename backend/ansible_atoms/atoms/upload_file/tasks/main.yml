@@ -1,0 +1,13 @@
+---
+- name: 上传文件到远程主机
+  ansible.builtin.copy:
+    src: "{{ src }}"
+    dest: "{{ dest }}"
+    owner: "{{ owner | default(omit) }}"
+    mode: "{{ mode | default('0644') }}"
+  register: _upload_result
+
+- name: 输出上传结果
+  ansible.builtin.set_fact:
+    changed: "{{ _upload_result.changed }}"
+    dest_path: "{{ _upload_result.dest }}"

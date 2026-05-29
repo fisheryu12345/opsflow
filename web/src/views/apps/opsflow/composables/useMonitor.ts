@@ -1,0 +1,73 @@
+import { ref, onBeforeUnmount } from 'vue'
+
+export function useMonitor() {
+  const ws = ref<WebSocket | null>(null)
+  const connected = ref(false)
+  const nodeStatuses = ref<Record<string, string>>({})
+  const executionStatus = ref<string>('')
+
+  function connect(executionId: number) {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = window.location.host
+    const url = `${protocol}//${host}/ws/opsflow/execution/${executionId}/`
+
+    const socket = new WebSocket(url)
+    socket.onopen = () => { connected.value = true }
+    socket.onclose = () => { connected.value = false }
+    socket.onerror = () => { connected.value = false }
+    socket.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data)
+        if (msg.type === 'node_status') {
+          nodeStatuses.value[msg.node_id] = msg.status
+        } else if (msg.type === 'execution_completed') {
+          executionStatus.value = msg.status
+          if (msg.status === 'completed') {
+            connected.value = false
+          }
+        } else if (msg.type === 'init_state') {
+          if (msg.data.node_status) {
+            nodeStatuses.value = { ...msg.data.node_status }
+          }
+          executionStatus.value = msg.data.status
+        }
+      } catch (e) {
+        console.error('WebSocket 消息解析失败', e)
+      }
+    }
+
+    ws.value = socket
+  }
+
+  function disconnect() {
+    if (ws.value) {
+      ws.value.close()
+      ws.value = null
+    }
+    connected.value = false
+  }
+
+  function send(data: any) {
+    if (ws.value && connected.value) {
+      ws.value.send(JSON.stringify(data))
+    }
+  }
+
+  function getNodeColor(status: string): string {
+    switch (status) {
+      case 'completed': return '#67C23A'
+      case 'running': return '#E6A23C'
+      case 'failed': return '#F56C6C'
+      case 'pending': return '#909399'
+      case 'skipped': return '#C0C4CC'
+      default: return '#909399'
+    }
+  }
+
+  onBeforeUnmount(() => disconnect())
+
+  return {
+    ws, connected, nodeStatuses, executionStatus,
+    connect, disconnect, send, getNodeColor,
+  }
+}

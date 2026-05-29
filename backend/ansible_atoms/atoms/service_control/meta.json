@@ -1,0 +1,18 @@
+{
+  "name": "service_control",
+  "description": "控制系统服务的启动/停止/重启/重载状态",
+  "risk_level": "high",
+  "group": "control",
+  "component_code": "opsflow_service_control",
+  "inputs": [
+    {"name": "service", "type": "string", "default": "", "description": "服务名称"},
+    {"name": "action", "type": "string", "default": "status", "description": "操作: start/stop/restart/reload/status"},
+    {"name": "enabled", "type": "bool", "default": false, "description": "是否设置开机自启"}
+  ],
+  "outputs": [
+    {"name": "changed", "type": "bool", "description": "服务状态是否变更"},
+    {"name": "status", "type": "string", "description": "操作后的服务状态"}
+  ],
+  "rollback": "service_control",
+  "dependencies": []
+}

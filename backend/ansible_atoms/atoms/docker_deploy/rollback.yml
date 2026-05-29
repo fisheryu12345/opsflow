@@ -1,0 +1,7 @@
+---
+- name: 回滚 — 停止并移除容器
+  community.docker.docker_container:
+    name: "{{ container_name }}"
+    state: absent
+    force_kill: true
+  when: container_name is defined

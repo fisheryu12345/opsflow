@@ -1,0 +1,5 @@
+---
+- name: 回滚 — 重启 Nginx 服务（回退到上次运行配置）
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted

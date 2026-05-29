@@ -1,0 +1,19 @@
+{
+  "name": "send_alert",
+  "description": "发送告警通知（支持短信/邮件/企微）",
+  "risk_level": "low",
+  "group": "control",
+  "component_code": "opsflow_send_alert",
+  "inputs": [
+    {"name": "channel", "type": "string", "default": "wecom", "description": "通知渠道: sms/email/wecom"},
+    {"name": "title", "type": "string", "default": "", "description": "告警标题"},
+    {"name": "message", "type": "string", "default": "", "description": "告警内容"},
+    {"name": "recipients", "type": "string", "default": "", "description": "收件人列表(逗号分隔)"}
+  ],
+  "outputs": [
+    {"name": "sent", "type": "bool", "description": "是否发送成功"},
+    {"name": "message_id", "type": "string", "description": "消息 ID"}
+  ],
+  "rollback": null,
+  "dependencies": []
+}

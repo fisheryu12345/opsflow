@@ -9,6 +9,15 @@
 		"lint-fix": "eslint --fix --ext .js --ext .jsx --ext .vue src/"
 	},
 	"dependencies": {
+		"@antv/x6": "2.19.1",
+		"@antv/x6-plugin-clipboard": "2.1.5",
+		"@antv/x6-plugin-dnd": "^2.1.1",
+		"@antv/x6-plugin-history": "^2.2.4",
+		"@antv/x6-plugin-keyboard": "2.2.3",
+		"@antv/x6-plugin-minimap": "2.0.7",
+		"@antv/x6-plugin-selection": "^2.2.2",
+		"@antv/x6-plugin-snapline": "^2.1.7",
+		"@antv/x6-plugin-stencil": "^2.1.5",
 		"@element-plus/icons-vue": "^2.0.10",
 		"@fast-crud/fast-crud": "^1.19.2",
 		"@fast-crud/fast-extends": "^1.19.2",

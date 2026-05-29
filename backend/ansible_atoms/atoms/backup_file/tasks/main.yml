@@ -1,0 +1,18 @@
+---
+- name: 确保备份目录存在
+  ansible.builtin.file:
+    path: "{{ backup_dir | default('/backup') }}"
+    state: directory
+    mode: '0755'
+
+- name: 执行文件备份
+  ansible.builtin.copy:
+    src: "{{ src }}"
+    dest: "{{ backup_dir | default('/backup') }}/{{ src | basename }}.{{ ansible_date_time.epoch }}"
+    remote_src: true
+  register: _backup_result
+
+- name: 输出备份信息
+  ansible.builtin.set_fact:
+    backup_path: "{{ _backup_result.dest }}"
+    size_bytes: "{{ _backup_result.size | default(0) }}"

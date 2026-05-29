@@ -1,0 +1,12 @@
+---
+- name: 执行 Ping 测试
+  ansible.builtin.shell: |
+    ping -c {{ count | default(4) }} {{ target_host | default('localhost') }} | tail -3
+  register: _ping_result
+  changed_when: false
+  ignore_errors: true
+
+- name: 解析 Ping 结果
+  ansible.builtin.set_fact:
+    packet_loss: "{{ _ping_result.stdout_lines[-1] | regex_search('(\\d+)% packet loss', '\\1') | first | default('100') | int }}"
+    latency_ms: "{{ _ping_result.stdout_lines[-1] | regex_search('([0-9.]+)/([0-9.]+)/([0-9.]+)', '\\2') | first | default('0') | float }}"

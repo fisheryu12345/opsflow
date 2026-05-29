@@ -1,0 +1,28 @@
+---
+- name: 拉取 Docker 镜像
+  community.docker.docker_image:
+    name: "{{ image }}"
+    source: pull
+  register: _pull_result
+
+- name: 停止并移除现有同名容器
+  community.docker.docker_container:
+    name: "{{ container_name }}"
+    state: absent
+  ignore_errors: true
+
+- name: 创建并启动 Docker 容器
+  community.docker.docker_container:
+    name: "{{ container_name }}"
+    image: "{{ image }}"
+    ports: "{{ ports | default({}) | dict2items | map(attribute='value') | list }}"
+    env: "{{ env_vars | default({}) }}"
+    volumes: "{{ volumes | default({}) | dict2items | map(attribute='value') | list }}"
+    state: started
+    restart_policy: always
+  register: _container_result
+
+- name: 输出部署结果
+  ansible.builtin.set_fact:
+    container_id: "{{ _container_result.container.Id | default('') }}"
+    deploy_success: "{{ _container_result is success }}"

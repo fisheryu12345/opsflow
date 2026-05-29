@@ -1,0 +1,349 @@
+import os
+import json
+import re
+from openai import OpenAI
+
+
+def _get_llm_client():
+    """Get OpenAI-compatible client (reuses DeepSeek config from conf/env.py)"""
+    from conf.env import OPSAGENT_API_KEY, OPSAGENT_BASE_URL, OPSAGENT_MODEL
+    api_key = os.environ.get('OPENAI_API_KEY') or OPSAGENT_API_KEY
+    base_url = os.environ.get('OPENAI_BASE_URL') or OPSAGENT_BASE_URL
+    model = os.environ.get('OPENAI_MODEL') or OPSAGENT_MODEL
+    return OpenAI(api_key=api_key, base_url=base_url), model
+
+
+def generate_pipeline(nl_input: str, target_hosts: list = None) -> dict:
+    """Convert natural language to Pipeline Tree JSON"""
+    client, model = _get_llm_client()
+    system_prompt = _build_system_prompt(target_hosts or [])
+
+    # RAG context injection
+    rag_context = rag_search(nl_input)
+    if rag_context:
+        system_prompt += "\n\nReference historical cases:\n" + json.dumps(rag_context, ensure_ascii=False, indent=2)
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': nl_input},
+        ],
+        response_format={'type': 'json_object'},
+        temperature=0.1,
+    )
+    text = response.choices[0].message.content
+    # MySQL does not support 4-byte UTF-8
+    text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
+    return json.loads(text)
+
+
+def refine_pipeline(nl_input: str, nodes: list, edges: list, target_hosts: list = None) -> dict:
+    """Multi-turn: modify existing Pipeline Tree based on new instruction"""
+    client, model = _get_llm_client()
+    system_prompt = _build_system_prompt(target_hosts or [])
+
+    existing = json.dumps({'nodes': nodes, 'edges': edges}, ensure_ascii=False, indent=2)
+    system_prompt += f'\n\nThis is the current Pipeline Tree. Modify it according to the user\'s new instructions:\n{existing}\n\n'
+    system_prompt += 'Note: Preserve most of the existing structure, only make incremental changes based on the instruction. Return only the complete JSON. No explanations. All output in English.'
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': nl_input},
+        ],
+        response_format={'type': 'json_object'},
+        temperature=0.1,
+    )
+    text = response.choices[0].message.content
+    text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
+    return json.loads(text)
+
+
+def optimize_layout(nodes: list, edges: list) -> list:
+    """Call AI to layout canvas nodes, returns [{id, x, y}, ...]"""
+    client, model = _get_llm_client()
+
+    nodes_info = []
+    for n in nodes:
+        conns = []
+        for e in edges:
+            if e.get('from') == n['id']:
+                conns.append(f"→ {e.get('to', '?')}" + (f" ({e.get('label', '')})" if e.get('label') else ''))
+            if e.get('to') == n['id']:
+                conns.append(f"← {e.get('from', '?')}" + (f" ({e.get('label', '')})" if e.get('label') else ''))
+        nodes_info.append({
+            'id': n['id'],
+            'label': n.get('label', ''),
+            'atom_type': n.get('atom_type', ''),
+            'connections': conns,
+        })
+
+    prompt = f"""You are a flowchart layout expert. Assign canvas coordinates (x, y) to each node, following these rules:
+1. Arrange nodes left-to-right by execution order (like BFS layers)
+2. Vertically center-align nodes in the same layer
+3. Minimize edge crossings by adjusting node order within layers
+4. Uniform spacing: horizontal 250px, vertical 80px
+5. Each node is 180px wide, 48px high. No overlapping.
+6. Top-left start position: (50, 40)
+7. Start node (start_event) and end node (end_event) must be on the same horizontal Y level — align them vertically centered with the overall flow
+8. Edges must be straight — no turns/bends in connection lines
+9. Minimize edge overlap — arrange node positions so connection lines do not cross or overlap
+10. Layout ALL nodes provided — every node must receive x,y coordinates
+
+Nodes (with connections):
+{json.dumps(nodes_info, ensure_ascii=False, indent=2)}
+
+Edges:
+{json.dumps(edges, ensure_ascii=False, indent=2)}
+
+Return only a JSON array: [{{"id": "node_1", "x": 50, "y": 40}}, ...]
+No explanations or extra text. All output in English."""
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[{'role': 'user', 'content': prompt}],
+        response_format={'type': 'json_object'},
+        temperature=0.1,
+    )
+    text = response.choices[0].message.content
+    text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
+    result = json.loads(text)
+    # Compat: response may be array directly or {positions: [...]}
+    if isinstance(result, dict):
+        for key in ('positions', 'layout', 'nodes', 'data'):
+            if key in result:
+                return result[key]
+    return result if isinstance(result, list) else []
+
+
+def rag_search(query: str, top_k: int = 5) -> list:
+    """Simple text RAG search — recall relevant cases from OpsKnowledge"""
+    from opsflow.models import OpsKnowledge
+    results = OpsKnowledge.objects.filter(content__icontains=query)[:top_k]
+    return [{'title': r.title, 'content': r.content[:500]} for r in results]
+
+
+def analyze_pipeline(nodes: list, edges: list) -> dict:
+    """Analyze Pipeline Tree: describe purpose, steps, and potential risks"""
+    client, model = _get_llm_client()
+
+    pipeline_str = json.dumps({'nodes': nodes, 'edges': edges}, ensure_ascii=False, indent=2)
+
+    prompt = f"""You are an ops pipeline analysis expert. Analyze the following Pipeline Tree and return JSON in English:
+
+{{"summary": "Brief pipeline overview (one sentence)", "steps": ["Step description", ...], "risks": ["Risk description", ...], "suggestions": ["Suggestion", ...]}}
+
+Pipeline Tree:
+{pipeline_str}
+
+Requirements:
+- steps: list each node's operation in execution order
+- risks: analyze potential risks (e.g., missing backup, no rollback path)
+- suggestions: provide optimization recommendations
+Return empty array for risks if none found. Return only JSON."""
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[{'role': 'user', 'content': prompt}],
+        response_format={'type': 'json_object'},
+        temperature=0.1,
+    )
+    text = response.choices[0].message.content
+    text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
+    return json.loads(text)
+
+
+def _build_system_prompt(target_hosts: list) -> str:
+    hosts_str = ', '.join(target_hosts) if target_hosts else 'target hosts (specified by user)'
+
+    # Dynamically generate atom list from atom_registry
+    from .atom_registry import get_all_atoms
+    atoms = get_all_atoms()
+    atom_lines = []
+    for name, meta in sorted(atoms.items()):
+        inputs_str = ', '.join(
+            i.get('name', '') if isinstance(i, dict) else str(i)
+            for i in meta.inputs
+        )
+        atom_lines.append(f"  - {name}: {meta.description} (params: {inputs_str})")
+
+    atom_list = '\n'.join(atom_lines)
+
+    return f"""You are an ops workflow generator. Convert natural language descriptions to standard Pipeline Tree JSON.
+
+Available atom types:
+{atom_list}
+
+Pipeline Tree JSON format:
+{{
+  "nodes": [
+    {{"id": "node_1", "label": "Node label", "node_type": "", "atom_type": "disk_check", "params": {{}}, "max_retries": 1, "timeout_seconds": 30}},
+    {{"id": "node_2", "label": "Gateway label", "node_type": "exclusive_gateway"}}
+  ],
+  "edges": [
+    {{"from": "node_1", "to": "node_2", "label": "success"}},
+    {{"from": "node_1", "to": "node_3", "label": "failure"}}
+  ]
+}}
+
+Node types and degree rules:
+  - atom: ServiceActivity, indegree>=1, outdegree 1-2 (2 edges must be success/failure)
+  - exclusive_gateway: selects one branch based on condition, indegree>=1, outdegree>=1
+  - parallel_gateway: executes all branches in parallel, must pair with converge_gateway, indegree>=1, outdegree>=1
+  - conditional_parallel_gateway: conditionally executes branches in parallel, must pair with converge_gateway, indegree>=1, outdegree>=1
+  - converge_gateway: merges multiple branches into one, indegree>=1, outdegree=1
+
+===== Important: Gateway Usage Scenarios (understand and use correctly) =====
+
+1. exclusive_gateway --- "choose one"
+   Scenario: after an operation, choose a path based on the result — only one path executes.
+   Example: health check passes → deploy, fails → alert.
+   Structure: atom → exclusive_gateway → (branch A OR branch B)
+
+2. parallel_gateway --- "execute all"
+   Scenario: multiple independent tasks run concurrently, no conditional branching.
+   Example: run the same operation on multiple servers simultaneously, backup multiple dirs concurrently.
+   Structure: parallel_gateway → (branch A, branch B) → converge_gateway (must pair)
+
+3. conditional_parallel_gateway --- "execute all that match"
+   Scenario: batch of parallel tasks, but some branches have conditions.
+   Example: deploy to multiple environments — staging uses one logic, production uses another.
+   Structure: conditional_parallel_gateway → (cond A, cond B) → converge_gateway (must pair)
+
+4. converge_gateway --- "merge point"
+   Scenario: merge multiple divergent paths back into one.
+   Note: ALL branches diverged by parallel/conditional_parallel_gateway must converge to the SAME converge_gateway.
+
+===== Complete Examples (reference these JSON patterns) =====
+
+Example 1: Serial --- execute one after another
+"Check disk, then send report"
+{{
+  "nodes": [
+    {{"id": "node_1", "label": "Check Disk", "node_type": "", "atom_type": "disk_check", "params": {{}}}},
+    {{"id": "node_2", "label": "Send Report", "node_type": "", "atom_type": "send_alert", "params": {{}}}}
+  ],
+  "edges": [
+    {{"from": "node_1", "to": "node_2", "label": "success"}}
+  ]
+}}
+
+Example 2: Branch --- success/failure choice
+"Health check, deploy if passed, send alert if failed"
+{{
+  "nodes": [
+    {{"id": "node_1", "label": "Health Check", "node_type": "", "atom_type": "health_check", "params": {{}}}},
+    {{"id": "node_2", "label": "Passed?", "node_type": "exclusive_gateway"}},
+    {{"id": "node_3", "label": "Deploy App", "node_type": "", "atom_type": "java_deploy", "params": {{}}}},
+    {{"id": "node_4", "label": "Send Alert", "node_type": "", "atom_type": "send_alert", "params": {{}}}}
+  ],
+  "edges": [
+    {{"from": "node_1", "to": "node_2", "label": "success"}},
+    {{"from": "node_2", "to": "node_3", "label": "success"}},
+    {{"from": "node_2", "to": "node_4", "label": "failure"}}
+  ]
+}}
+
+Example 3: Parallel --- execute multiple tasks concurrently, then converge
+"Deploy Docker on 3 servers concurrently, send report when all done"
+{{
+  "nodes": [
+    {{"id": "node_1", "label": "Parallel Deploy", "node_type": "parallel_gateway"}},
+    {{"id": "node_2", "label": "Deploy Node 1", "node_type": "", "atom_type": "docker_deploy", "params": {{"host": "192.168.1.1"}}}},
+    {{"id": "node_3", "label": "Deploy Node 2", "node_type": "", "atom_type": "docker_deploy", "params": {{"host": "192.168.1.2"}}}},
+    {{"id": "node_4", "label": "Deploy Node 3", "node_type": "", "atom_type": "docker_deploy", "params": {{"host": "192.168.1.3"}}}},
+    {{"id": "node_5", "label": "Converge", "node_type": "converge_gateway"}},
+    {{"id": "node_6", "label": "Send Report", "node_type": "", "atom_type": "send_alert", "params": {{}}}}
+  ],
+  "edges": [
+    {{"from": "node_1", "to": "node_2", "label": "success"}},
+    {{"from": "node_1", "to": "node_3", "label": "success"}},
+    {{"from": "node_1", "to": "node_4", "label": "success"}},
+    {{"from": "node_2", "to": "node_5", "label": "success"}},
+    {{"from": "node_3", "to": "node_5", "label": "success"}},
+    {{"from": "node_4", "to": "node_5", "label": "success"}},
+    {{"from": "node_5", "to": "node_6", "label": "success"}}
+  ]
+}}
+
+Example 4: Combined --- check → branch → parallel → converge
+"Check disk, clean if over 80%, then backup /data and /etc concurrently, finally send results"
+{{
+  "nodes": [
+    {{"id": "node_1", "label": "Check Disk", "node_type": "", "atom_type": "disk_check", "params": {{"threshold": 80}}}},
+    {{"id": "node_2", "label": "Over limit?", "node_type": "exclusive_gateway"}},
+    {{"id": "node_3", "label": "Clean Disk", "node_type": "", "atom_type": "shell", "params": {{"command": "cleanup.sh"}}}},
+    {{"id": "node_4", "label": "Parallel Backup", "node_type": "parallel_gateway"}},
+    {{"id": "node_5", "label": "Backup /data", "node_type": "", "atom_type": "backup_file", "params": {{"path": "/data"}}}},
+    {{"id": "node_6", "label": "Backup /etc", "node_type": "", "atom_type": "backup_file", "params": {{"path": "/etc"}}}},
+    {{"id": "node_7", "label": "Converge", "node_type": "converge_gateway"}},
+    {{"id": "node_8", "label": "Send Results", "node_type": "", "atom_type": "send_alert", "params": {{}}}}
+  ],
+  "edges": [
+    {{"from": "node_1", "to": "node_2", "label": "success"}},
+    {{"from": "node_2", "to": "node_3", "label": "success"}},
+    {{"from": "node_2", "to": "node_4", "label": "failure"}},
+    {{"from": "node_3", "to": "node_4", "label": "success"}},
+    {{"from": "node_4", "to": "node_5", "label": "success"}},
+    {{"from": "node_4", "to": "node_6", "label": "success"}},
+    {{"from": "node_5", "to": "node_7", "label": "success"}},
+    {{"from": "node_6", "to": "node_7", "label": "success"}},
+    {{"from": "node_7", "to": "node_8", "label": "success"}}
+  ]
+}}
+
+Example 5: Rolling update --- update services on multiple servers sequentially
+"Rolling update nginx on web1 web2 web3, backup config before update"
+{{
+  "nodes": [
+    {{"id": "node_1", "label": "Backup Config", "node_type": "", "atom_type": "backup_file", "params": {{"path": "/etc/nginx"}}}},
+    {{"id": "node_2", "label": "Parallel Update", "node_type": "parallel_gateway"}},
+    {{"id": "node_3", "label": "Update web1", "node_type": "", "atom_type": "nginx_reload", "params": {{"host": "web1"}}}},
+    {{"id": "node_4", "label": "Update web2", "node_type": "", "atom_type": "nginx_reload", "params": {{"host": "web2"}}}},
+    {{"id": "node_5", "label": "Update web3", "node_type": "", "atom_type": "nginx_reload", "params": {{"host": "web3"}}}},
+    {{"id": "node_6", "label": "Health Check web1", "node_type": "", "atom_type": "health_check", "params": {{"host": "web1"}}}},
+    {{"id": "node_7", "label": "Health Check web2", "node_type": "", "atom_type": "health_check", "params": {{"host": "web2"}}}},
+    {{"id": "node_8", "label": "Health Check web3", "node_type": "", "atom_type": "health_check", "params": {{"host": "web3"}}}},
+    {{"id": "node_9", "label": "Converge", "node_type": "converge_gateway"}}
+  ],
+  "edges": [
+    {{"from": "node_1", "to": "node_2", "label": "success"}},
+    {{"from": "node_2", "to": "node_3", "label": "success"}},
+    {{"from": "node_2", "to": "node_4", "label": "success"}},
+    {{"from": "node_2", "to": "node_5", "label": "success"}},
+    {{"from": "node_3", "to": "node_6", "label": "success"}},
+    {{"from": "node_4", "to": "node_7", "label": "success"}},
+    {{"from": "node_5", "to": "node_8", "label": "success"}},
+    {{"from": "node_6", "to": "node_9", "label": "success"}},
+    {{"from": "node_7", "to": "node_9", "label": "success"}},
+    {{"from": "node_8", "to": "node_9", "label": "success"}}
+  ]
+}}
+
+Notes:
+- The number of servers mentioned in the user's description determines parallel or serial structure
+- "Parallel" / "concurrent" means executing the same operation on multiple servers simultaneously, use parallel_gateway + converge_gateway
+- "Rolling update" means processing machines ONE BY ONE — execute the operation on one machine, verify (health check), then move to the next. Use serial structure (node after node).
+- If the user says "one by one" or "sequentially", use serial structure
+- When generating JSON, always use the actual terms from the user's description as labels
+
+===== Design Rules =====
+
+Safety rules:
+- deploy/upload/modify/delete operations must have a backup_file node before them
+- High-risk operations (docker_deploy, service_control stop) must have a rollback path (failure edge pointing to rollback node)
+- Max retries must not exceed 10
+
+bamboo-engine constraints:
+1. The flow must be a DAG (Directed Acyclic Graph) — no circular dependencies
+2. Branch labels can only be "success" or "failure"
+3. All node IDs must be unique
+4. Nodes with only outgoing edges (no incoming) are start nodes
+5. All branches of parallel_gateway and conditional_parallel_gateway must converge to the same converge_gateway
+6. converge_gateway indegree must be >= 2 (converges at least 2 branches)
+7. Regular atom nodes can have at most 2 outgoing edges (success + failure)
+8. Target hosts: {hosts_str}
+
+Return only JSON object, no explanations."""

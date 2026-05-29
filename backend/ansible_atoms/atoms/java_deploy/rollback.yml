@@ -1,0 +1,14 @@
+---
+- name: 回滚 — 从备份恢复
+  ansible.builtin.shell: |
+    LATEST_BACKUP=$(ls -t {{ backup_dir | default('/backup') }}/{{ artifact_path | basename }}.* | head -1)
+    if [ -n "$LATEST_BACKUP" ]; then
+      cp "$LATEST_BACKUP" {{ target_path | default('/opt/app') }}/{{ artifact_path | basename }}
+    fi
+  when: artifact_path is defined
+
+- name: 回滚 — 重启服务
+  ansible.builtin.systemd:
+    name: "{{ service_name }}"
+    state: restarted
+  when: service_name is defined and service_name | length > 0

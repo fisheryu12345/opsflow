@@ -138,3 +138,5 @@ simpleui
 django_apscheduler==0.7.0
 chinesecalendar==1.11.0
 weasyprint==12.2.0
+bamboo-engine==3.0.3
+openai==2.31.0

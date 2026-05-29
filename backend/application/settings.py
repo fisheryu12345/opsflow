@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "stock",
     "hvob_mbi",
     "opsagent",
+    "opsflow",
 ]
 
 MIDDLEWARE = [
