@@ -987,7 +987,12 @@ class HvobTradingEngine:
                 account_info = self.api.get_account()
                 balance = float(getattr(account_info, 'balance', 0) or 0)
                 available = float(getattr(account_info, 'available', 0) or 0)
-                record_daily_equity(self.account, self.trade_date, balance, self.daily_pnl, available=available)
+                float_profit = float(getattr(account_info, 'float_profit', 0) or 0)
+                margin = float(getattr(account_info, 'margin', 0) or 0)
+                risk_ratio = float(getattr(account_info, 'risk_ratio', 0) or 0)
+                record_daily_equity(self.account, self.trade_date, balance, self.daily_pnl,
+                                    available=available, float_profit=float_profit,
+                                    margin=margin, risk_ratio=risk_ratio)
             except Exception as e:
                 print(f"[HVOB] 记录日权益失败: {e}")
 

@@ -159,7 +159,8 @@ def _create_closed_record(account, symbol, product_code, trade_date,
     )
 
 
-def record_daily_equity(account, trade_date, balance, pnl, available=None):
+def record_daily_equity(account, trade_date, balance, pnl, available=None,
+                        float_profit=None, margin=None, risk_ratio=None):
     """写入 DailyEquitySnapshot"""
     defaults = {
         'balance': Decimal(str(balance)),
@@ -167,6 +168,12 @@ def record_daily_equity(account, trade_date, balance, pnl, available=None):
     }
     if available is not None:
         defaults['available'] = Decimal(str(available))
+    if float_profit is not None:
+        defaults['float_profit'] = Decimal(str(float_profit))
+    if margin is not None:
+        defaults['margin'] = Decimal(str(margin))
+    if risk_ratio is not None:
+        defaults['risk_ratio'] = Decimal(str(risk_ratio))
     DailyEquitySnapshot.objects.update_or_create(
         account=account,
         trade_date=trade_date,
