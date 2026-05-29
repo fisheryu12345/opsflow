@@ -128,12 +128,37 @@
       "Bash(python fix_s1.py)",
       "Bash(python fix_all.py)",
       "Bash(python debug_s11.py)",
-      "Bash(python -m py_compile backend/stock/scheduler/tasks_daily_close.py)"
+      "Bash(python -m py_compile backend/stock/scheduler/tasks_daily_close.py)",
+      "Bash(python templates/update_report.py)",
+      "Bash(set PYTHONUTF8=1)",
+      "Bash(python -c \"import sys; print\\(f'fs_enc={sys.getfilesystemencoding\\(\\)}, default={sys.getdefaultencoding\\(\\)}'\\)\")",
+      "Bash(python templates/check_encoding.py)",
+      "Bash(python templates/update_report_final.py)",
+      "Bash(set PYTHONIOENCODING=utf-8)",
+      "Bash(set FORCE_COLOR=0)",
+      "Bash(python templates/fix_indent.py)",
+      "Bash(git -C \"c:/Users/dell/Desktop/Vue\" log --all --diff-filter=A -- \"templates/*分析*\")",
+      "Bash(git -C \"c:/Users/dell/Desktop/Vue\" ls-files -- \"templates/*分析*\")",
+      "Bash(git -C \"c:/Users/dell/Desktop/Vue\" ls-files -- \"templates/\")",
+      "Bash(python templates/fix_s1_cards.py)",
+      "Bash(python -c \"with open\\('templates/策略分析报告-完整数理分析.html', 'rb'\\) as f: data = f.read\\(\\); print\\(f'File size: {len\\(data\\)} bytes'\\)\")",
+      "Bash(rm -f fix_indent.py check_encoding.py debug_hvob.py update_report.py fix_s1_cards.py)",
+      "Bash(ls -la *.py)",
+      "Bash(cp /c/Users/dell/Desktop/Vue/backend/templates/策略分析报告-完整数理分析.html /c/Users/dell/Desktop/Vue/backend/templates/策略分析报告-完整数理分析.template.html)",
+      "Bash(cd /c/Users/dell/Desktop/Vue/backend/templates && cat '策略分析报告-完整数理分析.template.html' | head -86 | tail -2)",
+      "Read(//c/c/Users/dell/Desktop/Vue/backend/templates/**)",
+      "Bash(python _revert_template.py)",
+      "Bash(python _patch_template.py)",
+      "Bash(python _verify_template.py)",
+      "Bash(python _fix_template.py)",
+      "Bash(rm -f _revert_template.py _patch_template.py _fix_template.py _verify_template.py)",
+      "Bash(python -m py_compile \"../stock/scheduler/tasks_update_report_final.py\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",
       "c:\\Users\\dell\\Desktop\\Vue\\stock\\backtest\\data",
-      "C:\\Users\\dell\\Desktop\\Vue\\backend\\opsagent"
+      "C:\\Users\\dell\\Desktop\\Vue\\backend\\opsagent",
+      "C:\\Users\\dell\\Desktop\\Vue\\backend\\templates"
     ]
   }
 }
