@@ -733,9 +733,9 @@ def job_daily_close_calculation():
                             trade_date=date.today()
                         )
                         print(f"[SUCCESS] {account.name} \u4e09\u5c42\u7ee9\u6548\u6570\u636e\u5df2\u66f4\u65b0")
-                        print(f"  - \u65e5\u6743\u76ca\u5feb\u7167: balance={result['snapshot']['balance']}")
+                        print(f"  - \u65e5\u6743\u76ca\u5feb\u7167: balance={result['snapshot'].balance}")
                         print(f"  - \u6eda\u52a8\u6307\u6807: sharpe_20d={result['rolling_metrics'][20].sharpe_ratio}")
-                        print(f"  - \u8d26\u6237\u603b\u89c8: total_return={result['summary']['total_return']}%")
+                        print(f"  - \u8d26\u6237\u603b\u89c8: total_return={result['summary'].total_return}%")
                     except Exception as perf_error:
                         print(f"[ERROR] {account.name} \u66f4\u65b0\u7ee9\u6548\u6307\u6807\u5931\u8d25: {perf_error}")
                         traceback.print_exc()
