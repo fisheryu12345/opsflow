@@ -9,7 +9,7 @@ import sys
 import io
 import shutil
 import traceback
-from datetime import date
+from datetime import datetime
 from decimal import Decimal
 
 import django
@@ -212,11 +212,14 @@ def job_update_report_final():
                 log_trade(FSM, '非交易日，跳过报告更新', symbol='N/A', log_level='INFO')
                 return
 
-            today = date.today()
+            today = datetime.now()
             print(f'[{today}] Generating report...')
             log_trade(FSM, f'开始更新HTML报告', symbol='N/A', log_level='INFO')
 
-            # Restore template baseline (placeholder values) before filling
+            # Delete old HTML, then restore template baseline
+            if os.path.exists(HTML_PATH):
+                os.remove(HTML_PATH)
+                print(f'Old HTML deleted: {HTML_PATH}')
             if os.path.exists(TEMPLATE_PATH):
                 shutil.copy2(TEMPLATE_PATH, HTML_PATH)
                 print(f'Template restored: {TEMPLATE_PATH} → {HTML_PATH}')
@@ -246,8 +249,9 @@ def job_update_report_final():
             t10_color = 'var(--green)' if float(t10.current_equity) >= float(t10.initial_balance) else 'var(--red)'
 
             # Build day label
-            day_num = (today - date(2026, 5, 26)).days + 1
+            day_num = (today - datetime(2026, 5, 26)).days + 1
             date_label = today.strftime('%Y-%m-%d')
+            time_label = today.strftime('%H:%M')
 
             # ── COVER PAGE ──
             html, _ = _replace_one(html,
@@ -471,7 +475,7 @@ def job_update_report_final():
                 '  <tr><td>亏损笔数</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>',
                 f'  <tr><td>亏损笔数</td><td>0</td><td>0</td><td>0</td><td>{len(hvob_losses)}</td></tr>')
             html, _ = _replace_one(html,
-                '  <tr><td>累计平仓盈亏</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td><td>&yen;12,745</td></tr>',
+                '  <tr><td>累计平仓盈亏</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td><td>&yen;1,025</td></tr>',
                 f'  <tr><td>累计平仓盈亏</td><td>&yen;0</td><td>&yen;0</td><td>&yen;0</td><td>&yen;{hvob_closed_total:,.0f}</td></tr>')
             html, _ = _replace_one(html,
                 '  <tr><td>平均盈利</td><td>-</td><td>-</td><td>-</td><td>&yen;1,821</td></tr>',
@@ -502,7 +506,7 @@ def job_update_report_final():
             # ── FOOTER ──
             html, _ = _replace_one(html,
                 '<p>生成日期: 2026-05-27 | v3.1</p>',
-                f'<p>生成日期: {date_label} | v3.3</p>')
+                f'<p>生成日期: {date_label} {time_label} | v3.3</p>')
 
             # ── WRITE OUTPUT ──
             with open(HTML_PATH, 'w', encoding='utf-8') as f:

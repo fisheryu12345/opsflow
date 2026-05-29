@@ -152,7 +152,11 @@
       "Bash(python _verify_template.py)",
       "Bash(python _fix_template.py)",
       "Bash(rm -f _revert_template.py _patch_template.py _fix_template.py _verify_template.py)",
-      "Bash(python -m py_compile \"../stock/scheduler/tasks_update_report_final.py\")"
+      "Bash(python -m py_compile \"../stock/scheduler/tasks_update_report_final.py\")",
+      "Bash(python -m py_compile stock/scheduler/tasks_update_report_final.py)",
+      "Bash(python -m py_compile stock/urls.py)",
+      "Bash(grep -A 5 \"strategy-report\\\\|location\" /etc/nginx/nginx.conf | head -40)",
+      "Read(//etc/nginx/**)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

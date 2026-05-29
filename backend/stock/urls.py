@@ -1,7 +1,12 @@
 """
 Stock app URL configuration
 """
+import os
+
+from django.conf import settings
+from django.http import HttpResponse
 from django.urls import path
+from django.views.decorators.cache import never_cache
 from django.views.generic import TemplateView
 from rest_framework.routers import DefaultRouter
 
@@ -67,8 +72,8 @@ trade_markers_view = TradeMarkersView.as_view({'get': 'list'})
 contracts_for_kline_view = ContractsForKlineView.as_view({'get': 'list'})
 
 urlpatterns = [
-    # 策略分析报告（直接渲染 HTML 模板）
-    path('strategy-report/', TemplateView.as_view(template_name='策略分析报告-完整数理分析.html'), name='strategy-report'),
+    # 策略分析报告（每次请求直接读文件，绕过模板引擎缓存）
+    path('strategy-report/', never_cache(lambda req, **kw: HttpResponse(open(os.path.join(settings.BASE_DIR, 'templates', '策略分析报告-完整数理分析.html'), encoding='utf-8').read(), content_type='text/html; charset=utf-8'))),
     # 策略综合对比评测（直接渲染 HTML 模板）
     path('strategy-comparison/', TemplateView.as_view(template_name='策略综合对比-五大策略全面评测.html'), name='strategy-comparison'),
     # K线数据路由（必须放在 router.urls 之前，避免被 router 的 {pk} 路由拦截）
