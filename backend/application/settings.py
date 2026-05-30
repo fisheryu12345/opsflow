@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 from datetime import timedelta
 import socket
+from kombu import Queue
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -71,6 +72,8 @@ INSTALLED_APPS = [
     "stock",
     "hvob_mbi",
     "opsagent",
+    "pipeline.component_framework",
+    "pipeline.eri",
     "opsflow",
 ]
 
@@ -462,3 +465,10 @@ CACHES = {
 
 CELERY_BROKER_URL = 'redis://:redis123456@127.0.0.1:6379/0'
 CELERY_RESULT_BACKEND = 'redis://:redis123456@127.0.0.1:6379/1'
+
+CELERY_TASK_QUEUES = [
+    Queue('default'),
+    Queue('er_execute'),
+    Queue('er_schedule'),
+]
+CELERY_TASK_DEFAULT_QUEUE = 'default'

@@ -223,7 +223,15 @@
       "Bash(pip uninstall *)",
       "Bash(pip download *)",
       "Bash(c:/veighna_studio/python.exe --version)",
-      "Bash(c:/veighna_studio/python.exe -c \"import bamboo_engine; print\\('bamboo_engine available'\\)\")"
+      "Bash(c:/veighna_studio/python.exe -c \"import bamboo_engine; print\\('bamboo_engine available'\\)\")",
+      "Bash(python -c \"from pipeline.engine import api; print\\('pipeline.api OK'\\)\")",
+      "Bash(python -c \"import bamboo_engine; print\\(bamboo_engine.__file__\\); print\\(bamboo_engine.__version__ if hasattr\\(bamboo_engine, '__version__'\\) else 'no __version__'\\)\")",
+      "Bash(python -c \"import bamboo_engine\")",
+      "Read(//c/Users/dell/AppData/Roaming/Python/Python314/site-packages//**)",
+      "Bash(pip index *)",
+      "Bash(python -c \"import pipeline; print\\(pipeline.__file__\\)\")",
+      "Bash(python -c \"from pipeline.core.data.base import Service; print\\(Service.__bases__\\); print\\([m for m in dir\\(Service\\) if not m.startswith\\('_'\\)]\\)\")",
+      "Bash(python -c \"from pipeline.component_framework.component import Component; print\\(Component.__bases__\\); print\\([m for m in dir\\(Component\\) if not m.startswith\\('_'\\)]\\)\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",
