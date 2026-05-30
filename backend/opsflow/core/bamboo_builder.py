@@ -146,9 +146,23 @@ def build_bamboo_pipeline(flow_template):
     for node in effective_nodes:
         nt = node.get('node_type', '')
         if nt in ('parallel_gateway', 'conditional_parallel_gateway'):
-            cg_id = _find_converge(node['id'])
-            if cg_id and cg_id in elem_map:
-                elem_map[node['id']].converge(elem_map[cg_id])
+            pg_elem = elem_map[node['id']]
+            # 检查 outgoing 是否已连接到汇聚网关（模板已显式定义边的情况）
+            # 如果是，跳过 converge() 避免 tail() 死循环
+            already_converged = True
+            for out_elem in pg_elem.outgoing:
+                # 沿着 outgoing[0] 找 tail，看是否已指向汇聚网关
+                walker = out_elem
+                while len(walker.outgoing) > 0:
+                    walker = walker.outgoing[0]
+                # 如果 tail 已经是 end_elem，说明路径已完整，无需 converge
+                if walker.id != end_elem.id:
+                    already_converged = False
+                    break
+            if not already_converged:
+                cg_id = _find_converge(node['id'])
+                if cg_id and cg_id in elem_map:
+                    pg_elem.converge(elem_map[cg_id])
 
     # 6. 构建 data
     data = Data(inputs={

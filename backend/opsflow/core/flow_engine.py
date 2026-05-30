@@ -18,6 +18,8 @@ from bamboo_engine import api as pipeline_api
 from pipeline.eri.runtime import BambooDjangoRuntime
 
 from opsflow.core.bamboo_builder import build_bamboo_pipeline
+from opsflow.core.executors.factory import AtomExecutorFactory
+from opsflow.models import OpsLog
 
 logger = logging.getLogger(__name__)
 
@@ -31,16 +33,24 @@ class FlowEngine:
 
     # -- External API --------------------------------------------------------
 
-    def start(self):
-        """启动执行，创建 Celery 任务"""
+    def start(self, sync=False):
+        """启动执行
+
+        Args:
+            sync: True=直接同步执行（不依赖 Celery/bamboo-engine），
+                  False=创建 Celery 任务异步执行（默认）
+        """
         self.execution.status = "running"
         self.execution.started_at = datetime.datetime.now()
         self.execution.node_status = {}
         self.execution.context = {}
         self.execution.save()
-        from opsflow.tasks import execute_pipeline_task
+        if sync:
+            self.run_sync()
+        else:
+            from opsflow.tasks import execute_pipeline_task
 
-        execute_pipeline_task.delay(self.execution.id)
+            execute_pipeline_task.delay(self.execution.id)
 
     def pause(self):
         """暂停执行 — 委托给 BambooDjangoRuntime"""
@@ -132,19 +142,162 @@ class FlowEngine:
             self.execution.save()
             self._notify_completed()
 
+    # -- Run (sync) -----------------------------------------------------------
+
+    def run_sync(self):
+        """直接同步执行 Pipeline（不依赖 Celery / bamboo-engine）
+
+        从模板 pipeline_tree 读取 nodes + edges，拓扑排序后逐个调用
+        AtomExecutorFactory.execute_atom() 执行，每步更新 DB 并推送
+        WebSocket 通知（best-effort）。
+        """
+        tree = self.template.pipeline_tree
+        if not tree:
+            logger.error("[FlowEngine] run_sync: template has no pipeline_tree")
+            self.execution.status = "failed"
+            self.execution.ended_at = datetime.datetime.now()
+            self.execution.save()
+            return
+
+        raw_nodes = tree.get("nodes", [])
+        edges = tree.get("edges", [])
+        nodes_by_id = {n["id"]: n for n in raw_nodes}
+
+        # --- topological sort ---
+        in_degree = {nid: 0 for nid in nodes_by_id}
+        adj = {nid: [] for nid in nodes_by_id}
+        for e in edges:
+            f, t = e.get("from"), e.get("to")
+            if f in adj and t in in_degree:
+                adj[f].append(t)
+                in_degree[t] = in_degree.get(t, 0) + 1
+
+        queue = [nid for nid, d in in_degree.items() if d == 0]
+        order = []
+        while queue:
+            nid = queue.pop(0)
+            order.append(nid)
+            for nxt in adj.get(nid, []):
+                in_degree[nxt] = in_degree.get(nxt, 0) - 1
+                if in_degree[nxt] == 0:
+                    queue.append(nxt)
+
+        # --- execute nodes in order ---
+        for node_id in order:
+            node = nodes_by_id[node_id]
+            atom_type = node.get("atom_type")
+            ntype = node.get("type", "")
+            # skip structural nodes (gateways / events)
+            if not atom_type or ntype in ("start_event", "end_event"):
+                continue
+
+            self._update_node(node_id, "running")
+            self._send_ws_node_status(node_id, "running")
+
+            inputs = dict(node.get("params", {}))
+            inputs.update({
+                "_atom_type": atom_type,
+                "_execution_id": self.execution.id,
+                "_node_id": node_id,
+            })
+
+            result = AtomExecutorFactory.execute_atom(
+                atom_type, inputs, self.template.target_hosts
+            )
+
+            if result.success:
+                self._update_node(node_id, "completed")
+                self._send_ws_node_status(node_id, "completed")
+                logger.info(
+                    "[FlowEngine] node %s (%s) completed", node_id, atom_type
+                )
+            else:
+                logger.error(
+                    "[FlowEngine] node %s (%s) failed: %s",
+                    node_id, atom_type, result.error,
+                )
+                self._update_node(node_id, "failed")
+                self._send_ws_node_status(node_id, "failed")
+                self.execution.status = "failed"
+                self.execution.ended_at = datetime.datetime.now()
+                self.execution.save()
+                self._send_ws_completed()
+                OpsLog.objects.create(
+                    execution=self.execution,
+                    status="failed",
+                    step=node.get("label", node_id),
+                    message=result.error or "Node execution failed",
+                )
+                return
+
+        # all nodes completed successfully
+        self.execution.status = "completed"
+        self.execution.ended_at = datetime.datetime.now()
+        self.execution.save()
+        self._send_ws_completed()
+        logger.info(
+            "[FlowEngine] execution %s completed (sync)",
+            self.execution.id,
+        )
+
+    def _update_node(self, node_id: str, status: str):
+        """更新节点状态到 DB"""
+        ns = dict(self.execution.node_status or {})
+        ns[node_id] = status
+        self.execution.node_status = ns
+        if status == "running":
+            self.execution.current_node = node_id
+        self.execution.save(update_fields=["node_status", "current_node"])
+
     # -- Notification helpers ------------------------------------------------
 
     def _notify_node(self, node_id, status):
+        """推送节点状态通知 — 通过 Celery 任务"""
         from opsflow.tasks import notify_node_status
 
         notify_node_status.delay(self.execution.id, node_id, status)
 
     def _notify_completed(self):
-        from channels.layers import get_channel_layer
-        from asgiref.sync import async_to_sync
+        """推送执行完成通知 — 通过 channel layer"""
+        self._send_ws_completed()
 
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f"execution_{self.execution.id}",
-            {"type": "execution.completed", "status": self.execution.status},
-        )
+    def _send_ws_node_status(self, node_id, status):
+        """直接推送节点状态到 WebSocket（best-effort，不抛异常）"""
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    f"execution_{self.execution.id}",
+                    {
+                        "type": "node.status",
+                        "node_id": node_id,
+                        "status": status,
+                    },
+                )
+        except Exception:
+            logger.debug(
+                "[FlowEngine] channel layer unavailable, skipped WS notification"
+            )
+
+    def _send_ws_completed(self):
+        """推送执行完成通知到 WebSocket（best-effort，不抛异常）"""
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    f"execution_{self.execution.id}",
+                    {
+                        "type": "execution.completed",
+                        "status": self.execution.status,
+                    },
+                )
+        except Exception:
+            logger.debug(
+                "[FlowEngine] channel layer unavailable, skipped WS notification"
+            )

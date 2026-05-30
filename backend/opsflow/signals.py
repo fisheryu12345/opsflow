@@ -45,11 +45,14 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
 
     if node_id == root_id:
         _handle_root_state_change(execution, to_state)
-    elif to_state in (states.FINISHED, states.FAILED):
-        _log_node_result(execution, node_id, is_failed=(to_state == states.FAILED))
-        _notify_node_status(execution, node_id, to_state.lower())
-    elif to_state == states.RUNNING:
-        _notify_node_status(execution, node_id, "running")
+    else:
+        # 更新 DB 中的 node_status（持久化，页面刷新后可恢复）
+        _update_execution_node_status(execution, node_id, to_state)
+        if to_state in (states.FINISHED, states.FAILED):
+            _log_node_result(execution, node_id, is_failed=(to_state == states.FAILED))
+            _notify_node_status(execution, node_id, to_state.lower())
+        elif to_state == states.RUNNING:
+            _notify_node_status(execution, node_id, "running")
 
 
 def _handle_root_state_change(execution, to_state):
@@ -81,6 +84,22 @@ def _handle_root_state_change(execution, to_state):
     elif to_state == states.RUNNING:
         execution.status = "running"
         execution.save(update_fields=["status"])
+
+
+def _update_execution_node_status(execution, node_id, to_state):
+    """将节点状态持久化到 FlowExecution.node_status（JSONField）"""
+    status_map = {
+        states.FINISHED: "completed",
+        states.FAILED: "failed",
+        states.RUNNING: "running",
+    }
+    mapped = status_map.get(to_state)
+    if not mapped:
+        return
+    ns = dict(execution.node_status or {})
+    ns[node_id] = mapped
+    execution.node_status = ns
+    execution.save(update_fields=["node_status"])
 
 
 def _log_node_result(execution, node_id, is_failed):

@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from opsflow.models import FlowExecution, FlowTemplate
 from opsflow.serializers import FlowExecutionSerializer
 from opsflow.core.flow_engine import FlowEngine
+from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 
 
 class FlowExecutionViewSet(viewsets.ModelViewSet):
@@ -18,6 +19,26 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return SuccessResponse(data=serializer.data, msg="获取成功")
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return DetailResponse(data=serializer.data, msg="获取成功")
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return DetailResponse(data=serializer.data, msg="创建成功")
+
     @action(detail=True, methods=['post'])
     def start(self, request, pk=None):
         """启动执行 — 触发 Celery 异步任务"""
@@ -26,7 +47,7 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
             return Response({'code': 4000, 'msg': '当前状态不允许启动', 'data': None},
                             status=status.HTTP_400_BAD_REQUEST)
         engine = FlowEngine(execution)
-        engine.start()
+        engine.start(sync=False)
         return Response({'code': 2000, 'msg': '执行已启动', 'data': FlowExecutionSerializer(execution).data})
 
     @action(detail=True, methods=['post'])
