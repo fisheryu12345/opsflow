@@ -233,6 +233,7 @@ AtomExecutorFactory
 | `netapp` | `NetAppExecutor` | 伪代码 | ONTAP REST API |
 | `servicenow` | `ServiceNowExecutor` | 骨架 | pysnow |
 | `redfish` | `RedfishExecutor` | 骨架 | redfish |
+| `test` | `TestExecutor` | 具体实现 | 无（流程引擎测试） |
 
 ### BaseExecutor 契约
 
@@ -279,7 +280,7 @@ scan_atoms()
 
 `executor_type` 默认 `"ansible"`（向后兼容），未指定时自动使用 AnsibleExecutor。
 
-### 注册原子（30 个）
+### 注册原子（31 个）
 
 **Ansible 原子（13 个，executor_type=ansible）**:
 
@@ -347,6 +348,12 @@ scan_atoms()
 |------|------|------|------|
 | http_api_call | generic | medium | 通用 REST API 调用 |
 
+**Test 原子（1 个，executor_type=test）**:
+
+| 原子 | 分组 | 风险 | 说明 |
+|------|------|------|------|
+| test_print_time | test | low | 打印当前时间，流程引擎功能验证 |
+
 ## 7. SafetyGuard — 安全校验器
 
 **文件**: `backend/opsflow/core/safety_guard.py`
@@ -360,6 +367,8 @@ scan_atoms()
 | 高危回滚路径 | warning | 高危原子没有 failure/rollback 出边 |
 | 备份前置 | warning | 需要备份的原子前缺少 backup_file |
 | 孤儿节点 | warning | 非起始节点无入边 |
+| Shell 原子拦截 | error | AI 不应生成 shell 原子（作为不存在的功能 fallback） |
+| 跨平台误用检查 | error | 用户输入含 VM/虚拟机 时，禁止使用 netapp_* 原子 |
 
 ## 8. LLM Service — AI 服务
 
@@ -369,8 +378,19 @@ scan_atoms()
 
 | 方法 | 说明 |
 |------|------|
-| `generate_pipeline(nl_input)` | 自然语言 → Pipeline Tree JSON |
-| `refine_pipeline(nl_input, nodes, edges)` | 多轮对话修改现有流程 |
+| `generate_pipeline(nl_input, target_hosts)` | 自然语言 → Pipeline Tree JSON |
+| `refine_pipeline(nl_input, nodes, edges, target_hosts)` | 多轮对话修改现有流程 |
 | `optimize_layout(nodes, edges)` | AI 布局优化（BFS 分层） |
 | `analyze_pipeline(nodes, edges)` | 分析流程步骤、风险、建议 |
 | `rag_search(query)` | 知识库 RAG 检索 |
+
+### AI 幻觉防御
+
+| 层 | 机制 | 说明 |
+|----|------|------|
+| Prompt | 平台匹配规则 | esxi_* → VM, netapp_* → 存储, redfish_* → 物理服务器 |
+| Prompt | Shell 排除 | 已从 AI 可见原子列表中删除 `shell`，防止用作 fallback |
+| Prompt | _errors 替代 | AI 无法完成时生成 `_errors` 字段，而非使用替代原子 |
+| 服务端 | _errors 检测 | `create_from_ai`/`refine` 端点检查 pipeline._errors |
+| 服务端 | Shell 拦截 | 任何包含 `atom_type=shell` 的响应被拒绝 |
+| 服务端 | 跨平台检查 | 用户语义(VM/虚拟机)与 AI 生成原子(netapp_*)不匹配时拒绝 |

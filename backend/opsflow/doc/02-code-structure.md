@@ -14,7 +14,7 @@ backend/opsflow/
 │
 ├── core/
 │   ├── __init__.py
-│   ├── atom_registry.py             # 原子注册中心（30 个原子）
+│   ├── atom_registry.py             # 原子注册中心（31 个原子）
 │   ├── atom_service.py              # bamboo-engine Service 实现
 │   ├── ansible_trigger.py           # Ansible Tower HTTP 触发器
 │   ├── tower_service.py             # Tower REST API 封装（launch/poll/extract）
@@ -33,6 +33,7 @@ backend/opsflow/
 │       ├── servicenow_executor.py   # ServiceNowExecutor（骨架，需 pysnow）
 │       ├── redfish_executor.py      # RedfishExecutor（骨架，需 redfish 库）
 │       └── http_executor.py         # HttpExecutor（通用 REST，具体实现）
+│       └── test_executor.py         # TestExecutor（流程引擎测试用）
 │
 ├── views/
 │   ├── __init__.py
@@ -169,4 +170,5 @@ executors/factory.py
   ├─ executors/servicenow_executor.py
   ├─ executors/redfish_executor.py
   └─ executors/http_executor.py
+  └─ executors/test_executor.py
 ```

@@ -46,7 +46,7 @@ OpsFlow 采用**前后端分离 + 异步任务 + WebSocket 推送 + 多平台原
 ### 4. 原子层
 
 - **AtomRegistry**: 从 `ansible_atoms/atoms/*/meta.json` 加载原子元数据（含 executor_type 字段）
-- **Executor Factory**: 根据 executor_type 自动分发到对应执行器（Ansible/ESXi/NetApp/ServiceNow/Redfish/HTTP）
+- **Executor Factory**: 根据 executor_type 自动分发到对应执行器（Ansible/ESXi/NetApp/ServiceNow/Redfish/HTTP/Test）
 - **Atomic Executor**: 各平台执行器实现统一 `execute()/rollback()` 接口
 
 ### 5. 数据层
@@ -197,6 +197,10 @@ meta.json (executor_type)
 
 - 使用 DeepSeek via OpenAI-compatible API
 - `response_format={'type': 'json_object'}` 保证输出 JSON
-- System Prompt 动态注入可用原子列表（从 AtomRegistry 读取）
+- System Prompt 动态注入可用原子列表（从 AtomRegistry 读取，排除 `shell` 原子防止 AI 用作 fallback）
 - SafetyGuard 后端校验，包含白名单/高危/备份检查
+- 多重 AI 幻觉防御:
+  - `_errors` 字段检测: AI 无法完成请求时生成 `_errors`，后端拒绝保存
+  - Shell 原子过滤: 从 AI 可见原子列表移除 `shell` + 服务端二次拦截
+  - 跨平台误用检测: 用户输入含 VM/虚拟机 时拦截 AI 使用 netapp_* 原子
 - RAG 搜索 OpsKnowledge 注入相关案例

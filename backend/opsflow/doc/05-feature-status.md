@@ -18,10 +18,11 @@
 | 重试/跳过 | `flow_engine.py` | 失败节点重试或跳过 |
 | 条件表达式增强 | `flow_engine.py` | ${node_id.artifacts.key >= N} 全语法 |
 | Service 接口 | `atom_service.py` | 实现 bamboo-engine Service 接口 |
-| 原子注册 | `atom_registry.py` | meta.json 自动扫描注册（30 个原子） |
-| Executor Factory | `executors/factory.py` | 6 平台执行器统一调度 |
+| 原子注册 | `atom_registry.py` | meta.json 自动扫描注册（31 个原子） |
+| Executor Factory | `executors/factory.py` | 7 平台执行器统一调度（含 test） |
 | Tower 集成 | `tower_service.py` | launch/poll/artifacts/events/cancel |
-| 安全校验 | `safety_guard.py` | 白名单 / 高危回滚 / 备份前置 |
+| 安全校验 | `safety_guard.py` | 白名单 / 高危回滚 / 备份前置 / Shell 拦截 / 跨平台检查 |
+| AI 幻觉防御 | `template_views.py` + `llm_service.py` | _errors 检测 / Shell 过滤 / 跨平台误用拦截 |
 | AI 生成 | `llm_service.py` | DeepSeek NL → Pipeline Tree |
 | AI 多轮对话 | `llm_service.py` | 增量修改已有流程 |
 | AI 分析 | `llm_service.py` | 步骤 / 风险 / 建议分析 |
@@ -78,6 +79,7 @@
 | **NetApp Executor** | ONTAP REST API | 伪代码 |
 | **ServiceNow Executor** | pysnow 真实调用 | 骨架 |
 | **Redfish Executor** | BMC Redfish API | 骨架 |
+| **Test Executor** | 流程引擎功能验证 | ✅ 已完成 |
 
 ## Pipeline 格式定义
 
