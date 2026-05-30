@@ -21,9 +21,9 @@
 │  ┌────────────────────────┴─────────────────────────────┐      │
 │  │                   Backend Core                         │      │
 │  │  ┌─────────────┐  ┌──────────────┐  ┌─────────────┐  │      │
-│  │  │Pipeline     │  │FlowEngine    │  │TowerService │  │      │
-│  │  │Builder      │  │(Gateway)     │  │(launch/poll)│  │      │
-│  │  │(bamboo)     │  │Executor      │  └──────┬──────┘  │      │
+│  │  │Pipeline     │  │BambooDjangoRuntime│  │TowerService │  │      │
+│  │  │Builder      │  │(ERI 异步)     │  │(launch/poll)│  │      │
+│  │  │(bamboo)     │  │(异步)      │  └──────┬──────┘  │      │
 │  │  └──────┬──────┘  └──────┬───────┘         │         │      │
 │  │         │                │                  │         │      │
 │  │  ┌──────┴────────────────┴──────────────────┴──────┐  │      │
@@ -35,7 +35,7 @@
 │  │  │      Atom Layer / Executor Factory               │  │      │
 │  │  │  ┌─────────┐ ┌──────────┐ ┌──────────────────┐   │  │      │
 │  │  │  │Ansible  │ │Http     │ │ESXi/NetApp/Test  │   │  │      │
-│  │  │  │Executor │ │Executor │ │ServiceNow/Redfish │   │  │      │
+│  │  │  │(异步) │ │(异步) │ │ServiceNow/Redfish │   │  │      │
 │  │  │  └────┬────┘ └─────────┘ └──────────────────┘   │  │      │
 │  │  │       │                                        │  │      │
 │  │  │  ┌────┴────┐                                   │  │      │
@@ -68,11 +68,11 @@
 | Pipeline 分析 | ✅ 完成 | AI 分析流程步骤/风险/建议 |
 | AI 布局优化 | ✅ 完成 | 自动排列画布节点 |
 | Diff 对比 | ✅ 完成 | AI 原稿 vs 当前修改对比 |
-| 串行执行 | ✅ 完成 | 节点按顺序执行 |
-| 条件分支 (Exclusive) | ✅ 完成 | 根据条件表达式选择路径 |
-| 并行分支 (Parallel) | ✅ 完成 | Celery group 并行执行 |
-| 条件并行 (Conditional) | ✅ 完成 | 按条件筛选后并行 |
-| 路径汇聚 (Converge) | ✅ 完成 | Redis 计数等待所有分支 |
+| 串行执行 | ✅ 完成 | BambooDjangoRuntime 驱动 |
+| 条件分支 (Exclusive) | ✅ 完成 | BambooDjangoRuntime.GatewayMixin |
+| 并行分支 (Parallel) | ✅ 完成 | BambooDjangoRuntime.GatewayMixin |
+| 条件并行 (Conditional) | ✅ 完成 | BambooDjangoRuntime 自动处理 |
+| 路径汇聚 (Converge) | ✅ 完成 | BambooDjangoRuntime.ConvergeMixin |
 | 暂停/继续 | ✅ 完成 | 执行中暂停，恢复继续 |
 | 重试/跳过 | ✅ 完成 | 失败节点重试或跳过 |
 | WebSocket 实时监控 | ✅ 完成 | 节点状态 + Tower 作业进度推送 |
@@ -95,7 +95,7 @@
 | UI 库 | Element Plus |
 | 画布引擎 | AntV X6 (Graph / Stencil / Minimap / History / Clipboard) |
 | 后端框架 | Django 4.2 + DRF 3.14 |
-| 流程引擎 | bamboo-engine 3.0.3 |
+| 流程引擎 | bamboo-pipeline 3.29.9 (bamboo-engine 3.0.3) |
 | AI | DeepSeek (OpenAI-compatible API) |
 | 任务队列 | Celery (Redis broker) |
 | 数据库 | MySQL + Redis |

@@ -156,7 +156,26 @@ def build_bamboo_pipeline(flow_template):
         'global_vars': Var(type=Var.PLAIN, value=flow_template.global_vars or {}),
     })
 
-    return build_tree(start, data=data)
+    tree = build_tree(start, data=data)
+
+    # 应用节点超时配置（pipeline.contrib.node_timeout）
+    timeout_configs = {}
+    for node in effective_nodes:
+        timeout_seconds = node.get('timeout_seconds')
+        if timeout_seconds and timeout_seconds > 0:
+            timeout_configs[node['id']] = {
+                "enable": True,
+                "action": "forced_fail",
+                "seconds": timeout_seconds,
+            }
+    if timeout_configs:
+        try:
+            from pipeline.contrib.node_timeout import apply_node_timout_configs
+            apply_node_timout_configs(tree, timeout_configs)
+        except ImportError:
+            pass  # node_timeout contrib 未安装时静默降级
+
+    return tree
 
 
 def _create_element(node: dict, outgoing_edges: list) -> object:

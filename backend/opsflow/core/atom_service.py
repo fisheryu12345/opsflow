@@ -1,51 +1,53 @@
-"""bamboo-engine Service 实现 — 将原子注册为 bamboo-engine 组件"""
+"""bamboo-pipeline Component 注册 — 将 opsflow 原子注册为 pipeline Component
 
-import json
+每个 ATOM_REGISTRY 中的原子会被动态创建为一个 Component 子类，
+通过 ComponentMeta 元类自动注册到 ComponentLibrary 和 ComponentModel。
+BambooDjangoRuntime 在运行时通过 get_service() 将 Component 解析为 Service 实例。
+"""
+
 import logging
-from typing import Optional
 
-from bamboo_engine.eri import ExecutionData, Schedule, CallbackData
-from bamboo_engine.eri.interfaces import Service, ScheduleType
-from bamboo_engine.eri import HookType
+from pipeline.core.flow.activity import Service
+from pipeline.core.flow.io import InputItem, OutputItem
+from pipeline.component_framework.component import Component
 
-from .atom_registry import ATOM_REGISTRY, get_atom_meta
+from .atom_registry import ATOM_REGISTRY
 from .executors import AtomExecutorFactory, ExecuteResult
 
 logger = logging.getLogger(__name__)
 
-# 全局 Service 注册表
-SERVICE_REGISTRY: dict[str, type['AnsibleAtomService']] = {}
-
 
 class AnsibleAtomService(Service):
-    """bamboo-engine Service 基类 — 所有原子共享此基类，通过 component_code 区分"""
+    """bamboo-pipeline Service 基类 — 所有原子共享此实现，通过 _atom_name 区分类型"""
 
-    def __init__(self, component_code: str):
-        self._component_code = component_code
-        self._atom_type = self._resolve_atom_type(component_code)
-        self._meta = get_atom_meta(self._atom_type)
+    def inputs_format(self):
+        return [
+            InputItem(name="原子类型", key="_atom_type", type="string", required=True,
+                      schema=None),
+            InputItem(name="目标主机", key="target_hosts", type="array", required=False,
+                      schema=None),
+        ]
 
-    @staticmethod
-    def _resolve_atom_type(component_code: str) -> str:
-        """从 component_code 反查 atom_type"""
-        for name, meta in ATOM_REGISTRY.items():
-            if meta.component_code == component_code:
-                return name
-        return component_code.replace('opsflow_', '')
+    def outputs_format(self):
+        return [
+            OutputItem(name="标准输出", key="stdout", type="string", schema=None),
+            OutputItem(name="错误输出", key="stderr", type="string", schema=None),
+            OutputItem(name="返回码", key="returncode", type="int", schema=None),
+            OutputItem(name="错误信息", key="_error", type="string", schema=None),
+            OutputItem(name="执行器原始数据", key="executor_output", type="object", schema=None),
+        ]
 
-    # ---- Service 接口实现 ----
+    def execute(self, data, parent_data):
+        """执行原子操作
 
-    def execute(self, data: ExecutionData, root_pipeline_data: ExecutionData) -> bool:
-        """执行原子操作，返回 True=成功 / False=失败
-
-        通过 AtomExecutorFactory 根据 executor_type 自动分发到对应平台执行器。
-        当前支持的 executor_type: ansible, esxi, netapp, servicenow, redfish, http
+        :param data: DataObject — 节点输入输出数据（inputs 已由 Component.data_for_execution 解析）
+        :param parent_data: DataObject — 根流程数据
+        :return: bool
         """
         params = dict(data.inputs)
-        target_hosts = params.pop('target_hosts', [])
-        atom_name = self._atom_type
+        target_hosts = list(parent_data.inputs.get('target_hosts', []))
+        atom_name = getattr(self, '_atom_name', 'unknown')
 
-        # 通过工厂执行
         try:
             result: ExecuteResult = AtomExecutorFactory.execute_atom(
                 atom_name=atom_name,
@@ -68,72 +70,32 @@ class AnsibleAtomService(Service):
             data.outputs['_error'] = str(e)
             return False
 
-    def schedule(self, schedule: Schedule, data: ExecutionData,
-                 root_pipeline_data: ExecutionData,
-                 callback_data: Optional[CallbackData] = None) -> bool:
-        """轮询/回调执行结果（仅在 need_schedule 返回 True 时被调用）"""
-        try:
-            job_id = data.outputs.get('job_id')
-            if callback_data:
-                result = json.loads(callback_data.data)
-            else:
-                result = ansible_trigger.poll_job(job_id)
-            data.outputs.update({
-                'stdout': result.get('stdout', ''),
-                'stderr': result.get('stderr', ''),
-                'returncode': result.get('returncode', 0),
-                '_result': result.get('returncode', 0) == 0,
-            })
-            return result.get('returncode', 0) == 0
-        except Exception as e:
-            logger.exception(f"原子 {self._atom_type} 调度失败: {e}")
-            data.outputs['_result'] = False
-            return False
-
-    def need_schedule(self) -> bool:
-        """当前 mock 模式返回 False；生产（有 job_id）返回 True"""
-        return False
-
-    def schedule_type(self) -> Optional[ScheduleType]:
-        return ScheduleType.POLL
-
-    def is_schedule_done(self) -> bool:
-        return True
-
-    def schedule_after(self, schedule: Optional[Schedule], data: ExecutionData,
-                       root_pipeline_data: ExecutionData) -> int:
-        return 10
-
-    def need_run_hook(self) -> bool:
-        return False
-
-    def hook_dispatch(self, hook: HookType, data: ExecutionData,
-                      root_pipeline_data: ExecutionData,
-                      callback_data: Optional[CallbackData] = None) -> bool:
-        return True
-
-    def setup_runtime_attributes(self, **attrs):
-        pass
-
-
-def create_service(component_code: str) -> AnsibleAtomService:
-    """工厂方法 — 根据 component_code 创建对应的 AnsibleAtomService"""
-    return SERVICE_REGISTRY.get(component_code, AnsibleAtomService)(component_code)
-
 
 def register_atom_services():
-    """遍历 ATOM_REGISTRY，将每个原子注册到全局 SERVICE_REGISTRY"""
+    """遍历 ATOM_REGISTRY，为每个原子动态创建 Component + Service 子类
+
+    Component 的元类 ComponentMeta 自动完成以下操作：
+      1. 注册到 ComponentLibrary（全局组件库）
+      2. 创建/更新 ComponentModel 数据库记录
+    """
     count = 0
     for name, meta in ATOM_REGISTRY.items():
         code = meta.component_code or f"opsflow_{name}"
-        SERVICE_REGISTRY[code] = AnsibleAtomService
+
+        # 为每个原子创建独立的 Service 子类（携带 _atom_name 供 execute 识别）
+        service_cls = type(
+            f"{name.title()}Service",
+            (AnsibleAtomService,),
+            {'_atom_name': name, '__module__': __name__},
+        )
+
+        # 创建 Component 子类，绑定专属 Service — ComponentMeta 自动注册
+        type(f"{name.title()}Component", (Component,), {
+            'name': name,
+            'code': code,
+            'bound_service': service_cls,
+            '__module__': __name__,
+        })
         count += 1
-    logger.info(f"bamboo-engine Service 注册完成: 共 {count} 个组件")
 
-
-def get_service(code: str, version: str | None = None, name: str | None = None) -> AnsibleAtomService | None:
-    """供 bamboo-engine runtime 调用的 Service 查找接口"""
-    service_cls = SERVICE_REGISTRY.get(code)
-    if service_cls:
-        return service_cls(code)
-    return None
+    logger.info(f"pipeline Component 注册完成: 共 {count} 个组件")

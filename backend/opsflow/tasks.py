@@ -1,7 +1,7 @@
 from celery import shared_task
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=30)
+@shared_task(bind=True, max_retries=3, default_retry_delay=30, queue='er_execute')
 def execute_pipeline_task(self, execution_id):
     """Celery 任务 — 异步执行 Pipeline"""
     from opsflow.models import FlowExecution

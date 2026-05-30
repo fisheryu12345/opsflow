@@ -72,8 +72,13 @@ INSTALLED_APPS = [
     "stock",
     "hvob_mbi",
     "opsagent",
+    # ------------------------------------------------------------------ #
+    #  OpsFlow Pipeline 引擎 (bamboo-pipeline)                            #
+    # ------------------------------------------------------------------ #
     "pipeline.component_framework",
     "pipeline.eri",
+    "pipeline.contrib.rollback",
+    "pipeline.contrib.engine_admin",
     "opsflow",
 ]
 
@@ -457,18 +462,30 @@ CACHES = {
         "LOCATION": "redis://127.0.0.1:6379/1", 
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PASSWORD": "redis123456",  # 将密码配置在这里更安全
             # "PARSER_CLASS": "redis.connection.HiredisParser", # 推荐使用 hiredis 解析器提升性能
         }
     }
 }
 
-CELERY_BROKER_URL = 'redis://:redis123456@127.0.0.1:6379/0'
-CELERY_RESULT_BACKEND = 'redis://:redis123456@127.0.0.1:6379/1'
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/1'
 
+CELERY_TASK_DEFAULT_QUEUE = 'default'
+
+# ------------------------------------------------------------------ #
+#  OpsFlow Pipeline: Celery 任务队列 (er_execute / er_schedule)       #
+#  由 BambooDjangoRuntime 内部调度节点执行和轮询/回调任务             #
+# ------------------------------------------------------------------ #
 CELERY_TASK_QUEUES = [
     Queue('default'),
     Queue('er_execute'),
     Queue('er_schedule'),
 ]
-CELERY_TASK_DEFAULT_QUEUE = 'default'
+
+# ------------------------------------------------------------------ #
+#  OpsFlow Pipeline: 引擎行为配置                                      #
+# ------------------------------------------------------------------ #
+ENABLE_PIPELINE_EVENT_SIGNALS = True        # 启用 30+ 生命周期信号 (pipeline_event)
+PIPELINE_ENABLE_ROLLBACK = True             # 启用流程回滚 API
+ROLLBACK_QUEUE = "default"                  # 回滚任务队列
+PIPELINE_ENABLE_AUTO_EXECUTE_WHEN_ROLL_BACKED = False  # 回滚后不自动执行

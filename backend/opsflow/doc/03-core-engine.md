@@ -6,83 +6,49 @@
 
 ### 职责
 
-将 `build_bamboo_pipeline()` 生成的 Pipeline Tree 作为输入，按节点类型分发到不同的处理方法。
+将 `build_bamboo_pipeline()` 生成的 Pipeline Tree 提交给 `BambooDjangoRuntime` + `api.run_pipeline()` 执行。节点调度、状态机、网关逻辑全部由 BambooDjangoRuntime 内部处理。
 
 ### 外部接口
 
 ```python
 engine = FlowEngine(execution)
 engine.start()      # 启动（写入状态 + 提交 Celery 任务）
-engine.resume()     # 恢复暂停
-engine.retry(node_id)   # 重试失败节点
-engine.skip(node_id)    # 跳过节点
+engine.pause()      # 暂停 → api.pause_pipeline()
+engine.resume()     # 恢复 → api.resume_pipeline()
+engine.retry(node_id)   # 重试 → api.retry_node()
+engine.skip(node_id)    # 跳过 → api.skip_node()
 ```
 
-### 内部方法链
+### 执行流程
 
 ```
-run()
-  └─ build_bamboo_pipeline(template) → Pipeline Tree dict
-  └─ _execute_bamboo(pipeline)
-       └─ 从 start_event.outgoing 找到第一个节点
-            └─ _process_node(node_id, pipeline, converge_key)
-                 ├─ activities[node_id] → _execute_activity()
-                 ├─ gateways[node_id]   → _execute_gateway()
-                 └─ end_event          → _complete()
-```
+FlowEngine.run()
+  │
+  ├─ build_bamboo_pipeline(template) → Pipeline Tree dict
+  │    └─ 内部调用 apply_node_timout_configs() 注入超时配置
+  ├─ 保存 bamboo_pipeline_id 到 execution.context
+  │
+  └─ api.run_pipeline(runtime=BambooDjangoRuntime(), pipeline=pipeline)
+       │
+       │  BambooDjangoRuntime (异步调度到 Celery):
+       │  ├─ ProcessMixin → 创建 Process + Node 记录（MySQL）
+       │  ├─ TaskMixin   → 发送到 Celery er_execute/er_schedule 队列
+       │  ├─ StateMixin  → 状态机: READY→RUNNING→FINISHED/FAILED
+       │  │                 每次转换发送 post_set_state + pipeline_event 信号
+       │  ├─ ActivityMixin → get_service(code) → Component
+       │  │                    → bound_service → AnsibleAtomService.execute()
+       │  │                    → data.outputs 回写 ERI Data 模型
+       │  ├─ GatewayMixin  → ExclusiveGateway: 表达式求值选择分支
+       │  │                    ParallelGateway: 扇出所有分支
+       │  │                    ConvergeGateway: 自动汇聚
+       │  └─ 根节点完成 → 流程结束
+       │
+       └─ run_pipeline 立即返回（实际执行在 Celery 中异步进行）
 
-### 活动节点执行 _execute_activity
-
-```
-1. 从 activity.component.inputs 提取参数
-2. 注入 _execution_id / _node_id（供 Tower 轮询 WS 推送）
-3. 构造 ExecutionData
-4. _set_node_status(node_id, "running")
-5. _notify_node(node_id, "running")  → WebSocket 推送
-6. service = get_service(code)       → AnsibleAtomService
-7. success = service.execute(data, root_data)  → Tower 异步执行 + 轮询
-8. 记录 outputs._result + Tower artifacts
-9. artifacts 注入 context["node_id"] = {status, artifacts, ...}
-10. 成功 → "completed" / 失败 → "failed" → WebSocket 推送
-11. 检查 pause 状态
-12. 走 success/failure 出边到下一个节点
-```
-
-### 条件求值 _evaluate_condition
-
-支持完整的 `${...}` 表达式语法：
-
-| 表达式 | 示例 | 说明 |
-|--------|------|------|
-| `${_result}` | `${_result == True}` | 基础成功/失败 |
-| `${path.artifacts.key}` | `${check_space.artifacts.available_gb >= 2}` | 引用前序节点 artifacts |
-| `${path.structured.key}` | `${health_check.structured.status == "healthy"}` | 引用 stdout 解析 JSON |
-| `${path.summary.field}` | `${disk_check.summary.failed > 0}` | 事件统计比较 |
-
-Context 注入：`_execute_activity()` 将 Tower artifacts 的每个字段按 `node_id.key` 展开到 context，同时完整结构存入 `context[node_id]`。
-
-### 网关执行逻辑
-
-```
-_exclusive_gateway:
-  多条出边 → 遍历 conditions，匹配 _result 或条件表达式
-  命中条件 → 走该分支
-  无命中 → 走 is_default 或第一条
-
-_parallel_gateway:
-  BFS 查找下游 ConvergeGateway
-  设 Redis 计数 = 分支数
-  Celery group 并行执行所有分支
-
-_conditional_parallel_gateway:
-  按 conditions 筛选出边
-  其余同 parallel
-
-_converge_gateway:
-  Redis decr 原子减一
-  remaining > 0 → 当前分支结束（等待其他分支）
-  remaining == 0 → 清理计数，继续执行后续节点
-```
+节点状态变更（异步，通过 post_set_state + pipeline_event 信号）:
+    └─ signals.py → _handle_root_state_change() → 更新 FlowExecution.status
+    └─ signals.py → _log_node_result() → get_execution_data_outputs() 读取 → OpsLog
+    └─ signals.py → _notify_node_status() + _notify_completed() → WS 推送
 
 ## 2. BambooBuilder — Pipeline Tree 构建器
 
@@ -134,12 +100,47 @@ _converge_gateway:
 
 **文件**: `backend/opsflow/core/atom_service.py`
 
-### 实现接口
+### 注册机制
 
-实现 `bamboo_engine.eri.Service` 接口:
-- `execute()`: 核心方法，通过 `AtomExecutorFactory` 根据 executor_type 自动分派
-- `schedule()`: 轮询/回调（当前直接返回）
-- `need_schedule()`: 当前返回 False（一次性执行，轮询在 execute() 内部完成）
+通过 `pipeline.component_framework.Component` 元类注册，由 `apps.py.ready()` 在启动时调用 `register_atom_services()` 扫描 `ATOM_REGISTRY` 为每个原子动态创建 Component 子类：
+
+```python
+# atom_service.py
+class AnsibleAtomService(Service):
+    """基类 Service — 所有原子共享此实现，通过 _atom_name 区分类型"""
+    def execute(self, data, parent_data):
+        params = dict(data.inputs)
+        atom_name = getattr(self, '_atom_name', 'unknown')
+        result = AtomExecutorFactory.execute_atom(atom_name, params, ...)
+        data.outputs.update({...})
+        return result.success
+
+# 启动时动态创建：
+#   type("DiskCheckComponent", (Component,), {
+#       'name': 'disk_check',
+#       'code': 'opsflow_disk_check',
+#       'bound_service': AnsibleAtomService,
+#       '__module__': 'opsflow.core.atom_service',
+#   })
+```
+
+BambooDjangoRuntime 在运行时通过 `get_service(code)` 查找 ComponentLibrary → `bound_service` → Service 实例。
+
+Service 还定义 `inputs_format()` / `outputs_format()` 描述接口契约：
+
+```python
+def inputs_format(self):
+    return [
+        InputItem(name="原子类型", key="_atom_type", type="string", required=True),
+        InputItem(name="目标主机", key="target_hosts", type="array", required=False),
+    ]
+
+def outputs_format(self):
+    return [
+        OutputItem(name="标准输出", key="stdout", type="string"),
+        OutputItem(name="返回码", key="returncode", type="int"),
+    ]
+```
 
 ### 执行流程
 
@@ -147,6 +148,7 @@ _converge_gateway:
 service.execute(data, root_data)
   │
   ├─ 从 data.inputs 提取 params
+  ├─ 注入 _atom_type 标识原子类型
   ├─ 调用 AtomExecutorFactory.execute_atom(atom_name, inputs, target_hosts)
   │    │
   │    ├─ 根据 executor_type（从 meta.json 读取）分发到对应执行器:
@@ -369,6 +371,30 @@ scan_atoms()
 | 孤儿节点 | warning | 非起始节点无入边 |
 | Shell 原子拦截 | error | AI 不应生成 shell 原子（作为不存在的功能 fallback） |
 | 跨平台误用检查 | error | 用户输入含 VM/虚拟机 时，禁止使用 netapp_* 原子 |
+
+## 9. Pipeline Contrib 集成
+
+**配置文件**: `backend/application/settings.py`
+
+已注册的 pipeline contrib apps:
+
+| App | 功能 | 启动配置 |
+|-----|------|----------|
+| `pipeline.contrib.rollback` | 流程回滚 API（TOKEN/ANY 模式） | `PIPELINE_ENABLE_ROLLBACK = True` |
+| `pipeline.contrib.node_timeout` | 节点超时强制结束/跳过 | 通过 `apply_node_timout_configs()` 注入 |
+| `pipeline.contrib.engine_admin` | 引擎管理 UI（暂停/恢复/重试/跳过） | 无 |
+
+### 事件信号
+
+启用 `ENABLE_PIPELINE_EVENT_SIGNALS = True` 后，bamboo-engine 发送 `pipeline_event` 信号提供 30+ 事件类型：
+
+| 事件 | 说明 |
+|------|------|
+| `pre_run_pipeline` / `pipeline_finish` | 流程启动/结束 |
+| `pre_pause_pipeline` / `pre_resume_pipeline` | 暂停/恢复流程 |
+| `node_enter` / `node_finish` | 节点进入/完成 |
+| `node_execute_fail` / `node_schedule_fail` | 节点执行/调度失败 |
+| `pre_retry_node` / `pre_skip_node` | 重试/跳过节点 |
 
 ## 8. LLM Service — AI 服务
 

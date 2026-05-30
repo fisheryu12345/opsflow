@@ -5,7 +5,14 @@
 - [x] 数据模型 (FlowTemplate / FlowExecution / OpsLog / OpsKnowledge)
 - [x] API 路由 (`/api/opsflow/*`) + WebSocket (`ws/opsflow/execution/{id}/`)
 - [x] Pipeline Builder (`build_bamboo_pipeline` → bamboo-engine 标准格式)
-- [x] FlowEngine (Exclusive/Parallel/ConditionalParallel/Converge 网关 + Redis 汇聚计数 + Celery group)
+- [x] FlowEngine (BambooDjangoRuntime + api.run_pipeline() 驱动，替代自定义解释器)
+- [x] post_set_state 信号处理器 (signals.py 异步追踪节点状态 → FlowExecution + OpsLog)
+- [x] signals.py 改用 framework API (get_execution_data_outputs 替代直接 ERI 查询)
+- [x] 注册 contrib apps (rollback / node_timeout / engine_admin)
+- [x] 启用 pipeline_event 信号 (ENABLE_PIPELINE_EVENT_SIGNALS)
+- [x] 配置回滚设置 (PIPELINE_ENABLE_ROLLBACK / ROLLBACK_QUEUE)
+- [x] 节点超时配置注入 (bamboo_builder.py → apply_node_timout_configs)
+- [x] Service inputs_format/outputs_format 定义 (atom_service.py)
 - [x] Celery 任务 (`execute_pipeline_task` / `notify_node_status`)
 - [x] AI 服务 (生成 / 优化 / 分析 / 多轮对话)
 - [x] DesignCanvas (X6 Graph + Stencil + Minimap + PropertyPanel + DiffModal)
@@ -26,6 +33,8 @@
 - [ ] **菜单注册** — 前端需通过 RBAC 菜单管理页面配置"运维编排"菜单路由
 - [ ] **执行入口 UI** — 画布工具栏添加"运行"按钮，调用 CreateExecution + StartExecution
 - [ ] **执行记录页面** — 执行历史列表页（筛选状态）+ 详情页（嵌入 MonitorCanvas 实时监控）
+- [ ] **Celery worker 启动脚本** — 为 er_execute/er_schedule 队列添加 worker 启动命令文档或脚本
+- [ ] **get_pipeline_states 状态验证** — flow_engine.py 中定期调用 api.get_pipeline_states() 验证执行状态一致性
 
 ### 中优先级
 

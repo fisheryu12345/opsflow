@@ -35,8 +35,8 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
         execution = self.get_object()
         if execution.status != 'running':
             return Response({'code': 4000, 'msg': '仅运行中的任务可暂停', 'data': None})
-        execution.status = FlowExecution.Status.PAUSED
-        execution.save()
+        engine = FlowEngine(execution)
+        engine.pause()
         return Response({'code': 2000, 'msg': '已暂停', 'data': FlowExecutionSerializer(execution).data})
 
     @action(detail=True, methods=['post'])

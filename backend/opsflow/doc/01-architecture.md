@@ -5,20 +5,20 @@
 OpsFlow 采用**前后端分离 + 异步任务 + WebSocket 推送 + 多平台原子层**的架构。
 
 ```
-┌───────────────┐     REST API      ┌──────────────────┐     Celery      ┌──────────────┐
-│   Vue 3 X6    │ ◄──────────────►  │  Django Backend  │ ◄─────────────► │    Worker    │
-│   Design      │                   │                  │                 │              │
-│   Canvas      │ ◄─── WebSocket ──► │  Channels        │                 │  Pipeline    │
-│               │  (状态实时推送)    │  Consumer        │                 │  Execution   │
-│   Monitor     │                   └──────────────────┘                 │              │
-│   Canvas      │                         │                              │  Notify      │
-└───────────────┘                         │                              └──────────────┘
-                                          ▼
-                                   ┌──────────────┐
-                                   │    Redis     │
-                                   │  (Converge   │
-                                   │   Counter)   │
-                                   └──────────────┘
+┌───────────────┐     REST API      ┌──────────────────┐     Celery      ┌──────────────────┐
+│   Vue 3 X6    │ ◄──────────────►  │  Django Backend  │ ◄─────────────► │    Worker        │
+│   Design      │                   │                  │                 │                  │
+│   Canvas      │ ◄─── WebSocket ──► │  Channels        │                 │  BambooDjango    │
+│               │  (状态实时推送)    │  Consumer        │                 │  Runtime         │
+│   Monitor     │                   └──────────────────┘                 │  (eri/exec/sched)│
+│   Canvas      │                         │                              └──────────────────┘
+└───────────────┘                         │                                    │
+                                          ▼                                    ▼
+                                   ┌──────────────┐                 ┌──────────────────┐
+                                   │    Redis     │                 │     MySQL        │
+                                   │  (Celery 消  │                 │  ERI 表 (11张)   │
+                                   │   息队列)    │                 │  ComponentModel   │
+                                   └──────────────┘                 └──────────────────┘
 ```
 
 ## 分层设计
@@ -39,8 +39,9 @@ OpsFlow 采用**前后端分离 + 异步任务 + WebSocket 推送 + 多平台原
 ### 3. 核心引擎层
 
 - **build_bamboo_pipeline()**: 将前端自定义格式转换为 bamboo-engine 标准 Pipeline Tree
-- **FlowEngine**: 流程执行引擎，处理串行、条件、并行、汇聚
+- **FlowEngine**: 流程执行引擎，使用 BambooDjangoRuntime + api.run_pipeline() 驱动执行
 - **AnsibleAtomService**: 实现 bamboo-engine Service 接口，桥接原子执行
+- **signals.py**: post_set_state 信号处理器，异步追踪节点状态变化并更新 FlowExecution
 - **TowerService**: Ansible Tower (AWX) REST API 封装（触发/轮询/结果提取）
 
 ### 4. 原子层
@@ -51,8 +52,8 @@ OpsFlow 采用**前后端分离 + 异步任务 + WebSocket 推送 + 多平台原
 
 ### 5. 数据层
 
-- **MySQL**: FlowTemplate、FlowExecution、OpsLog、OpsKnowledge
-- **Redis**: 并行汇聚计数、Celery 消息队列、Tower 并发信号量
+- **MySQL**: FlowTemplate、FlowExecution、OpsLog、OpsKnowledge、ERI 状态表（11 张）、ComponentModel
+- **Redis**: Celery 消息队列、Tower 并发信号量
 
 ## 执行流程
 
@@ -75,42 +76,44 @@ execute_pipeline_task.delay(execution_id)  ← Celery 异步
 FlowEngine.run()
     │
     ├─ build_bamboo_pipeline(template)  → Pipeline Tree dict
+    ├─ 保存 bamboo_pipeline_id 到 context
     │
-    └─ _execute_bamboo(pipeline)
+    └─ api.run_pipeline(runtime=BambooDjangoRuntime(), pipeline=pipeline)
          │
-         ├─ _process_node(start_event.outgoing.target, pipeline)
+         │  BambooDjangoRuntime 内部驱动执行:
+         │  ├─ ProcessMixin → 创建 Process/Node 记录
+         │  ├─ TaskMixin   → 调度到 Celery er_execute/er_schedule 队列
+         │  ├─ StateMixin  → 状态机转换 + 发送 post_set_state 信号
+         │  ├─ ActivityMixin → 查找 Service → AnsibleAtomService.execute()
+         │  │
+         │  │  每个 activity 执行:
+         │  │    1. BambooDjangoRuntime.get_service(code) → AnsibleAtomService
+         │  │    2. → AtomExecutorFactory → AnsibleExecutor
+         │  │    3.   → TowerService.launch_job()  POST /launch/
+         │  │    4.   → TowerService.poll_job()    自适应轮询
+         │  │    5.   → TowerService.extract_result() artifacts
+         │  │    6. 成功 → FINISHED / 失败 → FAILED
+         │  │
+         │  ├─ GatewayMixin → ExclusiveGateway / ParallelGateway / ConvergeGateway
+         │  └─ 完成 → 根节点 FINISHED
          │
-         │  ┌─────────────────────────────────────────────────┐
-         │  │              Node Dispatch                      │
-         │  │                                                 │
-         │  │  activities[node_id]  →  _execute_activity()    │
-         │  │  gateways[node_id]                             │
-         │  │    ├─ ExclusiveGateway  →  _execute_exclusive() │
-         │  │    ├─ ParallelGateway   →  _execute_parallel()  │
-         │  │    ├─ ConditionalParallel → _execute_cond_par() │
-         │  │    └─ ConvergeGateway   →  _execute_converge()  │
-         │  │  end_event  →  _complete()                      │
-         │  └─────────────────────────────────────────────────┘
-         │
-         ├─ 每个 activity 执行:
-         │    1. _set_node_status(node_id, "running")
-         │    2. _notify_node(node_id, "running")  ← WebSocket
-         │    3. service = get_service(code) → AnsibleAtomService
-         │    4. → AtomExecutorFactory → AnsibleExecutor
-         │    5.   → TowerService.launch_job()  POST /launch/
-         │    6.   → TowerService.poll_job()    自适应轮询
-         │    7.     ├─ 每 3~30 秒 GET /jobs/{id}/
-         │    8.     └─ WebSocket tower_job_update (进度)
-         │    9.   → TowerService.extract_result() artifacts
-         │    10.  → 结果注入 context
-         │    11. 成功 → "completed" / 失败 → "failed"
-         │    12. _notify_node()  ← WebSocket
-         │    13. _process_node(next_node)
-         │
-         └─ 完成 → _complete()
-              ├─ execution.status = "completed"
-              ├─ execution.ended_at = now()
-              └─ _notify_completed()  ← WebSocket
+         └─ run_pipeline 异步返回（实际执行在 Celery 队列中）
+
+节点状态变更（异步，通过信号）:
+    │
+    ▼
+post_set_state 信号 (pipeline.eri.signals)
+    │
+    ├─ node_id == root_id:
+    │     FINISHED  → execution.status = "completed"
+    │     FAILED    → execution.status = "failed"
+    │     SUSPENDED → execution.status = "paused"
+    │     RUNNING   → execution.status = "running"
+    │     _notify_completed() → WS group_send
+    │
+    └─ 子节点 FINISHED/FAILED:
+          _log_node_result() → 从 ERI Data 读取 outputs → OpsLog
+          _notify_node_status() → WS 推送节点状态
 ```
 
 ### Tower 交互子流程
@@ -141,45 +144,24 @@ AnsibleExecutor.execute()
 
 ## 关键设计决策
 
-### 1. 为什么不用 bamboo-engine 的 ERI Runtime？
+### 1. 迁移到 BambooDjangoRuntime
 
-bamboo-engine 的 `EngineRuntimeInterface` 有 60+ 方法（get_context、get_activity、set_state 等），实现复杂度过高。替代方案：
+原 FlowEngine 实现了一个自定义 Pipeline Tree 解释器，手动解析 activities/gateways/flows、用 Redis 计数器实现 ConvergeGateway、用 Celery group 实现 ParallelGateway。这套逻辑本质上是重新实现了 bamboo-pipeline 的 `BambooDjangoRuntime`。
 
-- 将 FlowEngine 直接作为 **Pipeline Tree 解释器**，不走 ERI 层
-- 用 `AnsibleAtomService.execute()` 直接执行原子（复用 Service 接口但不需要完整的 Runtime）
-- 用 **Redis 计数器** 替代 ERI 的并发控制机制来实现 ConvergeGateway
+**迁移后**: delegating to `BambooDjangoRuntime` + `api.run_pipeline()`。
 
-### 2. 并行分支的实现
+| 旧实现 | 新实现 |
+|--------|--------|
+| `_execute_bamboo()` 手动遍历 | `api.run_pipeline(runtime, pipeline)` |
+| `_execute_activity()` 直接调 Service | BambooDjangoRuntime.ActivityMixin |
+| `_execute_exclusive()` 条件遍历 | BambooDjangoRuntime.GatewayMixin |
+| `_execute_parallel()` Celery group | BambooDjangoRuntime.GatewayMixin |
+| `_execute_converge()` Redis 计数器 | BambooDjangoRuntime.ConvergeMixin |
+| `_set_node_status()` 手动状态管理 | BambooDjangoRuntime.StateMixin + post_set_state 信号 |
 
-```
-ParallelGateway
-    │
-    ├─ branch_1 → ... → ConvergeGateway  \
-    ├─ branch_2 → ... → ConvergeGateway   ├─ Redis counter (N=3)
-    └─ branch_3 → ... → ConvergeGateway  /
-                                          │
-                          每个分支到达时 decr 计数
-                          当 remaining == 0 时，最后到达的分支继续执行
-```
+节点状态追踪通过 `pipeline.eri.signals.post_set_state` 信号异步完成，`signals.py` 中的 `on_post_set_state` 处理器将 bamboo 状态映射到 FlowExecution 状态。
 
-- 使用 Celery `group()` 实现真正并行
-- Redis 原子操作 `decr()` 保证并发安全
-- `_find_converge_target()` BFS 自动查找汇聚网关
-
-### 3. 条件评估
-
-ExclusiveGateway 和 ConditionalParallelGateway 支持完整表达式语法：
-
-```
-${_result == True}                       → 基础成功/失败
-${check_space.artifacts.available_gb >= 2}  → 引用前序节点 artifacts
-${health_check.structured.status == "healthy"} → stdout JSON 解析值
-${disk_check.summary.failed > 0}         → 事件统计
-```
-
-Context 中的 `_last_result` 记录上一个节点的执行结果；Gateway 遍历 conditions 匹配条件，命中则走对应分支，未命中走 `is_default` 或第一条出边。
-
-### 4. Executor Factory 模式
+### 2. Executor Factory 模式
 
 原子层通过 Factory Pattern 实现多平台支持：
 
@@ -193,7 +175,21 @@ meta.json (executor_type)
 
 新增平台只需：写 `*_executor.py` 继承 `BaseExecutor` → 注册到 FACTORY 字典 → 创建 `meta.json`（`executor_type` 指向新类名）。
 
-### 5. AI 集成
+### 3. Component 注册机制
+
+通过 `pipeline.component_framework.Component` 元类将原子注册到全局 ComponentLibrary：
+
+```
+ATOM_REGISTRY (meta.json 扫描)
+  → register_atom_services()
+    → type() 动态创建 Component 子类
+      → ComponentMeta 自动注册到 ComponentLibrary + ComponentModel
+        → BambooDjangoRuntime.get_service(code) 查询 Service
+```
+
+每个原子共享同一 `AnsibleAtomService` 基类执行逻辑，通过 `_atom_name` 区分类型。
+
+### 4. AI 集成
 
 - 使用 DeepSeek via OpenAI-compatible API
 - `response_format={'type': 'json_object'}` 保证输出 JSON

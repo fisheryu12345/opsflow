@@ -9,15 +9,16 @@
 | 数据模型 | `models.py` | FlowTemplate / FlowExecution / OpsLog / OpsKnowledge |
 | API 路由 | `urls.py` | 4 组 REST 端点 + WebSocket |
 | Pipeline 构建 | `bamboo_builder.py` | 自定义格式 → bamboo-engine 标准 Pipeline Tree |
-| 串行执行 | `flow_engine.py` | 活动节点按顺序执行 |
-| ExclusiveGateway | `flow_engine.py` | 根据条件表达式选择一条分支 |
-| ParallelGateway | `flow_engine.py` | Celery group 并行执行所有分支 |
-| ConditionalParallelGateway | `flow_engine.py` | 按条件筛选后并行 |
-| ConvergeGateway | `flow_engine.py` | Redis 原子计数，最后分支继续 |
-| 暂停/继续 | `flow_engine.py` | 执行中检查 pause 状态 |
-| 重试/跳过 | `flow_engine.py` | 失败节点重试或跳过 |
-| 条件表达式增强 | `flow_engine.py` | ${node_id.artifacts.key >= N} 全语法 |
-| Service 接口 | `atom_service.py` | 实现 bamboo-engine Service 接口 |
+| FlowEngine 迁移 | `flow_engine.py` | 自定义解释器 → BambooDjangoRuntime + api.run_pipeline() |
+| 串行执行 | `flow_engine.py` | 通过 BambooDjangoRuntime 驱动 |
+| ExclusiveGateway | `flow_engine.py` | 委托 BambooDjangoRuntime.GatewayMixin |
+| ParallelGateway | `flow_engine.py` | 委托 BambooDjangoRuntime.GatewayMixin |
+| ConditionalParallelGateway | `flow_engine.py` | 委托 BambooDjangoRuntime |
+| ConvergeGateway | `flow_engine.py` | 委托 BambooDjangoRuntime.ConvergeMixin |
+| 暂停/继续 | `flow_engine.py` | api.pause_pipeline() / api.resume_pipeline() |
+| 重试/跳过 | `flow_engine.py` | api.retry_node() / api.skip_node() |
+| Component 注册 | `atom_service.py` | pipeline.component_framework.Component 元类自动注册 |
+| post_set_state 信号 | `signals.py` | 异步追踪节点状态 → 更新 FlowExecution + OpsLog |
 | 原子注册 | `atom_registry.py` | meta.json 自动扫描注册（31 个原子） |
 | Executor Factory | `executors/factory.py` | 7 平台执行器统一调度（含 test） |
 | Tower 集成 | `tower_service.py` | launch/poll/artifacts/events/cancel |
@@ -31,6 +32,12 @@
 | Ansible 触发器 | `ansible_trigger.py` | TowerService 封装 + Mock 降级 |
 | Celery 任务 | `tasks.py` | execute_pipeline_task / notify_node_status |
 | WebSocket | `consumers.py` | 节点状态 + tower_job_update 推送 |
+| contrib 集成 | `settings.py` | 注册 rollback / node_timeout / engine_admin |
+| Pipeline 事件信号 | `settings.py` | 启用 ENABLE_PIPELINE_EVENT_SIGNALS 丰富生命周期 |
+| 回滚配置 | `settings.py` | PIPELINE_ENABLE_ROLLBACK / ROLLBACK_QUEUE 配置 |
+| 节点超时执行 | `bamboo_builder.py` | apply_node_timout_configs 注入超时处理 |
+| Service 格式定义 | `atom_service.py` | inputs_format / outputs_format 描述接口 |
+| 框架 API 读节点数据 | `signals.py` | get_execution_data_outputs 替代直接 ERI 查询 |
 | 菜单注册 | `add_opsflow_menu.py` | RBAC 菜单写入命令 |
 
 ### 前端
@@ -56,6 +63,8 @@
 |------|------|----------|
 | **执行入口 UI** | 画布工具栏添加"运行"按钮，调用 CreateExecution + StartExecution | `DesignCanvas.vue`, `index.vue`, `executions.ts` |
 | **执行记录页面** | 执行历史列表（筛选状态）+ 详情页（嵌入 MonitorCanvas） | 新建页面 + `executions.ts` |
+| **Celery worker 启动** | 为 er_execute/er_schedule 队列添加 worker 启动文档或脚本 | `doc/` |
+| **状态验证** | flow_engine 中定期调用 get_pipeline_states() | `flow_engine.py` |
 
 ### 中优先级
 
