@@ -19,6 +19,7 @@ class AtomMeta:
     risk_level: str = 'low'
     group: str = 'action'
     component_code: str = ''
+    executor_type: str = 'ansible'  # ansible | esxi | netapp | servicenow | redfish | http
     inputs: list = field(default_factory=list)
     outputs: list = field(default_factory=list)
     rollback: Optional[str] = None
@@ -52,6 +53,7 @@ def scan_atoms(atoms_dir: str | None = None) -> None:
                 risk_level=raw.get('risk_level', 'low'),
                 group=raw.get('group', 'action'),
                 component_code=raw.get('component_code', f"opsflow_{raw['name']}"),
+                executor_type=raw.get('executor_type', 'ansible'),
                 inputs=raw.get('inputs', []),
                 outputs=raw.get('outputs', []),
                 rollback=raw.get('rollback'),

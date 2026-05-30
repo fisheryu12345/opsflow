@@ -1,0 +1,17 @@
+{
+  "name": "esxi_destroy_vm",
+  "description": "删除 ESXi 上的虚拟机",
+  "risk_level": "high",
+  "group": "vmware",
+  "component_code": "opsflow_esxi_destroy_vm",
+  "executor_type": "esxi",
+  "inputs": [
+    {"name": "esxi_host", "type": "string", "required": true, "description": "ESXi 主机 IP"},
+    {"name": "vm_name", "type": "string", "required": true, "description": "虚拟机名称"}
+  ],
+  "outputs": [
+    {"name": "status", "type": "string", "description": "操作结果"}
+  ],
+  "rollback": null,
+  "dependencies": []
+}

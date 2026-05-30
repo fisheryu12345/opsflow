@@ -5,15 +5,42 @@
   "group": "check",
   "component_code": "opsflow_disk_check",
   "inputs": [
-    {"name": "warning_threshold", "type": "int", "default": 80, "description": "磁盘使用率告警阈值(%)"},
-    {"name": "mount_point", "type": "string", "default": "/", "description": "挂载点路径"}
+    {
+      "name": "warning_threshold",
+      "type": "int",
+      "default": 80,
+      "description": "磁盘使用率告警阈值(%)"
+    },
+    {
+      "name": "mount_point",
+      "type": "string",
+      "default": "/",
+      "description": "挂载点路径"
+    }
   ],
   "outputs": [
-    {"name": "usage_percent", "type": "float", "description": "当前磁盘使用率"},
-    {"name": "total_gb", "type": "float", "description": "总容量(GB)"},
-    {"name": "used_gb", "type": "float", "description": "已用容量(GB)"},
-    {"name": "avail_gb", "type": "float", "description": "可用容量(GB)"}
+    {
+      "name": "usage_percent",
+      "type": "float",
+      "description": "当前磁盘使用率"
+    },
+    {
+      "name": "total_gb",
+      "type": "float",
+      "description": "总容量(GB)"
+    },
+    {
+      "name": "used_gb",
+      "type": "float",
+      "description": "已用容量(GB)"
+    },
+    {
+      "name": "avail_gb",
+      "type": "float",
+      "description": "可用容量(GB)"
+    }
   ],
   "rollback": null,
-  "dependencies": []
+  "dependencies": [],
+  "executor_type": "ansible"
 }

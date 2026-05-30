@@ -5,15 +5,43 @@
   "group": "check",
   "component_code": "opsflow_health_check",
   "inputs": [
-    {"name": "url", "type": "string", "default": "", "description": "健康检查 URL"},
-    {"name": "expected_status", "type": "int", "default": 200, "description": "期望的 HTTP 状态码"},
-    {"name": "timeout", "type": "int", "default": 10, "description": "超时时间(秒)"}
+    {
+      "name": "url",
+      "type": "string",
+      "default": "",
+      "description": "健康检查 URL"
+    },
+    {
+      "name": "expected_status",
+      "type": "int",
+      "default": 200,
+      "description": "期望的 HTTP 状态码"
+    },
+    {
+      "name": "timeout",
+      "type": "int",
+      "default": 10,
+      "description": "超时时间(秒)"
+    }
   ],
   "outputs": [
-    {"name": "status", "type": "string", "description": "检查结果: healthy/unhealthy"},
-    {"name": "response_time_ms", "type": "int", "description": "响应时间(ms)"},
-    {"name": "body", "type": "string", "description": "响应体前 500 字符"}
+    {
+      "name": "status",
+      "type": "string",
+      "description": "检查结果: healthy/unhealthy"
+    },
+    {
+      "name": "response_time_ms",
+      "type": "int",
+      "description": "响应时间(ms)"
+    },
+    {
+      "name": "body",
+      "type": "string",
+      "description": "响应体前 500 字符"
+    }
   ],
   "rollback": null,
-  "dependencies": []
+  "dependencies": [],
+  "executor_type": "ansible"
 }

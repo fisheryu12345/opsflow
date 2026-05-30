@@ -1,46 +1,7 @@
 <template>
   <div class="opsflow-page">
-    <!-- Header -->
-    <div class="page-header">
-      <div class="header-left">
-        <h3 class="page-title">OpsFlow</h3>
-        <span v-if="selectedTemplateName" class="header-template-badge">
-          <el-icon><FolderOpened /></el-icon>
-          {{ selectedTemplateName }}
-        </span>
-      </div>
-      <div class="header-right">
-        <template v-if="isDesignMode">
-          <el-select v-model="selectedTemplateId" placeholder="Select template" clearable filterable
-                     style="width: 200px" @change="onSelectTemplate">
-            <el-option v-for="t in templates" :key="t.id" :label="t.name" :value="t.id" />
-          </el-select>
-          <el-button type="primary" @click="showNewTemplateDialog">
-            <el-icon><Plus /></el-icon>New Template
-          </el-button>
-        </template>
-        <template v-else>
-          <el-select v-model="selectedExecutionId" placeholder="Select execution" clearable filterable
-                     style="width: 200px" @change="onSelectExecution">
-            <el-option v-for="e in executions" :key="e.id" :label="e.template_name" :value="e.id" />
-          </el-select>
-          <el-button @click="fetchExecutions"><el-icon><Refresh /></el-icon>Refresh</el-button>
-        </template>
-        <div class="mode-switcher">
-          <el-radio-group v-model="mode" size="small">
-            <el-radio-button value="design">
-              <el-icon><EditPen /></el-icon>Design
-            </el-radio-button>
-            <el-radio-button value="monitor">
-              <el-icon><Monitor /></el-icon>Monitor
-            </el-radio-button>
-          </el-radio-group>
-        </div>
-      </div>
-    </div>
-
     <!-- AI 对话浮窗 -->
-    <div v-if="isDesignMode && chatExpanded" class="chat-float-panel">
+    <div v-if="chatExpanded" class="chat-float-panel">
       <div class="chat-float-header">
         <div class="chat-header-left">
           <el-icon size="16"><ChatDotSquare /></el-icon>
@@ -87,22 +48,21 @@
         </el-button>
       </div>
     </div>
-    <el-button v-if="isDesignMode && !chatExpanded" class="chat-float-trigger" round @click="chatExpanded = true">
+    <el-button v-if="!chatExpanded" class="chat-float-trigger" round @click="chatExpanded = true">
       <el-icon><ChatDotSquare /></el-icon>
       AI Design
     </el-button>
 
     <!-- 主体 -->
     <div class="opsflow-body">
-      <DesignCanvas ref="designCanvasRef" @save="onSaveDraft" @diff="onDiff" @analyze="onAnalyze" />
-      <MonitorCanvas v-if="selectedExecutionId" ref="monitorCanvasRef" :execution-id="selectedExecutionId" />
-      <div v-else-if="isMonitorMode" class="monitor-empty">
-        <el-empty description="Please select an execution">
-          <template #image>
-            <el-icon size="64" color="#c0c4cc"><Monitor /></el-icon>
-          </template>
-        </el-empty>
+      <div class="template-bar">
+        <el-select v-model="selectedTemplateId" placeholder="Select template" clearable filterable
+                   style="width: 260px" @change="onSelectTemplate">
+          <el-option v-for="t in templates" :key="t.id" :label="t.name" :value="t.id" />
+        </el-select>
       </div>
+      <DesignCanvas ref="designCanvasRef" @save="onSaveDraft" @diff="onDiff" @analyze="onAnalyze"
+                    @new-template="showNewTemplateDialog" />
     </div>
 
     <!-- 新模板对话框 -->
@@ -194,50 +154,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Fold, Plus, Refresh, EditPen, Monitor,
+  Fold,
   ChatDotSquare, ChatLineSquare, User, InfoFilled,
-  WarningFilled, Lightning, List, FolderOpened, CircleCheck,
+  WarningFilled, Lightning, List, CircleCheck,
 } from '@element-plus/icons-vue'
 import { useOpsflowStore } from './stores/opsflowStore'
 import { GetTemplates, GetTemplateDetail, CreateFromAi, GetDiff, AnalyzePipeline, RefinePipeline, AiLayout, UpdateTemplate } from '/@/api/opsflow/templates'
-import { GetExecutions, CreateExecution, StartExecution } from '/@/api/opsflow/executions'
 import DesignCanvas from './components/DesignCanvas.vue'
-import MonitorCanvas from './components/MonitorCanvas.vue'
 import DiffModal from './components/DiffModal.vue'
 
 const store = useOpsflowStore()
-const mode = ref<'design' | 'monitor'>('design')
 
 const designCanvasRef = ref<InstanceType<typeof DesignCanvas> | null>(null)
-const monitorCanvasRef = ref<InstanceType<typeof MonitorCanvas> | null>(null)
 const diffModalRef = ref<InstanceType<typeof DiffModal> | null>(null)
-
-const isDesignMode = ref(true)
-const isMonitorMode = ref(false)
-
-watch(mode, (val) => {
-  isDesignMode.value = val === 'design'
-  isMonitorMode.value = val === 'monitor'
-  store.setMode(val)
-})
 
 // 模板相关
 const templates = ref<any[]>([])
 const selectedTemplateId = ref<number | null>(null)
-const selectedTemplateName = computed(() => {
-  if (!selectedTemplateId.value) return ''
-  const t = templates.value.find(t => t.id === selectedTemplateId.value)
-  return t?.name || ''
-})
 const nlInput = ref('')
 const generating = ref(false)
-
-// 执行相关
-const executions = ref<any[]>([])
-const selectedExecutionId = ref<number | null>(null)
 
 // 新建模板对话框
 const newDialogVisible = ref(false)
@@ -283,17 +221,6 @@ async function fetchTemplates() {
   }
 }
 
-// 获取执行列表
-async function fetchExecutions() {
-  try {
-    const res = await GetExecutions()
-    executions.value = res.data || res.results || []
-    store.setExecutions(executions.value)
-  } catch (e) {
-    console.error('Failed to fetch executions', e)
-  }
-}
-
 // 选择模板
 async function onSelectTemplate(id: number) {
   if (!id) return
@@ -315,11 +242,6 @@ async function onSelectTemplate(id: number) {
     console.error('[onSelectTemplate] Failed to load template', e)
     ElMessage.error(e?.msg || e?.message || 'Failed to load template')
   }
-}
-
-// 选择执行
-function onSelectExecution(id: number) {
-  selectedExecutionId.value = id
 }
 
 // AI 生成/多轮对话
@@ -479,7 +401,6 @@ async function onDiffConfirmed() {
 
 onMounted(() => {
   fetchTemplates()
-  fetchExecutions()
 })
 </script>
 
@@ -495,60 +416,6 @@ onMounted(() => {
   flex-direction: column;
   background: #f0f2f5;
   overflow: hidden;
-}
-
-/* ===== Header ===== */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #fff 0%, #f5f7fa 100%);
-  border-bottom: 1px solid #e4e7ed;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  flex-shrink: 0;
-}
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.page-title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #409EFF, #337ecc);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.header-template-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #409EFF;
-  background: #ecf5ff;
-  padding: 2px 10px;
-  border-radius: 12px;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.mode-switcher :deep(.el-radio-group) {
-  gap: 0;
-}
-.mode-switcher :deep(.el-radio-button__inner) {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
 }
 
 /* ===== Chat Float Panel ===== */
@@ -724,6 +591,24 @@ onMounted(() => {
   40% { transform: scale(1); opacity: 1; }
 }
 
+/* ===== Template Bar (above canvas) ===== */
+.template-bar {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  padding: 4px 12px;
+  border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(228, 231, 237, 0.6);
+}
+
 /* ===== Body ===== */
 .opsflow-body {
   flex: 1;
@@ -733,12 +618,6 @@ onMounted(() => {
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-}
-.monitor-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
 }
 
 /* ===== Dialog ===== */

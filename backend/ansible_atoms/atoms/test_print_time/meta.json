@@ -1,0 +1,18 @@
+{
+  "name": "test_print_time",
+  "description": "测试原子 — 后台打印当前时间，用于流程引擎功能验证",
+  "risk_level": "low",
+  "group": "test",
+  "component_code": "opsflow_test_print_time",
+  "executor_type": "test",
+  "inputs": [
+    {"name": "message", "type": "string", "description": "附加消息 (可选)", "default": "hello"},
+    {"name": "fail", "type": "bool", "description": "是否模拟失败 (测试条件分支)", "default": false}
+  ],
+  "outputs": [
+    {"name": "timestamp", "type": "string"},
+    {"name": "message", "type": "string"}
+  ],
+  "rollback": null,
+  "dependencies": []
+}

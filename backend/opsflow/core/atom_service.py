@@ -9,7 +9,7 @@ from bamboo_engine.eri.interfaces import Service, ScheduleType
 from bamboo_engine.eri import HookType
 
 from .atom_registry import ATOM_REGISTRY, get_atom_meta
-from . import ansible_trigger
+from .executors import AtomExecutorFactory, ExecuteResult
 
 logger = logging.getLogger(__name__)
 
@@ -36,25 +36,34 @@ class AnsibleAtomService(Service):
     # ---- Service 接口实现 ----
 
     def execute(self, data: ExecutionData, root_pipeline_data: ExecutionData) -> bool:
-        """执行原子操作，返回 True=成功 / False=失败"""
+        """执行原子操作，返回 True=成功 / False=失败
+
+        通过 AtomExecutorFactory 根据 executor_type 自动分发到对应平台执行器。
+        当前支持的 executor_type: ansible, esxi, netapp, servicenow, redfish, http
+        """
         params = dict(data.inputs)
         target_hosts = params.pop('target_hosts', [])
-        node = {
-            'id': params.pop('_node_id', ''),
-            'atom_type': self._atom_type,
-            'params': params,
-        }
+        atom_name = self._atom_type
+
+        # 通过工厂执行
         try:
-            result = ansible_trigger.execute_atom(node, target_hosts)
+            result: ExecuteResult = AtomExecutorFactory.execute_atom(
+                atom_name=atom_name,
+                inputs={**params, '_atom_type': atom_name},
+                target_hosts=target_hosts,
+            )
             data.outputs.update({
-                'stdout': result.get('stdout', ''),
-                'stderr': result.get('stderr', ''),
-                'returncode': result.get('returncode', 0),
-                '_result': result.get('returncode', 0) == 0,
+                'stdout': result.data.get('stdout', ''),
+                'stderr': result.data.get('stderr', ''),
+                'returncode': result.data.get('returncode', 0) if result.success else -1,
+                '_result': result.success,
+                'executor_output': result.data,
             })
-            return result.get('returncode', 0) == 0
+            if not result.success:
+                data.outputs['_error'] = result.error
+            return result.success
         except Exception as e:
-            logger.exception(f"原子 {self._atom_type} 执行失败: {e}")
+            logger.exception(f"原子 {atom_name} 执行失败: {e}")
             data.outputs['_result'] = False
             data.outputs['_error'] = str(e)
             return False

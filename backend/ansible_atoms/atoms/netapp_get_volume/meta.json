@@ -1,0 +1,20 @@
+{
+  "name": "netapp_get_volume",
+  "description": "查询 NetApp 存储卷详情",
+  "risk_level": "low",
+  "group": "storage",
+  "component_code": "opsflow_netapp_get_volume",
+  "executor_type": "netapp",
+  "inputs": [
+    {"name": "cluster_ip", "type": "string", "required": true},
+    {"name": "volume_name", "type": "string", "required": true}
+  ],
+  "outputs": [
+    {"name": "uuid", "type": "string"},
+    {"name": "name", "type": "string"},
+    {"name": "size_gb", "type": "float"},
+    {"name": "state", "type": "string"}
+  ],
+  "rollback": null,
+  "dependencies": []
+}

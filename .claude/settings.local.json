@@ -191,14 +191,31 @@
       "Bash(python -c \"import djangorestframework; print\\(djangorestframework.__version__\\)\")",
       "Bash(python -c \"import rest_framework; print\\(rest_framework.VERSION\\)\")",
       "Bash(python backend/manage.py add_opsflow_menu)",
-      "Bash(python grant_menu_perm.py)"
+      "Bash(python grant_menu_perm.py)",
+      "Bash(pip show *)",
+      "Bash(python -c \"from opsflow.core.flow_engine import FlowEngine; print\\('import OK'\\)\")",
+      "Bash(cd /c/Users/dell/Desktop/Vue/backend && find opsflow -type f -name \"*.py\" | sort)",
+      "Read(//c/c/Users/dell/Desktop/Vue/backend/**)",
+      "Bash(python manage.py add_opsflow_menu)",
+      "Bash(mkdir -p /c/Users/dell/Desktop/Vue/backend/opsflow/doc)",
+      "Bash(mkdir -p /c/Users/dell/.claude/skills/opsflow-doc-updater)",
+      "Bash(ls /c/Users/dell/.claude/skills/ 2>/dev/null || echo \"no skills dir yet\")",
+      "Read(//c/c/Users/dell/.claude/skills/**)",
+      "Bash(ls -la /c/Users/dell/.claude/skills/opsflow-doc-updater/)",
+      "Read(//c/Users/dell/.claude/skills/opsflow-doc-updater//**)",
+      "Bash(mkdir -p /c/Users/dell/Desktop/Vue/backend/opsflow/core/executors)",
+      "Bash(rm \"/c/Users/dell/Desktop/Vue/backend/opsflow/TODO.md\")",
+      "Bash(findstr python *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",
       "c:\\Users\\dell\\Desktop\\Vue\\stock\\backtest\\data",
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\opsagent",
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\templates",
-      "C:\\Users\\dell\\Desktop\\Vue\\web\\src\\api"
+      "C:\\Users\\dell\\Desktop\\Vue\\web\\src\\api",
+      "C:\\Users\\dell\\Desktop\\Vue\\backend\\opsflow",
+      "C:\\Users\\dell\\.claude\\skills",
+      "C:\\Users\\dell\\Desktop\\Vue\\backend\\opsflow\\core"
     ]
   }
 }

@@ -8,11 +8,17 @@
         </el-button-group>
         <el-button size="small" circle @click="$emit('diff')" :icon="CopyDocument" />
         <el-button size="small" circle @click="$emit('analyze')" :icon="DataAnalysis" />
+        <el-button size="small" circle @click="$emit('newTemplate')" :icon="Plus" />
         <el-button size="small" circle type="primary" @click="onSave" :icon="Upload" />
       </div>
-      <div ref="stencilRef" class="stencil-panel" />
+      <div class="stencil-wrapper" :class="{ collapsed: stencilCollapsed }">
+        <div ref="stencilRef" class="stencil-panel" />
+      </div>
+      <button class="stencil-toggle" :class="{ collapsed: stencilCollapsed }" @click="toggleStencil">
+        <el-icon><component :is="stencilCollapsed ? 'DArrowRight' : 'DArrowLeft'" /></el-icon>
+      </button>
       <div id="design-canvas-container" ref="canvasRef" class="x6-canvas" />
-      <div ref="minimapRef" class="minimap-container" />
+      <div ref="minimapRef" class="minimap-container" :style="{ left: stencilCollapsed ? '12px' : '230px' }" />
       <PropertyPanel v-if="selectedNode" :node-data="selectedNode" @update="onNodeUpdate" />
     </div>
   </div>
@@ -21,7 +27,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis } from '@element-plus/icons-vue'
+import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 // X6 CSS — 必须导入否则 Stencil、Minimap 等插件容器不显示
 import '@antv/x6/dist/index.css'
 import '@antv/x6-plugin-stencil/dist/index.css'
@@ -33,6 +39,7 @@ const emit = defineEmits<{
   save: [data: any]
   diff: []
   analyze: []
+  newTemplate: []
 }>()
 
 const {
@@ -45,6 +52,12 @@ const {
 const stencilRef = ref<HTMLElement | null>(null)
 const canvasRef = ref<HTMLElement | null>(null)
 const minimapRef = ref<HTMLElement | null>(null)
+const stencilCollapsed = ref(false)
+
+function toggleStencil() {
+  stencilCollapsed.value = !stencilCollapsed.value
+  nextTick(() => graph.value?.resize())
+}
 
 // 接收外部传入的 pipeline 数据
 function loadPipeline(data: any) {
@@ -125,13 +138,47 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, undo, redo })
   overflow: hidden;
   position: relative;
 }
+.stencil-wrapper {
+  flex-shrink: 0;
+  width: 180px;
+  overflow: hidden;
+  transition: width 0.25s ease;
+  position: relative;
+}
+.stencil-wrapper.collapsed {
+  width: 0;
+}
 .stencil-panel {
   width: 180px;
+  height: 100%;
   border-right: 1px solid #e4e7ed;
   background: #fafafa;
-  position: relative;
   overflow: hidden;
+}
+.stencil-toggle {
   flex-shrink: 0;
+  width: 16px;
+  border: none;
+  border-right: 1px solid #e4e7ed;
+  background: #f5f7fa;
+  color: #909399;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 10px;
+  transition: color 0.2s, background 0.2s, width 0.25s ease;
+  outline: none;
+  writing-mode: vertical-lr;
+}
+.stencil-toggle:hover {
+  color: #409EFF;
+  background: #e8f0fe;
+}
+.stencil-toggle.collapsed {
+  border-right-color: transparent;
+  border-left: 1px solid #e4e7ed;
 }
 .x6-canvas {
   flex: 1;
@@ -140,7 +187,6 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, undo, redo })
 .minimap-container {
   position: absolute;
   bottom: 8px;
-  left: 195px;
   width: 200px;
   height: 140px;
   border: 1px solid #e4e7ed;
@@ -149,5 +195,6 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, undo, redo })
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   z-index: 100;
+  transition: left 0.25s ease;
 }
 </style>

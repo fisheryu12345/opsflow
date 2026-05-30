@@ -1,0 +1,16 @@
+{
+  "name": "netapp_delete_volume",
+  "description": "删除 NetApp 存储卷",
+  "risk_level": "high",
+  "group": "storage",
+  "component_code": "opsflow_netapp_delete_volume",
+  "executor_type": "netapp",
+  "inputs": [
+    {"name": "cluster_ip", "type": "string", "required": true},
+    {"name": "volume_uuid", "type": "string", "description": "卷 UUID (优先)"},
+    {"name": "volume_name", "type": "string", "description": "卷名称 (备用)"}
+  ],
+  "outputs": [{"name": "status", "type": "string"}],
+  "rollback": null,
+  "dependencies": []
+}

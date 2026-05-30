@@ -5,15 +5,44 @@
   "group": "action",
   "component_code": "opsflow_upload_file",
   "inputs": [
-    {"name": "src", "type": "string", "default": "", "description": "本地源文件路径"},
-    {"name": "dest", "type": "string", "default": "", "description": "远程目标路径"},
-    {"name": "owner", "type": "string", "default": "", "description": "文件所有者"},
-    {"name": "mode", "type": "string", "default": "0644", "description": "文件权限"}
+    {
+      "name": "src",
+      "type": "string",
+      "default": "",
+      "description": "本地源文件路径"
+    },
+    {
+      "name": "dest",
+      "type": "string",
+      "default": "",
+      "description": "远程目标路径"
+    },
+    {
+      "name": "owner",
+      "type": "string",
+      "default": "",
+      "description": "文件所有者"
+    },
+    {
+      "name": "mode",
+      "type": "string",
+      "default": "0644",
+      "description": "文件权限"
+    }
   ],
   "outputs": [
-    {"name": "changed", "type": "bool", "description": "是否发生变更"},
-    {"name": "dest_path", "type": "string", "description": "实际写入路径"}
+    {
+      "name": "changed",
+      "type": "bool",
+      "description": "是否发生变更"
+    },
+    {
+      "name": "dest_path",
+      "type": "string",
+      "description": "实际写入路径"
+    }
   ],
   "rollback": "delete_file",
-  "dependencies": []
+  "dependencies": [],
+  "executor_type": "ansible"
 }

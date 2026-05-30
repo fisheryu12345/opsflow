@@ -1,0 +1,17 @@
+{
+  "name": "netapp_modify_volume",
+  "description": "修改 NetApp 卷属性 (扩容/改策略)",
+  "risk_level": "high",
+  "group": "storage",
+  "component_code": "opsflow_netapp_modify_volume",
+  "executor_type": "netapp",
+  "inputs": [
+    {"name": "cluster_ip", "type": "string", "required": true},
+    {"name": "volume_uuid", "type": "string", "required": true},
+    {"name": "new_size_gb", "type": "int", "description": "新容量 (GB), 仅支持扩容"},
+    {"name": "new_snapshot_policy", "type": "string", "description": "新快照策略 (可选)"}
+  ],
+  "outputs": [{"name": "status", "type": "string"}],
+  "rollback": null,
+  "dependencies": []
+}

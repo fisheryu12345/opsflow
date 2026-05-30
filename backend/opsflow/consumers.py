@@ -4,7 +4,14 @@ from channels.db import database_sync_to_async
 
 
 class FlowMonitorConsumer(AsyncJsonWebsocketConsumer):
-    """WebSocket 消费者 — 推送执行状态到画布"""
+    """WebSocket 消费者 — 推送执行状态到画布
+
+    消息类型:
+      - init_state: 连接时初始快照
+      - node_status: 节点状态变更（completed/failed/running）
+      - tower_job_update: Tower 作业实时状态（含进度和 artifacts）
+      - execution_completed: 执行完成/失败通知
+    """
 
     async def connect(self):
         self.execution_id = self.scope['url_route']['kwargs']['execution_id']
@@ -42,6 +49,24 @@ class FlowMonitorConsumer(AsyncJsonWebsocketConsumer):
             'node_id': event['node_id'],
             'status': event['status'],
             'message': event.get('message', ''),
+        })
+
+    async def tower_job_update(self, event):
+        """接收 Tower 作业实时状态推送（来自 ansible_trigger.poll_job 内部）
+
+        前端用此消息更新:
+          - 节点颜色（pending→灰, running→黄, success→绿, failed→红）
+          - 进度条（0~100）
+          - 实时日志片段
+          - artifacts 预览
+        """
+        await self.send_json({
+            'type': 'tower_job_update',
+            'node_id': event['node_id'],
+            'tower_status': event['tower_status'],
+            'bamboo_status': event['bamboo_status'],
+            'progress': event.get('progress', 0),
+            'artifacts': event.get('artifacts', {}),
         })
 
     async def execution_completed(self, event):

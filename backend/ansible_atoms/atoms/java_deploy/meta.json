@@ -5,15 +5,46 @@
   "group": "action",
   "component_code": "opsflow_java_deploy",
   "inputs": [
-    {"name": "artifact_path", "type": "string", "default": "", "description": "JAR/WAR 包本地路径"},
-    {"name": "target_path", "type": "string", "default": "/opt/app", "description": "部署目标目录"},
-    {"name": "service_name", "type": "string", "default": "", "description": "服务名称(systemd unit)"},
-    {"name": "jvm_args", "type": "string", "default": "", "description": "JVM 启动参数"}
+    {
+      "name": "artifact_path",
+      "type": "string",
+      "default": "",
+      "description": "JAR/WAR 包本地路径"
+    },
+    {
+      "name": "target_path",
+      "type": "string",
+      "default": "/opt/app",
+      "description": "部署目标目录"
+    },
+    {
+      "name": "service_name",
+      "type": "string",
+      "default": "",
+      "description": "服务名称(systemd unit)"
+    },
+    {
+      "name": "jvm_args",
+      "type": "string",
+      "default": "",
+      "description": "JVM 启动参数"
+    }
   ],
   "outputs": [
-    {"name": "deploy_success", "type": "bool", "description": "部署是否成功"},
-    {"name": "service_status", "type": "string", "description": "部署后的服务状态"}
+    {
+      "name": "deploy_success",
+      "type": "bool",
+      "description": "部署是否成功"
+    },
+    {
+      "name": "service_status",
+      "type": "string",
+      "description": "部署后的服务状态"
+    }
   ],
   "rollback": "java_rollback",
-  "dependencies": ["backup_file"]
+  "dependencies": [
+    "backup_file"
+  ],
+  "executor_type": "ansible"
 }

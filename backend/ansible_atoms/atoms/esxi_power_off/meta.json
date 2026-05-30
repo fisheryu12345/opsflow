@@ -1,0 +1,15 @@
+{
+  "name": "esxi_power_off",
+  "description": "关闭 ESXi 虚拟机 (强制关机)",
+  "risk_level": "high",
+  "group": "vmware",
+  "component_code": "opsflow_esxi_power_off",
+  "executor_type": "esxi",
+  "inputs": [
+    {"name": "esxi_host", "type": "string", "required": true},
+    {"name": "vm_name", "type": "string", "required": true}
+  ],
+  "outputs": [{"name": "power_state", "type": "string"}],
+  "rollback": "esxi_power_on",
+  "dependencies": []
+}

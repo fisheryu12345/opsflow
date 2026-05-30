@@ -5,15 +5,43 @@
   "group": "action",
   "component_code": "opsflow_script_exec",
   "inputs": [
-    {"name": "script_content", "type": "string", "default": "", "description": "脚本内容"},
-    {"name": "script_type", "type": "string", "default": "bash", "description": "脚本类型: bash/python/powershell"},
-    {"name": "args", "type": "string", "default": "", "description": "脚本参数"}
+    {
+      "name": "script_content",
+      "type": "string",
+      "default": "",
+      "description": "脚本内容"
+    },
+    {
+      "name": "script_type",
+      "type": "string",
+      "default": "bash",
+      "description": "脚本类型: bash/python/powershell"
+    },
+    {
+      "name": "args",
+      "type": "string",
+      "default": "",
+      "description": "脚本参数"
+    }
   ],
   "outputs": [
-    {"name": "stdout", "type": "string", "description": "脚本标准输出"},
-    {"name": "stderr", "type": "string", "description": "脚本错误输出"},
-    {"name": "returncode", "type": "int", "description": "返回码"}
+    {
+      "name": "stdout",
+      "type": "string",
+      "description": "脚本标准输出"
+    },
+    {
+      "name": "stderr",
+      "type": "string",
+      "description": "脚本错误输出"
+    },
+    {
+      "name": "returncode",
+      "type": "int",
+      "description": "返回码"
+    }
   ],
   "rollback": null,
-  "dependencies": []
+  "dependencies": [],
+  "executor_type": "ansible"
 }

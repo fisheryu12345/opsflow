@@ -1,0 +1,21 @@
+{
+  "name": "esxi_get_state",
+  "description": "查询 ESXi 虚拟机状态",
+  "risk_level": "low",
+  "group": "vmware",
+  "component_code": "opsflow_esxi_get_state",
+  "executor_type": "esxi",
+  "inputs": [
+    {"name": "esxi_host", "type": "string", "required": true},
+    {"name": "vm_name", "type": "string", "required": true}
+  ],
+  "outputs": [
+    {"name": "exists", "type": "bool"},
+    {"name": "power_state", "type": "string"},
+    {"name": "guest_ip", "type": "string"},
+    {"name": "cpu", "type": "int"},
+    {"name": "memory_mb", "type": "int"}
+  ],
+  "rollback": null,
+  "dependencies": []
+}

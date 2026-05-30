@@ -35,7 +35,8 @@ def generate_pipeline(nl_input: str, target_hosts: list = None) -> dict:
     text = response.choices[0].message.content
     # MySQL does not support 4-byte UTF-8
     text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
-    return json.loads(text)
+    result = json.loads(text)
+    return result
 
 
 def refine_pipeline(nl_input: str, nodes: list, edges: list, target_hosts: list = None) -> dict:
@@ -58,7 +59,8 @@ def refine_pipeline(nl_input: str, nodes: list, edges: list, target_hosts: list 
     )
     text = response.choices[0].message.content
     text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
-    return json.loads(text)
+    result = json.loads(text)
+    return result
 
 
 def optimize_layout(nodes: list, edges: list) -> list:
@@ -161,6 +163,8 @@ def _build_system_prompt(target_hosts: list) -> str:
     # Dynamically generate atom list from atom_registry
     from .atom_registry import get_all_atoms
     atoms = get_all_atoms()
+    # Filter out shell — AI should not use it as fallback for missing atoms
+    atoms = {k: v for k, v in atoms.items() if k != 'shell'}
     atom_lines = []
     for name, meta in sorted(atoms.items()):
         inputs_str = ', '.join(
@@ -173,8 +177,19 @@ def _build_system_prompt(target_hosts: list) -> str:
 
     return f"""You are an ops workflow generator. Convert natural language descriptions to standard Pipeline Tree JSON.
 
-Available atom types:
+Available atom types (MUST ONLY USE THESE - DO NOT INVENT NEW ONES):
 {atom_list}
+
+If no suitable atom exists for a requested operation, you MUST add a top-level "_errors" field listing what you cannot do (e.g. "_errors": ["create_snapshot: no matching atom"]). DO NOT use a substitute atom — the system will reject responses containing atoms not in the list above.
+
+===== Platform Matching Rules (match atom prefix to operation platform) =====
+- esxi_* → VMware / VM / 虚拟机 operations (create, power on/off, etc.)
+- netapp_* → NetApp storage / 存储设备 operations (volume snapshots, etc.)
+- redfish_* → Bare-metal server / 裸金属服务器 BMC management
+- servicenow_* → IT Service Management / IT服务管理 (incident, change request)
+- http_* → Generic HTTP API calls / 通用 HTTP 请求
+- All others → General Linux server operations (disk, deploy, backup, etc.)
+IMPORTANT: "snapshot" in the name does NOT mean it works for VMs. netapp_create_snapshot is for STORAGE VOLUMES only, NOT for ESXi VM snapshots.
 
 Pipeline Tree JSON format:
 {{
