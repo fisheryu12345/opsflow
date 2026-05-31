@@ -1,4 +1,5 @@
 import re
+import logging
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -7,9 +8,12 @@ from rest_framework.response import Response
 from opsflow.models import FlowTemplate
 from opsflow.serializers import FlowTemplateSerializer
 from opsflow.core.llm_service import generate_pipeline, optimize_layout, analyze_pipeline, refine_pipeline
+from opsflow.core.layout import compute_layout
 from opsflow.core.safety_guard import validate_pipeline
 from opsflow.core.bamboo_builder import validate_bamboo_compatibility
 from dvadmin.utils.json_response import DetailResponse
+
+logger = logging.getLogger(__name__)
 
 
 class FlowTemplateViewSet(viewsets.ModelViewSet):
@@ -135,16 +139,21 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def ai_layout(self, request):
-        """接收画布节点和连线，调用 AI 进行布局优化"""
+        """布局优化：默认使用确定性 Sugiyama 算法，?method=ai 走 AI 布局"""
         nodes = request.data.get('nodes', [])
         edges = request.data.get('edges', [])
         if not nodes:
             return Response({'code': 4000, 'msg': 'nodes is required', 'data': None},
                             status=status.HTTP_400_BAD_REQUEST)
+        method = request.query_params.get('method', 'sugiyama')
         try:
-            positions = optimize_layout(nodes, edges)
+            if method == 'ai':
+                positions = optimize_layout(nodes, edges)
+            else:
+                positions = compute_layout(nodes, edges)
             return Response({'code': 2000, 'msg': 'success', 'data': {'positions': positions}})
         except Exception as e:
+            logger.exception("Layout failed")
             return Response({'code': 4000, 'msg': str(e), 'data': None},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

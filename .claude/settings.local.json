@@ -352,7 +352,11 @@
       "Bash(taskkill /PID 3236 /F)",
       "Bash(taskkill //PID 7252 //F)",
       "Bash(taskkill //PID 9408 //F)",
-      "Bash(taskkill //PID 3236 //F)"
+      "Bash(taskkill //PID 3236 //F)",
+      "Bash(python -c \"import django; from django.conf import settings; settings.configure\\(DATABASES={'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': ':memory:'}}, INSTALLED_APPS=['django.contrib.contenttypes','django.contrib.auth']\\); django.setup\\(\\); print\\('ok'\\)\")",
+      "Bash(DJANGO_SETTINGS_MODULE=application.test_settings python -c ' *)",
+      "Bash(DJANGO_SETTINGS_MODULE=application.test_settings python -m pytest opsflow/tests/test_layout.py -v)",
+      "Bash(DJANGO_SETTINGS_MODULE=application.test_settings python -m pytest opsflow/tests/test_layout.py -v --tb=long)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

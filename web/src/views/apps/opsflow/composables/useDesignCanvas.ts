@@ -317,8 +317,15 @@ export function useDesignCanvas(containerId: string) {
       contentNodes.some(n => n.id === e.to)
     )
 
-    // 布局内容节点
-    const positions = layoutNodes(contentNodes, contentEdges)
+    // 使用固化位置（如 x/y 已存在）或 BFS 布局
+    const hasSavedPositions = nodesList.some(n => n.x != null && n.y != null)
+    const positions = hasSavedPositions
+      ? Object.fromEntries(
+          nodesList
+            .filter(n => n.x != null && n.y != null)
+            .map(n => [n.id, { x: n.x, y: n.y }])
+        )
+      : layoutNodes(contentNodes, contentEdges)
     const cells: any[] = []
 
     // 计算内容节点的根节点和叶子节点

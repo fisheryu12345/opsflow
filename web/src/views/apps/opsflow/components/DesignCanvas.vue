@@ -8,6 +8,7 @@
         </el-button-group>
         <el-button size="small" circle @click="$emit('diff')" :icon="CopyDocument" />
         <el-button size="small" circle @click="$emit('analyze')" :icon="DataAnalysis" />
+        <el-button size="small" circle @click="aiLayout" :icon="Operation" />
         <el-button size="small" circle @click="$emit('newTemplate')" :icon="Plus" />
         <el-button size="small" circle type="primary" @click="onSave" :icon="Upload" />
       </div>
@@ -27,7 +28,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
+import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 // X6 CSS — 必须导入否则 Stencil、Minimap 等插件容器不显示
 import '@antv/x6/dist/index.css'
 import '@antv/x6-plugin-stencil/dist/index.css'

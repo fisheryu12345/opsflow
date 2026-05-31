@@ -17,7 +17,15 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        execution = serializer.save(created_by=self.request.user)
+        # 快照模板的 pipeline_tree（含固化位置）到执行实例，
+        # 确保编辑视图和执行视图的流程图式样一致
+        template = serializer.validated_data.get('template')
+        if template and template.pipeline_tree:
+            context = execution.context or {}
+            context['pipeline_tree'] = template.pipeline_tree
+            execution.context = context
+            execution.save(update_fields=['context'])
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

@@ -120,6 +120,10 @@ function initGraph() {
     container: canvasRef.value,
     grid: true,
     interacting: false,
+    connecting: {
+      router: 'manhattan',
+      connector: 'rounded',
+    },
   })
 }
 
@@ -195,7 +199,7 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
         source: { cell: edge.from, port: edge.sourcePort || 'right' },
         target: { cell: edge.to, port: edge.targetPort || 'left' },
         labels: edge.label ? [{ attrs: { text: { text: edge.label } } }] : undefined,
-        attrs: { line: { stroke: '#C0C4CC', strokeWidth: 1.5, targetMarker: 'classic' } },
+        attrs: { line: { stroke: '#DCDFE6', strokeWidth: 1.5, targetMarker: 'classic' } },
       }))
     }
 

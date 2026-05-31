@@ -1,5 +1,6 @@
 import asyncio
 import concurrent.futures
+import json
 import logging
 
 from celery import shared_task
@@ -56,28 +57,52 @@ def execute_pipeline_task(self, execution_id):
         raise self.retry(exc=exc)
 
 
-@shared_task(queue='er_execute')
-def notify_node_status(execution_id, node_id, status, message=''):
-    """Celery 任务 — 推送节点状态到 WebSocket（通过 Redis channel layer）
+_CHANNEL_REDIS_PREFIX = "asgi"
 
-    不能使用 asgiref.sync.async_to_sync，因为 Celery worker 中可能已有
-    运行中的事件循环（DJANGO_ALLOW_ASYNC_UNSAFE 开启时），async_to_sync
-    内部调用 asyncio.run() 会抛出 RuntimeError。
 
-    改用 asyncio.new_event_loop() + run_until_complete，手动管理事件循环
-    生命周期，确保 loop 用完即关。
+def _ws_notify(execution_id, node_id, status, message=""):
+    """同步推送节点状态到 WebSocket，通过 Redis pub/sub 直接写入 channel layer。
+
+    不使用 channels_redis 的 async API（在 Celery worker 中跨临时事件循环时
+    Redis 异步连接会过期），改用同步 Redis 直连 + channels_redis 内部 key 格式。
     """
-    from channels.layers import get_channel_layer
+    import redis
 
-    channel_layer = get_channel_layer()
-    run_async(
-        channel_layer.group_send(
-            f'execution_{execution_id}',
+    host = "127.0.0.1"
+    port = 6379
+    db = 0
+
+    try:
+        r = redis.Redis(host=host, port=port, db=db, socket_connect_timeout=3)
+        group = f"execution_{execution_id}"
+        payload = json.dumps(
             {
-                'type': 'node_status',
-                'node_id': node_id,
-                'status': status,
-                'message': message,
+                "type": "node_status",
+                "node_id": node_id,
+                "status": status,
+                "message": message,
             }
         )
-    )
+        group_key = f"{_CHANNEL_REDIS_PREFIX}:g:{group}"
+        channel_names = r.zrange(group_key, 0, -1)
+        for ch in channel_names:
+            if isinstance(ch, bytes):
+                ch = ch.decode()
+            r.publish(f"{_CHANNEL_REDIS_PREFIX}:{ch}", payload)
+    except Exception as e:
+        logger.warning(
+            "WS notify best-effort failed for execution %s: %s "
+            "(pipeline continues, UI may miss real-time update)",
+            execution_id,
+            e,
+        )
+
+
+@shared_task(queue='er_execute')
+def notify_node_status(execution_id, node_id, status, message=''):
+    """Celery 任务 — 推送节点状态到 WebSocket（通过同步 Redis pub/sub）
+
+    避免使用 channels_redis 的 async API，改用同步 Redis 直连写入
+    channel layer 的 pub/sub 通道。
+    """
+    _ws_notify(execution_id, node_id, status, message)
