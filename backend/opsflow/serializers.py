@@ -1,7 +1,7 @@
 import pytz
 
 from rest_framework import serializers
-from .models import FlowTemplate, FlowExecution, OpsLog, OpsKnowledge, SchedulePlan
+from .models import FlowTemplate, TemplateVersion, FlowExecution, NodeExecutionTrace, OpsLog, OpsKnowledge, SchedulePlan
 
 
 class FlowTemplateSerializer(serializers.ModelSerializer):
@@ -10,7 +10,19 @@ class FlowTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = FlowTemplate
         fields = '__all__'
-        read_only_fields = ['created_by', 'created_at', 'updated_at']
+        read_only_fields = ['created_by', 'created_at', 'updated_at', 'version', 'snapshot']
+
+    def get_created_by_name(self, obj):
+        return obj.created_by.username if obj.created_by else ''
+
+
+class TemplateVersionSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TemplateVersion
+        fields = '__all__'
+        read_only_fields = ['created_at']
 
     def get_created_by_name(self, obj):
         return obj.created_by.username if obj.created_by else ''
@@ -23,13 +35,38 @@ class FlowExecutionSerializer(serializers.ModelSerializer):
     class Meta:
         model = FlowExecution
         fields = '__all__'
-        read_only_fields = ['created_by', 'created_at', 'started_at', 'ended_at']
+        read_only_fields = ['created_by', 'created_at', 'started_at', 'ended_at', 'template_snapshot']
 
     def get_template_name(self, obj):
         return obj.template.name if obj.template else ''
 
     def get_created_by_name(self, obj):
         return obj.created_by.username if obj.created_by else ''
+
+
+class NodeExecutionTraceSerializer(serializers.ModelSerializer):
+    """节点执行轨迹序列化器"""
+
+    class Meta:
+        model = NodeExecutionTrace
+        exclude = ['execution']
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class FlowExecutionDetailSerializer(FlowExecutionSerializer):
+    """执行详情序列化器（含状态树 + 轨迹摘要）"""
+    trace_summary = serializers.SerializerMethodField()
+
+    class Meta(FlowExecutionSerializer.Meta):
+        fields = FlowExecutionSerializer.Meta.fields + ['state_tree', 'trace_summary']
+
+    def get_trace_summary(self, obj):
+        """返回不含完整 outputs 的轨迹摘要"""
+        traces = NodeExecutionTrace.objects.filter(execution=obj).values(
+            'node_id', 'node_label', 'status', 'retry_count',
+            'duration_ms', 'entered_at', 'exited_at', 'error',
+        ).order_by('entered_at')
+        return list(traces)
 
 
 class OpsLogSerializer(serializers.ModelSerializer):

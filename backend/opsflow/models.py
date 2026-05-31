@@ -22,8 +22,59 @@ class FlowTemplate(models.Model):
         ordering = ['-created_at']
         verbose_name = "流程模板"
 
+    version = models.IntegerField(default=1, null=True, blank=True, verbose_name="当前版本号")
+    snapshot = models.JSONField(default=dict, null=True, blank=True, verbose_name="发布快照")
+
+    def publish_snapshot(self, user=None, version_note=""):
+        """发布新版本：冻结当前 pipeline_tree 到 snapshot 并创建版本记录"""
+        from django.utils import timezone
+        self.snapshot = {
+            'pipeline_tree': self.pipeline_tree,
+            'target_hosts': self.target_hosts,
+            'global_vars': self.global_vars,
+            'snapshot_at': timezone.now().isoformat(),
+        }
+        TemplateVersion.objects.create(
+            template=self,
+            version=self.version,
+            pipeline_tree=self.pipeline_tree,
+            target_hosts=self.target_hosts,
+            global_vars=self.global_vars,
+            version_note=version_note,
+            created_by=self.created_by if user is None else user,
+        )
+        self.version += 1
+        self.save()
+
     def __str__(self):
         return self.name
+
+
+class TemplateVersion(models.Model):
+    """模板版本历史 — 每次发布时创建"""
+    template = models.ForeignKey(
+        'FlowTemplate', on_delete=models.CASCADE, related_name='versions',
+        verbose_name="关联模板"
+    )
+    version = models.IntegerField(verbose_name="版本号")
+    pipeline_tree = models.JSONField(default=dict, verbose_name="流程树JSON")
+    target_hosts = models.JSONField(default=list, verbose_name="目标主机列表")
+    global_vars = models.JSONField(default=dict, verbose_name="全局变量")
+    version_note = models.CharField(max_length=256, blank=True, default='', verbose_name="版本备注")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, verbose_name="创建者"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ops_template_version'
+        ordering = ['-version']
+        unique_together = [('template', 'version')]
+        verbose_name = "模板版本"
+
+    def __str__(self):
+        return f"{self.template.name} v{self.version}"
 
 
 class FlowExecution(models.Model):
@@ -45,7 +96,9 @@ class FlowExecution(models.Model):
         verbose_name="执行状态"
     )
     node_status = models.JSONField(default=dict, verbose_name="各节点状态")
+    state_tree = models.JSONField(default=dict, blank=True, verbose_name="状态树快照")
     context = models.JSONField(default=dict, verbose_name="执行上下文")
+    template_snapshot = models.JSONField(default=dict, null=True, blank=True, verbose_name="创建时模板快照(冻结)")
     current_node = models.CharField(max_length=200, blank=True, verbose_name="当前执行节点")
     started_at = models.DateTimeField(null=True, blank=True, verbose_name="开始时间")
     ended_at = models.DateTimeField(null=True, blank=True, verbose_name="结束时间")
@@ -201,3 +254,49 @@ class PluginMeta(models.Model):
 
     def __str__(self):
         return f"{self.group}/{self.name}"
+
+
+class NodeExecutionTrace(models.Model):
+    """节点执行轨迹 — 每个节点每次执行的完整记录"""
+    execution = models.ForeignKey(
+        FlowExecution, on_delete=models.CASCADE, related_name='traces',
+        verbose_name="关联执行"
+    )
+    node_id = models.CharField(max_length=200, verbose_name="节点ID")
+    node_label = models.CharField(max_length=200, blank=True, verbose_name="节点名称")
+    atom_type = models.CharField(max_length=64, blank=True, verbose_name="原子类型")
+    node_type = models.CharField(max_length=64, blank=True, verbose_name="节点类型")
+
+    # 状态轨迹：记录每次状态变更
+    status = models.CharField(max_length=16, default='pending', verbose_name="当前状态")
+    status_history = models.JSONField(default=list, verbose_name="状态变更历史")
+
+    # 时间轨迹
+    entered_at = models.DateTimeField(null=True, blank=True, verbose_name="进入时间")
+    exited_at = models.DateTimeField(null=True, blank=True, verbose_name="退出时间")
+    duration_ms = models.IntegerField(null=True, blank=True, verbose_name="执行耗时(ms)")
+
+    # 执行数据
+    inputs = models.JSONField(default=dict, verbose_name="输入参数")
+    outputs = models.JSONField(default=dict, verbose_name="输出结果")
+    error = models.TextField(blank=True, verbose_name="错误信息")
+
+    # 重试信息
+    retry_count = models.IntegerField(default=0, verbose_name="已重试次数")
+    max_retries = models.IntegerField(default=0, verbose_name="最大重试次数")
+
+    # 日志文件引用
+    log_file_path = models.CharField(max_length=500, blank=True, verbose_name="日志文件路径")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ops_node_trace'
+        unique_together = [('execution', 'node_id', 'retry_count')]
+        ordering = ['execution', 'entered_at']
+        verbose_name = "节点执行轨迹"
+        verbose_name_plural = "节点执行轨迹"
+
+    def __str__(self):
+        return f"[{self.execution_id}] {self.node_id} (retry#{self.retry_count})"

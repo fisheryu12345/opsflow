@@ -62,6 +62,17 @@
 
 - [x] **Dashboard 统计仪表盘** — 4 ECharts（趋势/状态分布/Top 模板/节点类型）+ 7 统计卡片 + 用户活动表
 
+- [x] **执行轨迹双树结构** — NodeExecutionTrace 模型 + state_tree 快照 + 节点独立日志文件 + NodeCommandDispatcher 节点操作调度层
+  - [x] NodeExecutionTrace 模型 (unique_together: execution/node_id/retry_count)
+  - [x] FlowExecution.state_tree 字段 (增量更新，含时间/耗时/错误)
+  - [x] NodeTraceLogger (JSON Lines 日志文件，按事件类型分类)
+  - [x] signals.py 扩展 (_update_state_tree / _record_node_trace / _write_node_trace_log)
+  - [x] NodeCommandDispatcher (retry/skip/trace 标准化操作接口)
+  - [x] API 端点 (`/traces/` + `/trace_log/` + retry/skip 升级)
+  - [x] 日志清理 management command (`clean_node_trace_logs`)
+  - [x] 测试用例 (18 个，全部通过)
+  - [x] 文档 (spec + plan)
+
 ### 待添加
 
 - [ ] **bk-sops 配置驱动表单架构借鉴** — 参考 bk-sops 原子表单的"配置驱动"思想，构建 OpsFlow 原子参数配置表单：

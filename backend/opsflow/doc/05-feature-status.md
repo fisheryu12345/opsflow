@@ -48,6 +48,12 @@
 | 调度计划 API 客户端 | `schedule-plans.ts` | 前端 Axios API |
 | 独立调度进程 | `start_opsflow_scheduler.py` | APScheduler 独立进程 + Redis 锁防重复 |
 | 部署文档 | `06-deployment-notes.md` | 跨目录修改记录 + 部署清单 |
+| 执行轨迹双树 | `models.py` | NodeExecutionTrace 模型 + FlowExecution.state_tree |
+| 节点日志文件 | `core/trace_logger.py` | NodeTraceLogger (JSON Lines 格式，按事件分类) |
+| 信号扩展 | `signals.py` | _update_state_tree / _record_node_trace / _write_node_trace_log |
+| 节点操作调度 | `core/node_dispatcher.py` | NodeCommandDispatcher (retry/skip/trace 标准化) |
+| 轨迹 API | `views/execution_views.py` | GET /traces/ + /trace_log/，升级 retry/skip |
+| 日志清理 | `management/commands/clean_node_trace_logs.py` | 保留 N 天，支持 dry-run |
 
 ### 前端
 
@@ -80,6 +86,7 @@
 | 功能 | 说明 | 涉及文件 |
 |------|------|----------|
 | **状态验证** | flow_engine 中定期调用 get_pipeline_states() | `flow_engine.py` |
+| **执行轨迹双树** | NodeExecutionTrace 模型 + state_tree + 节点日志 + Dispatcher | `models.py` / `core/trace_logger.py` / `core/node_dispatcher.py` |
 
 ### 平台执行器完善
 
