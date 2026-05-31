@@ -143,12 +143,19 @@ def _notify_node_status(execution, node_id, status):
 
 
 def _notify_completed(execution):
-    """推送流程完成通知到 WebSocket"""
+    """推送流程完成通知到 WebSocket
+
+    使用 tasks.run_async 统一处理事件循环兼容性，避免在 Celery gevent
+    工作线程中直接使用 asyncio.new_event_loop() 导致 "Cannot run the
+    event loop while another loop is running" 错误。
+    """
     from channels.layers import get_channel_layer
-    from asgiref.sync import async_to_sync
+    from opsflow.tasks import run_async
 
     channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f"execution_{execution.id}",
-        {"type": "execution.completed", "status": execution.status},
+    run_async(
+        channel_layer.group_send(
+            f"execution_{execution.id}",
+            {"type": "execution.completed", "status": execution.status},
+        )
     )

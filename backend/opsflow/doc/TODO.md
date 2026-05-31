@@ -25,22 +25,22 @@
 - [x] AI 幻觉防御: shell 原子过滤 + 跨平台误用检测 + _errors 拦截
 - [x] 测试执行器: TestExecutor + test_print_time 原子（流程引擎功能验证）
 - [x] 多平台原子层: Executor Factory (Ansible/ESXi/NetApp/ServiceNow/Redfish/HTTP/Test)
+- [x] **菜单注册** — 前端 RBAC 菜单已配好，入口可见
+- [x] **执行记录页面** — 已实现（ExecutionList.vue + ExecutionDetail.vue）
+- [x] **Celery worker 启动脚本** — 注意事项.md 已记录启动命令（含 gevent 池 + Redis channel layer）
+- [x] **WebSocket Channel Layer 修复** — InMemoryChannelLayer → RedisChannelLayer，async_to_sync → 手动事件循环，解决跨进程 WS 消息推送问题（详见注意事项.md 第 6 节）
 
 ## ❌ 待处理
 
 ### 高优先级
 
-- [ ] **菜单注册** — 前端需通过 RBAC 菜单管理页面配置"运维编排"菜单路由
-- [ ] **执行入口 UI** — 画布工具栏添加"运行"按钮，调用 CreateExecution + StartExecution
-- [ ] **执行记录页面** — 执行历史列表页（筛选状态）+ 详情页（嵌入 MonitorCanvas 实时监控）
-- [ ] **Celery worker 启动脚本** — 为 er_execute/er_schedule 队列添加 worker 启动命令文档或脚本
 - [ ] **get_pipeline_states 状态验证** — flow_engine.py 中定期调用 api.get_pipeline_states() 验证执行状态一致性
 
 ### 中优先级
 
 - [ ] **审计日志页面** — OpsLog 浏览页面（按 execution 查看每一步输出）
 - [ ] **知识库页面** — OpsKnowledge CRUD 前端页面
-- [ ] **设计/监控模式切换** — 从设计画布切换到监控视图的统一入口
+- ~~[ ] **设计/监控模式切换** — 不合理需求，设计画布负责编辑模板，监控嵌入执行详情页，职责分离~~
 
 ### 低优先级
 

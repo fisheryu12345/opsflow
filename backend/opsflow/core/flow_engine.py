@@ -279,20 +279,26 @@ class FlowEngine:
         self._send_ws_completed()
 
     def _send_ws_node_status(self, node_id, status):
-        """直接推送节点状态到 WebSocket（best-effort，不抛异常）"""
+        """直接推送节点状态到 WebSocket（best-effort，不抛异常）
+
+        不能使用 async_to_sync，理由见 opsflow/tasks.py notify_node_status。
+        run_sync 模式下直接从 Celery worker 调用此方法，需手动管理事件循环。
+        """
         try:
             from channels.layers import get_channel_layer
-            from asgiref.sync import async_to_sync
+            from opsflow.tasks import run_async
 
             channel_layer = get_channel_layer()
             if channel_layer:
-                async_to_sync(channel_layer.group_send)(
-                    f"execution_{self.execution.id}",
-                    {
-                        "type": "node.status",
-                        "node_id": node_id,
-                        "status": status,
-                    },
+                run_async(
+                    channel_layer.group_send(
+                        f"execution_{self.execution.id}",
+                        {
+                            "type": "node.status",
+                            "node_id": node_id,
+                            "status": status,
+                        },
+                    )
                 )
         except Exception:
             logger.debug(
@@ -300,19 +306,24 @@ class FlowEngine:
             )
 
     def _send_ws_completed(self):
-        """推送执行完成通知到 WebSocket（best-effort，不抛异常）"""
+        """推送执行完成通知到 WebSocket（best-effort，不抛异常）
+
+        不能使用 async_to_sync，理由见 opsflow/tasks.py notify_node_status。
+        """
         try:
             from channels.layers import get_channel_layer
-            from asgiref.sync import async_to_sync
+            from opsflow.tasks import run_async
 
             channel_layer = get_channel_layer()
             if channel_layer:
-                async_to_sync(channel_layer.group_send)(
-                    f"execution_{self.execution.id}",
-                    {
-                        "type": "execution.completed",
-                        "status": self.execution.status,
-                    },
+                run_async(
+                    channel_layer.group_send(
+                        f"execution_{self.execution.id}",
+                        {
+                            "type": "execution.completed",
+                            "status": self.execution.status,
+                        },
+                    )
                 )
         except Exception:
             logger.debug(
