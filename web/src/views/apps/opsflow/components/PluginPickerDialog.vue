@@ -1,8 +1,8 @@
 <template>
-  <el-dialog :model-value="props.visible" @update:model-value="emit('update:visible', $event)" title="选择插件" width="700px" top="8vh" :close-on-click-modal="false" destroy-on-close>
+  <el-dialog :model-value="props.visible" @update:model-value="emit('update:visible', $event)" title="Select Plugin" width="700px" top="8vh" :close-on-click-modal="false" destroy-on-close>
     <div class="plugin-picker">
       <div class="picker-search">
-        <el-input v-model="searchQuery" placeholder="搜索插件名称..." clearable prefix-icon="Search" size="small" />
+        <el-input v-model="searchQuery" placeholder="Search plugin name..." clearable prefix-icon="Search" size="small" />
       </div>
       <div class="picker-body">
         <div class="picker-groups">
@@ -26,18 +26,18 @@
             @dblclick="confirmPlugin(plugin)"
           >
             <div class="plugin-name">{{ plugin.name }}</div>
-            <div class="plugin-desc">{{ plugin.description || '暂无描述' }}</div>
+            <div class="plugin-desc">{{ plugin.description || 'No description' }}</div>
             <el-tag :type="riskTagType(plugin.risk_level)" size="small" effect="plain">
               {{ plugin.risk_level || 'low' }}
             </el-tag>
           </div>
-          <el-empty v-if="!filteredPlugins.length" :description="searchQuery ? '无匹配插件' : '请选择分组'" />
+          <el-empty v-if="!filteredPlugins.length" :description="searchQuery ? 'No matching plugins' : 'Select a group'" />
         </div>
       </div>
     </div>
     <template #footer>
-      <el-button @click="emit('update:visible', false)" size="small">取消</el-button>
-      <el-button type="primary" @click="confirmSelected" size="small" :disabled="!selectedPlugin">确认</el-button>
+      <el-button @click="emit('update:visible', false)" size="small">Cancel</el-button>
+      <el-button type="primary" @click="confirmSelected" size="small" :disabled="!selectedPlugin">Confirm</el-button>
     </template>
   </el-dialog>
 </template>

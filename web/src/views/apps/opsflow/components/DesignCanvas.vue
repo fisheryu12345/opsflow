@@ -31,6 +31,12 @@
         <el-button size="small" circle @click="$emit('newTemplate')" :icon="Plus" />
         <el-button size="small" circle type="primary" @click="onSave" :icon="Upload" />
       </div>
+      <div class="canvas-toolbar-right">
+        <el-button size="small" @click="showVarPanel = !showVarPanel"
+          :type="showVarPanel ? 'primary' : 'default'" :icon="Coin" round>
+          Variables
+        </el-button>
+      </div>
       <div class="stencil-wrapper" :class="{ collapsed: stencilCollapsed }">
         <div ref="stencilRef" class="stencil-panel" />
       </div>
@@ -42,12 +48,25 @@
       <PropertyPanel
         v-if="selectedNode"
         :node-data="selectedNode"
+        :template-id="templateId"
         @update="onNodeUpdate"
       />
       <PropertyPanel
         v-else-if="selectedEdge"
         :edge-data="selectedEdge"
         @update="onEdgeUpdate"
+      />
+      <!-- Global Variable Panel toggle -->
+      <GlobalVariablePanel
+        v-if="templateId && showVarPanel"
+        :template-id="templateId"
+        @update="onGlobalVarsUpdated"
+      />
+      <!-- Subprocess Status Badge -->
+      <SubprocessStatusBadge
+        v-if="templateId"
+        :template-id="templateId"
+        @updated="onSubprocessUpdated"
       />
     </div>
   </div>
@@ -56,13 +75,15 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
+import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, ZoomIn, ZoomOut, FullScreen, Coin } from '@element-plus/icons-vue'
 // X6 CSS — 必须导入否则 Stencil、Minimap 等插件容器不显示
 import '@antv/x6/dist/index.css'
 import '@antv/x6-plugin-stencil/dist/index.css'
 import '@antv/x6-plugin-minimap/dist/index.css'
 import { useDesignCanvas } from '../composables/useDesignCanvas'
 import PropertyPanel from './PropertyPanel.vue'
+import GlobalVariablePanel from './GlobalVariablePanel.vue'
+import SubprocessStatusBadge from './SubprocessStatusBadge.vue'
 
 const props = defineProps<{
   templates?: any[]
@@ -78,6 +99,16 @@ const emit = defineEmits<{
   nodeSelect: [node: any]
   nodeNeedPlugin: [nodeId: string]
 }>()
+
+const showVarPanel = ref(false)
+
+function onGlobalVarsUpdated() {
+  // Variables panel will re-fetch via watcher on templateId
+}
+
+function onSubprocessUpdated() {
+  // Subprocess refs updated — trigger re-fetch from badge component
+}
 
 const {
   graph, stencil, selectedNode, selectedEdge,
@@ -279,5 +310,27 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, z
   overflow: hidden;
   z-index: 100;
   transition: left 0.25s ease;
+}
+.canvas-toolbar-right {
+  position: absolute; top: 12px; right: 12px; z-index: 100;
+  display: flex; align-items: center; gap: 8px;
+}
+.canvas-toolbar-right .el-button {
+  background: rgba(255,255,255,0.9);
+  border: 1px solid #e4e7ed;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  backdrop-filter: blur(8px);
+  padding: 6px 14px;
+}
+.canvas-toolbar-right .el-button:hover {
+  border-color: #409EFF; color: #409EFF;
+  box-shadow: 0 4px 12px rgba(64,158,255,0.2);
+}
+.canvas-toolbar-right .el-button--primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-color: transparent; color: #fff;
+}
+.canvas-toolbar-right .el-button--primary:hover {
+  box-shadow: 0 4px 12px rgba(102,126,234,0.35);
 }
 </style>

@@ -21,6 +21,101 @@ logger = logging.getLogger(__name__)
 VARIABLE_PATTERN = re.compile(r'\$\{([^}]+)\}')
 
 
+# ── Global variables normalization ─────────────────────────────────
+
+
+def normalize_global_vars(global_vars: dict) -> dict:
+    """规范化 global_vars 为包含元数据的结构化格式
+
+    旧格式: {"key": "value"}
+    新格式: {"key": {"value": ..., "type": "input", "source_type": "manual",
+                      "source_info": None, "show_type": True, "description": ""}}
+
+    始终返回结构化格式。
+    """
+    if not global_vars:
+        return {}
+    normalized = {}
+    for key, val in global_vars.items():
+        if isinstance(val, dict) and "value" in val:
+            # 已经是结构化格式 — 确保默认字段
+            entry = {
+                "value": val["value"],
+                "type": val.get("type", "input"),
+                "show_type": val.get("show_type", True),
+                "description": val.get("description", ""),
+                "source_type": val.get("source_type", "manual"),
+                "source_info": val.get("source_info"),
+                "validation": val.get("validation", []),
+            }
+        else:
+            # 扁平格式 — 包装为结构化
+            entry = {
+                "value": val,
+                "type": "input",
+                "show_type": True,
+                "description": "",
+                "source_type": "manual",
+                "source_info": None,
+                "validation": [],
+            }
+        normalized[key] = entry
+    return normalized
+
+
+def get_global_vars_values(global_vars: dict) -> dict:
+    """从规范化（或扁平）global_vars 中提取纯值 dict
+
+    供 bamboo_builder.py 注入 Var(type=PLAIN) 使用。
+    """
+    normalized = normalize_global_vars(global_vars)
+    return {k: v["value"] for k, v in normalized.items()}
+
+
+def count_variable_references(pipeline_tree: dict, var_key: str) -> int:
+    """扫描 pipeline_tree 中 `${var_key}` 的出现次数"""
+    if not pipeline_tree or not var_key:
+        return 0
+    pattern = re.compile(r'\$\{' + re.escape(var_key) + r'\}')
+    count = 0
+    nodes = pipeline_tree.get('nodes', []) or []
+    for node in nodes:
+        params = node.get('params', {}) or {}
+        count += _count_in_value(params, pattern)
+    return count
+
+
+def cleanup_unused_vars(pipeline_tree: dict, global_vars: dict) -> dict:
+    """删除 pipeline_tree 中不再被任何节点引用的全局变量
+
+    Args:
+        pipeline_tree: {nodes, edges} 格式的流程定义
+        global_vars: 规范化或扁平格式的全局变量
+
+    Returns:
+        清理后的全局变量 dict（结构化格式）
+    """
+    normalized = normalize_global_vars(global_vars)
+    cleaned = {}
+    for key, entry in normalized.items():
+        ref_count = count_variable_references(pipeline_tree, key)
+        if ref_count > 0:
+            cleaned[key] = entry
+        # 引用计数为 0 时自动删除
+    return cleaned
+
+
+def _count_in_value(value, pattern: re.Pattern) -> int:
+    """递归统计匹配次数"""
+    if isinstance(value, str):
+        return len(pattern.findall(value))
+    if isinstance(value, dict):
+        return sum(_count_in_value(v, pattern) for v in value.values())
+    if isinstance(value, (list, tuple)):
+        return sum(_count_in_value(v, pattern) for v in value)
+    return 0
+
+
 def resolve_variables(template_str: str, context: dict) -> str:
     """解析 ${key} 引用，返回替换后的字符串
 
@@ -160,11 +255,13 @@ def build_execution_context(execution) -> dict:
     """
     ctx = {}
 
-    # 全局变量
+    # 全局变量（使用规范化提取值）
     frozen = execution.template_snapshot or {}
     global_vars = frozen.get('global_vars', {}) or {}
     if isinstance(global_vars, dict):
-        ctx.update(global_vars)
+        normalized = normalize_global_vars(global_vars)
+        for key, entry in normalized.items():
+            ctx[key] = entry["value"]
 
     # 可提升变量（hook_variables）
     template = execution.template

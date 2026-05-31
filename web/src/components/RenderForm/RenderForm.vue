@@ -11,6 +11,8 @@
         v-else
         :config="item"
         :value="formData[item.tag_code]"
+        :context="context"
+        :tag-code="item.tag_code"
         @update="(val: any) => handleUpdate(item.tag_code, val)"
       />
     </template>
@@ -25,7 +27,8 @@ import FormGroup from './FormGroup.vue'
 const props = withDefaults(defineProps<{
   schema: any[]
   initialData?: Record<string, any>
-}>(), { initialData: () => ({}) })
+  context?: Record<string, any>
+}>(), { initialData: () => ({}), context: () => ({}) })
 
 const emit = defineEmits<{
   change: [data: Record<string, any>]

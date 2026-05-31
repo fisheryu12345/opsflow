@@ -52,6 +52,11 @@ class ErrorCodes:
     PLUGIN_NOT_FOUND = _ErrorCode(50001, "未知插件")
     PLUGIN_EXECUTION_ERROR = _ErrorCode(50002, "插件执行异常")
 
+    # Approval (70xxx)
+    APPROVAL_REQUIRED = _ErrorCode(70001, "节点需要审批")
+    APPROVAL_ALREADY_PROCESSED = _ErrorCode(70002, "审批已被处理")
+    APPROVAL_PERMISSION_DENIED = _ErrorCode(70003, "您不是审批人")
+
 
 def api_success(data: Any = None, msg: str = "success") -> Response:
     """标准成功响应"""

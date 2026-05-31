@@ -8,14 +8,15 @@ from enum import Enum
 
 class NodeState(str, Enum):
     """节点状态枚举 — 每个节点的生命周期状态"""
-    PENDING = "pending"       # 等待执行（CREATED / READY）
-    RUNNING = "running"       # 执行中
-    FINISHED = "finished"     # 成功完成（COMPLETED）
-    FAILED = "failed"         # 执行失败
-    PAUSED = "paused"         # 人工暂停（SUSPENDED）
-    SKIPPED = "skipped"       # 被跳过
-    CANCELLED = "cancelled"   # 已取消（REVOKED）
-    BLOCKED = "blocked"       # 被阻塞
+    PENDING = "pending"            # 等待执行（CREATED / READY）
+    RUNNING = "running"            # 执行中
+    FINISHED = "finished"          # 成功完成（COMPLETED）
+    FAILED = "failed"              # 执行失败
+    PAUSED = "paused"              # 人工暂停（SUSPENDED）
+    SKIPPED = "skipped"            # 被跳过
+    CANCELLED = "cancelled"        # 已取消（REVOKED）
+    BLOCKED = "blocked"            # 被阻塞
+    PENDING_APPROVAL = "pending_approval"  # 等待审批
 
     @classmethod
     def bamboo_label(cls) -> dict[str, str]:
@@ -46,8 +47,9 @@ class PipelineState(str, Enum):
 
 VALID_NODE_TRANSITIONS: dict[NodeState, list[NodeState]] = {
     NodeState.PENDING:   [NodeState.RUNNING, NodeState.SKIPPED, NodeState.CANCELLED],
-    NodeState.RUNNING:   [NodeState.FINISHED, NodeState.FAILED, NodeState.PAUSED],
+    NodeState.RUNNING:   [NodeState.FINISHED, NodeState.FAILED, NodeState.PAUSED, NodeState.PENDING_APPROVAL],
     NodeState.PAUSED:    [NodeState.RUNNING, NodeState.SKIPPED],
+    NodeState.PENDING_APPROVAL: [NodeState.FINISHED, NodeState.FAILED],  # 审批通过/拒绝
     NodeState.FAILED:    [NodeState.RUNNING],       # 重试
     NodeState.FINISHED:  [],                        # 终态
     NodeState.SKIPPED:   [],                        # 终态

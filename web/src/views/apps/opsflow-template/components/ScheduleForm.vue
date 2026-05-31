@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    :title="plan ? '编辑调度' : '新建调度'"
+    :title="plan ? 'Edit Schedule' : 'New Schedule'"
     v-model="visible"
     width="600px"
     top="8vh"
@@ -9,30 +9,30 @@
     @close="handleClose"
   >
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-      <el-form-item label="调度名称" prop="name">
-        <el-input v-model="form.name" placeholder="请输入调度名称" maxlength="128" />
+      <el-form-item label="Schedule Name" prop="name">
+        <el-input v-model="form.name" placeholder="Enter schedule name" maxlength="128" />
       </el-form-item>
-      <el-form-item label="描述" prop="description">
-        <el-input v-model="form.description" placeholder="可选描述" maxlength="255" />
+      <el-form-item label="Description" prop="description">
+        <el-input v-model="form.description" placeholder="Optional description" maxlength="255" />
       </el-form-item>
-      <el-form-item v-if="!templateId" label="所属模板" prop="template">
-        <el-select v-model="form.template" placeholder="选择模板" filterable style="width: 100%">
+      <el-form-item v-if="!templateId" label="Template" prop="template">
+        <el-select v-model="form.template" placeholder="Select template" filterable style="width: 100%">
           <el-option v-for="t in templateOptions" :key="t.id" :label="t.name" :value="t.id" />
         </el-select>
       </el-form-item>
-      <el-form-item label="调度类型" prop="schedule_type">
+      <el-form-item label="Type" prop="schedule_type">
         <el-radio-group v-model="form.schedule_type">
-          <el-radio label="one_time">一次性</el-radio>
-          <el-radio label="cron">周期性</el-radio>
+          <el-radio label="one_time">One-time</el-radio>
+          <el-radio label="cron">Recurring</el-radio>
         </el-radio-group>
       </el-form-item>
 
       <template v-if="form.schedule_type === 'one_time'">
-        <el-form-item label="执行时间" prop="scheduled_at">
+        <el-form-item label="Run At" prop="scheduled_at">
           <el-date-picker
             v-model="form.scheduled_at"
             type="datetime"
-            placeholder="选择执行时间"
+            placeholder="Select execution time"
             :disabled-date="disabledPastDate"
             value-format="YYYY-MM-DDTHH:mm:ss"
             style="width: 100%"
@@ -41,44 +41,44 @@
       </template>
 
       <template v-if="form.schedule_type === 'cron'">
-        <el-form-item label="频率快捷" prop="cron_preset">
-          <el-select v-model="cronPreset" placeholder="选择频率" style="width: 100%" @change="onCronPresetChange">
-            <el-option label="每天" value="daily" />
-            <el-option label="工作日 (周一至周五)" value="weekdays" />
-            <el-option label="每周一" value="monday" />
-            <el-option label="每月1号" value="monthly" />
-            <el-option label="自定义Cron" value="custom" />
+        <el-form-item label="Preset" prop="cron_preset">
+          <el-select v-model="cronPreset" placeholder="Select frequency" style="width: 100%" @change="onCronPresetChange">
+            <el-option label="Daily" value="daily" />
+            <el-option label="Weekdays (Mon-Fri)" value="weekdays" />
+            <el-option label="Every Monday" value="monday" />
+            <el-option label="Monthly (1st)" value="monthly" />
+            <el-option label="Custom Cron" value="custom" />
           </el-select>
         </el-form-item>
-        <el-form-item label="时间" prop="cron_time" v-if="cronPreset && cronPreset !== 'custom'">
+        <el-form-item label="Time" prop="cron_time" v-if="cronPreset && cronPreset !== 'custom'">
           <el-time-picker
             v-model="cronTime"
-            placeholder="选择时间"
+            placeholder="Select time"
             format="HH:mm"
             value-format="HH:mm"
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="Cron表达式" prop="cron_expr" v-if="cronPreset === 'custom'">
-          <el-input v-model="form.cron_expr" placeholder="如 0 9 * * 1-5" />
+        <el-form-item label="Cron Expression" prop="cron_expr" v-if="cronPreset === 'custom'">
+          <el-input v-model="form.cron_expr" placeholder="e.g. 0 9 * * 1-5" />
         </el-form-item>
-        <el-form-item label="Cron说明" v-if="form.cron_description">
+        <el-form-item label="Cron Description" v-if="form.cron_description">
           <el-input :model-value="form.cron_description" disabled />
         </el-form-item>
       </template>
 
-      <el-divider>重试策略（可选）</el-divider>
-      <el-form-item label="最大重试" prop="max_retries">
-        <el-input-number v-model="form.max_retries" :min="0" :max="10" /> 次
+      <el-divider>Retry Policy (Optional)</el-divider>
+      <el-form-item label="Max Retries" prop="max_retries">
+        <el-input-number v-model="form.max_retries" :min="0" :max="10" /> times
       </el-form-item>
-      <el-form-item label="重试间隔" prop="retry_delay" v-if="form.max_retries > 0">
-        <el-input-number v-model="form.retry_delay" :min="60" :max="86400" :step="60" /> 秒
+      <el-form-item label="Retry Delay" prop="retry_delay" v-if="form.max_retries > 0">
+        <el-input-number v-model="form.retry_delay" :min="60" :max="86400" :step="60" /> seconds
       </el-form-item>
     </el-form>
 
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
+      <el-button @click="visible = false">Cancel</el-button>
+      <el-button type="primary" :loading="submitting" @click="handleSubmit">Confirm</el-button>
     </template>
   </el-dialog>
 </template>
@@ -124,13 +124,12 @@ const form = reactive({
 })
 
 const rules: Record<string, any> = {
-  name: [{ required: true, message: '请输入调度名称', trigger: 'blur' }],
-  schedule_type: [{ required: true, message: '请选择调度类型', trigger: 'change' }],
-  scheduled_at: [{ required: true, message: '请选择执行时间', trigger: 'change' }],
-  cron_expr: [{ required: true, message: '请输入Cron表达式', trigger: 'blur' }],
+  name: [{ required: true, message: 'Please enter schedule name', trigger: 'blur' }],
+  schedule_type: [{ required: true, message: 'Please select schedule type', trigger: 'change' }],
+  scheduled_at: [{ required: true, message: 'Please select execution time', trigger: 'change' }],
+  cron_expr: [{ required: true, message: 'Please enter cron expression', trigger: 'blur' }],
 }
 
-// 初始化编辑数据
 watch(
   () => props.plan,
   (val) => {
@@ -150,7 +149,7 @@ watch(
   },
   { immediate: true }
 )
-// 无 templateId 时加载模板列表
+
 watch(visible, (val) => {
   if (val && !props.templateId && !templateOptions.value.length) {
     GetTemplates({is_draft: false, limit: 999}).then((res: any) => {
@@ -174,24 +173,23 @@ function updateCronFromPreset(preset: string, time: string) {
   switch (preset) {
     case 'daily':
       form.cron_expr = `${minute} ${hour} * * *`
-      form.cron_description = `每天 ${time}`
+      form.cron_description = `Daily ${time}`
       break
     case 'weekdays':
       form.cron_expr = `${minute} ${hour} * * 1-5`
-      form.cron_description = `工作日 ${time}`
+      form.cron_description = `Weekdays ${time}`
       break
     case 'monday':
       form.cron_expr = `${minute} ${hour} * * 1`
-      form.cron_description = `每周一 ${time}`
+      form.cron_description = `Monday ${time}`
       break
     case 'monthly':
       form.cron_expr = `${minute} ${hour} 1 * *`
-      form.cron_description = `每月1号 ${time}`
+      form.cron_description = `Monthly 1st ${time}`
       break
   }
 }
 
-// 监听时间变化自动更新 cron
 watch(cronTime, (val) => {
   if (val && cronPreset.value && cronPreset.value !== 'custom') {
     updateCronFromPreset(cronPreset.value, val)
@@ -203,7 +201,7 @@ async function handleSubmit() {
   if (!valid) return
 
   if (!props.templateId && !form.template) {
-    ElMessage.warning('请选择所属模板')
+    ElMessage.warning('Please select a template')
     return
   }
   submitting.value = true
@@ -226,17 +224,16 @@ async function handleSubmit() {
 
     if (props.plan?.id) {
       await UpdateSchedulePlan(props.plan.id, data)
-      ElMessage.success('调度已更新')
+      ElMessage.success('Schedule updated')
     } else {
       await CreateSchedulePlan(data)
-      ElMessage.success('调度已创建')
+      ElMessage.success('Schedule created')
     }
     emit('saved')
     visible.value = false
   } catch (e: any) {
-    // 提取后端 DRF 验证错误（如 {template: ["仅已发布的模板可创建定时任务"]}）
     const errData = e?.response?.data
-    const errMsg = errData?.template?.[0] || errData?.msg || e?.message || '操作失败'
+    const errMsg = errData?.template?.[0] || errData?.msg || e?.message || 'Operation failed'
     ElMessage.error(errMsg)
   } finally {
     submitting.value = false

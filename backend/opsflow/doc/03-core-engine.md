@@ -1,527 +1,587 @@
-# 核心引擎详解
+# 从模板到执行 — 完整流程
 
-## 1. FlowEngine — 流程执行引擎
+## 概述
 
-**文件**: `backend/opsflow/core/flow_engine.py`
-
-### 职责
-
-将 `build_bamboo_pipeline()` 生成的 Pipeline Tree 提交给 `BambooDjangoRuntime` + `api.run_pipeline()` 执行。节点调度、状态机、网关逻辑全部由 BambooDjangoRuntime 内部处理。
-
-### 外部接口
-
-```python
-engine = FlowEngine(execution)
-engine.start()      # 启动（写入状态 + 提交 Celery 任务）
-engine.pause()      # 暂停 → api.pause_pipeline()
-engine.resume()     # 恢复 → api.resume_pipeline()
-engine.retry(node_id)   # 重试 → api.retry_node()
-engine.skip(node_id)    # 跳过 → api.skip_node()
-engine.cancel()     # 取消终止 → api.revoke_pipeline() + 标记 cancelled
-```
-
-### 执行流程
+OpsFlow 从模板到执行的完整链路：
 
 ```
-FlowEngine.run()
-  │
-  ├─ build_bamboo_pipeline(template) → Pipeline Tree dict
-  │    └─ 内部调用 apply_node_timout_configs() 注入超时配置
-  ├─ 保存 bamboo_pipeline_id 到 execution.context
-  │
-  └─ api.run_pipeline(runtime=BambooDjangoRuntime(), pipeline=pipeline)
-       │
-       │  BambooDjangoRuntime (异步调度到 Celery):
-       │  ├─ ProcessMixin → 创建 Process + Node 记录（MySQL）
-       │  ├─ TaskMixin   → 发送到 Celery er_execute/er_schedule 队列
-       │  ├─ StateMixin  → 状态机: READY→RUNNING→FINISHED/FAILED
-       │  │                 每次转换发送 post_set_state + pipeline_event 信号
-       │  ├─ ActivityMixin → get_service(code) → Component
-       │  │                    → bound_service → AnsibleAtomService.execute()
-       │  │                    → data.outputs 回写 ERI Data 模型
-       │  ├─ GatewayMixin  → ExclusiveGateway: 表达式求值选择分支
-       │  │                    ParallelGateway: 扇出所有分支
-       │  │                    ConvergeGateway: 自动汇聚
-       │  └─ 根节点完成 → 流程结束
-       │
-       └─ run_pipeline 立即返回（实际执行在 Celery 中异步进行）
+前端画布编辑 → 保存 pipeline_tree → 发布版本 → 创建执行(冻结快照) → 启动(异步派发)
+    → Celery Worker 执行 → bamboo-engine DAG 遍历 → PluginService 路由 → BasePlugin 执行
+    → post_set_state 信号 → 状态追踪 → WebSocket 推送
+```
 
-节点状态变更（异步，通过 post_set_state + pipeline_event 信号）:
-    └─ signals.py → _handle_root_state_change() → 更新 FlowExecution.status
-    └─ signals.py → _log_node_result() → get_execution_data_outputs() 读取 → OpsLog
-    └─ signals.py → _notify_node_status() + _notify_completed() → WS 推送
+---
 
-## 2. BambooBuilder — Pipeline Tree 构建器
+## 第一阶段：模板编辑与发布
 
-**文件**: `backend/opsflow/core/bamboo_builder.py`
+### 1.1 前端保存
 
-### 输入/输出格式
+用户在 DesignCanvas 上拖拽节点、配置参数后，点击保存：
 
-**输入**（从前端 X6 画布获取）:
-```json
+```
+PATCH /api/opsflow/templates/{id}/
 {
-  "nodes": [
-    {"id": "node_1", "label": "Check Disk", "node_type": "", "atom_type": "disk_check", "params": {}},
-    {"id": "node_2", "label": "Pass?", "node_type": "exclusive_gateway"},
-    {"id": "node_3", "label": "Parallel", "node_type": "parallel_gateway"},
-    {"id": "node_4", "label": "Converge", "node_type": "converge_gateway"}
-  ],
-  "edges": [
-    {"from": "node_1", "to": "node_2", "label": "success"},
-    {"from": "node_2", "to": "node_3", "label": "success"},
-    {"from": "node_2", "to": "node_4", "label": "failure"}
-  ]
+    "pipeline_tree": {
+        "nodes": [
+            {"id": "n1", "label": "Shell", "atom_type": "shell",
+             "params": {"command": "df -h"}, "node_type": "", "x": 50, "y": 40},
+            {"id": "n2", "label": "End", "node_type": "end_event"}
+        ],
+        "edges": [
+            {"from": "n1", "to": "n2"}
+        ]
+    },
+    "target_hosts": ["192.168.1.100"],
+    "global_vars": {"env": "prod"}
 }
 ```
 
-**输出**（bamboo-engine 标准格式）:
-```json
-{
-  "id": "...",
-  "start_event": {"id": "...", "outgoing": "flow_..."},
-  "end_event": {"id": "..."},
-  "activities": {
-    "node_1": {"type": "ServiceActivity", "component": {"code": "opsflow_disk_check", "inputs": {}}, "outgoing": "flow_..."}
-  },
-  "gateways": {
-    "node_2": {"type": "ExclusiveGateway", "outgoing": ["flow_...", "flow_..."], "conditions": {...}},
-    "node_3": {"type": "ParallelGateway", "outgoing": ["flow_...", "flow_..."]},
-    "node_4": {"type": "ConvergeGateway", "outgoing": "flow_..."}
-  },
-  "flows": {
-    "flow_1": {"source": "node_1", "target": "node_2"},
-    "flow_2": {"source": "node_2", "target": "node_3"},
-    "flow_3": {"source": "node_2", "target": "node_4"}
-  },
-  "data": {"inputs": {"target_hosts": [], "global_vars": {}}}
-}
-```
+**文件：** `views/template_views.py` → `models.py:FlowTemplate`
 
-## 3. AnsibleAtomService — Service 实现
+### 1.2 版本发布
 
-**文件**: `backend/opsflow/core/atom_service.py`
+用户点击 Publish / New Version：
 
-### 注册机制
-
-通过 `pipeline.component_framework.Component` 元类注册，由 `apps.py.ready()` 在启动时调用 `register_atom_services()` 扫描 `ATOM_REGISTRY` 为每个原子动态创建 Component 子类：
-
-```python
-# atom_service.py
-class AnsibleAtomService(Service):
-    """基类 Service — 所有原子共享此实现，通过 _atom_name 区分类型"""
-    def execute(self, data, parent_data):
-        params = dict(data.inputs)
-        atom_name = getattr(self, '_atom_name', 'unknown')
-        result = AtomExecutorFactory.execute_atom(atom_name, params, ...)
-        data.outputs.update({...})
-        return result.success
-
-# 启动时动态创建：
-#   type("DiskCheckComponent", (Component,), {
-#       'name': 'disk_check',
-#       'code': 'opsflow_disk_check',
-#       'bound_service': AnsibleAtomService,
-#       '__module__': 'opsflow.core.atom_service',
-#   })
-```
-
-BambooDjangoRuntime 在运行时通过 `get_service(code)` 查找 ComponentLibrary → `bound_service` → Service 实例。
-
-Service 还定义 `inputs_format()` / `outputs_format()` 描述接口契约：
-
-```python
-def inputs_format(self):
-    return [
-        InputItem(name="原子类型", key="_atom_type", type="string", required=True),
-        InputItem(name="目标主机", key="target_hosts", type="array", required=False),
-    ]
-
-def outputs_format(self):
-    return [
-        OutputItem(name="标准输出", key="stdout", type="string"),
-        OutputItem(name="返回码", key="returncode", type="int"),
-    ]
-```
-
-### 执行流程
-
-```
-service.execute(data, root_data)
-  │
-  ├─ 从 data.inputs 提取 params
-  ├─ 注入 _atom_type 标识原子类型
-  ├─ 调用 AtomExecutorFactory.execute_atom(atom_name, inputs, target_hosts)
-  │    │
-  │    ├─ 根据 executor_type（从 meta.json 读取）分发到对应执行器:
-  │    │   "ansible" → AnsibleExecutor → ansible_trigger → TowerService
-  │    │   "esxi"    → EsxiExecutor (伪代码)
-  │    │   "netapp"  → NetAppExecutor (伪代码)
-  │    │   "servicenow" → ServiceNowExecutor (骨架)
-  │    │   "redfish" → RedfishExecutor (骨架)
-  │    │   "http"    → HttpExecutor (通用 REST)
-  │    │
-  │    ├─ AnsibleExecutor 执行详情:
-  │    │   1. ansible_trigger.execute_atom()
-  │    │   2.  → TowerService.launch_job()  POST /launch/
-  │    │   3.  → TowerService.poll_job()    自适应间隔轮询
-  │    │   4.  → TowerService.extract_result() artifacts/events/stdout
-  │    │   5.  → 返回 {stdout, stderr, returncode, artifacts, summary}
-  │    │
-  │    └─ 返回 ExecuteResult(success, data)
-  │
-  └─ data.outputs 更新: stdout, stderr, returncode, _result, executor_output
-  └─ 返回 result.success
-```
-
-## 4. TowerService — Ansible Tower REST API 封装
-
-**文件**: `backend/opsflow/core/tower_service.py`
-
-### 职责
-
-封装 Tower (AWX) REST API，提供作业触发、状态轮询、结果提取的统一接口。
-
-### 方法
-
-| 方法 | 说明 |
-|------|------|
-| `launch_job(template_id, extra_vars)` | POST job_templates/{id}/launch/ |
-| `poll_job(job_id, timeout, execution_id, node_id)` | 自适应间隔轮询 + WebSocket 推送 |
-| `get_job_status(job_id)` | GET jobs/{id}/ |
-| `get_artifacts(job_id)` | GET jobs/{id}/artifacts/ (set_stats 数据) |
-| `get_job_events(job_id, page_size)` | GET jobs/{id}/job_events/（分页） |
-| `get_stdout(job_id, max_length)` | GET jobs/{id}/stdout/?format=txt |
-| `extract_result(job_id)` | 合并 artifacts/events/stdout/summary |
-| `cancel_job(job_id)` | POST jobs/{id}/cancel/ |
-
-### 自适应轮询间隔
-
-| 时间段 | 间隔 | 说明 |
-|--------|------|------|
-| 0~30s | 3s | 快速感知启动 |
-| 30s~5min | 5s | 正常等待 |
-| 5min~30min | 10s | 长任务慢下来 |
-| 30min+ | 30s | 超长任务保底 |
-
-轮询过程中通过 Django Channels 持续推送 `tower_job_update` 消息到前端。
-
-## 5. Executor Factory — 多平台原子执行器
-
-**文件**: `backend/opsflow/core/executors/factory.py`
-
-### 架构
-
-```
-AtomExecutorFactory
-  │
-  ├─ get_executor(executor_type) → BaseExecutor 子类（惰性加载 + 缓存）
-  │
-  ├─ execute_atom(atom_name, inputs, target_hosts)
-  │    1. 从 atom_registry 读取 meta（含 executor_type）
-  │    2. 根据 executor_type 获取执行器
-  │    3. validate_inputs()
-  │    4. executor.execute()
-  │    5. 返回 ExecuteResult
-  │
-  └─ rollback_atom(atom_name, inputs, context)
-```
-
-### 执行器列表
-
-| executor_type | 类 | 状态 | 依赖 |
-|--------------|-----|------|------|
-| `ansible` | `AnsibleExecutor` | 具体实现 | ansible_trigger → TowerService |
-| `http` | `HttpExecutor` | 具体实现 | requests |
-| `esxi` | `EsxiExecutor` | 伪代码 | pyVmomi |
-| `netapp` | `NetAppExecutor` | 伪代码 | ONTAP REST API |
-| `servicenow` | `ServiceNowExecutor` | 骨架 | pysnow |
-| `redfish` | `RedfishExecutor` | 骨架 | redfish |
-| `test` | `TestExecutor` | 具体实现 | 无（流程引擎测试） |
-
-### BaseExecutor 契约
-
-```python
-class BaseExecutor:
-    executor_type: str = ""
-    def execute(self, inputs: dict) -> ExecuteResult: ...
-    def rollback(self, inputs: dict, context: dict) -> ExecuteResult: ...
-    def validate_inputs(self, meta_inputs, actual_inputs) -> list[str]: ...
-
-@dataclass
-class ExecuteResult:
-    success: bool
-    data: dict = field(default_factory=dict)
-    error: str = ""
-```
-
-## 6. AtomRegistry — 原子注册中心
-
-**文件**: `backend/opsflow/core/atom_registry.py`
-
-### 扫描机制
-
-```python
-# 启动时由 apps.py 调用
-scan_atoms()
-  │
-  └─ 扫描 ansible_atoms/atoms/*/meta.json
-       │
-       ├─ 每个 meta.json 格式:
-       │   {
-       │     "name": "disk_check",
-       │     "description": "Check disk usage",
-       │     "risk_level": "low",
-       │     "group": "check",
-       │     "component_code": "opsflow_disk_check",
-       │     "executor_type": "ansible",     # ← 路由到对应执行器
-       │     "inputs": [{"name": "threshold", "type": "int"}],
-       │     "rollback": null
-       │   }
-       │
-       └─ 填充全局 ATOM_REGISTRY dict
-```
-
-`executor_type` 默认 `"ansible"`（向后兼容），未指定时自动使用 AnsibleExecutor。
-
-### 注册原子（37 个）
-
-**Ansible 原子（13 个，executor_type=ansible）**:
-
-| 原子 | 分组 | 风险 | 说明 |
-|------|------|------|------|
-| disk_check | check | low | 磁盘检查 |
-| ping_test | check | low | 网络连通性测试 |
-| health_check | check | low | 服务健康检查 |
-| shell | action | medium | 执行 Shell 命令 |
-| upload_file | action | medium | 上传文件 |
-| file_copy | action | medium | 复制文件 |
-| script_exec | action | medium | 执行脚本 |
-| backup_file | action | low | 文件备份 |
-| java_deploy | action | high | Java 应用部署 |
-| docker_deploy | action | high | Docker 部署 |
-| nginx_reload | action | medium | Nginx 重载 |
-| service_control | control | high | 服务启停控制 |
-| send_alert | control | low | 发送告警通知 |
-
-**ESXi 原子（5 个，executor_type=esxi）**:
-
-| 原子 | 分组 | 风险 | 说明 |
-|------|------|------|------|
-| esxi_create_vm | vm | high | 创建虚拟机 |
-| esxi_destroy_vm | vm | high | 删除虚拟机 |
-| esxi_power_on | vm | medium | 开机 |
-| esxi_power_off | vm | medium | 关机 |
-| esxi_get_state | vm | low | 查询 VM 状态 |
-
-**NetApp 原子（5 个，executor_type=netapp）**:
-
-| 原子 | 分组 | 风险 | 说明 |
-|------|------|------|------|
-| netapp_create_volume | storage | high | 创建 FlexVol 卷 |
-| netapp_delete_volume | storage | high | 删除卷 |
-| netapp_get_volume | storage | low | 查询卷详情 |
-| netapp_create_snapshot | storage | low | 创建快照 |
-| netapp_modify_volume | storage | high | 修改卷属性（扩容/策略） |
-
-**ServiceNow 原子（5 个，executor_type=servicenow）**:
-
-| 原子 | 分组 | 风险 | 说明 |
-|------|------|------|------|
-| servicenow_create_incident | itsm | medium | 创建 Incident |
-| servicenow_update_incident | itsm | medium | 更新 Incident |
-| servicenow_get_incident | itsm | low | 查询 Incident |
-| servicenow_create_change_request | itsm | high | 创建 Change Request |
-| servicenow_get_cmdb_ci | itsm | low | 查询 CMDB CI |
-
-**Redfish 原子（7 个，executor_type=redfish）**:
-
-| 原子 | 分组 | 风险 | 说明 |
-|------|------|------|------|
-| redfish_get_system_info | bmc | low | 查询系统信息 |
-| redfish_power_on | bmc | high | 服务器开机 |
-| redfish_power_off | bmc | high | 服务器关机 |
-| redfish_power_cycle | bmc | high | 服务器重启 |
-| redfish_set_boot_device | bmc | medium | 设置启动设备 |
-| redfish_list_storage | bmc | low | 查询存储列表 |
-| redfish_firmware_inventory | bmc | low | 固件清单 |
-
-**HTTP 原子（1 个，executor_type=http）**:
-
-| 原子 | 分组 | 风险 | 说明 |
-|------|------|------|------|
-| http_api_call | generic | medium | 通用 REST API 调用 |
-
-**Test 原子（1 个，executor_type=test）**:
-
-| 原子 | 分组 | 风险 | 说明 |
-|------|------|------|------|
-| test_print_time | test | low | 打印当前时间，流程引擎功能验证 |
-
-## 7. SafetyGuard — 安全校验器
-
-**文件**: `backend/opsflow/core/safety_guard.py`
-
-### 校验规则
-
-| 规则 | 类型 | 说明 |
+| 操作 | 接口 | 说明 |
 |------|------|------|
-| 原子白名单 | error | 不在 ATOM_REGISTRY 中的原子类型 |
-| 重试上限 | error | max_retries > 10 |
-| 高危回滚路径 | warning | 高危原子没有 failure/rollback 出边 |
-| 备份前置 | warning | 需要备份的原子前缺少 backup_file |
-| 孤儿节点 | warning | 非起始节点无入边 |
-| Shell 原子拦截 | error | AI 不应生成 shell 原子（作为不存在的功能 fallback） |
-| 跨平台误用检查 | error | 用户输入含 VM/虚拟机 时，禁止使用 netapp_* 原子 |
+| 草稿→发布 | `POST /templates/{id}/confirm_draft/` | `is_draft=False` + `publish_snapshot()` |
+| 已发布→新版 | `POST /templates/{id}/publish/` | `publish_snapshot()` |
+| 查看版本 | `GET /templates/{id}/versions/` | TemplateVersion 列表 |
+| 回滚 | `POST /templates/{id}/rollback/` | 恢复指定版本的 pipeline_tree |
 
-## 8. Layout Engine — Sugiyama 分层布局引擎
-
-**文件**: `backend/opsflow/core/layout/`
-
-### 架构
-
-适配 bk_sops `pipeline_web/drawing_new` 的 Sugiyama 分层图绘制算法，提供确定性的节点自动定位，替代早期基于 LLM 的布局方案。
-
-### 5 阶段流程
-
-```
-输入: pipeline dict (activities, gateways, flows)
-  │
-  ├─ 1. Normalize → 构建 all_nodes 统一字典
-  ├─ 2. Acyclic   → 自环边移除 + 反向边逆转（DFS 环检测）
-  ├─ 3. Rank      → 最长路径层级分配 + 可行树优化
-  ├─ 4. Order     → 加权中位数交叉最小化（24 次迭代）
-  ├─ 5. Dummy     → 虚拟节点替换长跨度边
-  └─ 6. Position  → 坐标分配 + 箭头端点计算
-       │
-       └─ 输出: location[{id, x, y}]
-```
-
-### 入口函数
+`publish_snapshot()` 动作（`models.py:FlowTemplate`）：
 
 ```python
-compute_layout(nodes, edges) → list[{id, x, y}]
+def publish_snapshot(self, user=None):
+    if self.version is None:
+        self.version = 1
+    # 冻结当前 pipeline_tree → snapshot 字段
+    self.snapshot = {
+        'pipeline_tree': self.pipeline_tree,
+        'target_hosts': self.target_hosts,
+        'global_vars': self.global_vars,
+        'snapshot_at': timezone.now().isoformat(),
+    }
+    # 创建版本历史记录
+    TemplateVersion.objects.create(
+        template=self, version=self.version,
+        pipeline_tree=self.pipeline_tree,
+        target_hosts=self.target_hosts,
+        global_vars=self.global_vars,
+        created_by=self.created_by,
+    )
+    self.version += 1
+    self.save()
 ```
 
-由 `layout_adapter.py` 桥接 OPSflow `{nodes, edges}` 格式与引擎内部 pipeline 格式：
+**关键设计：** `snapshot` 是发布时的深拷贝，后续模板修改不影响已发布版本。
+
+---
+
+## 第二阶段：创建执行
+
+用户在"执行列表"页面创建新执行：
 
 ```
-opsflow_to_pipeline(nodes, edges)    # OPSflow → 引擎格式
-  → draw_pipeline(pipeline, sizes)   # Sugiyama 5 阶段
-  → pipeline_to_positions(pipeline)  # 提取坐标
+POST /api/opsflow/executions/
+{
+    "template": 1
+}
 ```
 
-### 节点尺寸
+### 2.1 冻结快照
 
-| 类型 | 尺寸 (w×h) | shift_y (层间距) |
-|------|-----------|-----------------|
-| 原子(atom) | 180×48 | 144 (96px gap) |
-| 事件(event) | 56×56 | 自动居中 |
-| 网关(gateway) | 70×70 | 自动居中 |
-| shift_x (列间距) | 270 | — |
+**文件：** `views/execution_views.py:perform_create()`（第 28-45 行）
 
-### 边界处理
+```python
+def perform_create(self, serializer):
+    execution = serializer.save(created_by=self.request.user)
+    template = execution.template
 
-- 0-1 节点: 直接返回默认坐标，不进入引擎
-- 无效边引用: 抛出 `ValueError`
-- 大量节点(>500): 引擎仍可运行，记录性能警告
-- 缺失起止节点: `layout_adapter.py` 自动合成
+    # 优先用发布快照(snapshot)，降级用当前 pipeline_tree
+    snapshot_tree = template.snapshot.get('pipeline_tree') if template.snapshot else None
+    if not snapshot_tree:
+        snapshot_tree = template.pipeline_tree
 
-## 9. Pipeline Contrib 集成
+    # 冻结到 template_snapshot 字段（执行隔离）
+    execution.template_snapshot = {
+        'pipeline_tree': snapshot_tree,
+        'target_hosts': template.target_hosts,
+        'global_vars': template.global_vars,
+        'template_version': template.version,
+    }
+    execution.save()
+```
 
-**配置文件**: `backend/application/settings.py`
+### 2.2 FlowExecution 表记录
 
-已注册的 pipeline contrib apps:
+此时 `ops_flow_execution` 表状态：
 
-| App | 功能 | 启动配置 |
-|-----|------|----------|
-| `pipeline.contrib.rollback` | 流程回滚 API（TOKEN/ANY 模式） | `PIPELINE_ENABLE_ROLLBACK = True` |
-| `pipeline.contrib.node_timeout` | 节点超时强制结束/跳过 | 通过 `apply_node_timout_configs()` 注入 |
-| `pipeline.contrib.engine_admin` | 引擎管理 UI（暂停/恢复/重试/跳过） | 无 |
+| 字段 | 示例值 | 说明 |
+|------|--------|------|
+| `id` | 42 | 执行 ID |
+| `template_id` | 1 | 关联模板 ID |
+| `status` | `pending` | 初始状态 |
+| `template_snapshot` | `{pipeline_tree: ..., target_hosts: ...}` | **冻结的快照** |
+| `context` | `{}` | 运行时上下文（bamboo_pipeline_id 执行时写入） |
+| `node_status` | `{}` | 各节点状态 |
+| `state_tree` | `{}` | 状态树快照 |
+| `schedule_plan_id` | null | 手动创建，调度触发时有值 |
+| `created_at` | `2026-06-01 09:00:00` | 创建时间 |
 
-### 事件信号
+---
 
-启用 `ENABLE_PIPELINE_EVENT_SIGNALS = True` 后，bamboo-engine 发送 `pipeline_event` 信号提供 30+ 事件类型：
+## 第三阶段：启动执行
 
-| 事件 | 说明 |
+用户在已创建执行上点击"启动"：
+
+```
+POST /api/opsflow/executions/42/start/
+```
+
+**文件：** `views/execution_views.py` → `core/flow_engine.py:start()`
+
+### 3.1 FlowEngine.start()
+
+```python
+def start(self):
+    self.execution.status = "running"           # pending → running
+    self.execution.started_at = datetime.now()
+    self.execution.node_status = {}
+    self.execution.save()
+
+    # 异步派发到 Celery
+    from opsflow.tasks import execute_pipeline_task
+    execute_pipeline_task.delay(self.execution.id)   # ← 非阻塞
+```
+
+**关键：** `start()` 立即返回，实际执行在 Celery worker 中异步进行。
+
+### 3.2 Celery Worker
+
+**文件：** `tasks.py`（第 47-59 行）
+
+```python
+@shared_task(bind=True, max_retries=3, queue='er_execute')
+def execute_pipeline_task(self, execution_id):
+    execution = FlowExecution.objects.get(id=execution_id)
+    engine = FlowEngine(execution)
+    engine.run()                    # ← 核心执行入口
+```
+
+---
+
+## 第四阶段：引擎运行
+
+### 4.1 FlowEngine.run()
+
+**文件：** `core/flow_engine.py:run()`（第 134-191 行）
+
+```python
+def run(self):
+    # 1. 从冻结快照读取（不读实时模板！）
+    frozen = self.execution.template_snapshot or {}
+    frozen_tree = frozen.get('pipeline_tree') or self.execution.context.get('pipeline_tree')
+    frozen_hosts = frozen.get('target_hosts')
+    frozen_vars = frozen.get('global_vars')
+
+    # 2. 安全校验（白名单、重试上限、高危回滚路径等）
+    validation = validate_pipeline(frozen_tree)
+    if not validation.get('valid'):
+        self.execution.status = "failed"
+        self.execution.ended_at = datetime.now()
+        self.execution.save()
+        self._notify_completed()
+        return
+
+    # 3. 编译成 bamboo-engine 标准 Pipeline Tree
+    pipeline = build_bamboo_pipeline(
+        self.template,
+        pipeline_tree=frozen_tree,
+        target_hosts=frozen_hosts,
+        global_vars=frozen_vars,
+    )
+
+    # 4. 持久化 bamboo_pipeline_id 到 context
+    self.execution.context["bamboo_pipeline_id"] = pipeline["id"]
+    self.execution.context["bamboo_pipeline"] = pipeline
+    self.execution.save()
+
+    # 5. 委托给 bamboo-engine 执行（异步）
+    runtime = BambooDjangoRuntime()
+    result = pipeline_api.run_pipeline(runtime=runtime, pipeline=pipeline)
+
+    if not result.result:
+        # 启动失败 → 回滚已失败的节点
+        self.execution.status = "failed"
+        self.execution.ended_at = datetime.now()
+        self.rollback_failed_nodes()
+        return
+```
+
+### 4.2 BambooBuilder 编译
+
+**文件：** `core/bamboo_builder.py:build_bamboo_pipeline()`
+
+将前端 X6 格式的 `pipeline_tree` 编译为 bamboo-engine 可执行的 Pipeline Tree：
+
+```
+输入（前端 X6 JSON）:                   编译后（bamboo-engine Pipeline Tree）:
+┌──────────────────────────────┐        ┌──────────────────────────────────┐
+│ nodes:                       │        │ activities:                      │
+│  [{id, atom_type, params,    │        │  node_1: ServiceActivity         │
+│    node_type, x, y}, ...]    │  ──→   │    component_code=opsflow_plugin │
+│ edges:                       │        │    inputs: {_atom_type, param}   │
+│  [{from, to, label}, ...]    │        │ gateways:                        │
+└──────────────────────────────┘        │  node_2: ExclusiveGateway        │
+                                        │    conditions: {$_result...}     │
+                                        │  node_3: ParallelGateway         │
+                                        │  node_4: ConvergeGateway         │
+                                        │ flows:                           │
+                                        │  n1→n2, n2→n3, n2→n4, ...      │
+                                        │ data:                            │
+                                        │  target_hosts, global_vars       │
+                                        └──────────────────────────────────┘
+```
+
+**节点类型映射规则：**
+
+| node_type | bamboo-engine 元素 | 说明 |
+|-----------|-------------------|------|
+| `start_event` | EmptyStartEvent | 视觉节点，不生成 |
+| `end_event` | EmptyEndEvent | 自动补全 |
+| 空 / `atom` | ServiceActivity | `component_code="opsflow_plugin"` |
+| `exclusive_gateway` | ExclusiveGateway | 条件 `${_result == True}` |
+| `parallel_gateway` | ParallelGateway | 扇出所有分支 |
+| `conditional_parallel_gateway` | ConditionalParallelGateway | 条件扇出 |
+| `converge_gateway` | ConvergeGateway | 并行汇聚 |
+
+**每个 ServiceActivity 注入：**
+
+```python
+act.component.inputs['_atom_type'] = node.get('atom_type')  # 插件路由 ID
+act.component.inputs['command'] = params.get('command')      # 插件参数
+act.component.inputs['timeout'] = params.get('timeout')
+```
+
+### 4.3 BambooEngine 内部执行
+
+bamboo-engine 收到 Pipeline Tree 后，在 Celery worker 内执行 `Engine.execute()` 循环：
+
+```
+Engine.execute(process_id, node_id)
+    │
+    └─ while True:
+         current_node = get_node(current_node_id)
+         handler = get_handler(current_node)
+         result = handler.execute(...)
+         │
+         │ post_set_state 信号 → signals.py（每次状态变更都触发）
+         │
+         if result.should_sleep:
+             return  ← 睡眠等待（并行分支/回调）
+         current_node_id = result.next_node_id  ← 继续下一节点
+```
+
+**关键：** 这是一个同步 `while` 循环遍历 DAG，非异步回调。只有遇到并行分支（ParallelGateway）或外部回调时才会睡眠。
+
+---
+
+## 第五阶段：节点执行 (PluginService)
+
+### 5.1 PluginService 路由
+
+bamboo-engine 调度到 ServiceActivity 节点时，通过 `component_code="opsflow_plugin"` 查找到 `OpsflowPluginComponent` → `PluginService`。
+
+**文件：** `core/plugin_service_adapter.py`
+
+```python
+class PluginService(Service):
+    def execute(self, data, parent_data):
+        inputs = dict(data.inputs)
+        atom_type = inputs.pop('_atom_type', '')       # 提取插件类型
+
+        # 步骤 1：从注册表查找 BasePlugin 子类
+        plugin_cls = get_plugin(atom_type)               # → PLUGIN_REGISTRY
+
+        # 步骤 2：变量解析（替换 ${key} 引用）
+        pd = dict(parent_data.inputs) if parent_data else {}
+        global_vars = pd.get('global_vars', {})
+        target_hosts = pd.get('target_hosts', [])
+        resolve_ctx = {**global_vars, 'target_hosts': target_hosts}
+        resolved_params = resolve_params(params, resolve_ctx)
+
+        # 步骤 3：实例化 BasePlugin 子类，执行
+        instance = plugin_cls()
+        result = instance.execute(**resolved_params)
+        success = result.get('success', True)
+
+        # 步骤 4：写回 outputs → 供下游节点和信号处理器读取
+        data.outputs['_result'] = success
+        data.outputs['stdout'] = result.get('data', {}).get('stdout', '')
+        data.outputs['stderr'] = result.get('data', {}).get('stderr', '')
+        data.outputs['executor_output'] = result.get('data', {})
+
+        return success
+```
+
+### 5.2 执行示例
+
+```
+atom_type = "shell"
+params = {"command": "df -h", "timeout": 60}
+resolve_ctx = {"env": "prod", "target_hosts": ["192.168.1.100"]}
+
+→ PluginService.execute()
+  → get_plugin("shell") → ShellPlugin（plugins/ansible/shell.py）
+  → resolve_params({"command": "df -h"}, resolve_ctx)  # 无 ${} 引用，无需替换
+  → ShellPlugin().execute(command="df -h", timeout=60)
+    → subprocess.run(["df", "-h"], timeout=60)
+    → 返回 {"success": True, "data": {"stdout": "Filesystem...", ...}}
+```
+
+### 5.3 调度/长任务模式
+
+对于长任务（如 Ansible Tower 作业），PluginService 支持 `schedule()` 回调：
+
+```python
+# BasePlugin 子类设置
+class LongTaskPlugin(BasePlugin):
+    _need_schedule = True      # 启用异步调度模式
+
+    def execute(self, **kwargs):
+        # 触发远程作业，返回 job_id
+        job_id = tower_service.launch_job(...)
+        return {"success": True, "data": {"job_id": job_id}}
+
+    def schedule(self, context, **kwargs):
+        # bamboo-engine 定期调用此方法（每秒）
+        job_id = context.get('executor_output', {}).get('job_id')
+        status = tower_service.poll_job(job_id)
+        if status == 'successful':
+            return True      # 作业完成
+        elif status == 'failed':
+            return False     # 作业失败
+        return None           # 继续等待
+```
+
+---
+
+## 第六阶段：状态追踪（信号驱动）
+
+bamboo-engine 每次状态变更触发 `post_set_state` Django 信号。
+
+**文件：** `signals.py`（第 28-66 行）
+
+```
+post_set_state 信号
+    │
+    ├─ 节点 == 根节点（总 pipeline 状态）
+    │   └─ _handle_root_state_change()
+    │       bamboo 状态 → 映射 → OpsFlow 状态
+    │       FINISHED  → completed  ✓
+    │       FAILED    → failed     ✗
+    │       REVOKED   → cancelled  ✗
+    │       SUSPENDED → paused     ⏸
+    │       RUNNING   → running    ▶
+    │
+    ├─ 节点 != 根节点（子节点状态）
+    │   ├─ _update_state_tree()     → FlowExecution.state_tree 字段
+    │   ├─ _record_node_trace()     → NodeExecutionTrace 表（轨迹记录）
+    │   │
+    │   ├─ RUNNING → execution.current_node = node_id → WebSocket 推送
+    │   │
+    │   └─ FINISHED/FAILED →
+    │       ├─ _log_node_result()    → OpsLog 表（审计日志）
+    │       ├─ _write_node_trace_log() → 写入轨迹完成状态
+    │       └─ _notify_node_status()  → WebSocket 推送
+```
+
+### 状态映射表
+
+| bamboo-engine 状态 | OpsFlow 状态 | 说明 |
+|-------------------|-------------|------|
+| `CREATED` | `pending` | 初始 |
+| `RUNNING` | `running` | 执行中 |
+| `FINISHED` | `completed` | 正常完成 |
+| `FAILED` | `failed` | 异常终止 |
+| `REVOKED` | `cancelled` | 用户取消 |
+| `SUSPENDED` | `paused` | 用户暂停 |
+| `BLOCKED` | `failed` | 阻塞（子流程失败） |
+
+### 节点执行轨迹
+
+每次子节点状态变更都会记录到 `NodeExecutionTrace` 表，用于前端执行详情页的时序图展示：
+
+| 字段 | 说明 |
 |------|------|
-| `pre_run_pipeline` / `pipeline_finish` | 流程启动/结束 |
-| `pre_pause_pipeline` / `pre_resume_pipeline` | 暂停/恢复流程 |
-| `node_enter` / `node_finish` | 节点进入/完成 |
-| `node_execute_fail` / `node_schedule_fail` | 节点执行/调度失败 |
-| `pre_retry_node` / `pre_skip_node` | 重试/跳过节点 |
+| `node_id` | 节点 ID |
+| `node_label` | 节点标签 |
+| `status` | 状态（running/completed/failed） |
+| `retry_count` | 重试次数 |
+| `duration_ms` | 执行耗时（ms） |
+| `entered_at` | 进入时间 |
+| `exited_at` | 退出时间 |
+| `outputs` | 节点输出（仅终态记录） |
+| `error` | 错误信息 |
 
-## 10. SchedulerService — 定时调度器
+---
 
-**文件**: `backend/opsflow/core/scheduler_service.py`
+## 第七阶段：执行控制
 
-### 职责
+### 7.1 操作与对应处理
 
-基于 APScheduler 的定时任务调度器，用于自动触发 SchedulePlan 的执行。
+| 操作 | 用户操作 | 后端处理 | bamboo-engine API |
+|------|---------|----------|-----------------|
+| **完成** | 自动 | 信号 FINISHED → status=completed | — |
+| **失败** | 自动 | 信号 FAILED → status=failed + rollback | — |
+| **取消** | 点 Cancel | `engine.cancel()` | `revoke_pipeline()` |
+| **暂停** | 点 Pause | `engine.pause()` | `pause_pipeline()` |
+| **恢复** | 点 Resume | `engine.resume()` | `resume_pipeline()` |
+| **重试** | 点 Retry | `engine.retry(node_id)` | `retry_node()` |
+| **跳过** | 点 Skip | `engine.skip(node_id)` | `skip_node()` |
 
-### 架构
+### 7.2 失败回滚
 
-```
-OpsflowScheduler
-  │
-  ├─ BackgroundScheduler (后台线程, timezone=Asia/Shanghai)
-  │    └─ DjangoJobStore (调度记录持久化到 MySQL)
-  │
-  ├─ start()
-  │    ├─ _register_existing_plans() → 加载 DB 中 ACTIVE 的调度计划
-  │    └─ scheduler.start()
-  │
-  ├─ add_plan(plan)   → 构建 DateTrigger 或 CronTrigger → 注册 Job
-  ├─ update_plan(plan) → remove + add
-  ├─ remove_plan(plan) → scheduler.remove_job()
-  ├─ pause_plan(plan)  → scheduler.pause_job()
-  └─ resume_plan(plan) → scheduler.resume_job()
-```
-
-### 触发机制
+当 pipeline 失败时，`FlowEngine.rollback_failed_nodes()` 遍历所有失败节点，调用各插件的 `BasePlugin.rollback()`：
 
 ```python
-# APScheduler 回调
-_execute_plan(plan_id)
-  │
-  ├─ 加载 SchedulePlan (含 template + created_by)
-  ├─ 检查 template.is_draft → 草稿跳过，一次性任务标记 completed
-  ├─ 创建 FlowExecution (status=PENDING)
-  ├─ FlowEngine.start(sync=False) → Celery 异步执行
-  ├─ 更新 last_run_at / total_run_count
-  ├─ 一次性任务 → status=COMPLETED
-  └─ 重试支持 → retry_schedule_execution Celery 任务
+def rollback_failed_nodes(self):
+    failed_nodes = [...]
+    for node_id in failed_nodes:
+        outputs = pipeline_api.get_execution_data_outputs(runtime, node_id)
+        _trigger_plugin_rollback(node_id, outputs)
+        # → PluginService.rollback()
+        #   → BasePlugin.rollback(context=outputs, **params)
 ```
 
-### 启动方式
+---
 
-| 方式 | 设置/命令 | 适用环境 |
-|------|-----------|----------|
-| 自启动 | `OPSFLOW_SCHEDULER_AUTOSTART = True` | 开发 |
-| 独立进程 | `python manage.py start_opsflow_scheduler` | 生产（Redis 锁防重复） |
+## 第八阶段：并行/条件分支
 
-### 触发器构建
+### 8.1 并行分支
 
-```python
-def _build_trigger(self, plan):
-    if plan.schedule_type == 'one_time':
-        return DateTrigger(run_date=plan.scheduled_at, timezone=plan.timezone)
-    return CronTrigger.from_crontab(plan.cron_expr, timezone=plan.timezone)
+```
+bamboo-engine 内置 fork/join 机制:
+
+ParallelGateway → fork:
+  ├─ child_1 → [分支 A 节点] → ConvergeGateway
+  ├─ child_2 → [分支 B 节点] → ConvergeGateway
+  └─ parent 睡眠
+
+子进程独立执行:
+  child_1: while True → 节点执行 → should_sleep → ConvergeGateway
+  child_2: while True → 节点执行 → should_sleep → ConvergeGateway
+
+每个子进程到达 ConvergeGateway:
+  → ack_num++（原子递增，SELECT FOR UPDATE）
+  → ack_num == need_ack → 唤醒父进程 → 继续后续节点
 ```
 
-调度器未启动时，`_sync_next_run()` 兜底手动计算 `next_run_at`（一次性直接用 scheduled_at，周期性用 CronTrigger 推算）。
+### 8.2 条件分支
 
-## 11. LLM Service — AI 服务
+```
+ExclusiveGateway 评估条件:
+  ${_result == True}  → success 分支（节点执行成功）
+  ${_result == False} → failure 分支（节点执行失败）
 
-**文件**: `backend/opsflow/core/llm_service.py`
+由 bamboo_builder.py 在编译时写入条件表达式。
+```
 
-### AI 幻觉防御
+---
 
-| 层 | 机制 | 说明 |
-|----|------|------|
-| Prompt | 平台匹配规则 | esxi_* → VM, netapp_* → 存储, redfish_* → 物理服务器 |
-| Prompt | Shell 排除 | 已从 AI 可见原子列表中删除 `shell`，防止用作 fallback |
-| Prompt | _errors 替代 | AI 无法完成时生成 `_errors` 字段，而非使用替代原子 |
-| Prompt | 增量修改指令 | refine_pipeline 明确以 "迭代修改" 方式处理，保留现有节点 ID，不重新生成 |
-| 服务端 | _errors 检测 | `create_from_ai`/`refine` 端点检查 pipeline._errors |
-| 服务端 | Shell 拦截 | 任何包含 `atom_type=shell` 的响应被拒绝 |
-| 服务端 | 跨平台检查 | 用户语义(VM/虚拟机)与 AI 生成原子(netapp_*)不匹配时拒绝 |
+## 完整流程图示
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 前端 DesignCanvas                                                           │
+│  ① 拖拽节点 → 配置参数 → 保存 → PATCH /api/opsflow/templates/{id}/         │
+│  ② 点击发布 → POST /publish/ → 冻结 pipeline_tree + 版本号+1               │
+│  ③ 新建执行 → POST /executions/  → 冻结 template_snapshot                   │
+│  ④ 启动     → POST /start/        → status=running, Celery 派发            │
+└────────────────────────────────┬────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Celery Worker (queue: er_execute)                                          │
+│                                                                             │
+│  execute_pipeline_task(execution_id)                                        │
+│    ↓                                                                        │
+│  FlowEngine.run()                                                           │
+│    ├─ 1. 读 template_snapshot（冻结的 pipeline_tree，非实时模板）            │
+│    ├─ 2. validate_pipeline() 安全校验                                       │
+│    ├─ 3. build_bamboo_pipeline(frozen_tree) 编译                                │
+│    │      ├─ 节点 → ServiceActivity / ExclusiveGateway / ParallelGateway     │
+│    │      ├─ 边 → 拓扑连接                                                    │
+│    │      └─ 注入 _atom_type → 每个 ServiceActivity 都带插件标识              │
+│    ├─ 4. 持久化 bamboo_pipeline_id → context                                │
+│    └─ 5. pipeline_api.run_pipeline() → 异步调度                              │
+│                                                                             │
+│  bamboo-engine Engine.execute() 循环:                                        │
+│    while True:                                                              │
+│      node = get_node(current_node_id)                                       │
+│      handler = get_handler(node)                                            │
+│      execute_result = handler.execute()                                     │
+│      │                                                                      │
+│      │ post_set_state 信号 → signals.py (每次状态变更)                      │
+│      │                                                                      │
+│      if execute_result.should_sleep: return  ← 并行/回调时睡眠              │
+│      current_node_id = execute_result.next_node_id  ← 继续 DAG 遍历         │
+│                                                                             │
+│  PluginService.execute() → 路由到 BasePlugin:                                │
+│    ├─ get_plugin("shell") → ShellPlugin.execute(command="df -h")            │
+│    ├─ get_plugin("esxi_power_on") → EsxiPowerOnPlugin.execute(...)          │
+│    ├─ get_plugin("netapp_create_volume") → NetAppCreateVolume.execute(...)  │
+│    └─ ...                                                                   │
+└────────────────────────────────┬────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ signals.py (post_set_state 信号处理器)                                       │
+│                                                                             │
+│  root_state_change → FlowExecution.status                                   │
+│    FINISHED  → completed  │  FAILED   → failed                              │
+│    SUSPENDED → paused     │  RUNNING  → running                             │
+│                                                                             │
+│  child_state_change →                                                       │
+│    ├─ _update_state_tree()      → state_tree JSON field                     │
+│    ├─ _record_node_trace()      → NodeExecutionTrace table                  │
+│    ├─ FINISHED/FAILED → _log_node_result() → OpsLog table                   │
+│    ├─ FINISHED/FAILED → _notify_node_status() → WebSocket 推送              │
+│    └─ RUNNING         → _notify_node_status() → WebSocket 推送              │
+│                                                                             │
+│  完成 → WebSocket execution.completed                                       │
+│  失败 → WebSocket execution.failed + rollback_failed_nodes()                │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 关键设计原则
+
+| 原则 | 实现 | 文件 |
+|------|------|------|
+| **执行隔离** | template_snapshot 在创建时冻结，引擎始终读快照 | `execution_views.py:perform_create()` + `flow_engine.py:run()` |
+| **版本追溯** | 每次发布存 TemplateVersion，支持回滚 | `models.py:publish_snapshot()` |
+| **异步驱动** | start() 立即返回，Celery 异步执行 | `flow_engine.py:start()` → `tasks.py:execute_pipeline_task()` |
+| **状态信号驱动** | bamboo-engine 状态变更 → post_set_state 信号 → 订阅者更新 | `signals.py:on_post_set_state()` |
+| **统一插件路由** | 所有原子通过 PluginService + PLUGIN_REGISTRY 运行时查找 | `plugin_service_adapter.py:PluginService.execute()` |
+| **平台无关** | BasePlugin 子类实现特定平台逻辑，execute() 统一接口 | `plugins/base.py` + 各 `plugins/{group}/*.py` |
+
+---
+
+## 数据隔离示意图
+
+```
+FlowTemplate (实时编辑)
+├── pipeline_tree: JSON     ← 编辑时修改
+├── snapshot: JSON          ← 发布时冻结（深拷贝）
+└── version: int            ← 版本号（每次发布+1）
+         │
+         ├── publish() → TemplateVersion (历史存档)
+         │
+         └── 创建执行 → FlowExecution
+                 └── template_snapshot: JSON  ← 创建时冻结（执行隔离）
+                                               ← engine.run() 从此读取
+                                               ← 后续模板修改不影响此副本
+```

@@ -22,13 +22,45 @@ from bamboo_engine.builder import (
     Data, Var, ServiceActivity,
     EmptyStartEvent, EmptyEndEvent,
     ExclusiveGateway, ParallelGateway, ConditionalParallelGateway, ConvergeGateway,
-    build_tree,
+    SubProcess, build_tree,
 )
 from pipeline.builder.flow.data import NodeOutput
+from opsflow.core.variable_resolver import get_global_vars_values
 
 # 匹配 ${expr} 整体，再从 expr 中解析 node_id.key 引用
 _EXPR_PATTERN = re.compile(r'\$\{([^}]*)\}')
 _VAR_REF_PATTERN = re.compile(r'([a-zA-Z_]\w*)\.([a-zA-Z_]\w*)')
+
+# 子流程最大嵌套深度
+MAX_SUBPROCESS_DEPTH = 5
+
+
+def _detect_circular_ref(template, visited=None, depth=0):
+    """深度优先检测子流程循环引用
+
+    遍历模板中所有 subprocess 节点，递归检测 A→B→A 循环。
+    Raises ValueError 如果检测到循环或超过最大深度。
+    """
+    if depth > MAX_SUBPROCESS_DEPTH:
+        raise ValueError(f"子流程嵌套超过最大深度 {MAX_SUBPROCESS_DEPTH}")
+
+    visited = visited or set()
+    if template.id in visited:
+        raise ValueError(f"循环引用检测: 模板 '{template.name}' (id={template.id}) 已被引用")
+    visited.add(template.id)
+
+    pipeline_tree = template.pipeline_tree or {}
+    for node in pipeline_tree.get('nodes', []):
+        if node.get('node_type') == 'subprocess':
+            target_id = node.get('params', {}).get('target_template_id')
+            if not target_id:
+                continue
+            from opsflow.models import FlowTemplate
+            try:
+                target = FlowTemplate.objects.get(id=target_id)
+            except FlowTemplate.DoesNotExist:
+                continue
+            _detect_circular_ref(target, visited.copy(), depth + 1)
 
 
 def _parse_edge_conditions(edges: list[dict]) -> tuple[dict[str, str], dict[str, dict]]:
@@ -96,7 +128,8 @@ def _get_condition(conditions: dict, from_id: str, to_id: str, label: str = "") 
     return '${_result == True}'
 
 
-def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None, global_vars=None):
+def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
+                          global_vars=None, execution_id=None, excluded_nodes=None):
     """将 FlowTemplate 转换为 bamboo-engine 标准 Pipeline Tree dict
 
     Args:
@@ -104,10 +137,23 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None, 
         pipeline_tree: 可选，冻结的 pipeline_tree，不传则读 flow_template.pipeline_tree
         target_hosts: 可选，冻结的目标主机列表，不传则读 flow_template.target_hosts
         global_vars: 可选，冻结的全局变量，不传则读 flow_template.global_vars
+        execution_id: 可选，当前执行 ID，注入到 pipeline inputs 供运行时访问
+        excluded_nodes: 可选，排除的节点 ID 列表（执行方案）
     """
     tree = pipeline_tree if pipeline_tree is not None else flow_template.pipeline_tree
     nodes = tree.get('nodes', []) or []
     edges = tree.get('edges', []) or []
+
+    # 过滤排除的节点（执行方案）
+    excluded = set(excluded_nodes or [])
+    if excluded and nodes:
+        original_count = len(nodes)
+        nodes = [n for n in nodes if n.get('id') not in excluded]
+        edges = [e for e in edges if e.get('from') not in excluded and e.get('to') not in excluded]
+        if len(nodes) < original_count:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info("[ExcludedNodes] 过滤了 %d 个节点（%s），剩余 %d 个", original_count - len(nodes), excluded, len(nodes))
 
     if not nodes:
         return _empty_pipeline(flow_template, target_hosts=target_hosts, global_vars=global_vars)
@@ -250,11 +296,15 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None, 
 
     # 6. 构建 data — 优先使用冻结值，fallback 到模板当前值
     hosts = target_hosts if target_hosts is not None else (flow_template.target_hosts or [])
-    vars_ = global_vars if global_vars is not None else (flow_template.global_vars or {})
-    data = Data(inputs={
+    raw_vars = global_vars if global_vars is not None else (flow_template.global_vars or {})
+    vars_ = get_global_vars_values(raw_vars)  # 规范化提取纯值
+    input_map = {
         'target_hosts': Var(type=Var.PLAIN, value=hosts),
         'global_vars': Var(type=Var.PLAIN, value=vars_),
-    })
+    }
+    if execution_id:
+        input_map['_execution_id'] = Var(type=Var.PLAIN, value=execution_id)
+    data = Data(inputs=input_map)
     # 注入网关条件引用的节点输出（NodeOutput 自动从源节点 outputs 取值）
     for var_name, spec in auto_vars.items():
         data.inputs[var_name] = NodeOutput(
@@ -317,8 +367,88 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
     if node_type == 'converge_gateway':
         return ConvergeGateway()
 
+    if node_type == 'approval':
+        # 审批节点 — 构建为 ServiceActivity，执行时暂停等待审批
+        act = ServiceActivity(
+            component_code="opsflow_plugin",
+            skippable=False,
+            retryable=False,
+        )
+        act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value='approval')
+        act.component.inputs['_approvers'] = Var(
+            type=Var.PLAIN,
+            value=node.get('params', {}).get('approvers', []),
+        )
+        act.component.inputs['_approval_timeout'] = Var(
+            type=Var.PLAIN,
+            value=node.get('params', {}).get('timeout', 86400),
+        )
+        return act
+
+    if node_type == 'subprocess':
+        # 子流程节点 — 支持两种模式：
+        #   - embedded (默认): SubProcess 元素，bamboo-engine 内部调度
+        #   - independent:     ServiceActivity，PluginService 路由到 SubprocessDispatcher
+        target_id = node.get('params', {}).get('target_template_id')
+        independent = node.get('params', {}).get('independent', False)
+
+        if not target_id:
+            raise ValueError(f"SubProcess 节点 {nid} 缺少 target_template_id")
+
+        if independent:
+            # 独立模式：创建 ServiceActivity 委托 PluginService 调度
+            act = ServiceActivity(
+                component_code="opsflow_plugin",
+                skippable=True,
+                retryable=True,
+            )
+            act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value='subprocess_independent')
+            act.component.inputs['_target_template_id'] = Var(type=Var.PLAIN, value=target_id)
+            act.component.inputs['_variable_mapping'] = Var(
+                type=Var.PLAIN,
+                value=node.get('params', {}).get('variable_mapping', []),
+            )
+            act.component.inputs['_output_mapping'] = Var(
+                type=Var.PLAIN,
+                value=node.get('params', {}).get('output_mapping', []),
+            )
+            return act
+
+        # ── Embedded 模式（默认）────────────────────────────────────────
+        from opsflow.models import FlowTemplate
+        try:
+            target = FlowTemplate.objects.get(id=target_id)
+        except FlowTemplate.DoesNotExist:
+            raise ValueError(f"SubProcess 节点 {nid} 引用了不存在的模板 {target_id}")
+
+        # 循环引用检测
+        _detect_circular_ref(target)
+
+        # 使用发布快照（冻结版本），避免草稿变更影响执行
+        frozen_snapshot = target.snapshot or {}
+        child_tree = frozen_snapshot.get('pipeline_tree', target.pipeline_tree)
+        child_hosts = frozen_snapshot.get('target_hosts', target.target_hosts)
+        child_vars = get_global_vars_values(frozen_snapshot.get('global_vars', target.global_vars or {}))
+
+        variable_mapping = node.get('params', {}).get('variable_mapping', {})
+        output_mapping = node.get('params', {}).get('output_mapping', {})
+
+        child_start = EmptyStartEvent()
+        child_data = Data(inputs={
+            'target_hosts': Var(type=Var.PLAIN, value=child_hosts),
+            'global_vars': Var(type=Var.PLAIN, value=child_vars),
+        })
+
+        return SubProcess(
+            start=child_start,
+            data=child_data,
+            params=variable_mapping,
+            global_outputs=output_mapping,
+        )
+
     # 默认：ServiceActivity 原子
     atom_type = node.get('atom_type', '')
+    plugin_version = node.get('_plugin_version', '')
     node_max_retries = node.get('max_retries') or node.get('params', {}).get('max_retries', 0)
     act = ServiceActivity(
         component_code="opsflow_plugin",
@@ -328,6 +458,8 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
     )
     # 插件类型标识（PluginService 由此路由到正确的 BasePlugin）
     act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value=atom_type)
+    # 插件版本（多版本路由用）
+    act.component.inputs['_plugin_version'] = Var(type=Var.PLAIN, value=plugin_version)
     # 节点级最大重试次数（PluginService 由此读取并在重试时校验）
     act.component.inputs['_max_retries'] = Var(type=Var.PLAIN, value=node_max_retries)
     for k, v in node.get('params', {}).items():
@@ -481,7 +613,8 @@ def _empty_pipeline(flow_template, target_hosts=None, global_vars=None):
     end = EmptyEndEvent()
     start.extend(end)
     hosts = target_hosts if target_hosts is not None else (flow_template.target_hosts or [])
-    vars_ = global_vars if global_vars is not None else (flow_template.global_vars or {})
+    raw_vars = global_vars if global_vars is not None else (flow_template.global_vars or {})
+    vars_ = get_global_vars_values(raw_vars)
     data = Data(inputs={
         'target_hosts': Var(type=Var.PLAIN, value=hosts),
         'global_vars': Var(type=Var.PLAIN, value=vars_),

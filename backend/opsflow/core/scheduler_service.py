@@ -16,14 +16,14 @@ def _job_id(plan_id: int) -> str:
 
 
 def _naive(dt):
-    """确保 datetime 是 naive 的（去除时区），兼容 USE_TZ=False + MySQL"""
+    """Ensure datetime is naive (strip timezone), compatible with USE_TZ=False + MySQL"""
     if dt is not None and hasattr(dt, 'tzinfo') and dt.tzinfo is not None:
         return dt.replace(tzinfo=None)
     return dt
 
 
 def _sync_next_run(plan):
-    """从 APScheduler 同步 next_run_time 到 plan"""
+    """Sync next_run_time from APScheduler to plan"""
     if opsflow_scheduler._started:
         job = opsflow_scheduler.scheduler.get_job(_job_id(plan.id))
         if job and job.next_run_time:
@@ -31,7 +31,7 @@ def _sync_next_run(plan):
             plan.save(update_fields=['next_run_at'])
             return
 
-    # 调度器未启动时，手动计算 next_run_at
+    # Manually calculate next_run_at when scheduler is not started
     if plan.schedule_type == 'one_time' and plan.scheduled_at:
         plan.next_run_at = _naive(plan.scheduled_at)
     elif plan.schedule_type == 'cron' and plan.cron_expr:
@@ -48,7 +48,7 @@ def _sync_next_run(plan):
 
 
 def _execute_plan(plan_id: int):
-    """APScheduler 回调：创建 FlowExecution 并异步启动"""
+    """APScheduler callback: create FlowExecution and start asynchronously"""
     from opsflow.models import SchedulePlan, FlowExecution
     from opsflow.core.flow_engine import FlowEngine
 
@@ -57,12 +57,12 @@ def _execute_plan(plan_id: int):
             'template', 'created_by'
         ).get(id=plan_id)
     except SchedulePlan.DoesNotExist:
-        logger.error(f"SchedulePlan {plan_id} 不存在，跳过执行")
+        logger.error(f"SchedulePlan {plan_id} does not exist, skipping execution")
         return
 
     if plan.template.is_draft:
         logger.warning(
-            f"调度 '{plan.name}': 模板 '{plan.template.name}' 为草稿，跳过执行"
+            f"Schedule '{plan.name}': template '{plan.template.name}' is draft, skipping execution"
         )
         if plan.schedule_type == 'one_time':
             plan.status = SchedulePlan.Status.COMPLETED
@@ -71,10 +71,10 @@ def _execute_plan(plan_id: int):
         return
 
     try:
-        # 使用调度创建时的快照（实现模板修改与调度执行隔离）
+        # Use snapshot from schedule creation (isolate template changes from schedule execution)
         ss = plan.template_snapshot
         if ss and 'pipeline_tree' in ss:
-            # 结构化格式（新）：{'pipeline_tree', 'target_hosts', 'global_vars'}
+            # Structured format (new): {'pipeline_tree', 'target_hosts', 'global_vars'}
             execution = FlowExecution.objects.create(
                 template=plan.template,
                 status=FlowExecution.Status.PENDING,
@@ -87,7 +87,7 @@ def _execute_plan(plan_id: int):
                 schedule_plan=plan,
             )
         else:
-            # 旧格式：plan.template_snapshot 本身就是一个 pipeline_tree
+            # Old format: plan.template_snapshot itself is a pipeline_tree
             execution = FlowExecution.objects.create(
                 template=plan.template,
                 status=FlowExecution.Status.PENDING,
@@ -112,9 +112,9 @@ def _execute_plan(plan_id: int):
         _sync_next_run(plan)
         plan.save()
 
-        logger.info(f"调度 '{plan.name}': 已创建执行 {execution.id}")
+        logger.info(f"Schedule '{plan.name}': created execution {execution.id}")
     except Exception as e:
-        logger.exception(f"调度 '{plan.name}' 执行失败: {e}")
+        logger.exception(f"Schedule '{plan.name}' execution failed: {e}")
         if plan.max_retries > 0:
             from opsflow.tasks import retry_schedule_execution
             retry_schedule_execution.apply_async(
@@ -124,7 +124,7 @@ def _execute_plan(plan_id: int):
 
 
 class OpsflowScheduler:
-    """APScheduler 封装，管理 SchedulePlan 的定时触发"""
+    """APScheduler wrapper for managing SchedulePlan timed triggers"""
 
     def __init__(self):
         self.scheduler = BackgroundScheduler(timezone='Asia/Shanghai')
@@ -154,7 +154,7 @@ class OpsflowScheduler:
             try:
                 self.add_plan(plan)
             except Exception as e:
-                logger.error(f"注册调度失败 plan={plan.id} name={plan.name}: {e}")
+                logger.error(f"Failed to register schedule plan={plan.id} name={plan.name}: {e}")
 
     def _job_id(self, plan_id):
         return _job_id(plan_id)
@@ -174,7 +174,7 @@ class OpsflowScheduler:
             kwargs={'plan_id': plan.id},
         )
         _sync_next_run(plan)
-        logger.info(f"调度已注册: {plan.name} (id={plan.id})")
+        logger.info(f"Schedule registered: {plan.name} (id={plan.id})")
 
     def update_plan(self, plan):
         self.remove_plan(plan)
@@ -184,20 +184,20 @@ class OpsflowScheduler:
         job_id = self._job_id(plan.id)
         if self.scheduler.get_job(job_id):
             self.scheduler.remove_job(job_id)
-            logger.info(f"调度已移除: {plan.name} (id={plan.id})")
+            logger.info(f"Schedule removed: {plan.name} (id={plan.id})")
 
     def pause_plan(self, plan):
         job_id = self._job_id(plan.id)
         if self.scheduler.get_job(job_id):
             self.scheduler.pause_job(job_id)
-            logger.info(f"调度已暂停: {plan.name} (id={plan.id})")
+            logger.info(f"Schedule paused: {plan.name} (id={plan.id})")
 
     def resume_plan(self, plan):
         job_id = self._job_id(plan.id)
         if self.scheduler.get_job(job_id):
             self.scheduler.resume_job(job_id)
             _sync_next_run(plan)
-            logger.info(f"调度已恢复: {plan.name} (id={plan.id})")
+            logger.info(f"Schedule resumed: {plan.name} (id={plan.id})")
 
     def _build_trigger(self, plan):
         if plan.schedule_type == 'one_time':

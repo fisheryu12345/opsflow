@@ -20,7 +20,9 @@
 import { computed, ref } from 'vue'
 import {
   TagInput, TagSelect, TagTextarea, TagCheckbox,
-  TagRadio, TagInt, TagCodeEditor, TagDatetime, TagHostSelector, TagAsyncSelect,
+  TagRadio, TagInt, TagCodeEditor, TagDatetime,
+  TagHostSelector, TagAsyncSelect, TagIpSelector, TagDataTable,
+  TagVariableInput, TagMetaConfig, TagVariableMapping,
 } from './tags'
 
 const TAG_MAP: Record<string, any> = {
@@ -34,13 +36,20 @@ const TAG_MAP: Record<string, any> = {
   datetime: TagDatetime,
   host_selector: TagHostSelector,
   async_select: TagAsyncSelect,
+  ip_selector: TagIpSelector,
+  datatable: TagDataTable,
+  variable_input: TagVariableInput,
+  meta_config: TagMetaConfig,
+  variable_mapping: TagVariableMapping,
 }
 
 const props = withDefaults(defineProps<{
   config: any
   value?: any
   formData?: any
-}>(), {})
+  context?: Record<string, any>
+  tagCode?: string
+}>(), { context: () => ({}) })
 
 const emit = defineEmits<{ update: [value: any] }>()
 const errorMsg = ref('')
@@ -51,14 +60,20 @@ const isRequired = computed(() =>
 )
 const isHidden = computed(() => props.config.hidden || false)
 const col = computed(() => Math.min(props.config.col || 12, 12))
-const tagProps = computed(() => ({ ...props.config.attrs }))
+const tagProps = computed(() => ({
+  ...props.config.attrs,
+  // Pass render context to tag components (templateId, nodeId, etc.)
+  ...(props.context?.templateId ? { templateId: props.context.templateId } : {}),
+  ...(props.context?.nodeId ? { nodeId: props.context.nodeId } : {}),
+  tagCode: props.tagCode || props.config.tag_code || '',
+}))
 
 function onChange(val: any) {
   errorMsg.value = ''
-  // 校验
+  // validation
   for (const rule of props.config.validation || []) {
     if (rule.type === 'required' && (val === '' || val === null || val === undefined)) {
-      errorMsg.value = rule.error_message || '必填项'
+      errorMsg.value = rule.error_message || 'Required'
       break
     }
   }

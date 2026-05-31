@@ -13,16 +13,12 @@ class OpsKnowledgeViewSet(viewsets.ModelViewSet):
     serializer_class = OpsKnowledgeSerializer
     permission_classes = [IsAuthenticated]
     search_fields = ['title', 'content', 'tags']
+    filterset_fields = ['source']
     ordering = ['-created_at']
+    pagination_class = None
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return SuccessResponse(data=serializer.data, page=int(request.query_params.get('page', 1)),
-                                   limit=self.paginator.get_page_size(request) if hasattr(self.paginator, 'get_page_size') else 10,
-                                   total=self.paginator.page.paginator.count if hasattr(self.paginator, 'page') else queryset.count())
         serializer = self.get_serializer(queryset, many=True)
         return SuccessResponse(data=serializer.data, total=queryset.count())
 
@@ -52,10 +48,10 @@ class OpsKnowledgeViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def search(self, request):
-        """RAG 搜索 — 基于文本匹配，后续可升级为向量检索"""
+        """RAG search — text-based matching, upgrade to vector search later"""
         query = request.data.get('query', '')
         if not query:
             return Response({'code': 4000, 'msg': 'query required', 'data': None})
         results = OpsKnowledge.objects.filter(content__icontains=query)
-        ser = self.get_serializer(results[:10], many=True)
+        ser = self.get_serializer(results[:20], many=True)
         return Response({'code': 2000, 'msg': 'success', 'data': ser.data})

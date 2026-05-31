@@ -2,7 +2,7 @@
 
 后端用 Pydantic 定义 form schema，前端 RenderForm 通用渲染引擎解析。
 支持字段类型：input / select / textarea / checkbox / radio / int /
-                code_editor / datetime / host_selector / datatable
+                code_editor / datetime / host_selector / datatable / ip_selector
 """
 
 from typing import Any, Dict, List, Optional, Union

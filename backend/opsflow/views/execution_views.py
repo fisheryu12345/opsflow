@@ -19,6 +19,29 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
     filterset_fields = ['status', 'template']
     ordering = ['-created_at']
 
+    @action(detail=False, methods=['get'])
+    def pending_approval(self, request):
+        """返回所有待审批的执行列表"""
+        qs = self.get_queryset().filter(
+            status=PipelineState.PAUSED,
+        ).select_related('template', 'created_by').order_by('-created_at')
+        result = []
+        for ex in qs:
+            ctx = ex.context or {}
+            decisions = ctx.get('_approval_decisions', {})
+            cn = ex.current_node
+            if cn and cn not in decisions:
+                result.append({
+                    'id': ex.id,
+                    'template_name': ex.template.name if ex.template else '',
+                    'node_id': cn,
+                    'status': ex.status,
+                    'paused_at': ex.updated_at.isoformat() if getattr(ex, 'updated_at', None) else None,
+                    'created_at': ex.created_at.isoformat() if ex.created_at else None,
+                    'created_by': str(ex.created_by) if ex.created_by else '',
+                })
+        return api_success(data=result, msg="获取成功")
+
     def get_serializer_class(self):
         """详情页使用 FlowExecutionDetailSerializer（含 state_tree + trace_summary）"""
         if self.action == 'retrieve':
@@ -138,6 +161,111 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
         if not result['result']:
             return api_error(ErrorCodes.NODE_COMMAND_FAILED, msg=result['message'])
         return api_success(msg=result['message'], data=result['data'])
+
+    # -- Batch operations ---------------------------------------------------
+
+    @action(detail=True, methods=['post'])
+    def batch_retry(self, request, pk=None):
+        """批量重试所有失败节点"""
+        execution = self.get_object()
+        node_ids = request.data.get('node_ids')
+        failed_nodes = [
+            nid for nid, st in (execution.node_status or {}).items()
+            if st == 'failed' and (not node_ids or nid in node_ids)
+        ]
+        if not failed_nodes:
+            return api_error(ErrorCodes.NODE_ID_REQUIRED, msg='没有可重试的失败节点')
+        dispatcher = NodeCommandDispatcher(execution)
+        results = []
+        for nid in failed_nodes:
+            results.append(dispatcher.retry(nid, operator=str(request.user)))
+        succeeded = sum(1 for r in results if r['result'])
+        return api_success(data={
+            'total': len(failed_nodes),
+            'succeeded': succeeded,
+            'failed': len(failed_nodes) - succeeded,
+            'results': results,
+        }, msg=f'批量重试完成: {succeeded}/{len(failed_nodes)} 成功')
+
+    @action(detail=True, methods=['post'])
+    def batch_skip(self, request, pk=None):
+        """批量跳过所有失败节点"""
+        execution = self.get_object()
+        node_ids = request.data.get('node_ids')
+        failed_nodes = [
+            nid for nid, st in (execution.node_status or {}).items()
+            if st == 'failed' and (not node_ids or nid in node_ids)
+        ]
+        if not failed_nodes:
+            return api_error(ErrorCodes.NODE_ID_REQUIRED, msg='没有可跳过的失败节点')
+        dispatcher = NodeCommandDispatcher(execution)
+        results = []
+        for nid in failed_nodes:
+            results.append(dispatcher.skip(nid, operator=str(request.user)))
+        succeeded = sum(1 for r in results if r['result'])
+        return api_success(data={
+            'total': len(failed_nodes),
+            'succeeded': succeeded,
+            'failed': len(failed_nodes) - succeeded,
+            'results': results,
+        }, msg=f'批量跳过完成: {succeeded}/{len(failed_nodes)} 成功')
+
+    # -- Subprocess operations ------------------------------------------------
+
+    @action(detail=True, methods=['post'])
+    def retry_subprocess(self, request, pk=None):
+        """重试子流程节点 — 委托给 FlowEngine.retry_subprocess"""
+        execution = self.get_object()
+        node_id = request.data.get('node_id', execution.current_node)
+        if not node_id:
+            return api_error(ErrorCodes.NODE_ID_REQUIRED)
+        engine = FlowEngine(execution)
+        engine.retry_subprocess(node_id)
+        return api_success(msg=f'正在重试子流程节点 {node_id}')
+
+    # -- Approval endpoints ------------------------------------------------
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """审批通过 — 标记节点为已审批并恢复执行"""
+        execution = self.get_object()
+        node_id = request.data.get('node_id', execution.current_node)
+        if not node_id:
+            return api_error(ErrorCodes.NODE_ID_REQUIRED)
+        comment = request.data.get('comment', '')
+        # 记录审批信息到 context
+        ctx = dict(execution.context or {})
+        approval = dict(ctx.get('_approval_decisions', {}))
+        approval[node_id] = {'approved': True, 'by': str(request.user),
+                             'at': datetime.datetime.now().isoformat(), 'comment': comment}
+        ctx['_approval_decisions'] = approval
+        ctx['_last_operator'] = str(request.user)
+        execution.context = ctx
+        execution.save(update_fields=['context'])
+        # 如果 pipeline 处于暂停状态，恢复执行
+        if execution.status == PipelineState.PAUSED:
+            FlowEngine(execution).resume()
+        return api_success(msg='审批通过')
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """审批拒绝 — 标记节点为已拒绝"""
+        execution = self.get_object()
+        node_id = request.data.get('node_id', execution.current_node)
+        if not node_id:
+            return api_error(ErrorCodes.NODE_ID_REQUIRED)
+        reason = request.data.get('reason', '审批拒绝')
+        ctx = dict(execution.context or {})
+        approval = dict(ctx.get('_approval_decisions', {}))
+        approval[node_id] = {'approved': False, 'by': str(request.user),
+                             'at': datetime.datetime.now().isoformat(), 'reason': reason}
+        ctx['_approval_decisions'] = approval
+        ctx['_last_operator'] = str(request.user)
+        execution.context = ctx
+        execution.save(update_fields=['context'])
+        if execution.status == PipelineState.PAUSED:
+            FlowEngine(execution).resume()
+        return api_success(msg='已拒绝')
 
     # -- Trace endpoints ----------------------------------------------------
 

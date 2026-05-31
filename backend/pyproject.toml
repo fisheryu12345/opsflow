@@ -1,0 +1,12 @@
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "application.settings"
+python_files = ["test_*.py"]
+testpaths = ["opsflow/tests"]
+markers = [
+    "django: enable Django DB access",
+    "slow: slow integration tests",
+]
+
+[tool.coverage.run]
+source = ["opsflow"]
+omit = ["*/migrations/*", "*/tests/*"]

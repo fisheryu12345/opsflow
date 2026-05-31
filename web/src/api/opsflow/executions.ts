@@ -44,6 +44,44 @@ export function ForceFailNode(id: number, node_id: string, reason?: string) {
   return request({ url: prefix + `executions/${id}/force_fail/`, method: 'post', data })
 }
 
+// -- Approval --
+
+export function ApproveNode(id: number, node_id: string, comment?: string) {
+  const data: any = { node_id }
+  if (comment) data.comment = comment
+  return request({ url: prefix + `executions/${id}/approve/`, method: 'post', data })
+}
+
+export function RejectNode(id: number, node_id: string, reason?: string) {
+  const data: any = { node_id }
+  if (reason) data.reason = reason
+  return request({ url: prefix + `executions/${id}/reject/`, method: 'post', data })
+}
+
+// -- Batch operations --
+
+export function BatchRetryNodes(id: number, node_ids?: string[]) {
+  const data: any = {}
+  if (node_ids) data.node_ids = node_ids
+  return request({ url: prefix + `executions/${id}/batch_retry/`, method: 'post', data })
+}
+
+export function BatchSkipNodes(id: number, node_ids?: string[]) {
+  const data: any = {}
+  if (node_ids) data.node_ids = node_ids
+  return request({ url: prefix + `executions/${id}/batch_skip/`, method: 'post', data })
+}
+
+// -- Pending Approval --
+
+export function GetPendingApprovals() {
+  return request({ url: prefix + 'executions/pending_approval/', method: 'get' })
+}
+
+export function RetrySubprocessNode(id: number, node_id: string) {
+  return request({ url: prefix + `executions/${id}/retry_subprocess/`, method: 'post', data: { node_id } })
+}
+
 // -- Traces --
 
 export function GetExecutionTraces(id: number, node_id?: string) {

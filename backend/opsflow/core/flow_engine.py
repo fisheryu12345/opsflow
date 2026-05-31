@@ -8,6 +8,7 @@ import datetime
 import logging
 
 from bamboo_engine import api as pipeline_api
+from bamboo_engine.builder import Data, Var
 from pipeline.eri.runtime import BambooDjangoRuntime
 
 from opsflow.core.bamboo_builder import build_bamboo_pipeline
@@ -74,6 +75,19 @@ class FlowEngine:
         result = pipeline_api.retry_node(runtime, node_id)
         if not result.result:
             logger.error("[FlowEngine] retry node %s failed: %s", node_id, result.message)
+        else:
+            node_status = self.execution.node_status or {}
+            node_status[node_id] = "retrying"
+            self.execution.node_status = node_status
+            self.execution.status = "running"
+            self.execution.save(update_fields=["node_status", "status"])
+
+    def retry_subprocess(self, node_id):
+        """重试子流程节点 — 委托给 bamboo_engine.api.retry_subprocess"""
+        runtime = BambooDjangoRuntime()
+        result = pipeline_api.retry_subprocess(runtime, node_id)
+        if not result.result:
+            logger.error("[FlowEngine] retry subprocess %s failed: %s", node_id, result.message)
         else:
             node_status = self.execution.node_status or {}
             node_status[node_id] = "retrying"
@@ -158,6 +172,8 @@ class FlowEngine:
                 pipeline_tree=frozen_tree,
                 target_hosts=frozen.get('target_hosts'),
                 global_vars=frozen.get('global_vars'),
+                execution_id=self.execution.id,
+                excluded_nodes=self.execution.excluded_nodes,
             )
             bamboo_pipeline_id = pipeline.get("id", "")
 

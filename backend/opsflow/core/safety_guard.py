@@ -72,6 +72,38 @@ def validate_pipeline(pipeline: dict) -> dict:
             if not pred_has_backup:
                 warnings.append(f"节点 '{nid}'（{atom}）前缺少 backup_file 步骤")
 
+        # 子流程节点校验
+        if atom == '' and node.get('node_type') == 'subprocess':
+            sub_params = node.get('params', {}) or {}
+            target_id = sub_params.get('target_template_id')
+            if not target_id:
+                errors.append(f"子流程节点 '{nid}' 缺少 target_template_id")
+            else:
+                from opsflow.models import FlowTemplate
+                try:
+                    target = FlowTemplate.objects.get(id=target_id)
+                    if target.is_draft:
+                        errors.append(f"子流程节点 '{nid}' 引用的模板为草稿，请先发布")
+                    elif not target.snapshot:
+                        errors.append(f"子流程节点 '{nid}' 引用的模板 '{target.name}' 无发布快照")
+                    else:
+                        from opsflow.core.bamboo_builder import _detect_circular_ref
+                        try:
+                            _detect_circular_ref(target)
+                        except ValueError as e:
+                            errors.append(str(e))
+
+                    # 版本过期检查
+                    ref_version = sub_params.get('_referenced_version')
+                    current_version = target.version or 1
+                    if ref_version and ref_version != current_version:
+                        warnings.append(
+                            f"子流程节点 '{nid}' 引用模板 '{target.name}' 版本已过时 "
+                            f"(引用 V{ref_version}, 当前 V{current_version})"
+                        )
+                except FlowTemplate.DoesNotExist:
+                    errors.append(f"子流程节点 '{nid}' 引用的模板 id={target_id} 不存在")
+
     # 孤儿节点检测
     for nid in node_ids:
         if nid != start_node_id and nid not in edge_to:

@@ -359,7 +359,16 @@
       "Bash(DJANGO_SETTINGS_MODULE=application.test_settings python -m pytest opsflow/tests/test_layout.py -v --tb=long)",
       "Bash(taskkill //f //im python.exe)",
       "Bash(sed -i '/^$/{ N; /^\\\\n\\\\n$/d; }' 04-frontend.md)",
-      "Bash(grep -c \"^$\" 04-frontend.md)"
+      "Bash(grep -c \"^$\" 04-frontend.md)",
+      "Bash(python -m pytest opsflow/tests/test_states.py opsflow/tests/test_variable_resolver.py opsflow/tests/test_safety_guard.py opsflow/tests/test_flow_engine.py opsflow/tests/test_bamboo_builder.py -v --tb=line)",
+      "Bash(python -m pytest opsflow/tests/test_variable_resolver.py::TestBuildExecutionContext -v --tb=short)",
+      "Bash(python -m pytest opsflow/tests/test_states.py opsflow/tests/test_variable_resolver.py opsflow/tests/test_safety_guard.py opsflow/tests/test_flow_engine.py opsflow/tests/test_bamboo_builder.py -v)",
+      "Bash(sed -i 's/dashboard_status_distribution, dashboard_node_type_distribution,/dashboard_status_distribution, dashboard_node_type_distribution,\\\\n    dashboard_duration_distribution, dashboard_node_duration_top,\\\\n    dashboard_success_rate_trend, dashboard_template_stats,/' opsflow/urls.py)",
+      "Bash(sed -i 's|path\\(.dashboard/node-type-distribution/., dashboard_node_type_distribution,|path\\(\"dashboard/node-type-distribution/\", dashboard_node_type_distribution,\\\\n    path\\(\"dashboard/duration-distribution/\", dashboard_duration_distribution, name=\"opsflow-dashboard-duration-distribution\"\\),\\\\n    path\\(\"dashboard/node-duration-top/\", dashboard_node_duration_top, name=\"opsflow-dashboard-node-duration-top\"\\),\\\\n    path\\(\"dashboard/success-rate-trend/\", dashboard_success_rate_trend, name=\"opsflow-dashboard-success-rate-trend\"\\),\\\\n    path\\(\"dashboard/template-stats/\", dashboard_template_stats, name=\"opsflow-dashboard-template-stats\"\\),|' opsflow/urls.py)",
+      "Bash(python -m pytest opsflow/tests/test_bamboo_builder.py opsflow/tests/test_variable_registry.py opsflow/tests/test_states.py -v --tb=short)",
+      "Bash(python -m pytest opsflow/tests/test_bamboo_builder.py opsflow/tests/test_variable_registry.py opsflow/tests/test_states.py opsflow/tests/test_variable_resolver.py opsflow/tests/test_safety_guard.py opsflow/tests/test_flow_engine.py -v --tb=line)",
+      "Bash(ls -la \"/cygdrive/c/Users/dell/Desktop/Vue/backend/opsflow/\")",
+      "Read(//cygdrive/c/Users/dell/Desktop/Vue/backend/**)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

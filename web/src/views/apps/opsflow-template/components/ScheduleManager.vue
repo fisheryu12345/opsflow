@@ -9,9 +9,9 @@
   >
     <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center">
       <span style="font-size: 13px; color: #909399">
-        共 {{ list.length }} 个调度计划
+        {{ list.length }} schedule(s)
       </span>
-      <el-button type="primary" size="small" @click="openCreate">新建调度</el-button>
+      <el-button type="primary" size="small" @click="openCreate">New Schedule</el-button>
     </div>
 
     <ScheduleTable
@@ -63,7 +63,7 @@ const formVisible = ref(false)
 const editingPlan = ref<any>(null)
 const displayName = computed(() => {
   const name = props.templateName || ''
-  return (name.length > 20 ? name.slice(0, 20) + '…' : name) + ' - 调度计划'
+  return (name.length > 20 ? name.slice(0, 20) + '…' : name) + ' - Schedule'
 })
 
 watch(
@@ -101,39 +101,39 @@ function openEdit(row: any) {
 async function handlePause(row: any) {
   try {
     await PauseSchedulePlan(row.id)
-    ElMessage.success('调度已暂停')
+    ElMessage.success('Schedule paused')
     fetchList()
   } catch (e: any) {
-    ElMessage.error(e?.msg || '操作失败')
+    ElMessage.error(e?.msg || 'Operation failed')
   }
 }
 
 async function handleResume(row: any) {
   try {
     await ResumeSchedulePlan(row.id)
-    ElMessage.success('调度已恢复')
+    ElMessage.success('Schedule resumed')
     fetchList()
   } catch (e: any) {
-    ElMessage.error(e?.msg || '操作失败')
+    ElMessage.error(e?.msg || 'Operation failed')
   }
 }
 
 async function handleTrigger(row: any) {
   try {
     await TriggerSchedulePlan(row.id)
-    ElMessage.success('手动触发已提交')
+    ElMessage.success('Manual trigger submitted')
   } catch (e: any) {
-    ElMessage.error(e?.msg || '操作失败')
+    ElMessage.error(e?.msg || 'Operation failed')
   }
 }
 
 async function handleDelete(row: any) {
   try {
-    await ElMessageBox.confirm(`确定删除调度「${row.name}」？`, '确认', {
+    await ElMessageBox.confirm(`Delete schedule "${row.name}"?`, 'Confirm', {
       type: 'warning',
     })
     await DeleteSchedulePlan(row.id)
-    ElMessage.success('调度已删除')
+    ElMessage.success('Schedule deleted')
     fetchList()
   } catch {
     // cancelled

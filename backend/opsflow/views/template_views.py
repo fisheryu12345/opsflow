@@ -55,6 +55,12 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+        # ── 无用变量自动清理 ──
+        from opsflow.core.variable_resolver import cleanup_unused_vars
+        cleaned = cleanup_unused_vars(instance.pipeline_tree or {}, instance.global_vars or {})
+        instance.global_vars = cleaned
+        instance.save(update_fields=['global_vars'])
+        # ── 结束 ──
         return DetailResponse(data=serializer.data, msg='success')
 
     def destroy(self, request, *args, **kwargs):
@@ -164,6 +170,12 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
                 'data': {'bamboo_check': bamboo_check}
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # ── 无用变量自动清理 ──
+        from opsflow.core.variable_resolver import cleanup_unused_vars
+        cleaned = cleanup_unused_vars(template.pipeline_tree or {}, template.global_vars or {})
+        template.global_vars = cleaned
+        # ── 结束 ──
+
         template.is_draft = False
         version_note = request.data.get('version_note', '')
         template.publish_snapshot(user=request.user, version_note=version_note)
@@ -183,6 +195,13 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
                 'code': 4000, 'msg': '流程存在安全风险',
                 'data': {'validation': safety}
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        # ── 无用变量自动清理 ──
+        from opsflow.core.variable_resolver import cleanup_unused_vars
+        cleaned = cleanup_unused_vars(template.pipeline_tree or {}, template.global_vars or {})
+        template.global_vars = cleaned
+        template.save(update_fields=['global_vars'])
+        # ── 结束 ──
 
         version_note = request.data.get('version_note', '')
         template.publish_snapshot(user=request.user, version_note=version_note)
@@ -214,6 +233,11 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
         template.target_hosts = target.target_hosts
         template.global_vars = target.global_vars
         template.is_draft = False
+        # ── 无用变量自动清理 ──
+        from opsflow.core.variable_resolver import cleanup_unused_vars
+        cleaned = cleanup_unused_vars(template.pipeline_tree or {}, template.global_vars or {})
+        template.global_vars = cleaned
+        # ── 结束 ──
         template.save()
         return Response({'code': 2000, 'msg': f'已回滚到 V{version_id}', 'data': FlowTemplateSerializer(template).data})
 
@@ -445,3 +469,302 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
             'code': 2000, 'msg': '变量配置已更新',
             'data': template.hook_variables,
         })
+
+    # ═══════════════════════════════════════════════════════════════
+    # Global Variable System (Phase 1)
+    # ═══════════════════════════════════════════════════════════════
+
+    @action(detail=True, methods=['get', 'post', 'patch'], url_path='global-variables')
+    def global_variables(self, request, pk=None):
+        """全局变量 CRUD
+
+        GET:  返回所有全局变量（规范化结构）
+        POST: 批量替换所有全局变量
+        PATCH: 部分更新（合并现有变量）
+        """
+        template = self.get_object()
+        from opsflow.core.variable_resolver import normalize_global_vars
+
+        if request.method == 'GET':
+            normalized = normalize_global_vars(template.global_vars)
+            # 附加引用计数
+            tree = template.pipeline_tree or {}
+            result = {}
+            for key, entry in normalized.items():
+                from opsflow.core.variable_resolver import count_variable_references
+                entry["reference_count"] = count_variable_references(tree, key)
+                result[key] = entry
+            return Response({'code': 2000, 'msg': 'success', 'data': result})
+
+        if request.method == 'POST':
+            template.global_vars = request.data.get('global_vars', {})
+            # ── 无用变量自动清理 ──
+            from opsflow.core.variable_resolver import cleanup_unused_vars
+            cleaned = cleanup_unused_vars(template.pipeline_tree or {}, template.global_vars or {})
+            template.global_vars = cleaned
+            # ── 结束 ──
+            template.save(update_fields=['global_vars'])
+            normalized = normalize_global_vars(template.global_vars)
+            return Response({'code': 2000, 'msg': '全局变量已更新', 'data': normalized})
+
+        # PATCH — 合并更新
+        updates = request.data.get('global_vars', {})
+        current = dict(template.global_vars or {})
+        for key, val in updates.items():
+            if isinstance(val, dict) and "value" in val:
+                current[key] = val
+            else:
+                # 扁平格式 → 转为结构化
+                existing = current.get(key, {})
+                if isinstance(existing, dict) and "value" in existing:
+                    existing["value"] = val
+                    current[key] = existing
+                else:
+                    current[key] = val
+        template.global_vars = current
+        # ── 无用变量自动清理 ──
+        from opsflow.core.variable_resolver import cleanup_unused_vars
+        cleaned = cleanup_unused_vars(template.pipeline_tree or {}, template.global_vars or {})
+        template.global_vars = cleaned
+        # ── 结束 ──
+        template.save(update_fields=['global_vars'])
+        normalized = normalize_global_vars(template.global_vars)
+        return Response({'code': 2000, 'msg': '全局变量已更新', 'data': normalized})
+
+    @action(detail=True, methods=['get'], url_path='variable-browser')
+    def variable_browser(self, request, pk=None):
+        """返回所有可引用变量（全局变量 + 节点输出），供前端自动补全"""
+        template = self.get_object()
+        from opsflow.core.variable_resolver import normalize_global_vars
+        from opsflow.plugins.registry import get_plugin
+
+        # 1. 全局变量
+        normalized = normalize_global_vars(template.global_vars)
+        global_vars = [
+            {"key": k, "type": v["type"], "source": "global",
+             "description": v.get("description", ""),
+             "value": v["value"]}
+            for k, v in normalized.items()
+        ]
+
+        # 2. 节点输出（从插件 output_schema 提取）
+        tree = template.pipeline_tree or {}
+        node_outputs = []
+        for node in tree.get('nodes', []):
+            nid = node.get('id', '')
+            label = node.get('label', nid)
+            node_type = node.get('node_type', '')
+            plugin_code = node.get('atom_type') or node.get('plugin_code', '')
+            if plugin_code:
+                cls = get_plugin(plugin_code)
+                if cls:
+                    schema = cls.get_output_schema()
+                    for field in (schema or []):
+                        field_key = field.get('tag_code', field.get('key', ''))
+                        if field_key:
+                            node_outputs.append({
+                                "key": f"{nid}.{field_key}",
+                                "node_id": nid,
+                                "node_label": label,
+                                "source": "node_output",
+                                "description": field.get('name', field_key),
+                            })
+            # 标准 _result 输出
+            if node_type in ('atom', '', None):
+                node_outputs.append({
+                    "key": f"{nid}._result",
+                    "node_id": nid,
+                    "node_label": label,
+                    "source": "node_output",
+                    "description": "Execution result (True/False)",
+                })
+
+        return Response({
+            'code': 2000, 'msg': 'success',
+            'data': {
+                "global_variables": global_vars,
+                "node_outputs": node_outputs,
+            },
+        })
+
+    @action(detail=True, methods=['post'], url_path='hook-variable')
+    def hook_variable(self, request, pk=None):
+        """将节点参数提升为全局变量
+
+        Request: {
+            "var_key": "my_var",       # 变量 key (必填)
+            "node_id": "node_xxx",     # 来源节点 ID (必填)
+            "tag_code": "param_name",  # 来源字段名
+            "var_type": "input",       # 变量类型
+            "description": "..."       # 描述
+        }
+        """
+        template = self.get_object()
+        var_key = request.data.get('var_key', '')
+        node_id = request.data.get('node_id', '')
+        tag_code = request.data.get('tag_code', '')
+        var_type = request.data.get('var_type', 'input')
+        description = request.data.get('description', '')
+
+        if not var_key or not node_id:
+            return Response({'code': 4000, 'msg': 'var_key and node_id are required', 'data': None},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        from opsflow.core.variable_resolver import normalize_global_vars
+        current = normalize_global_vars(template.global_vars)
+
+        current[var_key] = {
+            "value": "",
+            "type": var_type,
+            "show_type": True,
+            "description": description,
+            "source_type": "node_output",
+            "source_info": {
+                "node_id": node_id,
+                "tag_code": tag_code,
+            },
+            "validation": [],
+        }
+
+        # 同步更新 hook_variables（向后兼容）
+        hook_vars = dict(template.hook_variables or {})
+        hook_vars[var_key] = current[var_key]
+        template.hook_variables = hook_vars
+
+        template.global_vars = current
+        template.save(update_fields=['global_vars', 'hook_variables'])
+        return Response({'code': 2000, 'msg': '变量已提升为全局变量', 'data': current[var_key]})
+
+    @action(detail=True, methods=['post'], url_path='unhook-variable')
+    def unhook_variable(self, request, pk=None):
+        """移除变量与节点的关联（降级为手动变量）
+
+        Request: {"var_key": "my_var"}
+        """
+        template = self.get_object()
+        var_key = request.data.get('var_key', '')
+
+        from opsflow.core.variable_resolver import normalize_global_vars
+        current = normalize_global_vars(template.global_vars)
+
+        if var_key not in current:
+            return Response({'code': 4000, 'msg': f'变量 {var_key} 不存在', 'data': None},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        # 移除 source_info 但保留变量
+        current[var_key].update({
+            "source_type": "manual",
+            "source_info": None,
+        })
+        template.global_vars = current
+        template.save(update_fields=['global_vars'])
+        return Response({'code': 2000, 'msg': '已解除变量关联', 'data': current[var_key]})
+
+    # ═══════════════════════════════════════════════════════════════
+    # Subprocess Version Tracking (Phase 3)
+    # ═══════════════════════════════════════════════════════════════
+
+    @action(detail=True, methods=['get'], url_path='subprocess-status')
+    def subprocess_status(self, request, pk=None):
+        """检查子流程引用版本是否过期
+
+        从 snapshot.subprocess_refs 读取引用版本，对比目标模板当前版本。
+        """
+        template = self.get_object()
+        snapshot = template.snapshot or {}
+        subprocess_refs = snapshot.get('subprocess_refs', {})
+
+        # fallback: 实时扫描 pipeline_tree
+        if not subprocess_refs:
+            subprocess_refs = self._extract_subprocess_refs(template)
+
+        from opsflow.models import FlowTemplate
+
+        details = []
+        for node_id, ref in subprocess_refs.items():
+            target_id = ref.get('target_template_id')
+            ref_version = ref.get('target_version')
+            try:
+                target = FlowTemplate.objects.get(id=target_id)
+                current_version = target.version or 1
+                stale = (ref_version is not None and
+                         current_version is not None and
+                         ref_version != current_version)
+            except FlowTemplate.DoesNotExist:
+                current_version = None
+                stale = True
+
+            details.append({
+                'node_id': node_id,
+                'target_template_id': target_id,
+                'target_name': ref.get('target_name', ''),
+                'referenced_version': ref_version,
+                'current_version': current_version,
+                'stale': stale,
+            })
+
+        stale_count = sum(1 for d in details if d['stale'])
+        return Response({
+            'code': 2000, 'msg': 'success',
+            'data': {
+                'total': len(details),
+                'stale': stale_count,
+                'details': details,
+            },
+        })
+
+    @action(detail=True, methods=['post'], url_path='update-subprocess-refs')
+    def update_subprocess_refs(self, request, pk=None):
+        """批量更新所有子流程引用为最新版本"""
+        template = self.get_object()
+        tree = template.pipeline_tree or {}
+        nodes = tree.get('nodes', [])
+        from opsflow.models import FlowTemplate
+
+        updated = []
+        for node in nodes:
+            if node.get('node_type') != 'subprocess':
+                continue
+            params = node.get('params', {}) or {}
+            target_id = params.get('target_template_id')
+            if not target_id:
+                continue
+            try:
+                target = FlowTemplate.objects.get(id=target_id)
+                current_version = target.version or 1
+                params['_referenced_version'] = current_version
+                node['params'] = params
+                updated.append({
+                    'node_id': node['id'],
+                    'target_template_id': target_id,
+                    'new_version': current_version,
+                })
+            except FlowTemplate.DoesNotExist:
+                continue
+
+        template.pipeline_tree = tree
+        template.save(update_fields=['pipeline_tree'])
+        return Response({
+            'code': 2000, 'msg': 'success',
+            'data': {
+                'total': len(updated),
+                'updated_nodes': updated,
+                'message': f'已更新 {len(updated)} 个子流程引用',
+            },
+        })
+
+    def _extract_subprocess_refs(self, template) -> dict:
+        """从 pipeline_tree 实时提取子流程引用（fallback）"""
+        refs = {}
+        tree = template.pipeline_tree or {}
+        for node in tree.get('nodes', []):
+            if node.get('node_type') == 'subprocess':
+                params = node.get('params', {}) or {}
+                target_id = params.get('target_template_id')
+                if target_id:
+                    refs[node['id']] = {
+                        'target_template_id': target_id,
+                        'target_version': None,
+                        'target_name': '',
+                    }
+        return refs

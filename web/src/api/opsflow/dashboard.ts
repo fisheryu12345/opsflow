@@ -30,6 +30,24 @@ export function GetDashboardNodeTypeDistribution(params?: any) {
   return request({ url: prefix + 'dashboard/node-type-distribution/', method: 'get', params })
 }
 
+/* ---------- Stats & Analysis endpoints ---------- */
+
+export function GetDashboardDurationDistribution(params?: any) {
+  return request({ url: prefix + 'dashboard/duration-distribution/', method: 'get', params })
+}
+
+export function GetDashboardNodeDurationTop(params?: any) {
+  return request({ url: prefix + 'dashboard/node-duration-top/', method: 'get', params })
+}
+
+export function GetDashboardSuccessRateTrend(params?: any) {
+  return request({ url: prefix + 'dashboard/success-rate-trend/', method: 'get', params })
+}
+
+export function GetDashboardTemplateStats(params?: any) {
+  return request({ url: prefix + 'dashboard/template-stats/', method: 'get', params })
+}
+
 /* ---------- Mock data (used when backend API is unavailable) ---------- */
 
 function daysAgo(n: number): string {
@@ -130,6 +148,59 @@ export function getMockNodeTypeDistribution() {
     { type: 'servicenow', count: 234, label: 'ServiceNow' },
     { type: 'esxi', count: 120, label: 'ESXi' },
     { type: 'other', count: 140, label: 'Other' },
+  ]
+}
+
+/* ---------- Stats & Analysis mock data ---------- */
+
+export function getMockDurationDistribution() {
+  return [
+    { range: '0-30s', count: 85 },
+    { range: '30s-1m', count: 52 },
+    { range: '1m-3m', count: 38 },
+    { range: '3m-5m', count: 22 },
+    { range: '5m-10m', count: 15 },
+    { range: '10m-1h', count: 8 },
+    { range: '>1h', count: 3 },
+  ]
+}
+
+export function getMockNodeDurationTop() {
+  return [
+    { atom_type: 'java_deploy', avg_duration: 28450, count: 32, max_duration: 62000 },
+    { atom_type: 'docker_deploy', avg_duration: 15320, count: 18, max_duration: 45000 },
+    { atom_type: 'create_vm', avg_duration: 12180, count: 8, max_duration: 35000 },
+    { atom_type: 'shell', avg_duration: 8450, count: 128, max_duration: 60000 },
+    { atom_type: 'script_exec', avg_duration: 6200, count: 45, max_duration: 28000 },
+    { atom_type: 'service_control', avg_duration: 3800, count: 67, max_duration: 15000 },
+    { atom_type: 'api_call', avg_duration: 2400, count: 92, max_duration: 12000 },
+    { atom_type: 'file_copy', avg_duration: 1800, count: 56, max_duration: 8000 },
+    { atom_type: 'ping_test', avg_duration: 450, count: 210, max_duration: 3000 },
+    { atom_type: 'send_alert', avg_duration: 320, count: 88, max_duration: 1500 },
+  ]
+}
+
+export function getMockSuccessRateTrend() {
+  const items: any[] = []
+  for (let i = 29; i >= 0; i--) {
+    const total = Math.floor(Math.random() * 8) + 2
+    const completed = Math.floor(total * (0.75 + Math.random() * 0.2))
+    const failed = total - completed
+    items.push({ date: daysAgo(i), total, completed, failed, rate: +(completed / total * 100).toFixed(1) })
+  }
+  return items
+}
+
+export function getMockTemplateStats() {
+  return [
+    { template_id: 1, name: '日常巡检流程', total: 68, avg_duration: 145, success_rate: 97.1 },
+    { template_id: 2, name: '故障自愈 - Web 服务', total: 42, avg_duration: 230, success_rate: 88.1 },
+    { template_id: 3, name: '数据库备份验证', total: 35, avg_duration: 310, success_rate: 94.3 },
+    { template_id: 4, name: '应用发布 - 金丝雀部署', total: 28, avg_duration: 420, success_rate: 85.7 },
+    { template_id: 5, name: '网络设备配置备份', total: 22, avg_duration: 180, success_rate: 100.0 },
+    { template_id: 6, name: '安全漏洞扫描流程', total: 18, avg_duration: 560, success_rate: 94.4 },
+    { template_id: 7, name: 'ESXi 虚拟机部署', total: 15, avg_duration: 890, success_rate: 80.0 },
+    { template_id: 8, name: 'ServiceNow 变更审批', total: 10, avg_duration: 7200, success_rate: 90.0 },
   ]
 }
 

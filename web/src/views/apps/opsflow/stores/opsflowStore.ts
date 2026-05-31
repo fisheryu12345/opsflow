@@ -33,6 +33,7 @@ interface OpsflowState {
   currentExecution: FlowExecution | null
   templates: FlowTemplate[]
   executions: FlowExecution[]
+  globalVariables: Record<string, any>
 }
 
 export const useOpsflowStore = defineStore('opsflow', {
@@ -42,10 +43,24 @@ export const useOpsflowStore = defineStore('opsflow', {
     currentExecution: null,
     templates: [],
     executions: [],
+    globalVariables: {},
   }),
   getters: {
     isDesignMode: (state) => state.mode === 'design',
     isMonitorMode: (state) => state.mode === 'monitor',
+    globalVariableList: (state) => {
+      const vars = state.globalVariables
+      return Object.entries(vars).map(([key, val]: [string, any]) => ({
+        key,
+        value: val?.value ?? '',
+        type: val?.type ?? 'input',
+        source_type: val?.source_type ?? 'manual',
+        source_info: val?.source_info ?? null,
+        description: val?.description ?? '',
+        reference_count: val?.reference_count ?? 0,
+        show_type: val?.show_type ?? true,
+      }))
+    },
   },
   actions: {
     setMode(mode: 'design' | 'monitor') {
@@ -62,6 +77,9 @@ export const useOpsflowStore = defineStore('opsflow', {
     },
     setExecutions(list: FlowExecution[]) {
       this.executions = list
+    },
+    setGlobalVariables(vars: Record<string, any>) {
+      this.globalVariables = vars
     },
   },
 })

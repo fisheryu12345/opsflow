@@ -60,6 +60,7 @@ export function useMonitor() {
       case 'failed': return '#F56C6C'
       case 'pending': return '#909399'
       case 'skipped': return '#C0C4CC'
+      case 'pending_approval': return '#9B59B6'
       default: return '#909399'
     }
   }

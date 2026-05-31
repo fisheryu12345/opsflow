@@ -9,6 +9,8 @@ from .views.dashboard_views import (
     dashboard_stats, dashboard_trend, dashboard_schedule_stats,
     dashboard_top_templates, dashboard_user_activity,
     dashboard_status_distribution, dashboard_node_type_distribution,
+    dashboard_duration_distribution, dashboard_node_duration_top,
+    dashboard_success_rate_trend, dashboard_template_stats,
 )
 from .views.schedule_views import SchedulePlanViewSet
 from .views.plugin_views import PluginViewSet
@@ -29,4 +31,8 @@ urlpatterns = [
     path('dashboard/user-activity/', dashboard_user_activity, name='opsflow-dashboard-user-activity'),
     path('dashboard/status-distribution/', dashboard_status_distribution, name='opsflow-dashboard-status-distribution'),
     path('dashboard/node-type-distribution/', dashboard_node_type_distribution, name='opsflow-dashboard-node-type-distribution'),
+    path('dashboard/duration-distribution/', dashboard_duration_distribution, name='opsflow-dashboard-duration-distribution'),
+    path('dashboard/node-duration-top/', dashboard_node_duration_top, name='opsflow-dashboard-node-duration-top'),
+    path('dashboard/success-rate-trend/', dashboard_success_rate_trend, name='opsflow-dashboard-success-rate-trend'),
+    path('dashboard/template-stats/', dashboard_template_stats, name='opsflow-dashboard-template-stats'),
 ] + router.urls

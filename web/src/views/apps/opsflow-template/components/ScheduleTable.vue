@@ -1,65 +1,92 @@
 <template>
-  <el-table :data="list" v-loading="loading" stripe style="width: 100%">
-    <el-table-column v-if="showTemplate" prop="template_name" label="所属模板" min-width="140" />
-    <el-table-column prop="name" label="名称" min-width="140" />
-    <el-table-column label="类型" width="90">
+  <el-table :data="list" v-loading="loading" empty-text="No data" stripe style="width: 100%" size="small" :header-cell-style="{background:'#fafafa', color:'#606266', fontWeight:600, fontSize:'12px'}">
+    <el-table-column v-if="showTemplate" prop="template_name" label="Template" min-width="140" show-overflow-tooltip />
+    <el-table-column prop="name" label="Name" min-width="150" show-overflow-tooltip>
       <template #default="{ row }">
-        <el-tag v-if="row.schedule_type === 'one_time'" type="warning" size="small">一次性</el-tag>
-        <el-tag v-else type="primary" size="small">周期性</el-tag>
+        <div class="cell-name">
+          <span class="name-text">{{ row.name }}</span>
+          <span class="name-desc" v-if="row.description">{{ row.description }}</span>
+        </div>
       </template>
     </el-table-column>
-    <el-table-column label="触发信息" min-width="170">
+    <el-table-column label="Type" width="100">
+      <template #default="{ row }">
+        <el-tag v-if="row.schedule_type === 'one_time'" type="warning" size="small" effect="plain" class="type-tag">
+          <el-icon size="12" style="margin-right:3px"><Clock /></el-icon> One-time
+        </el-tag>
+        <el-tag v-else type="primary" size="small" effect="plain" class="type-tag">
+          <el-icon size="12" style="margin-right:3px"><Refresh /></el-icon> Recurring
+        </el-tag>
+      </template>
+    </el-table-column>
+    <el-table-column label="Trigger" min-width="180">
       <template #default="{ row }">
         <template v-if="row.schedule_type === 'one_time'">
-          <span>{{ row.scheduled_at ? formatTime(row.scheduled_at) : '-' }}</span>
+          <div class="trigger-cell">
+            <el-icon size="12" color="#909399"><Clock /></el-icon>
+            <span>{{ row.scheduled_at ? formatTime(row.scheduled_at) : '-' }}</span>
+          </div>
         </template>
         <template v-else>
-          <div><code style="font-size: 12px">{{ row.cron_expr }}</code></div>
-          <div v-if="row.cron_description" style="font-size: 12px; color: #909399">{{ row.cron_description }}</div>
+          <div class="trigger-cell cron-cell">
+            <code class="cron-expr">{{ row.cron_expr }}</code>
+            <span v-if="row.cron_description" class="cron-desc">{{ row.cron_description }}</span>
+          </div>
         </template>
       </template>
     </el-table-column>
-    <el-table-column label="状态" width="90">
+    <el-table-column label="Status" width="100">
       <template #default="{ row }">
-        <el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+        <div class="status-badge" :class="row.status">
+          <span class="status-dot" />
+          <span>{{ statusLabel(row.status) }}</span>
+        </div>
       </template>
     </el-table-column>
-    <el-table-column label="上次执行" width="160">
-      <template #default="{ row }">{{ row.last_run_at ? formatTime(row.last_run_at) : '-' }}</template>
-    </el-table-column>
-    <el-table-column label="下次执行" width="160">
-      <template #default="{ row }">{{ row.next_run_at ? formatTime(row.next_run_at) : '-' }}</template>
-    </el-table-column>
-    <el-table-column prop="total_run_count" label="次数" width="60" align="center" />
-    <el-table-column label="操作" width="200" fixed="right">
+    <el-table-column label="Last Run" width="155">
       <template #default="{ row }">
-        <el-button link type="primary" size="small" @click="emit('edit', row)">编辑</el-button>
-        <el-button
-          v-if="row.status === 'active'"
-          link
-          type="warning"
-          size="small"
-          @click="emit('pause', row)"
-        >
-          暂停
-        </el-button>
-        <el-button
-          v-if="row.status === 'paused'"
-          link
-          type="success"
-          size="small"
-          @click="emit('resume', row)"
-        >
-          恢复
-        </el-button>
-        <el-button link type="primary" size="small" @click="emit('trigger', row)">触发</el-button>
-        <el-button link type="danger" size="small" @click="emit('delete', row)">删除</el-button>
+        <span class="time-cell">{{ row.last_run_at ? formatTime(row.last_run_at) : '-' }}</span>
+      </template>
+    </el-table-column>
+    <el-table-column label="Next Run" width="155">
+      <template #default="{ row }">
+        <span class="time-cell">{{ row.next_run_at ? formatTime(row.next_run_at) : '-' }}</span>
+      </template>
+    </el-table-column>
+    <el-table-column prop="total_run_count" label="Runs" width="70" align="center">
+      <template #default="{ row }">
+        <el-tag :type="row.total_run_count > 0 ? 'primary' : 'info'" size="small" effect="plain" class="runs-tag">
+          {{ row.total_run_count || 0 }}
+        </el-tag>
+      </template>
+    </el-table-column>
+    <el-table-column label="Actions" width="240" fixed="right">
+      <template #default="{ row }">
+        <div class="action-btns">
+          <el-tooltip content="Edit" placement="top">
+            <el-button size="small" text type="primary" @click="emit('edit', row)" :icon="Edit" />
+          </el-tooltip>
+          <el-tooltip v-if="row.status === 'active'" content="Pause" placement="top">
+            <el-button size="small" text type="warning" @click="emit('pause', row)" :icon="VideoPause" />
+          </el-tooltip>
+          <el-tooltip v-if="row.status === 'paused'" content="Resume" placement="top">
+            <el-button size="small" text type="success" @click="emit('resume', row)" :icon="VideoPlay" />
+          </el-tooltip>
+          <el-tooltip content="Trigger Now" placement="top">
+            <el-button size="small" text type="primary" @click="emit('trigger', row)" :icon="Lightning" />
+          </el-tooltip>
+          <el-tooltip content="Delete" placement="top">
+            <el-button size="small" text type="danger" @click="emit('delete', row)" :icon="Delete" />
+          </el-tooltip>
+        </div>
       </template>
     </el-table-column>
   </el-table>
 </template>
 
 <script setup lang="ts">
+import { Clock, Refresh, Edit, VideoPause, VideoPlay, Lightning, Delete } from '@element-plus/icons-vue'
+
 defineProps<{
   list: any[]
   loading: boolean
@@ -79,23 +106,50 @@ function formatTime(dt: string) {
   return dt.replace('T', ' ').substring(0, 19)
 }
 
-function statusType(status: string) {
-  switch (status) {
-    case 'active': return 'success'
-    case 'paused': return 'warning'
-    case 'completed': return 'info'
-    case 'expired': return 'danger'
-    default: return 'info'
-  }
-}
-
 function statusLabel(status: string) {
   switch (status) {
-    case 'active': return '运行中'
-    case 'paused': return '已暂停'
-    case 'completed': return '已完成'
-    case 'expired': return '已过期'
+    case 'active': return 'Active'
+    case 'paused': return 'Paused'
+    case 'completed': return 'Completed'
+    case 'expired': return 'Expired'
     default: return status
   }
 }
 </script>
+
+<style scoped>
+.cell-name { display: flex; flex-direction: column; gap: 2px; }
+.name-text { font-size: 13px; font-weight: 600; color: #303133; }
+.name-desc { font-size: 11px; color: #909399; }
+
+.type-tag { font-weight: 500; }
+
+.trigger-cell { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.cron-cell { flex-direction: column; align-items: flex-start; gap: 2px; }
+.cron-expr { font-size: 12px; background: #f5f7fa; padding: 2px 6px; border-radius: 4px; color: #606266; font-family: monospace; }
+.cron-desc { font-size: 11px; color: #909399; }
+
+.status-badge {
+  display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500;
+}
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+}
+.status-badge.active .status-dot { background: #67C23A; }
+.status-badge.active { color: #67C23A; }
+.status-badge.paused .status-dot { background: #E6A23C; }
+.status-badge.paused { color: #E6A23C; }
+.status-badge.completed .status-dot { background: #909399; }
+.status-badge.completed { color: #909399; }
+.status-badge.expired .status-dot { background: #F56C6C; }
+.status-badge.expired { color: #F56C6C; }
+
+.time-cell { font-size: 12px; color: #606266; font-family: monospace; }
+.runs-tag { font-weight: 600; min-width: 28px; }
+
+.action-btns {
+  display: flex; align-items: center; gap: 2px;
+}
+.action-btns .el-button { padding: 5px; border-radius: 6px; }
+.action-btns .el-button:hover { background: #f0f0f0; }
+</style>

@@ -152,44 +152,53 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     const s = new Stencil({
       target: graph.value,
       search: false,
-      title: 'Nodes',
+      title: 'FlowNode',
       groups: [
-        { name: 'basic', label: 'Basic', graphHeight: 130 },
-        { name: 'gateway', label: 'Gateways', graphHeight: 170 },
+        { name: 'gateway', label: 'FlowNode', graphHeight: 500 },
       ],
-      stencilGraphWidth: 160,
+      stencilGraphWidth: 200,
       layout: (model) => {
         const nodes = model.getNodes()
-        const pw = 160
-        nodes.forEach((node) => {
-          const d = node.getData() || {}
-          if (d.node_type === 'start_event')        node.setPosition({ x: 48, y: 12 })
-          else if (d.node_type === 'end_event')     node.setPosition({ x: 100, y: 12 })
-          else if (d.node_type === 'atom')          node.setPosition({ x: 15, y: 72 })
-          else if (d.node_type === 'exclusive_gateway')          node.setPosition({ x: 6, y: 8 })
-          else if (d.node_type === 'parallel_gateway')           node.setPosition({ x: 86, y: 8 })
-          else if (d.node_type === 'conditional_parallel_gateway') node.setPosition({ x: 6, y: 88 })
-          else if (d.node_type === 'converge_gateway')            node.setPosition({ x: 86, y: 88 })
+        const d = (n: any) => n.getData() || {}
+        nodes.forEach((n) => {
+          const t = d(n).node_type
+          // 5 行: 2-2-2-1-1-1 布局
+          if (t === 'start_event')                n.setPosition({ x: 26, y: 8 })
+          else if (t === 'end_event')             n.setPosition({ x: 128, y: 8 })
+          else if (t === 'exclusive_gateway')     n.setPosition({ x: 14, y: 82 })
+          else if (t === 'parallel_gateway')      n.setPosition({ x: 110, y: 74 })
+          else if (t === 'conditional_parallel_gateway') n.setPosition({ x: 14, y: 184 })
+          else if (t === 'converge_gateway')      n.setPosition({ x: 110, y: 184 })
+          else if (t === 'approval')              n.setPosition({ x: 63, y: 288 })
+          else if (t === 'subprocess')            n.setPosition({ x: 27, y: 392 })
+          else if (t === 'atom')                  n.setPosition({ x: 27, y: 450 })
         })
       },
     })
 
-    const base = { width: 130, height: 32 }
-    const basicNodes = [
-      { shape: 'ops-start-event', ...base, width: 36, height: 36, data: { node_type: 'start_event' } },
-      { shape: 'ops-end-event', ...base, width: 36, height: 36, data: { node_type: 'end_event' } },
-      { shape: 'ops-atom', label: 'Task Node', ...base, data: { node_type: 'atom' } },
-    ]
-    const gateH = 70  // 与 shapes.ts 中 gateway 定义一致
-    const gatewayNodes = [
-      { shape: 'ops-exclusive-gateway', label: 'Condition', width: 68, height: gateH, data: { node_type: 'exclusive_gateway' } },
-      { shape: 'ops-parallel-gateway', label: 'Parallel', width: 68, height: gateH, data: { node_type: 'parallel_gateway' } },
-      { shape: 'ops-conditional-parallel-gateway', label: 'Cond. Parallel', width: 68, height: gateH, data: { node_type: 'conditional_parallel_gateway' } },
-      { shape: 'ops-converge-gateway', label: 'Converge', width: 68, height: gateH, data: { node_type: 'converge_gateway' } },
+    // Stencil nodes — use attrs for explicit label text (custom markup shapes)
+    const stencilNodes = [
+      { shape: 'ops-start-event', label: '', width: 44, height: 56,
+        attrs: { label: { text: '' } }, data: { node_type: 'start_event' } },
+      { shape: 'ops-end-event', label: '', width: 44, height: 56,
+        attrs: { label: { text: '' } }, data: { node_type: 'end_event' } },
+      { shape: 'ops-exclusive-gateway', label: 'Condition', width: 70, height: 92,
+        attrs: { label: { text: 'Condition' } }, data: { node_type: 'exclusive_gateway' } },
+      { shape: 'ops-parallel-gateway', label: 'Parallel', width: 70, height: 92,
+        attrs: { label: { text: 'Parallel' } }, data: { node_type: 'parallel_gateway' } },
+      { shape: 'ops-conditional-parallel-gateway', label: 'Cond. Parallel', width: 70, height: 92,
+        attrs: { label: { text: 'Cond. Parallel' } }, data: { node_type: 'conditional_parallel_gateway' } },
+      { shape: 'ops-converge-gateway', label: 'Converge', width: 70, height: 92,
+        attrs: { label: { text: 'Converge' } }, data: { node_type: 'converge_gateway' } },
+      { shape: 'ops-approval', label: 'Approval', width: 70, height: 92,
+        attrs: { label: { text: 'Approval' } }, data: { node_type: 'approval' } },
+      { shape: 'ops-subprocess', label: 'Subprocess', width: 145, height: 48,
+        attrs: { label: { text: 'Subprocess' } }, data: { node_type: 'subprocess' } },
+      { shape: 'ops-atom', label: 'Task Node', width: 145, height: 48,
+        attrs: { label: { text: 'Task Node' } }, data: { node_type: 'atom' } },
     ]
 
-    s.load(basicNodes.map(n => graph.value!.createNode(n)), 'basic')
-    s.load(gatewayNodes.map(n => graph.value!.createNode(n)), 'gateway')
+    s.load(stencilNodes.map(n => graph.value!.createNode(n)), 'gateway')
     target.appendChild(s.container!)
     stencil.value = s
   }
@@ -331,6 +340,8 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
         converge_gateway: 'Converge',
         start_event: 'Start',
         end_event: 'End',
+        approval: 'Approval',
+        subprocess: 'SubProcess',
       }
       return map[nodeType] || ''
     }

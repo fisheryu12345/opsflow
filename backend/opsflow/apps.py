@@ -20,8 +20,17 @@ class OpsflowConfig(AppConfig):
         except (ProgrammingError, OperationalError):
             logger.warning("跳过插件注册：数据库表尚未就绪")
 
+        # 1b) 发现并注册变量类型
+        try:
+            from opsflow.plugins.registry import discover_variables
+            discover_variables()
+        except Exception:
+            logger.debug("跳过变量类型注册")
+
         # 2) 连接 BambooDjangoRuntime 信号处理器（节点状态变更 → FlowExecution 更新）
         from opsflow import signals  # noqa
+        # 2b) 注册 OpsflowPluginComponent（ComponentMeta 元类在 import 时自动注册到 ComponentLibrary）
+        from opsflow.core import plugin_service_adapter  # noqa
 
         # 3) dev 模式自动启动调度器
         try:

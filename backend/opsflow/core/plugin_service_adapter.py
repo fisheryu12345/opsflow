@@ -34,12 +34,18 @@ class PluginService(Service):
           - 读取 parent_data 中的 global_vars / target_hosts
           - 在节点参数中解析 ${key} 变量引用
           - 设置 _result 及各项标准输出字段
+          - subprocess_independent 原子类型 → 独立子流程调度
         """
         inputs = dict(data.inputs)
         atom_type = inputs.pop('_atom_type', '')
+        plugin_version = inputs.pop('_plugin_version', None)
         max_retries = inputs.pop('_max_retries', None)
 
-        plugin_cls = get_plugin(atom_type)
+        # ├─ Independent Subprocess (Phase 5) ────────────────────────────
+        if atom_type == 'subprocess_independent':
+            return self._execute_independent_subprocess(data, parent_data, inputs)
+
+        plugin_cls = get_plugin(atom_type, version=plugin_version)
         if not plugin_cls:
             data.outputs['_result'] = False
             data.outputs['_error'] = f"未知插件: {atom_type}"
@@ -81,15 +87,56 @@ class PluginService(Service):
             data.outputs['_error'] = str(e)
             return False
 
+    def _execute_independent_subprocess(self, data, parent_data, inputs):
+        """执行独立子流程调度"""
+        target_template_id = inputs.get('_target_template_id')
+        variable_mapping = inputs.get('_variable_mapping', [])
+        output_mapping = inputs.get('_output_mapping', [])
+
+        if not target_template_id:
+            data.outputs['_result'] = False
+            data.outputs['_error'] = '独立子流程缺少 target_template_id'
+            return False
+
+        # 从 parent_data 获取 execution_id
+        pd = dict(parent_data.inputs) if parent_data else {}
+        execution_id = pd.get('_execution_id')
+
+        try:
+            from opsflow.models import FlowExecution
+            from opsflow.core.subprocess_dispatcher import SubprocessDispatcher
+
+            execution = FlowExecution.objects.get(id=execution_id)
+            dispatcher = SubprocessDispatcher(execution)
+            child_id = dispatcher.start_subprocess(
+                node_id=data.node_id,
+                target_template_id=target_template_id,
+                variable_mapping=variable_mapping,
+                output_mapping=output_mapping,
+            )
+
+            if child_id:
+                data.outputs['_result'] = True
+                data.outputs['child_execution_id'] = child_id
+                return True
+            else:
+                data.outputs['_result'] = False
+                data.outputs['_error'] = '独立子流程启动失败'
+                return False
+        except Exception as e:
+            logger.exception("独立子流程执行异常")
+            data.outputs['_result'] = False
+            data.outputs['_error'] = str(e)
+            return False
+
     @classmethod
     def need_schedule(cls) -> bool:
-        """启用异步调度模式 — 允许 schedule() 回调
+        """默认不同步调度，仅明确设置的异步插件启用
 
-        始终返回 True，在 schedule() 中动态决定是否实际需要调度。
-        同步插件在 schedule() 中直接返回 True（立即完成），
-        异步插件在 schedule() 中轮询外部任务状态。
+        同步插件 execute() 完成后直接进入下一节点。
+        异步插件（_need_schedule=True）通过 schedule() 轮询/回调完成。
         """
-        return True
+        return False
 
     def schedule(self, data, parent_data, callback_data=None):
         """异步调度回调 — 长任务轮询/完成检查

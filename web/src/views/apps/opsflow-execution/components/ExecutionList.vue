@@ -87,6 +87,16 @@
             <span>{{ selectedTemplate.pipeline_tree.nodes?.length || 0 }}</span>
           </div>
         </div>
+
+        <!-- Optional node selection (execution scheme) -->
+        <div v-if="optionalNodes.length > 0" class="optional-nodes-section">
+          <div class="section-label">Optional Nodes (deselect to skip)</div>
+          <el-checkbox-group v-model="selectedNodeIds" class="node-checkbox-group">
+            <el-checkbox v-for="node in optionalNodes" :key="node.id" :label="node.id" class="node-checkbox">
+              {{ node.label || node.id }}
+            </el-checkbox>
+          </el-checkbox-group>
+        </div>
       </el-form>
       <template #footer>
         <el-button @click="createVisible = false">Cancel</el-button>
@@ -97,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { GetTemplates } from '/@/api/opsflow/templates'
@@ -121,6 +131,17 @@ const creating = ref(false)
 
 const emptyText = computed(() => loading.value ? 'Loading...' : 'No executions yet. Create one to get started.')
 const selectedTemplate = computed(() => templates.value.find(t => t.id === createTemplateId.value))
+const selectedNodeIds = ref<string[]>([])
+const optionalNodes = computed(() => {
+  const tree = selectedTemplate.value?.pipeline_tree || {}
+  const nodes = tree.nodes || []
+  return nodes.filter((n: any) =>
+    n.node_type === 'atom' && n.optional !== false
+  )
+})
+watch(createTemplateId, () => {
+  selectedNodeIds.value = optionalNodes.value.map((n: any) => n.id)
+})
 
 function statusColor(status: string) {
   const map: Record<string, string> = { pending: '#909399', running: '#E6A23C', paused: '#909399', completed: '#67C23A', failed: '#F56C6C', cancelled: '#909399' }
@@ -167,7 +188,14 @@ async function onCreate() {
   if (!createTemplateId.value) { ElMessage.warning('Please select a template'); return }
   creating.value = true
   try {
-    const res = await CreateExecution({ template: createTemplateId.value })
+    // Compute excluded nodes = all optional nodes minus selected ones
+    const allOptional = optionalNodes.value.map((n: any) => n.id)
+    const excluded = allOptional.filter((id: string) => !selectedNodeIds.value.includes(id))
+    const data: any = { template: createTemplateId.value }
+    if (excluded.length > 0) {
+      data.excluded_nodes = excluded
+    }
+    const res = await CreateExecution(data)
     const exec = res.data?.data || res.data
     if (exec?.id) {
       createVisible.value = false
@@ -208,4 +236,8 @@ onMounted(() => { fetchTemplates(); fetchExecutions() })
 .template-info { margin-top: 8px; padding: 10px 12px; background: #f5f7fa; border-radius: 6px; font-size: 12px; }
 .template-info-row { display: flex; justify-content: space-between; padding: 2px 0; }
 .template-info-row .info-label { color: #909399; }
+.optional-nodes-section { margin-top: 12px; }
+.optional-nodes-section .section-label { font-size: 12px; color: #606266; font-weight: 500; margin-bottom: 8px; }
+.node-checkbox-group { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; padding: 8px 12px; background: #fafafa; border-radius: 6px; }
+.node-checkbox { margin: 0; font-size: 12px; }
 </style>

@@ -1,7 +1,7 @@
 import logging
 from datetime import timedelta
 
-from django.db.models import Count, Avg, Sum, Q, F, Max
+from django.db.models import Count, Avg, Sum, Q, F, Max, Case, When, Value, IntegerField
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -155,7 +155,7 @@ def dashboard_stats(request):
 def dashboard_trend(request):
     """Return execution trend data per day for the last N days (default 30).
 
-    包含 avg_duration（当日已完成执行的平均耗时，精确到秒）。
+    Includes avg_duration (average duration of completed executions on that day, in seconds).
     """
     days = int(request.GET.get("days", 30))
     since = timezone.now() - timedelta(days=days)
@@ -213,13 +213,13 @@ def dashboard_trend(request):
     return Response({"code": 2000, "msg": "success", "data": result})
 
 
-# ── 仪表盘新增端点 ─────────────────────────────────────────────
+# ── Dashboard additional endpoints ─────────────────────────────────────────────
 
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def dashboard_top_templates(request):
-    """按执行次数排名的模板 Top N（含成功率和平均耗时）"""
+    """Top N templates ranked by execution count (with success rate and average duration)"""
     limit = int(request.GET.get("limit", 8))
     from django.db.models.functions import Round
 
@@ -254,7 +254,7 @@ def dashboard_top_templates(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def dashboard_user_activity(request):
-    """用户执行活动统计"""
+    """User execution activity statistics"""
     limit = int(request.GET.get("limit", 10))
     rows = (
         FlowExecution.objects.values(username=F("created_by__username"))
@@ -279,10 +279,10 @@ def dashboard_user_activity(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def dashboard_status_distribution(request):
-    """执行状态分布"""
+    """Execution status distribution"""
     status_labels = {
-        "pending": "待执行", "running": "执行中", "completed": "已完成",
-        "failed": "失败", "cancelled": "已取消", "paused": "已暂停",
+        "pending": "Pending", "running": "Running", "completed": "Completed",
+        "failed": "Failed", "cancelled": "Cancelled", "paused": "Paused",
     }
     rows = FlowExecution.objects.values("status").annotate(count=Count("id")).order_by("status")
     data = [
@@ -295,7 +295,7 @@ def dashboard_status_distribution(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def dashboard_node_type_distribution(request):
-    """节点类型分布（从 NodeExecutionTrace 按 atom_type 统计）"""
+    """Node type distribution (aggregated by atom_type from NodeExecutionTrace)"""
     rows = (
         NodeExecutionTrace.objects.values("atom_type")
         .annotate(count=Count("id"))
@@ -378,4 +378,147 @@ def dashboard_schedule_stats(request):
         "top_schedules": top_schedules_data,
         "trend": sched_trend_result,
     }
+    return Response({"code": 2000, "msg": "success", "data": data})
+
+
+# =============================================================================
+# Statistics & Analysis — 新增统计端点
+# =============================================================================
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_duration_distribution(request):
+    """执行耗时分布 — 按耗时区间统计执行次数"""
+    from django.db.models import Case, Value, IntegerField, When
+    from django.db.models.functions import Coalesce
+
+    # 计算每个执行的耗时(秒)
+    base = FlowExecution.objects.filter(
+        started_at__isnull=False,
+        ended_at__isnull=False,
+    )
+    bucket_map = {
+        '0-30s': Case(When(ended_at__lte=F('started_at') + timedelta(seconds=30), then=Value(1)),
+                      default=Value(0), output_field=IntegerField()),
+        '30s-1m': Case(When(ended_at__gt=F('started_at') + timedelta(seconds=30),
+                            ended_at__lte=F('started_at') + timedelta(minutes=1), then=Value(1)),
+                       default=Value(0), output_field=IntegerField()),
+        '1m-3m': Case(When(ended_at__gt=F('started_at') + timedelta(minutes=1),
+                           ended_at__lte=F('started_at') + timedelta(minutes=3), then=Value(1)),
+                      default=Value(0), output_field=IntegerField()),
+        '3m-5m': Case(When(ended_at__gt=F('started_at') + timedelta(minutes=3),
+                           ended_at__lte=F('started_at') + timedelta(minutes=5), then=Value(1)),
+                      default=Value(0), output_field=IntegerField()),
+        '5m-10m': Case(When(ended_at__gt=F('started_at') + timedelta(minutes=5),
+                            ended_at__lte=F('started_at') + timedelta(minutes=10), then=Value(1)),
+                       default=Value(0), output_field=IntegerField()),
+        '10m-1h': Case(When(ended_at__gt=F('started_at') + timedelta(minutes=10),
+                            ended_at__lte=F('started_at') + timedelta(hours=1), then=Value(1)),
+                       default=Value(0), output_field=IntegerField()),
+        '>1h': Case(When(ended_at__gt=F('started_at') + timedelta(hours=1), then=Value(1)),
+                    default=Value(0), output_field=IntegerField()),
+    }
+    agg = base.aggregate(**{key: Sum(expr) for key, expr in bucket_map.items()})
+    buckets = [{"range": key, "count": agg.get(key, 0) or 0} for key in bucket_map]
+    return Response({"code": 2000, "msg": "success", "data": buckets})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_node_duration_top(request):
+    """节点耗时排行榜 — Top N 最慢节点类型（从 NodeExecutionTrace 汇总）"""
+    limit = int(request.GET.get("limit", 10))
+    rows = (
+        NodeExecutionTrace.objects
+        .filter(duration_ms__isnull=False)
+        .values("atom_type")
+        .annotate(
+            count=Count("id"),
+            avg_duration=Avg("duration_ms"),
+            max_duration=Max("duration_ms"),
+        )
+        .order_by("-avg_duration")[:limit]
+    )
+    data = [
+        {
+            "atom_type": r["atom_type"] or "unknown",
+            "avg_duration": round(r["avg_duration"]) if r["avg_duration"] else 0,
+            "count": r["count"],
+            "max_duration": r["max_duration"] or 0,
+        }
+        for r in rows
+    ]
+    return Response({"code": 2000, "msg": "success", "data": data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_success_rate_trend(request):
+    """每日成功率趋势 — 按日聚合执行成功/失败数量及成功率"""
+    days = int(request.GET.get("days", 30))
+    since = timezone.now() - timedelta(days=days)
+    from django.db.models.functions import TruncDate
+
+    rows = (
+        FlowExecution.objects.filter(created_at__gte=since)
+        .annotate(date=TruncDate("created_at"))
+        .values("date", "status")
+        .annotate(cnt=Count("id"))
+        .order_by("date")
+    )
+
+    trend_map = {}
+    for r in rows:
+        d = str(r["date"])
+        if d not in trend_map:
+            trend_map[d] = {"date": d, "total": 0, "completed": 0, "failed": 0, "rate": 0.0}
+        trend_map[d]["total"] += r["cnt"]
+        if r["status"] == "completed":
+            trend_map[d]["completed"] += r["cnt"]
+        elif r["status"] == "failed":
+            trend_map[d]["failed"] += r["cnt"]
+
+    result = []
+    for i in range(days):
+        d = (timezone.now() - timedelta(days=days - 1 - i)).strftime("%Y-%m-%d")
+        entry = trend_map.get(d, {"date": d, "total": 0, "completed": 0, "failed": 0, "rate": 0.0})
+        if entry["total"] > 0:
+            entry["rate"] = round(entry["completed"] / entry["total"] * 100, 1)
+        result.append(entry)
+    return Response({"code": 2000, "msg": "success", "data": result})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_template_stats(request):
+    """模板执行聚合统计 — 每个模板的执行次数/平均耗时/成功率/平均节点数"""
+    rows = (
+        FlowExecution.objects.values(
+            tid=F("template_id"),
+            name=F("template__name"),
+        )
+        .annotate(
+            total=Count("id"),
+            completed=Count("id", filter=Q(status="completed")),
+            failed=Count("id", filter=Q(status="failed")),
+            avg_duration=Avg(F("ended_at") - F("started_at")),
+        )
+        .order_by("-total")
+    )
+    data = []
+    for r in rows:
+        total_finished = (r["completed"] or 0) + (r["failed"] or 0)
+        success_rate = round(r["completed"] / total_finished * 100, 1) if total_finished else 0
+        avg_sec = 0
+        if r["avg_duration"] is not None:
+            avg_sec = round(r["avg_duration"].total_seconds())
+        # 平均节点数：从 template_snapshot 估算
+        data.append({
+            "template_id": r["tid"],
+            "name": r["name"] or f"Template {r['tid']}",
+            "total": r["total"],
+            "avg_duration": avg_sec,
+            "success_rate": success_rate,
+        })
     return Response({"code": 2000, "msg": "success", "data": data})

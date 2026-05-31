@@ -1,6 +1,6 @@
 <template>
   <el-dialog :model-value="visible" @update:model-value="emit('update:visible', $event)"
-    :title="'版本历史: ' + displayName" width="600px" top="8vh" destroy-on-close>
+    :title="'Version History: ' + displayName" width="600px" top="8vh" destroy-on-close>
     <div v-loading="loading">
       <el-timeline v-if="versions.length">
         <el-timeline-item v-for="v in versions" :key="v.id" :timestamp="v.created_at" placement="top">
@@ -11,13 +11,13 @@
             </div>
             <div class="version-actions">
               <el-button size="small" text type="primary" @click="handleRollback(v)" :disabled="v.version === currentVersion">
-                {{ v.version === currentVersion ? '当前版本' : '回滚到此版本' }}
+                {{ v.version === currentVersion ? 'Current version' : 'Rollback to this version' }}
               </el-button>
             </div>
           </div>
         </el-timeline-item>
       </el-timeline>
-      <el-empty v-else-if="!loading" description="暂无版本历史" />
+      <el-empty v-else-if="!loading" description="No version history" />
     </div>
   </el-dialog>
 </template>
@@ -61,13 +61,13 @@ watch(() => props.visible, async (v) => {
 
 async function handleRollback(v: any) {
   try {
-    await ElMessageBox.confirm(`确定回滚到 V${v.version}？当前未发布的修改将丢失。`, '确认回滚', {
-      confirmButtonText: '确认回滚',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm(`Are you sure you want to rollback to V${v.version}? Unsaved changes will be lost.`, 'Confirm Rollback', {
+      confirmButtonText: 'Confirm Rollback',
+      cancelButtonText: 'Cancel',
       type: 'warning',
     })
     await RollbackTemplate(props.templateId!, v.version)
-    ElMessage.success(`已回滚到 V${v.version}`)
+    ElMessage.success(`Rolled back to V${v.version}`)
     emit('rolled-back')
     emit('update:visible', false)
   } catch {

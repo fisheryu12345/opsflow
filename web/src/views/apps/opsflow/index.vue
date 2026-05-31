@@ -285,7 +285,7 @@ async function onSelectTemplate(id: any) {
 }
 
 // AI 生成/多轮对话
-const LAYOUT_KEYWORDS = ['布局', '排列', '对齐', '整理', '排版', '摆好', '重新排列', '调整位置', 'layout', 'arrange', 'align']
+const LAYOUT_KEYWORDS = ['layout', 'arrange', 'align', 'organize']
 
 async function onGenerate() {
   if (!nlInput.value.trim()) {
@@ -293,7 +293,7 @@ async function onGenerate() {
     return
   }
   if (!selectedTemplateId.value) {
-    ElMessage.warning('请先选择模板')
+    ElMessage.warning('Please select a template first')
     return
   }
   const input = nlInput.value.trim()

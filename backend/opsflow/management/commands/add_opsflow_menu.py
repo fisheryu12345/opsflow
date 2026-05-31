@@ -186,3 +186,26 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f'  {"Created" if created else "Found"} menu: {schedule_menu.name} (id={schedule_menu.id})'
         ))
+
+        # --- 审批管理 (Approvals) ---
+        approval_menu, created = Menu.objects.get_or_create(
+            name="审批管理",
+            web_path="/opsflow/approval",
+            component="apps/opsflow-approval/index",
+            component_name="opsflowApproval",
+            defaults={
+                "icon": "iconfont icon-check",
+                "sort": 9,
+                "is_link": False,
+                "is_catalog": False,
+                "status": True,
+                "cache": True,
+                "visible": True,
+                "is_iframe": False,
+                "is_affix": False,
+                "parent": catalog,
+            },
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f'  {"Created" if created else "Found"} menu: {approval_menu.name} (id={approval_menu.id})'
+        ))

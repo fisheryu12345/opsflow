@@ -215,6 +215,20 @@ def _get_node_error(execution, node_id) -> str:
     return ""
 
 
+def _is_approval_node(node_id) -> bool:
+    """通过 bamboo-engine API 检查节点是否为审批节点"""
+    try:
+        runtime = BambooDjangoRuntime()
+        result = pipeline_api.get_execution_data_inputs(runtime, node_id)
+        if result.result and result.data:
+            inputs = result.data
+            if isinstance(inputs, dict) and inputs.get('_atom_type') == 'approval':
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def _record_node_trace(execution, node_id, to_state):
     """创建或更新 NodeExecutionTrace 记录"""
     from opsflow.core.trace_logger import NodeTraceLogger
@@ -248,6 +262,16 @@ def _record_node_trace(execution, node_id, to_state):
                 trace.duration_ms = int(delta.total_seconds() * 1000)
             # 尝试读取 outputs
             trace.outputs = _capture_node_outputs(execution, node_id)
+
+            # 审批节点完成 → 暂停 pipeline
+            if to_state == states.FINISHED and _is_approval_node(node_id):
+                from opsflow.core.flow_engine import FlowEngine
+                try:
+                    engine = FlowEngine(execution)
+                    engine.pause()
+                    logger.info("[Signal] approval node %s completed, pipeline paused", node_id)
+                except Exception:
+                    logger.exception("[Signal] pause after approval failed")
 
         if to_state == states.FAILED:
             trace.error = _get_node_error(execution, node_id)

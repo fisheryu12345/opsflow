@@ -32,7 +32,7 @@ Shape.Circle.define({
   height: 56,
   attrs: {
     body: { fill: '#E1F3D8', stroke: '#67C23A', strokeWidth: 2.5 },
-    label: { fontSize: 0 },
+    label: { fill: '#333', fontSize: 11, fontFamily: 'Microsoft YaHei', refY: 62 },
   },
   ports: {
     groups: {
@@ -51,7 +51,7 @@ Shape.Circle.define({
   height: 56,
   attrs: {
     body: { fill: '#FDE2E2', stroke: '#F56C6C', strokeWidth: 2.5 },
-    label: { fontSize: 0 },
+    label: { fill: '#333', fontSize: 11, fontFamily: 'Microsoft YaHei', refY: 62 },
   },
   ports: {
     groups: {
@@ -95,8 +95,9 @@ Node.define({
       fontSize: 11,
       fontFamily: 'Microsoft YaHei',
       textAnchor: 'middle',
+      textVerticalAnchor: 'top',
       refX: 35,
-      refY: 80,
+      refY: 74,
     },
   },
   ports: {
@@ -147,8 +148,9 @@ Node.define({
       fontSize: 11,
       fontFamily: 'Microsoft YaHei',
       textAnchor: 'middle',
+      textVerticalAnchor: 'top',
       refX: 35,
-      refY: 80,
+      refY: 74,
     },
   },
   ports: {
@@ -199,8 +201,9 @@ Node.define({
       fontSize: 11,
       fontFamily: 'Microsoft YaHei',
       textAnchor: 'middle',
+      textVerticalAnchor: 'top',
       refX: 35,
-      refY: 80,
+      refY: 74,
     },
   },
   ports: {
@@ -250,8 +253,9 @@ Node.define({
       fontSize: 11,
       fontFamily: 'Microsoft YaHei',
       textAnchor: 'middle',
+      textVerticalAnchor: 'top',
       refX: 35,
-      refY: 80,
+      refY: 74,
     },
   },
   ports: {
@@ -260,6 +264,84 @@ Node.define({
       bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 4, magnet: true, fill: '#909399', opacity: 0 } } },
       left: { position: { name: 'left' }, attrs: { circle: { r: 4, magnet: true, fill: '#909399', opacity: 0 } } },
       right: { position: { name: 'right' }, attrs: { circle: { r: 4, magnet: true, fill: '#909399', opacity: 0 } } },
+    },
+    items: [
+      { id: 'top', group: 'top' },
+      { id: 'bottom', group: 'bottom' },
+      { id: 'left', group: 'left' },
+      { id: 'right', group: 'right' },
+    ],
+  },
+})
+
+// 审批节点 — 紫色菱形 + 🔐
+Node.define({
+  shape: 'ops-approval',
+  width: 70,
+  height: 70,
+  markup: [
+    { tagName: 'path', selector: 'body' },
+    { tagName: 'text', selector: 'icon' },
+    { tagName: 'text', selector: 'label' },
+  ],
+  attrs: {
+    body: {
+      d: 'M 35 5 L 65 35 L 35 65 L 5 35 Z',
+      fill: '#FFF',
+      stroke: '#9B59B6',
+      strokeWidth: 2,
+    },
+    icon: {
+      text: '🔐',
+      fill: '#9B59B6',
+      fontSize: 22,
+      textAnchor: 'middle',
+      textVerticalAnchor: 'middle',
+      refX: 35,
+      refY: 33,
+    },
+    label: {
+      fill: '#333',
+      fontSize: 11,
+      fontFamily: 'Microsoft YaHei',
+      textAnchor: 'middle',
+      textVerticalAnchor: 'top',
+      refX: 35,
+      refY: 74,
+    },
+  },
+  ports: {
+    groups: {
+      top: { position: { name: 'top' }, attrs: { circle: { r: 4, magnet: true, fill: '#9B59B6', opacity: 0 } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 4, magnet: true, fill: '#9B59B6', opacity: 0 } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: 4, magnet: true, fill: '#9B59B6', opacity: 0 } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: 4, magnet: true, fill: '#9B59B6', opacity: 0 } } },
+    },
+    items: [
+      { id: 'top', group: 'top' },
+      { id: 'bottom', group: 'bottom' },
+      { id: 'left', group: 'left' },
+      { id: 'right', group: 'right' },
+    ],
+  },
+})
+
+// 子流程节点 — 虚线边框蓝色矩形
+Shape.Rect.define({
+  shape: 'ops-subprocess',
+  width: 200,
+  height: 56,
+  attrs: {
+    body: { fill: '#EBF5FB', stroke: '#2980B9', strokeWidth: 2, rx: 8, ry: 8, strokeDasharray: '6 3' },
+    label: { fill: '#2C3E50', fontSize: 13, fontFamily: 'Microsoft YaHei' },
+    icon: { text: '↻', fill: '#2980B9', fontSize: 16 },
+  },
+  ports: {
+    groups: {
+      top: { position: { name: 'top' }, attrs: { circle: { r: 4, magnet: true, fill: '#2980B9', opacity: 0 } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 4, magnet: true, fill: '#2980B9', opacity: 0 } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: 4, magnet: true, fill: '#2980B9', opacity: 0 } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: 4, magnet: true, fill: '#2980B9', opacity: 0 } } },
     },
     items: [
       { id: 'top', group: 'top' },
@@ -279,6 +361,8 @@ export function resolveNodeShape(node: any): string {
     parallel_gateway: 'ops-parallel-gateway',
     conditional_parallel_gateway: 'ops-conditional-parallel-gateway',
     converge_gateway: 'ops-converge-gateway',
+    approval: 'ops-approval',
+    subprocess: 'ops-subprocess',
   }
   return typeMap[node.node_type] || 'ops-atom'
 }

@@ -19,12 +19,37 @@
                    @click="onResume">Resume</el-button>
         <el-button type="danger" :disabled="selectedNodeId === null" @click="onRetry">Retry</el-button>
         <el-button type="info" :disabled="selectedNodeId === null" @click="onSkip">Skip</el-button>
+        <el-dropdown size="small" split-button type="" @click="batchRetryAll" trigger="click">
+          Batch
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="batchRetryAll" :disabled="!hasFailedNodes">重试全部失败</el-dropdown-item>
+              <el-dropdown-item @click="batchSkipAll" :disabled="!hasFailedNodes">跳过全部失败</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
         <el-button type="danger" :disabled="!isCancelable"
                    :loading="cancelling" @click="onCancel">Cancel</el-button>
         <el-button type="info" @click="refresh">Refresh</el-button>
       </div>
     </div>
 
+    <!-- Approval banner -->
+    <div v-if="isPendingApproval" class="approval-banner">
+      <div class="approval-banner-left">
+        <el-icon :size="18" color="#9B59B6"><Clock /></el-icon>
+        <span class="approval-banner-text">Pipeline paused — approval required</span>
+        <el-tag size="small" type="warning" effect="light" round>{{ execDetail.current_node || 'approval node' }}</el-tag>
+      </div>
+      <div class="approval-banner-actions">
+        <el-button size="small" type="success" :loading="approving" @click="onApprove">
+          <el-icon><CircleCheck /></el-icon> Approve
+        </el-button>
+        <el-button size="small" type="danger" :loading="rejecting" @click="onReject">
+          <el-icon><Close /></el-icon> Reject
+        </el-button>
+      </div>
+    </div>
 
     <!-- Body: MonitorCanvas | Logs -->
     <div class="detail-body">
@@ -81,7 +106,7 @@
                     </thead>
                     <tbody>
                       <tr v-for="t in traces" :key="t.node_id + '-' + t.retry_count"
-                          :class="{ 'trace-row-selected': selectedNodeId === t.node_id }"
+                          :class="['trace-row', traceRowClass(t.status), { 'trace-row-selected': selectedNodeId === t.node_id }]"
                           @click="selectTraceNode(t.node_id)">
                         <td class="trace-node-id" :title="t.node_label || t.node_id">
                           {{ t.node_label || t.node_id }}
@@ -113,6 +138,60 @@
                 </div>
               </div>
             </el-tab-pane>
+
+            <!-- Data Tab (new — node inputs/outputs preview) -->
+            <el-tab-pane label="Data" name="data">
+              <div class="side-section data-section">
+                <div class="side-section-title">
+                  <span><el-icon size="14"><Monitor /></el-icon> Node Data</span>
+                  <el-tag v-if="selectedNodeId" size="small" type="info" effect="plain" round>{{ selectedNodeId }}</el-tag>
+                </div>
+                <div v-if="!selectedNodeId" class="log-empty">Click a node in Traces tab to view data</div>
+                <div v-else-if="dataLoading" class="log-empty">Loading...</div>
+                <template v-else>
+                  <!-- Inputs -->
+                  <div class="data-group">
+                    <div class="data-group-title">
+                      <el-icon size="13"><Upload /></el-icon> Inputs
+                    </div>
+                    <div v-if="nodeInputs && Object.keys(nodeInputs).length" class="data-table">
+                      <div v-for="(val, key) in nodeInputs" :key="key" class="data-row">
+                        <span class="data-key">{{ key }}</span>
+                        <span class="data-val">{{ formatDataValue(val) }}</span>
+                      </div>
+                    </div>
+                    <div v-else class="data-empty">No inputs</div>
+                  </div>
+                  <!-- Outputs -->
+                  <div class="data-group">
+                    <div class="data-group-title">
+                      <el-icon size="13"><Download /></el-icon> Outputs
+                    </div>
+                    <div v-if="nodeOutputs && Object.keys(nodeOutputs).length" class="data-table">
+                      <div v-for="(val, key) in nodeOutputs" :key="key" class="data-row" :class="{ 'data-row-error': key === '_error' && val }">
+                        <span class="data-key">{{ key }}</span>
+                        <span class="data-val">{{ formatDataValue(val) }}</span>
+                      </div>
+                    </div>
+                    <div v-else class="data-empty">No outputs</div>
+                  </div>
+                  <!-- Stdout (prominent) -->
+                  <div v-if="nodeStdout" class="data-group">
+                    <div class="data-group-title">
+                      <el-icon size="13"><Document /></el-icon> stdout
+                    </div>
+                    <pre class="data-stdout"><code>{{ nodeStdout }}</code></pre>
+                  </div>
+                  <!-- Stderr -->
+                  <div v-if="nodeStderr" class="data-group">
+                    <div class="data-group-title data-group-title-error">
+                      <el-icon size="13"><WarningFilled /></el-icon> stderr
+                    </div>
+                    <pre class="data-stderr"><code>{{ nodeStderr }}</code></pre>
+                  </div>
+                </template>
+              </div>
+            </el-tab-pane>
           </el-tabs>
         </div>
       </div>
@@ -122,8 +201,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onActivated, onBeforeUnmount, nextTick, watch } from 'vue'
-import { ArrowLeft, Refresh, Monitor, Document, Close, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
-import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode, CancelExecution, GetExecutionTraces, GetNodeTraceLog } from '/@/api/opsflow/executions'
+import { ElMessage } from 'element-plus'
+import { ArrowLeft, Refresh, Monitor, Document, Close, DArrowLeft, DArrowRight, CircleCheck, Clock, WarningFilled, Upload, Download } from '@element-plus/icons-vue'
+import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode, CancelExecution, GetExecutionTraces, GetNodeTraceLog, BatchRetryNodes, BatchSkipNodes, ApproveNode, RejectNode } from '/@/api/opsflow/executions'
 import { GetTemplateDetail } from '/@/api/opsflow/templates'
 import { GetLogs } from '/@/api/opsflow/logs'
 import MonitorCanvas from '/@/views/apps/opsflow/components/MonitorCanvas.vue'
@@ -162,6 +242,13 @@ const statusTagType = computed(() => {
 })
 const isRunning = computed(() => ['pending', 'running', 'paused'].includes(execDetail.value.status))
 const isCancelable = computed(() => ['running', 'paused', 'pending'].includes(execDetail.value.status))
+const isPendingApproval = computed(() => execDetail.value.status === 'paused' && execDetail.value.current_node !== '')
+const approving = ref(false)
+const rejecting = ref(false)
+const hasFailedNodes = computed(() => {
+  const ns = execDetail.value.node_status || {}
+  return Object.values(ns).some((s) => s === 'failed')
+})
 
 
 function logTagType(status: string) {
@@ -181,6 +268,9 @@ function traceTagType(status: string) {
   const map: Record<string, string> = { completed: 'success', running: 'warning', failed: 'danger', pending: 'info', retrying: 'warning', cancelled: 'info', skipped: 'info' }
   return map[status] || 'info'
 }
+function traceRowClass(status: string) {
+  return 'trace-status-' + status
+}
 function formatDuration(ms: number | null) {
   if (ms == null) return '-'
   if (ms < 1000) return `${ms}ms`
@@ -188,7 +278,47 @@ function formatDuration(ms: number | null) {
 }
 function selectTraceNode(nodeId: string) {
   selectedNodeId.value = selectedNodeId.value === nodeId ? null : nodeId
+  if (selectedNodeId.value) {
+    fetchNodeData(selectedNodeId.value)
+    sideTab.value = 'data'
+  }
 }
+async function fetchNodeData(nodeId: string) {
+  dataLoading.value = true
+  try {
+    const res = await GetExecutionTraces(props.execution.id, nodeId)
+    const data = res.data?.data || res.data
+    const traces = data?.traces || []
+    if (traces.length > 0) {
+      const t = traces[0]
+      nodeInputs.value = t.inputs || null
+      nodeOutputs.value = t.outputs || null
+      nodeStdout.value = t.outputs?.stdout || t.stdout || ''
+      nodeStderr.value = t.outputs?.stderr || t.stderr || ''
+    } else {
+      nodeInputs.value = null; nodeOutputs.value = null
+      nodeStdout.value = ''; nodeStderr.value = ''
+    }
+  } catch {
+    nodeInputs.value = null; nodeOutputs.value = null
+    nodeStdout.value = ''; nodeStderr.value = ''
+  }
+  dataLoading.value = false
+}
+
+// -- Node data preview state --
+const dataLoading = ref(false)
+const nodeInputs = ref<Record<string, any> | null>(null)
+const nodeOutputs = ref<Record<string, any> | null>(null)
+const nodeStdout = ref<string>('')
+const nodeStderr = ref<string>('')
+
+function formatDataValue(val: any): string {
+  if (val === null || val === undefined) return '-'
+  if (typeof val === 'object') return JSON.stringify(val, null, 2)
+  return String(val)
+}
+
 async function viewTraceLog(nodeId: string) {
   logLoadingNode.value = nodeId
   try {
@@ -267,6 +397,28 @@ async function fetchLogs() {
 
 async function refresh() { await loadPipeline(); await fetchLogs(); await fetchTraces() }
 
+async function batchRetryAll() {
+  try {
+    const res = await BatchRetryNodes(props.execution.id)
+    const d = res.data?.data || res.data
+    ElMessage.success(`批量重试: ${d?.succeeded || 0}/${d?.total || 0} 成功`)
+    await refresh()
+  } catch (e: any) {
+    ElMessage.error(e?.msg || e?.message || '批量重试失败')
+  }
+}
+
+async function batchSkipAll() {
+  try {
+    const res = await BatchSkipNodes(props.execution.id)
+    const d = res.data?.data || res.data
+    ElMessage.success(`批量跳过: ${d?.succeeded || 0}/${d?.total || 0} 成功`)
+    await refresh()
+  } catch (e: any) {
+    ElMessage.error(e?.msg || e?.message || '批量跳过失败')
+  }
+}
+
 async function onStart() {
   starting.value = true
   try {
@@ -274,7 +426,7 @@ async function onStart() {
     const ex = res.data || res
     if (ex.id) execDetail.value = ex
     emit('executionUpdate', { ...execDetail.value })
-  } catch { /* ignore */ }
+  } catch (e: any) { ElMessage.error(e?.msg || '启动失败') }
   starting.value = false
 }
 async function onPause() {
@@ -284,7 +436,7 @@ async function onPause() {
     const ex = res.data || res
     if (ex.id) execDetail.value = ex
     emit('executionUpdate', { ...execDetail.value })
-  } catch { /* ignore */ }
+  } catch (e: any) { ElMessage.error(e?.msg || '暂停失败') }
   pausing.value = false
 }
 async function onResume() {
@@ -294,16 +446,36 @@ async function onResume() {
     const ex = res.data || res
     if (ex.id) execDetail.value = ex
     emit('executionUpdate', { ...execDetail.value })
-  } catch { /* ignore */ }
+  } catch (e: any) { ElMessage.error(e?.msg || '恢复失败') }
   resuming.value = false
 }
 async function onRetry() {
   if (!selectedNodeId.value) return
-  try { await RetryNode(props.execution.id, selectedNodeId.value); await fetchLogs() } catch { /* ignore */ }
+  try { await RetryNode(props.execution.id, selectedNodeId.value); await fetchLogs(); ElMessage.success('重试已提交') }
+  catch (e: any) { ElMessage.error(e?.msg || '重试失败') }
 }
 async function onSkip() {
   if (!selectedNodeId.value) return
-  try { await SkipNode(props.execution.id, selectedNodeId.value); await fetchLogs() } catch { /* ignore */ }
+  try { await SkipNode(props.execution.id, selectedNodeId.value); await fetchLogs(); ElMessage.success('节点已跳过') }
+  catch (e: any) { ElMessage.error(e?.msg || '跳过失败') }
+}
+async function onApprove() {
+  approving.value = true
+  try {
+    await ApproveNode(props.execution.id, execDetail.value.current_node)
+    ElMessage.success('Approved')
+    await refresh()
+  } catch (e: any) { ElMessage.error(e?.msg || 'Approve failed') }
+  approving.value = false
+}
+async function onReject() {
+  rejecting.value = true
+  try {
+    await RejectNode(props.execution.id, execDetail.value.current_node, 'Rejected')
+    ElMessage.success('Rejected')
+    await refresh()
+  } catch (e: any) { ElMessage.error(e?.msg || 'Reject failed') }
+  rejecting.value = false
 }
 async function onCancel() {
   cancelling.value = true
@@ -312,7 +484,7 @@ async function onCancel() {
     execDetail.value.status = 'cancelled'
     monitorRef.value?.setExecutionStatus?.('cancelled')
     emit('executionUpdate', { ...execDetail.value })
-  } catch (e: any) { /* ignore */ }
+  } catch (e: any) { ElMessage.error(e?.msg || '取消失败') }
   cancelling.value = false
 }
 
@@ -383,6 +555,10 @@ onBeforeUnmount(() => stopAutoRefresh())
 .trace-table tbody tr { cursor: pointer; transition: background 0.15s; }
 .trace-table tbody tr:hover { background: #f5f7fa; }
 .trace-row-selected { background: #ecf5ff !important; }
+.trace-status-completed td:first-child { border-left: 3px solid #67C23A; }
+.trace-status-failed td:first-child { border-left: 3px solid #F56C6C; }
+.trace-status-running td:first-child, .trace-status-retrying td:first-child { border-left: 3px solid #E6A23C; }
+.trace-status-cancelled td:first-child { border-left: 3px solid #909399; }
 .trace-node-id { font-family: monospace; font-size: 11px; color: #606266; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trace-retry-badge { display: inline-block; background: #e6a23c; color: #fff; border-radius: 8px; padding: 0 5px; font-size: 10px; line-height: 1.5; margin-left: 3px; vertical-align: middle; }
 .trace-duration { font-family: monospace; font-size: 11px; color: #909399; }
@@ -398,6 +574,16 @@ onBeforeUnmount(() => stopAutoRefresh())
 .trace-tabs { height: 100%; display: flex; flex-direction: column; }
 .trace-tabs :deep(.el-tabs__header) { margin: 0; padding: 0 10px; }
 .trace-tabs :deep(.el-tabs__content) { flex: 1; overflow: hidden; }
+
+/* Approval banner */
+.approval-banner {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 20px; background: #fdf0ff;
+  border-bottom: 1px solid #ebd0f5; flex-shrink: 0;
+}
+.approval-banner-left { display: flex; align-items: center; gap: 10px; }
+.approval-banner-text { font-size: 14px; font-weight: 600; color: #8E44AD; }
+.approval-banner-actions { display: flex; gap: 8px; }
 .trace-tabs :deep(.el-tab-pane) { height: 100%; overflow: hidden; }
 .trace-tabs :deep(.el-tabs__nav-scroll) { padding: 0; }
 .log-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
@@ -411,4 +597,39 @@ onBeforeUnmount(() => stopAutoRefresh())
 .log-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .log-step { color: #606266; font-weight: 500; font-size: 12px; }
 .log-msg { color: #909399; font-size: 11px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- Data Tab ---------- */
+.data-section { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+.data-group { margin-bottom: 14px; }
+.data-group-title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: #606266; padding: 6px 0; margin-bottom: 4px;
+  border-bottom: 1px solid #e8e8e8;
+}
+.data-group-title-error { color: #F56C6C; }
+.data-table { font-size: 12px; }
+.data-row {
+  display: flex; padding: 3px 0; gap: 8px;
+  border-bottom: 1px solid #f5f5f5;
+}
+.data-row-error { background: #fff2f0; border-radius: 4px; padding: 3px 4px; }
+.data-key {
+  font-family: monospace; font-size: 11px; color: #409EFF; font-weight: 600;
+  min-width: 80px; flex-shrink: 0; word-break: break-all;
+}
+.data-val {
+  font-family: monospace; font-size: 11px; color: #303133;
+  word-break: break-all; white-space: pre-wrap; flex: 1;
+}
+.data-empty { font-size: 12px; color: #C0C4CC; padding: 4px 0; }
+.data-stdout {
+  margin: 0; padding: 8px; background: #1e1e1e; color: #d4d4d4;
+  border-radius: 6px; font-size: 11px; line-height: 1.5; max-height: 200px;
+  overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+}
+.data-stderr {
+  margin: 0; padding: 8px; background: #2d1b1b; color: #ff6b6b;
+  border-radius: 6px; font-size: 11px; line-height: 1.5; max-height: 200px;
+  overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+}
 </style>

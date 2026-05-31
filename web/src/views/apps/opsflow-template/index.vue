@@ -12,17 +12,22 @@
           <el-option label="Draft" :value="true" />
           <el-option label="Published" :value="false" />
         </el-select>
+        <el-select v-model="filterCategory" placeholder="Category" clearable filterable style="width: 140px"
+                   @change="onFilter">
+          <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
+        </el-select>
         <el-button :icon="Refresh" @click="fetchData" :loading="loading">Refresh</el-button>
         <div class="filter-spacer" />
         <div class="view-toggle">
-          <el-button :type="viewMode === 'table' ? 'primary' : 'default'" size="small" @click="viewMode = 'table'">
-            <el-icon><List /></el-icon>
-          </el-button>
-          <el-button :type="viewMode === 'cards' ? 'primary' : 'default'" size="small" @click="viewMode = 'cards'">
-            <el-icon><Grid /></el-icon>
-          </el-button>
+          <div class="toggle-slider" :class="viewMode === 'cards' ? 'cards' : 'table'" @click="viewMode = viewMode === 'table' ? 'cards' : 'table'">
+            <div class="toggle-slider-btn">
+              <el-icon v-if="viewMode === 'table'" :size="14"><List /></el-icon>
+              <el-icon v-else :size="14"><Grid /></el-icon>
+            </div>
+          </div>
         </div>
         <el-button type="primary" :icon="Plus" @click="openCreate">New Template</el-button>
+        <el-button :icon="UploadFilled" @click="openImport">Import</el-button>
         <span v-if="useMock" class="mock-badge">Mock Data</span>
       </div>
 
@@ -30,7 +35,6 @@
       <template v-if="viewMode === 'table'">
         <el-table :data="list" v-loading="loading" stripe highlight-current-row style="width: 100%"
                   :empty-text="emptyText" @row-click="openView" class="template-table">
-          <el-table-column prop="id" label="ID" width="60" />
           <el-table-column prop="name" label="Name" min-width="40" show-overflow-tooltip />
           <el-table-column label="Status" width="120" align="center">
             <template #default="{ row }">
@@ -56,6 +60,7 @@
               <span v-else class="no-pipeline">-</span>
             </template>
           </el-table-column>
+          <el-table-column prop="category" label="Category" width="110" show-overflow-tooltip />
           <el-table-column prop="created_by_name" label="Created By" width="120" show-overflow-tooltip />
           <el-table-column label="V" width="50" align="center">
             <template #default="{ row }">
@@ -64,7 +69,7 @@
             </template>
           </el-table-column>
           <el-table-column prop="created_at" label="Created" width="130" />
-          <el-table-column label="Actions" width="300" fixed="right" class-name="actions-col">
+          <el-table-column label="Actions" width="340" fixed="right" class-name="actions-col">
             <template #default="{ row }">
               <div class="action-icons">
                 <el-tooltip content="Edit" placement="top">
@@ -99,6 +104,11 @@
                     <el-icon><Clock /></el-icon>
                   </el-button>
                 </el-tooltip>
+                <el-tooltip content="Export" placement="top">
+                  <el-button size="small" type="primary" link @click.stop="handleExport(row)">
+                    <el-icon><Download /></el-icon>
+                  </el-button>
+                </el-tooltip>
                 <el-tooltip content="Delete" placement="top">
                   <el-button size="small" type="danger" link @click.stop="handleDelete(row)">
                     <el-icon><Delete /></el-icon>
@@ -126,19 +136,9 @@
                 </el-tag>
               </div>
               <div class="tcard-meta">
+                <span v-if="item.category"><el-tag size="small" type="primary" effect="plain">{{ item.category }}</el-tag></span>
                 <span>by {{ item.created_by_name || '-' }}</span>
                 <span>{{ item.created_at }}</span>
-              </div>
-            </div>
-            <div class="tcard-pipeline" v-if="item.pipeline_tree?.nodes?.length">
-              <div class="tcard-flow">
-                <template v-for="(node, ni) in item.pipeline_tree.nodes" :key="node.id">
-                  <div class="flow-node" :style="{ background: nodeColor(node) + '18', borderColor: nodeColor(node) }">
-                    <span class="flow-node-icon">{{ nodeIcon(node) }}</span>
-                    <span class="flow-node-label">{{ node.label || node.id }}</span>
-                  </div>
-                  <div v-if="ni < item.pipeline_tree.nodes.length - 1" class="flow-arrow">→</div>
-                </template>
               </div>
             </div>
             <div class="tcard-footer">
@@ -187,6 +187,11 @@
                     <el-icon><Clock /></el-icon>
                   </el-button>
                 </el-tooltip>
+                <el-tooltip content="Export" placement="top">
+                  <el-button size="small" type="primary" link @click.stop="handleExport(item)">
+                    <el-icon><Download /></el-icon>
+                  </el-button>
+                </el-tooltip>
                 <el-tooltip content="Delete" placement="top">
                   <el-button size="small" type="danger" link @click.stop="handleDelete(item)">
                     <el-icon><Delete /></el-icon>
@@ -210,6 +215,9 @@
       <el-form label-width="100px">
         <el-form-item label="Name" required>
           <el-input v-model="form.name" placeholder="Template name" />
+        </el-form-item>
+        <el-form-item label="Category">
+          <el-input v-model="form.category" placeholder="e.g. Inspection, Backup, Deploy" />
         </el-form-item>
         <el-form-item label="Status">
           <el-switch v-model="form.is_draft" active-text="Draft" inactive-text="Published"
@@ -316,15 +324,39 @@
       :current-version="versionCurrentVer"
       @rolled-back="fetchData"
     />
+
+    <!-- Import dialog -->
+    <el-dialog v-model="importVisible" title="Import Template" width="520px">
+      <el-upload
+        drag
+        accept=".json"
+        :auto-upload="false"
+        :limit="1"
+        :on-change="onImportFileChange"
+        :file-list="importFiles"
+      >
+        <el-icon :size="32" color="#C0C4CC"><UploadFilled /></el-icon>
+        <div class="el-upload__text">Drop JSON file here or <em>click to browse</em></div>
+        <template #tip>
+          <div class="el-upload__tip">Exported template JSON (.json)</div>
+        </template>
+      </el-upload>
+      <template #footer>
+        <el-button @click="importVisible = false">Cancel</el-button>
+        <el-button type="primary" :loading="importing" :disabled="!importData" @click="handleImport">
+          Import
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { Refresh, Plus, View, Edit, Upload, Delete, Search, List, Grid, Connection, Share, Timer, Setting, Clock } from '@element-plus/icons-vue'
+import { Refresh, Plus, View, Edit, Upload, Delete, Search, List, Grid, Connection, Share, Timer, Setting, Clock, Download, UploadFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { GetTemplates, CreateTemplate, UpdateTemplate, DeleteTemplate, ConfirmDraft, GetTemplateDetail, PublishTemplate } from '/@/api/opsflow/templates'
+import { GetTemplates, CreateTemplate, UpdateTemplate, DeleteTemplate, ConfirmDraft, GetTemplateDetail, PublishTemplate, ExportTemplate, ImportTemplate, GetTemplateCategories } from '/@/api/opsflow/templates'
 import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 import ScheduleManager from './components/ScheduleManager.vue'
 import VersionDialog from './components/VersionDialog.vue'
@@ -340,6 +372,8 @@ const pageSize = ref(20)
 const total = ref(0)
 const filterName = ref('')
 const filterDraft = ref<boolean | ''>('')
+const filterCategory = ref('')
+const categories = ref<string[]>([])
 const useMock = ref(false)
 const viewMode = ref<'table' | 'cards'>('table')
 
@@ -356,11 +390,17 @@ const scheduleVisible = ref(false)
 const scheduleTemplateId = ref(0)
 const scheduleTemplateName = ref('')
 
-// 版本管理
+// Version management
 const versionVisible = ref(false)
 const versionTemplateId = ref<number | null>(null)
 const versionTemplateName = ref('')
 const versionCurrentVer = ref(1)
+
+// Import / Export
+const importVisible = ref(false)
+const importFiles = ref<any[]>([])
+const importData = ref<any>(null)
+const importing = ref(false)
 
 function openVersions(row: any) {
   versionTemplateId.value = row.id
@@ -372,57 +412,91 @@ function openVersions(row: any) {
 const emptyText = computed(() => loading.value ? 'Loading...' : useMock.value ? 'No data' : 'No templates yet')
 
 /** Map node type to color (matching MonitorCanvas legend) */
+/** Map node type to color — by atom_type prefix matching plugin groups */
 function nodeColor(node: any, bg = false): string {
-  const map: Record<string, string> = {
-    start_event: '#67C23A',
-    end_event: '#F56C6C',
-    task: '#409EFF',
-    gateway: '#E6A23C',
+  const nt = node.node_type || ''
+  if (nt === 'start_event') return '#67C23A'
+  if (nt === 'end_event') return '#F56C6C'
+  if (nt.includes('gateway')) return '#E6A23C'
+
+  const at = node.atom_type || ''
+  // Match by prefix to determine platform group
+  const prefixColor: Record<string, string> = {
+    esxi_: '#20B2AA',      // ESXi
+    netapp_: '#409EFF',     // NetApp
+    pmax_: '#9B59B6',       // Pmax
+    servicenow_: '#909399',  // ServiceNow
+    redfish_: '#E67E22',    // Redfish
+    http_: '#E6A23C',       // HTTP/API
+    backup_: '#27AE60',     // Backup
+    docker_: '#0DB7ED',     // Docker
+    nginx_: '#2ECC71',      // Nginx
+    java_: '#C0392B',       // Java deploy
   }
-  const typeColor = map[node.type] || '#909399'
-  if (bg && node.atom_type) {
-    const atomMap: Record<string, string> = {
-      servicenow: '#909399',
-      ansible: '#67C23A',
-      http: '#E6A23C',
-      esxi: '#20B2AA',
-    }
-    return atomMap[node.atom_type] || typeColor
+  for (const [prefix, c] of Object.entries(prefixColor)) {
+    if (at.startsWith(prefix)) return bg ? c + '22' : c
   }
-  if (bg) return typeColor
-  return typeColor
+  // Common Ansible-type atoms → green
+  const ansible = ['shell', 'file_copy', 'script_exec', 'upload_file', 'service_control', 'send_alert', 'test_print_time']
+  if (ansible.includes(at)) return bg ? '#67C23A22' : '#67C23A'
+  // Monitor atoms → teal
+  const monitor = ['disk_check', 'ping_test', 'health_check']
+  if (monitor.includes(at)) return bg ? '#1ABC9C22' : '#1ABC9C'
+  return bg ? '#90939922' : '#909399'
 }
 
 /** Emoji/symbol for node type */
 function nodeIcon(node: any): string {
-  if (node.atom_type) {
-    const iconMap: Record<string, string> = {
-      ansible: '⚙',
-      http: '↗',
-      servicenow: '◆',
-      esxi: '🖥',
-    }
-    return iconMap[node.atom_type] || '◉'
+  const nt = node.node_type || ''
+  if (nt === 'start_event') return '▶'
+  if (nt === 'end_event') return '⏹'
+  if (nt === 'exclusive_gateway') return '◇'
+  if (nt === 'parallel_gateway') return '⨁'
+  if (nt === 'converge_gateway') return '⨂'
+  if (nt === 'conditional_parallel_gateway') return '◇?'
+
+  const sym: Record<string, string> = {
+    shell: '⚙', file_copy: '📋', script_exec: '📜', upload_file: '📤',
+    backup_file: '💾', nginx_reload: '🔄', service_control: '⏯',
+    java_deploy: '☕', docker_deploy: '🐳', send_alert: '🔔',
+    disk_check: '💿', ping_test: '📡', health_check: '❤',
+    test_print_time: '🕐',
+    esxi_create_vm: '🖥', esxi_destroy_vm: '🗑', esxi_get_state: '🔍',
+    esxi_power_on: '🔛', esxi_power_off: '🔴',
+    netapp_create_volume: '➕', netapp_delete_volume: '➖',
+    netapp_get_volume: '🔎', netapp_modify_volume: '✏', netapp_create_snapshot: '📸',
+    redfish_power_on: '🔛', redfish_power_off: '🔴', redfish_power_cycle: '🔄',
+    redfish_get_system_info: 'ℹ', redfish_firmware_inventory: '📦', redfish_list_storage: '💾',
+    redfish_set_boot_device: '💿',
+    servicenow_create_incident: '🚨', servicenow_get_incident: '🔍',
+    servicenow_update_incident: '✏', servicenow_create_change_request: '📋',
+    servicenow_get_cmdb_ci: '🔎', http_api: '↗',
+    pmax_create_storage_group: '➕', pmax_delete_storage_group: '➖',
+    pmax_list_storage_groups: '📋', pmax_create_snapshot: '📸',
+    pmax_delete_snapshot: '🗑', pmax_get_performance: '📊',
   }
-  const iconMap: Record<string, string> = {
-    start_event: '▶',
-    end_event: '■',
-    task: '◉',
-    gateway: '◇',
-  }
-  return iconMap[node.type] || '○'
+  return sym[node.atom_type] || '⬤'
 }
 
 const mockData = computed<any[]>(() => [
-  { id: 1, name: '日常巡检流程', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: '检查磁盘', type: 'task', atom_type: 'ansible' }, { id: 'n3', label: '检查内存', type: 'task', atom_type: 'ansible' }, { id: 'n4', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }] }, is_draft: false, created_by_name: 'admin', created_at: '2026-05-20 09:00:00', updated_at: '2026-05-20 09:30:00' },
-  { id: 2, name: '故障自愈 - Web 服务', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: '健康检查', type: 'task', atom_type: 'http' }, { id: 'n3', label: '重启服务', type: 'task', atom_type: 'ansible' }, { id: 'n4', label: '二次检查', type: 'task', atom_type: 'http' }, { id: 'n5', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }] }, is_draft: false, created_by_name: 'admin', created_at: '2026-05-18 14:00:00', updated_at: '2026-05-19 10:00:00' },
-  { id: 3, name: '数据库备份验证', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: '执行备份', type: 'task', atom_type: 'ansible' }, { id: 'n3', label: '校验备份', type: 'task', atom_type: 'http' }, { id: 'n4', label: '通知结果', type: 'task', atom_type: 'http' }, { id: 'n5', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }] }, is_draft: true, created_by_name: 'admin', created_at: '2026-05-25 16:00:00', updated_at: '2026-05-25 16:00:00' },
-  { id: 4, name: 'ESXi 虚拟机部署', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: '创建 VM', type: 'task', atom_type: 'esxi' }, { id: 'n3', label: '配置网络', type: 'task', atom_type: 'ansible' }, { id: 'n4', label: '部署应用', type: 'task', atom_type: 'ansible' }, { id: 'n5', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }] }, is_draft: true, created_by_name: 'admin', created_at: '2026-05-30 11:00:00', updated_at: '2026-05-30 11:30:00' },
-  { id: 5, name: '网络设备配置备份', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: 'SSH 备份配置', type: 'task', atom_type: 'ansible' }, { id: 'n3', label: '上传备份服务器', type: 'task', atom_type: 'http' }, { id: 'n4', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }] }, is_draft: false, created_by_name: 'admin', created_at: '2026-05-10 08:00:00', updated_at: '2026-05-12 09:00:00' },
-  { id: 6, name: '安全漏洞扫描流程', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: '执行扫描', type: 'task', atom_type: 'ansible' }, { id: 'n3', label: '生成报告', type: 'task', atom_type: 'http' }, { id: 'n4', label: '发送邮件通知', type: 'task', atom_type: 'http' }, { id: 'n5', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }] }, is_draft: true, created_by_name: 'admin', created_at: '2026-05-28 13:00:00', updated_at: '2026-05-28 13:00:00' },
-  { id: 7, name: '应用发布 - 金丝雀部署', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: '金丝雀发布', type: 'task', atom_type: 'ansible' }, { id: 'n3', label: '健康检查', type: 'task', atom_type: 'http' }, { id: 'n4', label: '全量发布', type: 'task', atom_type: 'ansible' }, { id: 'n5', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }] }, is_draft: false, created_by_name: 'admin', created_at: '2026-05-15 10:30:00', updated_at: '2026-05-16 14:20:00' },
-  { id: 8, name: 'ServiceNow 变更审批', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: '创建变更单', type: 'task', atom_type: 'servicenow' }, { id: 'n3', label: '等待审批', type: 'task', atom_type: 'servicenow' }, { id: 'n4', label: '执行变更', type: 'task', atom_type: 'ansible' }, { id: 'n5', label: '关闭变更单', type: 'task', atom_type: 'servicenow' }, { id: 'n6', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }, { from: 'n5', to: 'n6' }] }, is_draft: true, created_by_name: 'admin', created_at: '2026-05-29 09:00:00', updated_at: '2026-05-29 09:00:00' },
+  { id: 1, name: 'Daily Inspection', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: 'Check Disk', type: 'task', atom_type: 'ansible' }, { id: 'n3', label: 'Check Memory', type: 'task', atom_type: 'ansible' }, { id: 'n4', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }] }, is_draft: false, category: 'Inspection', created_by_name: 'admin', created_at: '2026-05-20 09:00:00', updated_at: '2026-05-20 09:30:00' },
+  { id: 2, name: 'Auto-Healing - Web Service', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: 'Health Check', type: 'task', atom_type: 'http' }, { id: 'n3', label: 'Restart Service', type: 'task', atom_type: 'ansible' }, { id: 'n4', label: 'Re-check', type: 'task', atom_type: 'http' }, { id: 'n5', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }] }, is_draft: false, category: 'Incident Response', created_by_name: 'admin', created_at: '2026-05-18 14:00:00', updated_at: '2026-05-19 10:00:00' },
+  { id: 3, name: 'DB Backup Verification', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: 'Execute Backup', type: 'task', atom_type: 'ansible' }, { id: 'n3', label: 'Verify Backup', type: 'task', atom_type: 'http' }, { id: 'n4', label: 'Notify Result', type: 'task', atom_type: 'http' }, { id: 'n5', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }] }, is_draft: true, category: 'Backup', created_by_name: 'admin', created_at: '2026-05-25 16:00:00', updated_at: '2026-05-25 16:00:00' },
+  { id: 4, name: 'ESXi VM Deploy', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: 'Create VM', type: 'task', atom_type: 'esxi' }, { id: 'n3', label: 'Configure Network', type: 'task', atom_type: 'ansible' }, { id: 'n4', label: 'Deploy App', type: 'task', atom_type: 'ansible' }, { id: 'n5', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }] }, is_draft: true, category: 'Deploy', created_by_name: 'admin', created_at: '2026-05-30 11:00:00', updated_at: '2026-05-30 11:30:00' },
+  { id: 5, name: 'Network Device Config Backup', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: 'SSH Backup Config', type: 'task', atom_type: 'ansible' }, { id: 'n3', label: 'Upload to Backup Server', type: 'task', atom_type: 'http' }, { id: 'n4', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }] }, is_draft: false, category: 'Backup', created_by_name: 'admin', created_at: '2026-05-10 08:00:00', updated_at: '2026-05-12 09:00:00' },
+  { id: 6, name: 'Security Vulnerability Scan', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: 'Execute Scan', type: 'task', atom_type: 'ansible' }, { id: 'n3', label: 'Generate Report', type: 'task', atom_type: 'http' }, { id: 'n4', label: 'Send Email', type: 'task', atom_type: 'http' }, { id: 'n5', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }] }, is_draft: true, category: 'Security', created_by_name: 'admin', created_at: '2026-05-28 13:00:00', updated_at: '2026-05-28 13:00:00' },
+  { id: 7, name: 'App Release - Canary Deploy', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: 'Canary Release', type: 'task', atom_type: 'ansible' }, { id: 'n3', label: 'Health Check', type: 'task', atom_type: 'http' }, { id: 'n4', label: 'Full Release', type: 'task', atom_type: 'ansible' }, { id: 'n5', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }] }, is_draft: false, category: 'Release', created_by_name: 'admin', created_at: '2026-05-15 10:30:00', updated_at: '2026-05-16 14:20:00' },
+  { id: 8, name: 'ServiceNow Change Approval', pipeline_tree: { nodes: [{ id: 'n1', label: 'Start', type: 'start_event' }, { id: 'n2', label: 'Create Change Request', type: 'task', atom_type: 'servicenow' }, { id: 'n3', label: 'Await Approval', type: 'task', atom_type: 'servicenow' }, { id: 'n4', label: 'Execute Change', type: 'task', atom_type: 'ansible' }, { id: 'n5', label: 'Close Change Request', type: 'task', atom_type: 'servicenow' }, { id: 'n6', label: 'End', type: 'end_event' }], edges: [{ from: 'n1', to: 'n2' }, { from: 'n2', to: 'n3' }, { from: 'n3', to: 'n4' }, { from: 'n4', to: 'n5' }, { from: 'n5', to: 'n6' }] }, is_draft: true, category: 'Approval', created_by_name: 'admin', created_at: '2026-05-29 09:00:00', updated_at: '2026-05-29 09:00:00' },
 ])
+
+async function loadCategories() {
+  try {
+    const res = await GetTemplateCategories()
+    categories.value = res.data?.data || res.data || []
+  } catch {
+    categories.value = []
+  }
+}
 
 async function fetchData() {
   loading.value = true
@@ -430,6 +504,7 @@ async function fetchData() {
     const params: any = { page: page.value, limit: pageSize.value }
     if (filterName.value) params.search = filterName.value
     if (filterDraft.value !== '') params.is_draft = filterDraft.value
+    if (filterCategory.value) params.category = filterCategory.value
     const res = await GetTemplates(params)
     const items = res.data?.results || res.data || res.results || []
     if (items.length > 0) {
@@ -439,6 +514,7 @@ async function fetchData() {
     } else {
       fallbackMock()
     }
+    await loadCategories()
   } catch {
     fallbackMock()
   }
@@ -462,6 +538,7 @@ function onPageChange() { fetchData() }
 
 function resetForm() {
   form.name = ''
+  form.category = ''
   form.is_draft = true
   editingId.value = null
   isEditing.value = false
@@ -472,6 +549,7 @@ function openEdit(row: any) {
   isEditing.value = true
   editingId.value = row.id
   form.name = row.name
+  form.category = row.category || ''
   form.is_draft = row.is_draft
   formVisible.value = true
 }
@@ -495,7 +573,7 @@ async function handleSave() {
   }
   saving.value = true
   try {
-    const data = { name: form.name, is_draft: form.is_draft }
+    const data = { name: form.name, category: form.category || '', is_draft: form.is_draft }
     if (isEditing.value && editingId.value) {
       if (!useMock.value) await UpdateTemplate(editingId.value, data)
       ElMessage.success('Updated')
@@ -528,6 +606,67 @@ async function handlePublish(row: any) {
     ElMessage.error(e?.msg || e?.message || 'Publish failed')
   }
   publishingId.value = null
+}
+
+async function handleExport(row: any) {
+  try {
+    const res = await ExportTemplate(row.id)
+    const bundle = res.data?.data || res.data
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `${row.name.replace(/\s+/g, '_')}.json`
+    a.click(); URL.revokeObjectURL(url)
+    ElMessage.success('Exported')
+  } catch {
+    // fallback: export from local row data
+    const bundle = {
+      opsflow_version: "1.0",
+      exported_at: new Date().toISOString(),
+      template: { name: row.name, pipeline_tree: row.pipeline_tree, category: row.category || '' },
+    }
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `${row.name.replace(/\s+/g, '_')}.json`
+    a.click(); URL.revokeObjectURL(url)
+  }
+}
+
+function openImport() {
+  importVisible.value = true
+  importFiles.value = []
+  importData.value = null
+}
+
+function onImportFileChange(uploadFile: any) {
+  const file = uploadFile.raw
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      importData.value = JSON.parse(e.target?.result as string)
+      ElMessage.success('File parsed successfully')
+    } catch {
+      ElMessage.error('Invalid JSON file')
+      importData.value = null
+    }
+  }
+  reader.readAsText(file)
+}
+
+async function handleImport() {
+  if (!importData.value) return
+  importing.value = true
+  try {
+    await ImportTemplate({ data: importData.value })
+    ElMessage.success('Template imported')
+    importVisible.value = false
+    await fetchData()
+  } catch {
+    ElMessage.error('Import failed')
+  }
+  importing.value = false
 }
 
 async function handleDelete(row: any) {
@@ -564,8 +703,23 @@ onMounted(fetchData)
   background: #fff; border-bottom: 1px solid #ebeef5; flex-shrink: 0;
 }
 .filter-spacer { flex: 1; }
-.view-toggle { display: flex; gap: 2px; }
-.view-toggle .el-button { padding: 6px 8px; }
+.view-toggle { display: flex; align-items: center; }
+.toggle-slider {
+  width: 52px; height: 28px; border-radius: 14px;
+  background: #e0e3e8; cursor: pointer; position: relative;
+  transition: background 0.25s ease; flex-shrink: 0;
+}
+.toggle-slider.cards { background: #409EFF; }
+.toggle-slider-btn {
+  position: absolute; top: 3px; left: 3px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; display: flex; align-items: center; justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.toggle-slider.cards .toggle-slider-btn { transform: translateX(24px); }
+.toggle-slider-btn .el-icon { color: #606266; }
+.toggle-slider.cards .toggle-slider-btn .el-icon { color: #409EFF; }
 
 /* ---------- Status ---------- */
 .status-cell { display: flex; align-items: center; gap: 6px; justify-content: center; }
@@ -597,23 +751,15 @@ onMounted(fetchData)
   display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 16px;
   align-content: start;
 }
-.template-card { cursor: pointer; }
+.template-card { cursor: pointer; height: 150px; }
 .template-card:hover { border-color: #409EFF; }
+.template-card :deep(.el-card__body) { overflow: visible; padding: 16px 20px 12px; min-height: 150px; display: flex; flex-direction: column; box-sizing: border-box; }
+.tcard-footer { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid #f0f0f0; }
+.tcard-footer-top { display: flex; justify-content: space-between; align-items: center; }
 .tcard-header { margin-bottom: 12px; }
 .tcard-title-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .tcard-title { font-size: 15px; font-weight: 600; color: #303133; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tcard-meta { display: flex; gap: 16px; font-size: 12px; color: #C0C4CC; margin-top: 4px; }
-.tcard-pipeline { margin-bottom: 12px; }
-.tcard-flow { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-.flow-node {
-  display: flex; align-items: center; gap: 4px; padding: 4px 10px;
-  border: 1px solid; border-radius: 6px; font-size: 12px;
-}
-.flow-node-icon { font-size: 12px; }
-.flow-node-label { color: #303133; font-weight: 500; white-space: nowrap; }
-.flow-arrow { font-size: 14px; color: #C0C4CC; }
-.tcard-footer { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0; }
-.tcard-footer-top { display: flex; justify-content: space-between; align-items: center; }
 .tcard-stats { display: flex; gap: 16px; }
 .tcard-stat { font-size: 12px; color: #909399; display: flex; align-items: center; }
 .tcard-actions { display: flex; flex-wrap: wrap; gap: 2px; }

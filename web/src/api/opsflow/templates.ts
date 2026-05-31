@@ -98,3 +98,41 @@ export function GetHookVariables(id: number) {
 export function UpdateHookVariables(id: number, data: any) {
   return request({ url: prefix + `templates/${id}/hook_variables/`, method: 'post', data })
 }
+
+/* ---------- Global Variable System (Phase 1-2) ---------- */
+export function GetGlobalVariables(id: number) {
+  return request({ url: prefix + `templates/${id}/global-variables/`, method: 'get' })
+}
+
+export function UpdateGlobalVariables(id: number, data: { global_vars: any }) {
+  return request({ url: prefix + `templates/${id}/global-variables/`, method: 'post', data })
+}
+
+export function PatchGlobalVariables(id: number, data: { global_vars: any }) {
+  return request({ url: prefix + `templates/${id}/global-variables/`, method: 'patch', data })
+}
+
+export function GetVariableBrowser(id: number) {
+  return request({ url: prefix + `templates/${id}/variable-browser/`, method: 'get' })
+}
+
+export function HookVariable(id: number, data: { var_key: string; node_id: string; tag_code?: string; var_type?: string; description?: string }) {
+  return request({ url: prefix + `templates/${id}/hook-variable/`, method: 'post', data })
+}
+
+export function UnhookVariable(id: number, data: { var_key: string }) {
+  return request({ url: prefix + `templates/${id}/unhook-variable/`, method: 'post', data })
+}
+
+export function GetVariableTypes() {
+  return request({ url: prefix + 'plugins/variable_types/', method: 'get' })
+}
+
+/* ---------- Subprocess Version Tracking (Phase 3-4) ---------- */
+export function GetSubprocessStatus(id: number) {
+  return request({ url: prefix + `templates/${id}/subprocess-status/`, method: 'get' })
+}
+
+export function UpdateSubprocessRefs(id: number) {
+  return request({ url: prefix + `templates/${id}/update-subprocess-refs/`, method: 'post' })
+}
