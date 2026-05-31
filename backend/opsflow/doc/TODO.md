@@ -43,10 +43,10 @@
 
 ### 高优先级
 
-- [ ] **get_pipeline_states 状态验证** — flow_engine.py 中定期调用 api.get_pipeline_states() 验证执行状态一致性
+- [x] ~~**get_pipeline_states 状态验证** — 关闭（OpsFlow 用信号驱动 + 缓存，bk-sops 用实时查询，两套模式不同，此机制意义不大）~~
 - [ ] **X6 节点 UI 定型** — 统一节点视觉风格（尺寸、配色、图标、阴影、选中态），参考 bk_sops 节点设计规范，确保所有节点类型视觉层级清晰
 - [x] **流程图布局优化** — 适配 bk_sops Sugiyama 布局引擎（core/layout/ 18 文件），支持分层布线、交叉最小化、自动起止节点合成
-- [ ] **X6 连线重叠修复** — Manhattan 路由 padding 配置 + 增大垂直间距（shift_y=144, NODE_GAP=120），需持续评估复杂图场景
+- [x] **X6 连线重叠修复** — Manhattan 路由 padding 配置 + 增大垂直间距（shift_y=144, NODE_GAP=120）
 
 ### 中优先级
 
@@ -72,6 +72,10 @@
   - [x] 日志清理 management command (`clean_node_trace_logs`)
   - [x] 测试用例 (18 个，全部通过)
   - [x] 文档 (spec + plan)
+- [x] **信号处理器重构** — signals.py (398 行) 拆分为 signals/ 包，6 个模块各司其职
+- [x] **ViewSet Mixin 提取** — template_views.py (770→85 行) 提取 5 个 Mixin，execution_views.py (312→75 行) 提取 4 个 Mixin
+- [x] **Dashboard 包拆解** — dashboard_views.py (524 行) 拆分为 dashboard_views/ 包（stats/trends/analytics 3 模块）
+- [x] **bamboo_validator 提取** — validate_bamboo_compatibility() 从 bamboo_builder.py 提取到独立模块
 
 ### 待添加
 

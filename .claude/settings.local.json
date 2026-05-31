@@ -368,7 +368,15 @@
       "Bash(python -m pytest opsflow/tests/test_bamboo_builder.py opsflow/tests/test_variable_registry.py opsflow/tests/test_states.py -v --tb=short)",
       "Bash(python -m pytest opsflow/tests/test_bamboo_builder.py opsflow/tests/test_variable_registry.py opsflow/tests/test_states.py opsflow/tests/test_variable_resolver.py opsflow/tests/test_safety_guard.py opsflow/tests/test_flow_engine.py -v --tb=line)",
       "Bash(ls -la \"/cygdrive/c/Users/dell/Desktop/Vue/backend/opsflow/\")",
-      "Read(//cygdrive/c/Users/dell/Desktop/Vue/backend/**)"
+      "Read(//cygdrive/c/Users/dell/Desktop/Vue/backend/**)",
+      "Bash(python -c \"from opsflow.views.template_views import FlowTemplateViewSet; print\\('template_view OK'\\)\")",
+      "Bash(python -c \"from opsflow.views.execution_views import FlowExecutionViewSet; print\\('execution_view OK'\\)\")",
+      "Bash(python -c \"from opsflow.views.dashboard_views import dashboard_stats; print\\('dashboard OK'\\)\")",
+      "Bash(python -c \"from opsflow import signals; print\\('signals OK'\\)\")",
+      "Bash(python -c \"from opsflow.core.bamboo_validator import validate_bamboo_compatibility; print\\('bamboo_validator OK'\\)\")",
+      "Bash(python manage.py test opsflow.tests --parallel 1)",
+      "Bash(python manage.py test opsflow.tests --settings=application.test_settings --parallel 1)",
+      "Bash(python manage.py show_urls)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

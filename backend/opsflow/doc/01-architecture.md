@@ -38,23 +38,31 @@ OpsFlow 采用**前后端分离 + 异步任务 + WebSocket 推送 + 多平台原
 
 ### 3. 核心引擎层
 
-- **build_bamboo_pipeline()**: 将前端自定义格式转换为 bamboo-engine 标准 Pipeline Tree
+- **build_bamboo_pipeline()**: 将前端 nodes/edges 自定义格式转换为 bamboo-engine 标准 Pipeline Tree
+- **bamboo_validator()**: Pipeline Tree 兼容性验证（网关配对/出入度/环检测/条件引用）
 - **FlowEngine**: 流程执行引擎，使用 BambooDjangoRuntime + api.run_pipeline() 驱动执行
-- **AnsibleAtomService**: 实现 bamboo-engine Service 接口，桥接原子执行
-- **signals.py**: post_set_state 信号处理器，异步追踪节点状态变化并更新 FlowExecution
+- **PluginService**: 实现 bamboo-engine Service 接口，统一路由到 BasePlugin 子类执行
+- **signals/ 包**: post_set_state 信号处理器（6 个模块），异步追踪节点状态 → FlowExecution/NodeExecutionTrace/OpsLog
+- **NodeDispatcher**: 节点操作调度器，封装 retry/skip/force_fail + 轨迹和日志管理
+- **SubprocessDispatcher**: 独立子流程调度器，创建子 FlowExecution + 变量映射解析
+- **VariableResolver**: ${key} 模板变量替换引擎，支持 splice/split/lazy 类型
 - **TowerService**: Ansible Tower (AWX) REST API 封装（触发/轮询/结果提取）
-- **Layout Engine**: Sugiyama 分层图布局引擎（bk_sops drawing_new 适配），提供确定性节点定位
+- **AnsibleTrigger**: Ansible Tower HTTP 触发器，未配置时自动降级为模拟执行
+- **Layout Engine**: Sugiyama 分层图布局引擎（bk_sops drawing_new 适配），纯 Python 毫秒级
 
-### 4. 原子层
+### 4. 插件/原子层
 
-- **AtomRegistry**: 从 `ansible_atoms/atoms/*/meta.json` 加载原子元数据（含 executor_type 字段）
-- **Executor Factory**: 根据 executor_type 自动分发到对应执行器（Ansible/ESXi/NetApp/ServiceNow/Redfish/HTTP/Test）
-- **Atomic Executor**: 各平台执行器实现统一 `execute()/rollback()` 接口
+- **BasePlugin**: 抽象基类，定义 execute/schedule/rollback/get_form_config/get_output_schema 契约
+- **PLUGIN_REGISTRY**: 自动扫描 plugins/ 目录，43 个原子按 group 分组，支持多版本
+- **PluginServiceAdapter**: 统一 Service 入口，运行时从 PLUGIN_REGISTRY 查找并调用对应 BasePlugin 执行
+- **PluginMeta**: 数据库持久化插件元数据（form_schema + output_schema），前端 RenderForm 解析
+- **schema/form_schema.py**: Pydantic 表单配置协议（FormItem/FormGroup/ValidationRule/FormEvent）
 
 ### 5. 数据层
 
-- **MySQL**: FlowTemplate、FlowExecution、OpsLog、OpsKnowledge、ERI 状态表（11 张）、ComponentModel
-- **Redis**: Celery 消息队列、Tower 并发信号量
+- **MySQL (opsflow 自有表)**: FlowTemplate / TemplateVersion / FlowExecution / NodeExecutionTrace / OpsLog / SchedulePlan / OpsKnowledge / PluginMeta
+- **MySQL (bamboo-engine ERI 表)**: 11 张内置状态表（Process/Node/ExecutionData 等）+ ComponentModel
+- **Redis**: Celery 消息队列、Tower 并发信号量、Channels WebSocket 层
 
 ## 执行流程
 

@@ -103,7 +103,7 @@
       </template>
 
       <!-- SubProcess 配置 -->
-      <template v-if="isSubprocess">
+      <template v-else-if="isSubprocess">
         <div class="panel-section">
           <div class="section-title">SubProcess Config</div>
           <div class="prop-row-vertical">
@@ -149,7 +149,7 @@
       </template>
 
       <!-- Approval 配置 -->
-      <template v-if="isApproval">
+      <template v-else-if="isApproval">
         <div class="panel-section">
           <div class="section-title">Approval Config</div>
           <div class="prop-row-vertical">
@@ -172,7 +172,7 @@
           <div class="section-title">Node Type</div>
           <div class="gateway-info">
             <el-tag :type="gatewayTagType" size="default" effect="plain">
-              <el-icon size="14" style="margin-right:4px">{{ gatewayIcon }}</el-icon>
+              <el-icon size="14" style="margin-right:4px"><component :is="gatewayIcon" /></el-icon>
               {{ nodeTypeLabel }}
             </el-tag>
             <p class="gateway-desc">{{ gatewayDescription }}</p>
@@ -239,6 +239,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   update: [data: any]
 }>()
+
+/* ── Form state (MUST be before any computed/watcher that references them) ── */
+const form = ref<any>({})
+const edgeForm = ref<any>({ condition: '' })
 
 /* ---------- Variable references detection ---------- */
 const varReferences = computed(() => {
@@ -364,8 +368,6 @@ const gatewayIcons: Record<string, any> = {
   converge_gateway: InfoFilled,
 }
 
-const form = ref<any>({})
-const edgeForm = ref<any>({ condition: '' })
 
 const isAtom = computed(() => !form.value.node_type || form.value.node_type === 'atom')
 const isSubprocess = computed(() => form.value.node_type === 'subprocess')

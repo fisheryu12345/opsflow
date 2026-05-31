@@ -8,9 +8,9 @@ from opsflow.core.bamboo_builder import (
     _get_condition,
     _create_element,
     build_bamboo_pipeline,
-    validate_bamboo_compatibility,
     _empty_pipeline,
 )
+from opsflow.core.bamboo_validator import validate_bamboo_compatibility
 
 
 class TestParseEdgeConditions:

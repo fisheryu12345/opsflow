@@ -87,13 +87,15 @@
       </el-form>
       <template #footer>
         <div class="gv-drawer-footer">
-          <el-button v-if="editForm.source_type === 'node_output'" @click="onUnhook" type="warning" size="small">
-            <el-icon size="12"><Link /></el-icon> Unhook
-          </el-button>
-          <el-button v-if="editKey" @click="onDelete" type="danger" size="small">
-            <el-icon size="12"><Delete /></el-icon> Delete
-          </el-button>
-          <div class="gv-drawer-footer-right">
+          <div class="gv-footer-left">
+            <el-button v-if="editKey" @click="onDelete" type="danger" plain size="small">
+              <el-icon><Delete /></el-icon> Delete
+            </el-button>
+          </div>
+          <div class="gv-footer-right">
+            <el-button v-if="editForm.source_type === 'node_output'" @click="onUnhook" text size="small" class="gv-unhook-btn">
+              <el-icon><Link /></el-icon> Unhook
+            </el-button>
             <el-button @click="detailVisible = false" size="small">Cancel</el-button>
             <el-button type="primary" @click="onSave" size="small">Save</el-button>
           </div>
@@ -314,7 +316,11 @@ watch(() => props.templateId, fetchVars, { immediate: true })
 .gv-form { padding: 0 20px; }
 .gv-form :deep(.el-form-item__label) { font-weight: 600; color: #606266; padding-bottom: 2px; }
 .gv-drawer-footer {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 4px 12px;
 }
-.gv-drawer-footer-right { margin-left: auto; display: flex; gap: 6px; }
+.gv-footer-left { display: flex; align-items: center; }
+.gv-footer-right { display: flex; align-items: center; gap: 8px; }
+.gv-unhook-btn { color: #E6A23C; }
+.gv-unhook-btn:hover { color: #cf9236; }
 </style>

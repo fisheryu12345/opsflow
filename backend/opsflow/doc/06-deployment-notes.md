@@ -1,7 +1,7 @@
 # 生成环境部署注意事项
 
 > OpsFlow 对项目有多处侵入式修改（跨 `opsflow/` 目录），部署或迁移时必须逐一处理。
-> 最后更新于：2026-05-31
+> 最后更新于：2026-06-01
 
 ## 1. 后端关键修改
 
@@ -244,3 +244,14 @@ python manage.py start_opsflow_scheduler
 - [ ] Redis 版本 >= 5.0
 - [ ] 前端构建无报错（`npm run build`）
 - [ ] 首次流程测试通过（参见 `注意事项.md` §5）
+
+## 7. 代码结构变更记录
+
+以下列出 OpsFlow 后端代码的历次重大结构重组，方便追溯：
+
+| 日期 | 变更 | 说明 |
+|------|------|------|
+| 2026-06-01 | `signals.py` → `signals/` 包 | 单文件拆分为 6 模块（handlers/state/trace/notify/helpers） |
+| 2026-06-01 | `views/mixins/` 提取 | 创建 9 个 Mixin 类，template/execution 大 ViewSet 拆分 |
+| 2026-06-01 | `views/dashboard_views/` 包 | dashboard_views.py 拆分为 stats/trends/analytics 3 模块 |
+| 2026-06-01 | `core/bamboo_validator.py` | 从 bamboo_builder.py 提取 validate_bamboo_compatibility |

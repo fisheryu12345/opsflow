@@ -187,7 +187,7 @@ class UpdateStateTreeTest(TestCase):
     def _call_update_state_tree(self, node_id, to_state):
         """调用 signals._update_state_tree"""
         from bamboo_engine import states
-        from opsflow.signals import _update_state_tree
+        from opsflow.signals.state import _update_state_tree
         _update_state_tree(self.execution, node_id, to_state)
         self.execution.refresh_from_db()
 

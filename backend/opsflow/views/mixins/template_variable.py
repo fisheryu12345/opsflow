@@ -1,0 +1,195 @@
+"""Template Variable — 全局变量/变量浏览器/变量提升端点 Mixin"""
+
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import status
+
+from opsflow.core.variable_resolver import normalize_global_vars, count_variable_references, cleanup_unused_vars
+from opsflow.plugins.registry import get_plugin
+
+
+class TemplateVariableMixin:
+    """全局变量系统端点混入"""
+
+    @action(detail=True, methods=['get', 'post'])
+    def hook_variables(self, request, pk=None):
+        """获取或更新可提升的全局变量配置"""
+        template = self.get_object()
+        if request.method == 'GET':
+            return Response({
+                'code': 2000, 'msg': 'success',
+                'data': template.hook_variables or {},
+            })
+        hook_vars = request.data.get('hook_variables', request.data)
+        template.hook_variables = hook_vars
+        template.save(update_fields=['hook_variables'])
+        return Response({
+            'code': 2000, 'msg': '变量配置已更新',
+            'data': template.hook_variables,
+        })
+
+    @action(detail=True, methods=['get', 'post', 'patch'], url_path='global-variables')
+    def global_variables(self, request, pk=None):
+        """全局变量 CRUD
+
+        GET:  返回所有全局变量（规范化结构）
+        POST: 批量替换所有全局变量
+        PATCH: 部分更新（合并现有变量）
+        """
+        template = self.get_object()
+
+        if request.method == 'GET':
+            normalized = normalize_global_vars(template.global_vars)
+            # 附加引用计数
+            tree = template.pipeline_tree or {}
+            result = {}
+            for key, entry in normalized.items():
+                entry["reference_count"] = count_variable_references(tree, key)
+                result[key] = entry
+            return Response({'code': 2000, 'msg': 'success', 'data': result})
+
+        if request.method == 'POST':
+            template.global_vars = request.data.get('global_vars', {})
+            # ── 无用变量自动清理 ──
+            cleaned = cleanup_unused_vars(template.pipeline_tree or {}, template.global_vars or {})
+            template.global_vars = cleaned
+            # ── 结束 ──
+            template.save(update_fields=['global_vars'])
+            normalized = normalize_global_vars(template.global_vars)
+            return Response({'code': 2000, 'msg': '全局变量已更新', 'data': normalized})
+
+        # PATCH — 合并更新
+        updates = request.data.get('global_vars', {})
+        current = dict(template.global_vars or {})
+        for key, val in updates.items():
+            if isinstance(val, dict) and "value" in val:
+                current[key] = val
+            else:
+                # 扁平格式 → 转为结构化
+                existing = current.get(key, {})
+                if isinstance(existing, dict) and "value" in existing:
+                    existing["value"] = val
+                    current[key] = existing
+                else:
+                    current[key] = val
+        template.global_vars = current
+        # ── 无用变量自动清理 ──
+        cleaned = cleanup_unused_vars(template.pipeline_tree or {}, template.global_vars or {})
+        template.global_vars = cleaned
+        # ── 结束 ──
+        template.save(update_fields=['global_vars'])
+        normalized = normalize_global_vars(template.global_vars)
+        return Response({'code': 2000, 'msg': '全局变量已更新', 'data': normalized})
+
+    @action(detail=True, methods=['get'], url_path='variable-browser')
+    def variable_browser(self, request, pk=None):
+        """返回所有可引用变量（全局变量 + 节点输出），供前端自动补全"""
+        template = self.get_object()
+
+        # 1. 全局变量
+        normalized = normalize_global_vars(template.global_vars)
+        global_vars = [
+            {"key": k, "type": v["type"], "source": "global",
+             "description": v.get("description", ""),
+             "value": v["value"]}
+            for k, v in normalized.items()
+        ]
+
+        # 2. 节点输出（从插件 output_schema 提取）
+        tree = template.pipeline_tree or {}
+        node_outputs = []
+        for node in tree.get('nodes', []):
+            nid = node.get('id', '')
+            label = node.get('label', nid)
+            node_type = node.get('node_type', '')
+            plugin_code = node.get('atom_type') or node.get('plugin_code', '')
+            if plugin_code:
+                cls = get_plugin(plugin_code)
+                if cls:
+                    schema = cls.get_output_schema()
+                    for field in (schema or []):
+                        field_key = field.get('tag_code', field.get('key', ''))
+                        if field_key:
+                            node_outputs.append({
+                                "key": f"{nid}.{field_key}",
+                                "node_id": nid,
+                                "node_label": label,
+                                "source": "node_output",
+                                "description": field.get('name', field_key),
+                            })
+            # 标准 _result 输出
+            if node_type in ('atom', '', None):
+                node_outputs.append({
+                    "key": f"{nid}._result",
+                    "node_id": nid,
+                    "node_label": label,
+                    "source": "node_output",
+                    "description": "Execution result (True/False)",
+                })
+
+        return Response({
+            'code': 2000, 'msg': 'success',
+            'data': {
+                "global_variables": global_vars,
+                "node_outputs": node_outputs,
+            },
+        })
+
+    @action(detail=True, methods=['post'], url_path='hook-variable')
+    def hook_variable(self, request, pk=None):
+        """将节点参数提升为全局变量"""
+        template = self.get_object()
+        var_key = request.data.get('var_key', '')
+        node_id = request.data.get('node_id', '')
+        tag_code = request.data.get('tag_code', '')
+        var_type = request.data.get('var_type', 'input')
+        description = request.data.get('description', '')
+
+        if not var_key or not node_id:
+            return Response({'code': 4000, 'msg': 'var_key and node_id are required', 'data': None},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        current = normalize_global_vars(template.global_vars)
+
+        current[var_key] = {
+            "value": "",
+            "type": var_type,
+            "show_type": True,
+            "description": description,
+            "source_type": "node_output",
+            "source_info": {
+                "node_id": node_id,
+                "tag_code": tag_code,
+            },
+            "validation": [],
+        }
+
+        # 同步更新 hook_variables（向后兼容）
+        hook_vars = dict(template.hook_variables or {})
+        hook_vars[var_key] = current[var_key]
+        template.hook_variables = hook_vars
+
+        template.global_vars = current
+        template.save(update_fields=['global_vars', 'hook_variables'])
+        return Response({'code': 2000, 'msg': '变量已提升为全局变量', 'data': current[var_key]})
+
+    @action(detail=True, methods=['post'], url_path='unhook-variable')
+    def unhook_variable(self, request, pk=None):
+        """移除变量与节点的关联（降级为手动变量）"""
+        template = self.get_object()
+        var_key = request.data.get('var_key', '')
+
+        current = normalize_global_vars(template.global_vars)
+
+        if var_key not in current:
+            return Response({'code': 4000, 'msg': f'变量 {var_key} 不存在', 'data': None},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        # 移除 source_info 但保留变量
+        current[var_key].update({
+            "source_type": "manual",
+            "source_info": None,
+        })
+        template.global_vars = current
+        template.save(update_fields=['global_vars'])
+        return Response({'code': 2000, 'msg': '已解除变量关联', 'data': current[var_key]})

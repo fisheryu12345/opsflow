@@ -71,10 +71,6 @@
         <el-form-item label="Template Name">
           <el-input v-model="newTemplateForm.name" placeholder="Enter template name" maxlength="100" show-word-limit />
         </el-form-item>
-        <el-form-item label="Target Hosts">
-          <el-input v-model="newTemplateForm.targetHosts" placeholder="host1, host2, host3" />
-          <div class="form-tip">Separate multiple hosts with commas</div>
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="newDialogVisible = false">Cancel</el-button>
@@ -162,7 +158,7 @@ import {
   WarningFilled, Lightning, List, CircleCheck,
 } from '@element-plus/icons-vue'
 import { useOpsflowStore } from './stores/opsflowStore'
-import { GetTemplates, GetTemplateDetail, CreateFromAi, GetDiff, AnalyzePipeline, RefinePipeline, AiLayout, UpdateTemplate } from '/@/api/opsflow/templates'
+import { GetTemplates, GetTemplateDetail, CreateFromAi, CreateTemplate, GetDiff, AnalyzePipeline, RefinePipeline, AiLayout, UpdateTemplate } from '/@/api/opsflow/templates'
 import DesignCanvas from './components/DesignCanvas.vue'
 import DiffModal from './components/DiffModal.vue'
 import PluginPickerDialog from './components/PluginPickerDialog.vue'
@@ -427,8 +423,19 @@ async function onCreateTemplate() {
     return
   }
   newDialogVisible.value = false
-  await fetchTemplates()
-  ElMessage.success('Template created')
+  try {
+    const res = await CreateTemplate({ name: newTemplateForm.value.name, pipeline_tree: { nodes: [], edges: [] } })
+    const tpl = res.data?.data || res.data
+    if (tpl?.id) {
+      newTemplateForm.value = { name: '' }
+      await fetchTemplates()
+      selectedTemplateId.value = tpl.id
+      await onSelectTemplate(tpl.id)
+      ElMessage.success('Template created')
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.msg || e?.message || 'Failed to create template')
+  }
 }
 
 // Diff 确认
