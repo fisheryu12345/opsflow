@@ -96,7 +96,7 @@ class FlowExecution(models.Model):
         verbose_name="执行状态"
     )
     node_status = models.JSONField(default=dict, verbose_name="各节点状态")
-    state_tree = models.JSONField(default=dict, blank=True, verbose_name="状态树快照")
+    state_tree = models.JSONField(default=dict, null=True, blank=True, verbose_name="状态树快照")
     context = models.JSONField(default=dict, verbose_name="执行上下文")
     template_snapshot = models.JSONField(default=dict, null=True, blank=True, verbose_name="创建时模板快照(冻结)")
     current_node = models.CharField(max_length=200, blank=True, verbose_name="当前执行节点")

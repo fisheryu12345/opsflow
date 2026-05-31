@@ -8,11 +8,8 @@ from opsflow.serializers import FlowExecutionSerializer, FlowExecutionDetailSeri
 from opsflow.core.flow_engine import FlowEngine
 from opsflow.core.node_dispatcher import NodeCommandDispatcher
 from opsflow.core.states import PipelineState, validate_pipeline_transition
+from opsflow.core.error_codes import ErrorCodes, api_success, api_error
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse
-
-
-# ── 错误码 ─────────────────────────────────────────────────
-_INVALID_STATE = lambda s: {'code': 4000, 'msg': f'当前状态不允许操作（当前: {s}）', 'data': None}
 
 
 class FlowExecutionViewSet(viewsets.ModelViewSet):
@@ -30,6 +27,9 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         execution = serializer.save(created_by=self.request.user)
+        # 为新执行初始化 state_tree
+        if not execution.state_tree:
+            execution.state_tree = {}
         # 冻结创建时的模板快照到专用字段（实现执行隔离）
         template = execution.template
         if template and template.pipeline_tree:
@@ -42,7 +42,7 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
                 'global_vars': template.global_vars,
                 'template_version': template.version,
             }
-            execution.save(update_fields=['template_snapshot'])
+            execution.save(update_fields=['state_tree', 'template_snapshot'])
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -69,32 +69,35 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
         """启动执行 — 触发 Celery 异步任务"""
         execution = self.get_object()
         if not validate_pipeline_transition(execution.status, PipelineState.RUNNING):
-            return Response(_INVALID_STATE(execution.status), status=status.HTTP_400_BAD_REQUEST)
+            return api_error(ErrorCodes.INVALID_STATE,
+                             msg=f"不能启动（当前: {execution.status}）")
         engine = FlowEngine(execution)
         engine.start()
-        return Response({'code': 2000, 'msg': '执行已启动', 'data': FlowExecutionSerializer(execution).data})
+        return api_success(data=FlowExecutionSerializer(execution).data, msg='执行已启动')
 
     @action(detail=True, methods=['post'])
     def pause(self, request, pk=None):
         """暂停执行"""
         execution = self.get_object()
         if not validate_pipeline_transition(execution.status, PipelineState.PAUSED):
-            return Response(_INVALID_STATE(execution.status))
+            return api_error(ErrorCodes.INVALID_STATE,
+                             msg=f"不能暂停（当前: {execution.status}）")
         engine = FlowEngine(execution)
         engine.pause()
-        return Response({'code': 2000, 'msg': '已暂停', 'data': FlowExecutionSerializer(execution).data})
+        return api_success(data=FlowExecutionSerializer(execution).data, msg='已暂停')
 
     @action(detail=True, methods=['post'])
     def resume(self, request, pk=None):
         """恢复执行"""
         execution = self.get_object()
         if not validate_pipeline_transition(execution.status, PipelineState.RUNNING):
-            return Response(_INVALID_STATE(execution.status))
+            return api_error(ErrorCodes.INVALID_STATE,
+                             msg=f"不能恢复（当前: {execution.status}）")
         execution.status = PipelineState.RUNNING
         execution.save()
         engine = FlowEngine(execution)
         engine.resume()
-        return Response({'code': 2000, 'msg': '已恢复', 'data': FlowExecutionSerializer(execution).data})
+        return api_success(data=FlowExecutionSerializer(execution).data, msg='已恢复')
 
     @action(detail=True, methods=['post'])
     def retry_node(self, request, pk=None):
@@ -102,12 +105,12 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
         execution = self.get_object()
         node_id = request.data.get('node_id', execution.current_node)
         if not node_id:
-            return Response({'code': 4000, 'msg': 'node_id required', 'data': None})
+            return api_error(ErrorCodes.NODE_ID_REQUIRED)
         dispatcher = NodeCommandDispatcher(execution)
         result = dispatcher.retry(node_id, operator=str(request.user))
         if not result['result']:
-            return Response({'code': 4000, 'msg': result['message'], 'data': None})
-        return Response({'code': 2000, 'msg': result['message'], 'data': result['data']})
+            return api_error(ErrorCodes.NODE_COMMAND_FAILED, msg=result['message'])
+        return api_success(msg=result['message'], data=result['data'])
 
     @action(detail=True, methods=['post'])
     def skip_node(self, request, pk=None):
@@ -115,12 +118,26 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
         execution = self.get_object()
         node_id = request.data.get('node_id')
         if not node_id:
-            return Response({'code': 4000, 'msg': 'node_id required', 'data': None})
+            return api_error(ErrorCodes.NODE_ID_REQUIRED)
         dispatcher = NodeCommandDispatcher(execution)
         result = dispatcher.skip(node_id, operator=str(request.user))
         if not result['result']:
-            return Response({'code': 4000, 'msg': result['message'], 'data': None})
-        return Response({'code': 2000, 'msg': result['message'], 'data': result['data']})
+            return api_error(ErrorCodes.NODE_COMMAND_FAILED, msg=result['message'])
+        return api_success(msg=result['message'], data=result['data'])
+
+    @action(detail=True, methods=['post'])
+    def force_fail(self, request, pk=None):
+        """强制标记指定节点为失败状态"""
+        execution = self.get_object()
+        node_id = request.data.get('node_id', execution.current_node)
+        reason = request.data.get('reason', '')
+        if not node_id:
+            return api_error(ErrorCodes.NODE_ID_REQUIRED)
+        dispatcher = NodeCommandDispatcher(execution)
+        result = dispatcher.force_fail(node_id, operator=str(request.user), reason=reason)
+        if not result['result']:
+            return api_error(ErrorCodes.NODE_COMMAND_FAILED, msg=result['message'])
+        return api_success(msg=result['message'], data=result['data'])
 
     # -- Trace endpoints ----------------------------------------------------
 
@@ -132,19 +149,15 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
         if node_id:
             dispatcher = NodeCommandDispatcher(execution)
             result = dispatcher.get_trace(node_id)
-            return Response({
-                'code': 2000, 'msg': 'success',
-                'data': {'state_tree': execution.state_tree or {}, 'traces': result['data']},
+            return api_success(data={
+                'state_tree': execution.state_tree or {},
+                'traces': result['data'],
             })
-        # 全部轨迹摘要
         qs = NodeExecutionTrace.objects.filter(execution=execution).order_by('entered_at')
         serializer = NodeExecutionTraceSerializer(qs, many=True)
-        return Response({
-            'code': 2000, 'msg': 'success',
-            'data': {
-                'state_tree': execution.state_tree or {},
-                'traces': serializer.data,
-            },
+        return api_success(data={
+            'state_tree': execution.state_tree or {},
+            'traces': serializer.data,
         })
 
     @action(detail=True, methods=['get'])
@@ -152,19 +165,20 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
         """读取节点日志文件内容"""
         node_id = request.query_params.get('node_id')
         if not node_id:
-            return Response({'code': 4000, 'msg': 'node_id required'})
+            return api_error(ErrorCodes.NODE_ID_REQUIRED)
         dispatcher = NodeCommandDispatcher(self.get_object())
         result = dispatcher.get_trace_log(node_id)
         if not result['result']:
-            return Response({'code': 4000, 'msg': result['message'], 'data': None})
-        return Response({'code': 2000, 'msg': 'success', 'data': result['data']})
+            return api_error(ErrorCodes.NODE_COMMAND_FAILED, msg=result['message'])
+        return api_success(data=result['data'])
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
         """取消终止执行"""
         execution = self.get_object()
         if not validate_pipeline_transition(execution.status, PipelineState.CANCELLED):
-            return Response(_INVALID_STATE(execution.status), status=status.HTTP_400_BAD_REQUEST)
+            return api_error(ErrorCodes.INVALID_STATE,
+                             msg=f"不能取消（当前: {execution.status}）")
         engine = FlowEngine(execution)
         engine.cancel()
-        return Response({'code': 2000, 'msg': '已取消', 'data': FlowExecutionSerializer(execution).data})
+        return api_success(data=FlowExecutionSerializer(execution).data, msg='已取消')
