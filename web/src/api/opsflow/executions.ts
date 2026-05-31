@@ -37,3 +37,15 @@ export function SkipNode(id: number, node_id: string) {
 export function CancelExecution(id: number) {
   return request({ url: prefix + `executions/${id}/cancel/`, method: 'post' })
 }
+
+// -- Traces --
+
+export function GetExecutionTraces(id: number, node_id?: string) {
+  const params: any = {}
+  if (node_id) params.node_id = node_id
+  return request({ url: prefix + `executions/${id}/traces/`, method: 'get', params })
+}
+
+export function GetNodeTraceLog(id: number, node_id: string) {
+  return request({ url: prefix + `executions/${id}/trace_log/`, method: 'get', params: { node_id } })
+}

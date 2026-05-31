@@ -37,24 +37,83 @@
       </button>
       <div class="side-panel-wrapper" :class="{ collapsed: logCollapsed }">
         <div class="side-panel">
-          <div class="side-section log-section">
-            <div class="side-section-title">
-              <span><el-icon size="14"><Document /></el-icon> Execution Logs</span>
-              <el-tag size="small" type="info" effect="plain" round>{{ logs.length }}</el-tag>
-            </div>
-            <div class="log-list" ref="logScrollRef">
-              <div v-if="logsLoading" class="log-empty">Loading logs...</div>
-              <div v-else-if="logs.length === 0" class="log-empty">No logs yet</div>
-              <div v-for="log in logs" :key="log.id" class="log-entry">
-                <span class="log-time">{{ formatTime(log.created_at) }}</span>
-                <el-tag :type="logTagType(log.status)" size="small" effect="dark" round>{{ log.status }}</el-tag>
-                <div class="log-body">
-                  <span class="log-step">{{ log.step }}</span>
-                  <span class="log-msg">{{ log.message }}</span>
+          <el-tabs v-model="sideTab" class="trace-tabs">
+            <!-- Logs Tab (existing) -->
+            <el-tab-pane label="Logs" name="logs">
+              <div class="side-section log-section">
+                <div class="side-section-title">
+                  <span><el-icon size="14"><Document /></el-icon> Execution Logs</span>
+                  <el-tag size="small" type="info" effect="plain" round>{{ logs.length }}</el-tag>
+                </div>
+                <div class="log-list" ref="logScrollRef">
+                  <div v-if="logsLoading" class="log-empty">Loading logs...</div>
+                  <div v-else-if="logs.length === 0" class="log-empty">No logs yet</div>
+                  <div v-for="log in logs" :key="log.id" class="log-entry">
+                    <span class="log-time">{{ formatTime(log.created_at) }}</span>
+                    <el-tag :type="logTagType(log.status)" size="small" effect="dark" round>{{ log.status }}</el-tag>
+                    <div class="log-body">
+                      <span class="log-step">{{ log.step }}</span>
+                      <span class="log-msg">{{ log.message }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </el-tab-pane>
+
+            <!-- Traces Tab (new) -->
+            <el-tab-pane label="Traces" name="traces">
+              <div class="side-section trace-section">
+                <div class="side-section-title">
+                  <span><el-icon size="14"><Monitor /></el-icon> Node Traces</span>
+                  <el-tag size="small" type="info" effect="plain" round>{{ traces.length }}</el-tag>
+                </div>
+                <!-- Trace Table -->
+                <div class="trace-table-wrap">
+                  <table class="trace-table" v-if="traces.length > 0">
+                    <thead>
+                      <tr>
+                        <th>Node</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                        <th>Retry</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="t in traces" :key="t.node_id + '-' + t.retry_count"
+                          :class="{ 'trace-row-selected': selectedNodeId === t.node_id }"
+                          @click="selectTraceNode(t.node_id)">
+                        <td class="trace-node-id" :title="t.node_label || t.node_id">
+                          {{ t.node_label || t.node_id }}
+                          <span v-if="t.retry_count > 0" class="trace-retry-badge">#{{ t.retry_count }}</span>
+                        </td>
+                        <td>
+                          <el-tag :type="traceTagType(t.status)" size="small" effect="dark" round>{{ t.status }}</el-tag>
+                        </td>
+                        <td class="trace-duration">{{ formatDuration(t.duration_ms) }}</td>
+                        <td class="trace-retry-count">{{ t.retry_count }}</td>
+                        <td>
+                          <el-button size="small" text type="primary" @click.stop="viewTraceLog(t.node_id)"
+                                     :loading="logLoadingNode === t.node_id">Log</el-button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div v-else class="log-empty">No traces yet</div>
+                </div>
+                <!-- Trace Log Viewer -->
+                <div v-if="traceLogContent !== null" class="trace-log-viewer">
+                  <div class="trace-log-header">
+                    <span class="trace-log-title">Log: {{ traceLogNodeId }}</span>
+                    <el-button size="small" text @click="traceLogContent = null">
+                      <el-icon><Close /></el-icon>
+                    </el-button>
+                  </div>
+                  <pre class="trace-log-body"><code>{{ traceLogContent }}</code></pre>
+                </div>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
         </div>
       </div>
     </div>
@@ -63,8 +122,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onActivated, onBeforeUnmount, nextTick, watch } from 'vue'
-import { ArrowLeft, Refresh, Monitor, Document, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
-import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode, CancelExecution } from '/@/api/opsflow/executions'
+import { ArrowLeft, Refresh, Monitor, Document, Close, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
+import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode, CancelExecution, GetExecutionTraces, GetNodeTraceLog } from '/@/api/opsflow/executions'
 import { GetTemplateDetail } from '/@/api/opsflow/templates'
 import { GetLogs } from '/@/api/opsflow/logs'
 import MonitorCanvas from '/@/views/apps/opsflow/components/MonitorCanvas.vue'
@@ -84,6 +143,14 @@ const selectedNodeId = ref<string | null>(null)
 const execDetail = ref<any>(props.execution)
 const logCollapsed = ref(true)
 function toggleLogPanel() { logCollapsed.value = !logCollapsed.value }
+
+// -- Traces state --
+const sideTab = ref('logs')
+const traces = ref<any[]>([])
+const tracesLoading = ref(false)
+const traceLogContent = ref<string | null>(null)
+const traceLogNodeId = ref<string>('')
+const logLoadingNode = ref<string | null>(null)
 
 const statusLabel = computed(() => {
   const map: Record<string, string> = { pending: 'Pending', running: 'Running', paused: 'Paused', completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled' }
@@ -107,6 +174,43 @@ function formatTime(t: string) {
 }
 function scrollLogBottom() {
   nextTick(() => { if (logScrollRef.value) logScrollRef.value.scrollTop = logScrollRef.value.scrollHeight })
+}
+
+// -- Trace helpers --
+function traceTagType(status: string) {
+  const map: Record<string, string> = { completed: 'success', running: 'warning', failed: 'danger', pending: 'info', retrying: 'warning', cancelled: 'info', skipped: 'info' }
+  return map[status] || 'info'
+}
+function formatDuration(ms: number | null) {
+  if (ms == null) return '-'
+  if (ms < 1000) return `${ms}ms`
+  return `${(ms / 1000).toFixed(1)}s`
+}
+function selectTraceNode(nodeId: string) {
+  selectedNodeId.value = selectedNodeId.value === nodeId ? null : nodeId
+}
+async function viewTraceLog(nodeId: string) {
+  logLoadingNode.value = nodeId
+  try {
+    const res = await GetNodeTraceLog(props.execution.id, nodeId)
+    traceLogContent.value = res.data?.data || res.data || ''
+    traceLogNodeId.value = nodeId
+  } catch { traceLogContent.value = '(failed to load log)' }
+  logLoadingNode.value = null
+}
+async function fetchTraces() {
+  tracesLoading.value = true
+  try {
+    const res = await GetExecutionTraces(props.execution.id)
+    const data = res.data?.data || res.data
+    traces.value = data?.traces || []
+    // If trace tab is active and no log viewer open, auto-show first failed node's log
+    if (sideTab.value === 'traces' && traceLogContent.value === null) {
+      const failed = traces.value.find((t: any) => t.status === 'failed')
+      if (failed) viewTraceLog(failed.node_id)
+    }
+  } catch { /* ignore */ }
+  tracesLoading.value = false
 }
 
 function toGraphData(pipelineTree: any): { nodes: any[]; edges: any[] } {
@@ -161,7 +265,7 @@ async function fetchLogs() {
   logsLoading.value = false
 }
 
-async function refresh() { await loadPipeline(); await fetchLogs() }
+async function refresh() { await loadPipeline(); await fetchLogs(); await fetchTraces() }
 
 async function onStart() {
   starting.value = true
@@ -218,9 +322,9 @@ function startAutoRefresh() { if (!autoTimer) autoTimer = setInterval(() => refr
 function stopAutoRefresh() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null } }
 
 watch(isRunning, (v) => { if (v) startAutoRefresh(); else stopAutoRefresh() }, { immediate: true })
-watch(() => props.execution.id, (newId) => { if (newId) { loadPipeline(); fetchLogs() } })
+watch(() => props.execution.id, (newId) => { if (newId) { loadPipeline(); fetchLogs(); fetchTraces() } })
 
-onMounted(() => { loadPipeline(); fetchLogs() })
+onMounted(() => { loadPipeline(); fetchLogs(); fetchTraces() })
 onActivated(() => { nextTick(() => { monitorRef.value?.refreshCanvas() }) })
 onBeforeUnmount(() => stopAutoRefresh())
 </script>
@@ -269,6 +373,33 @@ onBeforeUnmount(() => stopAutoRefresh())
   display: flex; align-items: center; gap: 6px;
 }
 .log-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+/* Traces tab */
+.trace-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.trace-table-wrap { flex: 1; overflow-y: auto; }
+.trace-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.trace-table th { text-align: left; padding: 4px 6px; background: #f5f7fa; color: #909399; font-weight: 500; position: sticky; top: 0; z-index: 1; }
+.trace-table td { padding: 4px 6px; border-bottom: 1px solid #f2f2f2; }
+.trace-table tbody tr { cursor: pointer; transition: background 0.15s; }
+.trace-table tbody tr:hover { background: #f5f7fa; }
+.trace-row-selected { background: #ecf5ff !important; }
+.trace-node-id { font-family: monospace; font-size: 11px; color: #606266; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trace-retry-badge { display: inline-block; background: #e6a23c; color: #fff; border-radius: 8px; padding: 0 5px; font-size: 10px; line-height: 1.5; margin-left: 3px; vertical-align: middle; }
+.trace-duration { font-family: monospace; font-size: 11px; color: #909399; }
+.trace-retry-count { text-align: center; color: #909399; font-size: 11px; }
+
+/* Trace log viewer */
+.trace-log-viewer { border-top: 1px solid #e4e7ed; flex-shrink: 0; max-height: 200px; display: flex; flex-direction: column; }
+.trace-log-header { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; background: #f5f7fa; font-size: 12px; font-weight: 500; color: #606266; }
+.trace-log-title { font-family: monospace; }
+.trace-log-body { margin: 0; padding: 8px; overflow-y: auto; font-size: 11px; line-height: 1.5; background: #1e1e1e; color: #d4d4d4; flex: 1; white-space: pre-wrap; word-break: break-all; }
+
+/* Tabs styling */
+.trace-tabs { height: 100%; display: flex; flex-direction: column; }
+.trace-tabs :deep(.el-tabs__header) { margin: 0; padding: 0 10px; }
+.trace-tabs :deep(.el-tabs__content) { flex: 1; overflow: hidden; }
+.trace-tabs :deep(.el-tab-pane) { height: 100%; overflow: hidden; }
+.trace-tabs :deep(.el-tabs__nav-scroll) { padding: 0; }
 .log-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
 .log-empty { color: #999; padding: 20px 0; text-align: center; }
 .log-entry {
