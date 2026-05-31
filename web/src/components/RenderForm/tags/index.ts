@@ -1,0 +1,22 @@
+import { App } from 'vue'
+
+/* ---------- Tag 组件注册 ---------- */
+const modules = import.meta.glob('./Tag*.vue', { eager: true })
+
+export function registerTags(app: App) {
+  for (const path in modules) {
+    const mod = modules[path] as any
+    const name = path.replace('./Tag', '').replace('.vue', '')
+    app.component(name, mod.default)
+  }
+}
+
+export { default as TagInput } from './TagInput.vue'
+export { default as TagSelect } from './TagSelect.vue'
+export { default as TagTextarea } from './TagTextarea.vue'
+export { default as TagCheckbox } from './TagCheckbox.vue'
+export { default as TagRadio } from './TagRadio.vue'
+export { default as TagInt } from './TagInt.vue'
+export { default as TagCodeEditor } from './TagCodeEditor.vue'
+export { default as TagDatetime } from './TagDatetime.vue'
+export { default as TagHostSelector } from './TagHostSelector.vue'

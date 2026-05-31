@@ -12,20 +12,18 @@ class OpsflowConfig(AppConfig):
     verbose_name = 'OpsFlow - 运维编排平台'
 
     def ready(self):
-        from opsflow.core.atom_registry import scan_atoms
-        scan_atoms()
-
-        # 注册 Component（涉及 component_framework 表操作），在管理命令期间表可能未就绪
+        # 1) 发现并注册标准插件
         try:
-            from opsflow.core.atom_service import register_atom_services
-            register_atom_services()
+            from opsflow.plugins.registry import discover_plugins, sync_plugin_meta_to_db
+            discover_plugins()
+            sync_plugin_meta_to_db()
         except (ProgrammingError, OperationalError):
-            logger.warning("跳过 Component 注册：数据库表尚未就绪")
+            logger.warning("跳过插件注册：数据库表尚未就绪")
 
-        # 连接 BambooDjangoRuntime 信号处理器（节点状态变更 → FlowExecution 更新）
+        # 2) 连接 BambooDjangoRuntime 信号处理器（节点状态变更 → FlowExecution 更新）
         from opsflow import signals  # noqa
 
-        # dev 模式自动启动调度器
+        # 3) dev 模式自动启动调度器
         try:
             from django.conf import settings
             if getattr(settings, 'OPSFLOW_SCHEDULER_AUTOSTART', False):

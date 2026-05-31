@@ -17,7 +17,6 @@ from bamboo_engine.builder import (
     ExclusiveGateway, ParallelGateway, ConditionalParallelGateway, ConvergeGateway,
     build_tree,
 )
-from opsflow.core.atom_registry import get_atom_meta
 
 
 def build_bamboo_pipeline(flow_template):
@@ -225,12 +224,15 @@ def _create_element(node: dict, outgoing_edges: list) -> object:
         return ConvergeGateway()
 
     # 默认：ServiceActivity 原子
+    atom_type = node.get('atom_type', '')
     act = ServiceActivity(
-        component_code=_resolve_component_code(node.get('atom_type', 'shell')),
+        component_code="opsflow_plugin",
         skippable=True,
         retryable=True,
         timeout=node.get('timeout_seconds', 60),
     )
+    # 插件类型标识（PluginService 由此路由到正确的 BasePlugin）
+    act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value=atom_type)
     for k, v in node.get('params', {}).items():
         act.component.inputs[k] = Var(type=Var.PLAIN, value=v)
     return act
@@ -360,13 +362,6 @@ def validate_bamboo_compatibility(pipeline_tree: dict) -> dict:
         'errors': errors,
         'warnings': warnings,
     }
-
-
-def _resolve_component_code(atom_type: str) -> str:
-    meta = get_atom_meta(atom_type)
-    if meta and meta.component_code:
-        return meta.component_code
-    return f"opsflow_{atom_type}"
 
 
 def _empty_pipeline(flow_template) -> dict:

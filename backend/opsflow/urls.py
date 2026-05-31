@@ -7,6 +7,7 @@ from .views.log_views import OpsLogViewSet
 from .views.knowledge_views import OpsKnowledgeViewSet
 from .views.dashboard_views import dashboard_stats, dashboard_trend, dashboard_schedule_stats
 from .views.schedule_views import SchedulePlanViewSet
+from .views.plugin_views import PluginViewSet
 
 router = DefaultRouter()
 router.register(r'templates', FlowTemplateViewSet, basename='opsflow-template')
@@ -14,6 +15,7 @@ router.register(r'executions', FlowExecutionViewSet, basename='opsflow-execution
 router.register(r'logs', OpsLogViewSet, basename='opsflow-log')
 router.register(r'knowledge', OpsKnowledgeViewSet, basename='opsflow-knowledge')
 router.register(r'schedule-plans', SchedulePlanViewSet, basename='opsflow-schedule-plan')
+router.register(r'plugins', PluginViewSet, basename='opsflow-plugin')
 
 urlpatterns = [
     path('dashboard/stats/', dashboard_stats, name='opsflow-dashboard-stats'),

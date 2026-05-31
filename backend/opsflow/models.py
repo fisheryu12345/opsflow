@@ -178,3 +178,26 @@ class OpsKnowledge(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class PluginMeta(models.Model):
+    """标准插件元数据 — 注册时自动同步"""
+    code = models.CharField(max_length=64, unique=True, verbose_name="插件编码")
+    name = models.CharField(max_length=128, verbose_name="插件名称")
+    group = models.CharField(max_length=64, verbose_name="分组")
+    version = models.CharField(max_length=16, default='v1.0', verbose_name="版本")
+    description = models.TextField(blank=True, verbose_name="描述")
+    risk_level = models.CharField(max_length=16, default='low', verbose_name="风险等级")
+    form_schema = models.JSONField(default=list, verbose_name="表单配置")
+    output_schema = models.JSONField(default=list, verbose_name="输出格式")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ops_plugin_meta'
+        ordering = ['group', 'name']
+        verbose_name = "插件元数据"
+
+    def __str__(self):
+        return f"{self.group}/{self.name}"

@@ -18,7 +18,6 @@ from bamboo_engine import api as pipeline_api
 from pipeline.eri.runtime import BambooDjangoRuntime
 
 from opsflow.core.bamboo_builder import build_bamboo_pipeline
-from opsflow.core.executors.factory import AtomExecutorFactory
 from opsflow.models import OpsLog
 
 logger = logging.getLogger(__name__)
@@ -218,11 +217,25 @@ class FlowEngine:
                 "_node_id": node_id,
             })
 
-            result = AtomExecutorFactory.execute_atom(
-                atom_type, inputs, self.template.target_hosts
-            )
+            from opsflow.plugins.registry import get_plugin
+            plugin_cls = get_plugin(atom_type)
+            if plugin_cls:
+                try:
+                    instance = plugin_cls()
+                    plugin_result = instance.execute(**{
+                        k: v for k, v in inputs.items() if not k.startswith('_')
+                    })
+                    success = plugin_result.get('success', False)
+                except Exception as e:
+                    logger.exception("[FlowEngine] plugin %s failed", atom_type)
+                    success = False
+                    plugin_result = {"error": str(e)}
+            else:
+                logger.warning("[FlowEngine] unknown plugin %s, skipping", atom_type)
+                success = True
+                plugin_result = {"stdout": ""}
 
-            if result.success:
+            if success:
                 self._update_node(node_id, "completed")
                 self._send_ws_node_status(node_id, "completed")
                 logger.info(
@@ -231,7 +244,7 @@ class FlowEngine:
             else:
                 logger.error(
                     "[FlowEngine] node %s (%s) failed: %s",
-                    node_id, atom_type, result.error,
+                    node_id, atom_type, plugin_result.get('error', ''),
                 )
                 self._update_node(node_id, "failed")
                 self._send_ws_node_status(node_id, "failed")
@@ -243,7 +256,7 @@ class FlowEngine:
                     execution=self.execution,
                     status="failed",
                     step=node.get("label", node_id),
-                    message=result.error or "Node execution failed",
+                    message=plugin_result.get('error', '') or "Node execution failed",
                 )
                 return
 

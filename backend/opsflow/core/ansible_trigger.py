@@ -153,16 +153,38 @@ def poll_job(job_id: int, execution_id: Optional[str] = None,
 def execute_rollback(node: dict, target_hosts: Optional[list] = None,
                      execution_id: Optional[str] = None,
                      node_id: Optional[str] = None) -> dict:
-    """执行原子回滚 — 从 atom_registry 获取回滚类型并执行"""
-    from .atom_registry import get_atom_meta
+    """执行插件回滚 — 从插件注册中心获取插件并调用 rollback 方法"""
+    from opsflow.plugins.registry import get_plugin
     atom_type = node.get("atom_type", "")
-    meta = get_atom_meta(atom_type)
-    if meta and meta.rollback:
-        rollback_node = dict(node)
-        rollback_node["atom_type"] = meta.rollback
-        rollback_node["params"] = node.get("params", {}).copy()
-        return execute_atom(rollback_node, target_hosts, execution_id, node_id)
-    return {"stdout": "", "stderr": "无可用的回滚策略", "returncode": -1}
+    plugin_cls = get_plugin(atom_type)
+    if plugin_cls:
+        try:
+            plugin = plugin_cls()
+            params = node.get("params", {}).copy()
+            result = plugin.rollback(context={}, **params)
+            if result.get("success"):
+                return {
+                    "stdout": json.dumps(result.get("data", {}), ensure_ascii=False),
+                    "stderr": "",
+                    "returncode": 0,
+                    "job_id": 0,
+                    "artifacts": result.get("data", {}),
+                    "events": [],
+                    "summary": {"ok": 1, "changed": 0, "failed": 0, "dark": 0, "skipped": 0},
+                    "elapsed": 0,
+                }
+        except Exception as e:
+            logger.exception("[AnsibleTrigger] 回滚执行失败 atom=%s", atom_type)
+            return {
+                "stdout": "", "stderr": str(e), "returncode": -1,
+                "job_id": 0, "artifacts": {}, "events": [],
+                "summary": {}, "elapsed": 0,
+            }
+    return {
+        "stdout": "", "stderr": "无可用的回滚策略", "returncode": -1,
+        "job_id": 0, "artifacts": {}, "events": [],
+        "summary": {}, "elapsed": 0,
+    }
 
 
 def _mock_execute(atom_type: str, params: dict) -> dict:

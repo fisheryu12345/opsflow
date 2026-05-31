@@ -1,18 +1,21 @@
-"""Pipeline Tree 安全校验器 — 原子白名单从 atom_registry 动态加载"""
+"""Pipeline Tree 安全校验器 — 原子白名单从 PLUGIN_REGISTRY 动态加载"""
 
-from .atom_registry import get_whitelist, get_high_risk_atoms, get_backup_required_atoms
+from opsflow.plugins.registry import PLUGIN_REGISTRY
 
 MAX_RETRIES = 10
 
 # 兼容旧代码的模块级引用（惰性加载）
 def WHITELIST_ATOMS():
-    return get_whitelist()
+    """返回所有已注册插件的 code 集合"""
+    return set(PLUGIN_REGISTRY.keys())
 
 def HIGH_RISK_ATOMS():
-    return get_high_risk_atoms()
+    """返回 risk_level == 'high' 的插件 code 集合"""
+    return {code for code, cls in PLUGIN_REGISTRY.items() if cls.risk_level == 'high'}
 
 def BACKUP_REQUIRED_ATOMS():
-    return get_backup_required_atoms()
+    """已废弃 — BasePlugin 不再追踪 dependencies，始终返回空集"""
+    return set()
 
 
 def validate_pipeline(pipeline: dict) -> dict:

@@ -22,20 +22,21 @@
         <div class="panel-section">
           <div class="section-title">Action Config</div>
           <div class="prop-row">
-            <span class="prop-label">Atom Type</span>
-            <el-select v-model="form.atom_type" size="small" style="width:100%" @change="emitUpdate">
-              <el-option v-for="atom in atomOptions" :key="atom.value" :label="atom.label" :value="atom.value" />
+            <span class="prop-label">Plugin</span>
+            <el-select v-model="form.plugin_code" size="small" style="width:100%"
+              filterable @change="onPluginChange" :loading="pluginsLoading">
+              <el-option-group v-for="(items, group) in pluginGroups" :key="group" :label="group">
+                <el-option v-for="p in items" :key="p.code" :label="p.name" :value="p.code" />
+              </el-option-group>
             </el-select>
           </div>
-          <div class="prop-row prop-row-vertical">
-            <span class="prop-label">Params</span>
-            <el-input
-              v-model="paramsText"
-              type="textarea"
-              :rows="3"
-              placeholder='{"key": "value"}'
-              size="small"
-              @change="onParamsChange"
+          <!-- 动态表单渲染 -->
+          <div class="prop-row-vertical">
+            <RenderForm
+              ref="renderFormRef"
+              :schema="pluginFormSchema"
+              :initial-data="form.plugin_params"
+              @change="onFormChange"
             />
           </div>
         </div>
@@ -81,8 +82,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, nextTick } from 'vue'
 import { Setting, Pointer, WarnTriangleFilled, CircleCheckFilled, InfoFilled, Aim, Connection, Switch } from '@element-plus/icons-vue'
+import RenderForm from '/@/components/RenderForm/RenderForm.vue'
+import { GetPluginGroups, GetPluginDetail } from '/@/api/opsflow/plugins'
 
 const props = defineProps<{
   nodeData: any
@@ -92,22 +95,37 @@ const emit = defineEmits<{
   update: [data: any]
 }>()
 
-const atomOptions = [
-  { label: 'Shell', value: 'shell' },
-  { label: 'Disk Check', value: 'disk_check' },
-  { label: 'Ping Test', value: 'ping_test' },
-  { label: 'Health Check', value: 'health_check' },
-  { label: 'Service Control', value: 'service_control' },
-  { label: 'Upload File', value: 'upload_file' },
-  { label: 'Copy File', value: 'file_copy' },
-  { label: 'Run Script', value: 'script_exec' },
-  { label: 'Backup File', value: 'backup_file' },
-  { label: 'Deploy App', value: 'java_deploy' },
-  { label: 'Docker Deploy', value: 'docker_deploy' },
-  { label: 'Nginx Reload', value: 'nginx_reload' },
-  { label: 'Send Alert', value: 'send_alert' },
-]
+/* ---------- Plugin loading ---------- */
+const pluginsLoading = ref(false)
+const pluginGroups = ref<Record<string, { code: string; name: string }[]>>({})
+const pluginFormSchema = ref<any[]>([])
+const pluginRiskMap = ref<Record<string, string>>({})
+const renderFormRef = ref<InstanceType<typeof RenderForm> | null>(null)
 
+async function loadPlugins() {
+  pluginsLoading.value = true
+  try {
+    const res = await GetPluginGroups()
+    pluginGroups.value = res.data || {}
+  } catch {
+    pluginGroups.value = {}
+  }
+  pluginsLoading.value = false
+}
+
+async function loadPluginSchema(code: string) {
+  try {
+    const res = await GetPluginDetail(code)
+    pluginFormSchema.value = res.data?.form_schema || []
+    if (res.data?.risk_level) {
+      pluginRiskMap.value[code] = res.data.risk_level
+    }
+  } catch {
+    pluginFormSchema.value = []
+  }
+}
+
+/* ---------- Form state ---------- */
 const typeLabels: Record<string, string> = {
   start_event: 'Start Event',
   end_event: 'End Event',
@@ -136,7 +154,6 @@ const gatewayIcons: Record<string, any> = {
 }
 
 const form = ref<any>({})
-const paramsText = ref('')
 
 const isAtom = computed(() => !form.value.node_type || form.value.node_type === 'atom')
 const nodeTypeLabel = computed(() => typeLabels[form.value.node_type] || form.value.node_type || 'Atom')
@@ -144,12 +161,14 @@ const gatewayDescription = computed(() => gatewayDescriptions[form.value.node_ty
 const gatewayIcon = computed(() => gatewayIcons[form.value.node_type] || InfoFilled)
 
 const riskLevelText = computed(() => {
+  const risk = form.value.risk_level || pluginRiskMap.value[form.value.plugin_code] || ''
   const map: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' }
-  return map[form.value.risk_level] || form.value.risk_level || 'Unknown'
+  return map[risk] || risk || 'Unknown'
 })
 
 const riskTagType = computed(() => {
-  switch (form.value.risk_level) {
+  const risk = form.value.risk_level || pluginRiskMap.value[form.value.plugin_code] || ''
+  switch (risk) {
     case 'high': return 'danger'
     case 'medium': return 'warning'
     case 'low': return 'success'
@@ -171,27 +190,55 @@ const gatewayTagType = computed(() => {
 
 watch(() => props.nodeData, (val) => {
   if (val) {
-    form.value = { ...val }
-    paramsText.value = JSON.stringify(val.params || {}, null, 2)
+    const data = { ...val }
+    // AI 生成的节点使用 atom_type，映射到 plugin_code
+    if (!data.plugin_code && data.atom_type) {
+      data.plugin_code = data.atom_type
+    }
+    // AI 返回的 params 映射为 plugin_params，供 RenderForm 初始渲染
+    if (data.params && !data.plugin_params) {
+      data.plugin_params = { ...data.params }
+    }
+    form.value = data
+
+    if (data.plugin_code) {
+      loadPluginSchema(data.plugin_code)
+    } else {
+      pluginFormSchema.value = []
+    }
   } else {
     form.value = {}
-    paramsText.value = ''
+    pluginFormSchema.value = []
   }
 }, { immediate: true, deep: true })
 
+async function onPluginChange(code: string) {
+  form.value.plugin_code = code
+  pluginFormSchema.value = []
+  form.value.plugin_params = {}
+  if (code) {
+    await loadPluginSchema(code)
+  }
+  emitUpdate()
+}
+
+function onFormChange(data: Record<string, any>) {
+  form.value.plugin_params = data
+  emitUpdate()
+}
+
 function emitUpdate() {
   const updated = { ...form.value }
-  try {
-    updated.params = JSON.parse(paramsText.value)
-  } catch {
-    updated.params = form.value.params || {}
+  updated.params = form.value.plugin_params || {}
+  // 同步 plugin_code → atom_type（bamboo_builder 用 atom_type 路由执行）
+  if (updated.plugin_code) {
+    updated.atom_type = updated.plugin_code
   }
   emit('update', updated)
 }
 
-function onParamsChange() {
-  emitUpdate()
-}
+// 初始加载插件列表
+loadPlugins()
 </script>
 
 <style scoped>

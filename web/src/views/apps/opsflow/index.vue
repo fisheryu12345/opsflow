@@ -302,6 +302,7 @@ async function onGenerate() {
         currentTree.value = data.template.pipeline_tree || {}
         if (designCanvasRef.value) {
           designCanvasRef.value.loadPipeline(data.template.pipeline_tree)
+          nextTick(() => designCanvasRef.value?.aiLayout())
         }
         chatMessages.value.push({ role: 'ai', content: 'Pipeline generated. You can modify it on the canvas or continue with more requirements.' })
         if (data?.validation?.warnings?.length) {
@@ -316,6 +317,7 @@ async function onGenerate() {
       const pipelineTree = data?.pipeline_tree
       if (pipelineTree && designCanvasRef.value) {
         designCanvasRef.value.loadPipeline(pipelineTree)
+        nextTick(() => designCanvasRef.value?.aiLayout())
         chatMessages.value.push({ role: 'ai', content: 'Pipeline updated according to your instructions.' })
         if (data?.validation?.warnings?.length) {
           ElMessage.warning(`Safety warning: ${data.validation.warnings.join('; ')}`)

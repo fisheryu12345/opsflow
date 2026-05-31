@@ -1,6 +1,0 @@
----
-- name: 回滚 — 删除已复制文件
-  ansible.builtin.file:
-    path: "{{ dest }}"
-    state: absent
-  when: dest is defined
