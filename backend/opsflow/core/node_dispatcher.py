@@ -49,11 +49,13 @@ class NodeCommandDispatcher:
         )
         retry_count = (last_trace.retry_count + 1) if last_trace else 0
 
-        # 写 context 记录重试次数（供 signals._get_current_retry_count 读取）
+        # 写 context 记录重试次数 + 操作人
         ctx = dict(self.execution.context or {})
         retry_map = dict(ctx.get("_retry_counts", {}))
         retry_map[node_id] = retry_count
         ctx["_retry_counts"] = retry_map
+        if operator:
+            ctx["_last_operator"] = operator
         self.execution.context = ctx
         self.execution.save(update_fields=["context"])
 
@@ -90,7 +92,12 @@ class NodeCommandDispatcher:
         }
 
     def skip(self, node_id: str, operator: str = "") -> dict:
-        """跳过指定失败节点"""
+        """跳过指定节点"""
+        if operator:
+            ctx = dict(self.execution.context or {})
+            ctx["_last_operator"] = operator
+            self.execution.context = ctx
+            self.execution.save(update_fields=["context"])
         try:
             self.engine.skip(node_id)
         except Exception as e:
@@ -100,6 +107,26 @@ class NodeCommandDispatcher:
         return {
             "result": True,
             "message": f"已跳过节点 {node_id}",
+            "data": {"node_id": node_id},
+        }
+
+    def force_fail(self, node_id: str, operator: str = "", reason: str = "") -> dict:
+        """强制标记节点为失败状态"""
+        if operator:
+            ctx = dict(self.execution.context or {})
+            ctx["_last_operator"] = operator
+            self.execution.context = ctx
+            self.execution.save(update_fields=["context"])
+        ex_data = reason or f"force_fail by {operator}" if operator else "force_fail"
+        try:
+            self.engine.force_fail(node_id, ex_data=ex_data)
+        except Exception as e:
+            logger.exception("[Dispatcher] force_fail node %s failed", node_id)
+            return {"result": False, "message": f"强制失败失败: {e}", "data": None}
+
+        return {
+            "result": True,
+            "message": f"已强制标记节点 {node_id} 为失败",
             "data": {"node_id": node_id},
         }
 

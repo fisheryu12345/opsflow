@@ -15,6 +15,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
   const graph = shallowRef<Graph | null>(null)
   const stencil = shallowRef<Stencil | null>(null)
   const selectedNode = ref<any>(null)
+  const selectedEdge = ref<any>(null)
 
   const canUndo = ref(false)
   const canRedo = ref(false)
@@ -81,12 +82,29 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       const data = node.getData()
       // 把 X6 的 node.id 合入 data，确保 PropertyPanel 的 form.id 不为空
       selectedNode.value = { ...data, id: data.id || node.id }
+      selectedEdge.value = null
       // 未配置 atom_type 的 Task Node → 弹出插件选择器
       if (data?.node_type === 'atom' && !data?.atom_type) {
         needPlugin(node.id)
       }
     })
-    g.on('blank:click', () => { selectedNode.value = null })
+    g.on('edge:click', ({ edge }) => {
+      const source = edge.getSource()
+      const target = edge.getTarget()
+      const edgeData = edge.getData() || {}
+      selectedEdge.value = {
+        id: edge.id,
+        from: typeof source === 'object' ? source.cell : source,
+        to: typeof target === 'object' ? target.cell : target,
+        label: edge.getLabels?.()?.[0]?.attrs?.text?.text || '',
+        condition: edgeData.condition || '',
+      }
+      selectedNode.value = null
+    })
+    g.on('blank:click', () => {
+      selectedNode.value = null
+      selectedEdge.value = null
+    })
     g.on('node:change:data', ({ node }) => {
       if (node.id === selectedNode.value?.id) selectedNode.value = node.getData()
     })
@@ -338,6 +356,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
         target: { cell: edge.to, port: edge.targetPort || 'left' },
         labels: edge.label ? [{ attrs: { text: { text: edge.label } } }] : undefined,
         attrs: { line: { stroke: '#DCDFE6', strokeWidth: 1.5, targetMarker: 'classic' } },
+        data: { condition: edge.condition || '' },
       }))
     }
 
@@ -398,12 +417,14 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
         const source = cell.getSource()
         const target = cell.getTarget()
         const labels = cell.getLabels?.() || []
+        const edgeData = cell.getData?.() || {}
         edges.push({
           from: typeof source === 'object' ? source.cell : source,
           to: typeof target === 'object' ? target.cell : target,
           sourcePort: typeof source === 'object' ? source.port : undefined,
           targetPort: typeof target === 'object' ? target.port : undefined,
           label: labels.length ? (labels[0].attrs?.text?.text || '') : '',
+          condition: edgeData.condition || '',
         })
       }
     }
@@ -472,7 +493,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
   onBeforeUnmount(() => destroy())
 
   return {
-    graph, stencil, selectedNode,
+    graph, stencil, selectedNode, selectedEdge,
     initGraph, initStencil, loadGraphData, getGraphData,
     aiLayout, onTaskNodeDropped,
     zoomIn, zoomOut, fitCanvas, zoomLevel,

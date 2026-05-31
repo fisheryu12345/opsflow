@@ -58,7 +58,7 @@ class FlowExecutionDetailSerializer(FlowExecutionSerializer):
     trace_summary = serializers.SerializerMethodField()
 
     class Meta(FlowExecutionSerializer.Meta):
-        fields = FlowExecutionSerializer.Meta.fields + ['state_tree', 'trace_summary']
+        fields = '__all__'
 
     def get_trace_summary(self, obj):
         """返回不含完整 outputs 的轨迹摘要"""

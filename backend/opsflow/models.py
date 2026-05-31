@@ -10,6 +10,10 @@ class FlowTemplate(models.Model):
     global_vars = models.JSONField(default=dict, verbose_name="全局变量")
     is_draft = models.BooleanField(default=True, verbose_name="是否为草稿")
     ai_original_tree = models.JSONField(default=dict, verbose_name="AI原始流程树(用于diff)")
+    category = models.CharField(max_length=64, blank=True, default='', verbose_name="类别")
+    tags = models.JSONField(default=list, blank=True, verbose_name="标签")
+    description = models.CharField(max_length=500, blank=True, default='', verbose_name="描述")
+    hook_variables = models.JSONField(default=dict, blank=True, verbose_name="可提升变量配置")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         null=True, blank=True, verbose_name="创建者"
@@ -28,6 +32,9 @@ class FlowTemplate(models.Model):
     def publish_snapshot(self, user=None, version_note=""):
         """发布新版本：冻结当前 pipeline_tree 到 snapshot 并创建版本记录"""
         from django.utils import timezone
+        # 处理旧模板 version 为 NULL 的情况
+        if self.version is None:
+            self.version = 1
         self.snapshot = {
             'pipeline_tree': self.pipeline_tree,
             'target_hosts': self.target_hosts,

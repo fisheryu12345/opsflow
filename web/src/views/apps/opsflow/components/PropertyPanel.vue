@@ -74,9 +74,42 @@
       </template>
     </template>
 
+    <template v-else-if="edgeData && edgeData.id">
+      <div class="panel-section">
+        <div class="section-title">Edge Condition</div>
+        <div class="prop-row">
+          <span class="prop-label">From</span>
+          <span class="prop-value prop-id">{{ edgeData.from }}</span>
+        </div>
+        <div class="prop-row">
+          <span class="prop-label">To</span>
+          <span class="prop-value prop-id">{{ edgeData.to }}</span>
+        </div>
+        <div class="prop-row">
+          <span class="prop-label">Label</span>
+          <el-input v-model="edgeForm.label" size="small" disabled class="prop-input" />
+        </div>
+        <div class="prop-row-vertical">
+          <span class="prop-label">Condition</span>
+          <el-input
+            v-model="edgeForm.condition"
+            type="textarea"
+            :rows="3"
+            size="small"
+            placeholder="${node_1.output_key > 0}"
+            @change="emitEdgeUpdate"
+          />
+          <p class="condition-hint">
+            Use <code>${node_id.key}</code> to reference node outputs.
+            Example: <code>${node_1.cpu_usage > 80}</code>
+          </p>
+        </div>
+      </div>
+    </template>
+
     <div v-else class="panel-empty">
       <el-icon size="28" color="#c0c4cc"><Pointer /></el-icon>
-      <p>Click a node to view properties</p>
+      <p>Click a node or edge to view properties</p>
     </div>
   </div>
 </template>
@@ -88,7 +121,8 @@ import RenderForm from '/@/components/RenderForm/RenderForm.vue'
 import { GetPluginGroups, GetPluginDetail } from '/@/api/opsflow/plugins'
 
 const props = defineProps<{
-  nodeData: any
+  nodeData?: any
+  edgeData?: any
 }>()
 
 const emit = defineEmits<{
@@ -154,6 +188,7 @@ const gatewayIcons: Record<string, any> = {
 }
 
 const form = ref<any>({})
+const edgeForm = ref<any>({ condition: '' })
 
 const isAtom = computed(() => !form.value.node_type || form.value.node_type === 'atom')
 const nodeTypeLabel = computed(() => typeLabels[form.value.node_type] || form.value.node_type || 'Atom')
@@ -212,6 +247,14 @@ watch(() => props.nodeData, (val) => {
   }
 }, { immediate: true, deep: true })
 
+watch(() => props.edgeData, (val) => {
+  if (val) {
+    edgeForm.value = { condition: val.condition || '', label: val.label || '' }
+  } else {
+    edgeForm.value = { condition: '' }
+  }
+}, { immediate: true, deep: true })
+
 async function onPluginChange(code: string) {
   form.value.plugin_code = code
   pluginFormSchema.value = []
@@ -235,6 +278,10 @@ function emitUpdate() {
     updated.atom_type = updated.plugin_code
   }
   emit('update', updated)
+}
+
+function emitEdgeUpdate() {
+  emit('update', { condition: edgeForm.value.condition || '' })
 }
 
 // 初始加载插件列表
@@ -327,6 +374,19 @@ loadPlugins()
   font-size: 12px;
   color: #909399;
   line-height: 1.6;
+}
+.condition-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #909399;
+  line-height: 1.5;
+}
+.condition-hint code {
+  background: #f5f7fa;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: #409EFF;
 }
 .panel-empty {
   flex: 1;

@@ -31,7 +31,7 @@
         <el-table :data="list" v-loading="loading" stripe highlight-current-row style="width: 100%"
                   :empty-text="emptyText" @row-click="openView" class="template-table">
           <el-table-column prop="id" label="ID" width="60" />
-          <el-table-column prop="name" label="Name" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="name" label="Name" min-width="40" show-overflow-tooltip />
           <el-table-column label="Status" width="120" align="center">
             <template #default="{ row }">
               <div class="status-cell">
@@ -42,7 +42,7 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="Pipeline" min-width="240">
+          <el-table-column label="Pipeline" min-width="60" class-name="pipeline-col">
             <template #default="{ row }">
               <div class="mini-flow" v-if="row.pipeline_tree?.nodes?.length">
                 <template v-for="(node, ni) in row.pipeline_tree.nodes" :key="node.id">
@@ -57,8 +57,14 @@
             </template>
           </el-table-column>
           <el-table-column prop="created_by_name" label="Created By" width="120" show-overflow-tooltip />
-          <el-table-column prop="created_at" label="Created" width="160" />
-          <el-table-column label="Actions" width="220" fixed="right">
+          <el-table-column label="V" width="50" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="!row.is_draft" size="small" type="primary" effect="plain">V{{ row.version || 1 }}</el-tag>
+              <span v-else class="no-version">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="created_at" label="Created" width="130" />
+          <el-table-column label="Actions" width="300" fixed="right" class-name="actions-col">
             <template #default="{ row }">
               <div class="action-icons">
                 <el-tooltip content="Edit" placement="top">
@@ -77,9 +83,20 @@
                     <el-icon><Upload /></el-icon>
                   </el-button>
                 </el-tooltip>
+                <el-tooltip v-if="!row.is_draft" content="New Version" placement="top">
+                  <el-button size="small" type="success" link
+                             :loading="publishingId === row.id" @click.stop="handlePublish(row)">
+                    <el-icon><Upload /></el-icon>
+                  </el-button>
+                </el-tooltip>
                 <el-tooltip v-if="!row.is_draft" content="Schedule" placement="top">
                   <el-button size="small" type="warning" link @click.stop="openSchedule(row)">
                     <el-icon><Timer /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="Versions" placement="top">
+                  <el-button size="small" type="info" link @click.stop="openVersions(row)">
+                    <el-icon><Clock /></el-icon>
                   </el-button>
                 </el-tooltip>
                 <el-tooltip content="Delete" placement="top">
@@ -101,7 +118,9 @@
                    @click="openView(item)">
             <div class="tcard-header">
               <div class="tcard-title-row">
-                <span class="tcard-title">{{ item.name }}</span>
+                <el-tooltip :content="item.name" placement="top">
+                  <span class="tcard-title">{{ item.name }}</span>
+                </el-tooltip>
                 <el-tag :type="item.is_draft ? 'info' : 'success'" size="small" effect="dark">
                   {{ item.is_draft ? 'Draft' : 'Published' }}
                 </el-tag>
@@ -123,15 +142,17 @@
               </div>
             </div>
             <div class="tcard-footer">
-              <div class="tcard-stats">
-                <span class="tcard-stat">
-                  <el-icon style="margin-right: 3px"><Connection /></el-icon>
-                  {{ item.pipeline_tree?.nodes?.length || 0 }} nodes
-                </span>
-                <span class="tcard-stat">
-                  <el-icon style="margin-right: 3px"><Share /></el-icon>
-                  {{ item.pipeline_tree?.edges?.length || 0 }} edges
-                </span>
+              <div class="tcard-footer-top">
+                <div class="tcard-stats">
+                  <span class="tcard-stat">
+                    <el-icon style="margin-right: 3px"><Connection /></el-icon>
+                    {{ item.pipeline_tree?.nodes?.length || 0 }} nodes
+                  </span>
+                  <span class="tcard-stat">
+                    <el-icon style="margin-right: 3px"><Share /></el-icon>
+                    {{ item.pipeline_tree?.edges?.length || 0 }} edges
+                  </span>
+                </div>
               </div>
               <div class="tcard-actions" @click.stop>
                 <el-tooltip content="Edit" placement="top">
@@ -150,9 +171,20 @@
                     <el-icon><Upload /></el-icon>
                   </el-button>
                 </el-tooltip>
+                <el-tooltip v-if="!item.is_draft" content="New Version" placement="top">
+                  <el-button size="small" type="success" link
+                             :loading="publishingId === item.id" @click.stop="handlePublish(item)">
+                    <el-icon><Upload /></el-icon>
+                  </el-button>
+                </el-tooltip>
                 <el-tooltip v-if="!item.is_draft" content="Schedule" placement="top">
                   <el-button size="small" type="warning" link @click.stop="openSchedule(item)">
                     <el-icon><Timer /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="Versions" placement="top">
+                  <el-button size="small" type="info" link @click.stop="openVersions(item)">
+                    <el-icon><Clock /></el-icon>
                   </el-button>
                 </el-tooltip>
                 <el-tooltip content="Delete" placement="top">
@@ -199,7 +231,9 @@
         <div class="v-info-bar">
           <div class="v-info-item">
             <span class="v-info-label">Name</span>
-            <span class="v-info-value">{{ viewRow.name }}</span>
+            <el-tooltip :content="viewRow.name" placement="top">
+              <span class="v-info-value name-ellipsis">{{ viewRow.name }}</span>
+            </el-tooltip>
           </div>
           <div class="v-info-item">
             <span class="v-info-label">Status</span>
@@ -273,17 +307,27 @@
       :template-id="scheduleTemplateId"
       :template-name="scheduleTemplateName"
     />
+
+    <!-- Version history dialog -->
+    <VersionDialog
+      v-model:visible="versionVisible"
+      :template-id="versionTemplateId"
+      :template-name="versionTemplateName"
+      :current-version="versionCurrentVer"
+      @rolled-back="fetchData"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { Refresh, Plus, View, Edit, Upload, Delete, Search, List, Grid, Connection, Share, Timer, Setting } from '@element-plus/icons-vue'
+import { Refresh, Plus, View, Edit, Upload, Delete, Search, List, Grid, Connection, Share, Timer, Setting, Clock } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { GetTemplates, CreateTemplate, UpdateTemplate, DeleteTemplate, ConfirmDraft, GetTemplateDetail } from '/@/api/opsflow/templates'
+import { GetTemplates, CreateTemplate, UpdateTemplate, DeleteTemplate, ConfirmDraft, GetTemplateDetail, PublishTemplate } from '/@/api/opsflow/templates'
 import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 import ScheduleManager from './components/ScheduleManager.vue'
+import VersionDialog from './components/VersionDialog.vue'
 
 const router = useRouter()
 const opsflowStore = useOpsflowStore()
@@ -311,6 +355,19 @@ const publishingId = ref<number | null>(null)
 const scheduleVisible = ref(false)
 const scheduleTemplateId = ref(0)
 const scheduleTemplateName = ref('')
+
+// 版本管理
+const versionVisible = ref(false)
+const versionTemplateId = ref<number | null>(null)
+const versionTemplateName = ref('')
+const versionCurrentVer = ref(1)
+
+function openVersions(row: any) {
+  versionTemplateId.value = row.id
+  versionTemplateName.value = row.name
+  versionCurrentVer.value = row.version || 1
+  versionVisible.value = true
+}
 
 const emptyText = computed(() => loading.value ? 'Loading...' : useMock.value ? 'No data' : 'No templates yet')
 
@@ -459,10 +516,13 @@ async function handlePublish(row: any) {
   try {
     if (useMock.value) {
       row.is_draft = false
-    } else {
+    } else if (row.is_draft) {
       await ConfirmDraft(row.id)
+      ElMessage.success('Published as V1')
+    } else {
+      await PublishTemplate(row.id)
+      ElMessage.success('New version published')
     }
-    ElMessage.success('Published')
     await fetchData()
   } catch (e: any) {
     ElMessage.error(e?.msg || e?.message || 'Publish failed')
@@ -518,8 +578,9 @@ onMounted(fetchData)
 }
 
 /* ---------- Mini pipeline flow (table) ---------- */
-.mini-flow {
+.pipeline-col .mini-flow {
   display: flex; align-items: center; gap: 2px; flex-wrap: nowrap;
+  max-width: 80px;
 }
 .mini-node {
   width: 22px; height: 22px; border-radius: 4px;
@@ -551,10 +612,11 @@ onMounted(fetchData)
 .flow-node-icon { font-size: 12px; }
 .flow-node-label { color: #303133; font-weight: 500; white-space: nowrap; }
 .flow-arrow { font-size: 14px; color: #C0C4CC; }
-.tcard-footer { display: flex; justify-content: space-between; align-items: center; }
+.tcard-footer { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0; }
+.tcard-footer-top { display: flex; justify-content: space-between; align-items: center; }
 .tcard-stats { display: flex; gap: 16px; }
 .tcard-stat { font-size: 12px; color: #909399; display: flex; align-items: center; }
-.tcard-actions { display: flex; gap: 4px; }
+.tcard-actions { display: flex; flex-wrap: wrap; gap: 2px; }
 
 /* ---------- Pagination ---------- */
 .pagination-wrap {
@@ -570,6 +632,7 @@ onMounted(fetchData)
 .v-info-item { display: flex; flex-direction: column; gap: 2px; }
 .v-info-label { font-size: 11px; color: #909399; text-transform: uppercase; }
 .v-info-value { font-size: 14px; color: #303133; font-weight: 500; }
+.name-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; display: inline-block; vertical-align: middle; }
 
 .v-section { margin-bottom: 20px; }
 .v-section-title {

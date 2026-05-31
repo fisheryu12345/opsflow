@@ -75,7 +75,7 @@
       <!-- Section: Scheduler Statistics -->
       <div class="db-section-header">
         <h3 class="db-section-title">Scheduler Overview</h3>
-        <el-tag size="small" type="info" effect="plain">{{ scheduleStats.type_distribution.cron || 0 }} cron · {{ scheduleStats.type_distribution.one_time || 0 }} one-time</el-tag>
+        <el-tag size="small" type="info" effect="plain">{{ (scheduleStats.type_distribution || {}).cron || 0 }} cron · {{ (scheduleStats.type_distribution || {}).one_time || 0 }} one-time</el-tag>
       </div>
 
       <!-- Schedule stats cards -->
@@ -106,7 +106,7 @@
             <span class="db-chart-total">Top 5</span>
           </div>
           <div class="sched-list">
-            <div v-for="s in scheduleStats.top_schedules.slice(0, 5)" :key="s.id" class="sched-list-item">
+            <div v-for="s in (scheduleStats.top_schedules || []).slice(0, 5)" :key="s.id" class="sched-list-item">
               <div class="sched-list-left">
                 <span class="sched-list-name">{{ s.name }}</span>
                 <span class="sched-list-meta">{{ s.total_run_count }} runs · {{ s.schedule_type === 'cron' ? '周期' : '一次' }}</span>
@@ -175,7 +175,7 @@
             </div>
             <div class="summary-item">
               <span class="summary-label">Total Nodes Executed</span>
-              <span class="summary-value">{{ stats.total_nodes_executed.toLocaleString() }}</span>
+              <span class="summary-value">{{ (stats.total_nodes_executed || 0).toLocaleString() }}</span>
             </div>
             <div class="summary-item">
               <span class="summary-label">Templates</span>
@@ -228,7 +228,7 @@
         </div>
       </div>
 
-      <span v-if="useMock" class="mock-badge">Mock Data</span>
+      <span v-if="false" class="mock-badge">Mock Data</span>
     </div>
   </div>
 </template>
@@ -238,23 +238,22 @@ import { ref, computed, onMounted, onUnmounted, shallowRef, nextTick } from 'vue
 import * as echarts from 'echarts'
 import { Refresh, Top, Bottom, Timer, VideoPlay, VideoPause, RefreshRight } from '@element-plus/icons-vue'
 import {
-  getMockStats, getMockTrend, getMockTopTemplates,
-  getMockUserActivity, getMockStatusDistribution, getMockNodeTypeDistribution,
-  getMockScheduleStats,
+  GetDashboardStats, GetDashboardTrend, GetDashboardScheduleStats,
+  GetDashboardTopTemplates, GetDashboardUserActivity,
+  GetDashboardStatusDistribution, GetDashboardNodeTypeDistribution,
 } from '/@/api/opsflow/dashboard'
 
 /* ---------- State ---------- */
 const loading = ref(false)
-const useMock = ref(true) // always use mock for now
 const period = ref<'7d' | '14d' | '30d'>('30d')
 
-const stats = ref(getMockStats())
-const trend = ref(getMockTrend())
-const topTemplates = ref(getMockTopTemplates())
-const userActivity = ref(getMockUserActivity())
-const statusDist = ref(getMockStatusDistribution())
-const nodeTypeDist = ref(getMockNodeTypeDistribution())
-const scheduleStats = ref(getMockScheduleStats())
+const stats = ref<any>({})
+const trend = ref<any[]>([])
+const topTemplates = ref<any[]>([])
+const userActivity = ref<any[]>([])
+const statusDist = ref<any[]>([])
+const nodeTypeDist = ref<any[]>([])
+const scheduleStats = ref<any>({})
 
 /* ---------- ECharts refs ---------- */
 const trendChartRef = shallowRef<HTMLElement | null>(null)
@@ -517,15 +516,29 @@ function formatDuration(sec: number): string {
 }
 
 /* ---------- Refresh ---------- */
-function refreshAll() {
+async function refreshAll() {
   loading.value = true
-  stats.value = getMockStats()
-  trend.value = getMockTrend()
-  topTemplates.value = getMockTopTemplates()
-  userActivity.value = getMockUserActivity()
-  statusDist.value = getMockStatusDistribution()
-  nodeTypeDist.value = getMockNodeTypeDistribution()
-  scheduleStats.value = getMockScheduleStats()
+  const days = period.value === '7d' ? 7 : period.value === '14d' ? 14 : 30
+  try {
+    const [sRes, tRes, ttRes, uaRes, sdRes, ntRes, ssRes] = await Promise.allSettled([
+      GetDashboardStats({ days }),
+      GetDashboardTrend({ days }),
+      GetDashboardTopTemplates({ limit: 8 }),
+      GetDashboardUserActivity({ limit: 10 }),
+      GetDashboardStatusDistribution(),
+      GetDashboardNodeTypeDistribution(),
+      GetDashboardScheduleStats({ days }),
+    ])
+    if (sRes.status === 'fulfilled') stats.value = sRes.value.data?.data || sRes.value.data || {}
+    if (tRes.status === 'fulfilled') trend.value = tRes.value.data?.data || tRes.value.data || []
+    if (ttRes.status === 'fulfilled') topTemplates.value = ttRes.value.data?.data || ttRes.value.data || []
+    if (uaRes.status === 'fulfilled') userActivity.value = uaRes.value.data?.data || uaRes.value.data || []
+    if (sdRes.status === 'fulfilled') statusDist.value = sdRes.value.data?.data || sdRes.value.data || []
+    if (ntRes.status === 'fulfilled') nodeTypeDist.value = ntRes.value.data?.data || ntRes.value.data || []
+    if (ssRes.status === 'fulfilled') scheduleStats.value = ssRes.value.data?.data || ssRes.value.data || {}
+  } catch {
+    // fallback handled per-Promise via allSettled
+  }
   nextTick(() => {
     renderTrendChart()
     renderStatusChart()
@@ -547,13 +560,7 @@ function onResize() {
 
 /* ---------- Lifecycle ---------- */
 onMounted(() => {
-  nextTick(() => {
-    renderTrendChart()
-    renderStatusChart()
-    renderTemplatesChart()
-    renderNodeTypeChart()
-    renderSchedTrendChart()
-  })
+  refreshAll()
   window.addEventListener('resize', onResize)
 })
 

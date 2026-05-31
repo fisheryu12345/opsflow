@@ -65,3 +65,36 @@ export function RefinePipeline(data: { input: string; nodes: any[]; edges: any[]
     timeout: 60000,
   })
 }
+
+/* ---------- Version management ---------- */
+export function PublishTemplate(id: number) {
+  return request({ url: prefix + `templates/${id}/publish/`, method: 'post' })
+}
+
+export function GetTemplateVersions(id: number) {
+  return request({ url: prefix + `templates/${id}/versions/`, method: 'get' })
+}
+
+export function RollbackTemplate(id: number, version: number) {
+  return request({ url: prefix + `templates/${id}/rollback/`, method: 'post', data: { version } })
+}
+
+export function ExportTemplate(id: number) {
+  return request({ url: prefix + `templates/${id}/export/`, method: 'get' })
+}
+
+export function ImportTemplate(data: any) {
+  return request({ url: prefix + 'templates/import_template/', method: 'post', data })
+}
+
+export function GetTemplateCategories() {
+  return request({ url: prefix + 'templates/categories/', method: 'get' })
+}
+
+export function GetHookVariables(id: number) {
+  return request({ url: prefix + `templates/${id}/hook_variables/`, method: 'get' })
+}
+
+export function UpdateHookVariables(id: number, data: any) {
+  return request({ url: prefix + `templates/${id}/hook_variables/`, method: 'post', data })
+}

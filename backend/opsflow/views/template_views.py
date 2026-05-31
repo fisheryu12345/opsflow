@@ -20,7 +20,7 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
     queryset = FlowTemplate.objects.all()
     serializer_class = FlowTemplateSerializer
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['is_draft', 'created_by']
+    filterset_fields = ['is_draft', 'created_by', 'category']
     search_fields = ['name']
     ordering = ['-created_at']
 
@@ -59,6 +59,9 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        if instance.created_by and instance.created_by != request.user:
+            return Response({'code': 4000, 'msg': 'Only the creator can delete this template', 'data': None},
+                            status=status.HTTP_403_FORBIDDEN)
         instance.delete()
         return Response({'code': 2000, 'msg': 'success', 'data': None})
 
@@ -141,13 +144,12 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def confirm_draft(self, request, pk=None):
-        """用户确认草稿，标记 is_draft=False 正式入库"""
+        """用户确认草稿，发布为 V1"""
         template = self.get_object()
         if not template.is_draft:
             return Response({'code': 4000, 'msg': '不是草稿状态', 'data': None},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # 重新校验 SafetyGuard
         safety = validate_pipeline(template.pipeline_tree)
         if not safety.get('valid'):
             return Response({
@@ -155,7 +157,6 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
                 'data': {'validation': safety}
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # bamboo-engine 兼容性校验
         bamboo_check = validate_bamboo_compatibility(template.pipeline_tree)
         if not bamboo_check.get('valid'):
             return Response({
@@ -164,8 +165,99 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         template.is_draft = False
+        version_note = request.data.get('version_note', '')
+        template.publish_snapshot(user=request.user, version_note=version_note)
+        return Response({'code': 2000, 'msg': f'已发布 V{template.version - 1}', 'data': FlowTemplateSerializer(template).data})
+
+    @action(detail=True, methods=['post'])
+    def publish(self, request, pk=None):
+        """已发布模板发布新版本"""
+        template = self.get_object()
+        if template.is_draft:
+            return Response({'code': 4000, 'msg': '草稿模板请使用 confirm_draft', 'data': None},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        safety = validate_pipeline(template.pipeline_tree)
+        if not safety.get('valid'):
+            return Response({
+                'code': 4000, 'msg': '流程存在安全风险',
+                'data': {'validation': safety}
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        version_note = request.data.get('version_note', '')
+        template.publish_snapshot(user=request.user, version_note=version_note)
+        return Response({'code': 2000, 'msg': f'已发布 V{template.version - 1}', 'data': FlowTemplateSerializer(template).data})
+
+    @action(detail=True, methods=['get'], url_path='versions')
+    def list_versions(self, request, pk=None):
+        """返回版本历史列表"""
+        template = self.get_object()
+        from opsflow.serializers import TemplateVersionSerializer
+        qs = template.versions.all()
+        serializer = TemplateVersionSerializer(qs, many=True)
+        return Response({'code': 2000, 'msg': 'success', 'data': serializer.data})
+
+    @action(detail=True, methods=['post'])
+    def rollback(self, request, pk=None):
+        """回滚到指定版本"""
+        template = self.get_object()
+        version_id = request.data.get('version')
+        if not version_id:
+            return Response({'code': 4000, 'msg': 'version is required', 'data': None},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            target = template.versions.get(version=version_id)
+        except Exception:
+            return Response({'code': 4000, 'msg': f'版本 V{version_id} 不存在', 'data': None},
+                            status=status.HTTP_404_NOT_FOUND)
+        template.pipeline_tree = target.pipeline_tree
+        template.target_hosts = target.target_hosts
+        template.global_vars = target.global_vars
+        template.is_draft = False
         template.save()
-        return Response({'code': 2000, 'msg': 'success', 'data': FlowTemplateSerializer(template).data})
+        return Response({'code': 2000, 'msg': f'已回滚到 V{version_id}', 'data': FlowTemplateSerializer(template).data})
+
+    @action(detail=True, methods=['post'])
+    def version_diff(self, request, pk=None):
+        """对比两个版本的 pipeline_tree — 使用 DeepDiff"""
+        import json
+        from deepdiff import DeepDiff
+        template = self.get_object()
+        v1 = request.data.get('v1')
+        v2 = request.data.get('v2')
+        if not v1 or not v2:
+            return Response({'code': 4000, 'msg': '需要指定 v1 和 v2 版本号', 'data': None})
+        try:
+            version1 = template.versions.get(version=v1)
+            version2 = template.versions.get(version=v2)
+        except Exception:
+            return Response({'code': 4000, 'msg': '版本号不存在', 'data': None},
+                            status=status.HTTP_404_NOT_FOUND)
+        diff = DeepDiff(version1.pipeline_tree, version2.pipeline_tree, ignore_order=True)
+        return Response({
+            'code': 2000, 'msg': 'success',
+            'data': {'v1': v1, 'v2': v2, 'diff': json.loads(diff.to_json())}
+        })
+
+    @action(detail=True, methods=['get'])
+    def diff_draft(self, request, pk=None):
+        """对比当前草稿 vs 已发布版本（snapshot）"""
+        import json
+        from deepdiff import DeepDiff
+        template = self.get_object()
+        published = template.snapshot or {}
+        published_tree = published.get('pipeline_tree')
+        if not published_tree:
+            return Response({'code': 4000, 'msg': '尚无已发布版本', 'data': None},
+                            status=status.HTTP_400_BAD_REQUEST)
+        diff = DeepDiff(published_tree, template.pipeline_tree, ignore_order=True)
+        return Response({
+            'code': 2000, 'msg': 'success',
+            'data': {
+                'published_version': template.version - 1,
+                'diff': json.loads(diff.to_json()),
+            }
+        })
 
     @action(detail=False, methods=['post'])
     def ai_layout(self, request):
@@ -277,3 +369,79 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'code': 4000, 'msg': str(e), 'data': None},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # -- 导出/导入/分类/变量作用域 ------------------------------------
+
+    @action(detail=True, methods=['get'])
+    def export(self, request, pk=None):
+        """导出模板为 JSON 包（含版本历史）"""
+        from datetime import datetime
+        template = self.get_object()
+        versions = template.versions.values(
+            'version', 'pipeline_tree', 'target_hosts', 'global_vars',
+            'version_note', 'created_at',
+        )
+        bundle = {
+            "opsflow_version": "1.0",
+            "exported_at": datetime.now().isoformat(),
+            "template": {
+                "name": template.name,
+                "pipeline_tree": template.pipeline_tree,
+                "target_hosts": template.target_hosts,
+                "global_vars": template.global_vars,
+                "category": template.category or "",
+                "tags": template.tags or [],
+                "description": template.description or "",
+            },
+            "versions": list(versions),
+        }
+        return Response({'code': 2000, 'msg': 'success', 'data': bundle})
+
+    @action(detail=False, methods=['post'])
+    def import_template(self, request):
+        """导入模板 JSON（创建草稿）"""
+        from django.utils import timezone
+        data = request.data.get('data') or request.data
+        td = data.get('template', data)
+        name = td.get('name', 'Imported Template')
+        if FlowTemplate.objects.filter(name=name).exists():
+            name = f"{name} (imported {timezone.now().strftime('%Y%m%d_%H%M%S')})"
+        template = FlowTemplate.objects.create(
+            name=name,
+            pipeline_tree=td.get('pipeline_tree', {}),
+            target_hosts=td.get('target_hosts', []),
+            global_vars=td.get('global_vars', {}),
+            category=td.get('category', ''),
+            tags=td.get('tags', []),
+            description=td.get('description', ''),
+            is_draft=True,
+            created_by=request.user,
+        )
+        return Response({
+            'code': 2000, 'msg': f'已导入模板: {template.name}',
+            'data': FlowTemplateSerializer(template).data,
+        })
+
+    @action(detail=False, methods=['get'])
+    def categories(self, request):
+        """返回所有已使用的类别列表"""
+        cats = FlowTemplate.objects.values('category').distinct().order_by('category')
+        data = [c['category'] for c in cats if c['category']]
+        return Response({'code': 2000, 'msg': 'success', 'data': data})
+
+    @action(detail=True, methods=['get', 'post'])
+    def hook_variables(self, request, pk=None):
+        """获取或更新可提升的全局变量配置"""
+        template = self.get_object()
+        if request.method == 'GET':
+            return Response({
+                'code': 2000, 'msg': 'success',
+                'data': template.hook_variables or {},
+            })
+        hook_vars = request.data.get('hook_variables', request.data)
+        template.hook_variables = hook_vars
+        template.save(update_fields=['hook_variables'])
+        return Response({
+            'code': 2000, 'msg': '变量配置已更新',
+            'data': template.hook_variables,
+        })

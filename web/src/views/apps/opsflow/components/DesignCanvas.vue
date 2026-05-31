@@ -39,7 +39,16 @@
       </button>
       <div id="design-canvas-container" ref="canvasRef" class="x6-canvas" />
       <div ref="minimapRef" class="minimap-container" :style="{ left: stencilCollapsed ? '32px' : '250px' }" />
-      <PropertyPanel v-if="selectedNode" :node-data="selectedNode" @update="onNodeUpdate" />
+      <PropertyPanel
+        v-if="selectedNode"
+        :node-data="selectedNode"
+        @update="onNodeUpdate"
+      />
+      <PropertyPanel
+        v-else-if="selectedEdge"
+        :edge-data="selectedEdge"
+        @update="onEdgeUpdate"
+      />
     </div>
   </div>
 </template>
@@ -71,7 +80,7 @@ const emit = defineEmits<{
 }>()
 
 const {
-  graph, stencil, selectedNode,
+  graph, stencil, selectedNode, selectedEdge,
   initGraph, initStencil, loadGraphData, getGraphData,
   aiLayout, onTaskNodeDropped,
   zoomIn, zoomOut, fitCanvas, zoomLevel,
@@ -129,6 +138,18 @@ function onNodeUpdate(newData: any) {
         node.setLabel(label)
         node.setAttrs({ label: { text: label } })
       }
+    }
+  }
+}
+
+function onEdgeUpdate(newData: any) {
+  if (graph.value && selectedEdge.value) {
+    const edge = graph.value.getCellById(selectedEdge.value.id)
+    if (edge) {
+      const prev = edge.getData() || {}
+      edge.setData({ ...prev, condition: newData.condition || '' })
+      // 更新本地 selectedEdge 引用
+      selectedEdge.value = { ...selectedEdge.value, condition: newData.condition || '' }
     }
   }
 }

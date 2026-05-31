@@ -14,6 +14,22 @@ export function GetDashboardScheduleStats(params?: any) {
   return request({ url: prefix + 'dashboard/schedule-stats/', method: 'get', params })
 }
 
+export function GetDashboardTopTemplates(params?: any) {
+  return request({ url: prefix + 'dashboard/top-templates/', method: 'get', params })
+}
+
+export function GetDashboardUserActivity(params?: any) {
+  return request({ url: prefix + 'dashboard/user-activity/', method: 'get', params })
+}
+
+export function GetDashboardStatusDistribution(params?: any) {
+  return request({ url: prefix + 'dashboard/status-distribution/', method: 'get', params })
+}
+
+export function GetDashboardNodeTypeDistribution(params?: any) {
+  return request({ url: prefix + 'dashboard/node-type-distribution/', method: 'get', params })
+}
+
 /* ---------- Mock data (used when backend API is unavailable) ---------- */
 
 function daysAgo(n: number): string {

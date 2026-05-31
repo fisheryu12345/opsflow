@@ -37,7 +37,8 @@ class FormItem(BaseModel):
     attrs: Dict[str, Any] = {}         # placeholder, options, multiple, min, max ...
     default: Any = None
     hidden: bool = False
-    hookable: bool = False             # 是否可提升为全局变量
+    hookable: bool = False             # 是否可提升为全局变量（Deprecated: 使用 scope）
+    scope: str = "local"               # "local"（节点本地）或 "global"（可被其他节点引用）
     validation: List[ValidationRule] = []
     events: List[FormEvent] = []
     col: int = 12                      # 栅格宽度 1-12

@@ -1,7 +1,7 @@
 import logging
 from datetime import timedelta
 
-from django.db.models import Count, Avg, Sum, Q, F
+from django.db.models import Count, Avg, Sum, Q, F, Max
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -9,7 +9,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..models import FlowTemplate, FlowExecution, OpsLog, SchedulePlan
+from ..models import FlowTemplate, FlowExecution, NodeExecutionTrace, OpsLog, SchedulePlan
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +153,10 @@ def dashboard_stats(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def dashboard_trend(request):
-    """Return execution trend data per day for the last N days (default 30)."""
+    """Return execution trend data per day for the last N days (default 30).
+
+    包含 avg_duration（当日已完成执行的平均耗时，精确到秒）。
+    """
     days = int(request.GET.get("days", 30))
     since = timezone.now() - timedelta(days=days)
 
@@ -166,6 +169,24 @@ def dashboard_trend(request):
         .annotate(cnt=Count("id"))
         .order_by("date")
     )
+
+    # Per-date avg duration (only for executions with started_at and ended_at)
+    duration_rows = (
+        FlowExecution.objects.filter(
+            created_at__gte=since,
+            started_at__isnull=False,
+            ended_at__isnull=False,
+        )
+        .annotate(date=TruncDate("created_at"))
+        .values("date")
+        .annotate(avg_dur=Avg(F("ended_at") - F("started_at")))
+        .order_by("date")
+    )
+    dur_map: dict[str, int] = {}
+    for r in duration_rows:
+        d = str(r["date"])
+        if r["avg_dur"] is not None:
+            dur_map[d] = round(r["avg_dur"].total_seconds())
 
     # Group by date
     trend_map: dict[str, dict] = {}
@@ -186,9 +207,105 @@ def dashboard_trend(request):
     for i in range(days):
         d = (timezone.now() - timedelta(days=days - 1 - i)).strftime("%Y-%m-%d")
         entry = trend_map.get(d, {"date": d, "total": 0, "completed": 0, "failed": 0, "cancelled": 0, "avg_duration": 0})
+        entry["avg_duration"] = dur_map.get(d, 0)
         result.append(entry)
 
     return Response({"code": 2000, "msg": "success", "data": result})
+
+
+# ── 仪表盘新增端点 ─────────────────────────────────────────────
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_top_templates(request):
+    """按执行次数排名的模板 Top N（含成功率和平均耗时）"""
+    limit = int(request.GET.get("limit", 8))
+    from django.db.models.functions import Round
+
+    rows = (
+        FlowExecution.objects.values(tid=F("template_id"), template_name=F("template__name"))
+        .annotate(
+            count=Count("id"),
+            completed=Count("id", filter=Q(status="completed")),
+            failed=Count("id", filter=Q(status="failed")),
+            avg_duration=Avg(F("ended_at") - F("started_at")),
+        )
+        .order_by("-count")[:limit]
+    )
+
+    data = []
+    for r in rows:
+        total_finished = (r["completed"] or 0) + (r["failed"] or 0)
+        success_rate = round(r["completed"] / total_finished * 100, 1) if total_finished else 0
+        avg_sec = 0
+        if r["avg_duration"] is not None:
+            avg_sec = round(r["avg_duration"].total_seconds())
+        data.append({
+            "id": r["tid"],
+            "name": r["template_name"],
+            "count": r["count"],
+            "avg_duration": avg_sec,
+            "success_rate": success_rate,
+        })
+    return Response({"code": 2000, "msg": "success", "data": data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_user_activity(request):
+    """用户执行活动统计"""
+    limit = int(request.GET.get("limit", 10))
+    rows = (
+        FlowExecution.objects.values(username=F("created_by__username"))
+        .annotate(
+            execution_count=Count("id"),
+            template_count=Count("template_id", distinct=True),
+            last_active=Max("created_at"),
+        )
+        .order_by("-execution_count")[:limit]
+    )
+    data = []
+    for r in rows:
+        data.append({
+            "username": r["username"] or "unknown",
+            "execution_count": r["execution_count"],
+            "template_count": r["template_count"],
+            "last_active": r["last_active"].strftime("%Y-%m-%d") if r["last_active"] else None,
+        })
+    return Response({"code": 2000, "msg": "success", "data": data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_status_distribution(request):
+    """执行状态分布"""
+    status_labels = {
+        "pending": "待执行", "running": "执行中", "completed": "已完成",
+        "failed": "失败", "cancelled": "已取消", "paused": "已暂停",
+    }
+    rows = FlowExecution.objects.values("status").annotate(count=Count("id")).order_by("status")
+    data = [
+        {"status": r["status"], "count": r["count"], "label": status_labels.get(r["status"], r["status"])}
+        for r in rows
+    ]
+    return Response({"code": 2000, "msg": "success", "data": data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_node_type_distribution(request):
+    """节点类型分布（从 NodeExecutionTrace 按 atom_type 统计）"""
+    rows = (
+        NodeExecutionTrace.objects.values("atom_type")
+        .annotate(count=Count("id"))
+        .order_by("-count")[:15]
+    )
+    data = []
+    for r in rows:
+        label = r["atom_type"] or "unknown"
+        data.append({"type": r["atom_type"] or "unknown", "count": r["count"], "label": label})
+    return Response({"code": 2000, "msg": "success", "data": data})
 
 
 @api_view(["GET"])

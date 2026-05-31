@@ -38,6 +38,12 @@ export function CancelExecution(id: number) {
   return request({ url: prefix + `executions/${id}/cancel/`, method: 'post' })
 }
 
+export function ForceFailNode(id: number, node_id: string, reason?: string) {
+  const data: any = { node_id }
+  if (reason) data.reason = reason
+  return request({ url: prefix + `executions/${id}/force_fail/`, method: 'post', data })
+}
+
 // -- Traces --
 
 export function GetExecutionTraces(id: number, node_id?: string) {

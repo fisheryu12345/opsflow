@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    :title="`${templateName} - 调度计划`"
+    :title="displayName"
     v-model="visible"
     width="1000px"
     top="5vh"
@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   GetSchedulePlans,
@@ -61,6 +61,10 @@ const list = ref<any[]>([])
 const loading = ref(false)
 const formVisible = ref(false)
 const editingPlan = ref<any>(null)
+const displayName = computed(() => {
+  const name = props.templateName || ''
+  return (name.length > 20 ? name.slice(0, 20) + '…' : name) + ' - 调度计划'
+})
 
 watch(
   () => props.modelValue,

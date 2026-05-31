@@ -8,7 +8,7 @@ from celery import shared_task
 logger = logging.getLogger(__name__)
 
 # WebSocket 通知的超时秒数。超过此时间未完成则放弃推送，避免阻塞 worker greenlet。
-_NOTIFY_TIMEOUT = 5
+_NOTIFY_TIMEOUT = 15
 
 
 def run_async(coro):
@@ -21,16 +21,18 @@ def run_async(coro):
     - 有运行中循环 → run_coroutine_threadsafe + timeout 防止死锁
     - 无运行中循环 → 创建临时事件循环执行并关闭
 
-    WS 推送是 best-effort 通知，5s 超时后放弃、记录警告、不抛异常。
+    WS 推送是 best-effort 通知，避免阻塞 worker。
     """
+    import uuid
+    _req_id = uuid.uuid4().hex[:8]
     try:
         loop = asyncio.get_running_loop()
         future = asyncio.run_coroutine_threadsafe(coro, loop)
         return future.result(timeout=_NOTIFY_TIMEOUT)
     except concurrent.futures.TimeoutError:
         logger.warning(
-            "run_async timed-out after %ss (WS message lost, pipeline continues)",
-            _NOTIFY_TIMEOUT,
+            "[req=%s] run_async timed-out after %ss (WS message lost, pipeline continues)",
+            _req_id, _NOTIFY_TIMEOUT,
         )
         return None
     except RuntimeError:
@@ -109,8 +111,16 @@ def notify_node_status(execution_id, node_id, status, message=''):
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)
-def retry_schedule_execution(self, plan_id):
-    """Celery 任务 — 重试调度计划执行"""
+def retry_schedule_execution(self, plan_id, plan_max_retries=None):
+    """Celery 任务 — 重试调度计划执行
+
+    Args:
+        plan_id: SchedulePlan ID
+        plan_max_retries: 来自 plan.max_retries，覆盖 task 默认值
+    """
+    # 用 plan.max_retries 覆盖任务的默认 max_retries
+    if plan_max_retries is not None and plan_max_retries > 0:
+        self.max_retries = plan_max_retries
     from opsflow.core.scheduler_service import opsflow_scheduler
     try:
         opsflow_scheduler._execute_plan(plan_id)

@@ -71,13 +71,34 @@ def _execute_plan(plan_id: int):
         return
 
     try:
-        execution = FlowExecution.objects.create(
-            template=plan.template,
-            status=FlowExecution.Status.PENDING,
-            context={'pipeline_tree': plan.template.pipeline_tree},
-            created_by=plan.created_by,
-            schedule_plan=plan,
-        )
+        # 使用调度创建时的快照（实现模板修改与调度执行隔离）
+        ss = plan.template_snapshot
+        if ss and 'pipeline_tree' in ss:
+            # 结构化格式（新）：{'pipeline_tree', 'target_hosts', 'global_vars'}
+            execution = FlowExecution.objects.create(
+                template=plan.template,
+                status=FlowExecution.Status.PENDING,
+                template_snapshot={
+                    'pipeline_tree': ss['pipeline_tree'],
+                    'target_hosts': ss.get('target_hosts', []),
+                    'global_vars': ss.get('global_vars', {}),
+                },
+                created_by=plan.created_by,
+                schedule_plan=plan,
+            )
+        else:
+            # 旧格式：plan.template_snapshot 本身就是一个 pipeline_tree
+            execution = FlowExecution.objects.create(
+                template=plan.template,
+                status=FlowExecution.Status.PENDING,
+                template_snapshot={
+                    'pipeline_tree': ss or plan.template.pipeline_tree,
+                    'target_hosts': plan.template.target_hosts or [],
+                    'global_vars': plan.template.global_vars or {},
+                },
+                created_by=plan.created_by,
+                schedule_plan=plan,
+            )
         engine = FlowEngine(execution)
         engine.start(sync=False)
 
@@ -97,9 +118,8 @@ def _execute_plan(plan_id: int):
         if plan.max_retries > 0:
             from opsflow.tasks import retry_schedule_execution
             retry_schedule_execution.apply_async(
-                args=[plan_id],
+                args=[plan_id, plan.max_retries],
                 countdown=plan.retry_delay,
-                max_retries=plan.max_retries,
             )
 
 

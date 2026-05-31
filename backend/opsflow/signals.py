@@ -54,6 +54,10 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
         _update_state_tree(execution, node_id, to_state)
         # 节点执行轨迹记录
         _record_node_trace(execution, node_id, to_state)
+        # 记录当前正在执行的节点（用于前端高亮 + API 查询）
+        if to_state == states.RUNNING:
+            execution.current_node = node_id
+            execution.save(update_fields=["current_node"])
         if to_state in (states.FINISHED, states.FAILED):
             _log_node_result(execution, node_id, is_failed=(to_state == states.FAILED))
             _write_node_trace_log(execution, node_id, is_failed=(to_state == states.FAILED))
@@ -64,15 +68,23 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
 
 def _handle_root_state_change(execution, to_state):
     """处理根 pipeline 节点状态变化 — 更新 FlowExecution.status"""
-    if to_state == states.FINISHED:
-        execution.status = "completed"
+    mapped = map_bamboo_node_state(to_state)
+    if not mapped:
+        return
+    try:
+        target = PipelineState(mapped.value)
+    except ValueError:
+        return
+
+    if target == PipelineState.COMPLETED:
+        execution.status = PipelineState.COMPLETED
         execution.ended_at = datetime.datetime.now()
         execution.save(update_fields=["status", "ended_at"])
         _notify_completed(execution)
         logger.info("[Signal] pipeline %s completed", execution.id)
 
-    elif to_state == states.FAILED:
-        execution.status = "failed"
+    elif target == PipelineState.FAILED:
+        execution.status = PipelineState.FAILED
         execution.ended_at = datetime.datetime.now()
         execution.save(update_fields=["status", "ended_at"])
         # 触发失败节点回滚
@@ -85,27 +97,35 @@ def _handle_root_state_change(execution, to_state):
         _notify_completed(execution)
         logger.info("[Signal] pipeline %s failed", execution.id)
 
-    elif to_state == states.REVOKED:
-        execution.status = "cancelled"
+    elif target == PipelineState.CANCELLED:
+        execution.status = PipelineState.CANCELLED
         execution.ended_at = datetime.datetime.now()
         execution.save(update_fields=["status", "ended_at"])
         _notify_completed(execution)
 
-    elif to_state == states.SUSPENDED:
-        execution.status = "paused"
+    elif target == PipelineState.PAUSED:
+        execution.status = PipelineState.PAUSED
         execution.save(update_fields=["status"])
 
-    elif to_state == states.RUNNING:
-        execution.status = "running"
+    elif target == PipelineState.RUNNING:
+        execution.status = PipelineState.RUNNING
         execution.save(update_fields=["status"])
 
 
 def _update_execution_node_status(execution, node_id, to_state):
-    """将节点状态持久化到 FlowExecution.node_status（JSONField）"""
+    """将节点状态持久化到 FlowExecution.node_status（JSONField）
+
+    覆盖所有 bamboo-engine 状态：READY/RUNNING/FINISHED/FAILED/
+    SUSPENDED/REVOKED/BLOCKED，确保 node_status 完整反映节点生命周期。
+    """
     status_map = {
+        states.READY: "pending",
+        states.RUNNING: "running",
         states.FINISHED: "completed",
         states.FAILED: "failed",
-        states.RUNNING: "running",
+        states.SUSPENDED: "paused",
+        states.REVOKED: "cancelled",
+        states.BLOCKED: "blocked",
     }
     mapped = status_map.get(to_state)
     if not mapped:
@@ -311,6 +331,10 @@ def _log_node_result(execution, node_id, is_failed):
     error = outputs.get("_error", "")
     returncode = outputs.get("returncode", -1 if is_failed else 0)
 
+    # 从 execution context 中获取操作人（手动 retry/skip/force_fail 时记录）
+    ctx = execution.context or {}
+    approved_by = ctx.get("_last_operator", "")
+
     OpsLog.objects.create(
         execution=execution,
         step=node_id,
@@ -319,6 +343,7 @@ def _log_node_result(execution, node_id, is_failed):
         stderr=str(error) if error else stderr,
         returncode=returncode,
         risk_level="medium" if is_failed else "low",
+        approved_by=approved_by,
     )
 
 

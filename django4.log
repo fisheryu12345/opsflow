@@ -1,0 +1,22 @@
+C:\Users\dell\Desktop\Vue\.venv\Lib\site-packages\drf_yasg\__init__.py:2: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import DistributionNotFound, get_distribution
+[INFO] 当前IP地址 ['172.19.144.1', '192.168.31.1', '192.168.81.1', '192.168.1.36'] 不是目标IP 172.25.21.216，跳过启动定时器
+update example_component component model
+update pipe_example_component component model
+update component models
+update component models finish
+[2026-06-01 01:45:50][opsflow.plugins.registry.discover_plugins():50] [INFO] 插件注册完成: 共 43 个, 9 个分组
+[2026-06-01 01:45:58][opsflow.plugins.registry.sync_plugin_meta_to_db():104] [INFO] PluginMeta 同步完成: 43 条
+[2026-06-01 01:45:58][apscheduler.scheduler.start():214] [INFO] Scheduler started
+[2026-06-01 01:45:58][opsflow.core.scheduler_service.start():140] [INFO] OpsflowScheduler started
+[2026-06-01 01:45:58][opsflow.apps.ready():32] [INFO] OpsFlow 调度器已自动启动（dev 模式）
+Performing system checks...
+
+System check identified no issues (0 silenced).
+June 01, 2026 - 01:46:01
+Django version 4.2.7, using settings 'application.settings'
+Starting ASGI/Channels version 3.0.5 development server at http://0.0.0.0:8000/
+Quit the server with CTRL-BREAK.
+[2026-06-01 01:46:01][daphne.server.run():113] [INFO] HTTP/2 support not enabled (install the http2 and tls Twisted extras)
+[2026-06-01 01:46:01][daphne.server.run():122] [INFO] Configuring endpoint tcp:port=8000:interface=0.0.0.0
+[2026-06-01 01:46:01][daphne.server.listen_error():160] [CRITICAL] Listen failure: Couldn't listen on 0.0.0.0:8000: [WinError 10048] 通常每个套接字地址(协议/网络地址/端口)只允许使用一次。.

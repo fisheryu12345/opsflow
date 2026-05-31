@@ -8,6 +8,7 @@
         :is="tagComponent"
         v-bind="tagProps"
         :model-value="value"
+        :form-data="formData"
         @update:model-value="onChange"
       />
       <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
@@ -19,7 +20,7 @@
 import { computed, ref } from 'vue'
 import {
   TagInput, TagSelect, TagTextarea, TagCheckbox,
-  TagRadio, TagInt, TagCodeEditor, TagDatetime, TagHostSelector,
+  TagRadio, TagInt, TagCodeEditor, TagDatetime, TagHostSelector, TagAsyncSelect,
 } from './tags'
 
 const TAG_MAP: Record<string, any> = {
@@ -32,11 +33,13 @@ const TAG_MAP: Record<string, any> = {
   code_editor: TagCodeEditor,
   datetime: TagDatetime,
   host_selector: TagHostSelector,
+  async_select: TagAsyncSelect,
 }
 
 const props = withDefaults(defineProps<{
   config: any
   value?: any
+  formData?: any
 }>(), {})
 
 const emit = defineEmits<{ update: [value: any] }>()
