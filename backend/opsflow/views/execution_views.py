@@ -93,3 +93,14 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
         engine = FlowEngine(execution)
         engine.skip(node_id)
         return Response({'code': 2000, 'msg': f'已跳过节点 {node_id}', 'data': None})
+
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        """取消终止执行"""
+        execution = self.get_object()
+        if execution.status not in ('running', 'paused', 'pending'):
+            return Response({'code': 4000, 'msg': '当前状态不允许取消', 'data': None},
+                            status=status.HTTP_400_BAD_REQUEST)
+        engine = FlowEngine(execution)
+        engine.cancel()
+        return Response({'code': 2000, 'msg': '已取消', 'data': FlowExecutionSerializer(execution).data})

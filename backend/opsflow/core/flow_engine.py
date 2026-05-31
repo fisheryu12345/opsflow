@@ -102,6 +102,23 @@ class FlowEngine:
             self.execution.node_status = node_status
             self.execution.save(update_fields=["node_status"])
 
+    def cancel(self):
+        """取消终止执行 — 撤销 pipeline 并标记为 cancelled"""
+        bamboo_pipeline_id = self.execution.context.get("bamboo_pipeline_id")
+        if bamboo_pipeline_id:
+            runtime = BambooDjangoRuntime()
+            result = pipeline_api.revoke_pipeline(runtime, bamboo_pipeline_id)
+            if not result.result:
+                logger.error("[FlowEngine] cancel failed: %s", result.message)
+        self.execution.status = "cancelled"
+        self.execution.ended_at = datetime.datetime.now()
+        self.execution.save(update_fields=["status", "ended_at"])
+        self._send_ws_completed()
+        logger.info(
+            "[FlowEngine] execution %s cancelled",
+            self.execution.id,
+        )
+
     # -- Run ------------------------------------------------------------------
 
     def run(self):

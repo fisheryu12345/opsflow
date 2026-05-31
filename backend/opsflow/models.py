@@ -34,6 +34,7 @@ class FlowExecution(models.Model):
         PAUSED = 'paused', '已暂停'
         COMPLETED = 'completed', '已完成'
         FAILED = 'failed', '失败'
+        CANCELLED = 'cancelled', '已取消'
 
     template = models.ForeignKey(
         FlowTemplate, on_delete=models.PROTECT, related_name='executions',

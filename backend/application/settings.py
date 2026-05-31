@@ -477,9 +477,9 @@ CELERY_TASK_DEFAULT_QUEUE = 'default'
 #  由 BambooDjangoRuntime 内部调度节点执行和轮询/回调任务             #
 # ------------------------------------------------------------------ #
 CELERY_TASK_QUEUES = [
-    Queue('default'),
-    Queue('er_execute'),
-    Queue('er_schedule'),
+    Queue('default', routing_key='default'),
+    Queue('er_execute', routing_key='er_execute'),
+    Queue('er_schedule', routing_key='er_schedule'),
 ]
 
 # ------------------------------------------------------------------ #

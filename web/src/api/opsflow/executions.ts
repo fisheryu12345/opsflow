@@ -33,3 +33,7 @@ export function RetryNode(id: number, node_id: string) {
 export function SkipNode(id: number, node_id: string) {
   return request({ url: prefix + `executions/${id}/skip_node/`, method: 'post', data: { node_id } })
 }
+
+export function CancelExecution(id: number) {
+  return request({ url: prefix + `executions/${id}/cancel/`, method: 'post' })
+}

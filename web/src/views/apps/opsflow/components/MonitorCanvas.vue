@@ -31,6 +31,8 @@
         </div>
       </div>
       <div class="monitor-header-right">
+        <el-button v-if="showCancel" type="danger" size="small" :loading="cancelling"
+                   @click="$emit('cancel')">Cancel</el-button>
         <div class="zoom-controls">
           <el-button size="small" text :icon="ZoomIn" @click="zoomIn" />
           <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
@@ -66,7 +68,8 @@ import { Monitor, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
 import { useMonitor } from '../composables/useMonitor'
 import { resolveNodeShape } from '../utils/shapes'
 
-const props = defineProps<{ executionId: number; startedAt?: string; endedAt?: string }>()
+const props = defineProps<{ executionId: number; startedAt?: string; endedAt?: string; showCancel?: boolean; cancelling?: boolean }>()
+const emit = defineEmits<{ cancel: [] }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
 let graph: Graph | null = null
@@ -98,7 +101,7 @@ const progressStatus = computed(() => {
 })
 
 const statusColor = computed(() => ({
-  completed: '#67c23a', running: '#e6a23c', failed: '#f56c6c', paused: '#909399',
+  completed: '#67c23a', running: '#e6a23c', failed: '#f56c6c', paused: '#909399', cancelled: '#909399',
 })[executionStatus.value] || '#909399')
 const durationText = computed(() => {
   const s = props.startedAt

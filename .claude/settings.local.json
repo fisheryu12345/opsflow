@@ -330,7 +330,21 @@
       "Bash(celery -A application status)",
       "Bash(python -m celery -A application status)",
       "Bash(python -m celery -A application inspect reserved)",
-      "Bash(python -m celery -A application inspect scheduled)"
+      "Bash(python -m celery -A application inspect scheduled)",
+      "Bash(python -c \"import pipeline.eri.runtime; import os; print\\(os.path.dirname\\(pipeline.eri.runtime.__file__\\)\\)\")",
+      "Bash(python -c \"import site; print\\(site.getsitepackages\\(\\)\\)\")",
+      "Bash(python -c \"import os; import pipeline.eri.runtime; print\\(os.path.dirname\\(pipeline.eri.runtime.__file__\\)\\)\")",
+      "Bash(python -c \"import os; import pipeline; print\\(os.path.dirname\\(pipeline.__file__\\)\\)\")",
+      "Bash(dir /s /b \"C:\\\\Users\\\\dell\\\\AppData\\\\Roaming\\\\Python\\\\Python314\\\\site-packages\\\\pipeline\\\\eri\\\\tasks.py\")",
+      "Bash(dir /s /b \"C:\\\\Users\\\\dell\\\\AppData\\\\Roaming\\\\Python\\\\Python314\\\\site-packages\\\\pipeline\\\\eri\")",
+      "Bash(dir /s /b \"C:\\\\Users\\\\dell\\\\AppData\\\\Roaming\\\\Python\\\\Python314\\\\site-packages\\\\pipeline\\\\eri\\\\celery\")",
+      "Bash(python -c \"import os; import bamboo_engine.api; print\\(os.path.dirname\\(bamboo_engine.api.__file__\\)\\)\")",
+      "Bash(tasklist /V)",
+      "Bash(redis-cli -n 0 LLEN default)",
+      "Bash(redis-cli -n 0 KEYS '*')",
+      "Bash(nohup python -m celery -A application worker -Q er_execute,er_schedule,default -l info -P solo --without-gossip --without-mingle --without-heartbeat)",
+      "Read(//tmp/**)",
+      "Bash(timeout 8 python -m celery -A application worker -Q er_execute,er_schedule,default -l info -P solo --without-gossip --without-mingle --without-heartbeat)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

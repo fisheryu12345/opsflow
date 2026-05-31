@@ -2,6 +2,7 @@ import functools
 import os
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'application.settings')
+os.environ.setdefault('DJANGO_ALLOW_ASYNC_UNSAFE', 'true')
 
 from django.conf import settings
 from celery import platforms
@@ -15,7 +16,11 @@ from celery import platforms
 from celery import Celery
 
 app = Celery('application')
-    
+app.set_default()
+# 将本 Celery 实例设为全局默认，使 @shared_task（本质是 @current_app.task()）注册到此实例。
+# opsflow/tasks.py 和 stock/tasks/send_mail.py 中的 @shared_task 依赖此行为，
+# 否则它们会注册到 Celery 内部无配置的默认实例，导致 broker 配置丢失、任务无法执行。
+
 app.config_from_object('django.conf:settings',namespace='CELERY')
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 platforms.C_FORCE_ROOT = True

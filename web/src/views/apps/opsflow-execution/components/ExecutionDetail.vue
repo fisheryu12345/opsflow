@@ -19,6 +19,8 @@
                    @click="onResume">Resume</el-button>
         <el-button type="danger" :disabled="selectedNodeId === null" @click="onRetry">Retry</el-button>
         <el-button type="info" :disabled="selectedNodeId === null" @click="onSkip">Skip</el-button>
+        <el-button type="danger" :disabled="!isCancelable"
+                   :loading="cancelling" @click="onCancel">Cancel</el-button>
         <el-button type="info" @click="refresh">Refresh</el-button>
       </div>
     </div>
@@ -28,7 +30,9 @@
     <div class="detail-body">
       <div class="canvas-panel">
         <MonitorCanvas ref="monitorRef" :execution-id="execution.id"
-                        :started-at="execDetail.started_at" :ended-at="execDetail.ended_at" />
+                        :started-at="execDetail.started_at" :ended-at="execDetail.ended_at"
+                        :show-cancel="isCancelable"
+                        :cancelling="cancelling" @cancel="onCancel" />
       </div>
       <button class="side-toggle" :class="{ collapsed: logCollapsed }" @click="toggleLogPanel">
         <el-icon><component :is="logCollapsed ? DArrowLeft : DArrowRight" /></el-icon>
@@ -62,7 +66,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onActivated, onBeforeUnmount, nextTick, watch } from 'vue'
 import { ArrowLeft, Refresh, Monitor, Document, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
-import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode } from '/@/api/opsflow/executions'
+import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode, CancelExecution } from '/@/api/opsflow/executions'
 import { GetTemplateDetail } from '/@/api/opsflow/templates'
 import { GetLogs } from '/@/api/opsflow/logs'
 import MonitorCanvas from '/@/views/apps/opsflow/components/MonitorCanvas.vue'
@@ -77,20 +81,22 @@ const logsLoading = ref(false)
 const starting = ref(false)
 const pausing = ref(false)
 const resuming = ref(false)
+const cancelling = ref(false)
 const selectedNodeId = ref<string | null>(null)
 const execDetail = ref<any>(props.execution)
 const logCollapsed = ref(true)
 function toggleLogPanel() { logCollapsed.value = !logCollapsed.value }
 
 const statusLabel = computed(() => {
-  const map: Record<string, string> = { pending: 'Pending', running: 'Running', paused: 'Paused', completed: 'Completed', failed: 'Failed' }
+  const map: Record<string, string> = { pending: 'Pending', running: 'Running', paused: 'Paused', completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled' }
   return map[execDetail.value.status] || execDetail.value.status
 })
 const statusTagType = computed(() => {
-  const map: Record<string, string> = { pending: 'info', running: 'warning', paused: 'info', completed: 'success', failed: 'danger' }
+  const map: Record<string, string> = { pending: 'info', running: 'warning', paused: 'info', completed: 'success', failed: 'danger', cancelled: 'info' }
   return map[execDetail.value.status] || 'info'
 })
 const isRunning = computed(() => ['pending', 'running', 'paused'].includes(execDetail.value.status))
+const isCancelable = computed(() => ['running', 'paused', 'pending'].includes(execDetail.value.status))
 
 
 function logTagType(status: string) {
@@ -196,6 +202,16 @@ async function onRetry() {
 async function onSkip() {
   if (!selectedNodeId.value) return
   try { await SkipNode(props.execution.id, selectedNodeId.value); await fetchLogs() } catch { /* ignore */ }
+}
+async function onCancel() {
+  cancelling.value = true
+  try {
+    await CancelExecution(props.execution.id)
+    execDetail.value.status = 'cancelled'
+    monitorRef.value?.setExecutionStatus?.('cancelled')
+    emit('executionUpdate', { ...execDetail.value })
+  } catch (e: any) { /* ignore */ }
+  cancelling.value = false
 }
 
 // Auto-refresh while execution is active (pending/running/paused)

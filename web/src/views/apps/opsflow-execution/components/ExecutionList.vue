@@ -6,13 +6,14 @@
                  @change="fetchExecutions">
         <el-option v-for="t in templates" :key="t.id" :label="t.name" :value="t.id" />
       </el-select>
-      <el-select v-model="filterStatus" placeholder="All statuses" clearable multiple style="width: 180px"
+      <el-select v-model="filterStatus" placeholder="All statuses" clearable multiple style="width: 200px"
                  @change="fetchExecutions">
         <el-option label="Pending" value="pending" />
         <el-option label="Running" value="running" />
         <el-option label="Paused" value="paused" />
         <el-option label="Completed" value="completed" />
         <el-option label="Failed" value="failed" />
+        <el-option label="Cancelled" value="cancelled" />
       </el-select>
       <el-button :icon="Refresh" @click="fetchExecutions" :loading="loading">
         Refresh
@@ -122,15 +123,15 @@ const emptyText = computed(() => loading.value ? 'Loading...' : 'No executions y
 const selectedTemplate = computed(() => templates.value.find(t => t.id === createTemplateId.value))
 
 function statusColor(status: string) {
-  const map: Record<string, string> = { pending: '#909399', running: '#E6A23C', paused: '#909399', completed: '#67C23A', failed: '#F56C6C' }
+  const map: Record<string, string> = { pending: '#909399', running: '#E6A23C', paused: '#909399', completed: '#67C23A', failed: '#F56C6C', cancelled: '#909399' }
   return map[status] || '#909399'
 }
 function statusTagType(status: string) {
-  const map: Record<string, string> = { pending: 'info', running: 'warning', paused: 'info', completed: 'success', failed: 'danger' }
+  const map: Record<string, string> = { pending: 'info', running: 'warning', paused: 'info', completed: 'success', failed: 'danger', cancelled: 'info' }
   return map[status] || 'info'
 }
 function statusLabel(status: string) {
-  const map: Record<string, string> = { pending: 'Pending', running: 'Running', paused: 'Paused', completed: 'Completed', failed: 'Failed' }
+  const map: Record<string, string> = { pending: 'Pending', running: 'Running', paused: 'Paused', completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled' }
   return map[status] || status
 }
 function formatDuration(start: string, end: string) {

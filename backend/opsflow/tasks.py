@@ -16,7 +16,7 @@ def execute_pipeline_task(self, execution_id):
         raise self.retry(exc=exc)
 
 
-@shared_task
+@shared_task(queue='er_execute')
 def notify_node_status(execution_id, node_id, status, message=''):
     """Celery 任务 — 推送节点状态到 WebSocket"""
     from channels.layers import get_channel_layer
