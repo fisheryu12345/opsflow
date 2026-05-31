@@ -31,8 +31,6 @@
         </div>
       </div>
       <div class="monitor-header-right">
-        <el-button v-if="showCancel" type="danger" size="small" :loading="cancelling"
-                   @click="$emit('cancel')">Cancel</el-button>
         <div class="zoom-controls">
           <el-button size="small" text :icon="ZoomIn" @click="zoomIn" />
           <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
@@ -68,8 +66,7 @@ import { Monitor, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
 import { useMonitor } from '../composables/useMonitor'
 import { resolveNodeShape } from '../utils/shapes'
 
-const props = defineProps<{ executionId: number; startedAt?: string; endedAt?: string; showCancel?: boolean; cancelling?: boolean }>()
-const emit = defineEmits<{ cancel: [] }>()
+const props = defineProps<{ executionId: number; startedAt?: string; endedAt?: string }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
 let graph: Graph | null = null
