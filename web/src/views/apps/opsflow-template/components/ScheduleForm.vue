@@ -153,7 +153,7 @@ watch(
 // 无 templateId 时加载模板列表
 watch(visible, (val) => {
   if (val && !props.templateId && !templateOptions.value.length) {
-    GetTemplates().then((res: any) => {
+    GetTemplates({is_draft: false, limit: 999}).then((res: any) => {
       templateOptions.value = res.data || res.results || []
     }).catch(() => {})
   }
@@ -234,7 +234,10 @@ async function handleSubmit() {
     emit('saved')
     visible.value = false
   } catch (e: any) {
-    ElMessage.error(e?.msg || e?.message || '操作失败')
+    // 提取后端 DRF 验证错误（如 {template: ["仅已发布的模板可创建定时任务"]}）
+    const errData = e?.response?.data
+    const errMsg = errData?.template?.[0] || errData?.msg || e?.message || '操作失败'
+    ElMessage.error(errMsg)
   } finally {
     submitting.value = false
   }

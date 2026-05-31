@@ -163,3 +163,26 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f'  {"Created" if created else "Found"} menu: {template_menu.name} (id={template_menu.id})'
         ))
+
+        # --- 调度管理 ---
+        schedule_menu, created = Menu.objects.get_or_create(
+            name="调度管理",
+            web_path="/ops/schedules",
+            component="apps/opsflow-template/schedule",
+            component_name="opsflowSchedules",
+            defaults={
+                "icon": "iconfont icon-time",
+                "sort": 8,
+                "is_link": False,
+                "is_catalog": False,
+                "status": True,
+                "cache": True,
+                "visible": True,
+                "is_iframe": False,
+                "is_affix": False,
+                "parent": catalog,
+            },
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f'  {"Created" if created else "Found"} menu: {schedule_menu.name} (id={schedule_menu.id})'
+        ))

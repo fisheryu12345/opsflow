@@ -1,7 +1,18 @@
 <template>
   <div class="design-canvas-wrapper">
     <div class="canvas-body">
-      <div class="canvas-toolbar-float">
+      <div class="canvas-toolbar-float" :style="{ left: stencilCollapsed ? '32px' : '220px' }">
+        <el-select
+          :model-value="templateId"
+          placeholder="Select template"
+          clearable filterable
+          size="small"
+          style="width: 180px"
+          @change="(val: any) => emit('changeTemplate', val)"
+        >
+          <el-option v-for="t in templates" :key="t.id" :label="t.name" :value="t.id" />
+        </el-select>
+        <div class="toolbar-divider" />
         <el-button-group>
           <el-button size="small" circle :disabled="!canUndo" @click="undo" :icon="RefreshLeft" />
           <el-button size="small" circle :disabled="!canRedo" @click="redo" :icon="RefreshRight" />
@@ -27,7 +38,7 @@
         <el-icon><component :is="stencilCollapsed ? 'DArrowRight' : 'DArrowLeft'" /></el-icon>
       </button>
       <div id="design-canvas-container" ref="canvasRef" class="x6-canvas" />
-      <div ref="minimapRef" class="minimap-container" :style="{ left: stencilCollapsed ? '12px' : '230px' }" />
+      <div ref="minimapRef" class="minimap-container" :style="{ left: stencilCollapsed ? '32px' : '250px' }" />
       <PropertyPanel v-if="selectedNode" :node-data="selectedNode" @update="onNodeUpdate" />
     </div>
   </div>
@@ -44,11 +55,17 @@ import '@antv/x6-plugin-minimap/dist/index.css'
 import { useDesignCanvas } from '../composables/useDesignCanvas'
 import PropertyPanel from './PropertyPanel.vue'
 
+const props = defineProps<{
+  templates?: any[]
+  templateId?: number | null
+}>()
+
 const emit = defineEmits<{
   save: [data: any]
   diff: []
   analyze: []
   newTemplate: []
+  changeTemplate: [id: number | null]
 }>()
 
 const {
@@ -71,18 +88,25 @@ function toggleStencil() {
 
 // 接收外部传入的 pipeline 数据
 function loadPipeline(data: any) {
+  console.log('[loadPipeline] called, data:', !!data, 'nodes:', data?.nodes?.length, 'edges:', data?.edges?.length, 'graph exists:', !!graph.value)
   if (!data) {
     console.warn('[loadPipeline] called with empty data')
     return
   }
-  nextTick(() => {
+  const doLoad = () => {
+    if (!graph.value) {
+      console.warn('[loadPipeline] graph not ready, retrying...')
+      setTimeout(() => doLoad(), 100)
+      return
+    }
     try {
       loadGraphData(data)
     } catch (e) {
       console.error('[loadPipeline] loadGraphData error:', e)
       ElMessage.error('Failed to load pipeline data')
     }
-  })
+  }
+  nextTick(doLoad)
 }
 
 function onSave() {
@@ -105,15 +129,30 @@ function onNodeUpdate(newData: any) {
 }
 
 onMounted(() => {
-  initGraph(minimapRef.value)
+  console.log('[DesignCanvas] onMounted, container exists:', !!document.getElementById('design-canvas-container'))
+  if (document.getElementById('design-canvas-container')) {
+    const rect = document.getElementById('design-canvas-container')!.getBoundingClientRect()
+    console.log('[DesignCanvas] container rect:', rect)
+  }
+  try {
+    initGraph(minimapRef.value)
+    console.log('[DesignCanvas] initGraph complete, graph exists:', !!graph.value)
+  } catch (e) {
+    console.error('[DesignCanvas] initGraph error:', e)
+  }
   if (stencilRef.value) {
-    initStencil(stencilRef.value)
+    try {
+      initStencil(stencilRef.value)
+    } catch (e) {
+      console.error('[DesignCanvas] initStencil error:', e)
+    }
   }
   // 窗口变化时通知画布自适应
   const ro = new ResizeObserver(() => {
     graph.value?.resize()
   })
-  ro.observe(document.getElementById('design-canvas-container')!)
+  const containerEl = document.getElementById('design-canvas-container')
+  if (containerEl) ro.observe(containerEl)
   // 清理
   onBeforeUnmount(() => {
     ro.disconnect()
@@ -132,7 +171,6 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, zoomIn, zoomOut, fit
 .canvas-toolbar-float {
   position: absolute;
   top: 12px;
-  right: 12px;
   z-index: 100;
   display: flex;
   align-items: center;

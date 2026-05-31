@@ -45,8 +45,19 @@ def refine_pipeline(nl_input: str, nodes: list, edges: list, target_hosts: list 
     system_prompt = _build_system_prompt(target_hosts or [])
 
     existing = json.dumps({'nodes': nodes, 'edges': edges}, ensure_ascii=False, indent=2)
-    system_prompt += f'\n\nThis is the current Pipeline Tree. Modify it according to the user\'s new instructions:\n{existing}\n\n'
-    system_prompt += 'Note: Preserve most of the existing structure, only make incremental changes based on the instruction. Return only the complete JSON. No explanations. All output in English.'
+    system_prompt += f'\n\n===== Current Pipeline Tree (result of previous iterations) =====\n{existing}\n\n'
+    system_prompt += """===== Critical: Iterative Modification Rules =====
+You are in an iterative design conversation. The Pipeline Tree above is the result of previous iterations — DO NOT generate a brand new pipeline from scratch.
+
+Rules:
+1. Each new instruction is a MODIFICATION request on the EXISTING pipeline above.
+2. Preserve ALL existing nodes and edges that are still relevant. Only add, remove, or change specific parts based on the new instruction.
+3. If the user asks to add a step, INSERT new nodes/edges into the existing structure.
+4. If the user asks to change a step, MODIFY the relevant node's params/label/atom_type.
+5. If the user asks to remove a step, DELETE only those specific nodes and their edges (reconnect if needed).
+6. Return the COMPLETE updated pipeline JSON (including all unchanged parts), never return a diff or partial tree.
+7. Keep existing node IDs stable unless you have a specific reason to change them."""
+
 
     response = client.chat.completions.create(
         model=model,

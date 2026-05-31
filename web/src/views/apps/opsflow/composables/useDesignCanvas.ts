@@ -1,4 +1,4 @@
-import { ref, onBeforeUnmount, shallowRef, computed } from 'vue'
+import { ref, onBeforeUnmount, shallowRef } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Graph, Shape } from '@antv/x6'
 import { resolveNodeShape } from '../utils/shapes'
@@ -15,6 +15,9 @@ export function useDesignCanvas(containerId: string) {
   const graph = shallowRef<Graph | null>(null)
   const stencil = shallowRef<Stencil | null>(null)
   const selectedNode = ref<any>(null)
+
+  const canUndo = ref(false)
+  const canRedo = ref(false)
 
   function initGraph(minimapContainer?: HTMLElement | null) {
     if (graph.value) {
@@ -61,50 +64,32 @@ export function useDesignCanvas(containerId: string) {
     g.use(new Snapline({}))
     g.use(new Clipboard({}))
     g.use(new Selection({ rubberband: true, showNodeSelectionBox: true }))
-    // 小视窗（Minimap）
     if (minimapContainer) {
-      g.use(new MiniMap({
-        container: minimapContainer,
-        width: 200,
-        height: 140,
-      }))
+      g.use(new MiniMap({ container: minimapContainer, width: 200, height: 140 }))
     }
 
     // 事件
-    g.on('node:click', ({ node }) => {
-      selectedNode.value = node.getData()
-    })
-    g.on('blank:click', () => {
-      selectedNode.value = null
-    })
+    g.on('node:click', ({ node }) => { selectedNode.value = node.getData() })
+    g.on('blank:click', () => { selectedNode.value = null })
     g.on('node:change:data', ({ node }) => {
-      if (node.id === selectedNode.value?.id) {
-        selectedNode.value = node.getData()
-      }
+      if (node.id === selectedNode.value?.id) selectedNode.value = node.getData()
     })
-
-    // 连接桩 hover 显示/隐藏
     g.on('node:mouseenter', ({ node }) => {
-      node.getPorts().forEach(p => {
-        if (p.id) node.setPortProp(p.id, 'attrs/circle/opacity', 1)
-      })
+      node.getPorts().forEach(p => { if (p.id) node.setPortProp(p.id, 'attrs/circle/opacity', 1) })
     })
     g.on('node:mouseleave', ({ node }) => {
-      node.getPorts().forEach(p => {
-        if (p.id) node.setPortProp(p.id, 'attrs/circle/opacity', 0)
-      })
+      node.getPorts().forEach(p => { if (p.id) node.setPortProp(p.id, 'attrs/circle/opacity', 0) })
+    })
+    // 历史记录变化同步
+    g.on('history:change', () => {
+      canUndo.value = g.canUndo()
+      canRedo.value = g.canRedo()
     })
 
     // 键盘快捷键
     g.use(new Keyboard({ enabled: true }))
-    g.bindKey('del', () => {
-      const cells = g.getSelectedCells()
-      if (cells.length) g.removeCells(cells)
-    })
-    g.bindKey('backspace', () => {
-      const cells = g.getSelectedCells()
-      if (cells.length) g.removeCells(cells)
-    })
+    g.bindKey('del', () => { const c = g.getSelectedCells(); if (c.length) g.removeCells(c) })
+    g.bindKey('backspace', () => { const c = g.getSelectedCells(); if (c.length) g.removeCells(c) })
     g.bindKey('ctrl+c', () => g.copy(g.getSelectedCells()))
     g.bindKey('ctrl+v', () => g.paste({ offset: 32 }))
     g.bindKey('ctrl+z', () => g.undo())
@@ -430,8 +415,14 @@ export function useDesignCanvas(containerId: string) {
       }))
     }
 
+    console.log(`[loadGraphData] creating ${cells.length} cells total`)
+    // NOTE: 不能使用 { silent: true } — 会阻止 X6 视图层渲染 DOM，导致画布空白
     graph.value!.resetCells(cells)
+    // 清除历史快照，避免初始加载成为 undo 入口
+    graph.value!.clearHistory?.()
+    console.log('[loadGraphData] resetCells done, now centerContent')
     graph.value!.centerContent()
+    console.log('[loadGraphData] centerContent done, graph zoom:', graph.value?.zoom(), 'graph size:', graph.value?.getContentArea())
   }
 
   function getGraphData(): { nodes: any[]; edges: any[] } {
@@ -497,14 +488,6 @@ export function useDesignCanvas(containerId: string) {
 
   function redo() {
     graph.value?.redo()
-  }
-
-  function canUndo() {
-    return graph.value?.canUndo() ?? false
-  }
-
-  function canRedo() {
-    return graph.value?.canRedo() ?? false
   }
 
   const zoomLevel = ref(1)

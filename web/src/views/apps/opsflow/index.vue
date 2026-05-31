@@ -37,13 +37,13 @@
         <el-input
           v-model="nlInput"
           placeholder="Describe your ops task..."
-          :disabled="generating"
+          :disabled="!selectedTemplateId || generating"
           type="textarea"
           :rows="2"
           resize="none"
           @keydown.enter.prevent="onGenerate"
         />
-        <el-button type="primary" :loading="generating" @click="onGenerate" class="chat-send-btn">
+        <el-button type="primary" :loading="generating" :disabled="!selectedTemplateId" @click="onGenerate" class="chat-send-btn">
           Send
         </el-button>
       </div>
@@ -55,14 +55,9 @@
 
     <!-- 主体 -->
     <div class="opsflow-body">
-      <div class="template-bar">
-        <el-select v-model="selectedTemplateId" placeholder="Select template" clearable filterable
-                   style="width: 260px" @change="onSelectTemplate">
-          <el-option v-for="t in templates" :key="t.id" :label="t.name" :value="t.id" />
-        </el-select>
-      </div>
-      <DesignCanvas ref="designCanvasRef" @save="onSaveDraft" @diff="onDiff" @analyze="onAnalyze"
-                    @new-template="showNewTemplateDialog" />
+      <DesignCanvas ref="designCanvasRef" :templates="templates" :template-id="selectedTemplateId"
+                    @change-template="onSelectTemplate" @save="onSaveDraft" @diff="onDiff"
+                    @analyze="onAnalyze" @new-template="showNewTemplateDialog" />
     </div>
 
     <!-- 新模板对话框 -->
@@ -222,21 +217,29 @@ async function fetchTemplates() {
 }
 
 // 选择模板
-async function onSelectTemplate(id: number) {
+async function onSelectTemplate(id: any) {
+  selectedTemplateId.value = id
   if (!id) return
   try {
     const res = await GetTemplateDetail(id)
     console.log('[onSelectTemplate] raw response:', res)
     const template = res.data?.data || res.data || res
     console.log('[onSelectTemplate] template:', template, 'pipeline_tree:', template?.pipeline_tree)
+    if (template?.pipeline_tree) {
+      console.log('[onSelectTemplate] pipeline_tree nodes:', template.pipeline_tree.nodes?.length, 'edges:', template.pipeline_tree.edges?.length)
+    }
     store.setCurrentTemplate(template)
     if (designCanvasRef.value) {
-      if (template?.pipeline_tree && typeof template.pipeline_tree === 'object' && Object.keys(template.pipeline_tree).length > 0) {
+      console.log('[onSelectTemplate] designCanvasRef exists, calling loadPipeline')
+      if (template?.pipeline_tree && typeof template.pipeline_tree === 'object') {
         designCanvasRef.value.loadPipeline(template.pipeline_tree)
       } else {
-        ElMessage.warning('Template has no pipeline data')
-        console.warn('[onSelectTemplate] pipeline_tree is empty:', template?.pipeline_tree)
+        // pipeline_tree 为 null/非对象时加载空白画布（自动显示 Start→End）
+        console.log('[onSelectTemplate] pipeline_tree null or not object, loading empty')
+        designCanvasRef.value.loadPipeline({ nodes: [], edges: [] })
       }
+    } else {
+      console.warn('[onSelectTemplate] designCanvasRef is null!')
     }
   } catch (e: any) {
     console.error('[onSelectTemplate] Failed to load template', e)
@@ -250,6 +253,10 @@ const LAYOUT_KEYWORDS = ['布局', '排列', '对齐', '整理', '排版', '摆�
 async function onGenerate() {
   if (!nlInput.value.trim()) {
     ElMessage.warning('Please describe your ops task')
+    return
+  }
+  if (!selectedTemplateId.value) {
+    ElMessage.warning('请先选择模板')
     return
   }
   const input = nlInput.value.trim()
@@ -284,7 +291,7 @@ async function onGenerate() {
       } else {
         chatMessages.value.push({ role: 'ai', content: 'Layout optimization returned no results. Please try again.' })
       }
-    } else if (isFirst) {
+    } else if (isFirst && !selectedTemplateId.value) {
       const res = await CreateFromAi({ input })
       const data = res.data?.data || res.data
       if (data?.template) {
@@ -402,7 +409,14 @@ async function onDiffConfirmed() {
 
 
 onMounted(() => {
-  fetchTemplates()
+  fetchTemplates().then(() => {
+    // Auto-load template passed from template management via store
+    const pending = store.currentTemplate
+    if (pending && pending.id) {
+      selectedTemplateId.value = pending.id
+      onSelectTemplate(pending.id)
+    }
+  })
 })
 </script>
 
@@ -593,29 +607,6 @@ onMounted(() => {
   40% { transform: scale(1); opacity: 1; }
 }
 
-/* ===== Template Bar (above canvas) ===== */
-.template-bar {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(6px);
-  padding: 4px 12px;
-  border-radius: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(228, 231, 237, 0.6);
-}
-.template-bar-divider {
-  width: 1px;
-  height: 20px;
-  background: #dcdfe6;
-  margin: 0 8px;
-}
 
 /* ===== Body ===== */
 .opsflow-body {

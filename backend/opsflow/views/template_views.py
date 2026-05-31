@@ -11,7 +11,7 @@ from opsflow.core.llm_service import generate_pipeline, analyze_pipeline, refine
 from opsflow.core.layout import compute_layout
 from opsflow.core.safety_guard import validate_pipeline
 from opsflow.core.bamboo_builder import validate_bamboo_compatibility
-from dvadmin.utils.json_response import DetailResponse
+from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,36 @@ class FlowTemplateViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         return DetailResponse(data=serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return SuccessResponse(data=serializer.data, page=int(request.query_params.get('page', 1)),
+                                   limit=self.paginator.get_page_size(request) if hasattr(self.paginator, 'get_page_size') else 10,
+                                   total=self.paginator.page.paginator.count if hasattr(self.paginator, 'page') else queryset.count())
+        serializer = self.get_serializer(queryset, many=True)
+        return SuccessResponse(data=serializer.data, total=queryset.count())
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return DetailResponse(data=serializer.data, msg='success')
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return DetailResponse(data=serializer.data, msg='success')
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return Response({'code': 2000, 'msg': 'success', 'data': None})
 
     @action(detail=False, methods=['post'])
     def create_from_ai(self, request):

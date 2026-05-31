@@ -60,19 +60,34 @@
           <el-table-column prop="created_at" label="Created" width="160" />
           <el-table-column label="Actions" width="220" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" type="primary" link @click.stop="openView(row)">
-                <el-icon style="margin-right: 3px"><View /></el-icon>View
-              </el-button>
-              <el-button size="small" type="primary" link @click.stop="openEdit(row)">
-                <el-icon style="margin-right: 3px"><Edit /></el-icon>Edit
-              </el-button>
-              <el-button v-if="row.is_draft" size="small" type="success" link
-                         :loading="publishingId === row.id" @click.stop="handlePublish(row)">
-                <el-icon style="margin-right: 3px"><Upload /></el-icon>Publish
-              </el-button>
-              <el-button size="small" type="danger" link @click.stop="handleDelete(row)">
-                <el-icon style="margin-right: 3px"><Delete /></el-icon>Delete
-              </el-button>
+              <div class="action-icons">
+                <el-tooltip content="Edit" placement="top">
+                  <el-button size="small" type="primary" link @click.stop="goEditTemplate(row)">
+                    <el-icon><Edit /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="Modify" placement="top">
+                  <el-button size="small" type="primary" link @click.stop="openEdit(row)">
+                    <el-icon><Setting /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip v-if="row.is_draft" content="Publish" placement="top">
+                  <el-button size="small" type="success" link
+                             :loading="publishingId === row.id" @click.stop="handlePublish(row)">
+                    <el-icon><Upload /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip v-if="!row.is_draft" content="Schedule" placement="top">
+                  <el-button size="small" type="warning" link @click.stop="openSchedule(row)">
+                    <el-icon><Timer /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="Delete" placement="top">
+                  <el-button size="small" type="danger" link @click.stop="handleDelete(row)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </el-tooltip>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -119,10 +134,32 @@
                 </span>
               </div>
               <div class="tcard-actions" @click.stop>
-                <el-button size="small" type="primary" link @click="openEdit(item)">Edit</el-button>
-                <el-button v-if="item.is_draft" size="small" type="success" link
-                           :loading="publishingId === item.id" @click.stop="handlePublish(item)">Publish</el-button>
-                <el-button size="small" type="danger" link @click.stop="handleDelete(item)">Delete</el-button>
+                <el-tooltip content="Edit" placement="top">
+                  <el-button size="small" type="primary" link @click.stop="goEditTemplate(item)">
+                    <el-icon><Edit /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="Modify" placement="top">
+                  <el-button size="small" type="primary" link @click="openEdit(item)">
+                    <el-icon><Setting /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip v-if="item.is_draft" content="Publish" placement="top">
+                  <el-button size="small" type="success" link
+                             :loading="publishingId === item.id" @click.stop="handlePublish(item)">
+                    <el-icon><Upload /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip v-if="!item.is_draft" content="Schedule" placement="top">
+                  <el-button size="small" type="warning" link @click.stop="openSchedule(item)">
+                    <el-icon><Timer /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="Delete" placement="top">
+                  <el-button size="small" type="danger" link @click.stop="handleDelete(item)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </el-tooltip>
               </div>
             </div>
           </el-card>
@@ -229,14 +266,27 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- Schedule manager dialog -->
+    <ScheduleManager
+      v-model="scheduleVisible"
+      :template-id="scheduleTemplateId"
+      :template-name="scheduleTemplateName"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
-import { Refresh, Plus, View, Edit, Upload, Delete, Search, List, Grid, Connection, Share } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
+import { Refresh, Plus, View, Edit, Upload, Delete, Search, List, Grid, Connection, Share, Timer, Setting } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { GetTemplates, CreateTemplate, UpdateTemplate, DeleteTemplate, ConfirmDraft } from '/@/api/opsflow/templates'
+import { GetTemplates, CreateTemplate, UpdateTemplate, DeleteTemplate, ConfirmDraft, GetTemplateDetail } from '/@/api/opsflow/templates'
+import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
+import ScheduleManager from './components/ScheduleManager.vue'
+
+const router = useRouter()
+const opsflowStore = useOpsflowStore()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -258,6 +308,9 @@ const viewVisible = ref(false)
 const viewRow = ref<any>(null)
 
 const publishingId = ref<number | null>(null)
+const scheduleVisible = ref(false)
+const scheduleTemplateId = ref(0)
+const scheduleTemplateName = ref('')
 
 const emptyText = computed(() => loading.value ? 'Loading...' : useMock.value ? 'No data' : 'No templates yet')
 
@@ -317,14 +370,14 @@ const mockData = computed<any[]>(() => [
 async function fetchData() {
   loading.value = true
   try {
-    const params: any = { page: page.value, page_size: pageSize.value }
+    const params: any = { page: page.value, limit: pageSize.value }
     if (filterName.value) params.search = filterName.value
     if (filterDraft.value !== '') params.is_draft = filterDraft.value
     const res = await GetTemplates(params)
     const items = res.data?.results || res.data || res.results || []
     if (items.length > 0) {
       list.value = items
-      total.value = res.data?.count || res.count || items.length
+      total.value = res.total || res.data?.count || res.count || items.length
       useMock.value = false
     } else {
       fallbackMock()
@@ -364,6 +417,18 @@ function openEdit(row: any) {
   form.name = row.name
   form.is_draft = row.is_draft
   formVisible.value = true
+}
+
+async function goEditTemplate(row: any) {
+  try {
+    const res = await GetTemplateDetail(row.id)
+    const detail = res.data?.data || res.data || row
+    opsflowStore.setCurrentTemplate(detail)
+    router.push('/opsflow')
+  } catch {
+    opsflowStore.setCurrentTemplate(row)
+    router.push('/opsflow')
+  }
 }
 
 async function handleSave() {
@@ -415,6 +480,12 @@ async function handleDelete(row: any) {
 }
 
 function openView(row: any) { viewRow.value = row; viewVisible.value = true }
+
+function openSchedule(row: any) {
+  scheduleTemplateId.value = row.id
+  scheduleTemplateName.value = row.name
+  scheduleVisible.value = true
+}
 
 onMounted(fetchData)
 </script>
@@ -540,4 +611,19 @@ onMounted(fetchData)
 .v-legend-divider { width: 1px; height: 14px; background: #dcdfe6; }
 
 .template-table { cursor: pointer; }
+.action-icons { display: flex; align-items: center; gap: 4px; }
+.action-icons .el-button,
+.tcard-actions .el-button { padding: 5px 6px; border-radius: 6px; }
+.action-icons .el-button--primary,
+.tcard-actions .el-button--primary { background: #ecf5ff; }
+.action-icons .el-button--success,
+.tcard-actions .el-button--success { background: #f0f9eb; }
+.action-icons .el-button--warning,
+.tcard-actions .el-button--warning { background: #fdf6ec; }
+.action-icons .el-button--danger,
+.tcard-actions .el-button--danger { background: #fef0f0; }
+.action-icons .el-button .el-icon,
+.tcard-actions .el-button .el-icon { font-size: 15px; }
+.action-icons .el-button:hover,
+.tcard-actions .el-button:hover { opacity: 0.85; filter: brightness(0.95); }
 </style>

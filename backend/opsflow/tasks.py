@@ -106,3 +106,13 @@ def notify_node_status(execution_id, node_id, status, message=''):
     channel layer 的 pub/sub 通道。
     """
     _ws_notify(execution_id, node_id, status, message)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=300)
+def retry_schedule_execution(self, plan_id):
+    """Celery 任务 — 重试调度计划执行"""
+    from opsflow.core.scheduler_service import opsflow_scheduler
+    try:
+        opsflow_scheduler._execute_plan(plan_id)
+    except Exception as exc:
+        raise self.retry(exc=exc)

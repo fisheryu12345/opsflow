@@ -92,6 +92,63 @@ class OpsLog(models.Model):
         return f"[{self.step}] rc={self.returncode}"
 
 
+class SchedulePlan(models.Model):
+    """调度计划 — 一次性或周期性自动执行"""
+    class ScheduleType(models.TextChoices):
+        ONE_TIME = 'one_time', '一次性'
+        CRON = 'cron', '周期性'
+
+    class Status(models.TextChoices):
+        ACTIVE = 'active', '运行中'
+        PAUSED = 'paused', '已暂停'
+        COMPLETED = 'completed', '已完成'
+        EXPIRED = 'expired', '已过期'
+
+    template = models.ForeignKey(
+        FlowTemplate, on_delete=models.CASCADE, related_name='schedule_plans',
+        verbose_name="关联模板"
+    )
+    name = models.CharField(max_length=128, verbose_name="调度名称")
+    description = models.CharField(max_length=255, blank=True, verbose_name="调度描述")
+    schedule_type = models.CharField(
+        max_length=16, choices=ScheduleType.choices, verbose_name="调度类型"
+    )
+    scheduled_at = models.DateTimeField(null=True, blank=True, verbose_name="一次性定时时间")
+    cron_expr = models.CharField(max_length=64, blank=True, verbose_name="Cron表达式")
+    cron_description = models.CharField(max_length=128, blank=True, verbose_name="Cron可读描述")
+    timezone = models.CharField(max_length=32, default='Asia/Shanghai', verbose_name="时区")
+    is_active = models.BooleanField(default=True, verbose_name="是否激活")
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.ACTIVE, verbose_name="状态"
+    )
+    max_retries = models.IntegerField(default=0, verbose_name="最大重试次数")
+    retry_delay = models.IntegerField(default=300, verbose_name="重试间隔(秒)")
+    template_snapshot = models.JSONField(null=True, blank=True, verbose_name="创建时模板快照")
+    last_run_at = models.DateTimeField(null=True, blank=True, verbose_name="上次执行时间")
+    next_run_at = models.DateTimeField(null=True, blank=True, verbose_name="下次执行时间")
+    total_run_count = models.IntegerField(default=0, verbose_name="总执行次数")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        null=True, blank=True, verbose_name="创建者"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'opsflow_schedule_plan'
+        ordering = ['-created_at']
+        verbose_name = "调度计划"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['template', 'name'],
+                name='uq_schedule_plan_template_name'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_schedule_type_display()})"
+
+
 class OpsKnowledge(models.Model):
     """RAG 知识库 — 历史案例/故障/文档"""
     class Source(models.TextChoices):
