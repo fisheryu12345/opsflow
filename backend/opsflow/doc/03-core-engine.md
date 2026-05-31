@@ -373,6 +373,59 @@ scan_atoms()
 | Shell 原子拦截 | error | AI 不应生成 shell 原子（作为不存在的功能 fallback） |
 | 跨平台误用检查 | error | 用户输入含 VM/虚拟机 时，禁止使用 netapp_* 原子 |
 
+## 8. Layout Engine — Sugiyama 分层布局引擎
+
+**文件**: `backend/opsflow/core/layout/`
+
+### 架构
+
+适配 bk_sops `pipeline_web/drawing_new` 的 Sugiyama 分层图绘制算法，提供确定性的节点自动定位，替代早期基于 LLM 的布局方案。
+
+### 5 阶段流程
+
+```
+输入: pipeline dict (activities, gateways, flows)
+  │
+  ├─ 1. Normalize → 构建 all_nodes 统一字典
+  ├─ 2. Acyclic   → 自环边移除 + 反向边逆转（DFS 环检测）
+  ├─ 3. Rank      → 最长路径层级分配 + 可行树优化
+  ├─ 4. Order     → 加权中位数交叉最小化（24 次迭代）
+  ├─ 5. Dummy     → 虚拟节点替换长跨度边
+  └─ 6. Position  → 坐标分配 + 箭头端点计算
+       │
+       └─ 输出: location[{id, x, y}]
+```
+
+### 入口函数
+
+```python
+compute_layout(nodes, edges) → list[{id, x, y}]
+```
+
+由 `layout_adapter.py` 桥接 OPSflow `{nodes, edges}` 格式与引擎内部 pipeline 格式：
+
+```
+opsflow_to_pipeline(nodes, edges)    # OPSflow → 引擎格式
+  → draw_pipeline(pipeline, sizes)   # Sugiyama 5 阶段
+  → pipeline_to_positions(pipeline)  # 提取坐标
+```
+
+### 节点尺寸
+
+| 类型 | 尺寸 (w×h) | shift_y (层间距) |
+|------|-----------|-----------------|
+| 原子(atom) | 180×48 | 144 (96px gap) |
+| 事件(event) | 56×56 | 自动居中 |
+| 网关(gateway) | 70×70 | 自动居中 |
+| shift_x (列间距) | 270 | — |
+
+### 边界处理
+
+- 0-1 节点: 直接返回默认坐标，不进入引擎
+- 无效边引用: 抛出 `ValueError`
+- 大量节点(>500): 引擎仍可运行，记录性能警告
+- 缺失起止节点: `layout_adapter.py` 自动合成
+
 ## 9. Pipeline Contrib 集成
 
 **配置文件**: `backend/application/settings.py`
@@ -397,7 +450,7 @@ scan_atoms()
 | `node_execute_fail` / `node_schedule_fail` | 节点执行/调度失败 |
 | `pre_retry_node` / `pre_skip_node` | 重试/跳过节点 |
 
-## 8. LLM Service — AI 服务
+## 10. LLM Service — AI 服务
 
 **文件**: `backend/opsflow/core/llm_service.py`
 
@@ -407,7 +460,6 @@ scan_atoms()
 |------|------|
 | `generate_pipeline(nl_input, target_hosts)` | 自然语言 → Pipeline Tree JSON |
 | `refine_pipeline(nl_input, nodes, edges, target_hosts)` | 多轮对话修改现有流程 |
-| `optimize_layout(nodes, edges)` | AI 布局优化（BFS 分层） |
 | `analyze_pipeline(nodes, edges)` | 分析流程步骤、风险、建议 |
 | `rag_search(query)` | 知识库 RAG 检索 |
 

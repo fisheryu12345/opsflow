@@ -14,7 +14,7 @@
 - [x] 节点超时配置注入 (bamboo_builder.py → apply_node_timout_configs)
 - [x] Service inputs_format/outputs_format 定义 (atom_service.py)
 - [x] Celery 任务 (`execute_pipeline_task` / `notify_node_status`)
-- [x] AI 服务 (生成 / 优化 / 分析 / 多轮对话)
+- [x] AI 服务 (生成 / 分析 / 多轮对话)
 - [x] DesignCanvas (X6 Graph + Stencil + Minimap + PropertyPanel + DiffModal)
 - [x] MonitorCanvas (实时执行监控 + WebSocket 状态同步)
 - [x] AI Chat 浮窗 (多轮对话 + Layout 优化)
@@ -29,6 +29,10 @@
 - [x] **执行记录页面** — 已实现（ExecutionList.vue + ExecutionDetail.vue）
 - [x] **Celery worker 启动脚本** — 注意事项.md 已记录启动命令（含 gevent 池 + Redis channel layer）
 - [x] **WebSocket Channel Layer 修复** — InMemoryChannelLayer → RedisChannelLayer，async_to_sync → 手动事件循环，解决跨进程 WS 消息推送问题（详见注意事项.md 第 6 节）
+- [x] **Sugiyama 布局引擎** — 适配 bk_sops drawing_new，18 文件，纯 Python 确定性布局，替代 LLM 布局方案
+- [x] **DesignCanvas 缩放控件** — 工具栏添加 Zoom In/Out/Fit 按钮 + 缩放比例显示
+- [x] **编辑器 Executions 按钮删除** — 编辑与执行职责分离，工具栏移除运行记录入口
+- [x] **MonitorCanvas Cancel 按钮去重** — 进度条区域 Cancel 按钮已移除（执行详情页保留）
 
 ## ❌ 待处理
 
@@ -36,7 +40,8 @@
 
 - [ ] **get_pipeline_states 状态验证** — flow_engine.py 中定期调用 api.get_pipeline_states() 验证执行状态一致性
 - [ ] **X6 节点 UI 定型** — 统一节点视觉风格（尺寸、配色、图标、阴影、选中态），参考 bk_sops 节点设计规范，确保所有节点类型视觉层级清晰
-- [ ] **流程图布局优化** — 参考 bk_sops 源代码重写布局引擎，支持分层布线、跨线最小化、节点对齐、自动换行/折叠等高级布局能力
+- [x] **流程图布局优化** — 适配 bk_sops Sugiyama 布局引擎（core/layout/ 18 文件），支持分层布线、交叉最小化、自动起止节点合成
+- [ ] **X6 连线重叠修复** — Manhattan 路由 padding 配置 + 增大垂直间距（shift_y=144, NODE_GAP=120），需持续评估复杂图场景
 
 ### 中优先级
 

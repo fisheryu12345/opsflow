@@ -20,7 +20,7 @@
 | 取消/终止 | `flow_engine.py` | api.revoke_pipeline() + 标记 cancelled |
 | Component 注册 | `atom_service.py` | pipeline.component_framework.Component 元类自动注册 |
 | post_set_state 信号 | `signals.py` | 异步追踪节点状态 → 更新 FlowExecution + OpsLog |
-| 原子注册 | `atom_registry.py` | meta.json 自动扫描注册（31 个原子） |
+| 原子注册 | `atom_registry.py` | meta.json 自动扫描注册（37 个原子） |
 | Executor Factory | `executors/factory.py` | 7 平台执行器统一调度（含 test） |
 | Tower 集成 | `tower_service.py` | launch/poll/artifacts/events/cancel |
 | 安全校验 | `safety_guard.py` | 白名单 / 高危回滚 / 备份前置 / Shell 拦截 / 跨平台检查 |
@@ -28,8 +28,9 @@
 | AI 生成 | `llm_service.py` | DeepSeek NL → Pipeline Tree |
 | AI 多轮对话 | `llm_service.py` | 增量修改已有流程 |
 | AI 分析 | `llm_service.py` | 步骤 / 风险 / 建议分析 |
-| AI 布局 | `llm_service.py` | 自动排列画布节点 |
+| 自动布局 | `core/layout/` | Sugiyama 引擎（bk_sops 算法） |
 | RAG 检索 | `llm_service.py` | OpsKnowledge 相似案例搜索 |
+| 布局引擎 | `core/layout/` | Sugiyama 5 阶段算法（bk_sops 适配） |
 | Ansible 触发器 | `ansible_trigger.py` | TowerService 封装 + Mock 降级 |
 | Celery 任务 | `tasks.py` | execute_pipeline_task / notify_node_status |
 | WebSocket | `consumers.py` | 节点状态 + tower_job_update 推送 |
@@ -46,7 +47,7 @@
 | 功能 | 组件 | 说明 |
 |------|------|------|
 | 设计画布 | `DesignCanvas.vue` | X6 Graph 拖拽式编排 |
-| 组件面板 | `useDesignCanvas.ts` | Stencil 分组拖拽（10 组 36 节点） |
+| 组件面板 | `useDesignCanvas.ts` | Stencil 分组拖拽（10 组 37 原子 + 6 网关/事件） |
 | 节点属性 | `PropertyPanel.vue` | 编辑标签/参数/超时/重试 |
 | 小地图 | `useDesignCanvas.ts` | Minimap 导航 |
 | Undo/Redo | `useDesignCanvas.ts` | History 插件 + 快捷键 |

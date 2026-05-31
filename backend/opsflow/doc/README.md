@@ -66,7 +66,7 @@
 | AI 自然语言生成 | ✅ 完成 | DeepSeek 根据描述生成 Pipeline |
 | 多轮对话修改 | ✅ 完成 | 通过对话逐步完善流程 |
 | Pipeline 分析 | ✅ 完成 | AI 分析流程步骤/风险/建议 |
-| AI 布局优化 | ✅ 完成 | 自动排列画布节点 |
+| 自动布局优化 | ✅ 完成 | Sugiyama 分层布局引擎（bk_sops 算法）|
 | Diff 对比 | ✅ 完成 | AI 原稿 vs 当前修改对比 |
 | 串行执行 | ✅ 完成 | BambooDjangoRuntime 驱动 |
 | 条件分支 (Exclusive) | ✅ 完成 | BambooDjangoRuntime.GatewayMixin |
@@ -97,6 +97,7 @@
 | 画布引擎 | AntV X6 (Graph / Stencil / Minimap / History / Clipboard) |
 | 后端框架 | Django 4.2 + DRF 3.14 |
 | 流程引擎 | bamboo-pipeline 3.29.9 (bamboo-engine 3.0.3) |
+| 布局引擎 | Sugiyama 分层图算法（适配 bk_sops drawing_new） |
 | AI | DeepSeek (OpenAI-compatible API) |
 | 任务队列 | Celery (Redis broker) |
 | 数据库 | MySQL + Redis |

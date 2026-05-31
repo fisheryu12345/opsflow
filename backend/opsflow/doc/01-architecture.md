@@ -43,6 +43,7 @@ OpsFlow 采用**前后端分离 + 异步任务 + WebSocket 推送 + 多平台原
 - **AnsibleAtomService**: 实现 bamboo-engine Service 接口，桥接原子执行
 - **signals.py**: post_set_state 信号处理器，异步追踪节点状态变化并更新 FlowExecution
 - **TowerService**: Ansible Tower (AWX) REST API 封装（触发/轮询/结果提取）
+- **Layout Engine**: Sugiyama 分层图布局引擎（bk_sops drawing_new 适配），提供确定性节点定位
 
 ### 4. 原子层
 
@@ -200,3 +201,12 @@ ATOM_REGISTRY (meta.json 扫描)
   - Shell 原子过滤: 从 AI 可见原子列表移除 `shell` + 服务端二次拦截
   - 跨平台误用检测: 用户输入含 VM/虚拟机 时拦截 AI 使用 netapp_* 原子
 - RAG 搜索 OpsKnowledge 注入相关案例
+
+### 5. 布局引擎
+
+Sugiyama 分层图布局引擎（适配 bk_sops `pipeline_web/drawing_new`），提供确定性的节点自动布局，替代早期的 LLM 布局方案：
+
+- 5 阶段算法: 环移除 → 层级分配 → 交叉最小化 → 虚拟节点 → 坐标分配
+- 无 LLM 依赖，纯 Python 实现，毫秒级完成
+- 端点: `POST /api/opsflow/templates/ai_layout/`
+- 支持所有节点类型（原子/网关/事件），自动合成起止节点

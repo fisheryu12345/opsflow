@@ -14,14 +14,36 @@ backend/opsflow/
 │
 ├── core/
 │   ├── __init__.py
-│   ├── atom_registry.py             # 原子注册中心（31 个原子）
+│   ├── atom_registry.py             # 原子注册中心（37 个原子）
 │   ├── atom_service.py              # bamboo-engine Service 实现
 │   ├── ansible_trigger.py           # Ansible Tower HTTP 触发器
 │   ├── tower_service.py             # Tower REST API 封装（launch/poll/extract）
 │   ├── bamboo_builder.py            # Pipeline Tree 构建器
 │   ├── flow_engine.py               # 流程执行引擎（含增强条件求值）
-│   ├── llm_service.py              # DeepSeek AI 服务
-│   └── safety_guard.py             # Pipeline 安全校验器
+│   ├── llm_service.py              # DeepSeek AI 服务（不含布局）
+│   ├── safety_guard.py             # Pipeline 安全校验器
+│   │
+│   ├── layout/                      # ★ Sugiyama 分层布局引擎
+│   │   ├── __init__.py              # 导出 compute_layout()
+│   │   ├── constants.py             # PipelineKey / NodeType / 尺寸常量
+│   │   ├── utils.py                 # format_to_list / io 操作
+│   │   ├── acyclic.py               # 环移除 + DFS 环检测
+│   │   ├── normalize.py             # 节点字典构建
+│   │   ├── rank/                    # 层级分配（最长路径 + 可行树）
+│   │   │   ├── __init__.py
+│   │   │   ├── utils.py
+│   │   │   ├── longest_path.py
+│   │   │   ├── feasible_tree.py
+│   │   │   └── tight_tree.py
+│   │   ├── order/                   # 交叉最小化（加权中位数）
+│   │   │   ├── __init__.py
+│   │   │   ├── order.py
+│   │   │   └── builder.py
+│   │   ├── dummy.py                 # 长边虚拟节点替换
+│   │   ├── position.py              # 坐标分配 + 箭头端点
+│   │   ├── drawing.py               # 主编排器（5 阶段）
+│   │   ├── layout_adapter.py        # OPSflow ↔ 引擎格式桥接
+│   │   └── tests.py                 # 单元测试
 │   │
 │   └── executors/                   # ★ 多平台原子执行器
 │       ├── __init__.py
@@ -140,7 +162,7 @@ web/src/api/opsflow/
 | `/api/opsflow/templates/{id}/` | GET/PUT/PATCH/DELETE | 模板详情/更新/删除 |
 | `/api/opsflow/templates/create_from_ai/` | POST | AI 自然语言生成 |
 | `/api/opsflow/templates/{id}/confirm_draft/` | POST | 确认草稿正式入库 |
-| `/api/opsflow/templates/ai_layout/` | POST | AI 布局优化 |
+| `/api/opsflow/templates/ai_layout/` | POST | 布局优化（Sugiyama 引擎） |
 | `/api/opsflow/templates/{id}/diff/` | GET | AI 原稿 vs 当前 |
 | `/api/opsflow/templates/analyze/` | POST | AI 流程分析 |
 | `/api/opsflow/templates/refine/` | POST | 多轮对话修改 |
@@ -168,6 +190,7 @@ apps.py
 template_views.py
   ├─ llm_service.py       (generate_pipeline / refine_pipeline / analyze)
   ├─ safety_guard.py      (validate_pipeline)
+  ├─ layout               (compute_layout — Sugiyama 引擎)
   └─ bamboo_builder.py    (validate_bamboo_compatibility)
 
 flow_engine.py

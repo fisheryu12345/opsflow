@@ -16,14 +16,20 @@ index.vue (OpsFlow 主页面)
 ├── DesignCanvas (设计画布)
 │   ├── 工具栏 (浮动右上角)
 │   │   ├── Undo / Redo
-│   │   ├── Diff
-│   │   ├── AI Analyze
+│   │   ├── Zoom In / Zoom Out / Fit
+│   │   ├── Diff / AI Analyze / AI Layout
 │   │   ├── New Template
 │   │   └── Save
 │   ├── Stencil 组件面板 (左侧, 可折叠)
+│   │   ├── Test 组 (1)
 │   │   ├── Check 组 (3)
 │   │   ├── Action 组 (8)
 │   │   ├── Control 组 (2)
+│   │   ├── VM (ESXi) 组 (5)
+│   │   ├── Storage (NetApp) 组 (5)
+│   │   ├── ITSM (ServiceNow) 组 (5)
+│   │   ├── BMC (Redfish) 组 (7)
+│   │   ├── Generic 组 (1)
 │   │   └── Gateway/Event 组 (6)
 │   ├── X6 Graph 画布
 │   ├── Minimap (右下小地图)
