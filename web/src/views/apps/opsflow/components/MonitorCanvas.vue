@@ -121,8 +121,8 @@ function initGraph() {
     grid: true,
     interacting: false,
     connecting: {
-      router: 'manhattan',
-      connector: 'rounded',
+        router: { name: 'manhattan', args: { padding: { top: 30, bottom: 30, left: 30, right: 30 }, step: 20, maxLoopCount: 10000 } },
+        connector: 'rounded',
     },
   })
 }

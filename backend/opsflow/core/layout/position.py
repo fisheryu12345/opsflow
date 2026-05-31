@@ -55,7 +55,7 @@ def position(
     :returns: (locations_dict, lines_dict)
     """
     size_x = max(activity_size[0], event_size[0], gateway_size[0])
-    shift_y = int(max(activity_size[1], event_size[1], gateway_size[1]) * 2)
+    shift_y = int(max(activity_size[1], event_size[1], gateway_size[1]) * 3)
     event_shift_y = int((activity_size[1] - event_size[1]) * 0.5)
     gateway_shift_y = int((activity_size[1] - gateway_size[1]) * 0.5)
 

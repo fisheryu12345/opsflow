@@ -27,7 +27,7 @@ export function useDesignCanvas(containerId: string) {
       panning: { enabled: true },
       mousewheel: { enabled: true, zoomAtMousePosition: true },
       connecting: {
-        router: 'manhattan',
+        router: { name: 'manhattan', args: { padding: { top: 30, bottom: 30, left: 30, right: 30 }, step: 20, maxLoopCount: 10000 } },
         connector: 'rounded',
         anchor: { name: 'center', args: { dx: 0, dy: 0 } },
         connectionPoint: { name: 'boundary', args: { sticky: true } },
@@ -276,7 +276,7 @@ export function useDesignCanvas(containerId: string) {
 
     // 分配坐标
     const LAYER_GAP = 250
-    const NODE_GAP = 80
+    const NODE_GAP = 120
     const START_X = 50
     const START_Y = 40
     const positions: Record<string, { x: number; y: number }> = {}
