@@ -31,18 +31,6 @@ export const dynamicRoutes: Array<RouteRecordRaw> = [
 			isKeepAlive: true,
 		},
 		children: [
-			{
-				path: '/ops/console',
-				name: 'opsConsole',
-				component: () => import('/@/views/apps/opsagent/Console.vue'),
-				meta: { title: '运维控制台', icon: 'iconfont icon-cpu', isHide: false, isKeepAlive: true },
-			},
-			{
-				path: '/ops/sessions',
-				name: 'opsSessions',
-				component: () => import('/@/views/apps/opsagent/Sessions.vue'),
-				meta: { title: '会话历史', icon: 'iconfont icon-time', isHide: false, isKeepAlive: true },
-			},
 		],
 	},
 	{
