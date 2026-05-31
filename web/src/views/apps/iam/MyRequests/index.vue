@@ -1,7 +1,10 @@
 <template>
   <div class="my-requests">
     <div class="section-header">
-      <span class="section-title">My Requests</span>
+      <span class="section-title">
+        <el-icon size="16"><Tickets /></el-icon>
+        My Requests
+      </span>
       <el-button type="primary" :icon="Plus" @click="showCreateDialog">
         New Request
       </el-button>
@@ -42,7 +45,7 @@
     </div>
 
     <!-- Create Request Dialog -->
-    <el-dialog v-model="createVisible" title="New Permission Request" width="520px">
+    <el-dialog v-model="createVisible" title="New Permission Request" width="520px" class="opsflow-dialog">
       <el-form label-width="100px">
         <el-form-item label="Request Type">
           <el-radio-group v-model="form.request_type">
@@ -62,6 +65,7 @@
         </el-form-item>
         <el-form-item label="Reason">
           <el-input v-model="form.reason" type="textarea" :rows="3" placeholder="Why do you need this permission?" />
+          <div class="form-tip">Describe the reason for this permission request</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -74,7 +78,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Tickets } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { GetRequests, CreateRequest } from '/@/api/iam/requests'
 import { GetAvailableRoles, GetAvailableMenus } from '/@/api/iam/permissions'
@@ -104,10 +108,9 @@ function statusTag(status: string) {
 async function fetchRequests() {
   loading.value = true
   try {
-    const res = await GetRequests({ page: page.value, page_size: pageSize.value })
-    const d = res.data || res
-    requests.value = d.results || d.data || []
-    total.value = d.count || 0
+    const res = await GetRequests({ page: page.value, limit: pageSize.value })
+    requests.value = res.data || []
+    total.value = res.total || 0
   } catch { /* ignore */ }
   loading.value = false
 }
@@ -139,9 +142,53 @@ async function onCreate() {
 onMounted(() => fetchRequests())
 </script>
 
-<style scoped>
-.my-requests { display: flex; flex-direction: column; height: 100%; }
-.section-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; flex-shrink: 0; }
-.section-title { font-size: 15px; font-weight: 600; color: #303133; }
-.pagination-wrap { display: flex; justify-content: flex-end; padding: 12px 16px; flex-shrink: 0; }
+<style>
+.my-requests {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title .el-icon {
+  color: #409EFF;
+}
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 0 0;
+  flex-shrink: 0;
+}
+.form-tip {
+  font-size: 11px;
+  color: #999;
+  margin-top: 2px;
+}
+.opsflow-dialog .el-dialog__header {
+  padding: 16px 20px;
+  margin: 0;
+  border-bottom: 1px solid #e4e7ed;
+  font-weight: 600;
+}
+.opsflow-dialog .el-dialog__body {
+  padding: 20px;
+}
+.opsflow-dialog .el-dialog__footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e4e7ed;
+}
 </style>

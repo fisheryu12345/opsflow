@@ -134,6 +134,10 @@ class MenuViewSet(CustomModelViewSet):
                     models.Q(id=iam_catalog.id) | models.Q(parent=iam_catalog)
                 ).values_list('id', flat=True))
             all_menu_ids = set(menu_list + direct_menu_list + iam_menu_ids)
+            parent_ids = set(Menu.objects.filter(
+                id__in=all_menu_ids
+            ).exclude(parent=None).values_list('parent_id', flat=True))
+            all_menu_ids |= parent_ids
             queryset = Menu.objects.filter(id__in=all_menu_ids)
         serializer = WebRouterSerializer(queryset, many=True, request=request)
         data = serializer.data

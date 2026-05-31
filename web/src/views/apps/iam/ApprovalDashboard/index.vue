@@ -1,7 +1,10 @@
 <template>
   <div class="approval-dashboard">
     <div class="section-header">
-      <span class="section-title">Approval Dashboard</span>
+      <span class="section-title">
+        <el-icon size="16"><List /></el-icon>
+        Approval Dashboard
+      </span>
       <div class="filter-bar">
         <el-select v-model="filterType" placeholder="All types" clearable style="width: 140px" @change="fetchPending">
           <el-option label="Role" value="role" />
@@ -43,7 +46,7 @@
     </div>
 
     <!-- Review Dialog -->
-    <el-dialog v-model="reviewVisible" :title="reviewAction === 'approve' ? 'Approve Request' : 'Reject Request'" width="480px">
+    <el-dialog v-model="reviewVisible" :title="reviewAction === 'approve' ? 'Approve Request' : 'Reject Request'" width="480px" class="opsflow-dialog">
       <div class="review-info">
         <div class="review-row"><span class="review-label">Applicant:</span> {{ reviewRequest?.user_name }}</div>
         <div class="review-row"><span class="review-label">Type:</span> {{ reviewRequest?.request_type_label }}</div>
@@ -70,7 +73,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Refresh } from '@element-plus/icons-vue'
+import { Refresh, List } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { GetRequests, ApproveRequest, RejectRequest } from '/@/api/iam/requests'
 
@@ -95,12 +98,11 @@ function requestTypeTag(type: string) {
 async function fetchPending() {
   loading.value = true
   try {
-    const params: any = { status: 'pending', page: page.value, page_size: pageSize.value }
+    const params: any = { status: 'pending', page: page.value, limit: pageSize.value }
     if (filterType.value) params.request_type = filterType.value
     const res = await GetRequests(params)
-    const d = res.data || res
-    requests.value = d.results || d.data || []
-    total.value = d.count || 0
+    requests.value = res.data || []
+    total.value = res.total || 0
   } catch { /* ignore */ }
   loading.value = false
 }
@@ -146,14 +148,69 @@ async function confirmReject() {
 onMounted(() => fetchPending())
 </script>
 
-<style scoped>
-.approval-dashboard { display: flex; flex-direction: column; height: 100%; }
-.section-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; flex-shrink: 0; }
-.section-title { font-size: 15px; font-weight: 600; color: #303133; }
-.filter-bar { display: flex; gap: 8px; align-items: center; }
-.pagination-wrap { display: flex; justify-content: flex-end; padding: 12px 16px; flex-shrink: 0; }
-.review-info { padding: 0 0 16px; font-size: 13px; }
-.review-row { padding: 4px 0; }
-.review-label { color: #909399; display: inline-block; width: 80px; }
-.review-form { border-top: 1px solid #ebeef5; padding-top: 16px; }
+<style>
+.approval-dashboard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title .el-icon {
+  color: #409EFF;
+}
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 0 0;
+  flex-shrink: 0;
+}
+.review-info {
+  padding: 0 0 16px;
+  font-size: 13px;
+}
+.review-row {
+  padding: 4px 0;
+}
+.review-label {
+  color: #909399;
+  display: inline-block;
+  width: 80px;
+}
+.review-form {
+  border-top: 1px solid #ebeef5;
+  padding-top: 16px;
+}
+.opsflow-dialog .el-dialog__header {
+  padding: 16px 20px;
+  margin: 0;
+  border-bottom: 1px solid #e4e7ed;
+  font-weight: 600;
+}
+.opsflow-dialog .el-dialog__body {
+  padding: 20px;
+}
+.opsflow-dialog .el-dialog__footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e4e7ed;
+}
 </style>
