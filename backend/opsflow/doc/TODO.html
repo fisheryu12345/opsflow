@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpsFlow 项目看板</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #303133; padding: 24px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .header { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); padding: 24px 28px; margin-bottom: 24px; }
+  .header h1 { font-size: 22px; color: #303133; margin-bottom: 6px; }
+  .header .meta { font-size: 13px; color: #909399; }
+  .header .progress-summary { margin-top: 12px; display: flex; gap: 24px; flex-wrap: wrap; }
+  .header .progress-summary .stat { font-size: 13px; color: #606266; }
+  .header .progress-summary .stat strong { font-size: 20px; display: block; }
+  .header .progress-summary .stat.done strong { color: #67C23A; }
+  .header .progress-summary .stat.pending strong { color: #F56C6C; }
+  .header .progress-summary .stat.total strong { color: #409EFF; }
+
+  .legend { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); padding: 12px 20px; margin-bottom: 20px; display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: #606266; }
+
+  .phase-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 20px; overflow: hidden; }
+  .phase-header { padding: 16px 20px; border-left: 4px solid #67C23A; font-size: 15px; font-weight: 600; color: #303133; display: flex; justify-content: space-between; align-items: center; }
+  .phase-header .phase-rate { font-size: 13px; font-weight: 400; }
+  .phase-header.orange { border-left-color: #E6A23C; }
+  .phase-header.red { border-left-color: #F56C6C; }
+  .phase-header.green { border-left-color: #67C23A; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #fafafa; padding: 10px 16px; text-align: left; font-weight: 600; font-size: 13px; color: #606266; border-bottom: 1px solid #ebeef5; }
+  td { padding: 10px 16px; border-top: 1px solid #ebeef5; font-size: 13px; color: #606266; }
+  tr:nth-child(even) td { background: #f8f9fa; }
+  tr:hover td { background: #ecf5ff; }
+
+  .status-done { color: #67C23A; font-weight: 600; }
+  .status-pending { color: #F56C6C; }
+  .status-wip { color: #E6A23C; }
+  .task-name { color: #303133; }
+
+  .summary-table { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); overflow: hidden; }
+  .summary-table .summary-header { padding: 16px 20px; border-left: 4px solid #409EFF; font-size: 15px; font-weight: 600; color: #303133; }
+  .bar-cell { display: flex; align-items: center; gap: 8px; }
+  .bar { height: 8px; border-radius: 4px; background: #e4e7ed; flex: 1; max-width: 120px; }
+  .bar-fill { height: 100%; border-radius: 4px; background: #67C23A; }
+  .bar-fill.orange { background: #E6A23C; }
+  .bar-fill.red { background: #F56C6C; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>OpsFlow 项目看板</h1>
+  <div class="meta">更新时间：2026-05-31 | 基于兼职开发节奏，每周投入 8-12 小时</div>
+  <div class="progress-summary">
+    <div class="stat done"><strong>50</strong>已完成</div>
+    <div class="stat total"><strong>87</strong>总任务</div>
+    <div class="stat" style="color:#E6A23C"><strong>57%</strong>完成率</div>
+    <div class="stat pending"><strong>36</strong>待实现</div>
+  </div>
+</div>
+
+<div class="legend">
+  <span><span class="status-done">✅</span> 已完成</span>
+  <span><span class="status-pending">❌</span> 待实现</span>
+  <span><span class="status-wip">⚡</span> 骨架/伪代码</span>
+  <span><span style="color:#409EFF">🔄</span> 进行中</span>
+</div>
+
+<!-- Phase 0 -->
+<div class="phase-card">
+  <div class="phase-header green">
+    <span>Phase 0：环境骨架</span>
+    <span class="phase-rate">7/8 · 87%</span>
+  </div>
+  <table>
+    <tr><th>任务</th><th>状态</th></tr>
+    <tr><td class="task-name">opsflow app 已集成到 Django-Vue3-Admin 项目</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">安装依赖</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">配置 settings.py</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">配置 urls.py</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">写 models.py</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">执行 makemigrations + migrate</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">4 个模型已设计</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">写 admin.py — Django Admin 注册模型</td><td><span class="status-pending">❌</span></td></tr>
+  </table>
+</div>
+
+<!-- Phase 1 -->
+<div class="phase-card">
+  <div class="phase-header orange">
+    <span>Phase 1：画布 + 自动布局</span>
+    <span class="phase-rate">5/9 · 56%</span>
+  </div>
+  <table>
+    <tr><th>任务</th><th>状态</th></tr>
+    <tr><td class="task-name">useDesignCanvas.ts X6 画布封装（7 种形状）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">工具栏（Undo/Redo/Diff/AI Analyze/保存/运行）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">Stencil 组件面板（10 分组，36 节点）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">Minimap 小地图</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">后端布局算法（独立 Sugiyama 布局引擎）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">X6 节点 UI 定型（统一视觉风格）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">画布右键菜单</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">连线条件输入框</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">单元测试</td><td><span class="status-pending">❌</span></td></tr>
+  </table>
+</div>
+
+<!-- Phase 2 -->
+<div class="phase-card">
+  <div class="phase-header green">
+    <span>Phase 2：原子表单 + 插件系统</span>
+    <span class="phase-rate">8/11 · 73%</span>
+  </div>
+  <table>
+    <tr><th>任务</th><th>状态</th></tr>
+    <tr><td class="task-name">原子注册中心 atom_registry.py — 31 原子</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">Executor Factory — 7 执行器调度</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">AnsibleExecutor / HttpExecutor / TestExecutor</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">EsxiExecutor / NetAppExecutor / ServiceNowExecutor / RedfishExecutor</td><td><span class="status-wip">⚡ 骨架</span></td></tr>
+    <tr><td class="task-name">TowerService（launch/poll/artifacts/events/cancel）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">AI 服务 llm_service.py</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">PropertyPanel.vue 属性编辑</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">节点 data 结构标准化</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">AI 幻觉防御 + Safety Guard</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">DynamicForm 组件（Schema 驱动）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">表单字段联动</td><td><span class="status-pending">❌</span></td></tr>
+  </table>
+</div>
+
+<!-- Phase 3 -->
+<div class="phase-card">
+  <div class="phase-header green">
+    <span>Phase 3：执行引擎 + 运行控制</span>
+    <span class="phase-rate">8/9 · 89%</span>
+  </div>
+  <table>
+    <tr><th>任务</th><th>状态</th></tr>
+    <tr><td class="task-name">bamboo-engine 集成</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">flow_engine.py（start/pause/resume/retry/skip/cancel）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">bamboo_builder.py（Pipeline Tree 构建）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">signals.py（post_set_state 异步追踪）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">template_views.py（模板 CRUD + AI）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">execution_views.py（执行 CRUD + 控制）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">Celery 任务</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">WebSocket consumers.py</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">get_pipeline_states 状态验证</td><td><span class="status-pending">❌</span></td></tr>
+  </table>
+</div>
+
+<!-- Phase 4 -->
+<div class="phase-card">
+  <div class="phase-header orange">
+    <span>Phase 4：变量系统 + 网关 + 条件分支</span>
+    <span class="phase-rate">5/8 · 62%</span>
+  </div>
+  <table>
+    <tr><th>任务</th><th>状态</th></tr>
+    <tr><td class="task-name">4 种网关（Exclusive/Parallel/ConditionalParallel/Converge）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">条件表达式 `${node_id.artifacts.key >= N}`</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">条件表达式增强（数字/字符串/布尔比较）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">网关节点在 Stencil 中可用</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">表达式 DSL 增强（&& / || 组合条件）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">变量选择器（前端）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">网关条件编辑（前端）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">分支高亮（前端）</td><td><span class="status-pending">❌</span></td></tr>
+  </table>
+</div>
+
+<!-- Phase 5 -->
+<div class="phase-card">
+  <div class="phase-header green">
+    <span>Phase 5：AI 能力 + Dashboard</span>
+    <span class="phase-rate">10/10 · 100%</span>
+  </div>
+  <table>
+    <tr><th>任务</th><th>状态</th></tr>
+    <tr><td class="task-name">AI 自然语言生成 Pipeline</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">AI 多轮对话修改</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">AI 流程分析（步骤/风险/建议）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">AI 布局优化</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">RAG 检索</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">AI 幻觉防御（shell 过滤/跨平台检测）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">Safety Guard（白名单/高危回滚）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">Dashboard 统计（14 指标 + 30 日趋势）</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">AI Chat / Analyze Dialog / Diff Modal</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">Dashboard 页面（4 ECharts + 7 卡片）</td><td><span class="status-done">✅</span></td></tr>
+  </table>
+</div>
+
+<!-- Phase 6 -->
+<div class="phase-card">
+  <div class="phase-header red">
+    <span>Phase 6：版本管理 + 可观测性</span>
+    <span class="phase-rate">0/8 · 0%</span>
+  </div>
+  <table>
+    <tr><th>任务</th><th>状态</th></tr>
+    <tr><td class="task-name">FlowTemplateVersion 模型</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">回滚 API</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">节点级日志</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">敏感字段脱敏</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">VersionManager.vue</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">节点日志弹窗</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">重试/跳过按钮（前端）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">Gantt 图</td><td><span class="status-pending">❌</span></td></tr>
+  </table>
+</div>
+
+<!-- Phase 7 -->
+<div class="phase-card">
+  <div class="phase-header red">
+    <span>Phase 7：生产化部署 + 测试</span>
+    <span class="phase-rate">0/7 · 0%</span>
+  </div>
+  <table>
+    <tr><th>任务</th><th>状态</th></tr>
+    <tr><td class="task-name">Dockerfile + docker-compose.yml</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">阿里云 ECS 部署</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">Celery Worker / Daphne 进程管理</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">Tower 健康检查命令</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">后端单元测试（覆盖率 > 70%）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">API 集成测试</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">文档（部署手册 / 插件开发指南）</td><td><span class="status-pending">❌</span></td></tr>
+  </table>
+</div>
+
+<!-- Tower 集成 -->
+<div class="phase-card">
+  <div class="phase-header orange">
+    <span>Tower 异步执行集成（增补）</span>
+    <span class="phase-rate">4/10 · 40%</span>
+  </div>
+  <table>
+    <tr><th>任务</th><th>状态</th></tr>
+    <tr><td class="task-name">TowerService 完整封装</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">自适应轮询</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">WebSocket 推送 tower_job_update</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">Context 注入</td><td><span class="status-done">✅</span></td></tr>
+    <tr><td class="task-name">超时中断（取消时调 cancel_job）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">并发限制（Redis 信号量）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">节点级超时（从 timeout_seconds 读取）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">作业事件持久化（events → OpsLog）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">Mock 模式增强（延迟/差异化结果）</td><td><span class="status-pending">❌</span></td></tr>
+    <tr><td class="task-name">Webhook 回调方案</td><td><span class="status-pending">❌</span></td></tr>
+  </table>
+</div>
+
+<!-- 总览 -->
+<div class="summary-table">
+  <div class="summary-header">总览汇总</div>
+  <table>
+    <tr><th>分类</th><th>总计</th><th>✅ 完成</th><th>❌ 待办</th><th>⚡ 部分完成</th><th>完成率</th><th></th></tr>
+    <tr>
+      <td>Phase 0：环境骨架</td><td>8</td><td>7</td><td>1</td><td>0</td><td>87%</td>
+      <td class="bar-cell"><div class="bar"><div class="bar-fill" style="width:87%"></div></div></td>
+    </tr>
+    <tr>
+      <td>Phase 1：画布 + 布局</td><td>9</td><td>5</td><td>4</td><td>0</td><td>56%</td>
+      <td class="bar-cell"><div class="bar"><div class="bar-fill orange" style="width:56%"></div></div></td>
+    </tr>
+    <tr>
+      <td>Phase 2：原子表单</td><td>11</td><td>8</td><td>2</td><td>1</td><td>73%</td>
+      <td class="bar-cell"><div class="bar"><div class="bar-fill" style="width:73%"></div></div></td>
+    </tr>
+    <tr>
+      <td>Phase 3：执行引擎</td><td>9</td><td>8</td><td>1</td><td>0</td><td>89%</td>
+      <td class="bar-cell"><div class="bar"><div class="bar-fill" style="width:89%"></div></div></td>
+    </tr>
+    <tr>
+      <td>Phase 4：变量/网关</td><td>8</td><td>5</td><td>3</td><td>0</td><td>62%</td>
+      <td class="bar-cell"><div class="bar"><div class="bar-fill orange" style="width:62%"></div></div></td>
+    </tr>
+    <tr>
+      <td>Phase 5：AI + Dashboard</td><td>10</td><td>10</td><td>0</td><td>0</td><td>100%</td>
+      <td class="bar-cell"><div class="bar"><div class="bar-fill" style="width:100%"></div></div></td>
+    </tr>
+    <tr>
+      <td>Phase 6：版本管理</td><td>8</td><td>0</td><td>8</td><td>0</td><td>0%</td>
+      <td class="bar-cell"><div class="bar"><div class="bar-fill red" style="width:0%"></div></div></td>
+    </tr>
+    <tr>
+      <td>Phase 7：部署/测试</td><td>7</td><td>0</td><td>7</td><td>0</td><td>0%</td>
+      <td class="bar-cell"><div class="bar"><div class="bar-fill red" style="width:0%"></div></div></td>
+    </tr>
+    <tr>
+      <td>Tower 集成增补</td><td>10</td><td>4</td><td>6</td><td>0</td><td>40%</td>
+      <td class="bar-cell"><div class="bar"><div class="bar-fill orange" style="width:40%"></div></div></td>
+    </tr>
+    <tr>
+      <td>平台执行器完善</td><td>7</td><td>3</td><td>4</td><td>0</td><td>43%</td>
+      <td class="bar-cell"><div class="bar"><div class="bar-fill orange" style="width:43%"></div></div></td>
+    </tr>
+    <tr style="font-weight:600; background:#f5f7fa;">
+      <td>总计</td><td>87</td><td style="color:#67C23A">50</td><td style="color:#F56C6C">36</td><td style="color:#E6A23C">1</td><td style="color:#409EFF">57%</td>
+      <td class="bar-cell"><div class="bar"><div class="bar-fill" style="width:57%"></div></div></td>
+    </tr>
+  </table>
+</div>
+
+</div>
+</body>
+</html>
