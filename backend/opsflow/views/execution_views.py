@@ -55,7 +55,7 @@ class FlowExecutionViewSet(viewsets.ModelViewSet):
             return Response({'code': 4000, 'msg': '当前状态不允许启动', 'data': None},
                             status=status.HTTP_400_BAD_REQUEST)
         engine = FlowEngine(execution)
-        engine.start(sync=False)
+        engine.start()
         return Response({'code': 2000, 'msg': '执行已启动', 'data': FlowExecutionSerializer(execution).data})
 
     @action(detail=True, methods=['post'])

@@ -67,6 +67,7 @@ const emit = defineEmits<{
   newTemplate: []
   changeTemplate: [id: number | null]
   nodeSelect: [node: any]
+  nodeNeedPlugin: [nodeId: string]
 }>()
 
 const {
@@ -75,7 +76,7 @@ const {
   aiLayout, onTaskNodeDropped,
   zoomIn, zoomOut, fitCanvas, zoomLevel,
   undo, redo, canUndo, canRedo, destroy,
-} = useDesignCanvas('design-canvas-container')
+} = useDesignCanvas('design-canvas-container', emit)
 
 const stencilRef = ref<HTMLElement | null>(null)
 const canvasRef = ref<HTMLElement | null>(null)

@@ -58,7 +58,8 @@
       <DesignCanvas ref="designCanvasRef" :templates="templates" :template-id="selectedTemplateId"
                     @change-template="onSelectTemplate" @save="onSaveDraft" @diff="onDiff"
                     @analyze="onAnalyze" @new-template="showNewTemplateDialog"
-                    @node-select="onNodeSelect" />
+                    @node-select="onNodeSelect"
+                    @node-need-plugin="onNodeNeedPlugin" />
     </div>
 
     <!-- 插件选择器 -->
@@ -221,15 +222,10 @@ function onPluginPicked(plugin: { code: string; name: string; risk_level: string
   pendingTaskNode.value = null
 }
 
-onMounted(() => {
-  // 设置 Task Node 拖入回调
-  if (designCanvasRef.value?.onTaskNodeDropped) {
-    designCanvasRef.value.onTaskNodeDropped.value = (nodeId: string) => {
-      pendingTaskNode.value = nodeId
-      pickerVisible.value = true
-    }
-  }
-})
+function onNodeNeedPlugin(nodeId: string) {
+  pendingTaskNode.value = nodeId
+  pickerVisible.value = true
+}
 const chatScrollRef = ref<HTMLElement | null>(null)
 function scrollChatBottom() {
   nextTick(() => {

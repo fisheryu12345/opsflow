@@ -84,7 +84,7 @@ function selectPlugin(plugin: any) {
 function confirmPlugin(plugin: any) {
   selectedPlugin.value = plugin
   emit('select', { code: plugin.code, name: plugin.name, risk_level: plugin.risk_level || 'low' })
-  visible.value = false
+  emit('update:visible', false)
 }
 
 function confirmSelected() {
@@ -94,7 +94,7 @@ function confirmSelected() {
       name: selectedPlugin.value.name,
       risk_level: selectedPlugin.value.risk_level || 'low',
     })
-    visible.value = false
+    emit('update:visible', false)
   }
 }
 

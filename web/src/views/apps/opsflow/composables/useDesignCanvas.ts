@@ -11,13 +11,21 @@ import { Selection } from '@antv/x6-plugin-selection'
 import { MiniMap } from '@antv/x6-plugin-minimap'
 import { Keyboard } from '@antv/x6-plugin-keyboard'
 
-export function useDesignCanvas(containerId: string) {
+export function useDesignCanvas(containerId: string, emit?: (event: string, ...args: any[]) => void) {
   const graph = shallowRef<Graph | null>(null)
   const stencil = shallowRef<Stencil | null>(null)
   const selectedNode = ref<any>(null)
 
   const canUndo = ref(false)
   const canRedo = ref(false)
+
+  /** loading 标志：loadGraphData 期间抑制 node:added 误触发 */
+  const isLoading = ref(false)
+
+  /** 通知父组件该未配置的 Task Node 需要选择插件 */
+  function needPlugin(nodeId: string) {
+    if (emit && !isLoading.value) emit('nodeNeedPlugin', nodeId)
+  }
 
   function initGraph(minimapContainer?: HTMLElement | null) {
     if (graph.value) {
@@ -69,7 +77,15 @@ export function useDesignCanvas(containerId: string) {
     }
 
     // 事件
-    g.on('node:click', ({ node }) => { selectedNode.value = node.getData() })
+    g.on('node:click', ({ node }) => {
+      const data = node.getData()
+      // 把 X6 的 node.id 合入 data，确保 PropertyPanel 的 form.id 不为空
+      selectedNode.value = { ...data, id: data.id || node.id }
+      // 未配置 atom_type 的 Task Node → 弹出插件选择器
+      if (data?.node_type === 'atom' && !data?.atom_type) {
+        needPlugin(node.id)
+      }
+    })
     g.on('blank:click', () => { selectedNode.value = null })
     g.on('node:change:data', ({ node }) => {
       if (node.id === selectedNode.value?.id) selectedNode.value = node.getData()
@@ -89,8 +105,12 @@ export function useDesignCanvas(containerId: string) {
     // Task Node 拖入画布回调
     g.on('node:added', ({ node }) => {
       const data = node.getData()
-      if (data?.node_type === 'atom' && !data?.atom_type && onTaskNodeDropped.value) {
-        onTaskNodeDropped.value(node.id)
+      if (data?.node_type === 'atom') {
+        // 从 stencil 拖入的节点尺寸是 stencil 预览尺寸（130×32），恢复为原子节点标准尺寸
+        node.setSize({ width: 180, height: 48 })
+        if (!data?.atom_type) {
+          needPlugin(node.id)
+        }
       }
     })
 
@@ -353,7 +373,9 @@ export function useDesignCanvas(containerId: string) {
 
     console.log(`[loadGraphData] creating ${cells.length} cells total`)
     // NOTE: 不能使用 { silent: true } — 会阻止 X6 视图层渲染 DOM，导致画布空白
+    isLoading.value = true
     graph.value!.resetCells(cells)
+    isLoading.value = false
     // 清除历史快照，避免初始加载成为 undo 入口
     graph.value!.clearHistory?.()
     console.log('[loadGraphData] resetCells done, now centerContent')
@@ -436,18 +458,9 @@ export function useDesignCanvas(containerId: string) {
     zoomLevel.value = graph.value?.zoom() || 1
   }
 
-  /** Task Node 拖入画布回调（由父组件设置，打开插件选择器） */
+  /** Task Node 点击回调用（由父组件直接监听 @nodeNeedPlugin 事件） */
+  // onTaskNodeDropped 保留为 null 占位，避免外部 ref 访问报错
   const onTaskNodeDropped = ref<((nodeId: string) => void) | null>(null)
-
-  // 监听画布新增节点 — Task Node 拖入时触发回调
-  if (graph.value) {
-    graph.value.on('node:added', ({ node }) => {
-      const data = node.getData()
-      if (data?.node_type === 'atom' && !data?.atom_type && onTaskNodeDropped.value) {
-        onTaskNodeDropped.value(node.id)
-      }
-    })
-  }
 
   function destroy() {
     if (graph.value) {
