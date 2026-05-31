@@ -17,6 +17,7 @@
 | ConvergeGateway | `flow_engine.py` | 委托 BambooDjangoRuntime.ConvergeMixin |
 | 暂停/继续 | `flow_engine.py` | api.pause_pipeline() / api.resume_pipeline() |
 | 重试/跳过 | `flow_engine.py` | api.retry_node() / api.skip_node() |
+| 取消/终止 | `flow_engine.py` | api.revoke_pipeline() + 标记 cancelled |
 | Component 注册 | `atom_service.py` | pipeline.component_framework.Component 元类自动注册 |
 | post_set_state 信号 | `signals.py` | 异步追踪节点状态 → 更新 FlowExecution + OpsLog |
 | 原子注册 | `atom_registry.py` | meta.json 自动扫描注册（31 个原子） |

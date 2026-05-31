@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "pipeline.contrib.rollback",
     "pipeline.contrib.engine_admin",
     "opsflow",
+    "iam",
 ]
 
 MIDDLEWARE = [

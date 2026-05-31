@@ -14,6 +14,7 @@ from dvadmin.system.models import MenuButton, RoleMenuButtonPermission
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
+from iam.models import UserDirectPermission
 
 
 class MenuButtonSerializer(CustomModelSerializer):
@@ -79,5 +80,7 @@ class MenuButtonViewSet(CustomModelViewSet):
             queryset = MenuButton.objects.values_list('value',flat=True)
         else:
             role_id = request.user.role.values_list('id', flat=True)
-            queryset = RoleMenuButtonPermission.objects.filter(role__in=role_id).values_list('menu_button__value',flat=True).distinct()
+            role_perms = RoleMenuButtonPermission.objects.filter(role__in=role_id).values_list('menu_button__value',flat=True).distinct()
+            direct_perms = UserDirectPermission.objects.filter(user=request.user, menu_button__isnull=False).values_list('menu_button__value', flat=True)
+            queryset = list(role_perms) + list(direct_perms)
         return DetailResponse(data=queryset)

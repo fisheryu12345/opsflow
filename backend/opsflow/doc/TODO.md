@@ -52,6 +52,43 @@
 
 - [x] **Dashboard 统计仪表盘** — 4 ECharts（趋势/状态分布/Top 模板/节点类型）+ 7 统计卡片 + 用户活动表
 
+### 待添加
+
+- [ ] **bk-sops 配置驱动表单架构借鉴** — 参考 bk-sops 原子表单的"配置驱动"思想，构建 OpsFlow 原子参数配置表单：
+
+  **核心思路**: 后端定义原子元信息 + 前端 JSON Schema 配置 = 自动渲染表单
+
+  **借鉴对照表**:
+
+  | bk-sops 实现 | OpsFlow 升级方案 |
+  |---|---|
+  | jQuery Tag 系统 | Vue3 + Element Plus / Ant Design Vue Form |
+  | JS 配置文件 (`$.atoms[code]`) | JSON Schema (如 JSON Schema Form / Vue JSON Schema Form) |
+  | `$.atoms[code]` 全局注册 | 后端 API 动态返回表单 Schema (`GET /api/opsflow/atom-schema/{code}`) |
+  | `tag_code` 字符串绑定 | 类型安全的字段 key (TypeScript enum + 运行时校验) |
+  | 手写 `events` 联动 | 声明式联动规则 (dependencies + react-when) 或可视化规则引擎 |
+
+  **数据结构契约** (参考 tag_code 设计):
+  ```python
+  # 后端原子定义
+  class AtomMeta:
+      code: str          # 唯一标识
+      name: str          # 显示名称
+      form_schema: dict  # JSON Schema 描述参数结构
+      # 数据绑定: schema 中的 field_key 对应前端表单值的 key
+      # 执行时通过 field_key 取值: inputs["field_key"]
+
+  # 前端渲染 (Vue3 + JSON Schema Form)
+  # <VueForm :schema="atomMeta.form_schema" v-model="formValues" />
+  # formValues = { "host_ip": "...", "var_name": "..." }  # 按 field_key 组织
+  ```
+
+  **需要解决的问题**:
+  - 选择 JSON Schema 表单库 (Vue JSON Schema Form / Formily / Element Plus 动态表单?)
+  - datatable 高级表格组件支持（行内编辑、动态增减、列类型可配）
+  - 字段联动声明式 DSL 设计
+  - 与现有 X6 画布的 PropertyPanel 集成方式
+
 ## OpsFlow Doc Updater Skill
 
 已创建 `.claude/skills/opsflow-doc-updater/SKILL.md`，通过 `/opsflow-doc-updater` 命令触发，自动扫描代码并同步 doc/ 文档。

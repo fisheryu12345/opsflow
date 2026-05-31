@@ -344,7 +344,15 @@
       "Bash(redis-cli -n 0 KEYS '*')",
       "Bash(nohup python -m celery -A application worker -Q er_execute,er_schedule,default -l info -P solo --without-gossip --without-mingle --without-heartbeat)",
       "Read(//tmp/**)",
-      "Bash(timeout 8 python -m celery -A application worker -Q er_execute,er_schedule,default -l info -P solo --without-gossip --without-mingle --without-heartbeat)"
+      "Bash(timeout 8 python -m celery -A application worker -Q er_execute,er_schedule,default -l info -P solo --without-gossip --without-mingle --without-heartbeat)",
+      "Bash(awk '{print $2, $NF}')",
+      "Bash(findstr /i python)",
+      "Bash(taskkill /PID 7252 /F)",
+      "Bash(taskkill /PID 9408 /F)",
+      "Bash(taskkill /PID 3236 /F)",
+      "Bash(taskkill //PID 7252 //F)",
+      "Bash(taskkill //PID 9408 //F)",
+      "Bash(taskkill //PID 3236 //F)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

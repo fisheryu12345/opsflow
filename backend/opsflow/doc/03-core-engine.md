@@ -17,6 +17,7 @@ engine.pause()      # 暂停 → api.pause_pipeline()
 engine.resume()     # 恢复 → api.resume_pipeline()
 engine.retry(node_id)   # 重试 → api.retry_node()
 engine.skip(node_id)    # 跳过 → api.skip_node()
+engine.cancel()     # 取消终止 → api.revoke_pipeline() + 标记 cancelled
 ```
 
 ### 执行流程
@@ -282,7 +283,7 @@ scan_atoms()
 
 `executor_type` 默认 `"ansible"`（向后兼容），未指定时自动使用 AnsibleExecutor。
 
-### 注册原子（31 个）
+### 注册原子（37 个）
 
 **Ansible 原子（13 个，executor_type=ansible）**:
 

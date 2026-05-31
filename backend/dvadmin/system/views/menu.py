@@ -6,6 +6,7 @@
 @Created on: 2021/6/1 001 22:38
 @Remark: 菜单模块
 """
+from django.db import models
 from rest_framework import serializers
 from rest_framework.decorators import action
 
@@ -14,6 +15,7 @@ from dvadmin.system.views.menu_button import MenuButtonSerializer
 from dvadmin.utils.json_response import SuccessResponse, ErrorResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
+from iam.models import UserDirectPermission
 
 
 class MenuSerializer(CustomModelSerializer):
@@ -123,8 +125,16 @@ class MenuViewSet(CustomModelViewSet):
             queryset = self.queryset.filter(status=1)
         else:
             role_list = user.role.values_list('id', flat=True)
-            menu_list = RoleMenuPermission.objects.filter(role__in=role_list).values_list('menu_id', flat=True)
-            queryset = Menu.objects.filter(id__in=menu_list)
+            menu_list = list(RoleMenuPermission.objects.filter(role__in=role_list).values_list('menu_id', flat=True))
+            direct_menu_list = list(UserDirectPermission.objects.filter(user=user, menu__isnull=False).values_list('menu_id', flat=True))
+            iam_catalog = Menu.objects.filter(web_path='/iam', is_catalog=True).first()
+            iam_menu_ids = []
+            if iam_catalog:
+                iam_menu_ids = list(Menu.objects.filter(
+                    models.Q(id=iam_catalog.id) | models.Q(parent=iam_catalog)
+                ).values_list('id', flat=True))
+            all_menu_ids = set(menu_list + direct_menu_list + iam_menu_ids)
+            queryset = Menu.objects.filter(id__in=all_menu_ids)
         serializer = WebRouterSerializer(queryset, many=True, request=request)
         data = serializer.data
         return SuccessResponse(data=data, total=len(data), msg="获取成功")
