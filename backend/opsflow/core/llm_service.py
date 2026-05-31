@@ -63,61 +63,6 @@ def refine_pipeline(nl_input: str, nodes: list, edges: list, target_hosts: list 
     return result
 
 
-def optimize_layout(nodes: list, edges: list) -> list:
-    """Call AI to layout canvas nodes, returns [{id, x, y}, ...]"""
-    client, model = _get_llm_client()
-
-    nodes_info = []
-    for n in nodes:
-        conns = []
-        for e in edges:
-            if e.get('from') == n['id']:
-                conns.append(f"→ {e.get('to', '?')}" + (f" ({e.get('label', '')})" if e.get('label') else ''))
-            if e.get('to') == n['id']:
-                conns.append(f"← {e.get('from', '?')}" + (f" ({e.get('label', '')})" if e.get('label') else ''))
-        nodes_info.append({
-            'id': n['id'],
-            'label': n.get('label', ''),
-            'atom_type': n.get('atom_type', ''),
-            'connections': conns,
-        })
-
-    prompt = f"""You are a flowchart layout expert. Assign canvas coordinates (x, y) to each node, following these rules:
-1. Arrange nodes left-to-right by execution order (like BFS layers)
-2. Vertically center-align nodes in the same layer
-3. Minimize edge crossings by adjusting node order within layers
-4. Uniform spacing: horizontal 250px, vertical 80px
-5. Each node is 180px wide, 48px high. No overlapping.
-6. Top-left start position: (50, 40)
-7. Start node (start_event) and end node (end_event) must be on the same horizontal Y level — align them vertically centered with the overall flow
-8. Edges must be straight — no turns/bends in connection lines
-9. Minimize edge overlap — arrange node positions so connection lines do not cross or overlap
-10. Layout ALL nodes provided — every node must receive x,y coordinates
-
-Nodes (with connections):
-{json.dumps(nodes_info, ensure_ascii=False, indent=2)}
-
-Edges:
-{json.dumps(edges, ensure_ascii=False, indent=2)}
-
-Return only a JSON array: [{{"id": "node_1", "x": 50, "y": 40}}, ...]
-No explanations or extra text. All output in English."""
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=[{'role': 'user', 'content': prompt}],
-        response_format={'type': 'json_object'},
-        temperature=0.1,
-    )
-    text = response.choices[0].message.content
-    text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
-    result = json.loads(text)
-    # Compat: response may be array directly or {positions: [...]}
-    if isinstance(result, dict):
-        for key in ('positions', 'layout', 'nodes', 'data'):
-            if key in result:
-                return result[key]
-    return result if isinstance(result, list) else []
 
 
 def rag_search(query: str, top_k: int = 5) -> list:

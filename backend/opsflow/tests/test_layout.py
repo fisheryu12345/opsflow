@@ -101,17 +101,3 @@ class TestAiLayoutEndpoint:
         input_ids = {n["id"] for n in data["nodes"]}
         returned_ids = {p["id"] for p in positions}
         assert input_ids == returned_ids
-
-    def test_method_ai_fallback(self, factory):
-        """?method=ai should return gracefully even without API key."""
-        data = {
-            "nodes": [{"id": "x1", "node_type": "", "name": "X"}],
-            "edges": [],
-        }
-        request = _make_request(factory, data=data)
-        # Add query param
-        request.META["QUERY_STRING"] = "method=ai"
-        view = FlowTemplateViewSet.as_view({"post": "ai_layout"})
-        response = view(request)
-        # Should return 400 (AI missing) not 500
-        assert response.status_code in (200, 400)

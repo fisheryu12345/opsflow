@@ -6,6 +6,14 @@
           <el-button size="small" circle :disabled="!canUndo" @click="undo" :icon="RefreshLeft" />
           <el-button size="small" circle :disabled="!canRedo" @click="redo" :icon="RefreshRight" />
         </el-button-group>
+        <div class="toolbar-divider" />
+        <div class="zoom-controls">
+          <el-button size="small" text :icon="ZoomIn" @click="zoomIn" />
+          <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
+          <el-button size="small" text :icon="ZoomOut" @click="zoomOut" />
+          <el-button size="small" text :icon="FullScreen" @click="fitCanvas" />
+        </div>
+        <div class="toolbar-divider" />
         <el-button size="small" circle @click="$emit('diff')" :icon="CopyDocument" />
         <el-button size="small" circle @click="$emit('analyze')" :icon="DataAnalysis" />
         <el-button size="small" circle @click="aiLayout" :icon="Operation" />
@@ -28,7 +36,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
+import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
 // X6 CSS — 必须导入否则 Stencil、Minimap 等插件容器不显示
 import '@antv/x6/dist/index.css'
 import '@antv/x6-plugin-stencil/dist/index.css'
@@ -47,6 +55,7 @@ const {
   graph, stencil, selectedNode,
   initGraph, initStencil, loadGraphData, getGraphData,
   aiLayout,
+  zoomIn, zoomOut, fitCanvas, zoomLevel,
   undo, redo, canUndo, canRedo, destroy,
 } = useDesignCanvas('design-canvas-container')
 
@@ -112,7 +121,7 @@ onMounted(() => {
   })
 })
 
-defineExpose({ loadPipeline, getGraphData, graph, aiLayout, undo, redo })
+defineExpose({ loadPipeline, getGraphData, graph, aiLayout, zoomIn, zoomOut, fitCanvas, undo, redo })
 </script>
 
 <style scoped>
@@ -126,6 +135,7 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, undo, redo })
   right: 12px;
   z-index: 100;
   display: flex;
+  align-items: center;
   gap: 6px;
   background: rgba(255, 255, 255, 0.95);
   padding: 6px 8px;
@@ -133,6 +143,9 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, undo, redo })
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(8px);
 }
+.zoom-controls { display: flex; align-items: center; gap: 2px; background: #f5f7fa; border-radius: 6px; padding: 2px; }
+.zoom-level { font-size: 11px; color: #909399; min-width: 36px; text-align: center; font-family: monospace; }
+.toolbar-divider { width: 1px; height: 20px; background: #e4e7ed; margin: 0 2px; }
 .canvas-body {
   display: flex;
   height: 100%;

@@ -60,10 +60,6 @@
                    style="width: 260px" @change="onSelectTemplate">
           <el-option v-for="t in templates" :key="t.id" :label="t.name" :value="t.id" />
         </el-select>
-        <div class="template-bar-divider" />
-        <el-button size="small" :icon="CaretRight" type="primary" plain @click="goToExecutions">
-          Executions
-        </el-button>
       </div>
       <DesignCanvas ref="designCanvasRef" @save="onSaveDraft" @diff="onDiff" @analyze="onAnalyze"
                     @new-template="showNewTemplateDialog" />
@@ -161,7 +157,7 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Fold, CaretRight,
+  Fold,
   ChatDotSquare, ChatLineSquare, User, InfoFilled,
   WarningFilled, Lightning, List, CircleCheck,
 } from '@element-plus/icons-vue'
@@ -403,9 +399,7 @@ async function onDiffConfirmed() {
   }
 }
 
-function goToExecutions() {
-  window.location.hash = '#/opsflow/executions'
-}
+
 
 onMounted(() => {
   fetchTemplates()

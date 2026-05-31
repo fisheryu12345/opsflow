@@ -1,4 +1,4 @@
-import { ref, onBeforeUnmount, shallowRef } from 'vue'
+import { ref, onBeforeUnmount, shallowRef, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Graph, Shape } from '@antv/x6'
 import { resolveNodeShape } from '../utils/shapes'
@@ -109,6 +109,8 @@ export function useDesignCanvas(containerId: string) {
     g.bindKey('ctrl+v', () => g.paste({ offset: 32 }))
     g.bindKey('ctrl+z', () => g.undo())
     g.bindKey('ctrl+y', () => g.redo())
+
+    g.on('scale', () => { zoomLevel.value = g.zoom() })
 
     graph.value = g
   }
@@ -505,6 +507,16 @@ export function useDesignCanvas(containerId: string) {
     return graph.value?.canRedo() ?? false
   }
 
+  const zoomLevel = ref(1)
+
+  function zoomIn() { graph.value?.zoom(0.15); zoomLevel.value = graph.value?.zoom() || 1 }
+  function zoomOut() { graph.value?.zoom(-0.15); zoomLevel.value = graph.value?.zoom() || 1 }
+  function fitCanvas() {
+    graph.value?.centerContent()
+    graph.value?.zoomToFit({ padding: 40 })
+    zoomLevel.value = graph.value?.zoom() || 1
+  }
+
   function destroy() {
     if (graph.value) {
       graph.value.dispose()
@@ -518,6 +530,7 @@ export function useDesignCanvas(containerId: string) {
     graph, stencil, selectedNode,
     initGraph, initStencil, loadGraphData, getGraphData,
     aiLayout,
+    zoomIn, zoomOut, fitCanvas, zoomLevel,
     undo, redo, canUndo, canRedo, destroy,
   }
 }
