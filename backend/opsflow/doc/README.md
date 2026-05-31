@@ -81,11 +81,12 @@
 | Ansible Tower 集成 | ✅ 完成 | 自适应轮询 + artifacts 提取 |
 | 条件表达式增强 | ✅ 完成 | ${node.artifacts.key >= N} 语法 |
 | 多平台原子层 | ✅ 完成 | ESXi/NetApp/ServiceNow/Redfish/HTTP |
-| 执行入口 UI (运行按钮) | ❌ 待实现 | 画布上触发执行 |
-| 执行记录页面 | ❌ 待实现 | 历史记录列表+详情 |
-| 审计日志页面 | ❌ 待实现 | OpsLog 查看 |
-| 知识库管理页面 | ❌ 待实现 | OpsKnowledge CRUD |
-| 模板管理页面 | ❌ 待实现 | 模板列表/搜索/编辑/删除 |
+| 执行入口 UI (运行按钮) | ✅ 完成 | 画布上触发执行 |
+| 执行记录页面 | ✅ 完成 | 历史记录列表+详情（含 MonitorCanvas） |
+| 审计日志页面 | ✅ 完成 | OpsLog 浏览（风险等级状态点） |
+| 知识库管理页面 | ✅ 完成 | OpsKnowledge CRUD（卡片布局） |
+| 模板管理页面 | ✅ 完成 | 模板列表/搜索/卡片视图/管道可视化 |
+| Dashboard 统计仪表盘 | ✅ 完成 | ECharts 4 图表 + 7 统计卡片 + 用户活动表 |
 
 ## 技术栈
 
@@ -101,3 +102,4 @@
 | 数据库 | MySQL + Redis |
 | WebSocket | Django Channels |
 | 原子执行 | Executor Factory: Ansible Tower / ESXi / NetApp / ServiceNow / Redfish / HTTP / Test |
+| Dashboard 后端 | dashboard_stats / dashboard_trend (14 指标 + 30 日趋势) |

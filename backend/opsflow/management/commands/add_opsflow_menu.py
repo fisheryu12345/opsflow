@@ -26,6 +26,29 @@ class Command(BaseCommand):
         )
         self.stdout.write(self.style.SUCCESS(f'Catalog: {catalog.name} (id={catalog.id})'))
 
+        # --- 流程仪表盘 (Dashboard) ---
+        dashboard_menu, created = Menu.objects.get_or_create(
+            name="流程仪表盘",
+            web_path="/opsflow/dashboard",
+            component="apps/opsflow-dashboard/index",
+            component_name="opsflowDashboard",
+            defaults={
+                "icon": "iconfont icon-flow",
+                "sort": 2,
+                "is_link": False,
+                "is_catalog": False,
+                "status": True,
+                "cache": True,
+                "visible": True,
+                "is_iframe": False,
+                "is_affix": False,
+                "parent": catalog,
+            },
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f'  {"Created" if created else "Found"} menu: {dashboard_menu.name} (id={dashboard_menu.id})'
+        ))
+
         # --- 运维编排 (template design) ---
         design, created = Menu.objects.get_or_create(
             name="运维编排",
@@ -70,4 +93,73 @@ class Command(BaseCommand):
         )
         self.stdout.write(self.style.SUCCESS(
             f'  {"Created" if created else "Found"} menu: {exec_menu.name} (id={exec_menu.id})'
+        ))
+
+        # --- 审计日志 ---
+        log_menu, created = Menu.objects.get_or_create(
+            name="审计日志",
+            web_path="/opsflow/logs",
+            component="apps/opsflow-log/index",
+            component_name="opsflowLogs",
+            defaults={
+                "icon": "iconfont icon-flow",
+                "sort": 5,
+                "is_link": False,
+                "is_catalog": False,
+                "status": True,
+                "cache": True,
+                "visible": True,
+                "is_iframe": False,
+                "is_affix": False,
+                "parent": catalog,
+            },
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f'  {"Created" if created else "Found"} menu: {log_menu.name} (id={log_menu.id})'
+        ))
+
+        # --- 知识库 ---
+        knowledge_menu, created = Menu.objects.get_or_create(
+            name="知识库",
+            web_path="/opsflow/knowledge",
+            component="apps/opsflow-knowledge/index",
+            component_name="opsflowKnowledge",
+            defaults={
+                "icon": "iconfont icon-flow",
+                "sort": 6,
+                "is_link": False,
+                "is_catalog": False,
+                "status": True,
+                "cache": True,
+                "visible": True,
+                "is_iframe": False,
+                "is_affix": False,
+                "parent": catalog,
+            },
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f'  {"Created" if created else "Found"} menu: {knowledge_menu.name} (id={knowledge_menu.id})'
+        ))
+
+        # --- 模板管理 ---
+        template_menu, created = Menu.objects.get_or_create(
+            name="模板管理",
+            web_path="/opsflow/templates",
+            component="apps/opsflow-template/index",
+            component_name="opsflowTemplates",
+            defaults={
+                "icon": "iconfont icon-flow",
+                "sort": 7,
+                "is_link": False,
+                "is_catalog": False,
+                "status": True,
+                "cache": True,
+                "visible": True,
+                "is_iframe": False,
+                "is_affix": False,
+                "parent": catalog,
+            },
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f'  {"Created" if created else "Found"} menu: {template_menu.name} (id={template_menu.id})'
         ))

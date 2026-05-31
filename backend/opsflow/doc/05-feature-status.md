@@ -45,7 +45,7 @@
 | 功能 | 组件 | 说明 |
 |------|------|------|
 | 设计画布 | `DesignCanvas.vue` | X6 Graph 拖拽式编排 |
-| 组件面板 | `useDesignCanvas.ts` | Stencil 分组拖拽 |
+| 组件面板 | `useDesignCanvas.ts` | Stencil 分组拖拽（10 组 36 节点） |
 | 节点属性 | `PropertyPanel.vue` | 编辑标签/参数/超时/重试 |
 | 小地图 | `useDesignCanvas.ts` | Minimap 导航 |
 | Undo/Redo | `useDesignCanvas.ts` | History 插件 + 快捷键 |
@@ -54,6 +54,12 @@
 | Diff 对比 | `DiffModal.vue` | AI 原稿 vs 当前修改 |
 | 实时监控 | `MonitorCanvas.vue` | WebSocket 节点实时着色 |
 | 状态管理 | `opsflowStore.ts` | Pinia 设计/监控模式 |
+| 执行入口 UI | `execution_views.py` + `DesignCanvas.vue` | 画布"运行"按钮 → Create + Start |
+| 执行记录页面 | `ExecutionList.vue` + `ExecutionDetail.vue` | 历史列表（状态筛选）+ 详情（MonitorCanvas） |
+| 审计日志页面 | `opsflow-log/index.vue` | OpsLog 浏览（白卡片 + 风险状态点） |
+| 知识库页面 | `opsflow-knowledge/index.vue` | OpsKnowledge CRUD（卡片布局） |
+| 模板管理页面 | `opsflow-template/index.vue` | 模板列表（表格/卡片切换 + 管道可视化） |
+| Dashboard | `opsflow-dashboard/index.vue` | 4 ECharts + 7 统计卡片 + 用户活动表 |
 
 ## ❌ 待实现功能
 
@@ -61,24 +67,7 @@
 
 | 功能 | 说明 | 涉及文件 |
 |------|------|----------|
-| **执行入口 UI** | 画布工具栏添加"运行"按钮，调用 CreateExecution + StartExecution | `DesignCanvas.vue`, `index.vue`, `executions.ts` |
-| **执行记录页面** | 执行历史列表（筛选状态）+ 详情页（嵌入 MonitorCanvas） | 新建页面 + `executions.ts` |
-| **Celery worker 启动** | 为 er_execute/er_schedule 队列添加 worker 启动文档或脚本 | `doc/` |
 | **状态验证** | flow_engine 中定期调用 get_pipeline_states() | `flow_engine.py` |
-
-### 中优先级
-
-| 功能 | 说明 | 涉及文件 |
-|------|------|----------|
-| **审计日志页面** | OpsLog 浏览（按 execution 查看每一步输出） | 新建页面 + `logs.ts` |
-| **知识库页面** | OpsKnowledge CRUD 前端 | 新建页面 + `knowledge.ts` |
-| **设计/监控切换** | 设计画布 ↔ 监控视图的统一切换入口 | `index.vue`, `opsflowStore.ts` |
-
-### 低优先级
-
-| 功能 | 说明 | 涉及文件 |
-|------|------|----------|
-| **模板管理页面** | 模板列表浏览/搜索/编辑/删除/版本对比 | 新建页面 + `templates.ts` |
 
 ### 平台执行器完善
 

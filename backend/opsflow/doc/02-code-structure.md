@@ -8,7 +8,7 @@ backend/opsflow/
 ├── apps.py                          # AppConfig → 启动时注册原子 + Service
 ├── models.py                        # 4 个数据模型
 ├── serializers.py                   # DRF 序列化器
-├── urls.py                          # 4 条路由注册
+├── urls.py                          # 6 条路由注册（含 dashboard）
 ├── tasks.py                         # Celery 任务
 ├── consumers.py                     # WebSocket 消费者 (含 tower_job_update)
 │
@@ -40,7 +40,8 @@ backend/opsflow/
 │   ├── template_views.py           # 模板 CRUD + AI 端点
 │   ├── execution_views.py          # 执行 CRUD + 控制端点
 │   ├── log_views.py                # 日志只读视图
-│   └── knowledge_views.py          # 知识库 CRUD + 搜索
+│   ├── knowledge_views.py          # 知识库 CRUD + 搜索
+│   └── dashboard_views.py          # Dashboard 统计/趋势 API
 │
 ├── management/commands/
 │   └── add_opsflow_menu.py         # RBAC 菜单注册命令
@@ -69,11 +70,30 @@ web/src/views/apps/opsflow/
     ├── useDesignCanvas.ts           # 画布逻辑（节点/连线/布局/X6 插件）
     └── useMonitor.ts                # WebSocket 监控逻辑
 
+web/src/views/apps/opsflow-log/
+└── index.vue                        # 审计日志页面（白卡片 + 风险状态点 + 图标按钮）
+
+web/src/views/apps/opsflow-knowledge/
+└── index.vue                        # 知识库页面（卡片布局 + 编辑/删除图标按钮）
+
+web/src/views/apps/opsflow-template/
+└── index.vue                        # 模板管理页面（表格/卡片切换 + 管道可视化 + 详情弹窗）
+
+web/src/views/apps/opsflow-execution/
+├── index.vue                        # 执行记录列表（筛选状态 + 时间线）
+└── components/
+    ├── ExecutionList.vue            # 执行列表（表格 + 标签过滤）
+    └── ExecutionDetail.vue          # 执行详情（嵌入 MonitorCanvas）
+
+web/src/views/apps/opsflow-dashboard/
+└── index.vue                        # Dashboard（4 ECharts + 7 统计卡片 + 用户活动表）
+
 web/src/api/opsflow/
 ├── templates.ts                     # 模板 API
 ├── executions.ts                    # 执行 API
 ├── logs.ts                          # 日志 API
-└── knowledge.ts                     # 知识库 API
+├── knowledge.ts                     # 知识库 API
+└── dashboard.ts                     # Dashboard 统计/趋势 API
 ```
 
 ## 模型关系
@@ -134,6 +154,8 @@ web/src/api/opsflow/
 | `/api/opsflow/logs/` | GET | 审计日志列表（只读） |
 | `/api/opsflow/knowledge/` | GET/POST | 知识库列表/创建 |
 | `/api/opsflow/knowledge/search/` | POST | 知识库文本搜索 |
+| `/api/opsflow/dashboard/stats/` | GET | Dashboard 统计数据（14 项聚合指标） |
+| `/api/opsflow/dashboard/trend/` | GET | Dashboard 执行趋势（按日，默认 30 天） |
 | `ws://host/ws/opsflow/execution/{id}/` | WebSocket | 实时状态 + Tower 进度推送 |
 
 ## 核心模块依赖
