@@ -46,8 +46,8 @@
       <el-form label-width="100px">
         <el-form-item label="Request Type">
           <el-radio-group v-model="form.request_type">
-            <el-radio value="role">Join Role</el-radio>
-            <el-radio value="menu">Access Menu</el-radio>
+            <el-radio label="role">Join Role</el-radio>
+            <el-radio label="menu">Access Menu</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="Target" v-if="form.request_type === 'role'">
