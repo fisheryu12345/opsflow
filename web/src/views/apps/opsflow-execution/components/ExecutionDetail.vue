@@ -30,9 +30,7 @@
     <div class="detail-body">
       <div class="canvas-panel">
         <MonitorCanvas ref="monitorRef" :execution-id="execution.id"
-                        :started-at="execDetail.started_at" :ended-at="execDetail.ended_at"
-                        :show-cancel="isCancelable"
-                        :cancelling="cancelling" @cancel="onCancel" />
+                        :started-at="execDetail.started_at" :ended-at="execDetail.ended_at" />
       </div>
       <button class="side-toggle" :class="{ collapsed: logCollapsed }" @click="toggleLogPanel">
         <el-icon><component :is="logCollapsed ? DArrowLeft : DArrowRight" /></el-icon>
