@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
 // X6 CSS — 必须导入否则 Stencil、Minimap 等插件容器不显示
@@ -66,12 +66,13 @@ const emit = defineEmits<{
   analyze: []
   newTemplate: []
   changeTemplate: [id: number | null]
+  nodeSelect: [node: any]
 }>()
 
 const {
   graph, stencil, selectedNode,
   initGraph, initStencil, loadGraphData, getGraphData,
-  aiLayout,
+  aiLayout, onTaskNodeDropped,
   zoomIn, zoomOut, fitCanvas, zoomLevel,
   undo, redo, canUndo, canRedo, destroy,
 } = useDesignCanvas('design-canvas-container')
@@ -79,7 +80,7 @@ const {
 const stencilRef = ref<HTMLElement | null>(null)
 const canvasRef = ref<HTMLElement | null>(null)
 const minimapRef = ref<HTMLElement | null>(null)
-const stencilCollapsed = ref(false)
+const stencilCollapsed = ref(true)
 
 function toggleStencil() {
   stencilCollapsed.value = !stencilCollapsed.value
@@ -119,11 +120,14 @@ function onNodeUpdate(newData: any) {
   if (graph.value && selectedNode.value) {
     const node = graph.value.getCellById(selectedNode.value.id)
     if (node) {
+      const nodeType = newData?.node_type || node.getData()?.node_type
+      const isEvent = nodeType === 'start_event' || nodeType === 'end_event'
       node.setData(newData)
-      // 自定义 Node.define shape 必须显式设置 attrs.label.text
-      const label = newData.label || ''
-      node.setLabel(label)
-      node.setAttrs({ label: { text: label } })
+      if (!isEvent) {
+        const label = newData.label || ''
+        node.setLabel(label)
+        node.setAttrs({ label: { text: label } })
+      }
     }
   }
 }
@@ -160,7 +164,12 @@ onMounted(() => {
   })
 })
 
-defineExpose({ loadPipeline, getGraphData, graph, aiLayout, zoomIn, zoomOut, fitCanvas, undo, redo })
+// 选中节点变化时通知父组件（AI 面板折叠/展开）
+watch(selectedNode, (val) => {
+  emit('nodeSelect', val)
+})
+
+defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, zoomIn, zoomOut, fitCanvas, undo, redo })
 </script>
 
 <style scoped>

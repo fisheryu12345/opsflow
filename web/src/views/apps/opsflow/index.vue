@@ -57,8 +57,12 @@
     <div class="opsflow-body">
       <DesignCanvas ref="designCanvasRef" :templates="templates" :template-id="selectedTemplateId"
                     @change-template="onSelectTemplate" @save="onSaveDraft" @diff="onDiff"
-                    @analyze="onAnalyze" @new-template="showNewTemplateDialog" />
+                    @analyze="onAnalyze" @new-template="showNewTemplateDialog"
+                    @node-select="onNodeSelect" />
     </div>
+
+    <!-- 插件选择器 -->
+    <PluginPickerDialog v-model:visible="pickerVisible" @select="onPluginPicked" />
 
     <!-- 新模板对话框 -->
     <el-dialog v-model="newDialogVisible" title="New Template" width="420px" class="opsflow-dialog">
@@ -149,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Fold,
@@ -160,6 +164,7 @@ import { useOpsflowStore } from './stores/opsflowStore'
 import { GetTemplates, GetTemplateDetail, CreateFromAi, GetDiff, AnalyzePipeline, RefinePipeline, AiLayout, UpdateTemplate } from '/@/api/opsflow/templates'
 import DesignCanvas from './components/DesignCanvas.vue'
 import DiffModal from './components/DiffModal.vue'
+import PluginPickerDialog from './components/PluginPickerDialog.vue'
 
 const store = useOpsflowStore()
 
@@ -186,9 +191,45 @@ const analyzeVisible = ref(false)
 const analyzing = ref(false)
 const analysisResult = ref<any>(null)
 
-// 多轮对话
+// 插件选择器
+const pickerVisible = ref(false)
+const pendingTaskNode = ref<string | null>(null)
+
+// 选中节点 → 折叠 AI 面板
 const chatExpanded = ref(true)
 const chatMessages = ref<{ role: 'user' | 'ai'; content: string }[]>([])
+
+function onNodeSelect(node: any) {
+  chatExpanded.value = !node  // 选中节点 → 折叠；取消选中 → 展开
+}
+
+function onPluginPicked(plugin: { code: string; name: string; risk_level: string }) {
+  if (!pendingTaskNode.value || !designCanvasRef.value?.graph) return
+  const node = designCanvasRef.value.graph.getCellById(pendingTaskNode.value)
+  if (node && node.isNode()) {
+    const oldData = node.getData() || {}
+    node.setData({
+      ...oldData,
+      atom_type: plugin.code,
+      plugin_code: plugin.code,
+      risk_level: plugin.risk_level,
+      label: plugin.name,
+    })
+    node.setLabel(plugin.name)
+    node.setAttrs({ label: { text: plugin.name } })
+  }
+  pendingTaskNode.value = null
+}
+
+onMounted(() => {
+  // 设置 Task Node 拖入回调
+  if (designCanvasRef.value?.onTaskNodeDropped) {
+    designCanvasRef.value.onTaskNodeDropped.value = (nodeId: string) => {
+      pendingTaskNode.value = nodeId
+      pickerVisible.value = true
+    }
+  }
+})
 const chatScrollRef = ref<HTMLElement | null>(null)
 function scrollChatBottom() {
   nextTick(() => {

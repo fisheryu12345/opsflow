@@ -32,7 +32,7 @@ Shape.Circle.define({
   height: 56,
   attrs: {
     body: { fill: '#E1F3D8', stroke: '#67C23A', strokeWidth: 2.5 },
-    label: { fill: '#333', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'middle', refY: 62 },
+    label: { fontSize: 0 },
   },
   ports: {
     groups: {
@@ -51,7 +51,7 @@ Shape.Circle.define({
   height: 56,
   attrs: {
     body: { fill: '#FDE2E2', stroke: '#F56C6C', strokeWidth: 2.5 },
-    label: { fill: '#333', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'middle', refY: 62 },
+    label: { fontSize: 0 },
   },
   ports: {
     groups: {

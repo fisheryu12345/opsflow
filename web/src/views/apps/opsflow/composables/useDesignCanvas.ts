@@ -86,6 +86,14 @@ export function useDesignCanvas(containerId: string) {
       canRedo.value = g.canRedo()
     })
 
+    // Task Node 拖入画布回调
+    g.on('node:added', ({ node }) => {
+      const data = node.getData()
+      if (data?.node_type === 'atom' && !data?.atom_type && onTaskNodeDropped.value) {
+        onTaskNodeDropped.value(node.id)
+      }
+    })
+
     // 键盘快捷键
     g.use(new Keyboard({ enabled: true }))
     g.bindKey('del', () => { const c = g.getSelectedCells(); if (c.length) g.removeCells(c) })
@@ -102,118 +110,48 @@ export function useDesignCanvas(containerId: string) {
 
   function initStencil(target: HTMLElement) {
     if (!graph.value) return
+
     const s = new Stencil({
       target: graph.value,
-      search: true,
-      title: 'Components',
+      search: false,
+      title: 'Nodes',
       groups: [
-        { name: 'test', label: 'Test', graphHeight: 60 },
-        { name: 'check', label: 'Check', graphHeight: 110 },
-        { name: 'action', label: 'Action', graphHeight: 220 },
-        { name: 'control', label: 'Control', graphHeight: 70 },
-        { name: 'vm', label: 'VM (ESXi)', graphHeight: 150 },
-        { name: 'storage', label: 'Storage (NetApp)', graphHeight: 150 },
-        { name: 'itsm', label: 'ITSM (ServiceNow)', graphHeight: 150 },
-        { name: 'bmc', label: 'BMC (Redfish)', graphHeight: 200 },
-        { name: 'generic', label: 'Generic', graphHeight: 60 },
-        { name: 'gateway', label: 'Gateway/Event', graphHeight: 300 },
+        { name: 'basic', label: 'Basic', graphHeight: 130 },
+        { name: 'gateway', label: 'Gateways', graphHeight: 170 },
       ],
+      stencilGraphWidth: 160,
       layout: (model) => {
         const nodes = model.getNodes()
-        const cols = 2
-        nodes.forEach((node, i) => {
-          const col = i % cols
-          const row = Math.floor(i / cols)
-          const h = node.getSize()?.height || 36
-          node.setPosition({ x: 10 + col * 85, y: row * (h + 18) + 8 })
+        const pw = 160
+        nodes.forEach((node) => {
+          const d = node.getData() || {}
+          if (d.node_type === 'start_event')        node.setPosition({ x: 48, y: 12 })
+          else if (d.node_type === 'end_event')     node.setPosition({ x: 100, y: 12 })
+          else if (d.node_type === 'atom')          node.setPosition({ x: 15, y: 72 })
+          else if (d.node_type === 'exclusive_gateway')          node.setPosition({ x: 6, y: 8 })
+          else if (d.node_type === 'parallel_gateway')           node.setPosition({ x: 86, y: 8 })
+          else if (d.node_type === 'conditional_parallel_gateway') node.setPosition({ x: 6, y: 88 })
+          else if (d.node_type === 'converge_gateway')            node.setPosition({ x: 86, y: 88 })
         })
       },
-      stencilGraphWidth: 180,
     })
 
-    // 注册原子模板（与 ansible_atoms/meta_index.json 同步）
-    const atoms = [
-      // Test 组
-      { shape: 'ops-atom', label: 'Print Time', data: { atom_type: 'test_print_time', risk_level: 'low', group: 'test' } },
-      // Check 组
-      { shape: 'ops-atom', label: 'Disk Check', data: { atom_type: 'disk_check', risk_level: 'low', group: 'check' } },
-      { shape: 'ops-atom', label: 'Ping Test', data: { atom_type: 'ping_test', risk_level: 'low', group: 'check' } },
-      { shape: 'ops-atom', label: 'Health Check', data: { atom_type: 'health_check', risk_level: 'low', group: 'check' } },
-      { shape: 'ops-atom', label: 'Shell', data: { atom_type: 'shell', risk_level: 'medium', group: 'action' } },
-      { shape: 'ops-atom', label: 'Upload File', data: { atom_type: 'upload_file', risk_level: 'medium', group: 'action' } },
-      { shape: 'ops-atom', label: 'Copy File', data: { atom_type: 'file_copy', risk_level: 'medium', group: 'action' } },
-      { shape: 'ops-atom', label: 'Run Script', data: { atom_type: 'script_exec', risk_level: 'medium', group: 'action' } },
-      { shape: 'ops-atom', label: 'Backup File', data: { atom_type: 'backup_file', risk_level: 'low', group: 'action' } },
-      { shape: 'ops-atom', label: 'Deploy App', data: { atom_type: 'java_deploy', risk_level: 'high', group: 'action' } },
-      { shape: 'ops-atom', label: 'Docker Deploy', data: { atom_type: 'docker_deploy', risk_level: 'high', group: 'action' } },
-      { shape: 'ops-atom', label: 'Nginx Reload', data: { atom_type: 'nginx_reload', risk_level: 'medium', group: 'action' } },
-      { shape: 'ops-atom', label: 'Service Control', data: { atom_type: 'service_control', risk_level: 'high', group: 'control' } },
-      { shape: 'ops-atom', label: 'Send Alert', data: { atom_type: 'send_alert', risk_level: 'low', group: 'control' } },
-      // VM (ESXi) 组
-      { shape: 'ops-atom', label: 'Create VM', data: { atom_type: 'esxi_create_vm', risk_level: 'high', group: 'vm' } },
-      { shape: 'ops-atom', label: 'Destroy VM', data: { atom_type: 'esxi_destroy_vm', risk_level: 'high', group: 'vm' } },
-      { shape: 'ops-atom', label: 'Power On', data: { atom_type: 'esxi_power_on', risk_level: 'medium', group: 'vm' } },
-      { shape: 'ops-atom', label: 'Power Off', data: { atom_type: 'esxi_power_off', risk_level: 'medium', group: 'vm' } },
-      { shape: 'ops-atom', label: 'VM State', data: { atom_type: 'esxi_get_state', risk_level: 'low', group: 'vm' } },
-      // Storage (NetApp) 组
-      { shape: 'ops-atom', label: 'Create Volume', data: { atom_type: 'netapp_create_volume', risk_level: 'high', group: 'storage' } },
-      { shape: 'ops-atom', label: 'Delete Volume', data: { atom_type: 'netapp_delete_volume', risk_level: 'high', group: 'storage' } },
-      { shape: 'ops-atom', label: 'Modify Volume', data: { atom_type: 'netapp_modify_volume', risk_level: 'high', group: 'storage' } },
-      { shape: 'ops-atom', label: 'Get Volume', data: { atom_type: 'netapp_get_volume', risk_level: 'low', group: 'storage' } },
-      { shape: 'ops-atom', label: 'Create Snapshot', data: { atom_type: 'netapp_create_snapshot', risk_level: 'low', group: 'storage' } },
-      // ITSM (ServiceNow) 组
-      { shape: 'ops-atom', label: 'Create Incident', data: { atom_type: 'servicenow_create_incident', risk_level: 'medium', group: 'itsm' } },
-      { shape: 'ops-atom', label: 'Update Incident', data: { atom_type: 'servicenow_update_incident', risk_level: 'medium', group: 'itsm' } },
-      { shape: 'ops-atom', label: 'Get Incident', data: { atom_type: 'servicenow_get_incident', risk_level: 'low', group: 'itsm' } },
-      { shape: 'ops-atom', label: 'Change Request', data: { atom_type: 'servicenow_create_change_request', risk_level: 'high', group: 'itsm' } },
-      { shape: 'ops-atom', label: 'Get CMDB CI', data: { atom_type: 'servicenow_get_cmdb_ci', risk_level: 'low', group: 'itsm' } },
-      // BMC (Redfish) 组
-      { shape: 'ops-atom', label: 'System Info', data: { atom_type: 'redfish_get_system_info', risk_level: 'low', group: 'bmc' } },
-      { shape: 'ops-atom', label: 'Power On', data: { atom_type: 'redfish_power_on', risk_level: 'high', group: 'bmc' } },
-      { shape: 'ops-atom', label: 'Power Off', data: { atom_type: 'redfish_power_off', risk_level: 'high', group: 'bmc' } },
-      { shape: 'ops-atom', label: 'Power Cycle', data: { atom_type: 'redfish_power_cycle', risk_level: 'high', group: 'bmc' } },
-      { shape: 'ops-atom', label: 'Set Boot Device', data: { atom_type: 'redfish_set_boot_device', risk_level: 'medium', group: 'bmc' } },
-      { shape: 'ops-atom', label: 'List Storage', data: { atom_type: 'redfish_list_storage', risk_level: 'low', group: 'bmc' } },
-      { shape: 'ops-atom', label: 'Firmware Inventory', data: { atom_type: 'redfish_firmware_inventory', risk_level: 'low', group: 'bmc' } },
-      // Generic 组
-      { shape: 'ops-atom', label: 'HTTP API Call', data: { atom_type: 'http_api_call', risk_level: 'medium', group: 'generic' } },
+    const base = { width: 130, height: 32 }
+    const basicNodes = [
+      { shape: 'ops-start-event', ...base, width: 36, height: 36, data: { node_type: 'start_event' } },
+      { shape: 'ops-end-event', ...base, width: 36, height: 36, data: { node_type: 'end_event' } },
+      { shape: 'ops-atom', label: 'Task Node', ...base, data: { node_type: 'atom' } },
     ]
-
-    // 网关/事件节点
+    const gateH = 70  // 与 shapes.ts 中 gateway 定义一致
     const gatewayNodes = [
-      { shape: 'ops-start-event', label: 'Start', data: { node_type: 'start_event', group: 'gateway' } },
-      { shape: 'ops-end-event', label: 'End', data: { node_type: 'end_event', group: 'gateway' } },
-      { shape: 'ops-exclusive-gateway', label: 'Condition?', data: { node_type: 'exclusive_gateway', group: 'gateway' } },
-      { shape: 'ops-parallel-gateway', label: 'Parallel', data: { node_type: 'parallel_gateway', group: 'gateway' } },
-      { shape: 'ops-conditional-parallel-gateway', label: 'Cond. Parallel', data: { node_type: 'conditional_parallel_gateway', group: 'gateway' } },
-      { shape: 'ops-converge-gateway', label: 'Converge', data: { node_type: 'converge_gateway', group: 'gateway' } },
+      { shape: 'ops-exclusive-gateway', label: 'Condition', width: 68, height: gateH, data: { node_type: 'exclusive_gateway' } },
+      { shape: 'ops-parallel-gateway', label: 'Parallel', width: 68, height: gateH, data: { node_type: 'parallel_gateway' } },
+      { shape: 'ops-conditional-parallel-gateway', label: 'Cond. Parallel', width: 68, height: gateH, data: { node_type: 'conditional_parallel_gateway' } },
+      { shape: 'ops-converge-gateway', label: 'Converge', width: 68, height: gateH, data: { node_type: 'converge_gateway' } },
     ]
 
-    // 按分组添加（原子节点缩小到 75x36 以适配 2 列布局）
-    const atomOpts = { width: 75, height: 36 }
-    const testNodes = atoms.filter(a => a.data.group === 'test').map(a => graph.value!.createNode({ ...a, ...atomOpts }))
-    const checkNodes = atoms.filter(a => a.data.group === 'check').map(a => graph.value!.createNode({ ...a, ...atomOpts }))
-    const actionNodes = atoms.filter(a => a.data.group === 'action').map(a => graph.value!.createNode({ ...a, ...atomOpts }))
-    const controlNodes = atoms.filter(a => a.data.group === 'control').map(a => graph.value!.createNode({ ...a, ...atomOpts }))
-    const vmNodes = atoms.filter(a => a.data.group === 'vm').map(a => graph.value!.createNode({ ...a, ...atomOpts }))
-    const storageNodes = atoms.filter(a => a.data.group === 'storage').map(a => graph.value!.createNode({ ...a, ...atomOpts }))
-    const itsmNodes = atoms.filter(a => a.data.group === 'itsm').map(a => graph.value!.createNode({ ...a, ...atomOpts }))
-    const bmcNodes = atoms.filter(a => a.data.group === 'bmc').map(a => graph.value!.createNode({ ...a, ...atomOpts }))
-    const genericNodes = atoms.filter(a => a.data.group === 'generic').map(a => graph.value!.createNode({ ...a, ...atomOpts }))
-    const gatewayStencilNodes = gatewayNodes.map(a => graph.value!.createNode(a))
-
-    s.load(testNodes, 'test')
-    s.load(checkNodes, 'check')
-    s.load(actionNodes, 'action')
-    s.load(controlNodes, 'control')
-    s.load(vmNodes, 'vm')
-    s.load(storageNodes, 'storage')
-    s.load(itsmNodes, 'itsm')
-    s.load(bmcNodes, 'bmc')
-    s.load(genericNodes, 'generic')
-    s.load(gatewayStencilNodes, 'gateway')
-
-    // 将 Stencil 容器挂载到目标 DOM 元素
+    s.load(basicNodes.map(n => graph.value!.createNode(n)), 'basic')
+    s.load(gatewayNodes.map(n => graph.value!.createNode(n)), 'gateway')
     target.appendChild(s.container!)
     stencil.value = s
   }
@@ -334,8 +272,7 @@ export function useDesignCanvas(containerId: string) {
       id: startId,
       x: startFromData ? (positions[startId]?.x ?? 10) : 10,
       y: startFromData ? (positions[startId]?.y ?? centerY) : centerY,
-      label: startFromData?.label || 'Start',
-      data: startFromData || { id: startId, label: 'Start', node_type: 'start_event' },
+      data: startFromData || { id: startId, node_type: 'start_event' },
     }))
     // 自动连接开始 → 根节点
     if (!startFromData) {
@@ -394,8 +331,7 @@ export function useDesignCanvas(containerId: string) {
       id: endId,
       x: endFromData ? (positions[endId]?.x ?? maxContentX + 250) : maxContentX + 250,
       y: endFromData ? (positions[endId]?.y ?? centerY) : centerY,
-      label: endFromData?.label || 'End',
-      data: endFromData || { id: endId, label: 'End', node_type: 'end_event' },
+      data: endFromData || { id: endId, node_type: 'end_event' },
     }))
     // 自动连接叶子节点 → 结束
     if (!endFromData) {
@@ -500,6 +436,19 @@ export function useDesignCanvas(containerId: string) {
     zoomLevel.value = graph.value?.zoom() || 1
   }
 
+  /** Task Node 拖入画布回调（由父组件设置，打开插件选择器） */
+  const onTaskNodeDropped = ref<((nodeId: string) => void) | null>(null)
+
+  // 监听画布新增节点 — Task Node 拖入时触发回调
+  if (graph.value) {
+    graph.value.on('node:added', ({ node }) => {
+      const data = node.getData()
+      if (data?.node_type === 'atom' && !data?.atom_type && onTaskNodeDropped.value) {
+        onTaskNodeDropped.value(node.id)
+      }
+    })
+  }
+
   function destroy() {
     if (graph.value) {
       graph.value.dispose()
@@ -512,7 +461,7 @@ export function useDesignCanvas(containerId: string) {
   return {
     graph, stencil, selectedNode,
     initGraph, initStencil, loadGraphData, getGraphData,
-    aiLayout,
+    aiLayout, onTaskNodeDropped,
     zoomIn, zoomOut, fitCanvas, zoomLevel,
     undo, redo, canUndo, canRedo, destroy,
   }
