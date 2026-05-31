@@ -44,22 +44,27 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
     if node_id == root_id:
         _handle_root_state_change(execution, to_state)
     else:
+        # 映射 bamboo UUID → 原始 pipeline_tree 节点 ID（前端画布使用原始 ID）
+        id_map = (execution.context or {}).get('node_id_map', {})
+        mapped_node_id = id_map.get(node_id, node_id)
+
         # 更新 DB 中的 node_status（持久化，页面刷新后可恢复）
         _update_execution_node_status(execution, node_id, to_state)
-        # 状态树快照（增量更新）
+        # 状态树快照（增量更新，使用 bamboo UUID 内部追踪）
         _update_state_tree(execution, node_id, to_state)
         # 节点执行轨迹记录
         _record_node_trace(execution, node_id, to_state)
         # 记录当前正在执行的节点（用于前端高亮 + API 查询）
         if to_state == states.RUNNING:
-            execution.current_node = node_id
+            execution.current_node = mapped_node_id if mapped_node_id != node_id else node_id
             execution.save(update_fields=["current_node"])
         if to_state in (states.FINISHED, states.FAILED):
             _log_node_result(execution, node_id, is_failed=(to_state == states.FAILED))
             _write_node_trace_log(execution, node_id, is_failed=(to_state == states.FAILED))
-            _notify_node_status(execution, node_id, to_state.lower())
+            # WS 推送使用映射后的原始节点 ID（前端通过 getCellById 查找）
+            _notify_node_status(execution, mapped_node_id, to_state.lower())
         elif to_state == states.RUNNING:
-            _notify_node_status(execution, node_id, "running")
+            _notify_node_status(execution, mapped_node_id, "running")
 
 
 def _handle_root_state_change(execution, to_state):

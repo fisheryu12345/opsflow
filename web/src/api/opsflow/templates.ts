@@ -136,3 +136,20 @@ export function GetSubprocessStatus(id: number) {
 export function UpdateSubprocessRefs(id: number) {
   return request({ url: prefix + `templates/${id}/update-subprocess-refs/`, method: 'post' })
 }
+
+/* ---------- Execution Scheme Management ---------- */
+export function GetSchemes(templateId: number) {
+  return request({ url: prefix + `templates/${templateId}/schemes/`, method: 'get' })
+}
+
+export function CreateScheme(templateId: number, data: any) {
+  return request({ url: prefix + `templates/${templateId}/schemes/`, method: 'post', data })
+}
+
+export function UpdateScheme(templateId: number, schemeId: number, data: any) {
+  return request({ url: prefix + `templates/${templateId}/schemes/${schemeId}/`, method: 'patch', data })
+}
+
+export function DeleteScheme(templateId: number, schemeId: number) {
+  return request({ url: prefix + `templates/${templateId}/schemes/${schemeId}/`, method: 'delete' })
+}

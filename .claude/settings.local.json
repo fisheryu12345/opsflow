@@ -376,7 +376,11 @@
       "Bash(python -c \"from opsflow.core.bamboo_validator import validate_bamboo_compatibility; print\\('bamboo_validator OK'\\)\")",
       "Bash(python manage.py test opsflow.tests --parallel 1)",
       "Bash(python manage.py test opsflow.tests --settings=application.test_settings --parallel 1)",
-      "Bash(python manage.py show_urls)"
+      "Bash(python manage.py show_urls)",
+      "Bash(rm -f /c/Users/dell/Desktop/Vue/backend/conftest.py /c/Users/dell/Desktop/Vue/backend/test_settings.py)",
+      "Bash(taskkill /f /im python.exe)",
+      "Bash(curl -s -o /dev/null -w \"Django: %{http_code}\" http://127.0.0.1:8000/)",
+      "Bash(celery -A application worker -P gevent -c 10 -Q er_execute,er_schedule,default --loglevel=info)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

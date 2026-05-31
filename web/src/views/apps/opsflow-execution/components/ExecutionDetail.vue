@@ -361,7 +361,9 @@ function toGraphData(pipelineTree: any): { nodes: any[]; edges: any[] } {
   return { nodes, edges }
 }
 
-async function loadPipeline() {
+let graphInitialized = false
+
+async function loadPipeline(full = true) {
   await nextTick()
   if (!monitorRef.value) return
   try {
@@ -372,13 +374,17 @@ async function loadPipeline() {
     if (ex.node_status) {
       monitorRef.value.loadNodeStatuses?.(ex.node_status)
     }
-    const tree = ex.pipeline_tree || ex.context?.pipeline_tree
-    if (tree) {
-      monitorRef.value.loadGraphData(toGraphData(tree))
-    } else if (ex.template) {
-      const tplRes = await GetTemplateDetail(ex.template)
-      const tpl = tplRes.data?.data || tplRes.data || tplRes
-      if (tpl?.pipeline_tree) monitorRef.value.loadGraphData(toGraphData(tpl.pipeline_tree))
+    // 首次加载时绘制拓扑图；轮询时只更新节点状态（避免 resetCells + centerContent 闪烁）
+    if (full && !graphInitialized) {
+      const tree = ex.pipeline_tree || ex.context?.pipeline_tree
+      if (tree) {
+        monitorRef.value.loadGraphData(toGraphData(tree))
+      } else if (ex.template) {
+        const tplRes = await GetTemplateDetail(ex.template)
+        const tpl = tplRes.data?.data || tplRes.data || tplRes
+        if (tpl?.pipeline_tree) monitorRef.value.loadGraphData(toGraphData(tpl.pipeline_tree))
+      }
+      graphInitialized = true
     }
   } catch (e) {
     console.error('[ExecutionDetail] loadPipeline error:', e)
@@ -395,7 +401,7 @@ async function fetchLogs() {
   logsLoading.value = false
 }
 
-async function refresh() { await loadPipeline(); await fetchLogs(); await fetchTraces() }
+async function refresh() { await loadPipeline(false); await fetchLogs(); await fetchTraces() }
 
 async function batchRetryAll() {
   try {
@@ -494,7 +500,7 @@ function startAutoRefresh() { if (!autoTimer) autoTimer = setInterval(() => refr
 function stopAutoRefresh() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null } }
 
 watch(isRunning, (v) => { if (v) startAutoRefresh(); else stopAutoRefresh() }, { immediate: true })
-watch(() => props.execution.id, (newId) => { if (newId) { loadPipeline(); fetchLogs(); fetchTraces() } })
+watch(() => props.execution.id, (newId) => { if (newId) { graphInitialized = false; loadPipeline(true); fetchLogs(); fetchTraces() } })
 
 onMounted(() => { loadPipeline(); fetchLogs(); fetchTraces() })
 onActivated(() => { nextTick(() => { monitorRef.value?.refreshCanvas() }) })

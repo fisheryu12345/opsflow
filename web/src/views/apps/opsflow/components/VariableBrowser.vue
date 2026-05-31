@@ -7,8 +7,26 @@
         </div>
         <div v-for="v in globalVars" :key="v.key" class="var-item">
           <div class="var-item-left">
-            <code class="var-code">{{ v.key }}</code>
-            <span class="var-desc">{{ v.description || v.type }}</span>
+            <div class="var-item-top">
+              <code class="var-code">{{ v.key }}</code>
+              <span class="var-desc">{{ v.description || v.type }}</span>
+            </div>
+            <div v-if="v.references && v.references.length" class="var-refs">
+              <span class="var-ref-toggle" @click="v._refExpanded = !v._refExpanded">
+                {{ v.references.length }} reference{{ v.references.length > 1 ? 's' : '' }}
+                <el-icon :class="{ expanded: v._refExpanded }"><ArrowDown /></el-icon>
+              </span>
+              <div v-if="v._refExpanded" class="var-ref-detail">
+                <div v-for="(ref, ri) in v.references.slice(0, 10)" :key="ri" class="var-ref-item">
+                  <span class="ref-node">{{ ref.node_label }}</span>
+                  <span class="ref-path">{{ ref.field_path }}</span>
+                </div>
+                <div v-if="v.references.length > 10" class="var-ref-more">
+                  ... and {{ v.references.length - 10 }} more
+                </div>
+              </div>
+            </div>
+            <div v-else class="var-noref">No references</div>
           </div>
           <el-button size="small" type="primary" text @click="insert(v.key)">
             <el-icon><Link /></el-icon> Insert
@@ -38,7 +56,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Link, Search } from '@element-plus/icons-vue'
+import { Link, Search, ArrowDown } from '@element-plus/icons-vue'
 import { GetVariableBrowser } from '/@/api/opsflow/templates'
 
 const props = defineProps<{
@@ -101,7 +119,19 @@ watch(() => props.modelValue, (v) => { if (v) fetchData() })
 }
 .var-item:hover { background: #ecf5ff; }
 .var-item-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.var-item-top { display: flex; align-items: center; gap: 6px; }
 .var-code { font-size: 13px; font-weight: 600; color: #409EFF; font-family: monospace; }
 .var-desc { font-size: 11px; color: #909399; }
 .var-node { font-size: 11px; color: #67C23A; }
+.var-noref { font-size: 10px; color: #C0C4CC; margin-top: 1px; }
+.var-refs { margin-top: 2px; }
+.var-ref-toggle { font-size: 11px; color: #909399; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; }
+.var-ref-toggle:hover { color: #409EFF; }
+.var-ref-toggle .el-icon { font-size: 10px; transition: transform 0.2s; }
+.var-ref-toggle .el-icon.expanded { transform: rotate(180deg); }
+.var-ref-detail { margin-top: 4px; padding: 4px 8px; background: #f5f7fa; border-radius: 4px; }
+.var-ref-item { font-size: 11px; color: #606266; display: flex; gap: 6px; padding: 2px 0; }
+.var-ref-item .ref-node { color: #67C23A; font-weight: 500; }
+.var-ref-item .ref-path { color: #909399; font-family: monospace; }
+.var-ref-more { font-size: 10px; color: #C0C4CC; margin-top: 2px; }
 </style>

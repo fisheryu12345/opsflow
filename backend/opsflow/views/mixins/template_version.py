@@ -6,6 +6,7 @@ from rest_framework import status
 
 from opsflow.core.safety_guard import validate_pipeline
 from opsflow.core.bamboo_validator import validate_bamboo_compatibility
+from opsflow.core.audit_logger import log_operation
 from opsflow.serializers import FlowTemplateSerializer
 
 
@@ -43,6 +44,11 @@ class TemplateVersionMixin:
         template.is_draft = False
         version_note = request.data.get('version_note', '')
         template.publish_snapshot(user=request.user, version_note=version_note)
+        log_operation(request.user, 'publish', 'template', template.id, template.name, {'version': template.version - 1}, request)
+        # ── 节点持久化同步 ──
+        from opsflow.core.node_sync import sync_template_nodes
+        sync_template_nodes(template)
+        # ── 结束 ──
         return Response({'code': 2000, 'msg': f'已发布 V{template.version - 1}', 'data': FlowTemplateSerializer(template).data})
 
     @action(detail=True, methods=['post'])
@@ -69,6 +75,11 @@ class TemplateVersionMixin:
 
         version_note = request.data.get('version_note', '')
         template.publish_snapshot(user=request.user, version_note=version_note)
+        log_operation(request.user, 'publish', 'template', template.id, template.name, {'version': template.version - 1}, request)
+        # ── 节点持久化同步 ──
+        from opsflow.core.node_sync import sync_template_nodes
+        sync_template_nodes(template)
+        # ── 结束 ──
         return Response({'code': 2000, 'msg': f'已发布 V{template.version - 1}', 'data': FlowTemplateSerializer(template).data})
 
     @action(detail=True, methods=['get'], url_path='versions')
@@ -103,6 +114,11 @@ class TemplateVersionMixin:
         template.global_vars = cleaned
         # ── 结束 ──
         template.save()
+        log_operation(request.user, 'rollback', 'template', template.id, template.name, {'version': version_id}, request)
+        # ── 节点持久化同步（回滚改变了 pipeline_tree） ──
+        from opsflow.core.node_sync import sync_template_nodes
+        sync_template_nodes(template)
+        # ── 结束 ──
         return Response({'code': 2000, 'msg': f'已回滚到 V{version_id}', 'data': FlowTemplateSerializer(template).data})
 
     @action(detail=True, methods=['post'])

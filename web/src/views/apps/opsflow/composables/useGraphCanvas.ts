@@ -1,0 +1,286 @@
+import { ref, shallowRef, onBeforeUnmount } from 'vue'
+import { Graph, Shape } from '@antv/x6'
+
+/** 通用 Graph 选项 — 设计/监控/预览模式通过 mode 区分 */
+export interface GraphCanvasOptions {
+  mode: 'design' | 'monitor' | 'preview'
+  /** 是否允许交互（监控模式为 false） */
+  interacting?: boolean
+}
+
+/** 创建通用 Graph 实例的共享配置 */
+function createDefaultGraph(
+  container: HTMLElement,
+  options: GraphCanvasOptions,
+): Graph {
+  const isDesign = options.mode === 'design'
+  return new Graph({
+    container,
+    grid: true,
+    panning: { enabled: isDesign },
+    mousewheel: { enabled: true, zoomAtMousePosition: true },
+    interacting: options.interacting ?? isDesign,
+    connecting: {
+      router: {
+        name: 'manhattan',
+        args: { padding: { top: 30, bottom: 30, left: 30, right: 30 }, step: 20, maxLoopCount: 10000 },
+      },
+      connector: 'rounded',
+      ...(isDesign ? {
+        anchor: { name: 'center', args: { dx: 0, dy: 0 } },
+        connectionPoint: { name: 'boundary', args: { sticky: true } },
+        allowBlank: false,
+        allowNode: true,
+        allowPort: true,
+        allowMulti: true,
+        allowLoop: false,
+        snap: true,
+        highlight: true,
+        validateConnection({ sourceMagnet, targetMagnet, sourcePort, targetPort }) {
+          if (!sourceMagnet) return false
+          if (!targetPort && !targetMagnet) return false
+          return true
+        },
+        createEdge() {
+          return new Shape.Edge({
+            attrs: {
+              line: { stroke: '#DCDFE6', strokeWidth: 1.5, targetMarker: 'classic' },
+            },
+          })
+        },
+      } : {}),
+    },
+    highlighting: isDesign ? {
+      nodeAvailable: { name: 'stroke', args: { padding: 4, attrs: { stroke: '#409EFF' } } },
+    } : undefined,
+  })
+}
+
+/** BFS 分层布局 — 为节点分配 x/y 坐标 */
+export function layoutNodes(
+  nodes: any[],
+  edges: { from: string; to: string }[],
+  options?: { layerGap?: number; nodeGap?: number; startX?: number; startY?: number },
+): Record<string, { x: number; y: number }> {
+  const LAYER_GAP = options?.layerGap ?? 250
+  const NODE_GAP = options?.nodeGap ?? 120
+  const START_X = options?.startX ?? 50
+  const START_Y = options?.startY ?? 40
+
+  // 计算入度 & 邻接表
+  const inDeg: Record<string, number> = {}
+  const adj: Record<string, string[]> = {}
+  for (const n of nodes) { inDeg[n.id] = 0; adj[n.id] = [] }
+  for (const e of edges) {
+    const f = e.from || (e as any).source
+    const t = e.to || (e as any).target
+    if (adj[f]) adj[f].push(t)
+    if (inDeg[t] != null) inDeg[t]++
+  }
+
+  // BFS 分层
+  const level: Record<string, number> = {}
+  const queue: string[] = []
+  for (const n of nodes) {
+    if (inDeg[n.id] === 0) { level[n.id] = 0; queue.push(n.id) }
+  }
+  let maxLevel = 0
+  while (queue.length) {
+    const id = queue.shift()!
+    if (!adj[id]) continue
+    for (const next of adj[id]) {
+      const lv = level[id] + 1
+      if ((level[next] ?? Infinity) > lv) {
+        level[next] = lv
+        maxLevel = Math.max(maxLevel, lv)
+        queue.push(next)
+      }
+    }
+  }
+  // 孤立节点归入第 0 层
+  for (const n of nodes) {
+    if (level[n.id] == null) level[n.id] = 0
+  }
+
+  // 按层分组
+  const layers: Record<number, string[]> = {}
+  for (const n of nodes) {
+    const lv = level[n.id]
+    if (!layers[lv]) layers[lv] = []
+    layers[lv].push(n.id)
+  }
+
+  // 分配坐标
+  const positions: Record<string, { x: number; y: number }> = {}
+  for (let lv = 0; lv <= maxLevel; lv++) {
+    const ids = layers[lv] || []
+    const totalH = (ids.length - 1) * NODE_GAP
+    ids.forEach((id, i) => {
+      positions[id] = {
+        x: START_X + lv * LAYER_GAP,
+        y: START_Y + (totalH / 2) + i * NODE_GAP,
+      }
+    })
+  }
+  return positions
+}
+
+/** 默认节点 label 映射 */
+export function defaultNodeLabel(nodeType: string): string {
+  const map: Record<string, string> = {
+    exclusive_gateway: 'Condition?',
+    parallel_gateway: 'Parallel',
+    conditional_parallel_gateway: 'Cond. Parallel',
+    converge_gateway: 'Converge',
+    start_event: 'Start',
+    end_event: 'End',
+    approval: 'Approval',
+    subprocess: 'SubProcess',
+    atom: 'Task',
+  }
+  return map[nodeType] || ''
+}
+
+/**
+ * useGraphCanvas — 通用 X6 Graph composable
+ *
+ * 提供 Graph 初始化、BFS 布局、缩放、自适应、生命周期管理等共享逻辑。
+ * 设计模式（design）差异：stencil/history/clipboard/selection/keyboard 等插件由
+ * useDesignCanvas 附加；监控模式（monitor）差异由 MonitorCanvas 自行控制。
+ */
+export function useGraphCanvas(containerId: string, options: GraphCanvasOptions) {
+  const graph = shallowRef<Graph | null>(null)
+  const zoomLevel = ref(1)
+
+  /** 初始化 Graph（基础共享配置） */
+  function initGraph() {
+    const container = document.getElementById(containerId)
+    if (!container) return
+
+    if (graph.value) {
+      graph.value.dispose()
+    }
+
+    graph.value = createDefaultGraph(container, options)
+
+    graph.value.on('scale', () => {
+      zoomLevel.value = graph.value?.zoom() || 1
+    })
+  }
+
+  // ── 缩放控制 ──
+
+  function zoomIn() {
+    graph.value?.zoom(0.15)
+    zoomLevel.value = graph.value?.zoom() || 1
+  }
+
+  function zoomOut() {
+    graph.value?.zoom(-0.15)
+    zoomLevel.value = graph.value?.zoom() || 1
+  }
+
+  function fitCanvas() {
+    graph.value?.centerContent()
+    graph.value?.zoomToFit({ padding: 40 })
+    zoomLevel.value = graph.value?.zoom() || 1
+  }
+
+  // ── 自适应 ──
+
+  let resizeObserver: ResizeObserver | null = null
+
+  function enableResize() {
+    const container = document.getElementById(containerId)
+    if (!container) return
+    resizeObserver = new ResizeObserver(() => {
+      if (graph.value) {
+        const w = container.clientWidth
+        const h = container.clientHeight
+        if (w > 0 && h > 0) graph.value.resize(w, h)
+      }
+    })
+    resizeObserver.observe(container)
+  }
+
+  let visibilityHandler: (() => void) | null = null
+
+  function enableVisibilityRefresh() {
+    visibilityHandler = () => {
+      if (document.visibilityState === 'visible' && graph.value) {
+        const container = document.getElementById(containerId)
+        if (container) {
+          const w = container.clientWidth
+          const h = container.clientHeight
+          if (w > 0 && h > 0) {
+            graph.value.resize(w, h)
+            graph.value.centerContent()
+          }
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', visibilityHandler)
+  }
+
+  // ── 导出 Graph 数据（通用格式） ──
+
+  function getGraphData(): { nodes: any[]; edges: any[] } {
+    if (!graph.value) return { nodes: [], edges: [] }
+    const cells = graph.value.getCells()
+    const nodes: any[] = []
+    const edges: any[] = []
+
+    for (const cell of cells) {
+      if (cell.isNode()) {
+        const data = cell.getData() || {}
+        const pos = cell.getPosition()
+        nodes.push({ ...data, id: data.id || cell.id, x: pos.x, y: pos.y })
+      } else if (cell.isEdge()) {
+        const source = cell.getSource()
+        const target = cell.getTarget()
+        const labels = cell.getLabels?.() || []
+        const edgeData = cell.getData?.() || {}
+        edges.push({
+          from: typeof source === 'object' ? source.cell : source,
+          to: typeof target === 'object' ? target.cell : target,
+          sourcePort: typeof source === 'object' ? source.port : undefined,
+          targetPort: typeof target === 'object' ? target.port : undefined,
+          label: labels.length ? (labels[0].attrs?.text?.text || '') : '',
+          condition: edgeData.condition || '',
+        })
+      }
+    }
+
+    return { nodes, edges }
+  }
+
+  // ── 生命周期 ──
+
+  function destroy() {
+    resizeObserver?.disconnect()
+    resizeObserver = null
+    if (visibilityHandler) {
+      document.removeEventListener('visibilitychange', visibilityHandler)
+      visibilityHandler = null
+    }
+    if (graph.value) {
+      graph.value.dispose()
+      graph.value = null
+    }
+  }
+
+  onBeforeUnmount(() => destroy())
+
+  return {
+    graph,
+    zoomLevel,
+    initGraph,
+    zoomIn,
+    zoomOut,
+    fitCanvas,
+    getGraphData,
+    enableResize,
+    enableVisibilityRefresh,
+    destroy,
+  }
+}

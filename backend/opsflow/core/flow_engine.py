@@ -167,7 +167,7 @@ class FlowEngine:
                     self.execution.save()
                     self._notify_completed()
                     return
-            pipeline = build_bamboo_pipeline(
+            pipeline, id_map = build_bamboo_pipeline(
                 self.template,
                 pipeline_tree=frozen_tree,
                 target_hosts=frozen.get('target_hosts'),
@@ -179,6 +179,7 @@ class FlowEngine:
 
             self.execution.context["bamboo_pipeline_id"] = bamboo_pipeline_id
             self.execution.context["bamboo_pipeline"] = pipeline
+            self.execution.context["node_id_map"] = id_map
             self.execution.save(update_fields=["context"])
 
             runtime = BambooDjangoRuntime()

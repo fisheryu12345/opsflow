@@ -327,7 +327,17 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
         except ImportError:
             pass  # node_timeout contrib 未安装时静默降级
 
-    return tree
+    # 构建 bamboo-engine UUID → 原始 pipeline_tree 节点 ID 映射
+    # 信号处理器用此映射将 bamboo UUID 转回原始节点 ID，确保前端颜色正确
+    id_map = {}
+    for act_id, act_data in tree.get('activities', {}).items():
+        if act_data.get('name'):
+            id_map[act_id] = act_data['name']
+    for gw_id, gw_data in tree.get('gateways', {}).items():
+        if gw_data.get('name'):
+            id_map[gw_id] = gw_data['name']
+
+    return tree, id_map
 
 
 def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = None) -> object:
@@ -344,23 +354,29 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
 
     if node_type == 'exclusive_gateway':
         gw = ExclusiveGateway()
+        gw.name = nid  # 保留原始节点 ID 供 id_map 使用
         for i, edge in enumerate(outgoing_edges):
             cond = _get_condition(edge_conditions, nid, edge['to'], edge.get('label', ''))
             gw.add_condition(i, cond)
         return gw
 
     if node_type == 'parallel_gateway':
-        return ParallelGateway()
+        gw = ParallelGateway()
+        gw.name = nid
+        return gw
 
     if node_type == 'conditional_parallel_gateway':
         cpg = ConditionalParallelGateway()
+        cpg.name = nid
         for i, edge in enumerate(outgoing_edges):
             cond = _get_condition(edge_conditions, nid, edge['to'], edge.get('label', ''))
             cpg.add_condition(i, cond)
         return cpg
 
     if node_type == 'converge_gateway':
-        return ConvergeGateway()
+        gw = ConvergeGateway()
+        gw.name = nid
+        return gw
 
     if node_type == 'approval':
         # 审批节点 — 构建为 ServiceActivity，执行时暂停等待审批
@@ -369,6 +385,7 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
             skippable=False,
             retryable=False,
         )
+        act.name = nid
         act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value='approval')
         act.component.inputs['_approvers'] = Var(
             type=Var.PLAIN,
@@ -397,6 +414,7 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
                 skippable=True,
                 retryable=True,
             )
+            act.name = nid
             act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value='subprocess_independent')
             act.component.inputs['_target_template_id'] = Var(type=Var.PLAIN, value=target_id)
             act.component.inputs['_variable_mapping'] = Var(
@@ -434,29 +452,31 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
             'global_vars': Var(type=Var.PLAIN, value=child_vars),
         })
 
-        return SubProcess(
+        sp = SubProcess(
             start=child_start,
             data=child_data,
             params=variable_mapping,
             global_outputs=output_mapping,
         )
+        sp.name = nid
+        return sp
 
     # 默认：ServiceActivity 原子
     atom_type = node.get('atom_type', '')
     plugin_version = node.get('_plugin_version', '')
     node_max_retries = node.get('max_retries') or node.get('params', {}).get('max_retries', 0)
+    node_retry_delay = node.get('retry_delay') or node.get('params', {}).get('retry_delay', 0)
     act = ServiceActivity(
         component_code="opsflow_plugin",
         skippable=True,
         retryable=True if node_max_retries > 0 else False,
         timeout=node.get('timeout_seconds', 60),
     )
-    # 插件类型标识（PluginService 由此路由到正确的 BasePlugin）
+    act.name = nid
     act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value=atom_type)
-    # 插件版本（多版本路由用）
     act.component.inputs['_plugin_version'] = Var(type=Var.PLAIN, value=plugin_version)
-    # 节点级最大重试次数（PluginService 由此读取并在重试时校验）
     act.component.inputs['_max_retries'] = Var(type=Var.PLAIN, value=node_max_retries)
+    act.component.inputs['_retry_delay'] = Var(type=Var.PLAIN, value=node_retry_delay)
     for k, v in node.get('params', {}).items():
         act.component.inputs[k] = Var(type=Var.PLAIN, value=v)
     return act
@@ -478,4 +498,4 @@ def _empty_pipeline(flow_template, target_hosts=None, global_vars=None):
         'target_hosts': Var(type=Var.PLAIN, value=hosts),
         'global_vars': Var(type=Var.PLAIN, value=vars_),
     })
-    return build_tree(start, data=data)
+    return build_tree(start, data=data), {}

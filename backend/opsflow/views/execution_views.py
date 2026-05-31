@@ -53,6 +53,10 @@ class FlowExecutionViewSet(
                 'template_version': template.version,
             }
             execution.save(update_fields=['state_tree', 'template_snapshot'])
+            # ── 执行节点持久化 ──
+            from opsflow.core.node_sync import sync_execution_nodes
+            sync_execution_nodes(execution)
+            # ── 结束 ──
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -72,4 +76,16 @@ class FlowExecutionViewSet(
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
+        # ── 执行方案支持 ──
+        scheme_id = request.data.get('scheme_id')
+        if scheme_id and serializer.instance:
+            from opsflow.models import ExecutionScheme
+            try:
+                scheme = ExecutionScheme.objects.get(id=scheme_id, template=serializer.instance.template)
+                if scheme.excluded_nodes:
+                    serializer.instance.excluded_nodes = scheme.excluded_nodes
+                    serializer.instance.save(update_fields=['excluded_nodes'])
+            except ExecutionScheme.DoesNotExist:
+                pass
+        # ── 结束 ──
         return DetailResponse(data=serializer.data, msg="创建成功")

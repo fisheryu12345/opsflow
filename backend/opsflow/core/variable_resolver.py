@@ -105,6 +105,59 @@ def cleanup_unused_vars(pipeline_tree: dict, global_vars: dict) -> dict:
     return cleaned
 
 
+def get_variable_reference_details(pipeline_tree: dict, var_key: str) -> list[dict]:
+    """返回变量引用明细 — 每个引用出现的节点 ID 和字段路径
+
+    Returns:
+        [{"node_id": "node_1", "node_label": "SSH", "field_path": "params.command",
+          "param_key": "command", "message": "..."}, ...]
+    """
+    if not pipeline_tree or not var_key:
+        return []
+    pattern = re.compile(r'\$\{' + re.escape(var_key) + r'\}')
+    refs = []
+    nodes = pipeline_tree.get('nodes', []) or []
+    for node in nodes:
+        node_id = node.get('id', '')
+        node_label = node.get('label', '')
+        params = node.get('params', {}) or {}
+        node_refs = _find_references_in(params, pattern, node_id, node_label, 'params')
+        refs.extend(node_refs)
+
+        # 也检查 node_config 中的引用（如果有）
+        node_config = node.get('node_config', {}) or {}
+        if isinstance(node_config, dict):
+            node_refs2 = _find_references_in(node_config, pattern, node_id, node_label, 'node_config')
+            refs.extend(node_refs2)
+
+    return refs
+
+
+def _find_references_in(data, pattern: re.Pattern, node_id: str, node_label: str, base_path: str = 'params') -> list[dict]:
+    """递归搜索 dict 中的匹配引用，返回引用明细列表"""
+    refs = []
+    if isinstance(data, dict):
+        for key, val in data.items():
+            field_path = f"{base_path}.{key}"
+            if isinstance(val, str):
+                if pattern.search(val):
+                    # 提取引用上下文（截断长文本）
+                    ctx = val[:80] + '...' if len(val) > 80 else val
+                    refs.append({
+                        'node_id': node_id,
+                        'node_label': node_label or node_id,
+                        'field_path': field_path,
+                        'param_key': key,
+                        'message': ctx,
+                    })
+            elif isinstance(val, (dict, list)):
+                refs.extend(_find_references_in(val, pattern, node_id, node_label, base_path=field_path))
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            refs.extend(_find_references_in(item, pattern, node_id, node_label, base_path=f"{base_path}[{i}]"))
+    return refs
+
+
 def _count_in_value(value, pattern: re.Pattern) -> int:
     """递归统计匹配次数"""
     if isinstance(value, str):
@@ -252,6 +305,8 @@ def build_execution_context(execution) -> dict:
       - hook_variables: 用户提升的全局变量配置
       - target_hosts: 目标主机列表
       - 各节点的 outputs: 已完成节点的输出
+      - _system.*: 系统内置变量
+      - _project.*: 项目/模板配置变量
     """
     ctx = {}
 
@@ -287,5 +342,24 @@ def build_execution_context(execution) -> dict:
         outputs = t.get('outputs', {})
         if outputs:
             ctx[nid] = outputs
+
+    # ── 系统变量 (_system.*) ──
+    ctx['_system'] = {
+        'execution_id': execution.id,
+        'started_at': getattr(execution, 'started_at', None) or '',
+        'executed_by': execution.created_by.username if getattr(execution, 'created_by', None) else '',
+        'status': getattr(execution, 'status', ''),
+        'current_node': getattr(execution, 'current_node', '') or '',
+    }
+
+    # ── 项目/模板变量 (_project.*) ──
+    tpl = getattr(execution, 'template', None)
+    if tpl:
+        ctx['_project'] = {
+            'template_id': getattr(tpl, 'id', ''),
+            'template_name': getattr(tpl, 'name', ''),
+            'template_version': getattr(tpl, 'version', None) or 1,
+            'category': getattr(tpl, 'category', '') or '',
+        }
 
     return ctx

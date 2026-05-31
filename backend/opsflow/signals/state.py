@@ -19,6 +19,9 @@ def _update_execution_node_status(execution, node_id, to_state):
 
     覆盖所有 bamboo-engine 状态：READY/RUNNING/FINISHED/FAILED/
     SUSPENDED/REVOKED/BLOCKED，确保 node_status 完整反映节点生命周期。
+
+    使用 execution.context.node_id_map 将 bamboo-engine UUID 映射回
+    原始 pipeline_tree 节点 ID（前端 X6 图形 ID），确保节点颜色正确。
     """
     status_map = {
         states.READY: "pending",
@@ -32,8 +35,13 @@ def _update_execution_node_status(execution, node_id, to_state):
     mapped = status_map.get(to_state)
     if not mapped:
         return
+
+    # 映射 bamboo UUID → 原始 pipeline_tree 节点 ID
+    id_map = execution.context.get('node_id_map', {}) if execution.context else {}
+    original_id = id_map.get(node_id, node_id)
+
     ns = dict(execution.node_status or {})
-    ns[node_id] = mapped
+    ns[original_id] = mapped
     execution.node_status = ns
     execution.save(update_fields=["node_status"])
 

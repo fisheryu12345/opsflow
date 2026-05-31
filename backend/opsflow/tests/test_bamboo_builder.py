@@ -148,7 +148,7 @@ class TestBuildBambooPipeline:
 
     def test_empty_nodes_returns_empty_pipeline(self):
         tpl = self._make_template()
-        result = build_bamboo_pipeline(tpl)
+        result, id_map = build_bamboo_pipeline(tpl)
         assert result is not None
         assert "activities" in result or "end_event" in result
 
@@ -157,9 +157,11 @@ class TestBuildBambooPipeline:
                   "label": "Ping Test", "params": {"target_ip": "10.0.0.1"}}]
         edges = []
         tpl = self._make_template(nodes, edges)
-        result = build_bamboo_pipeline(tpl)
+        result, id_map = build_bamboo_pipeline(tpl)
         assert result is not None
         assert "activities" in result
+        # id_map 应该包含 n1
+        assert id_map.get(list(result['activities'].keys())[0]) == 'n1'
 
     def test_start_end_only_passes_gracefully(self):
         """只有 start/end 视觉节点 → 空 pipeline"""
@@ -169,7 +171,7 @@ class TestBuildBambooPipeline:
         ]
         edges = [{"from": "s1", "to": "e1"}]
         tpl = self._make_template(nodes, edges)
-        result = build_bamboo_pipeline(tpl)
+        result, id_map = build_bamboo_pipeline(tpl)
         assert result is not None
 
     def test_multi_root_creates_parallel_gateway(self):
@@ -180,7 +182,7 @@ class TestBuildBambooPipeline:
         ]
         edges = []
         tpl = self._make_template(nodes, edges)
-        result = build_bamboo_pipeline(tpl)
+        result, id_map = build_bamboo_pipeline(tpl)
         assert result is not None
 
     def test_with_edge_conditions(self):
@@ -196,7 +198,7 @@ class TestBuildBambooPipeline:
              "condition": "${_result == True}"},
         ]
         tpl = self._make_template(nodes, edges)
-        result = build_bamboo_pipeline(tpl)
+        result, id_map = build_bamboo_pipeline(tpl)
         assert result is not None
 
     def test_with_timeout_configs(self):
@@ -206,7 +208,7 @@ class TestBuildBambooPipeline:
         ]
         edges = []
         tpl = self._make_template(nodes, edges)
-        result = build_bamboo_pipeline(tpl)
+        result, id_map = build_bamboo_pipeline(tpl)
         assert result is not None
 
     def test_custom_global_vars(self):
@@ -214,7 +216,7 @@ class TestBuildBambooPipeline:
         nodes = [{"id": "n1", "type": "task", "atom_type": "ping_test"}]
         edges = []
         tpl = self._make_template(nodes)
-        result = build_bamboo_pipeline(tpl, global_vars={"threshold": 80})
+        result, id_map = build_bamboo_pipeline(tpl, global_vars={"threshold": 80})
         assert result is not None
 
     def test_conditional_parallel_gateway(self):
@@ -228,7 +230,7 @@ class TestBuildBambooPipeline:
             {"from": "gw1", "to": "n2", "condition": "${_result == False}"},
         ]
         tpl = self._make_template(nodes, edges)
-        result = build_bamboo_pipeline(tpl)
+        result, id_map = build_bamboo_pipeline(tpl)
         assert result is not None
 
 

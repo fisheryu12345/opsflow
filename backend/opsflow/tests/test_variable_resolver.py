@@ -8,6 +8,7 @@ from opsflow.core.variable_resolver import (
     resolve_with_type,
     resolve_params,
     _deep_get,
+    get_variable_reference_details,
     build_execution_context,
 )
 
@@ -262,3 +263,61 @@ class TestBuildExecutionContext:
             mock_trace.objects.filter.return_value.exclude.return_value.values.return_value = []
             ctx = build_execution_context(exec_mock)
             assert isinstance(ctx, dict)
+
+
+class TestGetVariableReferenceDetails:
+    """get_variable_reference_details — 变量引用明细追踪"""
+
+    def test_single_reference(self):
+        tree = {
+            "nodes": [
+                {"id": "node_1", "node_type": "atom", "label": "SSH",
+                 "params": {"command": "${my_var} -h", "host": "localhost"}},
+            ],
+            "edges": [],
+        }
+        refs = get_variable_reference_details(tree, "my_var")
+        assert len(refs) == 1
+        assert refs[0]["node_id"] == "node_1"
+        assert refs[0]["node_label"] == "SSH"
+        assert "params.command" in refs[0]["field_path"]
+        assert "${my_var}" in refs[0]["message"]
+
+    def test_multiple_references(self):
+        tree = {
+            "nodes": [
+                {"id": "n1", "label": "Node1", "params": {"cmd": "${x} start", "args": "-a ${x}"}},
+                {"id": "n2", "label": "Node2", "params": {"script": "run ${x}"}},
+            ],
+            "edges": [],
+        }
+        refs = get_variable_reference_details(tree, "x")
+        assert len(refs) == 3  # 两次在 n1, 一次在 n2
+
+    def test_no_reference(self):
+        tree = {
+            "nodes": [
+                {"id": "n1", "label": "Node1", "params": {"cmd": "echo hello"}},
+            ],
+            "edges": [],
+        }
+        refs = get_variable_reference_details(tree, "my_var")
+        assert refs == []
+
+    def test_empty_tree(self):
+        assert get_variable_reference_details({}, "x") == []
+        assert get_variable_reference_details(None, "x") == []
+
+    def test_nested_config_refs(self):
+        """node_config 中的引用也应检出"""
+        tree = {
+            "nodes": [
+                {"id": "n1", "node_type": "atom", "label": "HTTP",
+                 "params": {"url": "http://example.com"},
+                 "node_config": {"headers": {"Authorization": "Bearer ${token}"}}},
+            ],
+            "edges": [],
+        }
+        refs = get_variable_reference_details(tree, "token")
+        assert len(refs) == 1
+        assert "node_config" in refs[0]["field_path"]

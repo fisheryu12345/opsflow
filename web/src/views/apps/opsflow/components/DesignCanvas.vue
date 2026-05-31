@@ -142,6 +142,7 @@ const {
   aiLayout, onTaskNodeDropped,
   zoomIn, zoomOut, fitCanvas, zoomLevel,
   undo, redo, canUndo, canRedo, destroy,
+  enableResize, enableVisibilityRefresh,
 } = useDesignCanvas('design-canvas-container', emit)
 
 const stencilRef = ref<HTMLElement | null>(null)
@@ -212,14 +213,8 @@ function onEdgeUpdate(newData: any) {
 }
 
 onMounted(() => {
-  console.log('[DesignCanvas] onMounted, container exists:', !!document.getElementById('design-canvas-container'))
-  if (document.getElementById('design-canvas-container')) {
-    const rect = document.getElementById('design-canvas-container')!.getBoundingClientRect()
-    console.log('[DesignCanvas] container rect:', rect)
-  }
   try {
     initGraph(minimapRef.value)
-    console.log('[DesignCanvas] initGraph complete, graph exists:', !!graph.value)
   } catch (e) {
     console.error('[DesignCanvas] initGraph error:', e)
   }
@@ -230,17 +225,9 @@ onMounted(() => {
       console.error('[DesignCanvas] initStencil error:', e)
     }
   }
-  // 窗口变化时通知画布自适应
-  const ro = new ResizeObserver(() => {
-    graph.value?.resize()
-  })
-  const containerEl = document.getElementById('design-canvas-container')
-  if (containerEl) ro.observe(containerEl)
-  // 清理
-  onBeforeUnmount(() => {
-    ro.disconnect()
-    destroy()
-  })
+  // 使用共享的 resize/visibility 自适应
+  enableResize()
+  enableVisibilityRefresh()
 })
 
 // 选中节点变化时通知父组件（AI 面板折叠/展开）

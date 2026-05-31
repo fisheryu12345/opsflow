@@ -86,6 +86,10 @@
             <el-input-number v-model="form.max_retries" :min="0" :max="10" size="small" controls-position="right" style="width:120px" @change="emitUpdate" />
           </div>
           <div class="prop-row">
+            <span class="prop-label">Retry Delay (s)</span>
+            <el-input-number v-model="form.retry_delay" :min="0" :max="300" size="small" controls-position="right" style="width:120px" @change="emitUpdate" />
+          </div>
+          <div class="prop-row">
             <span class="prop-label">Timeout (s)</span>
             <el-input-number v-model="form.timeout_seconds" :min="5" :max="600" size="small" controls-position="right" style="width:120px" @change="emitUpdate" />
           </div>

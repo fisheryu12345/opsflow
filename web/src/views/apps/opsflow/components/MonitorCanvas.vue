@@ -3,7 +3,6 @@
     <div class="monitor-header">
       <div class="monitor-header-left">
         <el-icon size="16" :color="statusColor"><Monitor /></el-icon>
-        <!-- Stats inline in header -->
         <div class="header-stats">
           <div class="hstat-item">
             <span class="hstat-value mc-completed">{{ statusStats.completed }}</span>
@@ -45,7 +44,7 @@
         </span>
       </div>
     </div>
-    <div ref="canvasRef" class="x6-canvas" />
+    <div id="monitor-canvas-container" ref="canvasRef" class="x6-canvas" />
     <div class="monitor-legend">
       <span class="legend-item"><span class="legend-dot" style="background:#409EFF" /> Task</span>
       <span class="legend-item"><span class="legend-dot" style="background:#67C23A" /> Start</span>
@@ -61,21 +60,26 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onActivated, onBeforeUnmount } from 'vue'
-import { Graph } from '@antv/x6'
 import { Monitor, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
 import { useMonitor } from '../composables/useMonitor'
+import { useGraphCanvas, layoutNodes } from '../composables/useGraphCanvas'
 import { resolveNodeShape } from '../utils/shapes'
 
 const props = defineProps<{ executionId: number; startedAt?: string; endedAt?: string }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
-let graph: Graph | null = null
-const zoomLevel = ref(1)
 const graphNodeCount = ref(0)
+
+// 使用通用 Graph composable（监控模式）
+const {
+  graph, zoomLevel,
+  initGraph, zoomIn, zoomOut, fitCanvas,
+  enableResize, enableVisibilityRefresh,
+} = useGraphCanvas('monitor-canvas-container', { mode: 'monitor' })
 
 const { connected: wsConnected, nodeStatuses, executionStatus, connect, disconnect, getNodeColor } = useMonitor()
 
-// Live node stats from graph node count + WebSocket status data
+// Live node stats
 const statusStats = computed(() => {
   const vals = Object.values(nodeStatuses.value) as string[]
   let completed = 0, running = 0, failed = 0
@@ -100,6 +104,7 @@ const progressStatus = computed(() => {
 const statusColor = computed(() => ({
   completed: '#67c23a', running: '#e6a23c', failed: '#f56c6c', paused: '#909399', cancelled: '#909399',
 })[executionStatus.value] || '#909399')
+
 const durationText = computed(() => {
   const s = props.startedAt
   const e = props.endedAt
@@ -111,88 +116,37 @@ const durationText = computed(() => {
   return `${Math.floor(sec / 60)}m ${sec % 60}s`
 })
 
-function initGraph() {
-  if (!canvasRef.value) return
-  graph = new Graph({
-    container: canvasRef.value,
-    grid: true,
-    interacting: false,
-    connecting: {
-        router: { name: 'manhattan', args: { padding: { top: 30, bottom: 30, left: 30, right: 30 }, step: 20, maxLoopCount: 10000 } },
-        connector: 'rounded',
-    },
-  })
-}
-
-function computeFallbackLayout(nodes: any[], edges: any[]): Map<string, { x: number; y: number }> {
-  const pos = new Map<string, { x: number; y: number }>()
-  if (nodes.length === 0) return pos
-  const ids = new Set(nodes.map(n => n.id))
-  const inDeg = new Map<string, number>()
-  const adj = new Map<string, string[]>()
-  for (const nid of ids) { inDeg.set(nid, 0); adj.set(nid, []) }
-  for (const e of edges) {
-    const f = e.from || e.source; const t = e.to || e.target
-    if (adj.has(f) && inDeg.has(t)) { adj.get(f)!.push(t); inDeg.set(t, inDeg.get(t)! + 1) }
-  }
-  const layer = new Map<string, number>()
-  let q: string[] = []
-  for (const [nid, d] of inDeg) { if (d === 0) { layer.set(nid, 0); q.push(nid) } }
-  if (q.length === 0 && nodes.length > 0) { layer.set(nodes[0].id, 0); q.push(nodes[0].id) }
-  const seen = new Set(q)
-  while (q.length) {
-    const nxt: string[] = []
-    for (const nid of q) {
-      const cur = layer.get(nid) || 0
-      for (const nb of adj.get(nid) || []) {
-        if (!seen.has(nb)) { seen.add(nb); layer.set(nb, cur + 1); nxt.push(nb) }
-        else { layer.set(nb, Math.max(layer.get(nb) || 0, cur + 1)) }
-      }
-    }
-    q = nxt
-  }
-  for (const nid of ids) { if (!layer.has(nid)) layer.set(nid, 0) }
-  const groups = new Map<number, string[]>()
-  for (const [nid, l] of layer) { if (!groups.has(l)) groups.set(l, []); groups.get(l)!.push(nid) }
-  const hGap = 220, vGap = 60
-  const sorted = [...groups.keys()].sort((a, b) => a - b)
-  for (const l of sorted) {
-    const g = groups.get(l)!
-    const totalH = (g.length - 1) * vGap
-    let y = -totalH / 2
-    g.forEach((id, i) => { pos.set(id, { x: l * hGap + 60, y }); y += vGap })
-  }
-  return pos
-}
+// ── 画布加载（监控模式：按给定数据渲染，不自动创建 start/end） ──
 
 function loadGraphData(data: { nodes: any[]; edges: any[] }) {
-  if (!graph) { console.warn('[MonitorCanvas] graph not ready'); return }
+  if (!graph.value) { console.warn('[MonitorCanvas] graph not ready'); return }
   try {
     const cells: any[] = []
 
-    // 检测是否缺少坐标（兼容老数据），需要时计算后备布局
+    // 缺少坐标时计算后备布局
     const needLayout = (data.nodes || []).some(n => n.x == null)
-    const fallbackPos = needLayout ? computeFallbackLayout(data.nodes || [], data.edges || []) : null
+    const fallbackPos = needLayout
+      ? layoutNodes(data.nodes || [], (data.edges || []).map(e => ({ from: e.from || e.source, to: e.to || e.target })))
+      : null
 
     for (const node of data.nodes || []) {
       const shapeName = resolveNodeShape(node)
       let x = node.x, y = node.y
       if (x == null && fallbackPos) {
-        const p = fallbackPos.get(node.id)
+        const p = fallbackPos[node.id]
         if (p) { x = p.x; y = p.y }
       }
-      cells.push(graph.createNode({
+      cells.push(graph.value.createNode({
         id: node.id,
         shape: shapeName,
-        x: x ?? 0,
-        y: y ?? 0,
+        x: x ?? 0, y: y ?? 0,
         label: node.label || '',
         data: node,
       }))
     }
 
     for (const edge of data.edges || []) {
-      cells.push(graph.createEdge({
+      cells.push(graph.value.createEdge({
         source: { cell: edge.from, port: edge.sourcePort || 'right' },
         target: { cell: edge.to, port: edge.targetPort || 'left' },
         labels: edge.label ? [{ attrs: { text: { text: edge.label } } }] : undefined,
@@ -203,26 +157,44 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
     if (cells.length === 0) return
 
     graphNodeCount.value = (data.nodes || []).length
-    graph.resetCells(cells)
-    graph.centerContent()
-    zoomLevel.value = graph.zoom()
-    graph.on('scale', () => { zoomLevel.value = graph?.zoom() || 1 })
+    graph.value.resetCells(cells)
+    graph.value.centerContent()
+
+    // 重新应用已知状态（loadNodeStatuses 可能在画布创建前被调用）
+    if (Object.keys(nodeStatuses.value).length) {
+      for (const [nid, s] of Object.entries(nodeStatuses.value)) applyNodeColor(nid, s)
+    }
   } catch (e) {
     console.error('[MonitorCanvas] loadGraphData error:', e)
   }
 }
 
+// ── 节点着色 + 运行态闪烁动画 ──
+
+const runningNodeIds = new Set<string>()
+
 function applyNodeColor(nodeId: string, status: string) {
-  if (!graph) return
-  const cell = graph.getCellById(nodeId)
+  if (!graph.value) return
+  const cell = graph.value.getCellById(nodeId)
   if (!cell || !cell.isNode()) return
   const color = getNodeColor(status)
   cell.setAttrByPath('body/stroke', color)
-  if (status === 'running') cell.setAttrByPath('body/fill', '#fdf6ec')
-  else if (status === 'completed') cell.setAttrByPath('body/fill', '#f0f9eb')
-  else if (status === 'failed') cell.setAttrByPath('body/fill', '#fef0f0')
-  else if (status === 'skipped') cell.setAttrByPath('body/fill', '#f5f7fa')
-  // else keep original type fill (set during loadGraphData)
+
+  // 填充色 + 运行态闪烁 class
+  const wasRunning = runningNodeIds.has(nodeId)
+  if (status === 'running') {
+    cell.setAttrByPath('body/fill', '#fdf6ec')
+    cell.setAttrByPath('body/class', 'op-node-running')
+    runningNodeIds.add(nodeId)
+  } else {
+    if (wasRunning) {
+      runningNodeIds.delete(nodeId)
+      cell.setAttrByPath('body/class', '')
+    }
+    if (status === 'completed') cell.setAttrByPath('body/fill', '#f0f9eb')
+    else if (status === 'failed') cell.setAttrByPath('body/fill', '#fef0f0')
+    else if (status === 'skipped') cell.setAttrByPath('body/fill', '#f5f7fa')
+  }
 }
 
 watch(nodeStatuses, (statuses) => {
@@ -231,73 +203,30 @@ watch(nodeStatuses, (statuses) => {
 
 function loadNodeStatuses(statusMap: Record<string, string>) {
   nodeStatuses.value = { ...statusMap }
-  for (const [nid, s] of Object.entries(statusMap)) applyNodeColor(nid, s)
+  // 由下方 deep watch 统一处理 applyNodeColor，避免重复遍历
 }
-
-function zoomIn() { graph?.zoom(0.15); zoomLevel.value = graph?.zoom() || 1 }
-function zoomOut() { graph?.zoom(-0.15); zoomLevel.value = graph?.zoom() || 1 }
-function fitCanvas() { graph?.centerContent(); graph?.zoomToFit({ padding: 40 }); zoomLevel.value = graph?.zoom() || 1 }
-
-let resizeObs: ResizeObserver | null = null
-
-function onVisibilityChange() {
-  if (document.visibilityState === 'visible' && graph && canvasRef.value) {
-    const w = canvasRef.value.clientWidth
-    const h = canvasRef.value.clientHeight
-    if (w > 0 && h > 0) {
-      graph.resize(w, h)
-      graph.centerContent()
-    }
-  }
-}
-
-onMounted(() => {
-  initGraph()
-  connect(props.executionId)
-  document.addEventListener('visibilitychange', onVisibilityChange)
-  if (canvasRef.value) {
-    resizeObs = new ResizeObserver(() => {
-      if (graph && canvasRef.value) {
-        const w = canvasRef.value.clientWidth
-        const h = canvasRef.value.clientHeight
-        if (w > 0 && h > 0) graph.resize(w, h)
-      }
-    })
-    resizeObs.observe(canvasRef.value)
-  }
-})
-onActivated(() => {
-  // keep-alive 切回时刷新画布
-  if (graph && canvasRef.value) {
-    const w = canvasRef.value.clientWidth
-    const h = canvasRef.value.clientHeight
-    if (w > 0 && h > 0) {
-      graph.resize(w, h)
-      graph.centerContent()
-    }
-  }
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('visibilitychange', onVisibilityChange)
-  resizeObs?.disconnect()
-  if (graph) { graph.dispose(); graph = null }
-  disconnect()
-})
 
 function refreshCanvas() {
-  if (graph && canvasRef.value) {
-    const w = canvasRef.value.clientWidth
-    const h = canvasRef.value.clientHeight
-    if (w > 0 && h > 0) {
-      graph.resize(w, h)
-      graph.centerContent()
-    }
-  }
+  if (graph.value) graph.value.resize()
 }
 
 function setExecutionStatus(status: string) {
   executionStatus.value = status
 }
+
+// ── 生命周期 ──
+
+onMounted(() => {
+  initGraph()
+  enableResize()
+  enableVisibilityRefresh()
+  connect(props.executionId)
+})
+
+onActivated(() => {
+  // keep-alive 切回时刷新画布
+  if (graph.value) graph.value.resize()
+})
 
 defineExpose({ loadGraphData, loadNodeStatuses, refreshCanvas, setExecutionStatus })
 </script>
@@ -321,7 +250,15 @@ defineExpose({ loadGraphData, loadNodeStatuses, refreshCanvas, setExecutionStatu
 .ws-disconnected .ws-dot { background: #f56c6c; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-/* Header inline stats */
+/* 运行态节点闪烁动画（边框 + 填充同步脉冲） */
+:deep(.op-node-running) {
+  animation: op-pulse 1.5s ease-in-out infinite !important;
+}
+@keyframes op-pulse {
+  0%, 100% { stroke-opacity: 1; stroke-width: 2.5; fill-opacity: 1; }
+  50% { stroke-opacity: 0.3; fill-opacity: 0.5; }
+}
+
 .header-stats { display: flex; align-items: center; gap: 10px; }
 .hstat-item { display: flex; align-items: center; gap: 3px; }
 .hstat-value { font-size: 14px; font-weight: 700; color: #303133; line-height: 1; }

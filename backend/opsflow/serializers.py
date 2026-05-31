@@ -1,7 +1,7 @@
 import pytz
 
 from rest_framework import serializers
-from .models import FlowTemplate, TemplateVersion, FlowExecution, NodeExecutionTrace, OpsLog, OpsKnowledge, SchedulePlan
+from .models import FlowTemplate, TemplateVersion, FlowExecution, NodeExecutionTrace, OpsLog, OpsKnowledge, SchedulePlan, TemplateNode, ExecutionNode, ExecutionScheme, OperationRecord, TemplateCollect
 
 
 class GlobalVariableField(serializers.Field):
@@ -29,8 +29,8 @@ class FlowTemplateSerializer(serializers.ModelSerializer):
         return obj.created_by.username if obj.created_by else ''
 
     def get_global_variable_list(self, obj):
-        """返回展开为 array 格式的全局变量列表（含引用计数）"""
-        from opsflow.core.variable_resolver import normalize_global_vars, count_variable_references
+        """返回展开为 array 格式的全局变量列表（含引用计数和引用明细）"""
+        from opsflow.core.variable_resolver import normalize_global_vars, count_variable_references, get_variable_reference_details
         normalized = normalize_global_vars(obj.global_vars)
         tree = obj.pipeline_tree or {}
         result = []
@@ -44,6 +44,7 @@ class FlowTemplateSerializer(serializers.ModelSerializer):
                 "source_type": entry.get("source_type", "manual"),
                 "source_info": entry.get("source_info"),
                 "reference_count": count_variable_references(tree, key),
+                "references": get_variable_reference_details(tree, key),
             })
         return result
 
@@ -76,6 +77,32 @@ class FlowExecutionSerializer(serializers.ModelSerializer):
         return obj.created_by.username if obj.created_by else ''
 
 
+class TemplateNodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TemplateNode
+        fields = '__all__'
+        read_only_fields = ['created_at']
+
+
+class ExecutionSchemeSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ExecutionScheme
+        fields = '__all__'
+        read_only_fields = ['created_by', 'created_at', 'updated_at']
+
+    def get_created_by_name(self, obj):
+        return obj.created_by.username if obj.created_by else ''
+
+
+class ExecutionNodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExecutionNode
+        fields = '__all__'
+        read_only_fields = ['created_at']
+
+
 class NodeExecutionTraceSerializer(serializers.ModelSerializer):
     """Node execution trace serializer"""
 
@@ -106,6 +133,25 @@ class OpsLogSerializer(serializers.ModelSerializer):
         model = OpsLog
         fields = '__all__'
         read_only_fields = ['created_at']
+
+
+class OperationRecordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OperationRecord
+        fields = '__all__'
+        read_only_fields = ['created_at']
+
+
+class TemplateCollectSerializer(serializers.ModelSerializer):
+    template_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TemplateCollect
+        fields = '__all__'
+        read_only_fields = ['user', 'created_at']
+
+    def get_template_name(self, obj):
+        return obj.template.name if obj.template else ''
 
 
 class OpsKnowledgeSerializer(serializers.ModelSerializer):

@@ -149,7 +149,7 @@ class FlowExecution(models.Model):
         related_name='child_executions', verbose_name="Parent Execution"
     )
     is_subprocess = models.BooleanField(default=False, verbose_name="Is Independent Subprocess")
-    excluded_nodes = models.JSONField(default=list, blank=True, verbose_name="Excluded Node IDs")
+    excluded_nodes = models.JSONField(default=list, null=True, blank=True, verbose_name="Excluded Node IDs")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -272,6 +272,83 @@ class OpsKnowledge(models.Model):
         return self.title
 
 
+class OperationRecord(models.Model):
+    """操作审计记录 — 记录所有重要用户操作"""
+    class Action(models.TextChoices):
+        CREATE = 'create', 'Create'
+        UPDATE = 'update', 'Update'
+        DELETE = 'delete', 'Delete'
+        PUBLISH = 'publish', 'Publish'
+        ROLLBACK = 'rollback', 'Rollback'
+        EXECUTE = 'execute', 'Execute'
+        APPROVE = 'approve', 'Approve'
+        REJECT = 'reject', 'Reject'
+
+    action = models.CharField(max_length=16, choices=Action.choices, verbose_name='Action')
+    resource_type = models.CharField(max_length=32, verbose_name='Resource Type')
+    resource_id = models.CharField(max_length=32, blank=True, verbose_name='Resource ID')
+    resource_name = models.CharField(max_length=200, blank=True, verbose_name='Resource Name')
+    detail = models.JSONField(default=dict, verbose_name='Detail')
+    operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, verbose_name='Operator'
+    )
+    ip_address = models.CharField(max_length=45, blank=True, verbose_name='IP Address')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ops_operation_record'
+        ordering = ['-created_at']
+        verbose_name = 'Operation Record'
+
+    def __str__(self):
+        return f'{self.action} {self.resource_type}[{self.resource_id}]'
+
+
+class TemplateCollect(models.Model):
+    """用户收藏的模板"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        verbose_name='User'
+    )
+    template = models.ForeignKey(
+        FlowTemplate, on_delete=models.CASCADE, related_name='collected_by',
+        verbose_name='Template'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ops_template_collect'
+        unique_together = [('user', 'template')]
+        ordering = ['-created_at']
+        verbose_name = 'Template Collection'
+
+    def __str__(self):
+        return f'{self.user} -> {self.template}'
+
+
+
+class ApiToken(models.Model):
+    """外部 API Token — 用于第三方系统认证"""
+    name = models.CharField(max_length=64, verbose_name='Token Name')
+    token = models.CharField(max_length=64, unique=True, verbose_name='Token')
+    is_active = models.BooleanField(default=True, verbose_name='Is Active')
+    allowed_actions = models.JSONField(default=list, blank=True, verbose_name='Allowed Actions')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        null=True, blank=True, verbose_name='Creator'
+    )
+    expires_at = models.DateTimeField(null=True, blank=True, verbose_name='Expires At')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ops_api_token'
+        verbose_name = 'API Token'
+
+    def __str__(self):
+        return f"{self.name} ({'active' if self.is_active else 'inactive'})"
+
+
 class PluginMeta(models.Model):
     """标准插件元数据 — 注册时自动同步（支持多版本）"""
     code = models.CharField(max_length=64, verbose_name="Plugin Code")
@@ -294,6 +371,93 @@ class PluginMeta(models.Model):
 
     def __str__(self):
         return f"{self.group}/{self.name}"
+
+
+class ExecutionScheme(models.Model):
+    """执行方案 — 预定义的节点排除集 + 变量覆盖"""
+    template = models.ForeignKey(
+        FlowTemplate, on_delete=models.CASCADE, related_name='schemes',
+        verbose_name="Template"
+    )
+    name = models.CharField(max_length=128, verbose_name="Scheme Name")
+    description = models.CharField(max_length=255, blank=True, verbose_name="Description")
+    excluded_nodes = models.JSONField(default=list, verbose_name="Excluded Node IDs")
+    variable_overrides = models.JSONField(default=dict, blank=True, verbose_name="Variable Overrides")
+    is_default = models.BooleanField(default=False, verbose_name="Is Default")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        null=True, blank=True, verbose_name="Creator"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ops_execution_scheme'
+        ordering = ['-is_default', 'name']
+        verbose_name = "Execution Scheme"
+
+    def __str__(self):
+        return f"[{self.template.name}] {self.name}"
+
+
+class TemplateNode(models.Model):
+    """模板节点 — 从 pipeline_tree JSON 同步为独立行，支持 SQL 查询"""
+    template = models.ForeignKey(
+        FlowTemplate, on_delete=models.CASCADE, related_name='node_records',
+        verbose_name="Template"
+    )
+    node_id = models.CharField(max_length=200, verbose_name="Node ID")
+    node_type = models.CharField(max_length=32, verbose_name="Node Type")
+    atom_type = models.CharField(max_length=64, blank=True, verbose_name="Atom Type")
+    label = models.CharField(max_length=200, blank=True, verbose_name="Label")
+    node_config = models.JSONField(default=dict, verbose_name="Node Config")
+    position_x = models.FloatField(null=True, blank=True, verbose_name="Position X")
+    position_y = models.FloatField(null=True, blank=True, verbose_name="Position Y")
+    max_retries = models.IntegerField(default=0, verbose_name="Max Retries")
+    timeout_seconds = models.IntegerField(null=True, blank=True, verbose_name="Timeout (s)")
+    risk_level = models.CharField(max_length=16, default='low', verbose_name="Risk Level")
+    is_subprocess = models.BooleanField(default=False, verbose_name="Is Subprocess")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ops_template_node'
+        unique_together = [('template', 'node_id')]
+        ordering = ['template', 'node_id']
+        verbose_name = "Template Node"
+
+    def __str__(self):
+        return f"[{self.template_id}] {self.node_id} ({self.node_type})"
+
+
+class ExecutionNode(models.Model):
+    """执行节点 — 执行实例中的节点记录，从 TemplateNode 同步"""
+    execution = models.ForeignKey(
+        FlowExecution, on_delete=models.CASCADE, related_name='node_records',
+        verbose_name="Execution"
+    )
+    template_node = models.ForeignKey(
+        TemplateNode, on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name="Source Template Node"
+    )
+    node_id = models.CharField(max_length=200, verbose_name="Node ID")
+    node_type = models.CharField(max_length=32, verbose_name="Node Type")
+    atom_type = models.CharField(max_length=64, blank=True, verbose_name="Atom Type")
+    label = models.CharField(max_length=200, blank=True, verbose_name="Label")
+    status = models.CharField(max_length=16, default='pending', verbose_name="Status")
+    max_retries = models.IntegerField(default=0, verbose_name="Max Retries")
+    timeout_seconds = models.IntegerField(null=True, blank=True, verbose_name="Timeout (s)")
+    position_x = models.FloatField(null=True, blank=True, verbose_name="Position X")
+    position_y = models.FloatField(null=True, blank=True, verbose_name="Position Y")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ops_execution_node'
+        unique_together = [('execution', 'node_id')]
+        ordering = ['execution', 'node_id']
+        verbose_name = "Execution Node"
+
+    def __str__(self):
+        return f"[{self.execution_id}] {self.node_id} ({self.status})"
 
 
 class NodeExecutionTrace(models.Model):
