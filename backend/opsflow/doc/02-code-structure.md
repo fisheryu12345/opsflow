@@ -6,9 +6,9 @@
 backend/opsflow/
 ├── __init__.py
 ├── apps.py                          # AppConfig → 启动时注册原子 + Service
-├── models.py                        # 4 个数据模型
+├── models.py                        # 5 个数据模型
 ├── serializers.py                   # DRF 序列化器
-├── urls.py                          # 6 条路由注册（含 dashboard）
+├── urls.py                          # 7 条路由注册（含 dashboard + schedule-plans）
 ├── tasks.py                         # Celery 任务
 ├── consumers.py                     # WebSocket 消费者 (含 tower_job_update)
 │
@@ -63,13 +63,16 @@ backend/opsflow/
 │   ├── execution_views.py          # 执行 CRUD + 控制端点
 │   ├── log_views.py                # 日志只读视图
 │   ├── knowledge_views.py          # 知识库 CRUD + 搜索
+│   ├── schedule_views.py           # ★ 调度计划 CRUD + pause/resume/trigger/history
 │   └── dashboard_views.py          # Dashboard 统计/趋势 API
 │
 ├── management/commands/
-│   └── add_opsflow_menu.py         # RBAC 菜单注册命令
+│   ├── add_opsflow_menu.py         # RBAC 菜单注册命令
+│   └── start_opsflow_scheduler.py  # ★ APScheduler 独立进程启动命令
 │
 ├── migrations/
-│   └── 0001_initial.py
+│   ├── 0001_initial.py
+│   └── 0002_alter_flowexecution_status_scheduleplan_and_more.py
 │
 ├── TODO.md                          # 待办清单
 └── doc/                             # 本文档目录
@@ -99,7 +102,12 @@ web/src/views/apps/opsflow-knowledge/
 └── index.vue                        # 知识库页面（卡片布局 + 编辑/删除图标按钮）
 
 web/src/views/apps/opsflow-template/
-└── index.vue                        # 模板管理页面（表格/卡片切换 + 管道可视化 + 详情弹窗）
+├── index.vue                        # 模板管理页面（表格/卡片切换 + 管道可视化 + 详情弹窗 + 调度按钮）
+├── schedule.vue                     # ★ 调度计划列表页面
+└── components/
+    ├── ScheduleManager.vue          # ★ 调度计划管理弹窗（CRUD 操作入口）
+    ├── ScheduleForm.vue             # ★ 调度计划创建/编辑表单（一次性/CRON 类型切换）
+    └── ScheduleTable.vue            # ★ 调度计划列表表格（状态/类型/执行时间展示）
 
 web/src/views/apps/opsflow-execution/
 ├── index.vue                        # 执行记录列表（筛选状态 + 时间线）
@@ -115,7 +123,8 @@ web/src/api/opsflow/
 ├── executions.ts                    # 执行 API
 ├── logs.ts                          # 日志 API
 ├── knowledge.ts                     # 知识库 API
-└── dashboard.ts                     # Dashboard 统计/趋势 API
+├── dashboard.ts                     # Dashboard 统计/趋势 API
+└── schedule-plans.ts                # ★ 调度计划 API（CRUD + pause/resume/trigger/history）
 ```
 
 ## 模型关系
@@ -132,26 +141,43 @@ web/src/api/opsflow/
 │ is_draft     │       │ started_at      │
 │ ai_original_tree│      │ ended_at        │
 │ created_by   │       │ created_by      │
-└──────────────┘       └───────┬─────────┘
-                               │
-                      ┌────────▼─────────┐
-                      │     OpsLog       │
-                      │─────────────────│
-                      │ execution (FK)  │
-                      │ step / command  │
-                      │ stdout / stderr │
-                      │ returncode      │
-                      │ risk_level      │
-                      │ approved_by     │
-                      └─────────────────┘
-
-┌──────────────────┐
-│  OpsKnowledge    │
-│──────────────────│
-│ title / content  │
-│ tags / source    │
-│ embedding        │
-└──────────────────┘
+└──────┬───────┘       └───────┬─────────┘
+       │                       │
+       │              ┌────────▼─────────┐
+       │              │     OpsLog       │
+       │              │─────────────────│
+       │              │ execution (FK)  │
+       │              │ step / command  │
+       │              │ stdout / stderr │
+       │              │ returncode      │
+       │              │ risk_level      │
+       │              │ approved_by     │
+       │              └─────────────────┘
+       │
+       │  ┌──────────────────┐
+       ├──│  SchedulePlan    │
+       │  │──────────────────│
+       │  │ template (FK)    │
+       │  │ name             │
+       │  │ schedule_type    │  (one_time / cron)
+       │  │ scheduled_at     │
+       │  │ cron_expr        │
+       │  │ status           │  (active/paused/completed/expired)
+       │  │ is_active        │
+       │  │ template_snapshot│
+       │  │ last_run_at      │
+       │  │ next_run_at      │
+       │  │ total_run_count  │
+       │  │ created_by       │
+       │  └──────────────────┘
+       │
+       │  ┌──────────────────┐
+       └──│  OpsKnowledge    │
+          │──────────────────│
+          │ title / content  │
+          │ tags / source    │
+          │ embedding        │
+          └──────────────────┘
 ```
 
 ## API 端点汇总
@@ -176,6 +202,12 @@ web/src/api/opsflow/
 | `/api/opsflow/logs/` | GET | 审计日志列表（只读） |
 | `/api/opsflow/knowledge/` | GET/POST | 知识库列表/创建 |
 | `/api/opsflow/knowledge/search/` | POST | 知识库文本搜索 |
+| `/api/opsflow/schedule-plans/` | GET/POST | 调度计划列表/创建 |
+| `/api/opsflow/schedule-plans/{id}/` | GET/PUT/PATCH/DELETE | 调度计划详情/更新/删除 |
+| `/api/opsflow/schedule-plans/{id}/pause/` | POST | 暂停调度 |
+| `/api/opsflow/schedule-plans/{id}/resume/` | POST | 恢复调度 |
+| `/api/opsflow/schedule-plans/{id}/trigger/` | POST | 手动立即触发一次 |
+| `/api/opsflow/schedule-plans/{id}/history/` | GET | 查看该调度产生的执行记录 |
 | `/api/opsflow/dashboard/stats/` | GET | Dashboard 统计数据（14 项聚合指标） |
 | `/api/opsflow/dashboard/trend/` | GET | Dashboard 执行趋势（按日，默认 30 天） |
 | `ws://host/ws/opsflow/execution/{id}/` | WebSocket | 实时状态 + Tower 进度推送 |
@@ -184,8 +216,9 @@ web/src/api/opsflow/
 
 ```
 apps.py
-  ├─ scan_atoms()          → atom_registry.py
-  └─ register_atom_services()  → atom_service.py
+  ├─ scan_atoms()              → atom_registry.py
+  ├─ register_atom_services()  → atom_service.py
+  └─ (可选) scheduler_service  OPSFLOW_SCHEDULER_AUTOSTART → opsflow_scheduler.start()
 
 template_views.py
   ├─ llm_service.py       (generate_pipeline / refine_pipeline / analyze)

@@ -53,6 +53,11 @@ class FlowExecution(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         null=True, blank=True, verbose_name="执行者"
     )
+    schedule_plan = models.ForeignKey(
+        'SchedulePlan', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='executions',
+        verbose_name="来源调度计划"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

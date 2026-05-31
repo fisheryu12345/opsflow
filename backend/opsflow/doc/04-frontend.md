@@ -10,11 +10,9 @@ index.vue (OpsFlow 主页面)
 │   ├── 加载指示器
 │   └── 输入框 + Send 按钮
 │
-├── 模板选择栏 (template-bar)
-│   └── el-select 下拉选择模板
 │
 ├── DesignCanvas (设计画布)
-│   ├── 工具栏 (浮动右上角)
+│   ├── 工具栏 (浮动左上角, 含模板选择器)
 │   │   ├── Undo / Redo
 │   │   ├── Zoom In / Zoom Out / Fit
 │   │   ├── Diff / AI Analyze / AI Layout
@@ -77,6 +75,12 @@ index.vue (OpsFlow 主页面)
 - 用户活跃度表格（用户名 / 执行次数 / 模板数 / 最后活跃时间）
 - 系统概览区（总节点数 / 活跃用户占比进度条）
 ```
+
+### 调度管理页 (web/src/views/apps/opsflow-template/schedule.vue)
+- 调度计划列表表格（模板名称/调度类型/状态/执行时间）
+- 创建/编辑弹窗：ScheduleManager.vue + ScheduleForm.vue（一次性/CRON 类型切换）
+- 操作栏：暂停/恢复/手动触发/删除
+- 状态标签着色：active=蓝色、paused=橙色、completed=灰色、expired=红色
 
 ## 自定义 X6 节点
 

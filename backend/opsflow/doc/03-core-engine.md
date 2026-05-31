@@ -450,18 +450,69 @@ opsflow_to_pipeline(nodes, edges)    # OPSflow → 引擎格式
 | `node_execute_fail` / `node_schedule_fail` | 节点执行/调度失败 |
 | `pre_retry_node` / `pre_skip_node` | 重试/跳过节点 |
 
-## 10. LLM Service — AI 服务
+## 10. SchedulerService — 定时调度器
+
+**文件**: `backend/opsflow/core/scheduler_service.py`
+
+### 职责
+
+基于 APScheduler 的定时任务调度器，用于自动触发 SchedulePlan 的执行。
+
+### 架构
+
+```
+OpsflowScheduler
+  │
+  ├─ BackgroundScheduler (后台线程, timezone=Asia/Shanghai)
+  │    └─ DjangoJobStore (调度记录持久化到 MySQL)
+  │
+  ├─ start()
+  │    ├─ _register_existing_plans() → 加载 DB 中 ACTIVE 的调度计划
+  │    └─ scheduler.start()
+  │
+  ├─ add_plan(plan)   → 构建 DateTrigger 或 CronTrigger → 注册 Job
+  ├─ update_plan(plan) → remove + add
+  ├─ remove_plan(plan) → scheduler.remove_job()
+  ├─ pause_plan(plan)  → scheduler.pause_job()
+  └─ resume_plan(plan) → scheduler.resume_job()
+```
+
+### 触发机制
+
+```python
+# APScheduler 回调
+_execute_plan(plan_id)
+  │
+  ├─ 加载 SchedulePlan (含 template + created_by)
+  ├─ 检查 template.is_draft → 草稿跳过，一次性任务标记 completed
+  ├─ 创建 FlowExecution (status=PENDING)
+  ├─ FlowEngine.start(sync=False) → Celery 异步执行
+  ├─ 更新 last_run_at / total_run_count
+  ├─ 一次性任务 → status=COMPLETED
+  └─ 重试支持 → retry_schedule_execution Celery 任务
+```
+
+### 启动方式
+
+| 方式 | 设置/命令 | 适用环境 |
+|------|-----------|----------|
+| 自启动 | `OPSFLOW_SCHEDULER_AUTOSTART = True` | 开发 |
+| 独立进程 | `python manage.py start_opsflow_scheduler` | 生产（Redis 锁防重复） |
+
+### 触发器构建
+
+```python
+def _build_trigger(self, plan):
+    if plan.schedule_type == 'one_time':
+        return DateTrigger(run_date=plan.scheduled_at, timezone=plan.timezone)
+    return CronTrigger.from_crontab(plan.cron_expr, timezone=plan.timezone)
+```
+
+调度器未启动时，`_sync_next_run()` 兜底手动计算 `next_run_at`（一次性直接用 scheduled_at，周期性用 CronTrigger 推算）。
+
+## 11. LLM Service — AI 服务
 
 **文件**: `backend/opsflow/core/llm_service.py`
-
-### 功能
-
-| 方法 | 说明 |
-|------|------|
-| `generate_pipeline(nl_input, target_hosts)` | 自然语言 → Pipeline Tree JSON |
-| `refine_pipeline(nl_input, nodes, edges, target_hosts)` | 多轮对话修改现有流程 |
-| `analyze_pipeline(nodes, edges)` | 分析流程步骤、风险、建议 |
-| `rag_search(query)` | 知识库 RAG 检索 |
 
 ### AI 幻觉防御
 
@@ -470,6 +521,7 @@ opsflow_to_pipeline(nodes, edges)    # OPSflow → 引擎格式
 | Prompt | 平台匹配规则 | esxi_* → VM, netapp_* → 存储, redfish_* → 物理服务器 |
 | Prompt | Shell 排除 | 已从 AI 可见原子列表中删除 `shell`，防止用作 fallback |
 | Prompt | _errors 替代 | AI 无法完成时生成 `_errors` 字段，而非使用替代原子 |
+| Prompt | 增量修改指令 | refine_pipeline 明确以 "迭代修改" 方式处理，保留现有节点 ID，不重新生成 |
 | 服务端 | _errors 检测 | `create_from_ai`/`refine` 端点检查 pipeline._errors |
 | 服务端 | Shell 拦截 | 任何包含 `atom_type=shell` 的响应被拒绝 |
 | 服务端 | 跨平台检查 | 用户语义(VM/虚拟机)与 AI 生成原子(netapp_*)不匹配时拒绝 |

@@ -76,6 +76,7 @@ def _execute_plan(plan_id: int):
             status=FlowExecution.Status.PENDING,
             context={'pipeline_tree': plan.template.pipeline_tree},
             created_by=plan.created_by,
+            schedule_plan=plan,
         )
         engine = FlowEngine(execution)
         engine.start(sync=False)

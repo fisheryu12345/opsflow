@@ -5,7 +5,7 @@ from .views.template_views import FlowTemplateViewSet
 from .views.execution_views import FlowExecutionViewSet
 from .views.log_views import OpsLogViewSet
 from .views.knowledge_views import OpsKnowledgeViewSet
-from .views.dashboard_views import dashboard_stats, dashboard_trend
+from .views.dashboard_views import dashboard_stats, dashboard_trend, dashboard_schedule_stats
 from .views.schedule_views import SchedulePlanViewSet
 
 router = DefaultRouter()
@@ -18,4 +18,5 @@ router.register(r'schedule-plans', SchedulePlanViewSet, basename='opsflow-schedu
 urlpatterns = [
     path('dashboard/stats/', dashboard_stats, name='opsflow-dashboard-stats'),
     path('dashboard/trend/', dashboard_trend, name='opsflow-dashboard-trend'),
+    path('dashboard/schedule-stats/', dashboard_schedule_stats, name='opsflow-dashboard-schedule-stats'),
 ] + router.urls

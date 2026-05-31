@@ -72,6 +72,55 @@
         </div>
       </div>
 
+      <!-- Section: Scheduler Statistics -->
+      <div class="db-section-header">
+        <h3 class="db-section-title">Scheduler Overview</h3>
+        <el-tag size="small" type="info" effect="plain">{{ scheduleStats.type_distribution.cron || 0 }} cron · {{ scheduleStats.type_distribution.one_time || 0 }} one-time</el-tag>
+      </div>
+
+      <!-- Schedule stats cards -->
+      <div class="db-stats-row">
+        <div class="db-stat-card" v-for="s in schedCards" :key="s.key">
+          <div class="db-stat-icon" :style="{ background: s.bg }">
+            <el-icon :size="20" :color="s.color"><component :is="s.icon" /></el-icon>
+          </div>
+          <div class="db-stat-body">
+            <span class="db-stat-value" :style="{ color: s.color }">{{ s.value }}</span>
+            <span class="db-stat-label">{{ s.label }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart row 3: Schedule Trend + Top Schedules -->
+      <div class="db-chart-row">
+        <div class="db-chart-card db-chart-wide">
+          <div class="db-chart-header">
+            <span class="db-chart-title">Schedule Execution Trend</span>
+            <el-tag size="small" type="success" effect="plain" v-if="scheduleTrendUp">↑ +{{ scheduleTrendUp }}%</el-tag>
+          </div>
+          <div ref="schedTrendChartRef" class="db-chart-area" />
+        </div>
+        <div class="db-chart-card db-chart-narrow">
+          <div class="db-chart-header">
+            <span class="db-chart-title">Top Schedules</span>
+            <span class="db-chart-total">Top 5</span>
+          </div>
+          <div class="sched-list">
+            <div v-for="s in scheduleStats.top_schedules.slice(0, 5)" :key="s.id" class="sched-list-item">
+              <div class="sched-list-left">
+                <span class="sched-list-name">{{ s.name }}</span>
+                <span class="sched-list-meta">{{ s.total_run_count }} runs · {{ s.schedule_type === 'cron' ? '周期' : '一次' }}</span>
+              </div>
+              <div class="sched-list-right">
+                <el-tag :type="s.is_active ? 'success' : 'info'" size="small" effect="plain">
+                  {{ s.is_active ? 'Active' : 'Inactive' }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Bottom: User activity table + summary -->
       <div class="db-bottom-row">
         <div class="db-chart-card db-table-card">
@@ -187,10 +236,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, shallowRef, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import { Refresh, Top, Bottom } from '@element-plus/icons-vue'
+import { Refresh, Top, Bottom, Timer, VideoPlay, VideoPause, RefreshRight } from '@element-plus/icons-vue'
 import {
   getMockStats, getMockTrend, getMockTopTemplates,
   getMockUserActivity, getMockStatusDistribution, getMockNodeTypeDistribution,
+  getMockScheduleStats,
 } from '/@/api/opsflow/dashboard'
 
 /* ---------- State ---------- */
@@ -204,17 +254,20 @@ const topTemplates = ref(getMockTopTemplates())
 const userActivity = ref(getMockUserActivity())
 const statusDist = ref(getMockStatusDistribution())
 const nodeTypeDist = ref(getMockNodeTypeDistribution())
+const scheduleStats = ref(getMockScheduleStats())
 
 /* ---------- ECharts refs ---------- */
 const trendChartRef = shallowRef<HTMLElement | null>(null)
 const statusChartRef = shallowRef<HTMLElement | null>(null)
 const templatesChartRef = shallowRef<HTMLElement | null>(null)
 const nodeTypeChartRef = shallowRef<HTMLElement | null>(null)
+const schedTrendChartRef = shallowRef<HTMLElement | null>(null)
 
 let trendChart: echarts.ECharts | null = null
 let statusChart: echarts.ECharts | null = null
 let templatesChart: echarts.ECharts | null = null
 let nodeTypeChart: echarts.ECharts | null = null
+let schedTrendChart: echarts.ECharts | null = null
 
 /* ---------- Period filter ---------- */
 const filteredTrend = computed(() => {
@@ -243,6 +296,26 @@ const statsCards = computed(() => [
   { key: 'published', label: 'Published', value: stats.value.published_templates, icon: 'Upload', bg: '#f6ffed', color: '#52c41a', trend: undefined },
   { key: 'users', label: 'Active Users (7d)', value: stats.value.active_users_7d, icon: 'User', bg: '#fff0f6', color: '#eb2f96', trend: undefined },
 ])
+
+/* ---------- Scheduler cards ---------- */
+const schedCards = computed(() => [
+  { key: 'total_schedules', label: 'Schedule Plans', value: stats.value.total_schedule_plans, icon: 'Timer', bg: '#f0f5ff', color: '#2f54eb' },
+  { key: 'active_schedules', label: 'Active Plans', value: stats.value.active_schedule_plans, icon: 'VideoPlay', bg: '#f6ffed', color: '#52c41a' },
+  { key: 'paused_schedules', label: 'Paused Plans', value: stats.value.paused_schedule_plans, icon: 'VideoPause', bg: '#fff7e6', color: '#fa8c16' },
+  { key: 'total_runs', label: 'Total Scheduled Runs', value: stats.value.total_scheduled_runs, icon: 'RefreshRight', bg: '#e6f7ff', color: '#1890ff' },
+  { key: 'sched_success', label: 'Schedule Success Rate', value: stats.value.schedule_success_rate + '%', icon: 'CircleCheck', bg: '#f6ffed', color: '#52c41a' },
+  { key: 'sched_running', label: 'Schedule Running', value: stats.value.scheduled_executions_running, icon: 'Loading', bg: '#fff7e6', color: '#fa8c16' },
+])
+
+const scheduleTrendUp = computed(() => {
+  const data = scheduleStats.value.trend
+  if (!data || data.length < 4) return null
+  const half = Math.floor(data.length / 2)
+  const first = data.slice(0, half).reduce((s, d) => s + d.total, 0)
+  const last = data.slice(half).reduce((s, d) => s + d.total, 0)
+  if (first === 0) return null
+  return Math.round((last - first) / first * 100)
+})
 
 /* ---------- Trend chart ---------- */
 function renderTrendChart() {
@@ -381,6 +454,61 @@ function renderNodeTypeChart() {
   })
 }
 
+/* ---------- Schedule trend chart ---------- */
+function renderSchedTrendChart() {
+  if (!schedTrendChartRef.value) return
+  if (!schedTrendChart) schedTrendChart = echarts.init(schedTrendChartRef.value)
+  const data = scheduleStats.value.trend || []
+  schedTrendChart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: any) => {
+        const date = params[0].axisValue
+        let html = `<strong>${date}</strong><br/>`
+        params.forEach((p: any) => { html += `${p.marker} ${p.seriesName}: ${p.value}<br/>` })
+        return html
+      },
+    },
+    legend: { bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8 },
+    grid: { left: 40, right: 16, top: 8, bottom: 36 },
+    xAxis: { type: 'category', data: data.map(d => d.date.slice(5)), axisLabel: { fontSize: 11, color: '#909399' }, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'value', min: 0, splitLine: { lineStyle: { color: '#f0f0f0' } }, axisLabel: { fontSize: 11, color: '#909399' } },
+    series: [
+      {
+        name: 'Total',
+        type: 'line',
+        data: data.map(d => d.total),
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 5,
+        lineStyle: { color: '#2f54eb', width: 2 },
+        itemStyle: { color: '#2f54eb' },
+        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(47,84,235,0.25)' }, { offset: 1, color: 'rgba(47,84,235,0.02)' }]) },
+      },
+      {
+        name: 'Completed',
+        type: 'line',
+        data: data.map(d => d.completed),
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { color: '#67C23A', width: 2 },
+        itemStyle: { color: '#67C23A' },
+      },
+      {
+        name: 'Failed',
+        type: 'line',
+        data: data.map(d => d.failed),
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { color: '#F56C6C', width: 2 },
+        itemStyle: { color: '#F56C6C' },
+      },
+    ],
+  })
+}
+
 /* ---------- Helpers ---------- */
 function formatDuration(sec: number): string {
   if (sec < 60) return `${sec}s`
@@ -397,11 +525,13 @@ function refreshAll() {
   userActivity.value = getMockUserActivity()
   statusDist.value = getMockStatusDistribution()
   nodeTypeDist.value = getMockNodeTypeDistribution()
+  scheduleStats.value = getMockScheduleStats()
   nextTick(() => {
     renderTrendChart()
     renderStatusChart()
     renderTemplatesChart()
     renderNodeTypeChart()
+    renderSchedTrendChart()
   })
   loading.value = false
 }
@@ -412,6 +542,7 @@ function onResize() {
   statusChart?.resize()
   templatesChart?.resize()
   nodeTypeChart?.resize()
+  schedTrendChart?.resize()
 }
 
 /* ---------- Lifecycle ---------- */
@@ -421,6 +552,7 @@ onMounted(() => {
     renderStatusChart()
     renderTemplatesChart()
     renderNodeTypeChart()
+    renderSchedTrendChart()
   })
   window.addEventListener('resize', onResize)
 })
@@ -431,6 +563,7 @@ onUnmounted(() => {
   statusChart?.dispose()
   templatesChart?.dispose()
   nodeTypeChart?.dispose()
+  schedTrendChart?.dispose()
 })
 </script>
 
@@ -522,6 +655,27 @@ onUnmounted(() => {
 .summary-health-dots { display: flex; flex-direction: column; gap: 4px; }
 .health-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #606266; }
 .health-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* ---------- Section header ---------- */
+.db-section-header {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  flex-shrink: 0; margin-top: 4px;
+}
+.db-section-title { margin: 0; font-size: 16px; font-weight: 600; color: #303133; }
+
+/* ---------- Schedule list (sidebar) ---------- */
+.sched-list {
+  display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1;
+}
+.sched-list-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 10px; border-radius: 6px; background: #fafafa; transition: background 0.2s;
+}
+.sched-list-item:hover { background: #f0f5ff; }
+.sched-list-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sched-list-name { font-size: 13px; font-weight: 500; color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sched-list-meta { font-size: 11px; color: #909399; }
+.sched-list-right { flex-shrink: 0; }
 
 /* ---------- Mock badge ---------- */
 .mock-badge {

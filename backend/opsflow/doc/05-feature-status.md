@@ -6,8 +6,8 @@
 
 | 功能 | 模块 | 说明 |
 |------|------|------|
-| 数据模型 | `models.py` | FlowTemplate / FlowExecution / OpsLog / OpsKnowledge |
-| API 路由 | `urls.py` | 4 组 REST 端点 + WebSocket |
+| 数据模型 | `models.py` | FlowTemplate / FlowExecution / OpsLog / SchedulePlan / OpsKnowledge |
+| API 路由 | `urls.py` | 5 组 REST 端点 + WebSocket（含 schedule-plans）|
 | Pipeline 构建 | `bamboo_builder.py` | 自定义格式 → bamboo-engine 标准 Pipeline Tree |
 | FlowEngine 迁移 | `flow_engine.py` | 自定义解释器 → BambooDjangoRuntime + api.run_pipeline() |
 | 串行执行 | `flow_engine.py` | 通过 BambooDjangoRuntime 驱动 |
@@ -41,6 +41,13 @@
 | Service 格式定义 | `atom_service.py` | inputs_format / outputs_format 描述接口 |
 | 框架 API 读节点数据 | `signals.py` | get_execution_data_outputs 替代直接 ERI 查询 |
 | 菜单注册 | `add_opsflow_menu.py` | RBAC 菜单写入命令 |
+| 调度计划模型 | `models.py` | SchedulePlan（一次性/CRON、状态机、模板快照） |
+| 定时调度器 | `scheduler_service.py` | APScheduler BackgroundScheduler + DjangoJobStore |
+| 调度计划 API | `schedule_views.py` | CRUD + pause/resume/trigger/history + 已发布模板校验 |
+| 调度管理页面 | `schedule.vue` / `ScheduleManager.vue` / `ScheduleForm.vue` / `ScheduleTable.vue` | 前端调度计划管理 UI |
+| 调度计划 API 客户端 | `schedule-plans.ts` | 前端 Axios API |
+| 独立调度进程 | `start_opsflow_scheduler.py` | APScheduler 独立进程 + Redis 锁防重复 |
+| 部署文档 | `06-deployment-notes.md` | 跨目录修改记录 + 部署清单 |
 
 ### 前端
 
@@ -60,8 +67,11 @@
 | 执行记录页面 | `ExecutionList.vue` + `ExecutionDetail.vue` | 历史列表（状态筛选）+ 详情（MonitorCanvas） |
 | 审计日志页面 | `opsflow-log/index.vue` | OpsLog 浏览（白卡片 + 风险状态点） |
 | 知识库页面 | `opsflow-knowledge/index.vue` | OpsKnowledge CRUD（卡片布局） |
-| 模板管理页面 | `opsflow-template/index.vue` | 模板列表（表格/卡片切换 + 管道可视化） |
+| 模板管理页面 | `opsflow-template/index.vue` | 模板列表（表格/卡片切换 + 管道可视化 + 调度按钮） |
 | Dashboard | `opsflow-dashboard/index.vue` | 4 ECharts + 7 统计卡片 + 用户活动表 |
+| 模板选择嵌入画布 | `DesignCanvas.vue` | 模板选择器从独立栏移入画布工具栏 |
+| 响应式 Undo/Redo | `useDesignCanvas.ts` | history:change 事件同步响应式状态 |
+| 调度管理页面 | `opsflow-template/schedule.vue` | 调度计划列表 + 创建/编辑/删除/暂停/恢复 |
 
 ## ❌ 待实现功能
 

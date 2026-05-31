@@ -356,7 +356,10 @@
       "Bash(python -c \"import django; from django.conf import settings; settings.configure\\(DATABASES={'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': ':memory:'}}, INSTALLED_APPS=['django.contrib.contenttypes','django.contrib.auth']\\); django.setup\\(\\); print\\('ok'\\)\")",
       "Bash(DJANGO_SETTINGS_MODULE=application.test_settings python -c ' *)",
       "Bash(DJANGO_SETTINGS_MODULE=application.test_settings python -m pytest opsflow/tests/test_layout.py -v)",
-      "Bash(DJANGO_SETTINGS_MODULE=application.test_settings python -m pytest opsflow/tests/test_layout.py -v --tb=long)"
+      "Bash(DJANGO_SETTINGS_MODULE=application.test_settings python -m pytest opsflow/tests/test_layout.py -v --tb=long)",
+      "Bash(taskkill //f //im python.exe)",
+      "Bash(sed -i '/^$/{ N; /^\\\\n\\\\n$/d; }' 04-frontend.md)",
+      "Bash(grep -c \"^$\" 04-frontend.md)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

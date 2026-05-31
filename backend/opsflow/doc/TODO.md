@@ -29,6 +29,11 @@
 - [x] **执行记录页面** — 已实现（ExecutionList.vue + ExecutionDetail.vue）
 - [x] **Celery worker 启动脚本** — 注意事项.md 已记录启动命令（含 gevent 池 + Redis channel layer）
 - [x] **WebSocket Channel Layer 修复** — InMemoryChannelLayer → RedisChannelLayer，async_to_sync → 手动事件循环，解决跨进程 WS 消息推送问题（详见注意事项.md 第 6 节）
+- [x] **SchedulePlan 模型/API** — 一次性/CRON 定时调度计划模型 + CRUD 视图 + pause/resume/trigger/history 端点
+- [x] **APScheduler 调度器** — BackgroundScheduler + DjangoJobStore + 独立进程启动命令
+- [x] **部署文档** — 06-deployment-notes.md，记录 OpsFlow 所有跨目录修改
+- [x] **模板列表按钮重构** — 工具栏改为图标按钮（Edit/Modify/Publish/Schedule/Delete）+goEditTemplate 跳转设计器
+- [x] **DesignCanvas 模板选择器重构** — 选择器从独立栏移入画布工具栏 + loadPipeline 鲁棒性增强
 - [x] **Sugiyama 布局引擎** — 适配 bk_sops drawing_new，18 文件，纯 Python 确定性布局，替代 LLM 布局方案
 - [x] **DesignCanvas 缩放控件** — 工具栏添加 Zoom In/Out/Fit 按钮 + 缩放比例显示
 - [x] **编辑器 Executions 按钮删除** — 编辑与执行职责分离，工具栏移除运行记录入口

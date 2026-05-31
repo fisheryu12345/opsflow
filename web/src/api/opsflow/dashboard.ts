@@ -10,6 +10,10 @@ export function GetDashboardTrend(params?: any) {
   return request({ url: prefix + 'dashboard/trend/', method: 'get', params })
 }
 
+export function GetDashboardScheduleStats(params?: any) {
+  return request({ url: prefix + 'dashboard/schedule-stats/', method: 'get', params })
+}
+
 /* ---------- Mock data (used when backend API is unavailable) ---------- */
 
 function daysAgo(n: number): string {
@@ -98,4 +102,25 @@ export function getMockNodeTypeDistribution() {
     { type: 'esxi', count: 120, label: 'ESXi' },
     { type: 'other', count: 140, label: 'Other' },
   ]
+}
+
+/* ---------- Scheduler mock data ---------- */
+
+export function getMockScheduleStats() {
+  return {
+    type_distribution: { one_time: 3, cron: 7 },
+    top_schedules: [
+      { id: 1, name: '日常巡检', template_name: '日常巡检流程', schedule_type: 'cron', total_run_count: 68, last_run_at: daysAgo(0), next_run_at: daysAgo(-1), is_active: true },
+      { id: 2, name: '数据库备份验证', template_name: '数据库备份验证', schedule_type: 'cron', total_run_count: 35, last_run_at: daysAgo(0), next_run_at: daysAgo(-1), is_active: true },
+      { id: 3, name: '网络设备备份', template_name: '网络设备配置备份', schedule_type: 'cron', total_run_count: 22, last_run_at: daysAgo(1), next_run_at: daysAgo(0), is_active: true },
+      { id: 4, name: '安全漏洞扫描', template_name: '安全漏洞扫描流程', schedule_type: 'cron', total_run_count: 18, last_run_at: daysAgo(0), next_run_at: daysAgo(0), is_active: false },
+      { id: 5, name: 'ESXi 快照备份', template_name: 'ESXi 虚拟机部署', schedule_type: 'one_time', total_run_count: 1, last_run_at: daysAgo(5), next_run_at: null, is_active: false },
+    ],
+    trend: Array.from({ length: 30 }, (_, i) => {
+      const total = Math.floor(Math.random() * 5) + 1
+      const completed = Math.floor(total * (0.7 + Math.random() * 0.25))
+      const failed = total - completed
+      return { date: daysAgo(29 - i), total, completed, failed }
+    }),
+  }
 }
