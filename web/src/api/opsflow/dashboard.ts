@@ -37,6 +37,19 @@ export function getMockStats() {
     total_nodes_executed: 1842,
     avg_duration_sec: 186,
     success_rate: 87.6,
+    /* scheduler fields */
+    total_schedule_plans: 10,
+    active_schedule_plans: 7,
+    paused_schedule_plans: 2,
+    completed_schedule_plans: 1,
+    expired_schedule_plans: 0,
+    total_scheduled_runs: 136,
+    next_scheduled_run: { id: 1, name: '日常巡检', next_run_at: '2026-06-01 09:00:00' },
+    scheduled_executions_total: 112,
+    scheduled_executions_completed: 98,
+    scheduled_executions_failed: 10,
+    scheduled_executions_running: 4,
+    schedule_success_rate: 90.7,
   }
 }
 

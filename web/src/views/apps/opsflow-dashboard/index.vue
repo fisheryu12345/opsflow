@@ -299,12 +299,12 @@ const statsCards = computed(() => [
 
 /* ---------- Scheduler cards ---------- */
 const schedCards = computed(() => [
-  { key: 'total_schedules', label: 'Schedule Plans', value: stats.value.total_schedule_plans, icon: 'Timer', bg: '#f0f5ff', color: '#2f54eb' },
+  { key: 'total_schedules', label: 'Sched Plans', value: stats.value.total_schedule_plans, icon: 'Timer', bg: '#f0f5ff', color: '#2f54eb' },
   { key: 'active_schedules', label: 'Active Plans', value: stats.value.active_schedule_plans, icon: 'VideoPlay', bg: '#f6ffed', color: '#52c41a' },
   { key: 'paused_schedules', label: 'Paused Plans', value: stats.value.paused_schedule_plans, icon: 'VideoPause', bg: '#fff7e6', color: '#fa8c16' },
-  { key: 'total_runs', label: 'Total Scheduled Runs', value: stats.value.total_scheduled_runs, icon: 'RefreshRight', bg: '#e6f7ff', color: '#1890ff' },
-  { key: 'sched_success', label: 'Schedule Success Rate', value: stats.value.schedule_success_rate + '%', icon: 'CircleCheck', bg: '#f6ffed', color: '#52c41a' },
-  { key: 'sched_running', label: 'Schedule Running', value: stats.value.scheduled_executions_running, icon: 'Loading', bg: '#fff7e6', color: '#fa8c16' },
+  { key: 'total_runs', label: 'Total Runs', value: stats.value.total_scheduled_runs, icon: 'RefreshRight', bg: '#e6f7ff', color: '#1890ff' },
+  { key: 'sched_success', label: 'Sched Success', value: stats.value.schedule_success_rate + '%', icon: 'CircleCheck', bg: '#f6ffed', color: '#52c41a' },
+  { key: 'sched_running', label: 'Sched Running', value: stats.value.scheduled_executions_running, icon: 'Loading', bg: '#fff7e6', color: '#fa8c16' },
 ])
 
 const scheduleTrendUp = computed(() => {
@@ -603,7 +603,7 @@ onUnmounted(() => {
 }
 .db-stat-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .db-stat-value { font-size: 20px; font-weight: 700; line-height: 1.2; }
-.db-stat-label { font-size: 12px; color: #909399; white-space: nowrap; }
+.db-stat-label { font-size: 12px; color: #909399; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .db-stat-trend {
   position: absolute; top: 8px; right: 10px; font-size: 11px; display: flex; align-items: center; gap: 2px;
 }
