@@ -15,10 +15,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import ExecutionList from './components/ExecutionList.vue'
 import ExecutionDetail from './components/ExecutionDetail.vue'
+import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 
+const store = useOpsflowStore()
 const listRef = ref<InstanceType<typeof ExecutionList> | null>(null)
 const selectedExecution = ref<any>(null)
 
@@ -29,6 +31,10 @@ function onViewDetail(execution: any) {
 function onExecutionUpdate(exec: any) {
   selectedExecution.value = exec
 }
+
+onMounted(async () => {
+  if (!store.myProjects.length) await store.fetchMyProjects()
+})
 </script>
 
 <style scoped>

@@ -19,15 +19,6 @@
                    @click="onResume">Resume</el-button>
         <el-button type="danger" :disabled="selectedNodeId === null" @click="onRetry">Retry</el-button>
         <el-button type="info" :disabled="selectedNodeId === null" @click="onSkip">Skip</el-button>
-        <el-dropdown size="small" split-button type="" @click="batchRetryAll" trigger="click">
-          Batch
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="batchRetryAll" :disabled="!hasFailedNodes">重试全部失败</el-dropdown-item>
-              <el-dropdown-item @click="batchSkipAll" :disabled="!hasFailedNodes">跳过全部失败</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
         <el-button type="danger" :disabled="!isCancelable"
                    :loading="cancelling" @click="onCancel">Cancel</el-button>
         <el-button type="info" @click="refresh">Refresh</el-button>
@@ -203,7 +194,7 @@
 import { ref, computed, onMounted, onActivated, onBeforeUnmount, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Refresh, Monitor, Document, Close, DArrowLeft, DArrowRight, CircleCheck, Clock, WarningFilled, Upload, Download } from '@element-plus/icons-vue'
-import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode, CancelExecution, GetExecutionTraces, GetNodeTraceLog, BatchRetryNodes, BatchSkipNodes, ApproveNode, RejectNode } from '/@/api/opsflow/executions'
+import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode, CancelExecution, GetExecutionTraces, GetNodeTraceLog, ApproveNode, RejectNode } from '/@/api/opsflow/executions'
 import { GetTemplateDetail } from '/@/api/opsflow/templates'
 import { GetLogs } from '/@/api/opsflow/logs'
 import MonitorCanvas from '/@/views/apps/opsflow/components/MonitorCanvas.vue'
@@ -233,22 +224,19 @@ const traceLogNodeId = ref<string>('')
 const logLoadingNode = ref<string | null>(null)
 
 const statusLabel = computed(() => {
-  const map: Record<string, string> = { pending: 'Pending', running: 'Running', paused: 'Paused', completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled' }
+  const map: Record<string, string> = { pending: 'Pending', pending_approval: 'Pending Approval', running: 'Running', paused: 'Paused', completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled' }
   return map[execDetail.value.status] || execDetail.value.status
 })
 const statusTagType = computed(() => {
-  const map: Record<string, string> = { pending: 'info', running: 'warning', paused: 'info', completed: 'success', failed: 'danger', cancelled: 'info' }
+  const map: Record<string, string> = { pending: 'info', pending_approval: 'info', running: 'warning', paused: 'info', completed: 'success', failed: 'danger', cancelled: 'info' }
   return map[execDetail.value.status] || 'info'
 })
-const isRunning = computed(() => ['pending', 'running', 'paused'].includes(execDetail.value.status))
-const isCancelable = computed(() => ['running', 'paused', 'pending'].includes(execDetail.value.status))
+const isRunning = computed(() => ['pending', 'pending_approval', 'running', 'paused'].includes(execDetail.value.status))
+const isCancelable = computed(() => ['running', 'paused', 'pending', 'pending_approval'].includes(execDetail.value.status))
 const isPendingApproval = computed(() => execDetail.value.status === 'paused' && execDetail.value.current_node !== '')
 const approving = ref(false)
 const rejecting = ref(false)
-const hasFailedNodes = computed(() => {
-  const ns = execDetail.value.node_status || {}
-  return Object.values(ns).some((s) => s === 'failed')
-})
+
 
 
 function logTagType(status: string) {
@@ -402,28 +390,6 @@ async function fetchLogs() {
 }
 
 async function refresh() { await loadPipeline(false); await fetchLogs(); await fetchTraces() }
-
-async function batchRetryAll() {
-  try {
-    const res = await BatchRetryNodes(props.execution.id)
-    const d = res.data?.data || res.data
-    ElMessage.success(`批量重试: ${d?.succeeded || 0}/${d?.total || 0} 成功`)
-    await refresh()
-  } catch (e: any) {
-    ElMessage.error(e?.msg || e?.message || '批量重试失败')
-  }
-}
-
-async function batchSkipAll() {
-  try {
-    const res = await BatchSkipNodes(props.execution.id)
-    const d = res.data?.data || res.data
-    ElMessage.success(`批量跳过: ${d?.succeeded || 0}/${d?.total || 0} 成功`)
-    await refresh()
-  } catch (e: any) {
-    ElMessage.error(e?.msg || e?.message || '批量跳过失败')
-  }
-}
 
 async function onStart() {
   starting.value = true

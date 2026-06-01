@@ -27,9 +27,14 @@ class FlowExecutionViewSet(
     queryset = FlowExecution.objects.all()
     serializer_class = FlowExecutionSerializer
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['status', 'template', 'project']
+    filterset_fields = ['status', 'template', 'project', 'created_by']
     ordering = ['-created_at']
     project_field = 'project'
+
+    def get_queryset(self):
+        """自动按当前用户过滤，只显示自己创建的流程"""
+        qs = super().get_queryset()
+        return qs.filter(created_by=self.request.user)
 
     def get_serializer_class(self):
         """详情页使用 FlowExecutionDetailSerializer（含 state_tree + trace_summary）"""
@@ -38,7 +43,20 @@ class FlowExecutionViewSet(
         return self.serializer_class
 
     def perform_create(self, serializer):
-        execution = serializer.save(created_by=self.request.user)
+        # 设置项目归属（复用 ProjectFilteredViewSet 的项目隔离逻辑）
+        project_id = self.request.query_params.get('project_id')
+        if project_id:
+            user_project_ids = self.get_user_project_ids()
+            if int(project_id) not in user_project_ids:
+                from rest_framework import exceptions
+                raise exceptions.PermissionDenied('无权在当前项目创建资源')
+            project_kwargs = {'project_id': project_id}
+        else:
+            from opsflow.models import OpsProject
+            default = OpsProject.objects.first()
+            project_kwargs = {'project': default} if default else {}
+
+        execution = serializer.save(created_by=self.request.user, **project_kwargs)
         # 为新执行初始化 state_tree
         if not execution.state_tree:
             execution.state_tree = {}

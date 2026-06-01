@@ -58,6 +58,10 @@
           <el-tooltip content="Global Variables" placement="bottom">
             <el-button size="small" circle @click="showVarPanel = !showVarPanel" :type="showVarPanel ? 'warning' : 'default'" :icon="Coin" />
           </el-tooltip>
+          <div class="toolbar-divider" />
+          <el-tooltip content="Submit Execution" placement="bottom">
+            <el-button size="small" circle type="success" @click="showExecDialog = true" :icon="VideoPlay" />
+          </el-tooltip>
           <el-tooltip content="Save draft" placement="bottom">
             <el-button size="small" circle type="primary" @click="onSave" :icon="Upload" />
           </el-tooltip>
@@ -99,14 +103,22 @@
         :template-id="templateId"
         @updated="onSubprocessUpdated"
       />
+      <!-- Submit Execution Dialog -->
+      <SubmitExecutionDialog
+        v-if="templateId"
+        v-model="showExecDialog"
+        :template-id="templateId"
+        :template-name="templateName"
+        @execution-created="onExecCreated"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, Coin } from '@element-plus/icons-vue'
+import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, Coin, VideoPlay } from '@element-plus/icons-vue'
 // X6 CSS — 必须导入否则 Stencil、Minimap 等插件容器不显示
 import '@antv/x6/dist/index.css'
 import '@antv/x6-plugin-stencil/dist/index.css'
@@ -116,6 +128,7 @@ import PropertyPanel from './PropertyPanel.vue'
 import GlobalVariablePanel from './GlobalVariablePanel.vue'
 import SubprocessStatusBadge from './SubprocessStatusBadge.vue'
 import ProjectSwitcher from './ProjectSwitcher.vue'
+import SubmitExecutionDialog from './SubmitExecutionDialog.vue'
 
 const props = defineProps<{
   templates?: any[]
@@ -130,10 +143,22 @@ const emit = defineEmits<{
   changeTemplate: [id: number | null]
   nodeSelect: [node: any]
   nodeNeedPlugin: [nodeId: string]
+  submitExecution: [execId: number]
 }>()
 
 const showVarPanel = ref(false)
+const showExecDialog = ref(false)
 const toolbarCollapsed = ref(false)
+
+const templateName = computed(() => {
+  if (!props.templateId || !props.templates) return ''
+  const tpl = props.templates.find((t: any) => t.id === props.templateId)
+  return tpl?.name || ''
+})
+
+function onExecCreated(execId: number) {
+  emit('submitExecution', execId)
+}
 
 function onGlobalVarsUpdated() {
   // Variables panel will re-fetch via watcher on templateId

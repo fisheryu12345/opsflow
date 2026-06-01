@@ -36,6 +36,7 @@ class NodeState(str, Enum):
 class PipelineState(str, Enum):
     """Pipeline 级状态枚举 — FlowExecution.status"""
     PENDING = "pending"
+    PENDING_APPROVAL = "pending_approval"
     RUNNING = "running"
     PAUSED = "paused"
     COMPLETED = "completed"
@@ -61,7 +62,8 @@ VALID_NODE_TRANSITIONS: dict[NodeState, list[NodeState]] = {
 # ── Pipeline 级状态流转矩阵 ──────────────────────────────────────
 
 VALID_PIPELINE_TRANSITIONS: dict[PipelineState, list[PipelineState]] = {
-    PipelineState.PENDING:    [PipelineState.RUNNING, PipelineState.CANCELLED],
+    PipelineState.PENDING:    [PipelineState.RUNNING, PipelineState.CANCELLED, PipelineState.PENDING_APPROVAL],
+    PipelineState.PENDING_APPROVAL: [PipelineState.RUNNING, PipelineState.CANCELLED],
     PipelineState.RUNNING:    [PipelineState.COMPLETED, PipelineState.FAILED, PipelineState.PAUSED, PipelineState.CANCELLED],
     PipelineState.PAUSED:     [PipelineState.RUNNING, PipelineState.CANCELLED],
     PipelineState.FAILED:     [PipelineState.RUNNING],          # 重试整个 pipeline

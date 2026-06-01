@@ -177,6 +177,7 @@ class FlowExecution(models.Model):
     """执行实例 — 一次流程运行记录"""
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pending'
+        PENDING_APPROVAL = 'pending_approval', 'Pending Approval'
         RUNNING = 'running', 'Running'
         PAUSED = 'paused', 'Paused'
         COMPLETED = 'completed', 'Completed'

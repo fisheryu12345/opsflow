@@ -59,7 +59,8 @@
                     @change-template="onSelectTemplate" @save="onSaveDraft" @diff="onDiff"
                     @analyze="onAnalyze" @new-template="showNewTemplateDialog"
                     @node-select="onNodeSelect"
-                    @node-need-plugin="onNodeNeedPlugin" />
+                    @node-need-plugin="onNodeNeedPlugin"
+                    @submit-execution="onSubmitExecution" />
     </div>
 
     <!-- 插件选择器 -->
@@ -191,6 +192,10 @@ const analysisResult = ref<any>(null)
 // 插件选择器
 const pickerVisible = ref(false)
 const pendingTaskNode = ref<string | null>(null)
+
+function onSubmitExecution(execId: number) {
+  ElMessage.success({ message: `Execution #${execId} created. Go to Executions page to start it.`, duration: 5000 })
+}
 
 // 选中节点 → 折叠 AI 面板
 const chatExpanded = ref(true)
