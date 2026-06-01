@@ -328,6 +328,13 @@ def build_execution_context(execution) -> dict:
             elif isinstance(cfg, dict) and 'default' in cfg:
                 ctx[key] = cfg['default']
 
+    # ── 项目环境变量 ──
+    template_obj = getattr(execution, 'template', None)
+    if template_obj and template_obj.project_id:
+        project_env = resolve_project_variables(template_obj.project_id)
+        # project env 作为 base，已存在的 ctx 值（模板 vars）覆盖其上
+        ctx = {**project_env, **ctx}
+
     ctx['target_hosts'] = frozen.get('target_hosts', [])
 
     # 各节点 outputs

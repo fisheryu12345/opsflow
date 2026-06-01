@@ -220,9 +220,10 @@ class TestBuildExecutionContext:
 
     def _make_mock_execution(self, **snapshot_overrides):
         """创建 Mock execution 避免数据库"""
-        template = Mock(spec=["name", "hook_variables"])
+        template = Mock(spec=["name", "hook_variables", "project_id"])
         template.name = "test"
         template.hook_variables = {}
+        template.project_id = None
         exec_mock = Mock(spec=["id", "template", "template_snapshot"])
         exec_mock.id = 999
         exec_mock.template = template

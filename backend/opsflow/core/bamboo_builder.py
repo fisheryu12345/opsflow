@@ -293,6 +293,11 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
     hosts = target_hosts if target_hosts is not None else (flow_template.target_hosts or [])
     raw_vars = global_vars if global_vars is not None else (flow_template.global_vars or {})
     vars_ = get_global_vars_values(raw_vars)  # 规范化提取纯值
+    # 注入项目环境变量（项目共享配置，模板 vars 覆盖同名键）
+    if flow_template.project_id:
+        from opsflow.core.variable_resolver import resolve_project_variables
+        project_env = resolve_project_variables(flow_template.project_id)
+        vars_ = {**project_env, **vars_}
     input_map = {
         'target_hosts': Var(type=Var.PLAIN, value=hosts),
         'global_vars': Var(type=Var.PLAIN, value=vars_),
@@ -494,6 +499,11 @@ def _empty_pipeline(flow_template, target_hosts=None, global_vars=None):
     hosts = target_hosts if target_hosts is not None else (flow_template.target_hosts or [])
     raw_vars = global_vars if global_vars is not None else (flow_template.global_vars or {})
     vars_ = get_global_vars_values(raw_vars)
+    # 注入项目环境变量（项目共享配置，模板 vars 覆盖同名键）
+    if flow_template.project_id:
+        from opsflow.core.variable_resolver import resolve_project_variables
+        project_env = resolve_project_variables(flow_template.project_id)
+        vars_ = {**project_env, **vars_}
     data = Data(inputs={
         'target_hosts': Var(type=Var.PLAIN, value=hosts),
         'global_vars': Var(type=Var.PLAIN, value=vars_),
