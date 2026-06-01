@@ -2,7 +2,7 @@
   <el-select
     v-model="val" :placeholder="placeholder" :disabled="disabled"
     :multiple="multiple" :clearable="clearable" :loading="loading"
-    :filterable="isSearchable" :remote="isSearchable" :remote-method="onRemoteSearch"
+    :filterable="isSearchable"
     :default-first-option="true" size="small" style="width:100%"
     :popper-append-to-body="false"
     @visible-change="onVisibleChange"
@@ -49,20 +49,11 @@ const emit = defineEmits(['update:modelValue'])
 
 const loading = ref(false)
 const allOptions = ref<any[]>([])
-const searchQuery = ref('')
 
 const isSearchable = computed(() => props.searchable && props.api_endpoint.length > 0)
 
-/* Filter options by search query when not using remote API search */
-const filteredOptions = computed(() => {
-  if (!searchQuery.value || props.searchable) return allOptions.value
-  const q = searchQuery.value.toLowerCase()
-  return allOptions.value.filter((o: any) => {
-    const label = String(o[props.label_key] || '').toLowerCase()
-    const value = String(o[props.value_key] || '').toLowerCase()
-    return label.includes(q) || value.includes(q)
-  })
-})
+/* Pass through all options; el-select's built-in filterable handles client-side search */
+const filteredOptions = computed(() => allOptions.value)
 
 const val = computed({
   get: () => props.modelValue,
