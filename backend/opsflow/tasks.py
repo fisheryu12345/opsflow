@@ -167,6 +167,16 @@ def execute_node_timeout_strategy(execution_id, node_id, action):
         logger.exception("[Timeout] execute strategy error for node %s: %s", node_id, e)
 
 
+@shared_task(bind=True, max_retries=0)
+def webhook_send(self, webhook_id, execution_id, event):
+    """Celery 任务 — 发送 Webhook 回调"""
+    from opsflow.core.webhook_service import WebhookService
+    try:
+        WebhookService.send(webhook_id, execution_id, event)
+    except Exception as e:
+        logger.exception("[Webhook] send error: %s", e)
+
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)
 def retry_schedule_execution(self, plan_id, plan_max_retries=None):
     """Celery 任务 — 重试调度计划执行

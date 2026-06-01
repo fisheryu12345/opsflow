@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "未命名/04-策略设计文档/策略设计-HVOB-MBI日内高波动突破系统.md",
+                "file": "未命名/04-策略设计文档/策略设计-海龟增强V2交易全流程.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "策略设计-HVOB-MBI日内高波动突破系统"
+              "title": "策略设计-海龟增强V2交易全流程"
             }
           }
         ]
@@ -185,6 +185,7 @@
   },
   "active": "d7d82acde8322577",
   "lastOpenFiles": [
+    "未命名/04-策略设计文档/策略设计-HVOB-MBI日内高波动突破系统.md",
     "未命名/04-策略设计文档/策略设计-海龟增强V3交易全流程.md",
     "未命名/04-策略设计文档/策略设计-海龟增强V2交易全流程.md",
     "未命名/08-TODO/04-LOW.md",

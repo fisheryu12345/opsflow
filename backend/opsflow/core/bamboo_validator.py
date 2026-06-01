@@ -13,10 +13,25 @@ _EXPR_PATTERN = re.compile(r'\$\{([^}]*)\}')
 _VAR_REF_PATTERN = re.compile(r'([a-zA-Z_]\w*)\.([a-zA-Z_]\w*)')
 
 
-def validate_bamboo_compatibility(pipeline_tree: dict) -> dict:
-    """校验 pipeline_tree 是否能被 bamboo-engine 执行"""
+def validate_bamboo_compatibility(pipeline_tree: dict, skip_schema=False) -> dict:
+    """校验 pipeline_tree 是否能被 bamboo-engine 执行
+
+    Args:
+        pipeline_tree: 流程树 dict
+        skip_schema: True=跳过 JSON Schema 验证（如内部调用已在外层验证过）
+    """
     errors = []
     warnings = []
+
+    # JSON Schema 结构验证（参考 bk_sops Draft4Validator + WEB_PIPELINE_SCHEMA）
+    if not skip_schema:
+        from opsflow.core.pipeline_schema import validate_pipeline_schema
+        schema_errors = validate_pipeline_schema(pipeline_tree)
+        if schema_errors:
+            errors.extend(schema_errors)
+            # Schema 级别错误说明数据结构有误，直接返回不继续后续校验
+            return {'valid': False, 'errors': errors, 'warnings': warnings}
+
     nodes = pipeline_tree.get('nodes', []) or []
     edges = pipeline_tree.get('edges', []) or []
 

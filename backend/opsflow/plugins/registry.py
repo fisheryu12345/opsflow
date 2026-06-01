@@ -139,18 +139,23 @@ def sync_plugin_meta_to_db():
                 logger.error('sync_plugin_meta_to_db: plugin %s v%s config failed: %s', code, version, e)
                 continue
 
+            # 同步时保留已有 phase（不重置），新建时默认 PHASE_AVAILABLE
+            existing = PluginMeta.objects.filter(code=code, version=version).first()
+            defaults = {
+                "name": cls.name,
+                "group": cls.group,
+                "description": cls.description,
+                "risk_level": cls.risk_level,
+                "form_schema": form_schema,
+                "output_schema": output_schema,
+                "is_active": True,
+            }
+            if not existing:
+                defaults["phase"] = PluginMeta.PHASE_AVAILABLE
             PluginMeta.objects.update_or_create(
                 code=code,
                 version=version,
-                defaults={
-                    "name": cls.name,
-                    "group": cls.group,
-                    "description": cls.description,
-                    "risk_level": cls.risk_level,
-                    "form_schema": form_schema,
-                    "output_schema": output_schema,
-                    "is_active": True,
-                },
+                defaults=defaults,
             )
             count += 1
     logger.info("PluginMeta 同步完成: %d 条", count)

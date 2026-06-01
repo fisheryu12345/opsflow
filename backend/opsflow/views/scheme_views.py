@@ -6,12 +6,14 @@ from rest_framework.response import Response
 
 from opsflow.models import FlowTemplate, ExecutionScheme
 from opsflow.serializers import ExecutionSchemeSerializer
+from opsflow.views.base import ProjectFilteredViewSet
 
 
-class ExecutionSchemeViewSet(viewsets.ModelViewSet):
+class ExecutionSchemeViewSet(ProjectFilteredViewSet):
     """执行方案 CRUD — 预定义节点排除集 + 变量覆盖"""
     queryset = ExecutionScheme.objects.all()
     serializer_class = ExecutionSchemeSerializer
+    project_field = 'project'
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -45,3 +47,30 @@ class ExecutionSchemeViewSet(viewsets.ModelViewSet):
                 id=instance.id
             ).update(is_default=False)
         serializer.save()
+
+    @action(detail=True, methods=['get'])
+    def preview(self, request, template_pk=None, pk=None):
+        """预览执行方案 — 返回排除节点后的清理后 pipeline_tree
+
+        参考 bk_sops PipelineTemplateWebPreviewer.preview_pipeline_tree_exclude_task_nodes
+        """
+        try:
+            template = FlowTemplate.objects.get(id=template_pk)
+            scheme = self.get_object()
+        except (FlowTemplate.DoesNotExist, ExecutionScheme.DoesNotExist):
+            return Response({'code': 4000, 'msg': 'Not found', 'data': None},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        pipeline_tree = template.pipeline_tree or {}
+        exclude_ids = scheme.excluded_nodes or []
+
+        from opsflow.core.pipeline_preview import PipelinePreviewService
+        cleaned = PipelinePreviewService.preview_exclude_nodes(pipeline_tree, exclude_ids)
+
+        return Response({
+            'code': 2000, 'msg': 'success',
+            'data': {
+                'pipeline_tree': cleaned,
+                'scheme': ExecutionSchemeSerializer(scheme).data,
+            },
+        })

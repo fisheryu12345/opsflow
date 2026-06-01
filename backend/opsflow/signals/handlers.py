@@ -22,6 +22,15 @@ from opsflow.signals.timeout import _update_node_timeout  # Redis 超时追踪
 logger = logging.getLogger(__name__)
 
 
+def _try_webhook(execution, event: str):
+    """尝试触发 Webhook 回调（best-effort）"""
+    try:
+        from opsflow.core.webhook_service import WebhookService
+        WebhookService.dispatch(execution, event)
+    except Exception:
+        logger.exception("[Webhook] dispatch error for execution %s event=%s", execution.id, event)
+
+
 @receiver(post_set_state)
 def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, loop, **kwargs):
     """BambooDjangoRuntime 节点状态变更信号处理器
@@ -88,6 +97,8 @@ def _handle_root_state_change(execution, to_state):
         execution.ended_at = datetime.datetime.now()
         execution.save(update_fields=["status", "ended_at"])
         _notify_completed(execution)
+        # Webhook 回调
+        _try_webhook(execution, 'completed')
         logger.info("[Signal] pipeline %s completed", execution.id)
 
     elif target == PipelineState.FAILED:
@@ -102,6 +113,8 @@ def _handle_root_state_change(execution, to_state):
         except Exception:
             logger.exception("[Signal] rollback_failed_nodes error for execution %s", execution.id)
         _notify_completed(execution)
+        # Webhook 回调
+        _try_webhook(execution, 'failed')
         logger.info("[Signal] pipeline %s failed", execution.id)
 
     elif target == PipelineState.CANCELLED:

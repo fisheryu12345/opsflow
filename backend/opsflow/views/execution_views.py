@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from opsflow.models import FlowExecution
 from opsflow.serializers import FlowExecutionSerializer, FlowExecutionDetailSerializer
+from opsflow.views.base import ProjectFilteredViewSet
 from opsflow.views.mixins.execution_lifecycle import ExecutionLifecycleMixin
 from opsflow.views.mixins.execution_node_command import ExecutionNodeCommandMixin
 from opsflow.views.mixins.execution_approval import ExecutionApprovalMixin
@@ -21,13 +22,14 @@ class FlowExecutionViewSet(
     ExecutionNodeCommandMixin,
     ExecutionApprovalMixin,
     ExecutionTraceMixin,
-    viewsets.ModelViewSet,
+    ProjectFilteredViewSet,
 ):
     queryset = FlowExecution.objects.all()
     serializer_class = FlowExecutionSerializer
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['status', 'template']
+    filterset_fields = ['status', 'template', 'project']
     ordering = ['-created_at']
+    project_field = 'project'
 
     def get_serializer_class(self):
         """详情页使用 FlowExecutionDetailSerializer（含 state_tree + trace_summary）"""

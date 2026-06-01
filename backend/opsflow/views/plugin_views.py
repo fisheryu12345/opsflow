@@ -76,6 +76,9 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                     "name": p.name,
                     "version": p.version,
                     "versions": [],
+                    "risk_level": p.risk_level,
+                    "phase": p.phase,
+                    "phase_label": dict(PluginMeta.PHASE_CHOICES).get(p.phase, ''),
                 })
             # 添加到版本列表
             for entry in group_map.get(p.group, []):

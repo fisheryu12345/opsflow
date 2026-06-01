@@ -17,6 +17,7 @@ from .views.plugin_views import PluginViewSet
 from .views.node_views import TemplateNodeViewSet, ExecutionNodeViewSet
 from .views.scheme_views import ExecutionSchemeViewSet
 from .views.audit_views import OperationRecordViewSet
+from .views.project_views import OpsProjectViewSet
 from .core.apigw.views import trigger_execution, get_execution_status, list_templates
 
 router = DefaultRouter()
@@ -29,6 +30,7 @@ router.register(r'plugins', PluginViewSet, basename='opsflow-plugin')
 router.register(r'template-nodes', TemplateNodeViewSet, basename='opsflow-template-node')
 router.register(r'execution-nodes', ExecutionNodeViewSet, basename='opsflow-execution-node')
 router.register(r'audit', OperationRecordViewSet, basename='opsflow-audit')
+router.register(r'projects', OpsProjectViewSet, basename='opsflow-project')
 
 # 嵌套路由：templates/{id}/schemes/
 scheme_list = ExecutionSchemeViewSet.as_view({
@@ -37,10 +39,14 @@ scheme_list = ExecutionSchemeViewSet.as_view({
 scheme_detail = ExecutionSchemeViewSet.as_view({
     'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy',
 })
+scheme_preview = ExecutionSchemeViewSet.as_view({
+    'get': 'preview',
+})
 
 urlpatterns = [
     path('templates/<int:template_pk>/schemes/', scheme_list, name='opsflow-template-scheme-list'),
     path('templates/<int:template_pk>/schemes/<int:pk>/', scheme_detail, name='opsflow-template-scheme-detail'),
+    path('templates/<int:template_pk>/schemes/<int:pk>/preview/', scheme_preview, name='opsflow-template-scheme-preview'),
     path('dashboard/stats/', dashboard_stats, name='opsflow-dashboard-stats'),
     path('dashboard/trend/', dashboard_trend, name='opsflow-dashboard-trend'),
     path('dashboard/schedule-stats/', dashboard_schedule_stats, name='opsflow-dashboard-schedule-stats'),

@@ -27,6 +27,16 @@ interface FlowExecution {
   created_at: string
 }
 
+interface Project {
+  id: number
+  name: string
+  description: string
+  is_active: boolean
+  template_count?: number
+  execution_count?: number
+  created_at: string
+}
+
 interface OpsflowState {
   mode: 'design' | 'monitor'
   currentTemplate: FlowTemplate | null
@@ -34,6 +44,8 @@ interface OpsflowState {
   templates: FlowTemplate[]
   executions: FlowExecution[]
   globalVariables: Record<string, any>
+  currentProjectId: number | null
+  projects: Project[]
 }
 
 export const useOpsflowStore = defineStore('opsflow', {
@@ -44,10 +56,13 @@ export const useOpsflowStore = defineStore('opsflow', {
     templates: [],
     executions: [],
     globalVariables: {},
+    currentProjectId: null,
+    projects: [],
   }),
   getters: {
     isDesignMode: (state) => state.mode === 'design',
     isMonitorMode: (state) => state.mode === 'monitor',
+    currentProject: (state) => state.projects.find(p => p.id === state.currentProjectId) || null,
     globalVariableList: (state) => {
       const vars = state.globalVariables
       return Object.entries(vars).map(([key, val]: [string, any]) => ({
@@ -80,6 +95,24 @@ export const useOpsflowStore = defineStore('opsflow', {
     },
     setGlobalVariables(vars: Record<string, any>) {
       this.globalVariables = vars
+    },
+    setCurrentProjectId(id: number | null) {
+      this.currentProjectId = id
+    },
+    setProjects(list: Project[]) {
+      this.projects = list
+    },
+    async loadProjects() {
+      try {
+        const { GetProjects } = await import('/@/api/opsflow/projects')
+        const res = await GetProjects()
+        this.projects = res.data || []
+        if (!this.currentProjectId && this.projects.length > 0) {
+          this.currentProjectId = this.projects[0].id
+        }
+      } catch (e) {
+        console.warn('Failed to load projects:', e)
+      }
     },
   },
 })

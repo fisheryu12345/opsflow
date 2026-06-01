@@ -22,14 +22,24 @@
             v-for="plugin in filteredPlugins"
             :key="plugin.code"
             class="plugin-card"
+            :class="{ 'is-deprecated': isDeprecated(plugin.phase) }"
             @click="selectPlugin(plugin)"
             @dblclick="confirmPlugin(plugin)"
           >
-            <div class="plugin-name">{{ plugin.name }}</div>
+            <div class="plugin-name">
+              {{ plugin.name }}
+              <el-tag v-if="isDeprecated(plugin.phase)"
+                :type="plugin.phase === 2 ? 'danger' : 'warning'"
+                size="small" effect="dark" class="deprecated-badge">
+                {{ deprecationWarning(plugin.phase, plugin.phase_label) }}
+              </el-tag>
+            </div>
             <div class="plugin-desc">{{ plugin.description || 'No description' }}</div>
-            <el-tag :type="riskTagType(plugin.risk_level)" size="small" effect="plain">
-              {{ plugin.risk_level || 'low' }}
-            </el-tag>
+            <div class="plugin-tags">
+              <el-tag :type="riskTagType(plugin.risk_level)" size="small" effect="plain">
+                {{ plugin.risk_level || 'low' }}
+              </el-tag>
+            </div>
           </div>
           <el-empty v-if="!filteredPlugins.length" :description="searchQuery ? 'No matching plugins' : 'Select a group'" />
         </div>
@@ -46,18 +56,27 @@
 import { ref, computed, watch } from 'vue'
 import { GetPluginGroups } from '/@/api/opsflow/plugins'
 
+interface PluginItem {
+  code: string
+  name: string
+  risk_level: string
+  phase?: number
+  phase_label?: string
+  versions?: string[]
+}
+
 const props = withDefaults(defineProps<{
   visible?: boolean
 }>(), { visible: false })
 const emit = defineEmits<{
   (e: 'update:visible', val: boolean): void
-  (e: 'select', plugin: { code: string; name: string; risk_level: string }): void
+  (e: 'select', plugin: { code: string; name: string; risk_level: string; phase?: number }): void
 }>()
 
 const searchQuery = ref('')
 const activeGroup = ref('')
-const pluginGroups = ref<Record<string, { code: string; name: string; risk_level: string }[]>>({})
-const selectedPlugin = ref<{ code: string; name: string; risk_level: string } | null>(null)
+const pluginGroups = ref<Record<string, PluginItem[]>>({})
+const selectedPlugin = ref<PluginItem | null>(null)
 
 const filteredPlugins = computed(() => {
   const items = pluginGroups.value[activeGroup.value] || []
@@ -65,6 +84,16 @@ const filteredPlugins = computed(() => {
   const q = searchQuery.value.toLowerCase()
   return items.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
 })
+
+function isDeprecated(phase?: number): boolean {
+  return phase === 1 || phase === 2 // WILL_BE_DEPRECATED or DEPRECATED
+}
+
+function deprecationWarning(phase?: number, label?: string): string {
+  if (phase === 2) return '已弃用'
+  if (phase === 1) return '即将弃用'
+  return ''
+}
 
 watch(() => props.visible, async (v) => {
   if (v) {
@@ -132,6 +161,10 @@ function riskTagType(risk: string): string {
 }
 .plugin-card:hover { border-color: #409EFF; background: #fafcff; }
 .plugin-card:active { background: #ecf5ff; }
-.plugin-name { font-size: 13px; font-weight: 600; color: #303133; }
+.plugin-card.is-deprecated { opacity: 0.75; border-style: dashed; }
+.plugin-card.is-deprecated:hover { border-color: #e6a23c; }
+.plugin-name { font-size: 13px; font-weight: 600; color: #303133; display: flex; align-items: center; gap: 6px; }
+.deprecated-badge { font-size: 10px; padding: 0 4px; }
+.plugin-tags { display: flex; gap: 4px; }
 .plugin-desc { font-size: 11px; color: #909399; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 </style>

@@ -6,6 +6,7 @@
 
 import logging
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
@@ -18,7 +19,10 @@ from opsflow.views.mixins.template_variable import TemplateVariableMixin
 from opsflow.views.mixins.template_subprocess import TemplateSubprocessMixin
 from opsflow.views.mixins.template_export import TemplateExportImportMixin
 from opsflow.views.mixins.template_collect import TemplateCollectMixin
+from opsflow.views.mixins.template_webhook import TemplateWebhookMixin
+from opsflow.views.base import ProjectFilteredViewSet
 from opsflow.core.audit_logger import log_operation
+from opsflow.core.plugin_deprecation import check_deprecated_plugins_in_template
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 
 logger = logging.getLogger(__name__)
@@ -31,14 +35,16 @@ class FlowTemplateViewSet(
     TemplateSubprocessMixin,
     TemplateExportImportMixin,
     TemplateCollectMixin,
-    viewsets.ModelViewSet,
+    TemplateWebhookMixin,
+    ProjectFilteredViewSet,
 ):
     queryset = FlowTemplate.objects.all()
     serializer_class = FlowTemplateSerializer
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['is_draft', 'created_by', 'category']
+    filterset_fields = ['is_draft', 'created_by', 'category', 'project']
     search_fields = ['name']
     ordering = ['-created_at']
+    project_field = 'project'
 
     def perform_create(self, serializer):
         instance = serializer.save(created_by=self.request.user)
@@ -85,6 +91,29 @@ class FlowTemplateViewSet(
         # ── 结束 ──
         log_operation(self.request.user, 'update', 'template', instance.id, instance.name, request=self.request)
         return DetailResponse(data=serializer.data, msg='success')
+
+    @action(detail=True, methods=['get'])
+    def check_deprecated_plugins(self, request, pk=None):
+        """检查模板中是否引用已弃用的插件"""
+        template = self.get_object()
+        result = check_deprecated_plugins_in_template(template)
+        return Response({'code': 2000, 'msg': 'success', 'data': result})
+
+    @action(detail=False, methods=['post'])
+    def update_plugin_phase(self, request):
+        """手动更新插件生命周期阶段 — 供管理员使用"""
+        code = request.data.get('code', '')
+        version = request.data.get('version', '')
+        phase = request.data.get('phase')
+        if not code or phase is None:
+            return Response({'code': 4000, 'msg': 'code and phase required', 'data': None},
+                            status=status.HTTP_400_BAD_REQUEST)
+        from opsflow.models import PluginMeta
+        filters = {'code': code}
+        if version:
+            filters['version'] = version
+        updated = PluginMeta.objects.filter(**filters).update(phase=phase)
+        return Response({'code': 2000, 'msg': 'success', 'data': {'updated': updated}})
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

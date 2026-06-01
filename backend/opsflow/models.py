@@ -2,6 +2,31 @@ from django.db import models
 from django.conf import settings
 
 
+class OpsProject(models.Model):
+    """OpsFlow 项目 — 数据隔离单元
+
+    不同项目的数据互相不可见（模板/执行/调度/知识库等）。
+    参考 bk_sops Project + Business 模型，此版本为轻量独立实现。
+    """
+    name = models.CharField(max_length=128, unique=True, verbose_name="Project Name")
+    description = models.CharField(max_length=255, blank=True, verbose_name="Description")
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        null=True, blank=True, verbose_name="Owner"
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Is Active")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ops_project'
+        ordering = ['name']
+        verbose_name = "OpsFlow Project"
+
+    def __str__(self):
+        return self.name
+
+
 class FlowTemplate(models.Model):
     """编排模板 — AI 生成的或人工创建的流程定义"""
     name = models.CharField(max_length=200, verbose_name="Name")
@@ -14,6 +39,10 @@ class FlowTemplate(models.Model):
     tags = models.JSONField(default=list, blank=True, verbose_name="Tags")
     description = models.CharField(max_length=500, blank=True, default='', verbose_name="Description")
     hook_variables = models.JSONField(default=dict, blank=True, verbose_name="Hook Variable Config")
+    project = models.ForeignKey(
+        OpsProject, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='templates', verbose_name="Project"
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         null=True, blank=True, verbose_name="Creator"
@@ -124,6 +153,10 @@ class FlowExecution(models.Model):
         FlowTemplate, on_delete=models.PROTECT, related_name='executions',
         verbose_name="Template"
     )
+    project = models.ForeignKey(
+        OpsProject, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='executions', verbose_name="Project"
+    )
     status = models.CharField(
         max_length=16, choices=Status.choices, default=Status.PENDING,
         verbose_name="Status"
@@ -205,6 +238,10 @@ class SchedulePlan(models.Model):
         FlowTemplate, on_delete=models.CASCADE, related_name='schedule_plans',
         verbose_name="Template"
     )
+    project = models.ForeignKey(
+        OpsProject, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='schedule_plans', verbose_name="Project"
+    )
     name = models.CharField(max_length=128, verbose_name="Schedule Name")
     description = models.CharField(max_length=255, blank=True, verbose_name="Description")
     schedule_type = models.CharField(
@@ -256,6 +293,10 @@ class OpsKnowledge(models.Model):
     title = models.CharField(max_length=300, verbose_name="Title")
     content = models.TextField(verbose_name="Content")
     tags = models.JSONField(default=list, verbose_name="Tags")
+    project = models.ForeignKey(
+        OpsProject, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='knowledge_entries', verbose_name="Project"
+    )
     source = models.CharField(
         max_length=16, choices=Source.choices, default=Source.DOC,
         verbose_name="Source"
@@ -351,6 +392,16 @@ class ApiToken(models.Model):
 
 class PluginMeta(models.Model):
     """标准插件元数据 — 注册时自动同步（支持多版本）"""
+    # 生命周期阶段（参考 bk_sops DeprecatedPlugin）
+    PHASE_AVAILABLE = 0
+    PHASE_WILL_BE_DEPRECATED = 1
+    PHASE_DEPRECATED = 2
+    PHASE_CHOICES = [
+        (PHASE_AVAILABLE, '可用'),
+        (PHASE_WILL_BE_DEPRECATED, '即将弃用'),
+        (PHASE_DEPRECATED, '已弃用'),
+    ]
+
     code = models.CharField(max_length=64, verbose_name="Plugin Code")
     name = models.CharField(max_length=128, verbose_name="Plugin Name")
     group = models.CharField(max_length=64, verbose_name="Group")
@@ -360,6 +411,8 @@ class PluginMeta(models.Model):
     form_schema = models.JSONField(default=list, verbose_name="Form Schema")
     output_schema = models.JSONField(default=list, verbose_name="Output Schema")
     is_active = models.BooleanField(default=True, verbose_name="Is Active")
+    phase = models.IntegerField(choices=PHASE_CHOICES, default=PHASE_AVAILABLE,
+                                 verbose_name="生命周期")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -370,7 +423,8 @@ class PluginMeta(models.Model):
         verbose_name = "Plugin Metadata"
 
     def __str__(self):
-        return f"{self.group}/{self.name}"
+        phase_label = dict(self.PHASE_CHOICES).get(self.phase, '')
+        return f"{self.group}/{self.name} [{phase_label}]"
 
 
 class ExecutionScheme(models.Model):
@@ -378,6 +432,10 @@ class ExecutionScheme(models.Model):
     template = models.ForeignKey(
         FlowTemplate, on_delete=models.CASCADE, related_name='schemes',
         verbose_name="Template"
+    )
+    project = models.ForeignKey(
+        OpsProject, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='schemes', verbose_name="Project"
     )
     name = models.CharField(max_length=128, verbose_name="Scheme Name")
     description = models.CharField(max_length=255, blank=True, verbose_name="Description")
@@ -561,3 +619,76 @@ class NodeExecutionTrace(models.Model):
 
     def __str__(self):
         return f"[{self.execution_id}] {self.node_id} (retry#{self.retry_count})"
+
+
+class WebhookConfig(models.Model):
+    """Webhook 回调配置 — 绑定到模板，执行完成后触发
+
+    参考 bk_sops TaskCallBackRecord
+    """
+    template = models.ForeignKey(
+        FlowTemplate, on_delete=models.CASCADE, related_name='webhooks',
+        verbose_name="Template"
+    )
+    name = models.CharField(max_length=128, verbose_name="Webhook Name")
+    url = models.URLField(max_length=1024, verbose_name="Callback URL")
+    secret = models.CharField(max_length=256, blank=True, verbose_name="HMAC Secret",
+                               help_text="HMAC 签名密钥（可选）")
+    trigger_events = models.JSONField(
+        default=list, blank=True, verbose_name="Trigger Events",
+        help_text="['completed', 'failed'] 触发事件列表"
+    )
+    retry_count = models.IntegerField(default=3, verbose_name="Max Retries")
+    retry_interval = models.IntegerField(default=10, verbose_name="Retry Interval (s)")
+    enabled = models.BooleanField(default=True, verbose_name="Enabled")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, verbose_name="Creator"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ops_webhook_config'
+        ordering = ['-created_at']
+        verbose_name = "Webhook Config"
+
+    def __str__(self):
+        return f"{self.name} → {self.url}"
+
+
+class WebhookLog(models.Model):
+    """Webhook 投递日志"""
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        SUCCESS = 'success', 'Success'
+        FAILED = 'failed', 'Failed'
+
+    webhook = models.ForeignKey(
+        WebhookConfig, on_delete=models.CASCADE, related_name='logs',
+        verbose_name="Webhook Config"
+    )
+    execution = models.ForeignKey(
+        FlowExecution, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='webhook_logs', verbose_name="Execution"
+    )
+    event = models.CharField(max_length=32, verbose_name="Event Type")
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.PENDING,
+        verbose_name="Status"
+    )
+    request_url = models.URLField(max_length=1024, verbose_name="Request URL")
+    request_body = models.JSONField(default=dict, verbose_name="Request Body")
+    response_status = models.IntegerField(null=True, blank=True, verbose_name="Response Status")
+    response_body = models.TextField(blank=True, verbose_name="Response Body")
+    retry_count = models.IntegerField(default=0, verbose_name="Retry Count")
+    error_message = models.TextField(blank=True, verbose_name="Error Message")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ops_webhook_log'
+        ordering = ['-created_at']
+        verbose_name = "Webhook Log"
+
+    def __str__(self):
+        return f"[{self.webhook_id}] {self.event} → {self.status}"

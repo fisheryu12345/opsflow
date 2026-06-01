@@ -5,17 +5,19 @@ from rest_framework.response import Response
 
 from opsflow.models import OpsKnowledge
 from opsflow.serializers import OpsKnowledgeSerializer
+from opsflow.views.base import ProjectFilteredViewSet
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 
 
-class OpsKnowledgeViewSet(viewsets.ModelViewSet):
+class OpsKnowledgeViewSet(ProjectFilteredViewSet):
     queryset = OpsKnowledge.objects.all()
     serializer_class = OpsKnowledgeSerializer
     permission_classes = [IsAuthenticated]
     search_fields = ['title', 'content', 'tags']
-    filterset_fields = ['source']
+    filterset_fields = ['source', 'project']
     ordering = ['-created_at']
     pagination_class = None
+    project_field = 'project'
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

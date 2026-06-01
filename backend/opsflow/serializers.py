@@ -1,7 +1,7 @@
 import pytz
 
 from rest_framework import serializers
-from .models import FlowTemplate, TemplateVersion, FlowExecution, NodeExecutionTrace, OpsLog, OpsKnowledge, SchedulePlan, TemplateNode, ExecutionNode, ExecutionScheme, OperationRecord, TemplateCollect
+from .models import FlowTemplate, TemplateVersion, FlowExecution, NodeExecutionTrace, OpsLog, OpsKnowledge, SchedulePlan, TemplateNode, ExecutionNode, ExecutionScheme, OperationRecord, TemplateCollect, OpsProject
 
 
 class GlobalVariableField(serializers.Field):
@@ -218,3 +218,10 @@ class SchedulePlanSerializer(serializers.ModelSerializer):
                 )
             _validate_cron_expr(attrs['cron_expr'])
         return attrs
+
+
+class OpsProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OpsProject
+        fields = ['id', 'name', 'description', 'is_active', 'owner', 'created_at']
+        read_only_fields = ['id', 'created_at']

@@ -8,6 +8,7 @@ from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 
 
 class OpsLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """OpsLog 通过 execution.project 间接隔离，不直接设 project FK"""
     queryset = OpsLog.objects.all()
     serializer_class = OpsLogSerializer
     permission_classes = [IsAuthenticated]

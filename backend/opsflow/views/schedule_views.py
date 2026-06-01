@@ -7,19 +7,21 @@ from rest_framework.response import Response
 
 from opsflow.models import SchedulePlan, FlowExecution
 from opsflow.serializers import SchedulePlanSerializer, FlowExecutionSerializer
+from opsflow.views.base import ProjectFilteredViewSet
 from opsflow.core.scheduler_service import opsflow_scheduler
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 
 logger = logging.getLogger(__name__)
 
 
-class SchedulePlanViewSet(viewsets.ModelViewSet):
+class SchedulePlanViewSet(ProjectFilteredViewSet):
     queryset = SchedulePlan.objects.all()
     serializer_class = SchedulePlanSerializer
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['template', 'status', 'schedule_type', 'is_active']
+    filterset_fields = ['template', 'status', 'schedule_type', 'is_active', 'project']
     search_fields = ['name', 'description']
     ordering = ['-created_at']
+    project_field = 'project'
 
     def perform_create(self, serializer):
         plan = serializer.save(created_by=self.request.user)
