@@ -119,7 +119,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       target: graph.value,
       search: false,
       title: 'FlowNode',
-      groups: [{ name: 'gateway', label: 'FlowNode', graphHeight: 500 }],
+      groups: [{ name: 'gateway', label: 'FlowNode', graphHeight: 650 }],
       stencilGraphWidth: 200,
       layout: (model) => {
         const nodes = model.getNodes()

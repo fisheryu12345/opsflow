@@ -63,6 +63,7 @@ const val = computed({
 async function fetchOptions(query?: string) {
   if (!props.api_endpoint) return
   loading.value = true
+  console.log('[TagAsyncSelect] fetchOptions called, endpoint:', props.api_endpoint)
   try {
     const params: any = {}
     if (query) params.q = query
@@ -76,8 +77,11 @@ async function fetchOptions(query?: string) {
       }
     }
     const res = await request({ url: props.api_endpoint, method: 'get', params })
+    console.log('[TagAsyncSelect] response:', res)
     const data = res?.data?.data || res?.data || res || []
+    console.log('[TagAsyncSelect] extracted data:', data)
     allOptions.value = Array.isArray(data) ? data : []
+    console.log('[TagAsyncSelect] options count:', allOptions.value.length)
   } catch (e) {
     console.error('[TagAsyncSelect] 请求失败:', props.api_endpoint, e)
     allOptions.value = []
@@ -105,8 +109,11 @@ if (props.depends_on) {
 
 /* Preload data on mount so dropdown shows options immediately */
 onMounted(() => {
+  console.log('[TagAsyncSelect] mounted, api_endpoint:', props.api_endpoint, 'tagCode:', props.tagCode)
   if (props.api_endpoint) {
     fetchOptions()
+  } else {
+    console.warn('[TagAsyncSelect] no api_endpoint, cannot fetch options')
   }
 })
 </script>

@@ -367,7 +367,8 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, z
   height: 100%;
   border-right: 1px solid #e4e7ed;
   background: #fafafa;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .stencil-toggle {
   flex-shrink: 0;
