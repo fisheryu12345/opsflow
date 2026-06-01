@@ -1,12 +1,5 @@
 <template>
   <div class="opsflow-page">
-    <!-- 项目选择器 -->
-    <div class="project-bar">
-      <span class="project-label">Project:</span>
-      <el-select v-model="currentProjectId" size="small" style="width: 200px" @change="onProjectChange">
-        <el-option v-for="p in projects" :key="p.id" :label="p.name" :value="p.id" />
-      </el-select>
-    </div>
     <!-- AI 对话浮窗 -->
     <div v-if="chatExpanded" class="chat-float-panel">
       <div class="chat-float-header">
@@ -175,10 +168,6 @@ const store = useOpsflowStore()
 const designCanvasRef = ref<InstanceType<typeof DesignCanvas> | null>(null)
 const diffModalRef = ref<InstanceType<typeof DiffModal> | null>(null)
 
-// 项目相关
-const projects = ref<any[]>([])
-const currentProjectId = ref<number | null>(null)
-
 // 模板相关
 const templates = ref<any[]>([])
 const selectedTemplateId = ref<number | null>(null)
@@ -249,38 +238,10 @@ function renderContent(text: string): string {
     .replace(/\n/g, '<br>')
 }
 
-// 获取项目列表
-async function fetchProjects() {
-  try {
-    const { GetProjects } = await import('/@/api/opsflow/projects')
-    const res = await GetProjects()
-    projects.value = res.data || []
-    store.setProjects(projects.value)
-    if (!currentProjectId.value && projects.value.length > 0) {
-      currentProjectId.value = projects.value[0].id
-    }
-  } catch (e) {
-    console.warn('Failed to fetch projects', e)
-  }
-}
-
-function onProjectChange(projectId: number) {
-  currentProjectId.value = projectId
-  store.setCurrentProjectId(projectId)
-  selectedTemplateId.value = null
-  store.setCurrentTemplate(null)
-  chatMessages.value = []
-  fetchTemplates()
-}
-
-// 获取模板列表（含项目过滤）
+// 获取模板列表
 async function fetchTemplates() {
   try {
-    const params: any = {}
-    if (currentProjectId.value) {
-      params.project_id = currentProjectId.value
-    }
-    const res = await GetTemplates(params)
+    const res = await GetTemplates()
     templates.value = res.data || res.results || []
     store.setTemplates(templates.value)
   } catch (e) {
@@ -494,7 +455,6 @@ async function onDiffConfirmed() {
 
 
 onMounted(async () => {
-  await fetchProjects()
   await fetchTemplates()
   // Auto-load template passed from template management via store
   const pending = store.currentTemplate
@@ -517,24 +477,6 @@ onMounted(async () => {
   flex-direction: column;
   background: #f0f2f5;
   overflow: hidden;
-}
-
-/* ===== Project Bar ===== */
-.project-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
-  background: #fff;
-  border-bottom: 1px solid #e4e7ed;
-  flex-shrink: 0;
-  z-index: 10;
-}
-.project-label {
-  font-size: 12px;
-  color: #909399;
-  font-weight: 500;
-  white-space: nowrap;
 }
 
 /* ===== Chat Float Panel ===== */
