@@ -20,9 +20,15 @@ class RedfishPowerOffPlugin(BasePlugin):
                 items=[
                     FormItem(
                         tag_code="bmc_host",
-                        type="input",
+                        type="async_select",
                         name="BMC 地址",
-                        attrs={"placeholder": "192.168.1.100"},
+                        attrs={
+                            "api_endpoint": "/api/opsflow/cmdb/servers/",
+                            "value_key": "value",
+                            "label_key": "label",
+                            "searchable": True,
+                            "placeholder": "从 CMDB 选择服务器...",
+                        },
                         validation=[ValidationRule(type="required")],
                     ),
                     FormItem(

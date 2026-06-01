@@ -20,9 +20,15 @@ class ServicenowGetIncidentPlugin(BasePlugin):
                 items=[
                     FormItem(
                         tag_code="instance_url",
-                        type="input",
+                        type="async_select",
                         name="实例地址",
-                        attrs={"placeholder": "https://your-instance.service-now.com"},
+                        attrs={
+                            "api_endpoint": "/api/opsflow/cmdb/servicenow-instances/",
+                            "value_key": "value",
+                            "label_key": "label",
+                            "searchable": True,
+                            "placeholder": "从 CMDB 选择 ServiceNow 实例...",
+                        },
                         validation=[ValidationRule(type="required")],
                     ),
                     FormItem(

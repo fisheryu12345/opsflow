@@ -34,9 +34,15 @@ class DiskCheckPlugin(BasePlugin):
                     ),
                     FormItem(
                         tag_code="host",
-                        type="input",
+                        type="async_select",
                         name="目标主机",
-                        attrs={"placeholder": "IP 或主机名（留空为本机）"},
+                        attrs={
+                            "api_endpoint": "/api/opsflow/cmdb/servers/",
+                            "value_key": "value",
+                            "label_key": "label",
+                            "searchable": True,
+                            "placeholder": "从 CMDB 选择服务器...",
+                        },
                     ),
                 ],
             ),

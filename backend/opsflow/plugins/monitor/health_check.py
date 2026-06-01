@@ -16,9 +16,15 @@ class HealthCheckPlugin(BasePlugin):
         return [
             FormItem(
                 tag_code="host",
-                type="input",
+                type="async_select",
                 name="目标地址",
-                attrs={"placeholder": "IP 或域名"},
+                attrs={
+                    "api_endpoint": "/api/opsflow/cmdb/servers/",
+                    "value_key": "value",
+                    "label_key": "label",
+                    "searchable": True,
+                    "placeholder": "从 CMDB 选择服务器...",
+                },
                 validation=[ValidationRule(type="required")],
             ),
             FormGroup(

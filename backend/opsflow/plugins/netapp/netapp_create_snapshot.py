@@ -16,9 +16,16 @@ class NetappCreateSnapshotPlugin(BasePlugin):
         return [
             FormItem(
                 tag_code="cluster_ip",
-                type="input",
+                type="async_select",
                 name="集群 IP",
-                validation=[ValidationRule(type="required", error_message="请输入集群 IP")],
+                attrs={
+                    "api_endpoint": "/api/opsflow/cmdb/netapp-clusters/",
+                    "value_key": "value",
+                    "label_key": "label",
+                    "searchable": True,
+                    "placeholder": "从 CMDB 选择 ONTAP 集群...",
+                },
+                validation=[ValidationRule(type="required", error_message="请选择集群 IP")],
             ),
             FormItem(
                 tag_code="volume_uuid",

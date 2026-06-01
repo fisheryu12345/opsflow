@@ -5,6 +5,11 @@ from .views.template_views import FlowTemplateViewSet
 from .views.execution_views import FlowExecutionViewSet
 from .views.log_views import OpsLogViewSet
 from .views.knowledge_views import OpsKnowledgeViewSet
+from .mock_view.esxi import cmdb_esxi_hosts
+from .mock_view.servers import cmdb_servers
+from .mock_view.netapp import cmdb_netapp_clusters
+from .mock_view.servicenow import cmdb_servicenow_instances
+from .mock_view.pmax import cmdb_pmax_arrays
 from .views.dashboard_views import (
     dashboard_stats, dashboard_trend, dashboard_schedule_stats,
     dashboard_top_templates, dashboard_user_activity,
@@ -71,5 +76,10 @@ urlpatterns = [
     path('apigw/v1/executions/', trigger_execution, name='opsflow-apigw-trigger'),
     path('apigw/v1/executions/<int:execution_id>/', get_execution_status, name='opsflow-apigw-status'),
     path('apigw/v1/templates/', list_templates, name='opsflow-apigw-templates'),
+    path('cmdb/esxi-hosts/', cmdb_esxi_hosts, name='opsflow-cmdb-esxi-hosts'),
+    path('cmdb/servers/', cmdb_servers, name='opsflow-cmdb-servers'),
+    path('cmdb/netapp-clusters/', cmdb_netapp_clusters, name='opsflow-cmdb-netapp-clusters'),
+    path('cmdb/servicenow-instances/', cmdb_servicenow_instances, name='opsflow-cmdb-servicenow-instances'),
+    path('cmdb/pmax-arrays/', cmdb_pmax_arrays, name='opsflow-cmdb-pmax-arrays'),
 
 ] + router.urls

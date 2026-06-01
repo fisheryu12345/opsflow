@@ -16,10 +16,16 @@ class EsxiPowerOffPlugin(BasePlugin):
         return [
             FormItem(
                 tag_code="esxi_host",
-                type="input",
+                type="async_select",
                 name="ESXi 主机",
-                attrs={"placeholder": "ESXi 主机 IP"},
-                validation=[ValidationRule(type="required", error_message="请输入 ESXi 主机")],
+                attrs={
+                    "api_endpoint": "/api/opsflow/cmdb/esxi-hosts/",
+                    "value_key": "value",
+                    "label_key": "label",
+                    "searchable": True,
+                    "placeholder": "从 CMDB 选择 ESXi 主机...",
+                },
+                validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
             ),
             FormItem(

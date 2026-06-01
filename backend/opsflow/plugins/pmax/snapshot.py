@@ -16,8 +16,15 @@ class CreateSnapshotPlugin(BasePlugin):
         return [
             FormItem(
                 tag_code="array_id",
-                type="input",
+                type="async_select",
                 name="阵列 ID",
+                attrs={
+                    "api_endpoint": "/api/opsflow/cmdb/pmax-arrays/",
+                    "value_key": "value",
+                    "label_key": "label",
+                    "searchable": True,
+                    "placeholder": "从 CMDB 选择 PowerMax 阵列...",
+                },
                 validation=[ValidationRule(type="required")],
                 col=6,
             ),
@@ -80,8 +87,15 @@ class DeleteSnapshotPlugin(BasePlugin):
         return [
             FormItem(
                 tag_code="array_id",
-                type="input",
+                type="async_select",
                 name="阵列 ID",
+                attrs={
+                    "api_endpoint": "/api/opsflow/cmdb/pmax-arrays/",
+                    "value_key": "value",
+                    "label_key": "label",
+                    "searchable": True,
+                    "placeholder": "从 CMDB 选择 PowerMax 阵列...",
+                },
                 validation=[ValidationRule(type="required")],
                 col=6,
             ),

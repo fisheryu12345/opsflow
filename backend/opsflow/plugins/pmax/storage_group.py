@@ -16,9 +16,15 @@ class CreateStorageGroupPlugin(BasePlugin):
         return [
             FormItem(
                 tag_code="array_id",
-                type="input",
-                name="阵列 ID (Symmetrix ID)",
-                attrs={"placeholder": "如 000197600123"},
+                type="async_select",
+                name="阵列 ID",
+                attrs={
+                    "api_endpoint": "/api/opsflow/cmdb/pmax-arrays/",
+                    "value_key": "value",
+                    "label_key": "label",
+                    "searchable": True,
+                    "placeholder": "从 CMDB 选择 PowerMax 阵列...",
+                },
                 validation=[ValidationRule(type="required")],
                 col=12,
             ),
@@ -124,9 +130,15 @@ class DeleteStorageGroupPlugin(BasePlugin):
         return [
             FormItem(
                 tag_code="array_id",
-                type="input",
+                type="async_select",
                 name="阵列 ID",
-                attrs={"placeholder": "如 000197600123"},
+                attrs={
+                    "api_endpoint": "/api/opsflow/cmdb/pmax-arrays/",
+                    "value_key": "value",
+                    "label_key": "label",
+                    "searchable": True,
+                    "placeholder": "从 CMDB 选择 PowerMax 阵列...",
+                },
                 validation=[ValidationRule(type="required")],
                 col=12,
             ),
@@ -163,8 +175,15 @@ class ListStorageGroupsPlugin(BasePlugin):
         return [
             FormItem(
                 tag_code="array_id",
-                type="input",
+                type="async_select",
                 name="阵列 ID",
+                attrs={
+                    "api_endpoint": "/api/opsflow/cmdb/pmax-arrays/",
+                    "value_key": "value",
+                    "label_key": "label",
+                    "searchable": True,
+                    "placeholder": "从 CMDB 选择 PowerMax 阵列...",
+                },
                 validation=[ValidationRule(type="required")],
                 col=6,
             ),
