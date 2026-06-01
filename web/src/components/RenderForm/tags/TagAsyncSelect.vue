@@ -4,7 +4,7 @@
     :multiple="multiple" :clearable="clearable" :loading="loading"
     :filterable="isSearchable"
     :default-first-option="true" size="small" style="width:100%"
-    :popper-append-to-body="false"
+    :teleported="false"
     @visible-change="onVisibleChange"
   >
     <el-option
@@ -78,7 +78,8 @@ async function fetchOptions(query?: string) {
     const res = await request({ url: props.api_endpoint, method: 'get', params })
     const data = res?.data?.data || res?.data || res || []
     allOptions.value = Array.isArray(data) ? data : []
-  } catch {
+  } catch (e) {
+    console.error('[TagAsyncSelect] 请求失败:', props.api_endpoint, e)
     allOptions.value = []
   } finally {
     loading.value = false

@@ -127,21 +127,21 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
         nodes.forEach((n) => {
           const t = d(n).node_type
           if (t === 'start_event')                n.setPosition({ x: 26, y: 8 })
-          else if (t === 'end_event')             n.setPosition({ x: 128, y: 8 })
-          else if (t === 'exclusive_gateway')     n.setPosition({ x: 14, y: 82 })
-          else if (t === 'parallel_gateway')      n.setPosition({ x: 110, y: 74 })
-          else if (t === 'conditional_parallel_gateway') n.setPosition({ x: 14, y: 184 })
-          else if (t === 'converge_gateway')      n.setPosition({ x: 110, y: 184 })
-          else if (t === 'approval')              n.setPosition({ x: 63, y: 288 })
-          else if (t === 'subprocess')            n.setPosition({ x: 27, y: 392 })
-          else if (t === 'atom')                  n.setPosition({ x: 27, y: 450 })
+          else if (t === 'end_event')             n.setPosition({ x: 110, y: 8 })
+          else if (t === 'exclusive_gateway')     n.setPosition({ x: 14, y: 106 })
+          else if (t === 'parallel_gateway')      n.setPosition({ x: 110, y: 106 })
+          else if (t === 'conditional_parallel_gateway') n.setPosition({ x: 14, y: 208 })
+          else if (t === 'converge_gateway')      n.setPosition({ x: 110, y: 208 })
+          else if (t === 'approval')              n.setPosition({ x: 63, y: 312 })
+          else if (t === 'subprocess')            n.setPosition({ x: 27, y: 416 })
+          else if (t === 'atom')                  n.setPosition({ x: 27, y: 474 })
         })
       },
     })
 
     const stencilNodes = [
-      { shape: 'ops-start-event', label: '', width: 44, height: 56, attrs: { label: { text: '' } }, data: { node_type: 'start_event' } },
-      { shape: 'ops-end-event', label: '', width: 44, height: 56, attrs: { label: { text: '' } }, data: { node_type: 'end_event' } },
+      { shape: 'ops-start-event', label: 'Start', width: 56, height: 80, attrs: { label: { text: 'Start', refY: 76 } }, data: { node_type: 'start_event' } },
+      { shape: 'ops-end-event', label: 'End', width: 56, height: 80, attrs: { label: { text: 'End', refY: 76 } }, data: { node_type: 'end_event' } },
       { shape: 'ops-exclusive-gateway', label: 'Condition', width: 70, height: 92, attrs: { label: { text: 'Condition' } }, data: { node_type: 'exclusive_gateway' } },
       { shape: 'ops-parallel-gateway', label: 'Parallel', width: 70, height: 92, attrs: { label: { text: 'Parallel' } }, data: { node_type: 'parallel_gateway' } },
       { shape: 'ops-conditional-parallel-gateway', label: 'Cond. Parallel', width: 70, height: 92, attrs: { label: { text: 'Cond. Parallel' } }, data: { node_type: 'conditional_parallel_gateway' } },
