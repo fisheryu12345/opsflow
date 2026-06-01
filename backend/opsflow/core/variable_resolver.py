@@ -363,3 +363,14 @@ def build_execution_context(execution) -> dict:
         }
 
     return ctx
+
+
+def resolve_project_variables(project_id: int) -> dict:
+    """获取项目环境变量（扁平 dict，供运行时注入）
+
+    从 ProjectEnvironmentVariable 表中读取指定项目的所有环境变量，
+    返回 {key: value} 格式，供 bamboo_builder 注入到 pipeline inputs。
+    """
+    from opsflow.models import ProjectEnvironmentVariable
+    qs = ProjectEnvironmentVariable.objects.filter(project_id=project_id)
+    return {v.key: v.value for v in qs}

@@ -24,6 +24,22 @@ class SchedulePlanViewSet(ProjectFilteredViewSet):
     project_field = 'project'
 
     def perform_create(self, serializer):
+        # ── 定时任务数量校验 ──
+        project_id = self.request.query_params.get('project_id')
+        if project_id:
+            from opsflow.models import OpsProject
+            try:
+                project = OpsProject.objects.get(id=project_id)
+                if project.max_schedule_plans > 0:
+                    current_count = SchedulePlan.objects.filter(project_id=project_id).count()
+                    if current_count >= project.max_schedule_plans:
+                        from rest_framework.exceptions import ValidationError
+                        raise ValidationError(
+                            f'Project schedule plan limit reached ({project.max_schedule_plans})'
+                        )
+            except OpsProject.DoesNotExist:
+                pass
+        # ── 结束 ──
         plan = serializer.save(created_by=self.request.user)
         if plan.template and plan.template.pipeline_tree:
             snap = plan.template.snapshot or {}

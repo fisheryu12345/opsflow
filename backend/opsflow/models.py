@@ -15,6 +15,10 @@ class OpsProject(models.Model):
         null=True, blank=True, verbose_name="Owner"
     )
     is_active = models.BooleanField(default=True, verbose_name="Is Active")
+    max_schedule_plans = models.IntegerField(
+        default=20, verbose_name="Max Schedule Plans",
+        help_text="项目最多可创建的定时任务数，0=不限制"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -726,3 +730,37 @@ class WebhookLog(models.Model):
 
     def __str__(self):
         return f"[{self.webhook_id}] {self.event} → {self.status}"
+
+
+class ProjectEnvironmentVariable(models.Model):
+    """项目级环境变量 — 跨模板共享的配置值
+
+    项目（而非模板）级别的键值对，可在模板变量中通过 ${env.key} 引用。
+    用于存储 API Key、端点地址、共享密码等跨模板的公共配置。
+    """
+    project = models.ForeignKey(
+        OpsProject, on_delete=models.CASCADE, related_name='env_vars',
+        verbose_name="Project"
+    )
+    key = models.CharField(max_length=128, verbose_name="Variable Key")
+    value = models.TextField(blank=True, verbose_name="Variable Value")
+    var_type = models.CharField(
+        max_length=16,
+        choices=[
+            ('input', 'Text'), ('textarea', 'Textarea'),
+            ('password', 'Password'), ('int', 'Number'), ('float', 'Float'),
+        ],
+        default='input', verbose_name="Type"
+    )
+    description = models.CharField(max_length=255, blank=True, verbose_name="Description")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ops_project_env_var'
+        unique_together = [('project', 'key')]
+        ordering = ['key']
+        verbose_name = "Project Environment Variable"
+
+    def __str__(self):
+        return f"[{self.project_id}] {self.key} ({self.var_type})"

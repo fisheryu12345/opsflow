@@ -8,7 +8,7 @@
       </div>
       <el-table :data="schemes" size="small" empty-text="No execution schemes defined">
         <el-table-column prop="name" label="Name" min-width="140" />
-        <el-table-column prop="description" label="Description" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="description" label="Desc" min-width="180" show-overflow-tooltip />
         <el-table-column label="Default" width="80" align="center">
           <template #default="{ row }">
             <el-tag v-if="row.is_default" type="success" size="small">Default</el-tag>
@@ -28,7 +28,7 @@
           <el-form-item label="Name" required>
             <el-input v-model="editForm.name" placeholder="e.g. Quick Check" />
           </el-form-item>
-          <el-form-item label="Description">
+          <el-form-item label="Desc">
             <el-input v-model="editForm.description" type="textarea" :rows="2" />
           </el-form-item>
           <el-form-item label="Default">

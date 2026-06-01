@@ -1,7 +1,7 @@
 import pytz
 
 from rest_framework import serializers
-from .models import FlowTemplate, TemplateVersion, FlowExecution, NodeExecutionTrace, OpsLog, OpsKnowledge, SchedulePlan, TemplateNode, ExecutionNode, ExecutionScheme, OperationRecord, TemplateCollect, OpsProject
+from .models import FlowTemplate, TemplateVersion, FlowExecution, NodeExecutionTrace, OpsLog, OpsKnowledge, SchedulePlan, TemplateNode, ExecutionNode, ExecutionScheme, OperationRecord, TemplateCollect, OpsProject, ProjectEnvironmentVariable
 
 
 class GlobalVariableField(serializers.Field):
@@ -223,5 +223,12 @@ class SchedulePlanSerializer(serializers.ModelSerializer):
 class OpsProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = OpsProject
-        fields = ['id', 'name', 'description', 'is_active', 'owner', 'created_at']
+        fields = ['id', 'name', 'description', 'is_active', 'owner', 'max_schedule_plans', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+
+class ProjectEnvironmentVariableSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectEnvironmentVariable
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']

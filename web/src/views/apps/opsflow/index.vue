@@ -30,7 +30,7 @@
         </div>
         <div v-if="chatMessages.length === 0 && !generating" class="chat-placeholder">
           <el-icon size="24"><ChatLineSquare /></el-icon>
-          <p>Describe your ops task, AI will generate a pipeline</p>
+          <p>Hi! Describe the ops workflow you want to create, or start dragging nodes from the left panel.</p>
         </div>
       </div>
       <div class="chat-float-input">
@@ -68,7 +68,7 @@
     <!-- 新模板对话框 -->
     <el-dialog v-model="newDialogVisible" title="New Template" width="420px" class="opsflow-dialog">
       <el-form :model="newTemplateForm" label-width="80px">
-        <el-form-item label="Template Name">
+        <el-form-item label="Name">
           <el-input v-model="newTemplateForm.name" placeholder="Enter template name" maxlength="100" show-word-limit />
         </el-form-item>
       </el-form>

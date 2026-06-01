@@ -46,3 +46,18 @@ export function AddProjectMember(projectId: number, userId: number, role: string
 export function RemoveProjectMember(projectId: number, memberId: number) {
   return opsflowRequest({ url: prefix + `projects/${projectId}/members/${memberId}/`, method: 'delete' })
 }
+
+/** Get project environment variables */
+export function GetProjectEnvVars(projectId: number) {
+  return opsflowRequest({ url: prefix + `projects/${projectId}/env-vars/`, method: 'get' })
+}
+
+/** Update project environment variables (full replace) */
+export function SetProjectEnvVars(projectId: number, items: any[]) {
+  return opsflowRequest({ url: prefix + `projects/${projectId}/env-vars/`, method: 'post', data: { items } })
+}
+
+/** Partially update project environment variables */
+export function PatchProjectEnvVars(projectId: number, items: any[]) {
+  return opsflowRequest({ url: prefix + `projects/${projectId}/env-vars/`, method: 'patch', data: { items } })
+}

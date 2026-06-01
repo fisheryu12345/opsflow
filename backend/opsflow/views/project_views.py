@@ -153,3 +153,45 @@ class OpsProjectViewSet(viewsets.ModelViewSet):
             for p in projects
         ]
         return SuccessResponse(data=data)
+
+
+    # ── 环境变量管理 ────────────────────────────────────────────────
+
+    @action(detail=True, methods=['get', 'post', 'patch'], url_path='env-vars')
+    def env_vars(self, request, pk=None):
+        """项目级环境变量 CRUD"""
+        from opsflow.models import ProjectEnvironmentVariable
+        from opsflow.serializers import ProjectEnvironmentVariableSerializer
+        project = self.get_object()
+        if request.method == 'GET':
+            qs = ProjectEnvironmentVariable.objects.filter(project=project).order_by('key')
+            ser = ProjectEnvironmentVariableSerializer(qs, many=True)
+            return SuccessResponse(data=ser.data)
+        if request.method == 'POST':
+            ProjectEnvironmentVariable.objects.filter(project=project).delete()
+            items = request.data.get('items', request.data)
+            if isinstance(items, dict):
+                items = [{'key': k, 'value': v.get('value', v) if isinstance(v, dict) else v,
+                          'var_type': v.get('var_type', 'input') if isinstance(v, dict) else 'input'}
+                         for k, v in items.items()]
+            created = []
+            for item in items:
+                ser = ProjectEnvironmentVariableSerializer(data=item)
+                ser.is_valid(raise_exception=True)
+                ser.save(project=project)
+                created.append(ser.data)
+            return SuccessResponse(data=created, msg=f'{len(created)} variable(s) saved')
+        items = request.data.get('items', request.data)
+        results = []
+        if isinstance(items, dict):
+            items = [{'key': k, 'value': v.get('value', v) if isinstance(v, dict) else v,
+                      'var_type': v.get('var_type', 'input') if isinstance(v, dict) else 'input'}
+                     for k, v in items.items()]
+        for item in items:
+            obj, _ = ProjectEnvironmentVariable.objects.update_or_create(
+                project=project, key=item.get('key'),
+                defaults={'value': item.get('value', ''), 'var_type': item.get('var_type', 'input'),
+                          'description': item.get('description', '')},
+            )
+            results.append(ProjectEnvironmentVariableSerializer(obj).data)
+        return SuccessResponse(data=results, msg=f'{len(results)} variable(s) updated')

@@ -75,7 +75,7 @@
           <el-input v-if="editForm.type === 'textarea'" v-model="editForm.value" type="textarea" :rows="4" />
           <el-input v-else v-model="editForm.value" />
         </el-form-item>
-        <el-form-item label="Description">
+        <el-form-item label="Desc">
           <el-input v-model="editForm.description" type="textarea" :rows="2" placeholder="Optional description" />
         </el-form-item>
         <el-form-item v-if="editForm.source_info && editForm.source_type === 'node_output'" label="Source">

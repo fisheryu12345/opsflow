@@ -93,6 +93,10 @@
         <el-form-item v-if="formId" label="Active">
           <el-switch v-model="form.is_active" />
         </el-form-item>
+        <el-form-item label="Max Schedules">
+          <el-input-number v-model="form.max_schedule_plans" :min="0" :max="1000" />
+          <div class="form-tip" style="margin-left:8px">0 = unlimited</div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false" size="small">Cancel</el-button>
@@ -117,6 +121,7 @@
           <div class="pj-info-card"><span class="pj-info-label">Description</span><span class="pj-info-value">{{ detail.description || '—' }}</span></div>
           <div class="pj-info-card"><span class="pj-info-label">Templates</span><span class="pj-info-value">{{ detail.template_count ?? 0 }}</span></div>
           <div class="pj-info-card"><span class="pj-info-label">Executions</span><span class="pj-info-value">{{ detail.execution_count ?? 0 }}</span></div>
+          <div class="pj-info-card"><span class="pj-info-label">Schedule Limit</span><span class="pj-info-value">{{ detail.max_schedule_plans ?? 20 }}</span></div>
         </div>
 
         <!-- Members Section -->
@@ -173,6 +178,18 @@
             </el-button>
           </div>
         </div>
+
+        <!-- Environment Variables Section -->
+        <div class="pj-section-card">
+          <div class="pj-section-header">
+            <div class="pj-section-header-left">
+              <span class="pj-section-dot" style="background: linear-gradient(135deg, #67C23A, #95de64);" />
+              <span>Environment Variables</span>
+            </div>
+            <el-tag size="small" effect="plain" type="success">Project</el-tag>
+          </div>
+          <ProjectEnvVarPanel :project-id="detail.id" />
+        </div>
       </template>
 
       <template #footer>
@@ -198,6 +215,7 @@ import { request } from '/@/utils/service'
 import { GetProjects, CreateProject, UpdateProject, DeleteProject, GetProjectDetail,
          GetProjectMembers, AddProjectMember, RemoveProjectMember } from '/@/api/opsflow/projects'
 import PluginVisibilityDialog from '/@/views/apps/opsflow/components/PluginVisibilityDialog.vue'
+import ProjectEnvVarPanel from '/@/views/apps/opsflow/components/ProjectEnvVarPanel.vue'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -213,7 +231,7 @@ const emptyText = computed(() => 'No projects yet. Create one to get started.')
 // Form
 const formVisible = ref(false)
 const formId = ref<number | null>(null)
-const form = ref({ name: '', description: '', is_active: true })
+const form = ref({ name: '', description: '', is_active: true, max_schedule_plans: 20 })
 
 // Detail
 const detailVisible = ref(false)
@@ -253,7 +271,7 @@ async function fetchData() {
 function showForm(row: any | null) {
   if (row) {
     formId.value = row.id
-    form.value = { name: row.name, description: row.description || '', is_active: row.is_active ?? true }
+    form.value = { name: row.name, description: row.description || '', is_active: row.is_active ?? true, max_schedule_plans: row.max_schedule_plans ?? 20 }
   } else {
     formId.value = null
     form.value = { name: '', description: '', is_active: true }

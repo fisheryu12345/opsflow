@@ -90,4 +90,18 @@ class FlowExecutionViewSet(
             except ExecutionScheme.DoesNotExist:
                 pass
         # ── 结束 ──
+        # ── 变量覆盖支持 ──
+        variable_overrides = request.data.get('variable_overrides', {})
+        if variable_overrides and serializer.instance and serializer.instance.template_snapshot:
+            frozen_vars = dict(serializer.instance.template_snapshot.get('global_vars', {}))
+            for key, value in variable_overrides.items():
+                if key in frozen_vars:
+                    if isinstance(frozen_vars[key], dict) and 'value' in frozen_vars[key]:
+                        frozen_vars[key] = dict(frozen_vars[key])
+                        frozen_vars[key]['value'] = value
+                    else:
+                        frozen_vars[key] = value
+            serializer.instance.template_snapshot['global_vars'] = frozen_vars
+            serializer.instance.save(update_fields=['template_snapshot'])
+        # ── 结束 ──
         return DetailResponse(data=serializer.data, msg="创建成功")

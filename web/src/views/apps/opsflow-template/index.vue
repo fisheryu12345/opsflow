@@ -183,7 +183,7 @@
         <el-form-item label="Category">
           <el-input v-model="form.category" placeholder="e.g. Inspection, Backup, Deploy" maxlength="64" />
         </el-form-item>
-        <el-form-item label="Description">
+        <el-form-item label="Desc">
           <el-input v-model="form.description" type="textarea" :rows="2" placeholder="Optional description" maxlength="500" />
         </el-form-item>
       </el-form>
@@ -253,7 +253,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Refresh, Plus, Upload, Edit, Delete, Search, List, Grid, Connection, Share, Timer, Setting, Clock, Download, UploadFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -444,9 +444,19 @@ function openView(row: any) { viewRow.value = row; viewVisible.value = true }
 function openSchedule(row: any) { scheduleTemplateId.value = row.id; scheduleTemplateName.value = row.name; scheduleVisible.value = true }
 function openVersions(row: any) { versionTemplateId.value = row.id; versionTemplateName.value = row.name; versionCurrentVer.value = row.version || 1; versionVisible.value = true }
 
+// Re-fetch templates when project switches via ProjectSwitcher
+function onProjectChanged() {
+  fetchData()
+}
+
 onMounted(async () => {
   if (!opsflowStore.myProjects.length) await opsflowStore.fetchMyProjects();
   await fetchData();
+  window.addEventListener('project-changed', onProjectChanged)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('project-changed', onProjectChanged)
 })
 </script>
 

@@ -87,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import {
@@ -174,11 +174,21 @@ async function handleDelete(row: any) {
 
 function onSearch() { /* computed auto-filters */ }
 
+// Re-fetch schedules when project switches via ProjectSwitcher
+function onProjectChanged() {
+  fetchList()
+}
+
 onMounted(async () => {
   const { useOpsflowStore } = await import('/@/views/apps/opsflow/stores/opsflowStore');
   const store = useOpsflowStore();
   if (!store.myProjects.length) await store.fetchMyProjects();
   fetchList()
+  window.addEventListener('project-changed', onProjectChanged)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('project-changed', onProjectChanged)
 })
 </script>
 

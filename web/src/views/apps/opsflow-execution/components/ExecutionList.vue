@@ -93,31 +93,99 @@
       </div>
     </div>
 
-    <!-- Create dialog -->
-    <el-dialog v-model="createVisible" title="New Execution" width="480px" top="8vh" destroy-on-close>
-      <el-form label-width="100px">
-        <el-form-item label="Template">
-          <el-select v-model="createTemplateId" placeholder="Select template" filterable style="width:100%">
-            <el-option v-for="t in templates" :key="t.id" :label="t.name" :value="t.id">
-              <div class="exec-tpl-option"><span>{{ t.name }}</span><el-tag v-if="t.is_draft" size="small" type="info" effect="plain">draft</el-tag></div>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <div v-if="selectedTemplate" class="exec-tpl-info">
-          <div class="exec-tpl-row"><span class="exec-tpl-label">Created:</span><span>{{ selectedTemplate.created_at }}</span></div>
-          <div class="exec-tpl-row" v-if="selectedTemplate.pipeline_tree"><span class="exec-tpl-label">Nodes:</span><span>{{ selectedTemplate.pipeline_tree.nodes?.length || 0 }}</span></div>
+    <!-- Create dialog — 3-step wizard -->
+    <el-dialog v-model="createVisible" title="New Execution" width="600px" top="5vh" destroy-on-close class="exec-wizard-dialog">
+      <div class="exec-wizard-steps">
+        <el-steps :active="wizardStep" align-center finish-status="success" size="small">
+          <el-step title="Template & Scheme" />
+          <el-step title="Configure" />
+          <el-step title="Review" />
+        </el-steps>
+      </div>
+
+      <!-- Step 1: Template + Scheme -->
+      <div v-if="wizardStep === 0" class="wizard-step">
+        <el-form label-width="100px">
+          <el-form-item label="Template" required>
+            <el-select v-model="createTemplateId" placeholder="Select template" filterable style="width:100%">
+              <el-option v-for="t in templates" :key="t.id" :label="t.name" :value="t.id">
+                <div class="exec-tpl-option"><span>{{ t.name }}</span><el-tag v-if="t.is_draft" size="small" type="info" effect="plain">draft</el-tag></div>
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <div v-if="selectedTemplate" class="exec-tpl-info">
+            <div class="exec-tpl-row"><span class="exec-tpl-label">Created:</span><span>{{ selectedTemplate.created_at }}</span></div>
+            <div class="exec-tpl-row" v-if="selectedTemplate.pipeline_tree"><span class="exec-tpl-label">Nodes:</span><span>{{ selectedTemplate.pipeline_tree.nodes?.length || 0 }}</span></div>
+          </div>
+          <el-form-item label="Scheme" v-if="selectedTemplate && schemes.length > 0">
+            <el-select v-model="selectedSchemeId" placeholder="Select scheme (optional)" clearable filterable style="width:100%">
+              <el-option v-for="s in schemes" :key="s.id" :label="`${s.name}${s.is_default ? ' (default)' : ''}`" :value="s.id">
+                <span>{{ s.name }}</span><el-tag v-if="s.is_default" size="small" type="primary" effect="plain">default</el-tag>
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <div v-if="selectedScheme" class="exec-tpl-info">
+            <div class="exec-tpl-row"><span class="exec-tpl-label">Excluded:</span><span>{{ selectedScheme.excluded_nodes?.length || 0 }} nodes</span></div>
+            <div class="exec-tpl-row" v-if="selectedScheme.variable_overrides && Object.keys(selectedScheme.variable_overrides).length"><span class="exec-tpl-label">Overrides:</span><span>{{ Object.keys(selectedScheme.variable_overrides).length }} variables</span></div>
+          </div>
+        </el-form>
+        <div class="wizard-footer">
+          <el-button size="small" @click="createVisible = false">Cancel</el-button>
+          <el-button size="small" type="primary" :disabled="!createTemplateId" @click="wizardStep = 1">Next</el-button>
         </div>
+      </div>
+
+      <!-- Step 2: Configure Nodes + Variables -->
+      <div v-if="wizardStep === 1" class="wizard-step">
         <div v-if="optionalNodes.length > 0" class="exec-optional-section">
-          <div class="exec-optional-label">Optional Nodes (deselect to skip)</div>
+          <div class="wizard-section-header">Optional Nodes (deselect to skip)</div>
           <el-checkbox-group v-model="selectedNodeIds" class="exec-checkbox-group">
             <el-checkbox v-for="node in optionalNodes" :key="node.id" :label="node.id">{{ node.label || node.id }}</el-checkbox>
           </el-checkbox-group>
         </div>
-      </el-form>
-      <template #footer>
-        <el-button @click="createVisible = false" size="small">Cancel</el-button>
-        <el-button type="primary" :loading="creating" @click="onCreate" size="small">Create</el-button>
-      </template>
+
+        <div v-if="objectKeys(templateVars).length > 0" class="exec-vars-section" style="margin-top: 16px;">
+          <div class="wizard-section-header">Global Variables (override if needed)</div>
+          <div class="vars-grid">
+            <div v-for="(info, key) in templateVars" :key="key" class="var-row">
+              <div class="var-label">
+                <span class="var-key">{{ key }}</span>
+                <el-tag size="small" effect="plain" class="var-type-tag">{{ varTypeLabel(info.type) }}</el-tag>
+                <span v-if="info.description" class="var-desc">{{ info.description }}</span>
+              </div>
+              <el-input
+                :model-value="variableOverrides[key] ?? info.value"
+                @update:model-value="(val: any) => variableOverrides[key] = val"
+                :type="info.type === 'password' ? 'password' : info.type === 'textarea' ? 'textarea' : 'text'"
+                :rows="info.type === 'textarea' ? 2 : 1"
+                size="small"
+              />
+            </div>
+          </div>
+        </div>
+
+        <p v-if="objectKeys(templateVars).length === 0 && optionalNodes.length === 0" class="wizard-empty-hint">No configurable options for this template.</p>
+
+        <div class="wizard-footer">
+          <el-button size="small" @click="wizardStep = 0">Back</el-button>
+          <el-button size="small" type="primary" @click="wizardStep = 2">Next</el-button>
+        </div>
+      </div>
+
+      <!-- Step 3: Review & Confirm -->
+      <div v-if="wizardStep === 2" class="wizard-step">
+        <div class="review-card">
+          <div class="review-row"><span class="review-label">Template</span><span class="review-value">{{ selectedTemplate?.name || '-' }}</span></div>
+          <div class="review-row" v-if="selectedScheme"><span class="review-label">Scheme</span><span class="review-value">{{ selectedScheme.name }}</span></div>
+          <div class="review-row"><span class="review-label">Nodes</span><span class="review-value">{{ optionalNodes.length }} total, {{ optionalNodes.length - excludedNodeCount }} will execute</span></div>
+          <div class="review-row" v-if="excludedNodeCount > 0"><span class="review-label">Excluded</span><span class="review-value review-warn">{{ excludedNodeCount }} node(s)</span></div>
+          <div class="review-row" v-if="objectKeys(variableOverrides).length > 0"><span class="review-label">Overrides</span><span class="review-value">{{ objectKeys(variableOverrides).length }} variable(s)</span></div>
+        </div>
+        <div class="wizard-footer">
+          <el-button size="small" @click="wizardStep = 1">Back</el-button>
+          <el-button size="small" type="primary" :loading="creating" @click="onCreate">Execute</el-button>
+        </div>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -128,10 +196,12 @@ import { Refresh, Plus, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { GetTemplates } from '/@/api/opsflow/templates'
 import { GetExecutions, CreateExecution, StartExecution as StartExec, PauseExecution } from '/@/api/opsflow/executions'
+import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 
 import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const emit = defineEmits<{ viewDetail: [execution: any] }>()
 
+const store = useOpsflowStore()
 const templates = ref<any[]>([])
 const executions = ref<any[]>([])
 const loading = ref(false)
@@ -143,9 +213,16 @@ const pageSize = ref(20)
 const total = ref(0)
 const startingId = ref<number | null>(null)
 const pausingId = ref<number | null>(null)
+
+// Wizard state
 const createVisible = ref(false)
+const wizardStep = ref(0)
 const createTemplateId = ref<number | null>(null)
 const creating = ref(false)
+const selectedSchemeId = ref<number | null>(null)
+const selectedNodeIds = ref<string[]>([])
+const variableOverrides = ref<Record<string, any>>({})
+const schemes = ref<any[]>([])
 
 const runningCount = computed(() => executions.value.filter(e => e.status === 'running').length)
 const failedCount = computed(() => executions.value.filter(e => e.status === 'failed').length)
@@ -163,12 +240,72 @@ const displayList = computed(() => {
 })
 
 const selectedTemplate = computed(() => templates.value.find(t => t.id === createTemplateId.value))
-const selectedNodeIds = ref<string[]>([])
+const selectedScheme = computed(() => schemes.value.find((s: any) => s.id === selectedSchemeId.value))
 const optionalNodes = computed(() => {
   const tree = selectedTemplate.value?.pipeline_tree || {}
   return (tree.nodes || []).filter((n: any) => n.node_type === 'atom' && n.optional !== false)
 })
-watch(createTemplateId, () => { selectedNodeIds.value = optionalNodes.value.map((n: any) => n.id) })
+const templateVars = computed(() => {
+  const tpl = selectedTemplate.value
+  if (!tpl?.global_vars) return {}
+  const vars = typeof tpl.global_vars === 'object' ? tpl.global_vars : {}
+  const result: Record<string, any> = {}
+  for (const [key, val] of Object.entries(vars)) {
+    if (typeof val === 'object' && val !== null && 'value' in (val as any)) {
+      result[key] = val
+    } else {
+      result[key] = { value: val, type: 'input', description: '' }
+    }
+  }
+  return result
+})
+const excludedNodeCount = computed(() => {
+  const all = optionalNodes.value.map((n: any) => n.id)
+  return all.filter((id: string) => !selectedNodeIds.value.includes(id)).length
+})
+
+function objectKeys(obj: any): string[] {
+  return Object.keys(obj || {})
+}
+
+function varTypeLabel(t: string) {
+  const m: Record<string, string> = { input: 'Text', textarea: 'Textarea', password: 'Password', int: 'Number', float: 'Float' }
+  return m[t] || t
+}
+
+// Watch template change → reset dependent state
+watch(createTemplateId, async (id) => {
+  selectedNodeIds.value = optionalNodes.value.map((n: any) => n.id)
+  variableOverrides.value = {}
+  selectedSchemeId.value = null
+  schemes.value = []
+  if (id) {
+    try {
+      const { GetSchemes } = await import('/@/api/opsflow/templates')
+      const res: any = await GetSchemes(id)
+      schemes.value = (res.data || [])
+      // Auto-select default scheme
+      const def = schemes.value.find((s: any) => s.is_default)
+      if (def) selectedSchemeId.value = def.id
+    } catch { /* ignore */ }
+  }
+})
+
+// Watch scheme change → apply excluded_nodes
+watch(selectedSchemeId, (id) => {
+  const scheme = schemes.value.find((s: any) => s.id === id)
+  if (scheme) {
+    // Apply excluded nodes from scheme
+    if (scheme.excluded_nodes?.length) {
+      const allIds = optionalNodes.value.map((n: any) => n.id)
+      selectedNodeIds.value = allIds.filter((nid: string) => !scheme.excluded_nodes.includes(nid))
+    }
+    // Apply variable overrides from scheme
+    if (scheme.variable_overrides && typeof scheme.variable_overrides === 'object') {
+      variableOverrides.value = { ...variableOverrides.value, ...scheme.variable_overrides }
+    }
+  }
+})
 
 function statusLabel(s: string) {
   const m: Record<string, string> = { pending: 'Pending', running: 'Running', paused: 'Paused', completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled' }
@@ -196,7 +333,15 @@ async function fetchExecutions() {
   loading.value = false
 }
 
-function showCreateDialog() { createTemplateId.value = null; createVisible.value = true }
+function showCreateDialog() {
+  createTemplateId.value = null
+  wizardStep.value = 0
+  selectedSchemeId.value = null
+  selectedNodeIds.value = []
+  variableOverrides.value = {}
+  schemes.value = []
+  createVisible.value = true
+}
 function onFilter() { page.value = 1; fetchExecutions() }
 function onSearch() { page.value = 1; fetchExecutions() }
 function onPageChange() { fetchExecutions() }
@@ -209,11 +354,18 @@ async function onCreate() {
     const excluded = allOptional.filter((id: string) => !selectedNodeIds.value.includes(id))
     const data: any = { template: createTemplateId.value }
     if (excluded.length > 0) data.excluded_nodes = excluded
+    if (selectedSchemeId.value) data.scheme_id = selectedSchemeId.value
+    if (Object.keys(variableOverrides.value).length > 0) {
+      data.variable_overrides = variableOverrides.value
+    }
     const res = await CreateExecution(data)
     const exec = res.data?.data || res.data
     if (exec?.id) {
-      createVisible.value = false; ElMessage.success('Execution created')
-      await fetchExecutions(); emit('viewDetail', exec)
+      createVisible.value = false
+      ElMessage.success('Execution created')
+      wizardStep.value = 0
+      await fetchExecutions()
+      emit('viewDetail', exec)
     }
   } catch (e: any) { ElMessage.error(e?.msg || e?.message || 'Failed') }
   creating.value = false
@@ -223,8 +375,6 @@ async function onStart(row: any) { startingId.value = row.id; try { await StartE
 async function onPause(row: any) { pausingId.value = row.id; try { await PauseExecution(row.id); await fetchExecutions() } catch { /* ignore */ }; pausingId.value = null }
 
 onMounted(async () => {
-  const { useOpsflowStore } = await import('/@/views/apps/opsflow/stores/opsflowStore');
-  const store = useOpsflowStore();
   if (!store.myProjects.length) await store.fetchMyProjects();
   fetchTemplates(); fetchExecutions()
 })
@@ -284,4 +434,29 @@ onMounted(async () => {
 .exec-optional-section { margin-top: 12px; }
 .exec-optional-label { font-size: 12px; color: #606266; font-weight: 500; margin-bottom: 8px; }
 .exec-checkbox-group { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; padding: 8px 12px; background: #fafafa; border-radius: 8px; }
+
+/* ===== Wizard ===== */
+.exec-wizard-dialog :deep(.el-dialog__body) { padding: 0; }
+.exec-wizard-steps { padding: 20px 20px 0; }
+.wizard-step { padding: 20px; min-height: 280px; display: flex; flex-direction: column; }
+.wizard-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: auto; padding-top: 16px; border-top: 1px solid #f0f0f0; }
+.wizard-section-header { font-size: 13px; font-weight: 600; color: #303133; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.wizard-section-header::before { content: ''; width: 3px; height: 14px; background: #409EFF; border-radius: 2px; }
+.wizard-empty-hint { color: #909399; font-size: 13px; text-align: center; padding: 40px 0; }
+
+/* Variables grid */
+.exec-vars-section { border-top: 1px solid #f0f0f0; padding-top: 16px; }
+.vars-grid { display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto; }
+.var-row { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; background: #fafafa; border-radius: 8px; }
+.var-label { display: flex; align-items: center; gap: 6px; }
+.var-key { font-family: monospace; font-size: 13px; font-weight: 600; color: #303133; }
+.var-type-tag { font-size: 10px; }
+.var-desc { font-size: 11px; color: #c0c4cc; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Review card */
+.review-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; background: #f8f9fb; border-radius: 10px; border: 1px solid #f0f0f0; }
+.review-row { display: flex; justify-content: space-between; align-items: center; }
+.review-label { font-size: 12px; color: #909399; }
+.review-value { font-size: 13px; font-weight: 600; color: #303133; }
+.review-warn { color: #E6A23C; }
 </style>
