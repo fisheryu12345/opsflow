@@ -129,8 +129,15 @@ def sync_plugin_meta_to_db():
     count = 0
     for code, versions in PLUGIN_REGISTRY.items():
         for version, cls in versions.items():
-            form_schema = _form_config_to_list(cls.get_form_config())
-            output_schema = cls.get_output_schema()
+            if not isinstance(cls, type):
+                logger.warning('sync_plugin_meta_to_db: skipping non-class item code=%s version=%s type=%s', code, version, type(cls).__name__)
+                continue
+            try:
+                form_schema = _form_config_to_list(cls.get_form_config())
+                output_schema = cls.get_output_schema()
+            except Exception as e:
+                logger.error('sync_plugin_meta_to_db: plugin %s v%s config failed: %s', code, version, e)
+                continue
 
             PluginMeta.objects.update_or_create(
                 code=code,

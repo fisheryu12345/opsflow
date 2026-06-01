@@ -110,6 +110,63 @@ def notify_node_status(execution_id, node_id, status, message=''):
     _ws_notify(execution_id, node_id, status, message)
 
 
+@shared_task(bind=True, max_retries=0)
+def auto_retry_node_task(self, execution_id, node_id):
+    """Celery 任务 — 自动重试失败节点（由 auto_retry dispatch 触发）
+
+    参考 bk_sops auto_retry_node Celery 任务
+    """
+    from opsflow.models import FlowExecution, AutoRetryStrategy
+    from opsflow.core.flow_engine import FlowEngine
+
+    try:
+        execution = FlowExecution.objects.get(id=execution_id)
+        strategy = AutoRetryStrategy.objects.get(
+            execution=execution, node_id=node_id,
+        )
+
+        # 自增重试计数器
+        strategy.retry_times += 1
+        strategy.save(update_fields=['retry_times'])
+
+        # 执行重试
+        engine = FlowEngine(execution)
+        engine.retry(node_id)
+
+        logger.info(
+            "[AutoRetry] Node %s auto-retried (%d/%d)",
+            node_id, strategy.retry_times, strategy.max_retry_times,
+        )
+
+    except FlowExecution.DoesNotExist:
+        logger.error("[AutoRetry] Execution %s not found", execution_id)
+    except AutoRetryStrategy.DoesNotExist:
+        logger.error("[AutoRetry] Strategy not found for exec=%s node=%s", execution_id, node_id)
+    except Exception as exc:
+        logger.exception("[AutoRetry] Error retrying node %s: %s", node_id, exc)
+
+
+@shared_task(queue='er_execute')
+def execute_node_timeout_strategy(execution_id, node_id, action):
+    """Celery 任务 — 执行节点超时策略
+
+    在 dispatch_timeout_nodes 发现到期节点后调用。
+    """
+    from opsflow.models import FlowExecution, NodeTimeoutConfig
+    from opsflow.core.node_timeout_strategy import NODE_TIMEOUT_HANDLER
+
+    try:
+        execution = FlowExecution.objects.get(id=execution_id)
+        config = NodeTimeoutConfig.objects.get(
+            execution=execution, node_id=node_id,
+        )
+        handler = NODE_TIMEOUT_HANDLER.get(action)
+        if handler:
+            handler.deal_with_timeout_node(execution, node_id, config)
+    except Exception as e:
+        logger.exception("[Timeout] execute strategy error for node %s: %s", node_id, e)
+
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)
 def retry_schedule_execution(self, plan_id, plan_max_retries=None):
     """Celery 任务 — 重试调度计划执行

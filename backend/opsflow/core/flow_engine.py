@@ -177,6 +177,20 @@ class FlowEngine:
             )
             bamboo_pipeline_id = pipeline.get("id", "")
 
+            # 执行前创建自动重试策略和超时配置（参考 bk_sops）
+            try:
+                from opsflow.core.auto_retry import AutoRetryStrategyCreator
+                creator = AutoRetryStrategyCreator(self.execution, bamboo_pipeline_id)
+                creator.batch_create_strategy(frozen_tree or {})
+            except Exception as e:
+                logger.warning("[FlowEngine] batch_create_strategy error: %s", e)
+
+            try:
+                from opsflow.core.node_timeout_strategy import batch_create_timeout_configs
+                batch_create_timeout_configs(self.execution, frozen_tree or {})
+            except Exception as e:
+                logger.warning("[FlowEngine] batch_create_timeout_configs error: %s", e)
+
             self.execution.context["bamboo_pipeline_id"] = bamboo_pipeline_id
             self.execution.context["bamboo_pipeline"] = pipeline
             self.execution.context["node_id_map"] = id_map

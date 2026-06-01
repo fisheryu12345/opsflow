@@ -11,7 +11,16 @@ def WHITELIST_ATOMS():
 
 def HIGH_RISK_ATOMS():
     """返回 risk_level == 'high' 的插件 code 集合"""
-    return {code for code, cls in PLUGIN_REGISTRY.items() if cls.risk_level == 'high'}
+    result = set()
+    for code, versions in PLUGIN_REGISTRY.items():
+        # 兼容两种格式：{code: class}（旧）或 {code: {version: class}}（多版本）
+        if isinstance(versions, dict):
+            cls = next(iter(versions.values())) if versions else None
+        else:
+            cls = versions
+        if cls and getattr(cls, 'risk_level', 'low') == 'high':
+            result.add(code)
+    return result
 
 def BACKUP_REQUIRED_ATOMS():
     """已废弃 — BasePlugin 不再追踪 dependencies，始终返回空集"""

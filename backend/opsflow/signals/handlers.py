@@ -13,10 +13,11 @@ from pipeline.eri.signals import post_set_state
 from pipeline.eri.runtime import BambooDjangoRuntime
 
 from bamboo_engine import states, api as pipeline_api
-from opsflow.core.states import PipelineState, map_bamboo_node_state
+from opsflow.core.states import PipelineState, map_bamboo_node_state, map_pipeline_state
 from opsflow.signals.state import _update_execution_node_status, _update_state_tree
 from opsflow.signals.trace import _record_node_trace, _log_node_result, _write_node_trace_log
 from opsflow.signals.notify import _notify_node_status, _notify_completed
+from opsflow.signals.timeout import _update_node_timeout  # Redis 超时追踪
 
 logger = logging.getLogger(__name__)
 
@@ -48,12 +49,21 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
         id_map = (execution.context or {}).get('node_id_map', {})
         mapped_node_id = id_map.get(node_id, node_id)
 
+        # 自动重试拦截：失败时先检查是否有自动重试策略
+        if to_state == states.FAILED:
+            from opsflow.core.auto_retry import dispatch_auto_retry
+            if dispatch_auto_retry(execution, node_id):
+                # 已派发自动重试，跳过正常失败处理
+                return
+
         # 更新 DB 中的 node_status（持久化，页面刷新后可恢复）
         _update_execution_node_status(execution, node_id, to_state)
         # 状态树快照（增量更新，使用 bamboo UUID 内部追踪）
         _update_state_tree(execution, node_id, to_state)
         # 节点执行轨迹记录
         _record_node_trace(execution, node_id, to_state)
+        # Redis 超时追踪（RUNNING→添加到期，FINISHED/FAILED→移除）
+        _update_node_timeout(execution, node_id, to_state)
         # 记录当前正在执行的节点（用于前端高亮 + API 查询）
         if to_state == states.RUNNING:
             execution.current_node = mapped_node_id if mapped_node_id != node_id else node_id
@@ -69,12 +79,8 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
 
 def _handle_root_state_change(execution, to_state):
     """处理根 pipeline 节点状态变化 — 更新 FlowExecution.status"""
-    mapped = map_bamboo_node_state(to_state)
-    if not mapped:
-        return
-    try:
-        target = PipelineState(mapped.value)
-    except ValueError:
+    target = map_pipeline_state(to_state)
+    if target is None:
         return
 
     if target == PipelineState.COMPLETED:

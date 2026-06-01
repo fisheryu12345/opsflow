@@ -135,9 +135,27 @@ class OpsflowScheduler:
         if self._started:
             return
         self._register_existing_plans()
+        self._register_timeout_check()
         self.scheduler.start()
         self._started = True
         logger.info("OpsflowScheduler started")
+
+    def _register_timeout_check(self):
+        """注册节点超时检查定时任务（每 10 秒扫描 Redis 到期节点）"""
+        from apscheduler.triggers.interval import IntervalTrigger
+        from opsflow.core.node_timeout_strategy import dispatch_timeout_nodes, TIMEOUT_CHECK_INTERVAL
+
+        self.scheduler.add_job(
+            dispatch_timeout_nodes,
+            trigger=IntervalTrigger(seconds=TIMEOUT_CHECK_INTERVAL),
+            id='opsflow_timeout_check',
+            name='节点超时检查',
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+            misfire_grace_time=30,
+        )
+        logger.info("Timeout check registered (interval=%ds)", TIMEOUT_CHECK_INTERVAL)
 
     def shutdown(self, wait=False):
         if self._started:

@@ -87,3 +87,20 @@ def validate_pipeline_transition(current: PipelineState, target: PipelineState) 
 def map_bamboo_node_state(bamboo_to_state) -> NodeState | None:
     """bamboo-engine 状态 → NodeState"""
     return NodeState.bamboo_label().get(bamboo_to_state)
+
+
+def map_pipeline_state(bamboo_to_state) -> PipelineState | None:
+    """bamboo-engine 状态 → PipelineState（用于根 pipeline 状态变更）
+
+    NodeState 与 PipelineState 的枚举值不同（如 "finished" vs "completed"），
+    此函数绕过 NodeState 直接映射到 PipelineState，避免 ValueError。
+    """
+    from bamboo_engine import states
+    mapping = {
+        states.FINISHED: PipelineState.COMPLETED,
+        states.FAILED: PipelineState.FAILED,
+        states.REVOKED: PipelineState.CANCELLED,
+        states.SUSPENDED: PipelineState.PAUSED,
+        states.RUNNING: PipelineState.RUNNING,
+    }
+    return mapping.get(bamboo_to_state)

@@ -460,6 +460,63 @@ class ExecutionNode(models.Model):
         return f"[{self.execution_id}] {self.node_id} ({self.status})"
 
 
+class AutoRetryStrategy(models.Model):
+    """节点自动重试策略 — 在信号拦截到 FAILED 时自动触发重试
+
+    参考 bk_sops gcloud/taskflow3/models.py AutoRetryNodeStrategy
+    """
+    execution = models.ForeignKey(
+        FlowExecution, on_delete=models.CASCADE, related_name='auto_retry_strategies',
+        verbose_name="Execution"
+    )
+    node_id = models.CharField(max_length=200, verbose_name="Node ID")
+    max_retry_times = models.IntegerField(default=3, verbose_name="Max Retry Times")
+    interval = models.IntegerField(default=0, verbose_name="Retry Interval (s)",
+                                    help_text="重试前等待秒数")
+    retry_times = models.IntegerField(default=0, verbose_name="Current Retry Count",
+                                      help_text="当前已重试次数（计数器）")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ops_auto_retry_strategy'
+        unique_together = [('execution', 'node_id')]
+        verbose_name = "Auto Retry Strategy"
+
+    def __str__(self):
+        return f"[{self.execution_id}] {self.node_id} ({self.retry_times}/{self.max_retry_times})"
+
+
+class NodeTimeoutConfig(models.Model):
+    """节点超时配置 — 绑定到执行实例的节点超时策略
+
+    参考 bk_sops gcloud/taskflow3/models.py TimeoutNodeConfig + TimeoutNodesRecord
+    """
+    class Action(models.TextChoices):
+        FORCED_FAIL = 'forced_fail', '强制失败'
+        FORCED_FAIL_AND_SKIP = 'forced_fail_and_skip', '强制失败并跳过'
+
+    execution = models.ForeignKey(
+        FlowExecution, on_delete=models.CASCADE, related_name='timeout_configs',
+        verbose_name="Execution"
+    )
+    node_id = models.CharField(max_length=200, verbose_name="Node ID")
+    timeout_seconds = models.IntegerField(verbose_name="Timeout (s)")
+    action = models.CharField(
+        max_length=32, choices=Action.choices, default=Action.FORCED_FAIL,
+        verbose_name="Timeout Action"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ops_node_timeout_config'
+        unique_together = [('execution', 'node_id')]
+        verbose_name = "Node Timeout Config"
+
+    def __str__(self):
+        return f"[{self.execution_id}] {self.node_id} timeout={self.timeout_seconds}s action={self.action}"
+
+
 class NodeExecutionTrace(models.Model):
     """节点执行轨迹 — 每个节点每次执行的完整记录"""
     execution = models.ForeignKey(

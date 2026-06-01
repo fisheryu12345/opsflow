@@ -116,15 +116,22 @@ Return empty array for risks if none found. Return only JSON."""
 def _build_system_prompt(target_hosts: list) -> str:
     hosts_str = ', '.join(target_hosts) if target_hosts else 'target hosts (specified by user)'
 
-    # Dynamically generate atom list from plugin registry
-    from opsflow.plugins.registry import get_all_plugins
-    atoms = get_all_plugins()
+    # Dynamically generate atom list from plugin registry (multi-version format)
+    from opsflow.plugins.registry import get_all_plugins, get_plugin
+    raw = get_all_plugins()
     # Filter out shell — AI should not use it as fallback for missing atoms
-    atoms = {k: v for k, v in atoms.items() if k != 'shell'}
+    raw = {k: v for k, v in raw.items() if k != 'shell'}
     atom_lines = []
-    for code, cls in sorted(atoms.items()):
-        form_config = cls.get_form_config() or []
-        inputs_str = ', '.join(item.tag_code for item in form_config)
+    for code, versions in sorted(raw.items()):
+        cls = get_plugin(code)
+        if not cls:
+            continue
+        try:
+            form_config = cls.get_form_config() or []
+            inputs_str = ', '.join(item.tag_code for item in form_config)
+        except Exception as e:
+            logger.warning('_build_system_prompt: plugin %s get_form_config failed: %s', code, e)
+            inputs_str = 'error' 
         atom_lines.append(f"  - {code}: {cls.description} (params: {inputs_str})")
 
     atom_list = '\n'.join(atom_lines)
