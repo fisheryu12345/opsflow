@@ -1,0 +1,250 @@
+<h2>🧭 提交向导 — 详细步骤设计</h2>
+<p class="subtitle" style="margin-bottom: 20px;">原有的 SubmitExecutionDialog 将被替换为 5 步向导，请逐步骤查看</p>
+
+<!-- 步骤指示器 -->
+<div style="display: flex; gap: 4px; margin-bottom: 20px; background: #f5f6fa; border-radius: 10px; padding: 6px;">
+  <div style="flex: 1; text-align: center; padding: 10px 4px; background: #409EFF; color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600;">① 构型校验</div>
+  <div style="flex: 1; text-align: center; padding: 10px 4px; font-size: 13px; color: #999; border-radius: 8px;">② 变更关联</div>
+  <div style="flex: 1; text-align: center; padding: 10px 4px; font-size: 13px; color: #999; border-radius: 8px;">③ 参数输入</div>
+  <div style="flex: 1; text-align: center; padding: 10px 4px; font-size: 13px; color: #999; border-radius: 8px;">④ 风险分析</div>
+  <div style="flex: 1; text-align: center; padding: 10px 4px; font-size: 13px; color: #999; border-radius: 8px;">⑤ 定时策略</div>
+</div>
+
+<!-- Step 1: 构型校验 -->
+<div class="mockup" style="margin-bottom: 24px;">
+  <div class="mockup-header">Step 1/5 · Pipeline 构型校验</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+      <div class="card" style="background: #f8f9fa; padding: 10px 14px; border-radius: 8px; flex:1; min-width:100px; text-align:center;">
+        <div style="font-size: 24px; font-weight:700;">8</div>
+        <div style="font-size:11px; color:#999;">Nodes</div>
+      </div>
+      <div class="card" style="background: #f8f9fa; padding: 10px 14px; border-radius: 8px; flex:1; min-width:100px; text-align:center;">
+        <div style="font-size: 24px; font-weight:700;">7</div>
+        <div style="font-size:11px; color:#999;">Edges</div>
+      </div>
+      <div class="card" style="background: #f8f9fa; padding: 10px 14px; border-radius: 8px; flex:1; min-width:100px; text-align:center;">
+        <div style="font-size: 24px; font-weight:700;">3</div>
+        <div style="font-size:11px; color:#999;">Atom Types</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <button class="mock-button" style="background: #409EFF; color: #fff; border: none; padding: 8px 20px;">
+        🔍 Run Validation
+      </button>
+      <span style="font-size: 12px; color: #999; margin-left: 10px;">调用 DeepSeek 分析流程结构合规性</span>
+    </div>
+
+    <!-- 校验结果 - 验证通过 -->
+    <div style="background: #f0f9eb; border-left: 3px solid #67C23A; padding: 10px 14px; border-radius: 0 6px 6px 0; margin-bottom: 8px; font-size: 13px;">
+      <div style="font-weight:600; color:#67C23A;">✅ 结构验证通过</div>
+      <div style="color: #666; margin-top: 4px;">拓扑完整，无孤立节点，网关路径正确，兼容 Bamboo 引擎</div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 2: 变更关联 -->
+<div class="mockup" style="margin-bottom: 24px;">
+  <div class="mockup-header">Step 2/5 · 关联 ServiceNow Change Request</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="font-size: 13px; color: #303133; margin-bottom: 8px;">选择变更单</div>
+    <div style="position: relative; margin-bottom: 12px;">
+      <div style="border: 1px solid #dcdfe6; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #303133; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+        <span style="color: #999;">请选择 Change Request ...</span>
+        <span style="color: #999;">▼</span>
+      </div>
+    </div>
+
+    <!-- 下拉展开示意 -->
+    <div style="border: 1px solid #e4e7ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 16px; overflow: hidden;">
+      <div style="background: #f5f7fa; padding: 8px 14px; display: flex; font-size: 12px; font-weight:600; color:#606266; border-bottom: 1px solid #e4e7ed;">
+        <div style="flex: 0 0 120px;">CR Number</div>
+        <div style="flex: 1;">Title</div>
+        <div style="flex: 0 0 80px; text-align:center;">Status</div>
+        <div style="flex: 0 0 150px; text-align:center;">Change Window</div>
+        <div style="flex: 0 0 90px;">Requester</div>
+      </div>
+      <div style="padding: 8px 14px; display: flex; font-size: 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; background: #ecf5ff;">
+        <div style="flex: 0 0 120px; font-weight:600; color:#409EFF;">CHG0012345</div>
+        <div style="flex: 1;">Upgrade ESXi 8.0 - Production Cluster A</div>
+        <div style="flex: 0 0 80px; text-align:center;"><span style="background: #f0f9eb; color:#67C23A; padding: 2px 8px; border-radius: 10px;">Approved</span></div>
+        <div style="flex: 0 0 150px; text-align:center; font-size:11px;">2026-06-05 22:00 ~ 2026-06-06 06:00</div>
+        <div style="flex: 0 0 90px;">zhangsan</div>
+      </div>
+      <div style="padding: 8px 14px; display: flex; font-size: 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0;">
+        <div style="flex: 0 0 120px; font-weight:600; color:#409EFF;">CHG0012346</div>
+        <div style="flex: 1;">NetApp Storage Expansion - DR Site</div>
+        <div style="flex: 0 0 80px; text-align:center;"><span style="background: #fdf6ec; color:#E6A23C; padding: 2px 8px; border-radius: 10px;">Pending</span></div>
+        <div style="flex: 0 0 150px; text-align:center; font-size:11px;">2026-06-07 14:00 ~ 2026-06-07 18:00</div>
+        <div style="flex: 0 0 90px;">lisi</div>
+      </div>
+      <div style="padding: 8px 14px; display: flex; font-size: 12px; cursor: pointer;">
+        <div style="flex: 0 0 120px; font-weight:600; color:#409EFF;">CHG0012347</div>
+        <div style="flex: 1;">PowerMax Firmware Update</div>
+        <div style="flex: 0 0 80px; text-align:center;"><span style="background: #f0f9eb; color:#67C23A; padding: 2px 8px; border-radius: 10px;">Approved</span></div>
+        <div style="flex: 0 0 150px; text-align:center; font-size:11px;">2026-06-08 23:00 ~ 2026-06-09 05:00</div>
+        <div style="flex: 0 0 90px;">wangwu</div>
+      </div>
+    </div>
+
+    <!-- 已选 CR 详情 -->
+    <div style="background: #f8f9fa; border-radius: 8px; padding: 12px 14px;">
+      <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px;">
+        <div><span style="color:#999;">CR:</span> <strong>CHG0012345</strong></div>
+        <div><span style="color:#999;">Title:</span> Upgrade ESXi 8.0 - Production Cluster A</div>
+        <div><span style="color:#999;">窗口:</span> 2026-06-05 22:00 ~ 06-06 06:00</div>
+        <div><span style="color:#999;">申请者:</span> zhangsan</div>
+      </div>
+      <div style="font-size: 12px; color: #999; margin-top: 6px; background: #fef7e0; border-radius: 6px; padding: 6px 10px;">
+        📋 描述: 对生产环境 A 集群执行 ESXi 8.0 升级，涉及 8 台物理主机
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 3: 参数输入 -->
+<div class="mockup" style="margin-bottom: 24px;">
+  <div class="mockup-header">Step 3/5 · 参数与变量配置</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="font-size: 12px; color: #999; margin-bottom: 12px;">设置流程执行所需的变量参数，仅修改需要覆盖的默认值</div>
+    <div style="border: 1px solid #e4e7ed; border-radius: 8px; overflow: hidden;">
+      <div style="display: flex; background: #f5f7fa; padding: 8px 14px; font-size: 12px; font-weight:600; color:#606266; border-bottom: 1px solid #e4e7ed;">
+        <div style="flex: 0 0 100px;">Variable</div>
+        <div style="flex:1;">Value</div>
+        <div style="flex: 0 0 60px; text-align:center;">Default</div>
+      </div>
+      <div style="padding: 8px 14px; display: flex; align-items: center; font-size: 13px; border-bottom: 1px solid #f0f0f0;">
+        <div style="flex: 0 0 100px; font-weight:500;">host_ip</div>
+        <div style="flex:1;"><input class="mock-input" value="192.168.1.100" style="width:90%;"></div>
+        <div style="flex: 0 0 60px; text-align:center; color:#999;">-</div>
+      </div>
+      <div style="padding: 8px 14px; display: flex; align-items: center; font-size: 13px; border-bottom: 1px solid #f0f0f0;">
+        <div style="flex: 0 0 100px; font-weight:500;">ssh_user</div>
+        <div style="flex:1;"><input class="mock-input" value="root" style="width:90%;"></div>
+        <div style="flex: 0 0 60px; text-align:center; color:#999;">root</div>
+      </div>
+      <div style="padding: 8px 14px; display: flex; align-items: center; font-size: 13px;">
+        <div style="flex: 0 0 100px; font-weight:500;">timeout</div>
+        <div style="flex:1;"><input class="mock-input" value="300" style="width:90%;"></div>
+        <div style="flex: 0 0 60px; text-align:center; color:#999;">120</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 4: 风险分析 -->
+<div class="mockup" style="margin-bottom: 24px;">
+  <div class="mockup-header">Step 4/5 · AI 风险分析</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="margin-bottom: 12px;">
+      <button class="mock-button" style="background: #E6A23C; color: #fff; border: none; padding: 8px 20px;">
+        🤖 执行风险分析
+      </button>
+      <span style="font-size: 12px; color: #999; margin-left: 10px;">调用 DeepSeek 分析变更影响与风险</span>
+    </div>
+
+    <!-- 分析结果 -->
+    <div style="background: #f8f9fa; border-radius: 10px; padding: 16px; margin-bottom: 12px;">
+      <div style="font-weight:600; font-size:14px; margin-bottom: 10px;">📊 分析结果</div>
+      <div style="background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+        <div style="font-weight:500; margin-bottom:6px;">变更概要</div>
+        <div style="font-size: 13px; color: #666; line-height:1.6;">
+          对生产集群 A 的 8 台 ESXi 主机执行 8.0 升级，涉及：<br/>
+          ① 预检查（磁盘、网络、vMotion 兼容性）<br/>
+          ② 逐台迁移 VM → B 集群<br/>
+          ③ 升级 ESXi 固件 → 重启<br/>
+          ④ 验证恢复
+        </div>
+      </div>
+      <div style="background: #fef0f0; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+        <div style="font-weight:500; color:#F56C6C; margin-bottom:6px;">⚠️ 风险项</div>
+        <div style="font-size: 13px; color: #666;">
+          <div style="display: flex; gap: 6px; margin-bottom: 4px;"><span style="color:#F56C6C;">•</span> 生产影响: vMotion 期间 VM 有短暂中断窗口</div>
+          <div style="display: flex; gap: 6px; margin-bottom: 4px;"><span style="color:#E6A23C;">•</span> 回滚复杂度: 升级失败需从备份恢复, 预计 2h+</div>
+          <div style="display: flex; gap: 6px;"><span style="color:#E6A23C;">•</span> 依赖检查: 2 台主机 HCL 兼容性待确认</div>
+        </div>
+      </div>
+      <div style="background: #f0f9eb; border-radius: 8px; padding: 12px;">
+        <div style="font-weight:500; color:#67C23A; margin-bottom:6px;">✅ 建议</div>
+        <div style="font-size: 13px; color: #666;">
+          建议在变更窗口提前 2h 开始执行，预留回滚时间。确保 B 集群有足够资源承接 VM。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 5: 定时策略 -->
+<div class="mockup" style="margin-bottom: 20px;">
+  <div class="mockup-header">Step 5/5 · 定时执行策略</div>
+  <div class="mockup-body" style="padding: 20px;">
+    <div style="background: #f8f9fa; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+      <div style="font-weight:500; margin-bottom: 8px;">审批通过后是否需要自动执行？</div>
+      <div style="display: flex; gap: 16px; margin-bottom: 12px;">
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input type="radio" name="schedule" checked> ✅ 是，定时执行
+        </label>
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input type="radio" name="schedule"> ❌ 否，手动触发
+        </label>
+      </div>
+    </div>
+
+    <!-- 选择定时 -->
+    <div style="border: 1px solid #e4e7ed; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+      <div style="font-size: 13px; font-weight:500; margin-bottom: 10px;">⏰ 选择执行时间</div>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px;">
+          <div style="font-size: 12px; color:#999; margin-bottom:4px;">执行日期</div>
+          <div style="border: 1px solid #dcdfe6; border-radius: 8px; padding: 8px 12px; font-size:13px; display:flex; justify-content:space-between;">
+            <span>2026-06-05</span>
+            <span style="color:#999;">📅</span>
+          </div>
+        </div>
+        <div style="flex: 1; min-width: 200px;">
+          <div style="font-size: 12px; color:#999; margin-bottom:4px;">执行时间</div>
+          <div style="border: 1px solid #dcdfe6; border-radius: 8px; padding: 8px 12px; font-size:13px; display:flex; justify-content:space-between;">
+            <span>22:30</span>
+            <span style="color:#999;">🕐</span>
+          </div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: #E6A23C; margin-top: 8px; background: #fdf6ec; padding: 6px 10px; border-radius: 6px;">
+        ⚠️ 变更窗口: 2026-06-05 22:00 ~ 2026-06-06 06:00，可选的执行时间范围 22:00 ~ 05:00
+      </div>
+    </div>
+
+    <!-- 30分钟警告 -->
+    <div style="background: #fef0f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px;">
+      <span style="color: #F56C6C; font-weight:500;">⏳ 重要提示:</span>
+      <span style="color: #666;">如果到达执行时间前 30 分钟仍未审批，该定时任务将被自动取消。请确保审批流程及时完成。</span>
+    </div>
+
+    <!-- 手动触发 -->
+    <div style="background: #e8f4fd; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #409EFF;">
+      💡 如选择"手动触发"，创建 execution (pending_approval)，待 Change 在 ServiceNow 审批完毕后，在此处手动启动执行。
+    </div>
+  </div>
+</div>
+
+<!-- Summary & Submit -->
+<div style="background: linear-gradient(135deg, #f5f7fa, #fff); border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px;">
+  <div style="font-weight:600; font-size:14px; margin-bottom: 10px;">📋 提交流程总结</div>
+  <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px;">
+    <div style="background: #fff; border-radius: 8px; padding: 10px; flex:1; min-width: 140px;">
+      <div style="color:#999;">提交后立即</div>
+      <div style="font-weight:500;">创建 Execution<br/><span style="font-size:11px; color:#666;">(pending_approval)</span></div>
+    </div>
+    <div style="color: #999; display: flex; align-items: center;">→</div>
+    <div style="background: #fff; border-radius: 8px; padding: 10px; flex:1; min-width: 140px;">
+      <div style="color:#999;">如有定时</div>
+      <div style="font-weight:500;">创建 SchedulePlan<br/><span style="font-size:11px; color:#666;">关联 execution + CR</span></div>
+    </div>
+    <div style="color: #999; display: flex; align-items: center;">→</div>
+    <div style="background: #fff; border-radius: 8px; padding: 10px; flex:1; min-width: 140px;">
+      <div style="color:#999;">审批通过</div>
+      <div style="font-weight:500;">自动执行 / 手动触发</div>
+    </div>
+  </div>
+</div>

@@ -2,7 +2,7 @@
 # All models are importable from `opsflow.models` as before
 
 from .project import OpsProject, ProjectMember
-from .template import FlowTemplate, TemplateVersion, TemplateCollect, TemplateNode
+from .template import FlowTemplate, TemplateVersion, TemplateCollect, TemplateNode, TemplateCategory
 from .execution import (FlowExecution, ExecutionNode, ExecutionScheme,
                         AutoRetryStrategy, NodeTimeoutConfig, NodeExecutionTrace)
 from .plugin import PluginMeta
@@ -15,7 +15,7 @@ from .env import ProjectEnvironmentVariable
 
 __all__ = [
     'OpsProject', 'ProjectMember',
-    'FlowTemplate', 'TemplateVersion', 'TemplateCollect', 'TemplateNode',
+    'FlowTemplate', 'TemplateVersion', 'TemplateCollect', 'TemplateNode', 'TemplateCategory',
     'FlowExecution', 'ExecutionNode', 'ExecutionScheme',
     'AutoRetryStrategy', 'NodeTimeoutConfig', 'NodeExecutionTrace',
     'PluginMeta',

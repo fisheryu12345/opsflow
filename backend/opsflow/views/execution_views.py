@@ -34,7 +34,9 @@ class FlowExecutionViewSet(
     def get_queryset(self):
         """自动按当前用户过滤，只显示自己创建的流程"""
         qs = super().get_queryset()
-        return qs.filter(created_by=self.request.user)
+        return qs.filter(created_by=self.request.user).select_related(
+            'template', 'schedule_plan', 'created_by'
+        )
 
     def get_serializer_class(self):
         """详情页使用 FlowExecutionDetailSerializer（含 state_tree + trace_summary）"""

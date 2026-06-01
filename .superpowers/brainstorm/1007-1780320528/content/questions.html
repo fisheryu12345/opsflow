@@ -1,0 +1,42 @@
+<h2>📋 确认理解与下一步</h2>
+<p class="subtitle">确认几点需求理解，为方案设计做准备</p>
+
+<div class="section" style="margin-top: 20px;">
+  <div style="background: #e8f4fd; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+    <div style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">✅ 已确认</div>
+    <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.8;">
+      <li><strong>Step 1 合法性检测</strong> → 走大模型 (DeepSeek)，你提供约束规则</li>
+      <li><strong>Step 2 ServiceNow CR</strong> → 模拟拉取，后端 mock 数据</li>
+      <li><strong>SubmitExecutionDialog</strong> → 替换为新向导</li>
+    </ul>
+  </div>
+
+  <div style="background: #fef7e0; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+    <div style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">❓ 还需确认</div>
+
+    <div style="background: #fff; border-radius: 8px; padding: 14px; margin-bottom: 10px;">
+      <div style="font-weight: 500; margin-bottom: 4px;">1. Step 1 的 LLM 调用时机</div>
+      <div style="font-size: 13px; color: #666; line-height: 1.6;">
+        打开向导时自动触发 LLM 校验，还是用户点 "校验" 按钮再触发？<br/>
+        <span style="color: #999;">（现有后端已有 <code>analyze_pipeline()</code> 接口，可以复用扩展）</span>
+      </div>
+    </div>
+
+    <div style="background: #fff; border-radius: 8px; padding: 14px; margin-bottom: 10px;">
+      <div style="font-weight: 500; margin-bottom: 4px;">2. Step 2 ServiceNow CR 列表模拟</div>
+      <div style="font-size: 13px; color: #666; line-height: 1.6;">
+        后端已有 mock CR 数据（<code>servicenow_create_change_request.py</code> 返回 <code>CHG0012345</code>），
+        前端需要什么字段？我设想：<br/>
+        <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px;">CR-number | Title | Status | 变更窗口(开始~结束) | 申请者</code>
+      </div>
+    </div>
+
+    <div style="background: #fff; border-radius: 8px; padding: 14px; margin-bottom: 10px;">
+      <div style="font-weight: 500; margin-bottom: 4px;">3. Step 5 定时执行</div>
+      <div style="font-size: 13px; color: #666; line-height: 1.6;">
+        定时执行是提交时就创建 SchedulePlan，还是等审批通过后再创建？<br/>
+        如果用户选择"不需要定时"，是创建 execution 状态为 <code>pending_approval</code> 等待审批完成后自动触发？
+      </div>
+    </div>
+  </div>
+</div>

@@ -2,13 +2,14 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views.template_views import FlowTemplateViewSet
+from .views.template_category_views import TemplateCategoryViewSet
 from .views.execution_views import FlowExecutionViewSet
 from .views.log_views import OpsLogViewSet
 from .views.knowledge_views import OpsKnowledgeViewSet
 from .mock_view.esxi import cmdb_esxi_hosts
 from .mock_view.servers import cmdb_servers
 from .mock_view.netapp import cmdb_netapp_clusters
-from .mock_view.servicenow import cmdb_servicenow_instances
+from .mock_view.servicenow import cmdb_servicenow_instances, servicenow_change_requests
 from .mock_view.pmax import cmdb_pmax_arrays
 from .views.dashboard_views import (
     dashboard_stats, dashboard_trend, dashboard_schedule_stats,
@@ -36,6 +37,7 @@ router.register(r'template-nodes', TemplateNodeViewSet, basename='opsflow-templa
 router.register(r'execution-nodes', ExecutionNodeViewSet, basename='opsflow-execution-node')
 router.register(r'audit', OperationRecordViewSet, basename='opsflow-audit')
 router.register(r'projects', OpsProjectViewSet, basename='opsflow-project')
+router.register(r'template-categories', TemplateCategoryViewSet, basename='opsflow-template-category')
 
 # 嵌套路由：templates/{id}/schemes/
 # --- Project member routes ---
@@ -80,6 +82,7 @@ urlpatterns = [
     path('cmdb/servers/', cmdb_servers, name='opsflow-cmdb-servers'),
     path('cmdb/netapp-clusters/', cmdb_netapp_clusters, name='opsflow-cmdb-netapp-clusters'),
     path('cmdb/servicenow-instances/', cmdb_servicenow_instances, name='opsflow-cmdb-servicenow-instances'),
+    path('cmdb/servicenow-change-requests/', servicenow_change_requests, name='opsflow-servicenow-change-requests'),
     path('cmdb/pmax-arrays/', cmdb_pmax_arrays, name='opsflow-cmdb-pmax-arrays'),
 
 ] + router.urls

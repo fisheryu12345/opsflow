@@ -202,6 +202,8 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       id: startId,
       x: startFromData ? (positions[startId]?.x ?? 10) : 10,
       y: startFromData ? (positions[startId]?.y ?? centerY) : centerY,
+      label: 'Start',
+      attrs: { label: { text: 'Start' } },
       data: startFromData || { id: startId, node_type: 'start_event' },
     }))
     if (!startFromData) {
@@ -248,6 +250,8 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       id: endId,
       x: endFromData ? (positions[endId]?.x ?? maxContentX + 250) : maxContentX + 250,
       y: endFromData ? (positions[endId]?.y ?? centerY) : centerY,
+      label: 'End',
+      attrs: { label: { text: 'End' } },
       data: endFromData || { id: endId, node_type: 'end_event' },
     }))
     if (!endFromData) {

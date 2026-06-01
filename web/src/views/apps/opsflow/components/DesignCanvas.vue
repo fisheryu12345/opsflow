@@ -112,12 +112,14 @@
         :template-id="templateId"
         @updated="onSubprocessUpdated"
       />
-      <!-- Submit Execution Dialog -->
-      <SubmitExecutionDialog
+      <!-- Submit Execution Wizard -->
+      <SubmitWizardDialog
         v-if="templateId"
         v-model="showExecDialog"
         :template-id="templateId"
         :template-name="templateName"
+        :pipeline-nodes="pipelineData.nodes"
+        :pipeline-edges="pipelineData.edges"
         @execution-created="onExecCreated"
       />
     </div>
@@ -137,7 +139,7 @@ import PropertyPanel from './PropertyPanel.vue'
 import GlobalVariablePanel from './GlobalVariablePanel.vue'
 import SubprocessStatusBadge from './SubprocessStatusBadge.vue'
 import ProjectSwitcher from './ProjectSwitcher.vue'
-import SubmitExecutionDialog from './SubmitExecutionDialog.vue'
+import SubmitWizardDialog from './SubmitWizardDialog.vue'
 
 const props = defineProps<{
   templates?: any[]
@@ -157,6 +159,14 @@ const emit = defineEmits<{
 
 const showVarPanel = ref(false)
 const showExecDialog = ref(false)
+const pipelineData = ref<{ nodes: any[]; edges: any[] }>({ nodes: [], edges: [] })
+
+// Capture current graph data when opening the wizard
+watch(showExecDialog, (val) => {
+  if (val) {
+    pipelineData.value = getGraphData()
+  }
+})
 const toolbarCollapsed = ref(false)
 const varPanelRef = ref<HTMLElement | null>(null)
 

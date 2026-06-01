@@ -66,18 +66,8 @@
     <!-- 插件选择器 -->
     <PluginPickerDialog v-model:visible="pickerVisible" @select="onPluginPicked" />
 
-    <!-- 新模板对话框 -->
-    <el-dialog v-model="newDialogVisible" title="New Template" width="420px" class="opsflow-dialog">
-      <el-form :model="newTemplateForm" label-width="80px">
-        <el-form-item label="Name">
-          <el-input v-model="newTemplateForm.name" placeholder="Enter template name" maxlength="100" show-word-limit />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="newDialogVisible = false">Cancel</el-button>
-        <el-button type="primary" @click="onCreateTemplate">Create</el-button>
-      </template>
-    </el-dialog>
+    <!-- 新建模板向导 -->
+    <CreateTemplateWizard v-model="newDialogVisible" @created="onWizardCreated" />
 
     <!-- Diff 弹窗 -->
     <DiffModal ref="diffModalRef" :template-id="diffTemplateId" :ai-original="aiOriginal" :current="currentTree"
@@ -88,7 +78,7 @@
       <div v-loading="analyzing" element-loading-text="AI analyzing..." class="analyze-body">
         <div v-if="analysisResult" class="analyze-content">
           <!-- Summary Hero -->
-          <div class="summary-hero">
+          <div class="summary-hero fade-in-up">
             <div class="summary-hero-icon"><el-icon size="22"><InfoFilled /></el-icon></div>
             <div class="summary-hero-text">
               <div class="summary-hero-label">Summary</div>
@@ -96,14 +86,14 @@
             </div>
           </div>
           <!-- Steps Timeline -->
-          <div class="section-card" v-if="analysisResult.steps?.length">
+          <div class="section-card fade-in-up" v-if="analysisResult.steps?.length" :style="{ animationDelay: '0.15s' }">
             <div class="section-card-header">
               <el-icon size="16" color="#409EFF"><List /></el-icon>
               <span>Pipeline Steps</span>
               <el-tag size="small" type="primary" effect="plain">{{ analysisResult.steps.length }} steps</el-tag>
             </div>
             <div class="timeline">
-              <div v-for="(step, i) in analysisResult.steps" :key="i" class="timeline-item">
+              <div v-for="(step, i) in analysisResult.steps" :key="i" class="timeline-item stagger-item" :style="{ animationDelay: `${0.3 + i * 0.12}s` }">
                 <div class="timeline-marker">
                   <div class="timeline-dot">{{ i + 1 }}</div>
                   <div v-if="i < analysisResult.steps.length - 1" class="timeline-line" />
@@ -115,27 +105,27 @@
             </div>
           </div>
           <div class="section-card-row">
-            <div class="section-card section-card-half" v-if="analysisResult.risks?.length">
+            <div class="section-card section-card-half fade-in-up" v-if="analysisResult.risks?.length" :style="{ animationDelay: '0.3s' }">
               <div class="section-card-header">
                 <el-icon size="16" color="#E6A23C"><WarningFilled /></el-icon>
                 <span>Risks</span>
                 <el-tag size="small" type="warning" effect="plain">{{ analysisResult.risks.length }}</el-tag>
               </div>
               <div class="risk-list">
-                <div v-for="(risk, i) in analysisResult.risks" :key="i" class="risk-item">
+                <div v-for="(risk, i) in analysisResult.risks" :key="i" class="risk-item stagger-item" :style="{ animationDelay: `${0.5 + i * 0.08}s` }">
                   <div class="risk-severity risk-severity-warning" />
                   <span>{{ risk }}</span>
                 </div>
               </div>
             </div>
-            <div class="section-card section-card-half" v-if="analysisResult.suggestions?.length">
+            <div class="section-card section-card-half fade-in-up" v-if="analysisResult.suggestions?.length" :style="{ animationDelay: '0.45s' }">
               <div class="section-card-header">
                 <el-icon size="16" color="#409EFF"><Lightning /></el-icon>
                 <span>Suggestions</span>
                 <el-tag size="small" type="primary" effect="plain">{{ analysisResult.suggestions.length }}</el-tag>
               </div>
               <div class="suggestion-list">
-                <div v-for="(sug, i) in analysisResult.suggestions" :key="i" class="suggestion-item">
+                <div v-for="(sug, i) in analysisResult.suggestions" :key="i" class="suggestion-item stagger-item" :style="{ animationDelay: `${0.6 + i * 0.08}s` }">
                   <el-icon size="14" color="#409EFF"><CircleCheck /></el-icon>
                   <span>{{ sug }}</span>
                 </div>
@@ -163,6 +153,7 @@ import { GetTemplates, GetTemplateDetail, CreateFromAi, CreateTemplate, GetDiff,
 import DesignCanvas from './components/DesignCanvas.vue'
 import DiffModal from './components/DiffModal.vue'
 import PluginPickerDialog from './components/PluginPickerDialog.vue'
+import CreateTemplateWizard from './components/CreateTemplateWizard.vue'
 
 const store = useOpsflowStore()
 
@@ -175,9 +166,8 @@ const selectedTemplateId = ref<number | null>(null)
 const nlInput = ref('')
 const generating = ref(false)
 
-// 新建模板对话框
+// 新建模板向导
 const newDialogVisible = ref(false)
-const newTemplateForm = ref({ name: '', targetHosts: '' })
 
 // Diff
 const diffTemplateId = ref(0)
@@ -418,30 +408,15 @@ async function onAnalyze() {
   }
 }
 
-// 新建模板
+// 新建模板向导
 function showNewTemplateDialog() {
   newDialogVisible.value = true
 }
 
-async function onCreateTemplate() {
-  if (!newTemplateForm.value.name) {
-    ElMessage.warning('Please enter a template name')
-    return
-  }
-  newDialogVisible.value = false
-  try {
-    const res = await CreateTemplate({ name: newTemplateForm.value.name, pipeline_tree: { nodes: [], edges: [] } })
-    const tpl = res.data?.data || res.data
-    if (tpl?.id) {
-      newTemplateForm.value = { name: '' }
-      await fetchTemplates()
-      selectedTemplateId.value = tpl.id
-      await onSelectTemplate(tpl.id)
-      ElMessage.success('Template created')
-    }
-  } catch (e: any) {
-    ElMessage.error(e?.msg || e?.message || 'Failed to create template')
-  }
+async function onWizardCreated(template: any) {
+  await fetchTemplates()
+  selectedTemplateId.value = template.id
+  await onSelectTemplate(template.id)
 }
 
 // Diff 确认
@@ -536,7 +511,28 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: 10px 14px;
   background: linear-gradient(135deg, #409EFF, #337ecc);
+  background-size: 200% 100%;
   color: #fff;
+  animation: headerShimmer 4s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+.chat-float-header::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  background-size: 200% 100%;
+  animation: headerGlide 3s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes headerShimmer {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+}
+@keyframes headerGlide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
 }
 .chat-header-left {
   display: flex;
@@ -544,6 +540,8 @@ onBeforeUnmount(() => {
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
+  position: relative;
+  z-index: 1;
 }
 .chat-header-left :deep(.el-icon) {
   color: #fff;
@@ -552,6 +550,8 @@ onBeforeUnmount(() => {
   color: #fff;
   border-color: rgba(255, 255, 255, 0.4);
   background: rgba(255, 255, 255, 0.15);
+  position: relative;
+  z-index: 1;
 }
 .chat-float-header :deep(.el-button:hover) {
   background: rgba(255, 255, 255, 0.3);
@@ -576,6 +576,14 @@ onBeforeUnmount(() => {
   font-size: 13px;
   padding: 40px 0;
   gap: 8px;
+  animation: fadeInUp 0.5s ease both;
+}
+.chat-placeholder :deep(.el-icon) {
+  animation: placeholderFloat 3s ease-in-out infinite;
+}
+@keyframes placeholderFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 .chat-float-input {
   display: flex;
@@ -589,10 +597,22 @@ onBeforeUnmount(() => {
   border-radius: 8px;
   font-size: 13px;
   padding: 8px 12px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.chat-float-input :deep(.el-textarea__inner:focus) {
+  border-color: #409EFF;
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.12);
 }
 .chat-send-btn {
   height: 36px;
   flex-shrink: 0;
+  transition: all 0.2s;
+}
+.chat-send-btn:not(:disabled):hover {
+  transform: scale(1.04);
+}
+.chat-send-btn:not(:disabled):active {
+  transform: scale(0.96);
 }
 .chat-float-trigger {
   position: absolute !important;
@@ -603,10 +623,15 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   box-shadow: 0 4px 16px rgba(64, 158, 255, 0.3);
-  transition: transform 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: triggerPulse 2.5s ease-in-out infinite;
+}
+@keyframes triggerPulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(64, 158, 255, 0.3); }
+  50% { box-shadow: 0 4px 28px rgba(64, 158, 255, 0.55); }
 }
 .chat-float-trigger:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.02);
 }
 
 /* ===== Chat Messages ===== */
@@ -614,12 +639,27 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  animation: msgFadeIn 0.35s ease both;
 }
 .chat-msg.user {
   justify-content: flex-end;
+  animation-name: msgSlideInRight;
 }
 .chat-msg.ai {
   justify-content: flex-start;
+  animation-name: msgSlideInLeft;
+}
+@keyframes msgSlideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes msgSlideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes msgFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .chat-avatar {
   width: 28px;
@@ -898,5 +938,76 @@ onBeforeUnmount(() => {
   font-size: 13px;
   line-height: 1.5;
   color: #555;
+}
+
+/* ===== Animation Helpers ===== */
+/* Staggered fade-in for AI Analysis dialog sections */
+.fade-in-up {
+  animation: fadeInUp 0.5s ease both;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Staggered list items (timeline steps, risks, suggestions) */
+.stagger-item {
+  animation: fadeInUp 0.4s ease both;
+}
+
+/* Summary hero icon pulse */
+.summary-hero-icon {
+  animation: heroPulse 2s ease-in-out infinite;
+}
+@keyframes heroPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(64, 158, 255, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(64, 158, 255, 0); }
+}
+
+/* Dialog enter animation */
+.opsflow-dialog :deep(.el-overlay) {
+  animation: dialogOverlayIn 0.2s ease both;
+}
+.opsflow-dialog :deep(.el-dialog) {
+  animation: dialogBounceIn 0.3s ease both;
+}
+@keyframes dialogOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dialogBounceIn {
+  from { opacity: 0; transform: scale(0.92) translateY(-20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Section card hover lift */
+.section-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.section-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* Timeline dot pulse on hover */
+.timeline-dot {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.timeline-item:hover .timeline-dot {
+  transform: scale(1.15);
+  box-shadow: 0 3px 10px rgba(64, 158, 255, 0.5);
+}
+
+/* Risk & suggestion item hover */
+.risk-item, .suggestion-item {
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.risk-item:hover {
+  transform: translateX(3px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.suggestion-item:hover {
+  transform: translateX(3px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 </style>

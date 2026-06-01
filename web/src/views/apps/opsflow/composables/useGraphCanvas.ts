@@ -132,8 +132,6 @@ export function defaultNodeLabel(nodeType: string): string {
     parallel_gateway: 'Parallel',
     conditional_parallel_gateway: 'Cond. Parallel',
     converge_gateway: 'Converge',
-    start_event: 'Start',
-    end_event: 'End',
     approval: 'Approval',
     subprocess: 'SubProcess',
     atom: 'Task',
@@ -234,6 +232,11 @@ export function useGraphCanvas(containerId: string, options: GraphCanvasOptions)
       if (cell.isNode()) {
         const data = cell.getData() || {}
         const pos = cell.getPosition()
+        // Ensure label is present — X6 stores it on attrs, not in getData()
+        if (!data.label) {
+          const nodeLabels = cell.getLabels?.() || []
+          data.label = nodeLabels[0]?.attrs?.text?.text || ''
+        }
         nodes.push({ ...data, id: data.id || cell.id, x: pos.x, y: pos.y })
       } else if (cell.isEdge()) {
         const source = cell.getSource()

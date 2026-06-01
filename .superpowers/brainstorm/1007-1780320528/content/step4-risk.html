@@ -1,0 +1,109 @@
+<h2>🧭 提交向导 — Step 4 风险确认功能</h2>
+<p class="subtitle">风险分析后，用户需手动逐条确认风险</p>
+
+<!-- Step 4: 风险分析 + 手动确认 -->
+<div class="mockup" style="margin-bottom: 20px;">
+  <div class="mockup-header">Step 4/5 · AI 风险分析与确认</div>
+  <div class="mockup-body" style="padding: 20px;">
+
+    <!-- 触发分析 -->
+    <div style="margin-bottom: 14px;">
+      <button class="mock-button" style="background: #E6A23C; color: #fff; border: none; padding: 8px 20px;">
+        🤖 执行风险分析
+      </button>
+      <span style="font-size: 12px; color: #999; margin-left: 10px;">调用 DeepSeek 分析变更影响与风险</span>
+    </div>
+
+    <!-- 分析结果概览 -->
+    <div style="background: #f8f9fa; border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+
+      <!-- 变更概要 -->
+      <div style="background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+          <span style="font-size: 16px;">📋</span>
+          <span style="font-weight:500;">变更概要</span>
+        </div>
+        <div style="font-size: 13px; color: #666; line-height:1.6;">
+          对生产集群 A 的 8 台 ESXi 主机执行 8.0 升级，涉及：预检查 → VM 迁移 → 固件升级 → 重启 → 验证恢复
+        </div>
+      </div>
+
+      <!-- 风险列表 - 需要逐条确认 -->
+      <div style="margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+          <span style="font-size: 16px;">⚠️</span>
+          <span style="font-weight:500;">风险项（请逐条确认）</span>
+        </div>
+
+        <!-- 风险项 1 -->
+        <div style="background: #fff; border: 1px solid #fef0f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px;">
+          <input type="checkbox" style="margin-top: 2px; width: 16px; height: 16px;">
+          <div style="flex: 1; font-size: 13px;">
+            <span style="color: #F56C6C; font-weight:500;">高</span>
+            <span style="color: #666;"> vMotion 期间 VM 有短暂中断窗口，影响范围：集群 A 所有生产 VM</span>
+          </div>
+        </div>
+
+        <!-- 风险项 2 -->
+        <div style="background: #fff; border: 1px solid #fef0f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px;">
+          <input type="checkbox" style="margin-top: 2px; width: 16px; height: 16px;">
+          <div style="flex: 1; font-size: 13px;">
+            <span style="color: #E6A23C; font-weight:500;">中</span>
+            <span style="color: #666;"> 升级失败需从备份恢复，预计回滚耗时 2h+，需确保备份完整性</span>
+          </div>
+        </div>
+
+        <!-- 风险项 3 -->
+        <div style="background: #fff; border: 1px solid #fdf6ec; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px;">
+          <input type="checkbox" style="margin-top: 2px; width: 16px; height: 16px;">
+          <div style="flex: 1; font-size: 13px;">
+            <span style="color: #E6A23C; font-weight:500;">低</span>
+            <span style="color: #666;"> 2 台主机 HCL 兼容性待确认，需提前验证硬件驱动版本</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 建议 -->
+      <div style="background: #f0f9eb; border-radius: 8px; padding: 12px;">
+        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+          <span style="font-size: 16px;">💡</span>
+          <span style="font-weight:500; color:#67C23A;">建议</span>
+        </div>
+        <div style="font-size: 13px; color: #666;">
+          建议在变更窗口提前 2h 开始执行，预留回滚时间。确保 B 集群有足够资源承接 VM。
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部确认栏 -->
+    <div style="background: #fef7e0; border: 1px solid #fdf6ec; border-radius: 8px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px;">
+      <input type="checkbox" style="margin-top: 2px; width: 16px; height: 16px;">
+      <div style="font-size: 13px; color: #7c6a2b;">
+        <strong>我已知晓上述所有风险</strong>，并确认执���此变更流程。如因未勾选的���险项导致问题，由我承担相应责任。
+      </div>
+    </div>
+
+    <!-- Step 4 导航按钮 -->
+    <div style="display: flex; justify-content: space-between; margin-top: 16px; border-top: 1px solid #f0f0f0; padding-top: 16px;">
+      <button class="mock-button" style="background: #fff; color: #606266; border: 1px solid #dcdfe6;">← Back</button>
+      <div style="display: flex; gap: 10px;">
+        <button class="mock-button" style="background: #fff; color: #606266; border: 1px solid #dcdfe6;">Cancel</button>
+        <button class="mock-button" style="background: #909399; color: #fff; border: none;">Continue →</button>
+        <div style="font-size: 11px; color: #999; display: flex; align-items: center;">(需勾选全部风险)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="background: #e8f4fd; border-radius: 10px; padding: 14px; margin-top: 12px;">
+  <div style="display: flex; align-items: flex-start; gap: 8px;">
+    <span style="font-size: 16px;">💡</span>
+    <div style="font-size: 13px; color: #409EFF;">
+      <strong>设计要点：</strong><br/>
+      • 风险项 <strong>逐条 checkbox</strong>，每一条都需勾选才能继续<br/>
+      • 底部额外 <strong>总体确认 checkbox</strong>："已知晓所有风险"<br/>
+      • Continue 按钮在全部确认前 <strong>灰色禁用</strong><br/>
+      • 风险等级用颜色区分：<span style="color:#F56C6C;">高(红)</span> · <span style="color:#E6A23C;">中(黄)</span> · <span style="color:#E6A23C;">低(黄)</span>
+    </div>
+  </div>
+</div>

@@ -169,3 +169,20 @@ class TemplateCollect(models.Model):
 
     def __str__(self):
         return f'{self.user} -> {self.template}'
+
+class TemplateCategory(models.Model):
+    """模板分类 — 可管理配置，管理员可增删"""
+    name = models.CharField(max_length=64, unique=True, verbose_name="Category Name")
+    code = models.CharField(max_length=64, unique=True, verbose_name="Code")
+    icon = models.CharField(max_length=64, blank=True, default='', verbose_name="Icon")
+    sort_order = models.IntegerField(default=0, verbose_name="Sort Order")
+    is_active = models.BooleanField(default=True, verbose_name="Is Active")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ops_template_category'
+        ordering = ['sort_order', 'name']
+        verbose_name = "Template Category"
+
+    def __str__(self):
+        return self.name

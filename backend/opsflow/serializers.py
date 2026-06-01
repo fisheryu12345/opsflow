@@ -1,7 +1,7 @@
 import pytz
 
 from rest_framework import serializers
-from .models import FlowTemplate, TemplateVersion, FlowExecution, NodeExecutionTrace, OpsLog, OpsKnowledge, SchedulePlan, TemplateNode, ExecutionNode, ExecutionScheme, OperationRecord, TemplateCollect, OpsProject, ProjectEnvironmentVariable
+from .models import FlowTemplate, TemplateVersion, FlowExecution, NodeExecutionTrace, OpsLog, OpsKnowledge, SchedulePlan, TemplateNode, ExecutionNode, ExecutionScheme, OperationRecord, TemplateCollect, OpsProject, ProjectEnvironmentVariable, TemplateCategory
 
 
 class GlobalVariableField(serializers.Field):
@@ -64,6 +64,8 @@ class TemplateVersionSerializer(serializers.ModelSerializer):
 class FlowExecutionSerializer(serializers.ModelSerializer):
     template_name = serializers.SerializerMethodField()
     created_by_name = serializers.SerializerMethodField()
+    schedule_plan_name = serializers.SerializerMethodField()
+    schedule_plan_scheduled_at = serializers.SerializerMethodField()
 
     class Meta:
         model = FlowExecution
@@ -75,6 +77,12 @@ class FlowExecutionSerializer(serializers.ModelSerializer):
 
     def get_created_by_name(self, obj):
         return obj.created_by.username if obj.created_by else ''
+
+    def get_schedule_plan_name(self, obj):
+        return obj.schedule_plan.name if obj.schedule_plan else None
+
+    def get_schedule_plan_scheduled_at(self, obj):
+        return obj.schedule_plan.scheduled_at if obj.schedule_plan else None
 
 
 class TemplateNodeSerializer(serializers.ModelSerializer):
@@ -232,3 +240,10 @@ class ProjectEnvironmentVariableSerializer(serializers.ModelSerializer):
         model = ProjectEnvironmentVariable
         fields = '__all__'
         read_only_fields = ['created_at', 'updated_at']
+
+
+class TemplateCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TemplateCategory
+        fields = '__all__'
+        read_only_fields = ['created_at']

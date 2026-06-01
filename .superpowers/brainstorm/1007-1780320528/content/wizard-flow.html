@@ -1,0 +1,107 @@
+<h2>🧭 提交执行向导 — 整体流程</h2>
+<p class="subtitle">5步引导完成流程提交与审批前准备</p>
+
+<div class="section" style="margin-top: 24px;">
+
+  <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;">
+
+    <div style="background: #e8f4fd; border-radius: 12px; padding: 16px; flex: 1; min-width: 160px; text-align: center;">
+      <div style="font-size: 28px; margin-bottom: 6px;">①</div>
+      <div style="font-weight: 600; font-size: 14px;">Pre-Check</div>
+      <div style="font-size: 11px; color: #666; margin-top: 4px;">流程合法性检测<br/>静态结构验证</div>
+    </div>
+
+    <div style="background: #e8f4fd; border-radius: 12px; padding: 16px; flex: 1; min-width: 160px; text-align: center;">
+      <div style="font-size: 28px; margin-bottom: 6px;">②</div>
+      <div style="font-weight: 600; font-size: 14px;">Change Number</div>
+      <div style="font-size: 11px; color: #666; margin-top: 4px;">选择 ServiceNow CR<br/>绑定变更与流程</div>
+    </div>
+
+    <div style="background: #e8f4fd; border-radius: 12px; padding: 16px; flex: 1; min-width: 160px; text-align: center;">
+      <div style="font-size: 28px; margin-bottom: 6px;">③</div>
+      <div style="font-weight: 600; font-size: 14px;">Parameters</div>
+      <div style="font-size: 11px; color: #666; margin-top: 4px;">输入变量参数<br/>覆盖默认配置</div>
+    </div>
+
+    <div style="background: #fff3e0; border-radius: 12px; padding: 16px; flex: 1; min-width: 160px; text-align: center;">
+      <div style="font-size: 28px; margin-bottom: 6px;">④</div>
+      <div style="font-weight: 600; font-size: 14px;">Risk Analysis</div>
+      <div style="font-size: 11px; color: #666; margin-top: 4px;">AI 分析变更内容<br/>识别风险 · 确认执行</div>
+    </div>
+
+    <div style="background: #e8f5e9; border-radius: 12px; padding: 16px; flex: 1; min-width: 160px; text-align: center;">
+      <div style="font-size: 28px; margin-bottom: 6px;">⑤</div>
+      <div style="font-weight: 600; font-size: 14px;">Schedule</div>
+      <div style="font-size: 11px; color: #666; margin-top: 4px;">可选定时执行<br/>变更窗口约束</div>
+    </div>
+
+  </div>
+
+  <div class="mockup" style="margin-top: 20px;">
+    <div class="mockup-header">向导对话框布局示意</div>
+    <div class="mockup-body" style="padding: 20px;">
+
+      <!-- Step Indicator Bar -->
+      <div style="display: flex; gap: 0; margin-bottom: 24px; background: #f5f5f5; border-radius: 8px; padding: 4px;">
+        <div style="flex: 1; text-align: center; padding: 8px; background: #409EFF; color: #fff; border-radius: 6px; font-size: 12px; font-weight: 600;">① Validation</div>
+        <div style="flex: 1; text-align: center; padding: 8px; font-size: 12px; color: #999;">② Change</div>
+        <div style="flex: 1; text-align: center; padding: 8px; font-size: 12px; color: #999;">③ Params</div>
+        <div style="flex: 1; text-align: center; padding: 8px; font-size: 12px; color: #999;">④ Risk</div>
+        <div style="flex: 1; text-align: center; padding: 8px; font-size: 12px; color: #999;">⑤ Schedule</div>
+      </div>
+
+      <!-- Step Content (mock) -->
+      <div style="margin-bottom: 20px; min-height: 120px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="background: #409EFF; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">✓</span>
+          <span style="font-weight: 600; font-size: 15px;">Pipeline 结构验证</span>
+        </div>
+        <div style="background: #f0f9eb; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #67C23A; margin-bottom: 8px;">
+          ✅ 拓扑结构正常 · 无孤立节点 · 网关路径完整
+        </div>
+        <div style="background: #fdf6ec; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #E6A23C;">
+          ⚠️ 检测到 1 个警告: 节点 "Backup Config" 未配置回滚路径
+        </div>
+      </div>
+
+      <!-- Navigation Buttons -->
+      <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #f0f0f0; padding-top: 16px;">
+        <button class="mock-button" style="background: #fff; color: #606266; border: 1px solid #dcdfe6;">Cancel</button>
+        <button class="mock-button" style="background: #409EFF; color: #fff; border: none;">Continue →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px;">
+  <h3>关键设计要点</h3>
+  <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+    <div class="card" style="flex: 1; min-width: 200px; padding: 12px; border-radius: 10px; background: #f8f9fa;">
+      <div style="font-weight: 600;">步骤间状态保持</div>
+      <div style="font-size: 12px; color: #666; margin-top: 4px;">每步输入数据传递给下一步，可回退修改</div>
+    </div>
+    <div class="card" style="flex: 1; min-width: 200px; padding: 12px; border-radius: 10px; background: #f8f9fa;">
+      <div style="font-weight: 600;">异步风险分析</div>
+      <div style="font-size: 12px; color: #666; margin-top: 4px;">Step 4 调用 DeepSeek 时显示 loading，完成后展示结果</div>
+    </div>
+    <div class="card" style="flex: 1; min-width: 200px; padding: 12px; border-radius: 10px; background: #f8f9fa;">
+      <div style="font-weight: 600;">变更窗口约束</div>
+      <div style="font-size: 12px; color: #666; margin-top: 4px;">Step 5 时间选择器受限于 Step 2 所选 CR 的变更窗口</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="background: #fef7e0; border-radius: 10px; padding: 14px; margin-top: 20px;">
+  <div style="display: flex; align-items: flex-start; gap: 8px;">
+    <span style="font-size: 18px;">💡</span>
+    <div style="font-size: 13px; color: #7c6a2b;">
+      <strong>待确认问题：</strong>
+      <ol style="margin: 4px 0 0 0; padding-left: 20px;">
+        <li>Step 1 的"合法性检测"是走前端 useGraphValidator 还是后端 validator？或两者都跑？</li>
+        <li>Step 2 下拉 ServiceNow CR 列表是静态 mock 还是模拟拉取？</li>
+        <li>Existing SubmitExecutionDialog 是替换还是保留？</li>
+      </ol>
+    </div>
+  </div>
+</div>

@@ -24,8 +24,19 @@ class SchedulePlanViewSet(ProjectFilteredViewSet):
     project_field = 'project'
 
     def perform_create(self, serializer):
-        # ── 定时任务数量校验 ──
+        # ── 项目归属 ──
         project_id = self.request.query_params.get('project_id')
+        if project_id:
+            user_project_ids = self.get_user_project_ids()
+            if int(project_id) not in user_project_ids:
+                from rest_framework import exceptions
+                raise exceptions.PermissionDenied('无权在当前项目创建资源')
+            project_kwargs = {'project_id': project_id}
+        else:
+            from opsflow.models import OpsProject
+            default = OpsProject.objects.first()
+            project_kwargs = {'project': default} if default else {}
+        # ── 定时任务数量校验 ──
         if project_id:
             from opsflow.models import OpsProject
             try:
@@ -40,7 +51,7 @@ class SchedulePlanViewSet(ProjectFilteredViewSet):
             except OpsProject.DoesNotExist:
                 pass
         # ── 结束 ──
-        plan = serializer.save(created_by=self.request.user)
+        plan = serializer.save(created_by=self.request.user, **project_kwargs)
         if plan.template and plan.template.pipeline_tree:
             snap = plan.template.snapshot or {}
             plan.template_snapshot = {

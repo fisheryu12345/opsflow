@@ -50,6 +50,9 @@
           <div class="exec-tab" :class="{ active: filterStatus.includes('pending_approval') }" @click="filterStatus = ['pending_approval']; onFilter()">
             <span class="exec-tab-dot" style="background:#9B59B6" />Pending Approval
           </div>
+          <div class="exec-tab" :class="{ active: filterStatus.includes('pending') }" @click="filterStatus = ['pending']; onFilter()">
+            <span class="exec-tab-dot" style="background:#909399" />Pending
+          </div>
         </div>
         <div class="exec-filter-actions">
           <el-button :icon="Refresh" @click="fetchExecutions" :loading="loading" text size="small">Refresh</el-button>
@@ -73,6 +76,28 @@
           <el-table-column label="Duration" width="100">
             <template #default="{ row }">
               <span class="exec-duration">{{ row.started_at && row.ended_at ? formatDuration(row.started_at, row.ended_at) : (row.started_at ? 'Running...' : '-') }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="CR Number" width="140">
+            <template #default="{ row }">
+              <span class="exec-cr-number">{{ row.context?.cr_number || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="CR Title" min-width="180" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span>{{ row.context?.cr_title || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="CR Status" width="110">
+            <template #default="{ row }">
+              <span v-if="row.context?.cr_status === 'approved'" class="exec-cr-status st-approved">Approved</span>
+              <span v-else-if="row.context?.cr_status === 'pending'" class="exec-cr-status st-pending-cr">Pending</span>
+              <span v-else class="exec-cr-status st-none">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="Schedule" width="160">
+            <template #default="{ row }">
+              <span>{{ row.schedule_plan_scheduled_at ? formatTime(row.schedule_plan_scheduled_at) : '-' }}</span>
             </template>
           </el-table-column>
           <el-table-column label="Actions" width="220" fixed="right">
@@ -151,6 +176,11 @@ function formatDuration(start: string, end: string) {
   return `${Math.floor(sec / 60)}m ${sec % 60}s`
 }
 
+function formatTime(dt: string) {
+  if (!dt) return '-'
+  return dt.replace('T', ' ').substring(0, 19)
+}
+
 async function fetchExecutions() {
   loading.value = true
   try {
@@ -227,5 +257,10 @@ onMounted(async () => {
 .st-failed { background: #fef0f0; color: #F56C6C; }
 .st-cancelled { background: #f5f5f5; color: #909399; }
 .exec-duration { font-size: 12px; color: #909399; }
+.exec-cr-number { font-family: monospace; font-size: 12px; color: #409EFF; font-weight: 600; }
+.exec-cr-status { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px; }
+.exec-cr-status.st-approved { background: #f0f9eb; color: #67C23A; }
+.exec-cr-status.st-pending-cr { background: #fdf6ec; color: #E6A23C; }
+.exec-cr-status.st-none { background: #f5f5f5; color: #C0C4CC; }
 .exec-pagination { display: flex; justify-content: flex-end; padding: 12px 16px; }
 </style>
