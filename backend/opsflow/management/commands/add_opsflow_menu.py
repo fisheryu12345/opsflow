@@ -209,3 +209,49 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f'  {"Created" if created else "Found"} menu: {approval_menu.name} (id={approval_menu.id})'
         ))
+
+        # --- Webhook 管理 (Webhook) ---
+        webhook_menu, created = Menu.objects.get_or_create(
+            name="Webhook 管理",
+            web_path="/opsflow/webhooks",
+            component="apps/opsflow-webhook/index",
+            component_name="opsflowWebhooks",
+            defaults={
+                "icon": "iconfont icon-rizhi",
+                "sort": 10,
+                "is_link": False,
+                "is_catalog": False,
+                "status": True,
+                "cache": True,
+                "visible": True,
+                "is_iframe": False,
+                "is_affix": False,
+                "parent": catalog,
+            },
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f'  {"Created" if created else "Found"} menu: {webhook_menu.name} (id={webhook_menu.id})'
+        ))
+
+        # --- 项目管理 (Project) ---
+        project_menu, created = Menu.objects.get_or_create(
+            name="项目管理",
+            web_path="/opsflow/projects",
+            component="apps/opsflow-project/index",
+            component_name="opsflowProjects",
+            defaults={
+                "icon": "iconfont icon-configure",
+                "sort": 11,
+                "is_link": False,
+                "is_catalog": False,
+                "status": True,
+                "cache": True,
+                "visible": True,
+                "is_iframe": False,
+                "is_affix": False,
+                "parent": catalog,
+            },
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f'  {"Created" if created else "Found"} menu: {project_menu.name} (id={project_menu.id})'
+        ))

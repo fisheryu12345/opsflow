@@ -54,6 +54,6 @@ class OpsKnowledgeViewSet(ProjectFilteredViewSet):
         query = request.data.get('query', '')
         if not query:
             return Response({'code': 4000, 'msg': 'query required', 'data': None})
-        results = OpsKnowledge.objects.filter(content__icontains=query)
+        results = self.get_queryset().filter(content__icontains=query)
         ser = self.get_serializer(results[:20], many=True)
         return Response({'code': 2000, 'msg': 'success', 'data': ser.data})

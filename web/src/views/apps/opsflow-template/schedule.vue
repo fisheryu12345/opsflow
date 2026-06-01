@@ -1,49 +1,79 @@
 <template>
-  <div class="schedule-page">
-    <!-- Header with stats -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="header-title-row">
-          <h2 class="page-title">Schedule Management</h2>
-          <el-tag size="small" type="primary" effect="light">{{ list.length }} total</el-tag>
+  <div class="sc-page">
+    <!-- Hero Section -->
+    <div class="sc-hero">
+      <div class="sc-hero-bg" />
+      <div class="sc-hero-inner">
+        <div class="sc-hero-left">
+          <h1 class="sc-hero-title">Schedule Management</h1>
+          <p class="sc-hero-subtitle">Manage recurring and one-time pipeline executions</p>
         </div>
-        <p class="page-subtitle">Manage recurring and one-time pipeline executions</p>
-      </div>
-      <div class="header-right">
-        <el-button :icon="Refresh" @click="fetchList" :loading="loading" size="small">
-          Refresh
-        </el-button>
-        <el-button type="primary" :icon="Plus" size="small" @click="openCreate">
-          New Schedule
-        </el-button>
+        <div class="sc-hero-center">
+          <el-input
+            v-model="searchQuery"
+            placeholder="Search schedules..."
+            clearable
+            size="default"
+            class="sc-search-input"
+            @keyup.enter="onSearch"
+            @clear="onSearch"
+          >
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+        </div>
+        <div class="sc-hero-stats">
+          <div class="sc-stat-item"><span class="sc-stat-value">{{ total }}</span><span class="sc-stat-label">Total</span></div>
+          <div class="sc-stat-divider" />
+          <div class="sc-stat-item"><span class="sc-stat-value">{{ activeCount }}</span><span class="sc-stat-label">Active</span></div>
+          <div class="sc-stat-divider" />
+          <div class="sc-stat-item"><span class="sc-stat-value">{{ totalRuns }}</span><span class="sc-stat-label">Runs</span></div>
+          <div class="sc-stat-divider" />
+          <div class="sc-stat-item"><span class="sc-stat-value">{{ pausedCount }}</span><span class="sc-stat-label">Paused</span></div>
+        </div>
       </div>
     </div>
 
-    <!-- Stats cards -->
-    <div class="stats-row">
-      <div class="stat-card" v-for="s in stats" :key="s.key">
-        <div class="stat-icon" :style="{ background: s.bg }">
-          <el-icon :size="18" :color="s.color"><component :is="s.icon" /></el-icon>
+    <!-- Body -->
+    <div class="sc-body">
+      <!-- Filter bar -->
+      <div class="sc-filter-bar">
+        <div class="sc-filter-tabs">
+          <div class="sc-tab" :class="{ active: filterType === '' }" @click="filterType = ''; onSearch()">
+            <span class="sc-tab-dot" style="background:#409EFF" />All
+          </div>
+          <div class="sc-tab" :class="{ active: filterType === 'active' }" @click="filterType = 'active'; onSearch()">
+            <span class="sc-tab-dot" style="background:#67C23A" />Active
+          </div>
+          <div class="sc-tab" :class="{ active: filterType === 'paused' }" @click="filterType = 'paused'; onSearch()">
+            <span class="sc-tab-dot" style="background:#E6A23C" />Paused
+          </div>
+          <div class="sc-tab" :class="{ active: filterType === 'one_time' }" @click="filterType = 'one_time'; onSearch()">
+            <span class="sc-tab-dot" style="background:#9B59B6" />One-Time
+          </div>
+          <div class="sc-tab" :class="{ active: filterType === 'cron' }" @click="filterType = 'cron'; onSearch()">
+            <span class="sc-tab-dot" style="background:#409EFF" />Recurring
+          </div>
         </div>
-        <div class="stat-body">
-          <span class="stat-value" :style="{ color: s.color }">{{ s.value }}</span>
-          <span class="stat-label">{{ s.label }}</span>
+        <div class="sc-filter-actions">
+          <el-button :icon="Refresh" @click="fetchList" :loading="loading" text size="small">Refresh</el-button>
+          <el-button type="primary" :icon="Plus" @click="openCreate" size="small">New Schedule</el-button>
         </div>
       </div>
-    </div>
 
-    <!-- Table -->
-    <div class="table-container">
-      <ScheduleTable
-        :list="list"
-        :loading="loading"
-        show-template
-        @edit="openEdit"
-        @pause="handlePause"
-        @resume="handleResume"
-        @trigger="handleTrigger"
-        @delete="handleDelete"
-      />
+      <!-- Table -->
+      <div class="sc-table-card">
+        <ScheduleTable
+          :list="filteredList"
+          :loading="loading"
+          show-template
+          @edit="openEdit"
+          @pause="handlePause"
+          @resume="handleResume"
+          @trigger="handleTrigger"
+          @delete="handleDelete"
+        />
+        <el-empty v-if="!loading && filteredList.length === 0" :description="emptyText" :image-size="80" style="padding: 60px 0" />
+      </div>
     </div>
 
     <ScheduleForm
@@ -58,7 +88,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh, Plus, Timer, VideoPlay, VideoPause, CircleCheck, RefreshRight } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import {
   GetSchedulePlans,
   PauseSchedulePlan,
@@ -71,16 +101,30 @@ import ScheduleForm from './components/ScheduleForm.vue'
 
 const list = ref<any[]>([])
 const loading = ref(false)
+const searchQuery = ref('')
+const filterType = ref('')
 const formVisible = ref(false)
 const editingPlan = ref<any>(null)
 
-const stats = computed(() => [
-  { key: 'total', label: 'Total', value: list.value.length, icon: Timer, bg: '#e6f7ff', color: '#1890ff' },
-  { key: 'active', label: 'Active', value: list.value.filter(s => s.status === 'active').length, icon: VideoPlay, bg: '#f6ffed', color: '#52c41a' },
-  { key: 'paused', label: 'Paused', value: list.value.filter(s => s.status === 'paused').length, icon: VideoPause, bg: '#fff7e6', color: '#fa8c16' },
-  { key: 'completed', label: 'Completed', value: list.value.filter(s => s.status === 'completed').length, icon: CircleCheck, bg: '#f0f5ff', color: '#2f54eb' },
-  { key: 'total_runs', label: 'Total Runs', value: list.value.reduce((s, r) => s + (r.total_run_count || 0), 0), icon: RefreshRight, bg: '#fff0f6', color: '#eb2f96' },
-])
+const total = computed(() => list.value.length)
+const activeCount = computed(() => list.value.filter(s => s.status === 'active').length)
+const pausedCount = computed(() => list.value.filter(s => s.status === 'paused').length)
+const totalRuns = computed(() => list.value.reduce((s, r) => s + (r.total_run_count || 0), 0))
+
+const filteredList = computed(() => {
+  let items = list.value
+  if (filterType.value === 'active') items = items.filter(s => s.status === 'active')
+  else if (filterType.value === 'paused') items = items.filter(s => s.status === 'paused')
+  else if (filterType.value === 'one_time') items = items.filter(s => s.schedule_type === 'one_time')
+  else if (filterType.value === 'cron') items = items.filter(s => s.schedule_type === 'cron')
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    items = items.filter(s => s.name?.toLowerCase().includes(q) || s.template_name?.toLowerCase().includes(q))
+  }
+  return items
+})
+
+const emptyText = computed(() => 'No schedules yet. Create one to automate your pipeline executions.')
 
 async function fetchList() {
   loading.value = true
@@ -105,107 +149,69 @@ function openEdit(row: any) {
 }
 
 async function handlePause(row: any) {
-  try {
-    await PauseSchedulePlan(row.id)
-    ElMessage.success('Schedule paused')
-    fetchList()
-  } catch (e: any) {
-    ElMessage.error(e?.msg || 'Operation failed')
-  }
+  try { await PauseSchedulePlan(row.id); ElMessage.success('Schedule paused'); fetchList()
+  } catch (e: any) { ElMessage.error(e?.msg || 'Operation failed') }
 }
 
 async function handleResume(row: any) {
-  try {
-    await ResumeSchedulePlan(row.id)
-    ElMessage.success('Schedule resumed')
-    fetchList()
-  } catch (e: any) {
-    ElMessage.error(e?.msg || 'Operation failed')
-  }
+  try { await ResumeSchedulePlan(row.id); ElMessage.success('Schedule resumed'); fetchList()
+  } catch (e: any) { ElMessage.error(e?.msg || 'Operation failed') }
 }
 
 async function handleTrigger(row: any) {
-  try {
-    await TriggerSchedulePlan(row.id)
-    ElMessage.success('Manual trigger submitted')
-    fetchList()
-  } catch (e: any) {
-    ElMessage.error(e?.msg || 'Operation failed')
-  }
+  try { await TriggerSchedulePlan(row.id); ElMessage.success('Manual trigger submitted'); fetchList()
+  } catch (e: any) { ElMessage.error(e?.msg || 'Operation failed') }
 }
 
 async function handleDelete(row: any) {
   try {
     await ElMessageBox.confirm(`Delete schedule "${row.name}"?`, 'Confirm', { type: 'warning' })
-    await DeleteSchedulePlan(row.id)
-    ElMessage.success('Schedule deleted')
-    fetchList()
-  } catch {
-    // cancelled
-  }
+    await DeleteSchedulePlan(row.id); ElMessage.success('Schedule deleted'); fetchList()
+  } catch { /* cancelled */ }
 }
 
-onMounted(() => fetchList())
+function onSearch() { /* computed auto-filters */ }
+
+onMounted(fetchList)
 </script>
 
 <style scoped>
-.schedule-page {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+/* ===== Layout ===== */
+.sc-page { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; background: #f5f6fa; overflow: hidden; }
 
-/* ---------- Header ---------- */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-}
-.header-left { display: flex; flex-direction: column; gap: 4px; }
-.header-title-row { display: flex; align-items: center; gap: 10px; }
-.page-title { margin: 0; font-size: 20px; font-weight: 700; color: #303133; }
-.page-subtitle { margin: 0; font-size: 13px; color: #909399; }
-.header-right { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+/* ===== Hero ===== */
+.sc-hero { position: relative; flex-shrink: 0; overflow: hidden; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+.sc-hero-bg { position: absolute; inset: 0; opacity: 0.06; background-image: radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px); background-size: 40px 40px; }
+.sc-hero-inner { position: relative; z-index: 1; padding: 12px 20px; display: flex; flex-direction: row; align-items: center; gap: 16px; }
+.sc-hero-left { flex: 0 0 auto; }
+.sc-hero-title { margin: 0; font-size: 22px; font-weight: 800; color: #fff; white-space: nowrap; }
+.sc-hero-subtitle { margin: 0; font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap; }
+.sc-hero-center { flex: 1 1 auto; min-width: 0; }
+.sc-search-input { width: 100%; max-width: 320px; }
+.sc-search-input :deep(.el-input__wrapper) { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.12); box-shadow: none; border-radius: 10px; padding: 2px 12px; }
+.sc-search-input :deep(.el-input__inner) { color: #fff; font-size: 14px; }
+.sc-search-input :deep(.el-input__inner::placeholder) { color: rgba(255,255,255,0.4); }
+.sc-search-input :deep(.el-input__prefix-inner) { color: rgba(255,255,255,0.4); }
+.sc-hero-stats { flex: 0 0 auto; display: flex; align-items: center; }
+.sc-stat-item { text-align: center; padding: 0 14px; }
+.sc-stat-value { display: block; font-size: 18px; font-weight: 700; color: #fff; line-height: 1.2; }
+.sc-stat-label { font-size: 10px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; }
+.sc-stat-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
 
-/* ---------- Stats cards ---------- */
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
-}
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-.stat-icon {
-  width: 38px; height: 38px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.stat-body { display: flex; flex-direction: column; gap: 2px; }
-.stat-value { font-size: 20px; font-weight: 700; line-height: 1.2; }
-.stat-label { font-size: 12px; color: #909399; white-space: nowrap; }
+/* ===== Body ===== */
+.sc-body { flex: 1; overflow-y: auto; padding: 0 16px 24px; }
 
-/* ---------- Table container ---------- */
-.table-container {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  overflow: hidden;
-}
-.table-container :deep(.el-table th.el-table__cell) {
-  background: #fafafa;
-  color: #606266;
-  font-weight: 600;
-  font-size: 12px;
-}
-.table-container :deep(.el-table__body tr:hover td) {
-  background: #f5f7fa;
-}
+/* ===== Filter bar ===== */
+.sc-filter-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; gap: 16px; position: sticky; top: 0; z-index: 10; background: #f5f6fa; }
+.sc-filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.sc-tab { display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; color: #606266; cursor: pointer; transition: all 0.2s; user-select: none; }
+.sc-tab:hover { background: rgba(64,158,255,0.06); color: #409EFF; }
+.sc-tab.active { background: #409EFF; color: #fff; box-shadow: 0 2px 8px rgba(64,158,255,0.3); }
+.sc-tab-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.sc-filter-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+/* ===== Table card ===== */
+.sc-table-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden; }
+.sc-table-card :deep(.el-table th.el-table__cell) { background: #fafafa; color: #606266; font-weight: 600; font-size: 12px; }
+.sc-table-card :deep(.el-table__body tr:hover td) { background: #f5f7fa; }
 </style>

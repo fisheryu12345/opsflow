@@ -1,74 +1,76 @@
 <template>
-  <div class="trading-page">
-    <!-- Header -->
-    <div class="page-header">
-      <div class="page-title">🔧 OpsAgent 运维控制台</div>
-      <div class="page-desc">通过自然语言执行运维操作</div>
-    </div>
-
-    <!-- Input Area -->
-    <div class="section-card input-area">
-      <div class="input-row">
-        <el-input
-          v-model="input"
-          type="textarea"
-          :rows="2"
-          placeholder="输入运维指令，例如：检查所有服务器的磁盘使用情况"
-          :disabled="running"
-          @keydown.enter.prevent="execute"
-        />
-        <el-button type="primary" :loading="running" :disabled="!input.trim() || running" @click="execute" class="execute-btn">
-          {{ running ? '执行中...' : '执行' }}
-        </el-button>
+  <div class="console-page">
+    <!-- Hero Section -->
+    <div class="console-hero">
+      <div class="console-hero-bg" />
+      <div class="console-hero-inner">
+        <div class="console-hero-left">
+          <h1 class="console-hero-title">OpsAgent Console</h1>
+          <p class="console-hero-subtitle">Execute ops tasks via natural language</p>
+        </div>
+        <div class="console-hero-spacer" />
+        <div class="console-hero-stats">
+          <div class="console-stat-item"><span class="console-stat-value">{{ history.length }}</span><span class="console-stat-label">History</span></div>
+          <div class="console-stat-divider" />
+          <div class="console-stat-item"><span class="console-stat-value">{{ toolCount }}</span><span class="console-stat-label">Tools</span></div>
+        </div>
       </div>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="running" class="section-card running-state">
-      <div class="running-indicator">
-        <el-icon class="is-loading" :size="20"><Loading /></el-icon>
-        <span>🤖 正在执行，请稍候...</span>
-      </div>
-    </div>
-
-    <!-- Error Display -->
-    <div v-if="error && !running" class="section-card">
-      <el-alert :title="error" type="error" show-icon :closable="false" />
-    </div>
-
-    <!-- Result Display -->
-    <div v-if="result && !running" class="section-card result-area">
-      <div class="result-header">
-        <span class="result-title">📋 执行结果</span>
-        <span class="result-session-id">会话: {{ result.session_id }}</span>
+    <!-- Body -->
+    <div class="console-body">
+      <!-- Input Card -->
+      <div class="console-input-card">
+        <div class="console-input-row">
+          <el-input v-model="input" type="textarea" :rows="2"
+            placeholder="Describe your ops task, e.g. 'Check disk usage on all servers'"
+            :disabled="running" class="console-input"
+            @keydown.enter.prevent="execute" />
+          <el-button type="primary" :loading="running" :disabled="!input.trim() || running"
+            class="console-exec-btn" size="large">
+            {{ running ? 'Executing...' : 'Execute' }}
+          </el-button>
+        </div>
       </div>
 
-      <!-- Tool Calls -->
-      <div v-if="result.tool_calls && result.tool_calls.length > 0" class="tool-calls-section">
-        <div class="section-subtitle">工具调用 ({{ result.tool_calls.length }})</div>
-        <ToolCallCard v-for="(tc, i) in result.tool_calls" :key="i" :tool="tc" />
+      <!-- Running State -->
+      <div v-if="running" class="console-card console-running">
+        <div class="console-running-inner">
+          <el-icon class="is-loading" :size="24"><Loading /></el-icon>
+          <span>🤖 Processing your request...</span>
+        </div>
       </div>
 
-      <!-- Final Output -->
-      <div v-if="result.output" class="final-output">
-        <div class="section-subtitle">最终输出</div>
-        <div class="output-content">{{ result.output }}</div>
+      <!-- Error -->
+      <div v-if="error && !running" class="console-card">
+        <el-alert :title="error" type="error" show-icon :closable="false" />
       </div>
-    </div>
 
-    <!-- History -->
-    <div v-if="history.length > 1" class="section-card history-area">
-      <div class="section-subtitle">执行历史</div>
-      <div class="history-list">
-        <div
-          v-for="(item, i) in history.slice(1)"
-          :key="i"
-          class="history-item"
-          @click="loadHistory(item)"
-        >
-          <span class="history-icon">{{ item.result ? '✅' : '❌' }}</span>
-          <span class="history-text">{{ item.input }}</span>
-          <span class="history-time">{{ item.result?.session_id || '' }}</span>
+      <!-- Result -->
+      <div v-if="result && !running" class="console-card console-result">
+        <div class="console-result-header">
+          <span class="console-result-title">📋 Result</span>
+          <span class="console-result-sid">Session: {{ result.session_id }}</span>
+        </div>
+        <div v-if="result.tool_calls && result.tool_calls.length > 0" class="console-tools-section">
+          <div class="console-section-title">Tool Calls ({{ result.tool_calls.length }})</div>
+          <ToolCallCard v-for="(tc, i) in result.tool_calls" :key="i" :tool="tc" />
+        </div>
+        <div v-if="result.output" class="console-output">
+          <div class="console-section-title">Output</div>
+          <div class="console-output-content">{{ result.output }}</div>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div v-if="history.length > 1" class="console-card console-history">
+        <div class="console-section-title">Execution History</div>
+        <div class="console-history-list">
+          <div v-for="(item, i) in history.slice(1)" :key="i" class="console-history-item" @click="loadHistory(item)">
+            <span class="console-h-icon">{{ item.result ? '✅' : '❌' }}</span>
+            <span class="console-h-text">{{ item.input }}</span>
+            <span class="console-h-sid">{{ item.result?.session_id || '' }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -77,112 +79,69 @@
 
 <script setup lang="ts">
 import { Loading } from '@element-plus/icons-vue'
+import { computed } from 'vue'
 import ToolCallCard from './components/ToolCallCard.vue'
 import { useConsole } from './useConsole'
 
 const { input, running, result, error, history, execute, loadHistory } = useConsole()
+
+const toolCount = computed(() => {
+  if (result?.tool_calls) return result.tool_calls.length
+  return 0
+})
 </script>
 
 <style scoped>
-.page-header {
-  margin-bottom: 16px;
-}
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #303133;
-}
-.page-desc {
-  font-size: 13px;
-  color: #909399;
-  margin-top: 4px;
-}
+.console-page { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; background: #f5f6fa; overflow: hidden; }
 
-.input-area {
-  padding: 16px;
-}
-.input-row {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-.input-row .el-input {
-  flex: 1;
-}
-.execute-btn {
-  min-width: 100px;
-  height: 40px;
-}
+/* ===== Hero ===== */
+.console-hero { position: relative; flex-shrink: 0; overflow: hidden; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+.console-hero-bg { position: absolute; inset: 0; opacity: 0.06; background-image: radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px); background-size: 40px 40px; }
+.console-hero-inner { position: relative; z-index: 1; padding: 12px 20px; display: flex; flex-direction: row; align-items: center; gap: 16px; }
+.console-hero-left { flex: 0 0 auto; }
+.console-hero-title { margin: 0; font-size: 22px; font-weight: 800; color: #fff; white-space: nowrap; }
+.console-hero-subtitle { margin: 0; font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap; }
+.console-hero-spacer { flex: 1 1 auto; }
+.console-hero-stats { flex: 0 0 auto; display: flex; align-items: center; }
+.console-stat-item { text-align: center; padding: 0 14px; }
+.console-stat-value { display: block; font-size: 18px; font-weight: 700; color: #fff; line-height: 1.2; }
+.console-stat-label { font-size: 10px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; }
+.console-stat-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
 
-.running-state {
-  padding: 24px;
-  text-align: center;
-}
-.running-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 15px;
-  color: #606266;
-}
+/* ===== Body ===== */
+.console-body { flex: 1; overflow-y: auto; padding: 0 16px 24px; }
 
-.result-area {
-  padding: 16px;
-}
-.result-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #ebeef5;
-}
-.result-title { font-size: 16px; font-weight: 600; }
-.result-session-id { font-size: 12px; color: #909399; }
+/* ===== Shared card style ===== */
+.console-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; margin-bottom: 16px; }
 
-.tool-calls-section {
-  margin-bottom: 16px;
-}
-.section-subtitle {
-  font-size: 14px;
-  font-weight: 600;
-  color: #606266;
-  margin-bottom: 8px;
-}
+/* ===== Input ===== */
+.console-input-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); padding: 20px; margin-top: 16px; margin-bottom: 16px; position: relative; overflow: hidden; }
+.console-input-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #409EFF, #7ec1ff); }
+.console-input-row { display: flex; gap: 12px; align-items: flex-start; }
+.console-input { flex: 1; }
+.console-input :deep(.el-textarea__inner) { border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+.console-exec-btn { min-width: 120px; height: 44px; border-radius: 10px; font-weight: 600; }
 
-.final-output {
-  margin-top: 12px;
-}
-.output-content {
-  background: #f5f7fa;
-  padding: 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
+/* ===== Running ===== */
+.console-running { padding: 32px 20px; text-align: center; }
+.console-running-inner { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; color: #606266; }
 
-.history-area {
-  padding: 16px;
-  margin-top: 16px;
-}
-.history-list {
-  max-height: 200px;
-  overflow-y: auto;
-}
-.history-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 13px;
-}
-.history-item:hover { background: #f5f7fa; }
-.history-icon { font-size: 14px; }
-.history-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.history-time { font-size: 12px; color: #909399; }
+/* ===== Result ===== */
+.console-result { padding: 20px; }
+.console-result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
+.console-result-title { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+.console-result-sid { font-size: 12px; color: #909399; font-family: 'Courier New', monospace; }
+.console-tools-section { margin-bottom: 16px; }
+.console-section-title { font-size: 13px; font-weight: 600; color: #606266; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #f5f5f5; }
+.console-output { }
+.console-output-content { background: #f5f7fa; border: 1px solid #f0f0f0; border-radius: 10px; padding: 16px; font-size: 14px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+
+/* ===== History ===== */
+.console-history { padding: 20px; }
+.console-history-list { max-height: 240px; overflow-y: auto; }
+.console-history-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; border-radius: 8px; font-size: 13px; transition: background .15s; }
+.console-history-item:hover { background: #f5f7fa; }
+.console-h-icon { font-size: 14px; }
+.console-h-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #303133; }
+.console-h-sid { font-size: 11px; color: #c0c4cc; font-family: 'Courier New', monospace; }
 </style>

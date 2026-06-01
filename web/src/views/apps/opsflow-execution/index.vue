@@ -40,7 +40,7 @@ function onExecutionUpdate(exec: any) {
   bottom: 0;
   display: flex;
   flex-direction: column;
-  background: #f0f2f5;
+  background: #f5f6fa;
   overflow: hidden;
 }
 
@@ -49,9 +49,5 @@ function onExecutionUpdate(exec: any) {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  margin: 8px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 </style>
