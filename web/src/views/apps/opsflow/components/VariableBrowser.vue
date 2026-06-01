@@ -50,6 +50,23 @@
           </el-button>
         </div>
       </el-tab-pane>
+      <el-tab-pane label="Project Variables" name="project">
+        <div v-if="projectVars.length === 0" class="tab-empty">
+          <el-empty description="No project variables" :image-size="40" />
+        </div>
+        <div v-for="v in projectVars" :key="v.key" class="var-item">
+          <div class="var-item-left">
+            <div class="var-item-top">
+              <code class="var-code">{{ v.key }}</code>
+              <span class="var-desc">{{ v.description || 'Project env var' }}</span>
+            </div>
+            <div class="var-noref">Shared across all templates in this project</div>
+          </div>
+          <el-button size="small" type="primary" text @click="insert(v.key)">
+            <el-icon><Link /></el-icon> Insert
+          </el-button>
+        </div>
+      </el-tab-pane>
     </el-tabs>
   </el-dialog>
 </template>
@@ -76,6 +93,7 @@ const visible = computed({
 const activeTab = ref('global')
 const globalVars = ref<any[]>([])
 const nodeOutputs = ref<any[]>([])
+const projectVars = ref<any[]>([])
 const nodeSearch = ref('')
 
 const filteredNodeOutputs = computed(() => {
@@ -98,6 +116,7 @@ async function fetchData() {
     const data = res.data?.data || res.data || {}
     globalVars.value = data.global_variables || []
     nodeOutputs.value = data.node_outputs || []
+    projectVars.value = data.project_variables || []
   } catch { /* silent */ }
 }
 

@@ -127,11 +127,24 @@ class TemplateVariableMixin:
                     "description": "Execution result (True/False)",
                 })
 
+        # 3. 项目环境变量（项目级共享变量）
+        from opsflow.core.variable_resolver import resolve_project_variables
+        if template.project_id:
+            raw = resolve_project_variables(template.project_id)
+            project_vars = [
+                {"key": k, "source": "project_env",
+                 "description": "", "value": v}
+                for k, v in raw.items()
+            ]
+        else:
+            project_vars = []
+
         return Response({
             'code': 2000, 'msg': 'success',
             'data': {
                 "global_variables": global_vars,
                 "node_outputs": node_outputs,
+                "project_variables": project_vars,
             },
         })
 
