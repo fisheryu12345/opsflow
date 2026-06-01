@@ -3,13 +3,13 @@
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from opsflow.core.bamboo_builder import (
+from opsflow.core.pipeline_builder import (
     _parse_edge_conditions,
     _get_condition,
-    _create_element,
     build_bamboo_pipeline,
     _empty_pipeline,
 )
+from opsflow.core.pipeline_builder.elements import _create_element
 from opsflow.core.bamboo_validator import validate_bamboo_compatibility
 
 

@@ -11,7 +11,7 @@ from bamboo_engine import api as pipeline_api
 from bamboo_engine.builder import Data, Var
 from pipeline.eri.runtime import BambooDjangoRuntime
 
-from opsflow.core.bamboo_builder import build_bamboo_pipeline
+from opsflow.core.pipeline_builder import build_bamboo_pipeline
 from opsflow.core.safety_guard import validate_pipeline
 
 logger = logging.getLogger(__name__)

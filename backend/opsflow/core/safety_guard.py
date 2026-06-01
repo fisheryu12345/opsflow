@@ -96,7 +96,7 @@ def validate_pipeline(pipeline: dict) -> dict:
                     elif not target.snapshot:
                         errors.append(f"子流程节点 '{nid}' 引用的模板 '{target.name}' 无发布快照")
                     else:
-                        from opsflow.core.bamboo_builder import _detect_circular_ref
+                        from opsflow.core.pipeline_builder.validation import _detect_circular_ref
                         try:
                             _detect_circular_ref(target)
                         except ValueError as e:
