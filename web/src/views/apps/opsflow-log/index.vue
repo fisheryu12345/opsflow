@@ -8,6 +8,7 @@
           <h1 class="log-hero-title">Audit Log</h1>
           <p class="log-hero-subtitle">Pipeline execution audit trail</p>
         </div>
+        <ProjectSwitcher />
         <div class="log-hero-center">
           <el-input v-model="searchQuery" placeholder="Search step or command..." clearable size="default"
             class="log-search-input" @keyup.enter="onSearch" @clear="onSearch">
@@ -115,6 +116,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { GetLogs } from '/@/api/opsflow/logs'
 
+import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const loading = ref(false)
 const list = ref<any[]>([])
 const page = ref(1)
@@ -146,7 +148,12 @@ function onSearch() { page.value = 1; fetchData() }
 function onPageChange() { fetchData() }
 function showDetail(row: any) { detailRow.value = row; detailVisible.value = true }
 
-onMounted(fetchData)
+onMounted(async () => {
+  const { useOpsflowStore } = await import('/@/views/apps/opsflow/stores/opsflowStore');
+  const store = useOpsflowStore();
+  if (!store.myProjects.length) await store.fetchMyProjects();
+  fetchData()
+})
 </script>
 
 <style scoped>

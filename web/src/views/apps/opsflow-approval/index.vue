@@ -8,6 +8,7 @@
           <h1 class="app-hero-title">Pending Approvals</h1>
           <p class="app-hero-subtitle">Executions awaiting human review</p>
         </div>
+        <ProjectSwitcher />
         <div class="app-hero-center">
           <el-input v-model="searchQuery" placeholder="Search by template..." clearable size="default"
             class="app-search-input" @keyup.enter="onSearch" @clear="onSearch">
@@ -92,6 +93,7 @@ import { ElMessage } from 'element-plus'
 import { Refresh, Search, CircleCheck, Close, Clock } from '@element-plus/icons-vue'
 import { GetPendingApprovals, ApproveNode, RejectNode } from '/@/api/opsflow/executions'
 
+import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const loading = ref(false)
 const actionLoading = ref<string | null>(null)
 const list = ref<any[]>([])
@@ -172,7 +174,12 @@ async function confirmReject() {
 
 function onSearch() { page.value = 1 }
 
-onMounted(fetchData)
+onMounted(async () => {
+  const { useOpsflowStore } = await import('/@/views/apps/opsflow/stores/opsflowStore');
+  const store = useOpsflowStore();
+  if (!store.myProjects.length) await store.fetchMyProjects();
+  fetchData()
+})
 </script>
 
 <style scoped>

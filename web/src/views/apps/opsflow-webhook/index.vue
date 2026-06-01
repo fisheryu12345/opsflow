@@ -8,6 +8,7 @@
           <h1 class="wh-hero-title">Webhook</h1>
           <p class="wh-hero-subtitle">HTTP callback notifications for pipeline events</p>
         </div>
+        <ProjectSwitcher />
         <div class="wh-hero-center">
           <el-input
             v-model="searchQuery"
@@ -197,6 +198,7 @@ import {
   GetWebhooks, CreateWebhook, UpdateWebhook, DeleteWebhook, GetWebhookLogs,
 } from '/@/api/opsflow/webhooks'
 
+import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const loading = ref(false)
 const saving = ref(false)
 const webhooks = ref<any[]>([])
@@ -303,7 +305,12 @@ async function showDetail(row: any) {
 
 async function onSearch() { fetchData() }
 
-onMounted(fetchData)
+onMounted(async () => {
+  const { useOpsflowStore } = await import('/@/views/apps/opsflow/stores/opsflowStore');
+  const store = useOpsflowStore();
+  if (!store.myProjects.length) await store.fetchMyProjects();
+  fetchData()
+})
 </script>
 
 <style scoped>

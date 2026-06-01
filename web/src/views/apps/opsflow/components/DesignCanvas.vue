@@ -3,6 +3,8 @@
     <div class="canvas-body">
       <div class="canvas-toolbar-float" :class="{ collapsed: toolbarCollapsed }" :style="{ left: stencilCollapsed ? '32px' : '220px' }">
         <template v-if="!toolbarCollapsed">
+          <ProjectSwitcher />
+          <div class="toolbar-divider" />
           <el-tooltip content="Select template" placement="bottom">
             <el-select
               :model-value="templateId"
@@ -109,6 +111,7 @@ import { useDesignCanvas } from '../composables/useDesignCanvas'
 import PropertyPanel from './PropertyPanel.vue'
 import GlobalVariablePanel from './GlobalVariablePanel.vue'
 import SubprocessStatusBadge from './SubprocessStatusBadge.vue'
+import ProjectSwitcher from './ProjectSwitcher.vue'
 
 const props = defineProps<{
   templates?: any[]

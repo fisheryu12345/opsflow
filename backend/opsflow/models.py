@@ -27,6 +27,36 @@ class OpsProject(models.Model):
         return self.name
 
 
+class ProjectMember(models.Model):
+    """项目成员 — 记录哪些用户属于哪些项目"""
+    class Role(models.TextChoices):
+        ADMIN = 'admin', '管理员'
+        EDITOR = 'editor', '编辑者'
+        VIEWER = 'viewer', '查看者'
+
+    project = models.ForeignKey(
+        OpsProject, on_delete=models.CASCADE, related_name='members',
+        verbose_name="Project"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        verbose_name="User"
+    )
+    role = models.CharField(
+        max_length=16, choices=Role.choices, default=Role.EDITOR,
+        verbose_name="Role"
+    )
+    joined_at = models.DateTimeField(auto_now_add=True, verbose_name="Joined At")
+
+    class Meta:
+        db_table = 'ops_project_member'
+        unique_together = [('project', 'user')]
+        verbose_name = "Project Member"
+
+    def __str__(self):
+        return f"{self.user} @ {self.project} ({self.role})"
+
+
 class FlowTemplate(models.Model):
     """编排模板 — AI 生成的或人工创建的流程定义"""
     name = models.CharField(max_length=200, verbose_name="Name")

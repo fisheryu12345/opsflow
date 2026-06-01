@@ -1,28 +1,48 @@
-import { request } from '/@/utils/service'
+import { opsflowRequest } from './request'
 
 const prefix = '/api/opsflow/'
 
 /** Get all projects */
 export function GetProjects(params?: any) {
-  return request({ url: prefix + 'projects/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'projects/', method: 'get', params })
 }
 
 /** Get single project */
 export function GetProjectDetail(id: number) {
-  return request({ url: prefix + `projects/${id}/`, method: 'get' })
+  return opsflowRequest({ url: prefix + `projects/${id}/`, method: 'get' })
 }
 
 /** Create project */
 export function CreateProject(data: { name: string; description?: string }) {
-  return request({ url: prefix + 'projects/', method: 'post', data })
+  return opsflowRequest({ url: prefix + 'projects/', method: 'post', data })
 }
 
 /** Update project */
 export function UpdateProject(id: number, data: any) {
-  return request({ url: prefix + `projects/${id}/`, method: 'patch', data })
+  return opsflowRequest({ url: prefix + `projects/${id}/`, method: 'patch', data })
 }
 
 /** Delete project */
 export function DeleteProject(id: number) {
-  return request({ url: prefix + `projects/${id}/`, method: 'delete' })
+  return opsflowRequest({ url: prefix + `projects/${id}/`, method: 'delete' })
+}
+
+/** Get current user's projects (for project switcher) */
+export function GetMyProjects() {
+  return opsflowRequest({ url: prefix + 'projects/my_projects/', method: 'get' })
+}
+
+/** Get project members */
+export function GetProjectMembers(projectId: number) {
+  return opsflowRequest({ url: prefix + `projects/${projectId}/members/`, method: 'get' })
+}
+
+/** Add project member */
+export function AddProjectMember(projectId: number, userId: number, role: string = 'editor') {
+  return opsflowRequest({ url: prefix + `projects/${projectId}/members/`, method: 'post', data: { user_id: userId, role } })
+}
+
+/** Remove project member */
+export function RemoveProjectMember(projectId: number, memberId: number) {
+  return opsflowRequest({ url: prefix + `projects/${projectId}/members/${memberId}/`, method: 'delete' })
 }

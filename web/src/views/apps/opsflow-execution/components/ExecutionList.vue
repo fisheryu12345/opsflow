@@ -8,6 +8,7 @@
           <h1 class="exec-hero-title">Executions</h1>
           <p class="exec-hero-subtitle">Pipeline execution history and monitoring</p>
         </div>
+        <ProjectSwitcher />
         <div class="exec-hero-center">
           <el-input v-model="searchQuery" placeholder="Search by template name..." clearable size="default"
             class="exec-search-input" @keyup.enter="onSearch" @clear="onSearch">
@@ -128,6 +129,7 @@ import { ElMessage } from 'element-plus'
 import { GetTemplates } from '/@/api/opsflow/templates'
 import { GetExecutions, CreateExecution, StartExecution as StartExec, PauseExecution } from '/@/api/opsflow/executions'
 
+import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const emit = defineEmits<{ viewDetail: [execution: any] }>()
 
 const templates = ref<any[]>([])
@@ -220,7 +222,12 @@ function onRowClick(row: any) { emit('viewDetail', row) }
 async function onStart(row: any) { startingId.value = row.id; try { await StartExec(row.id); await fetchExecutions() } catch { /* ignore */ }; startingId.value = null }
 async function onPause(row: any) { pausingId.value = row.id; try { await PauseExecution(row.id); await fetchExecutions() } catch { /* ignore */ }; pausingId.value = null }
 
-onMounted(() => { fetchTemplates(); fetchExecutions() })
+onMounted(async () => {
+  const { useOpsflowStore } = await import('/@/views/apps/opsflow/stores/opsflowStore');
+  const store = useOpsflowStore();
+  if (!store.myProjects.length) await store.fetchMyProjects();
+  fetchTemplates(); fetchExecutions()
+})
 </script>
 
 <style scoped>

@@ -8,6 +8,7 @@
           <h1 class="tpl-hero-title">Templates</h1>
           <p class="tpl-hero-subtitle">Pipeline template library</p>
         </div>
+        <ProjectSwitcher />
         <div class="tpl-hero-center">
           <el-input v-model="filterName" placeholder="Search templates..." clearable size="default"
             class="tpl-search-input" @keyup.enter="onFilter" @clear="onFilter">
@@ -57,13 +58,13 @@
         <div class="tpl-table-card">
           <el-table :data="displayList" v-loading="loading" stripe highlight-current-row
             style="width:100%" :empty-text="emptyText" @row-click="openView" size="small">
-            <el-table-column prop="name" label="Name" min-width="40" show-overflow-tooltip />
-            <el-table-column label="Status" width="100" align="center">
+            <el-table-column prop="name" label="Name" width="160" show-overflow-tooltip />
+            <el-table-column label="Status" width="120" align="center">
               <template #default="{ row }">
                 <span class="tpl-status-badge" :class="row.is_draft ? 'st-draft' : 'st-published'">{{ row.is_draft ? 'Draft' : 'Published' }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="Pipeline" min-width="60" class-name="pipeline-col">
+            <el-table-column label="Pipeline" min-width="160" class-name="pipeline-col">
               <template #default="{ row }">
                 <div class="tpl-mini-flow" v-if="row.pipeline_tree?.nodes?.length">
                   <template v-for="(node, ni) in row.pipeline_tree.nodes.slice(0, 6)" :key="node.id">
@@ -77,16 +78,16 @@
                 <span v-else class="tpl-no-pl">-</span>
               </template>
             </el-table-column>
-            <el-table-column prop="category" label="Category" width="100" show-overflow-tooltip />
-            <el-table-column prop="created_by_name" label="Creator" width="100" show-overflow-tooltip />
-            <el-table-column label="Version" width="60" align="center">
+            <el-table-column prop="category" label="Category" width="120" show-overflow-tooltip />
+            <el-table-column prop="created_by_name" label="Creator" width="120" show-overflow-tooltip />
+            <el-table-column label="Version" width="120" align="center">
               <template #default="{ row }">
                 <span v-if="!row.is_draft" class="tpl-version">V{{ row.version || 1 }}</span>
                 <span v-else class="tpl-no-pl">-</span>
               </template>
             </el-table-column>
             <el-table-column prop="created_at" label="Created" width="140" />
-            <el-table-column label="Actions" width="240" fixed="right">
+            <el-table-column label="Actions" width="280" fixed="right">
               <template #default="{ row }">
                 <div class="tpl-actions">
                   <el-tooltip content="Edit in Designer" placement="top">
@@ -261,6 +262,7 @@ import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 import ScheduleManager from './components/ScheduleManager.vue'
 import VersionDialog from './components/VersionDialog.vue'
 
+import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const router = useRouter()
 const opsflowStore = useOpsflowStore()
 
@@ -442,7 +444,10 @@ function openView(row: any) { viewRow.value = row; viewVisible.value = true }
 function openSchedule(row: any) { scheduleTemplateId.value = row.id; scheduleTemplateName.value = row.name; scheduleVisible.value = true }
 function openVersions(row: any) { versionTemplateId.value = row.id; versionTemplateName.value = row.name; versionCurrentVer.value = row.version || 1; versionVisible.value = true }
 
-onMounted(fetchData)
+onMounted(async () => {
+  if (!opsflowStore.myProjects.length) await opsflowStore.fetchMyProjects();
+  await fetchData();
+})
 </script>
 
 <style scoped>
@@ -496,7 +501,7 @@ onMounted(fetchData)
 .tpl-mini-arrow { font-size: 10px; color: #C0C4CC; flex-shrink: 0; }
 .tpl-mini-more { font-size: 10px; color: #909399; }
 .tpl-no-pl { color: #C0C4CC; }
-.tpl-actions { display: flex; flex-wrap: wrap; gap: 2px; }
+.tpl-actions { display: flex; flex-wrap: nowrap; gap: 2px; }
 .tpl-actions .el-button { padding: 4px 8px; border-radius: 6px; font-size: 12px; }
 .tpl-pagination { display: flex; justify-content: flex-end; padding: 12px 16px; }
 

@@ -1,4 +1,7 @@
 import { defineStore } from 'pinia'
+import { setProjectId } from '/@/api/opsflow/request'
+
+const STORAGE_KEY = 'opsflow_active_project_id'
 
 interface FlowTemplate {
   id: number
@@ -27,14 +30,10 @@ interface FlowExecution {
   created_at: string
 }
 
-interface Project {
+interface MyProject {
   id: number
   name: string
-  description: string
-  is_active: boolean
-  template_count?: number
-  execution_count?: number
-  created_at: string
+  role: string
 }
 
 interface OpsflowState {
@@ -45,7 +44,8 @@ interface OpsflowState {
   executions: FlowExecution[]
   globalVariables: Record<string, any>
   currentProjectId: number | null
-  projects: Project[]
+  projects: any[]
+  myProjects: MyProject[]
 }
 
 export const useOpsflowStore = defineStore('opsflow', {
@@ -58,11 +58,12 @@ export const useOpsflowStore = defineStore('opsflow', {
     globalVariables: {},
     currentProjectId: null,
     projects: [],
+    myProjects: [],
   }),
   getters: {
     isDesignMode: (state) => state.mode === 'design',
     isMonitorMode: (state) => state.mode === 'monitor',
-    currentProject: (state) => state.projects.find(p => p.id === state.currentProjectId) || null,
+    currentProject: (state) => state.myProjects.find(p => p.id === state.currentProjectId) || null,
     globalVariableList: (state) => {
       const vars = state.globalVariables
       return Object.entries(vars).map(([key, val]: [string, any]) => ({
@@ -96,19 +97,50 @@ export const useOpsflowStore = defineStore('opsflow', {
     setGlobalVariables(vars: Record<string, any>) {
       this.globalVariables = vars
     },
+
+    /** 设置当前项目 ID（同步更新 request.ts 和 localStorage） */
     setCurrentProjectId(id: number | null) {
       this.currentProjectId = id
+      setProjectId(id)
+      if (id) {
+        localStorage.setItem(STORAGE_KEY, String(id))
+      } else {
+        localStorage.removeItem(STORAGE_KEY)
+      }
     },
-    setProjects(list: Project[]) {
+
+    setProjects(list: any[]) {
       this.projects = list
     },
+
+    /** 加载当前用户可访问的项目列表（用于项目切换器） */
+    async fetchMyProjects() {
+      try {
+        const { GetMyProjects } = await import('/@/api/opsflow/projects')
+        const res = await GetMyProjects()
+        this.myProjects = res.data || []
+
+        // 从 localStorage 恢复上次选中的项目
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved && this.myProjects.find(p => p.id === Number(saved))) {
+          this.setCurrentProjectId(Number(saved))
+        } else if (this.myProjects.length > 0 && !this.currentProjectId) {
+          this.setCurrentProjectId(this.myProjects[0].id)
+        } else if (this.myProjects.length === 0) {
+          this.setCurrentProjectId(null)
+        }
+      } catch (e) {
+        console.warn('Failed to fetch my projects:', e)
+      }
+    },
+
     async loadProjects() {
       try {
         const { GetProjects } = await import('/@/api/opsflow/projects')
         const res = await GetProjects()
         this.projects = res.data || []
         if (!this.currentProjectId && this.projects.length > 0) {
-          this.currentProjectId = this.projects[0].id
+          this.setCurrentProjectId(this.projects[0].id)
         }
       } catch (e) {
         console.warn('Failed to load projects:', e)

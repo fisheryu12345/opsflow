@@ -1,29 +1,29 @@
-import { request } from '/@/utils/service'
+import { opsflowRequest } from './request'
 
 const prefix = '/api/opsflow/'
 
 export function GetTemplates(params?: any) {
-  return request({ url: prefix + 'templates/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'templates/', method: 'get', params })
 }
 
 export function GetTemplateDetail(id: number) {
-  return request({ url: prefix + `templates/${id}/`, method: 'get' })
+  return opsflowRequest({ url: prefix + `templates/${id}/`, method: 'get' })
 }
 
 export function CreateTemplate(data: any) {
-  return request({ url: prefix + 'templates/', method: 'post', data })
+  return opsflowRequest({ url: prefix + 'templates/', method: 'post', data })
 }
 
 export function UpdateTemplate(id: number, data: any) {
-  return request({ url: prefix + `templates/${id}/`, method: 'patch', data })
+  return opsflowRequest({ url: prefix + `templates/${id}/`, method: 'patch', data })
 }
 
 export function DeleteTemplate(id: number) {
-  return request({ url: prefix + `templates/${id}/`, method: 'delete' })
+  return opsflowRequest({ url: prefix + `templates/${id}/`, method: 'delete' })
 }
 
 export function CreateFromAi(data: { input: string; target_hosts?: string[]; global_vars?: any }) {
-  return request({
+  return opsflowRequest({
     url: prefix + 'templates/create_from_ai/',
     method: 'post',
     data,
@@ -32,15 +32,15 @@ export function CreateFromAi(data: { input: string; target_hosts?: string[]; glo
 }
 
 export function ConfirmDraft(id: number) {
-  return request({ url: prefix + `templates/${id}/confirm_draft/`, method: 'post' })
+  return opsflowRequest({ url: prefix + `templates/${id}/confirm_draft/`, method: 'post' })
 }
 
 export function GetDiff(id: number) {
-  return request({ url: prefix + `templates/${id}/diff/`, method: 'get' })
+  return opsflowRequest({ url: prefix + `templates/${id}/diff/`, method: 'get' })
 }
 
 export function AiLayout(data: { nodes: any[]; edges: any[] }) {
-  return request({
+  return opsflowRequest({
     url: prefix + 'templates/ai_layout/',
     method: 'post',
     data,
@@ -49,7 +49,7 @@ export function AiLayout(data: { nodes: any[]; edges: any[] }) {
 }
 
 export function AnalyzePipeline(data: { nodes: any[]; edges: any[] }) {
-  return request({
+  return opsflowRequest({
     url: prefix + 'templates/analyze/',
     method: 'post',
     data,
@@ -58,7 +58,7 @@ export function AnalyzePipeline(data: { nodes: any[]; edges: any[] }) {
 }
 
 export function RefinePipeline(data: { input: string; nodes: any[]; edges: any[]; target_hosts?: string[] }) {
-  return request({
+  return opsflowRequest({
     url: prefix + 'templates/refine/',
     method: 'post',
     data,
@@ -68,88 +68,88 @@ export function RefinePipeline(data: { input: string; nodes: any[]; edges: any[]
 
 /* ---------- Version management ---------- */
 export function PublishTemplate(id: number) {
-  return request({ url: prefix + `templates/${id}/publish/`, method: 'post' })
+  return opsflowRequest({ url: prefix + `templates/${id}/publish/`, method: 'post' })
 }
 
 export function GetTemplateVersions(id: number) {
-  return request({ url: prefix + `templates/${id}/versions/`, method: 'get' })
+  return opsflowRequest({ url: prefix + `templates/${id}/versions/`, method: 'get' })
 }
 
 export function RollbackTemplate(id: number, version: number) {
-  return request({ url: prefix + `templates/${id}/rollback/`, method: 'post', data: { version } })
+  return opsflowRequest({ url: prefix + `templates/${id}/rollback/`, method: 'post', data: { version } })
 }
 
 export function ExportTemplate(id: number) {
-  return request({ url: prefix + `templates/${id}/export/`, method: 'get' })
+  return opsflowRequest({ url: prefix + `templates/${id}/export/`, method: 'get' })
 }
 
 export function ImportTemplate(data: any) {
-  return request({ url: prefix + 'templates/import_template/', method: 'post', data })
+  return opsflowRequest({ url: prefix + 'templates/import_template/', method: 'post', data })
 }
 
 export function GetTemplateCategories() {
-  return request({ url: prefix + 'templates/categories/', method: 'get' })
+  return opsflowRequest({ url: prefix + 'templates/categories/', method: 'get' })
 }
 
 export function GetHookVariables(id: number) {
-  return request({ url: prefix + `templates/${id}/hook_variables/`, method: 'get' })
+  return opsflowRequest({ url: prefix + `templates/${id}/hook_variables/`, method: 'get' })
 }
 
 export function UpdateHookVariables(id: number, data: any) {
-  return request({ url: prefix + `templates/${id}/hook_variables/`, method: 'post', data })
+  return opsflowRequest({ url: prefix + `templates/${id}/hook_variables/`, method: 'post', data })
 }
 
 /* ---------- Global Variable System (Phase 1-2) ---------- */
 export function GetGlobalVariables(id: number) {
-  return request({ url: prefix + `templates/${id}/global-variables/`, method: 'get' })
+  return opsflowRequest({ url: prefix + `templates/${id}/global-variables/`, method: 'get' })
 }
 
 export function UpdateGlobalVariables(id: number, data: { global_vars: any }) {
-  return request({ url: prefix + `templates/${id}/global-variables/`, method: 'post', data })
+  return opsflowRequest({ url: prefix + `templates/${id}/global-variables/`, method: 'post', data })
 }
 
 export function PatchGlobalVariables(id: number, data: { global_vars: any }) {
-  return request({ url: prefix + `templates/${id}/global-variables/`, method: 'patch', data })
+  return opsflowRequest({ url: prefix + `templates/${id}/global-variables/`, method: 'patch', data })
 }
 
 export function GetVariableBrowser(id: number) {
-  return request({ url: prefix + `templates/${id}/variable-browser/`, method: 'get' })
+  return opsflowRequest({ url: prefix + `templates/${id}/variable-browser/`, method: 'get' })
 }
 
 export function HookVariable(id: number, data: { var_key: string; node_id: string; tag_code?: string; var_type?: string; description?: string }) {
-  return request({ url: prefix + `templates/${id}/hook-variable/`, method: 'post', data })
+  return opsflowRequest({ url: prefix + `templates/${id}/hook-variable/`, method: 'post', data })
 }
 
 export function UnhookVariable(id: number, data: { var_key: string }) {
-  return request({ url: prefix + `templates/${id}/unhook-variable/`, method: 'post', data })
+  return opsflowRequest({ url: prefix + `templates/${id}/unhook-variable/`, method: 'post', data })
 }
 
 export function GetVariableTypes() {
-  return request({ url: prefix + 'plugins/variable_types/', method: 'get' })
+  return opsflowRequest({ url: prefix + 'plugins/variable_types/', method: 'get' })
 }
 
 /* ---------- Subprocess Version Tracking (Phase 3-4) ---------- */
 export function GetSubprocessStatus(id: number) {
-  return request({ url: prefix + `templates/${id}/subprocess-status/`, method: 'get' })
+  return opsflowRequest({ url: prefix + `templates/${id}/subprocess-status/`, method: 'get' })
 }
 
 export function UpdateSubprocessRefs(id: number) {
-  return request({ url: prefix + `templates/${id}/update-subprocess-refs/`, method: 'post' })
+  return opsflowRequest({ url: prefix + `templates/${id}/update-subprocess-refs/`, method: 'post' })
 }
 
 /* ---------- Execution Scheme Management ---------- */
 export function GetSchemes(templateId: number) {
-  return request({ url: prefix + `templates/${templateId}/schemes/`, method: 'get' })
+  return opsflowRequest({ url: prefix + `templates/${templateId}/schemes/`, method: 'get' })
 }
 
 export function CreateScheme(templateId: number, data: any) {
-  return request({ url: prefix + `templates/${templateId}/schemes/`, method: 'post', data })
+  return opsflowRequest({ url: prefix + `templates/${templateId}/schemes/`, method: 'post', data })
 }
 
 export function UpdateScheme(templateId: number, schemeId: number, data: any) {
-  return request({ url: prefix + `templates/${templateId}/schemes/${schemeId}/`, method: 'patch', data })
+  return opsflowRequest({ url: prefix + `templates/${templateId}/schemes/${schemeId}/`, method: 'patch', data })
 }
 
 export function DeleteScheme(templateId: number, schemeId: number) {
-  return request({ url: prefix + `templates/${templateId}/schemes/${schemeId}/`, method: 'delete' })
+  return opsflowRequest({ url: prefix + `templates/${templateId}/schemes/${schemeId}/`, method: 'delete' })
 }

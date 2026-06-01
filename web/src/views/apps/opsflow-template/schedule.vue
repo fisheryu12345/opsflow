@@ -8,6 +8,7 @@
           <h1 class="sc-hero-title">Schedule Management</h1>
           <p class="sc-hero-subtitle">Manage recurring and one-time pipeline executions</p>
         </div>
+        <ProjectSwitcher />
         <div class="sc-hero-center">
           <el-input
             v-model="searchQuery"
@@ -99,6 +100,7 @@ import {
 import ScheduleTable from './components/ScheduleTable.vue'
 import ScheduleForm from './components/ScheduleForm.vue'
 
+import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const list = ref<any[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
@@ -172,7 +174,11 @@ async function handleDelete(row: any) {
 
 function onSearch() { /* computed auto-filters */ }
 
-onMounted(fetchList)
+onMounted(async () => {
+  const { useOpsflowStore } = await import('/@/views/apps/opsflow/stores/opsflowStore');
+  const store = useOpsflowStore();
+  if (!store.myProjects.length) await store.fetchMyProjects();
+fetchList)
 </script>
 
 <style scoped>

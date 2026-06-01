@@ -455,6 +455,7 @@ async function onDiffConfirmed() {
 
 
 onMounted(async () => {
+  await store.fetchMyProjects()
   await fetchTemplates()
   // Auto-load template passed from template management via store
   const pending = store.currentTemplate

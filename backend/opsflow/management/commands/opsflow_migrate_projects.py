@@ -50,4 +50,17 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.WARNING("No orphan data found"))
 
+        # 3. 确保 project owner 是成员
+        from opsflow.models import ProjectMember
+        member_count = 0
+        for project in OpsProject.objects.filter(owner__isnull=False):
+            _, created = ProjectMember.objects.get_or_create(
+                project=project, user=project.owner,
+                defaults={'role': ProjectMember.Role.ADMIN},
+            )
+            if created:
+                member_count += 1
+        if member_count:
+            self.stdout.write(self.style.SUCCESS(f"Created {member_count} ADMIN memberships"))
+
         self.stdout.write(self.style.SUCCESS(f"Default project ID: {default_project.id}"))

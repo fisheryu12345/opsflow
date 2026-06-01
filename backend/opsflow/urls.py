@@ -33,6 +33,14 @@ router.register(r'audit', OperationRecordViewSet, basename='opsflow-audit')
 router.register(r'projects', OpsProjectViewSet, basename='opsflow-project')
 
 # 嵌套路由：templates/{id}/schemes/
+# --- Project member routes ---
+project_members = OpsProjectViewSet.as_view({
+    'get': 'members', 'post': 'members',
+})
+project_remove_member = OpsProjectViewSet.as_view({
+    'delete': 'remove_member',
+})
+
 scheme_list = ExecutionSchemeViewSet.as_view({
     'get': 'list', 'post': 'create',
 })
@@ -44,6 +52,8 @@ scheme_preview = ExecutionSchemeViewSet.as_view({
 })
 
 urlpatterns = [
+    path('projects/<int:pk>/members/', project_members, name='opsflow-project-members'),
+    path('projects/<int:pk>/members/<int:member_id>/', project_remove_member, name='opsflow-project-remove-member'),
     path('templates/<int:template_pk>/schemes/', scheme_list, name='opsflow-template-scheme-list'),
     path('templates/<int:template_pk>/schemes/<int:pk>/', scheme_detail, name='opsflow-template-scheme-detail'),
     path('templates/<int:template_pk>/schemes/<int:pk>/preview/', scheme_preview, name='opsflow-template-scheme-preview'),

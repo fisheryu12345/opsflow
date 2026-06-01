@@ -8,6 +8,7 @@
           <h1 class="kb-hero-title">Knowledge Base</h1>
           <p class="kb-hero-subtitle">Runbooks, incidents &amp; engineering docs</p>
         </div>
+        <ProjectSwitcher />
         <div class="kb-hero-center">
           <el-input
             v-model="searchQuery"
@@ -169,6 +170,7 @@ import { Refresh, Plus, Search, Edit, Delete, Clock, Notification, Document } fr
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { GetKnowledgeList, CreateKnowledge, UpdateKnowledge, DeleteKnowledge } from '/@/api/opsflow/knowledge'
 
+import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const loading = ref(false)
 const saving = ref(false)
 const list = ref<any[]>([])
@@ -300,7 +302,12 @@ async function handleDelete(row: any) {
 
 function openView(row: any) { viewRow.value = row; viewVisible.value = true }
 
-onMounted(fetchData)
+onMounted(async () => {
+  const { useOpsflowStore } = await import('/@/views/apps/opsflow/stores/opsflowStore');
+  const store = useOpsflowStore();
+  if (!store.myProjects.length) await store.fetchMyProjects();
+  fetchData()
+})
 </script>
 
 <style scoped>

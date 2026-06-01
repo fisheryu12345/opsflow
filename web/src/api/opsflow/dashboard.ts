@@ -1,51 +1,51 @@
-import { request } from '/@/utils/service'
+import { opsflowRequest } from './request'
 
 const prefix = '/api/opsflow/'
 
 export function GetDashboardStats(params?: any) {
-  return request({ url: prefix + 'dashboard/stats/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'dashboard/stats/', method: 'get', params })
 }
 
 export function GetDashboardTrend(params?: any) {
-  return request({ url: prefix + 'dashboard/trend/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'dashboard/trend/', method: 'get', params })
 }
 
 export function GetDashboardScheduleStats(params?: any) {
-  return request({ url: prefix + 'dashboard/schedule-stats/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'dashboard/schedule-stats/', method: 'get', params })
 }
 
 export function GetDashboardTopTemplates(params?: any) {
-  return request({ url: prefix + 'dashboard/top-templates/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'dashboard/top-templates/', method: 'get', params })
 }
 
 export function GetDashboardUserActivity(params?: any) {
-  return request({ url: prefix + 'dashboard/user-activity/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'dashboard/user-activity/', method: 'get', params })
 }
 
 export function GetDashboardStatusDistribution(params?: any) {
-  return request({ url: prefix + 'dashboard/status-distribution/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'dashboard/status-distribution/', method: 'get', params })
 }
 
 export function GetDashboardNodeTypeDistribution(params?: any) {
-  return request({ url: prefix + 'dashboard/node-type-distribution/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'dashboard/node-type-distribution/', method: 'get', params })
 }
 
 /* ---------- Stats & Analysis endpoints ---------- */
 
 export function GetDashboardDurationDistribution(params?: any) {
-  return request({ url: prefix + 'dashboard/duration-distribution/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'dashboard/duration-distribution/', method: 'get', params })
 }
 
 export function GetDashboardNodeDurationTop(params?: any) {
-  return request({ url: prefix + 'dashboard/node-duration-top/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'dashboard/node-duration-top/', method: 'get', params })
 }
 
 export function GetDashboardSuccessRateTrend(params?: any) {
-  return request({ url: prefix + 'dashboard/success-rate-trend/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'dashboard/success-rate-trend/', method: 'get', params })
 }
 
 export function GetDashboardTemplateStats(params?: any) {
-  return request({ url: prefix + 'dashboard/template-stats/', method: 'get', params })
+  return opsflowRequest({ url: prefix + 'dashboard/template-stats/', method: 'get', params })
 }
 
 /* ---------- Mock data (used when backend API is unavailable) ---------- */
