@@ -1,8 +1,8 @@
 <template>
   <div class="variable-input">
     <div class="var-input-row">
-      <el-input ref="inputRef" v-model="val" :placeholder="placeholder" :disabled="disabled" size="small" style="width:100%" />
-      <el-button size="small" :icon="Coin" @click="showBrowser = true" title="Browse variables" :disabled="!templateId" />
+      <el-input ref="inputRef" v-model="val" :placeholder="placeholder" :disabled="disabled" size="small" />
+      <el-button size="small" :icon="BrowseIcon" @click="showBrowser = true" title="Browse variables" :disabled="!templateId" class="browse-btn" />
     </div>
     <div class="var-actions">
       <div class="var-hint" v-if="val && val.includes('${')">
@@ -10,8 +10,8 @@
           <el-icon style="margin-right:2px"><WarningFilled /></el-icon>Variable reference
         </el-tag>
       </div>
-      <el-button v-if="nodeId && tagCode && templateId && !hooked" size="small" text type="primary" @click="onHook">
-        <el-icon><Link /></el-icon> Promote
+      <el-button v-if="nodeId && tagCode && templateId && !hooked" size="small" text type="primary" class="promote-text-btn" @click="onHook">
+        <el-icon><PromoteIcon /></el-icon> Promote
       </el-button>
       <el-tag v-if="hooked" size="small" type="success" effect="light" round>Global</el-tag>
     </div>
@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { WarningFilled, Coin, Link } from '@element-plus/icons-vue'
+import { WarningFilled, FolderOpened, Upload } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { HookVariable } from '/@/api/opsflow/templates'
 import VariableBrowser from '/@/views/apps/opsflow/components/VariableBrowser.vue'
@@ -42,6 +42,9 @@ const props = withDefaults(defineProps<{
   hooked?: boolean
 }>(), { modelValue: '' })
 const emit = defineEmits(['update:modelValue', 'hook'])
+
+const BrowseIcon = FolderOpened
+const PromoteIcon = Upload
 
 const val = computed({
   get: () => props.modelValue,
@@ -86,6 +89,10 @@ async function onHook() {
 <style scoped>
 .variable-input { display: flex; flex-direction: column; gap: 2px; }
 .var-input-row { display: flex; gap: 4px; align-items: center; }
+.var-input-row .el-input { flex: 1; min-width: 0; }
+.browse-btn { flex-shrink: 0; color: #909399; transition: color 0.2s; }
+.browse-btn:hover { color: #409EFF; }
 .var-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.promote-text-btn { margin-left: auto; flex-shrink: 0; }
 .var-hint { display: flex; }
 </style>

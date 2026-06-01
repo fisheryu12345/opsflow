@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" title="Variable Browser" width="560px" top="8vh" class="var-browser-dialog">
+  <el-dialog v-model="visible" title="Variable Browser" width="560px" top="8vh" :close-on-click-modal="true" class="var-browser-dialog">
     <el-tabs v-model="activeTab">
       <el-tab-pane label="Global Variables" name="global">
         <div v-if="globalVars.length === 0" class="tab-empty">

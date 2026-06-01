@@ -75,14 +75,17 @@
               <span class="exec-duration">{{ row.started_at && row.ended_at ? formatDuration(row.started_at, row.ended_at) : (row.started_at ? 'Running...' : '-') }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="Actions" width="160" fixed="right">
+          <el-table-column label="Actions" width="220" fixed="right">
             <template #default="{ row }">
               <div class="exec-actions">
                 <el-tooltip content="View Detail" placement="top">
                   <el-button size="small" circle text type="primary" :icon="View" @click.stop="emit('viewDetail', row)" />
                 </el-tooltip>
-                <el-tooltip v-if="row.status === 'pending' || row.status === 'pending_approval'" content="Start" placement="top">
+                <el-tooltip v-if="row.status === 'pending'" content="Start" placement="top">
                   <el-button size="small" circle text type="success" :icon="VideoPlay" :loading="startingId === row.id" @click.stop="onStart(row)" />
+                </el-tooltip>
+                <el-tooltip v-if="row.status === 'pending_approval' || row.status === 'pending'" content="Cancel" placement="top">
+                  <el-button size="small" circle text type="danger" :icon="Close" :loading="cancellingId === row.id" @click.stop="onCancel(row)" />
                 </el-tooltip>
                 <el-tooltip v-if="row.status === 'running'" content="Pause" placement="top">
                   <el-button size="small" circle text type="warning" :icon="VideoPause" :loading="pausingId === row.id" @click.stop="onPause(row)" />
@@ -102,9 +105,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Refresh, Search, View, VideoPlay, VideoPause } from '@element-plus/icons-vue'
+import { Refresh, Search, View, VideoPlay, VideoPause, Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { GetExecutions, StartExecution as StartExec, PauseExecution } from '/@/api/opsflow/executions'
+import { GetExecutions, StartExecution as StartExec, PauseExecution, CancelExecution } from '/@/api/opsflow/executions'
 import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const emit = defineEmits<{ viewDetail: [execution: any] }>()
@@ -120,6 +123,7 @@ const pageSize = ref(50)
 const total = ref(0)
 const startingId = ref<number | null>(null)
 const pausingId = ref<number | null>(null)
+const cancellingId = ref<number | null>(null)
 
 const runningCount = computed(() => executions.value.filter(e => e.status === 'running').length)
 const failedCount = computed(() => executions.value.filter(e => e.status === 'failed').length)
@@ -167,6 +171,7 @@ function onPageChange() { fetchExecutions() }
 function onRowClick(row: any) { emit('viewDetail', row) }
 async function onStart(row: any) { startingId.value = row.id; try { await StartExec(row.id); await fetchExecutions() } catch { /* ignore */ }; startingId.value = null }
 async function onPause(row: any) { pausingId.value = row.id; try { await PauseExecution(row.id); await fetchExecutions() } catch { /* ignore */ }; pausingId.value = null }
+async function onCancel(row: any) { cancellingId.value = row.id; try { await CancelExecution(row.id); ElMessage.success('Execution cancelled'); await fetchExecutions() } catch { /* ignore */ }; cancellingId.value = null }
 
 onMounted(async () => {
   if (!store.myProjects.length) await store.fetchMyProjects()

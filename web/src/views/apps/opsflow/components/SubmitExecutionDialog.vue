@@ -94,7 +94,7 @@ async function fetchVars() {
   loading.value = true
   try {
     const res = await GetGlobalVariables(props.templateId)
-    const data = res.data?.data || {}
+    const data = res.data || {}
     templateVars.value = {}
     overrides.value = {}
     for (const [key, val] of Object.entries(data)) {

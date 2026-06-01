@@ -3,11 +3,11 @@
     <div class="canvas-body">
       <div class="canvas-toolbar-float" :class="{ collapsed: toolbarCollapsed }" :style="{ left: stencilCollapsed ? '32px' : '220px' }">
         <template v-if="!toolbarCollapsed">
-          <el-tooltip content="Switch project" placement="bottom">
+          <el-tooltip :show-after="500" content="Switch project" placement="bottom">
             <ProjectSwitcher />
           </el-tooltip>
           <div class="toolbar-divider" />
-          <el-tooltip content="Select template" placement="bottom">
+          <el-tooltip :show-after="500" content="Select template" placement="bottom">
             <el-select
               :model-value="templateId"
               placeholder="Select template"
@@ -21,49 +21,49 @@
           </el-tooltip>
           <div class="toolbar-divider" />
           <el-button-group>
-            <el-tooltip content="Undo" placement="bottom">
+            <el-tooltip :show-after="500" content="Undo" placement="bottom">
               <el-button size="small" circle :disabled="!canUndo" @click="undo" :icon="RefreshLeft" />
             </el-tooltip>
-            <el-tooltip content="Redo" placement="bottom">
+            <el-tooltip :show-after="500" content="Redo" placement="bottom">
               <el-button size="small" circle :disabled="!canRedo" @click="redo" :icon="RefreshRight" />
             </el-tooltip>
           </el-button-group>
           <div class="toolbar-divider" />
           <div class="zoom-controls">
-            <el-tooltip content="Zoom in" placement="bottom">
+            <el-tooltip :show-after="500" content="Zoom in" placement="bottom">
               <el-button size="small" text :icon="ZoomIn" @click="zoomIn" />
             </el-tooltip>
             <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
-            <el-tooltip content="Zoom out" placement="bottom">
+            <el-tooltip :show-after="500" content="Zoom out" placement="bottom">
               <el-button size="small" text :icon="ZoomOut" @click="zoomOut" />
             </el-tooltip>
-            <el-tooltip content="Fit canvas" placement="bottom">
+            <el-tooltip :show-after="500" content="Fit canvas" placement="bottom">
               <el-button size="small" text :icon="FullScreen" @click="fitCanvas" />
             </el-tooltip>
           </div>
           <div class="toolbar-divider" />
-          <el-tooltip content="Diff with AI original" placement="bottom">
-            <el-button size="small" circle @click="$emit('diff')" :icon="CopyDocument" />
+          <el-tooltip :show-after="500" content="Diff with AI original" placement="bottom">
+            <el-button size="small" circle type="info" @click="$emit('diff')" :icon="CopyDocument" />
           </el-tooltip>
-          <el-tooltip content="AI analyze pipeline" placement="bottom">
-            <el-button size="small" circle @click="$emit('analyze')" :icon="DataAnalysis" />
+          <el-tooltip :show-after="500" content="AI analyze pipeline" placement="bottom">
+            <el-button size="small" circle type="primary" @click="$emit('analyze')" :icon="DataAnalysis" />
           </el-tooltip>
-          <el-tooltip content="Auto layout" placement="bottom">
-            <el-button size="small" circle @click="aiLayout" :icon="Operation" />
+          <el-tooltip :show-after="500" content="Auto layout" placement="bottom">
+            <el-button size="small" circle type="warning" @click="aiLayout" :icon="Operation" />
           </el-tooltip>
-          <el-tooltip content="New template" placement="bottom">
-            <el-button size="small" circle @click="$emit('newTemplate')" :icon="Plus" />
-          </el-tooltip>
-          <div class="toolbar-divider" />
-          <el-tooltip content="Global Variables" placement="bottom">
-            <el-button size="small" circle @click="showVarPanel = !showVarPanel" :type="showVarPanel ? 'warning' : 'default'" :icon="Coin" />
+          <el-tooltip :show-after="500" content="New template" placement="bottom">
+            <el-button size="small" circle type="success" @click="$emit('newTemplate')" :icon="Plus" />
           </el-tooltip>
           <div class="toolbar-divider" />
-          <el-tooltip content="Submit Execution" placement="bottom">
-            <el-button size="small" circle type="success" @click="showExecDialog = true" :icon="VideoPlay" />
+          <el-tooltip :show-after="500" content="Global Variables" placement="bottom">
+            <el-button size="small" circle type="danger" @click="showVarPanel = !showVarPanel" :icon="Coin" data-var-toggle />
           </el-tooltip>
-          <el-tooltip content="Save draft" placement="bottom">
-            <el-button size="small" circle type="primary" @click="onSave" :icon="Upload" />
+          <div class="toolbar-divider" />
+          <el-tooltip :show-after="500" content="Submit Execution" placement="bottom">
+            <el-button size="small" circle @click="showExecDialog = true" :icon="VideoPlay" class="btn-exec" />
+          </el-tooltip>
+          <el-tooltip :show-after="500" content="Save draft" placement="bottom">
+            <el-button size="small" circle @click="onSave" :icon="Upload" class="btn-save" />
           </el-tooltip>
         </template>
         <el-tooltip :content="toolbarCollapsed ? 'Expand toolbar' : 'Collapse toolbar'" placement="bottom">
@@ -93,6 +93,7 @@
       />
       <!-- Global Variable Panel toggle -->
       <GlobalVariablePanel
+        ref="varPanelRef"
         v-if="templateId && showVarPanel"
         :template-id="templateId"
         @update="onGlobalVarsUpdated"
@@ -149,6 +150,21 @@ const emit = defineEmits<{
 const showVarPanel = ref(false)
 const showExecDialog = ref(false)
 const toolbarCollapsed = ref(false)
+const varPanelRef = ref<HTMLElement | null>(null)
+
+// Click outside GlobalVariablePanel to close
+function onDocMousedown(e: MouseEvent) {
+  if (!showVarPanel.value) return
+  const target = e.target as Node
+  // Don't close if clicking inside the panel or the toggle button
+  const panelEl = varPanelRef.value?.$el as HTMLElement | undefined
+  const toggleBtn = document.querySelector('[data-var-toggle]')
+  if (panelEl && !panelEl.contains(target) && toggleBtn && !toggleBtn.contains(target)) {
+    showVarPanel.value = false
+  }
+}
+onMounted(() => document.addEventListener('mousedown', onDocMousedown))
+onBeforeUnmount(() => document.removeEventListener('mousedown', onDocMousedown))
 
 const templateName = computed(() => {
   if (!props.templateId || !props.templates) return ''
@@ -401,4 +417,9 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, z
 .canvas-toolbar-right .el-button--primary:hover {
   box-shadow: 0 4px 12px rgba(102,126,234,0.35);
 }
+/* Unique custom colors for buttons without type */
+.btn-exec { color: #67C23A; background: #f0f9eb; }
+.btn-exec:hover { color: #85ce61; background: #e1f3d8; }
+.btn-save { color: #667eea; background: #eef0ff; }
+.btn-save:hover { color: #8596f0; background: #dde0fa; }
 </style>
