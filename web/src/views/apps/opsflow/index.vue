@@ -474,6 +474,8 @@ onMounted(async () => {
 // Re-fetch templates when project switches via ProjectSwitcher
 function onProjectChanged() {
   fetchTemplates()
+  // 公共模板不受项目切换影响，保留当前选中
+  if (store.currentTemplate?.is_public) return
   const stillExists = templates.value.some(t => t.id === selectedTemplateId.value)
   if (!stillExists) {
     selectedTemplateId.value = null

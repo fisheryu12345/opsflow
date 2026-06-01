@@ -1,7 +1,7 @@
 """PowerMax 存储阵列 CMDB Mock"""
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 MOCK_PMAX_ARRAYS = [
@@ -13,7 +13,7 @@ MOCK_PMAX_ARRAYS = [
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def cmdb_pmax_arrays(request):
     """模拟 CMDB — PowerMax 存储阵列列表"""
     q = request.query_params.get('q', '').strip().lower()

@@ -5,11 +5,10 @@
 """
 
 import logging
-from rest_framework import viewsets
+from rest_framework import viewsets, status, exceptions
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
 
 from opsflow.models import FlowTemplate
 from opsflow.serializers import FlowTemplateSerializer
@@ -41,13 +40,20 @@ class FlowTemplateViewSet(
     queryset = FlowTemplate.objects.all()
     serializer_class = FlowTemplateSerializer
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['is_draft', 'created_by', 'category', 'project']
+    filterset_fields = ['is_draft', 'created_by', 'category', 'project', 'is_public']
     search_fields = ['name']
     ordering = ['-created_at']
     project_field = 'project'
+    include_public = True
 
     def perform_create(self, serializer):
-        instance = serializer.save(created_by=self.request.user)
+        is_public = serializer.validated_data.get('is_public', False)
+        if is_public:
+            if not self.request.user.is_superuser:
+                raise exceptions.PermissionDenied('仅超级管理员可创建公共模板')
+            instance = serializer.save(created_by=self.request.user, project=None)
+        else:
+            instance = serializer.save(created_by=self.request.user)
         log_operation(self.request.user, 'create', 'template', instance.id, instance.name, request=self.request)
 
     def retrieve(self, request, *args, **kwargs):
@@ -75,6 +81,14 @@ class FlowTemplateViewSet(
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
+        # 非 superuser 无法编辑公共模板
+        if instance.is_public and not request.user.is_superuser:
+            return Response({'code': 4000, 'msg': '仅超级管理员可编辑公共模板', 'data': None},
+                            status=status.HTTP_403_FORBIDDEN)
+        # 非 superuser 无法将模板转为公共
+        if request.data.get('is_public') and not request.user.is_superuser:
+            return Response({'code': 4000, 'msg': '仅超级管理员可将模板设为公共', 'data': None},
+                            status=status.HTTP_403_FORBIDDEN)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
@@ -117,8 +131,12 @@ class FlowTemplateViewSet(
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.created_by and instance.created_by != request.user:
-            return Response({'code': 4000, 'msg': 'Only the creator can delete this template', 'data': None},
+        if instance.is_public:
+            if not request.user.is_superuser:
+                return Response({'code': 4000, 'msg': '仅超级管理员可删除公共模板', 'data': None},
+                                status=status.HTTP_403_FORBIDDEN)
+        elif instance.created_by and instance.created_by != request.user:
+            return Response({'code': 4000, 'msg': '仅创建者可删除此模板', 'data': None},
                             status=status.HTTP_403_FORBIDDEN)
         log_operation(request.user, 'delete', 'template', instance.id, instance.name, request=request)
         instance.delete()

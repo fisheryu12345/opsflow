@@ -13,10 +13,18 @@
               placeholder="Select template"
               clearable filterable
               size="small"
-              style="width: 180px"
+              style="width: 200px"
               @change="(val: any) => emit('changeTemplate', val)"
             >
-              <el-option v-for="t in templates" :key="t.id" :label="t.name" :value="t.id" />
+              <el-option-group v-if="projectTemplates.length" label="📁 项目模板">
+                <el-option v-for="t in projectTemplates" :key="t.id" :label="t.name" :value="t.id" />
+              </el-option-group>
+              <el-option-group v-if="publicTemplates.length" label="🌐 公共模板">
+                <el-option v-for="t in publicTemplates" :key="t.id" :value="t.id">
+                  <span>{{ t.name }}</span>
+                  <el-tag size="small" type="warning" style="margin-left: 6px;">公共</el-tag>
+                </el-option>
+              </el-option-group>
             </el-select>
           </el-tooltip>
           <div class="toolbar-divider" />
@@ -170,6 +178,14 @@ const templateName = computed(() => {
   if (!props.templateId || !props.templates) return ''
   const tpl = props.templates.find((t: any) => t.id === props.templateId)
   return tpl?.name || ''
+})
+
+const projectTemplates = computed(() => {
+  return (props.templates || []).filter((t: any) => !t.is_public)
+})
+
+const publicTemplates = computed(() => {
+  return (props.templates || []).filter((t: any) => t.is_public)
 })
 
 function onExecCreated(execId: number) {

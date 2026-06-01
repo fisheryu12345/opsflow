@@ -27,6 +27,13 @@
 
     <!-- Body -->
     <div class="tpl-body">
+      <!-- Scope Tabs: Project vs Public -->
+      <div class="tpl-scope-tabs">
+        <el-tabs v-model="activeTab" @tab-change="onTabChange">
+          <el-tab-pane label="📁 项目模板" name="project" />
+          <el-tab-pane label="🌐 公共模板" name="public" />
+        </el-tabs>
+      </div>
       <!-- Filter bar -->
       <div class="tpl-filter-bar">
         <div class="tpl-filter-tabs">
@@ -48,7 +55,7 @@
           <div class="tpl-view-toggle" :class="viewMode" @click="viewMode = viewMode === 'table' ? 'cards' : 'table'">
             <div class="tpl-toggle-btn"><el-icon :size="13"><component :is="viewMode === 'table' ? 'Grid' : 'List'" /></el-icon></div>
           </div>
-          <el-button type="primary" :icon="Plus" @click="openCreate" size="small">New Template</el-button>
+          <el-button v-if="activeTab === 'project' || isSuperuser" type="primary" :icon="Plus" @click="openCreate" size="small">New Template</el-button>
           <el-button :icon="UploadFilled" @click="openImport" size="small">Import</el-button>
         </div>
       </div>
@@ -62,6 +69,13 @@
             <el-table-column label="Status" width="120" align="center">
               <template #default="{ row }">
                 <span class="tpl-status-badge" :class="row.is_draft ? 'st-draft' : 'st-published'">{{ row.is_draft ? 'Draft' : 'Published' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Scope" width="110" align="center" v-if="activeTab === 'public'">
+              <template #default="{ row }">
+                <el-tooltip :content="formatScope(row.project_scope)" placement="top">
+                  <span class="tpl-scope-badge">{{ formatScopeShort(row.project_scope) }}</span>
+                </el-tooltip>
               </template>
             </el-table-column>
             <el-table-column label="Pipeline" min-width="160" class-name="pipeline-col">
@@ -93,13 +107,13 @@
                   <el-tooltip content="Edit in Designer" placement="top">
                     <el-button size="small" text type="primary" @click.stop="goEditTemplate(row)"><el-icon><Edit /></el-icon></el-button>
                   </el-tooltip>
-                  <el-tooltip content="Modify Info" placement="top">
+                  <el-tooltip v-if="!row.is_public || isSuperuser" content="Modify Info" placement="top">
                     <el-button size="small" text type="primary" @click.stop="openEdit(row)"><el-icon><Setting /></el-icon></el-button>
                   </el-tooltip>
-                  <el-tooltip :content="row.is_draft ? 'Publish' : 'New Version'" placement="top">
+                  <el-tooltip v-if="!row.is_public || isSuperuser" :content="row.is_draft ? 'Publish' : 'New Version'" placement="top">
                     <el-button size="small" text type="success" :loading="publishingId === row.id" @click.stop="handlePublish(row)"><el-icon><Upload /></el-icon></el-button>
                   </el-tooltip>
-                  <el-tooltip v-if="!row.is_draft" content="Schedule" placement="top">
+                  <el-tooltip v-if="!row.is_draft && (!row.is_public || isSuperuser)" content="Schedule" placement="top">
                     <el-button size="small" text type="warning" @click.stop="openSchedule(row)"><el-icon><Timer /></el-icon></el-button>
                   </el-tooltip>
                   <el-tooltip content="Versions" placement="top">
@@ -108,7 +122,7 @@
                   <el-tooltip content="Export" placement="top">
                     <el-button size="small" text @click.stop="handleExport(row)"><el-icon><Download /></el-icon></el-button>
                   </el-tooltip>
-                  <el-popconfirm title="Delete this template?" @confirm.stop="handleDelete(row)">
+                  <el-popconfirm v-if="!row.is_public || isSuperuser" title="Delete this template?" @confirm.stop="handleDelete(row)">
                     <template #reference>
                       <el-tooltip content="Delete" placement="top">
                         <el-button size="small" text type="danger" @click.stop><el-icon><Delete /></el-icon></el-button>
@@ -149,22 +163,22 @@
                 <el-button size="small" text type="primary" @click.stop="goEditTemplate(item)">
                   <el-icon><Edit /></el-icon>
                 </el-button>
-                <el-button size="small" text type="primary" @click.stop="openEdit(item)">
+                <el-button v-if="!item.is_public || isSuperuser" size="small" text type="primary" @click.stop="openEdit(item)">
                   <el-icon><Setting /></el-icon>
                 </el-button>
-                <el-button v-if="item.is_draft" size="small" text type="success" :loading="publishingId === item.id" @click.stop="handlePublish(item)">
+                <el-button v-if="(!item.is_public || isSuperuser) && item.is_draft" size="small" text type="success" :loading="publishingId === item.id" @click.stop="handlePublish(item)">
                   <el-icon><Upload /></el-icon>
                 </el-button>
-                <el-button v-else size="small" text type="success" :loading="publishingId === item.id" @click.stop="handlePublish(item)">
+                <el-button v-if="(!item.is_public || isSuperuser) && !item.is_draft" size="small" text type="success" :loading="publishingId === item.id" @click.stop="handlePublish(item)">
                   <el-icon><Upload /></el-icon>
                 </el-button>
-                <el-button v-if="!item.is_draft" size="small" text type="warning" @click.stop="openSchedule(item)">
+                <el-button v-if="!item.is_draft && (!item.is_public || isSuperuser)" size="small" text type="warning" @click.stop="openSchedule(item)">
                   <el-icon><Timer /></el-icon>
                 </el-button>
                 <el-button size="small" text type="info" @click.stop="openVersions(item)">
                   <el-icon><Clock /></el-icon>
                 </el-button>
-                <el-popconfirm title="Delete?" @confirm.stop="handleDelete(item)">
+                <el-popconfirm v-if="!item.is_public || isSuperuser" title="Delete?" @confirm.stop="handleDelete(item)">
                   <template #reference><el-button size="small" text type="danger"><el-icon><Delete /></el-icon></el-button></template>
                 </el-popconfirm>
               </div>
@@ -175,7 +189,7 @@
     </div>
 
     <!-- Create/Edit dialog -->
-    <el-dialog v-model="formVisible" :title="isEditing ? 'Edit Template' : 'New Template'" width="480px" top="15vh" destroy-on-close>
+    <el-dialog v-model="formVisible" :title="formTitle" width="480px" top="15vh" destroy-on-close>
       <el-form label-width="90px" size="small">
         <el-form-item label="Name" required>
           <el-input v-model="form.name" placeholder="Template name" maxlength="200" />
@@ -185,6 +199,13 @@
         </el-form-item>
         <el-form-item label="Desc">
           <el-input v-model="form.description" type="textarea" :rows="2" placeholder="Optional description" maxlength="500" />
+        </el-form-item>
+        <el-form-item v-if="activeTab === 'public' && isSuperuser" label="Project Scope">
+          <el-select v-model="form.project_scope" multiple filterable collapse-tags placeholder="Select projects (empty = all)" style="width: 100%">
+            <el-option label="All projects (public)" value="*" />
+            <el-option v-for="p in opsflowStore.myProjects" :key="p.id" :label="p.name" :value="String(p.id)" />
+          </el-select>
+          <div style="font-size: 11px; color: #909399; margin-top: 4px;">Leave empty to make visible to all projects</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -259,12 +280,17 @@ import { Refresh, Plus, Upload, Edit, Delete, Search, List, Grid, Connection, Sh
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { GetTemplates, CreateTemplate, UpdateTemplate, DeleteTemplate, ConfirmDraft, GetTemplateDetail, PublishTemplate, ExportTemplate, ImportTemplate, GetTemplateCategories } from '/@/api/opsflow/templates'
 import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
+import { useUserInfo } from '/@/stores/userInfo'
 import ScheduleManager from './components/ScheduleManager.vue'
 import VersionDialog from './components/VersionDialog.vue'
 
 import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const router = useRouter()
 const opsflowStore = useOpsflowStore()
+const userInfo = useUserInfo()
+
+const isSuperuser = computed(() => userInfo.userInfos?.roles?.includes('admin') || false)
+const activeTab = ref<'project' | 'public'>('project')
 
 const loading = ref(false)
 const saving = ref(false)
@@ -281,7 +307,26 @@ const viewMode = ref<'table' | 'cards'>('table')
 const formVisible = ref(false)
 const isEditing = ref(false)
 const editingId = ref<number | null>(null)
-const form = reactive({ name: '', category: '', description: '' })
+const form = reactive({ name: '', category: '', description: '', is_public: false, project_scope: [] as string[] })
+
+function formatScope(scope: string[] | undefined): string {
+  if (!scope || scope.length === 0) return 'No projects'
+  if (scope.includes('*')) return 'Visible to all projects'
+  return `Visible to projects: ${scope.join(', ')}`
+}
+function formatScopeShort(scope: string[] | undefined): string {
+  if (!scope || scope.length === 0) return '-'
+  if (scope.includes('*')) return '🌐 All'
+  return `${scope.length} project${scope.length > 1 ? 's' : ''}`
+}
+
+function onTabChange() {
+  page.value = 1
+  filterName.value = ''
+  filterCategory.value = ''
+  filterStatus.value = ''
+  fetchData()
+}
 
 const viewVisible = ref(false)
 const viewRow = ref<any>(null)
@@ -304,6 +349,10 @@ const importing = ref(false)
 const pubCount = computed(() => displayList.value.filter(t => !t.is_draft).length)
 const draftCount = computed(() => displayList.value.filter(t => t.is_draft).length)
 const emptyText = computed(() => loading.value ? 'Loading...' : 'No templates yet')
+const formTitle = computed(() => {
+  const prefix = activeTab.value === 'public' ? 'Public ' : ''
+  return isEditing.value ? `Edit ${prefix}Template` : `New ${prefix}Template`
+})
 
 const displayList = computed(() => {
   let items = list.value
@@ -373,6 +422,7 @@ async function fetchData() {
     const params: any = { page: page.value, limit: pageSize.value }
     if (filterName.value) params.search = filterName.value
     if (filterCategory.value) params.category = filterCategory.value
+    if (activeTab.value === 'public') params.is_public = true
     const res = await GetTemplates(params)
     const items = res.data?.results || res.data || res.results || []
     list.value = items; total.value = res.total || res.data?.count || res.count || items.length || 0
@@ -384,12 +434,19 @@ async function fetchData() {
 function onFilter() { page.value = 1; fetchData() }
 function onPageChange() { fetchData() }
 
-function resetForm() { form.name = ''; form.category = ''; form.description = ''; editingId.value = null; isEditing.value = false }
+function resetForm() { form.name = ''; form.category = ''; form.description = ''; form.is_public = false; form.project_scope = []; editingId.value = null; isEditing.value = false }
 
-function openCreate() { resetForm(); formVisible.value = true }
+function openCreate() {
+  resetForm()
+  if (activeTab.value === 'public' && isSuperuser.value) {
+    form.is_public = true
+  }
+  formVisible.value = true
+}
 function openEdit(row: any) {
   isEditing.value = true; editingId.value = row.id
   form.name = row.name; form.category = row.category || ''; form.description = row.description || ''
+  form.is_public = !!row.is_public; form.project_scope = row.project_scope || []
   formVisible.value = true
 }
 
@@ -402,7 +459,11 @@ async function handleSave() {
   if (!form.name.trim()) { ElMessage.warning('Name is required'); return }
   saving.value = true
   try {
-    const data = { name: form.name, category: form.category || '', description: form.description || '' }
+    const data: any = { name: form.name, category: form.category || '', description: form.description || '' }
+    if (activeTab.value === 'public' && isSuperuser.value) {
+      data.is_public = true
+      data.project_scope = form.project_scope
+    }
     if (isEditing.value && editingId.value) { await UpdateTemplate(editingId.value, data) } else { await CreateTemplate(data) }
     ElMessage.success(isEditing.value ? 'Updated' : 'Created')
     formVisible.value = false; await fetchData()
@@ -514,6 +575,12 @@ onBeforeUnmount(() => {
 .tpl-actions { display: flex; flex-wrap: nowrap; gap: 2px; }
 .tpl-actions .el-button { padding: 4px 8px; border-radius: 6px; font-size: 12px; }
 .tpl-pagination { display: flex; justify-content: flex-end; padding: 12px 16px; }
+
+/* ===== Scope tabs ===== */
+.tpl-scope-tabs { padding: 8px 0 0 0; }
+.tpl-scope-tabs :deep(.el-tabs__item) { font-size: 14px; font-weight: 600; padding: 0 16px; }
+.tpl-scope-tabs :deep(.el-tabs__nav-wrap::after) { display: none; }
+.tpl-scope-badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 8px; background: #ecf5ff; color: #409EFF; }
 
 /* ===== Card view ===== */
 .tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; padding-bottom: 24px; }

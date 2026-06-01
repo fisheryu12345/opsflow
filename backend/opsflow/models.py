@@ -91,6 +91,13 @@ class FlowTemplate(models.Model):
 
     version = models.IntegerField(default=1, null=True, blank=True, verbose_name="Current Version")
     snapshot = models.JSONField(default=dict, null=True, blank=True, verbose_name="Published Snapshot")
+    is_public = models.BooleanField(default=False, verbose_name="Is Public Template")
+    project_scope = models.JSONField(default=list, blank=True, verbose_name="Visible Project Scope")
+
+    def clean(self):
+        """公共模板不应绑定到具体项目"""
+        if self.is_public:
+            self.project = None
 
     def publish_snapshot(self, user=None, version_note=""):
         """发布新版本：冻结当前 pipeline_tree 到 snapshot 并创建版本记录"""

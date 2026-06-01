@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { request } from '/@/utils/service'
 
 const props = withDefaults(defineProps<{
@@ -91,13 +91,6 @@ function onVisibleChange(visible: boolean) {
   }
 }
 
-async function onRemoteSearch(query: string) {
-  searchQuery.value = query
-  if (query && props.searchable) {
-    await fetchOptions(query)
-  }
-}
-
 /* Re-fetch when depends_on fields change */
 if (props.depends_on) {
   watch(
@@ -108,4 +101,11 @@ if (props.depends_on) {
     () => { fetchOptions() },
   )
 }
+
+/* Preload data on mount so dropdown shows options immediately */
+onMounted(() => {
+  if (props.api_endpoint) {
+    fetchOptions()
+  }
+})
 </script>

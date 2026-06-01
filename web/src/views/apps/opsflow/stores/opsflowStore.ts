@@ -10,6 +10,8 @@ interface FlowTemplate {
   target_hosts: string[]
   global_vars: any
   is_draft: boolean
+  is_public?: boolean
+  project_scope?: string[]
   ai_original_tree: any
   created_by_name: string
   created_at: string

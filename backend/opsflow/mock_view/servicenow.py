@@ -1,7 +1,7 @@
 """ServiceNow 实例 CMDB Mock"""
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 MOCK_SERVICENOW_INSTANCES = [
@@ -13,7 +13,7 @@ MOCK_SERVICENOW_INSTANCES = [
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def cmdb_servicenow_instances(request):
     """模拟 CMDB — ServiceNow 实例列表"""
     q = request.query_params.get('q', '').strip().lower()

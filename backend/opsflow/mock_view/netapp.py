@@ -1,7 +1,7 @@
 """NetApp ONTAP 集群 CMDB Mock"""
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 MOCK_NETAPP_CLUSTERS = [
@@ -14,7 +14,7 @@ MOCK_NETAPP_CLUSTERS = [
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def cmdb_netapp_clusters(request):
     """模拟 CMDB — NetApp ONTAP 集群列表"""
     q = request.query_params.get('q', '').strip().lower()
