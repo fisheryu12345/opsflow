@@ -57,7 +57,6 @@
         </div>
         <div class="sc-filter-actions">
           <el-button :icon="Refresh" @click="fetchList" :loading="loading" text size="small">Refresh</el-button>
-          <el-button type="primary" :icon="Plus" @click="openCreate" size="small">New Schedule</el-button>
         </div>
       </div>
 
@@ -89,7 +88,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus } from '@element-plus/icons-vue'
+import { Search, Refresh } from '@element-plus/icons-vue'
 import {
   GetSchedulePlans,
   PauseSchedulePlan,
@@ -138,11 +137,6 @@ async function fetchList() {
   } finally {
     loading.value = false
   }
-}
-
-function openCreate() {
-  editingPlan.value = null
-  formVisible.value = true
 }
 
 function openEdit(row: any) {

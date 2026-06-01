@@ -7,11 +7,10 @@
     :close-on-click-modal="false"
     @close="handleClose"
   >
-    <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center">
+    <div style="margin-bottom: 16px;">
       <span style="font-size: 13px; color: #909399">
         {{ list.length }} schedule(s)
       </span>
-      <el-button type="primary" size="small" @click="openCreate">New Schedule</el-button>
     </div>
 
     <ScheduleTable
@@ -86,11 +85,6 @@ async function fetchList() {
   } finally {
     loading.value = false
   }
-}
-
-function openCreate() {
-  editingPlan.value = null
-  formVisible.value = true
 }
 
 function openEdit(row: any) {

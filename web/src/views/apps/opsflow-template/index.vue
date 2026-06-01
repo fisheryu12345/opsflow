@@ -55,8 +55,11 @@
           <div class="tpl-view-toggle" :class="viewMode" @click="viewMode = viewMode === 'table' ? 'cards' : 'table'">
             <div class="tpl-toggle-btn"><el-icon :size="13"><component :is="viewMode === 'table' ? 'Grid' : 'List'" /></el-icon></div>
           </div>
-          <el-button v-if="activeTab === 'project' || isSuperuser" type="primary" :icon="Plus" @click="openCreate" size="small">New Template</el-button>
-          <el-button :icon="UploadFilled" @click="openImport" size="small">Import</el-button>
+          <el-tooltip content="Import" placement="top">
+            <div class="tpl-view-toggle" @click="openImport">
+              <div class="tpl-toggle-btn"><el-icon :size="13"><UploadFilled /></el-icon></div>
+            </div>
+          </el-tooltip>
         </div>
       </div>
 
@@ -178,6 +181,9 @@
                 <el-button size="small" text type="info" @click.stop="openVersions(item)">
                   <el-icon><Clock /></el-icon>
                 </el-button>
+                <el-button size="small" text @click.stop="handleExport(item)">
+                  <el-icon><Download /></el-icon>
+                </el-button>
                 <el-popconfirm v-if="!item.is_public || isSuperuser" title="Delete?" @confirm.stop="handleDelete(item)">
                   <template #reference><el-button size="small" text type="danger"><el-icon><Delete /></el-icon></el-button></template>
                 </el-popconfirm>
@@ -188,8 +194,8 @@
       </template>
     </div>
 
-    <!-- Create/Edit dialog -->
-    <el-dialog v-model="formVisible" :title="formTitle" width="480px" top="15vh" destroy-on-close>
+    <!-- Edit dialog -->
+    <el-dialog v-model="formVisible" title="Edit Template" width="480px" top="15vh" destroy-on-close>
       <el-form label-width="90px" size="small">
         <el-form-item label="Name" required>
           <el-input v-model="form.name" placeholder="Template name" maxlength="200" />
@@ -200,17 +206,10 @@
         <el-form-item label="Desc">
           <el-input v-model="form.description" type="textarea" :rows="2" placeholder="Optional description" maxlength="500" />
         </el-form-item>
-        <el-form-item v-if="activeTab === 'public' && isSuperuser" label="Project Scope">
-          <el-select v-model="form.project_scope" multiple filterable collapse-tags placeholder="Select projects (empty = all)" style="width: 100%">
-            <el-option label="All projects (public)" value="*" />
-            <el-option v-for="p in opsflowStore.myProjects" :key="p.id" :label="p.name" :value="String(p.id)" />
-          </el-select>
-          <div style="font-size: 11px; color: #909399; margin-top: 4px;">Leave empty to make visible to all projects</div>
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false" size="small">Cancel</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave" size="small">{{ isEditing ? 'Update' : 'Create' }}</el-button>
+        <el-button type="primary" @click="handleSave" size="small">Update</el-button>
       </template>
     </el-dialog>
 
@@ -276,9 +275,9 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { Refresh, Plus, Upload, Edit, Delete, Search, List, Grid, Connection, Share, Timer, Setting, Clock, Download, UploadFilled } from '@element-plus/icons-vue'
+import { Refresh, Upload, Edit, Delete, Search, List, Grid, Connection, Share, Timer, Setting, Clock, Download, UploadFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { GetTemplates, CreateTemplate, UpdateTemplate, DeleteTemplate, ConfirmDraft, GetTemplateDetail, PublishTemplate, ExportTemplate, ImportTemplate, GetTemplateCategories } from '/@/api/opsflow/templates'
+import { GetTemplates, UpdateTemplate, DeleteTemplate, ConfirmDraft, GetTemplateDetail, PublishTemplate, ExportTemplate, ImportTemplate, GetTemplateCategories } from '/@/api/opsflow/templates'
 import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 import { useUserInfo } from '/@/stores/userInfo'
 import ScheduleManager from './components/ScheduleManager.vue'
@@ -293,7 +292,6 @@ const isSuperuser = computed(() => userInfo.userInfos?.roles?.includes('admin') 
 const activeTab = ref<'project' | 'public'>('project')
 
 const loading = ref(false)
-const saving = ref(false)
 const list = ref<any[]>([])
 const page = ref(1)
 const pageSize = ref(20)
@@ -307,7 +305,7 @@ const viewMode = ref<'table' | 'cards'>('table')
 const formVisible = ref(false)
 const isEditing = ref(false)
 const editingId = ref<number | null>(null)
-const form = reactive({ name: '', category: '', description: '', is_public: false, project_scope: [] as string[] })
+const form = reactive({ name: '', category: '', description: '' })
 
 function formatScope(scope: string[] | undefined): string {
   if (!scope || scope.length === 0) return 'No projects'
@@ -349,10 +347,6 @@ const importing = ref(false)
 const pubCount = computed(() => displayList.value.filter(t => !t.is_draft).length)
 const draftCount = computed(() => displayList.value.filter(t => t.is_draft).length)
 const emptyText = computed(() => loading.value ? 'Loading...' : 'No templates yet')
-const formTitle = computed(() => {
-  const prefix = activeTab.value === 'public' ? 'Public ' : ''
-  return isEditing.value ? `Edit ${prefix}Template` : `New ${prefix}Template`
-})
 
 const displayList = computed(() => {
   let items = list.value
@@ -434,19 +428,9 @@ async function fetchData() {
 function onFilter() { page.value = 1; fetchData() }
 function onPageChange() { fetchData() }
 
-function resetForm() { form.name = ''; form.category = ''; form.description = ''; form.is_public = false; form.project_scope = []; editingId.value = null; isEditing.value = false }
-
-function openCreate() {
-  resetForm()
-  if (activeTab.value === 'public' && isSuperuser.value) {
-    form.is_public = true
-  }
-  formVisible.value = true
-}
 function openEdit(row: any) {
   isEditing.value = true; editingId.value = row.id
   form.name = row.name; form.category = row.category || ''; form.description = row.description || ''
-  form.is_public = !!row.is_public; form.project_scope = row.project_scope || []
   formVisible.value = true
 }
 
@@ -457,18 +441,13 @@ async function goEditTemplate(row: any) {
 
 async function handleSave() {
   if (!form.name.trim()) { ElMessage.warning('Name is required'); return }
-  saving.value = true
+  if (!editingId.value) return
   try {
-    const data: any = { name: form.name, category: form.category || '', description: form.description || '' }
-    if (activeTab.value === 'public' && isSuperuser.value) {
-      data.is_public = true
-      data.project_scope = form.project_scope
-    }
-    if (isEditing.value && editingId.value) { await UpdateTemplate(editingId.value, data) } else { await CreateTemplate(data) }
-    ElMessage.success(isEditing.value ? 'Updated' : 'Created')
+    const data = { name: form.name, category: form.category || '', description: form.description || '' }
+    await UpdateTemplate(editingId.value, data)
+    ElMessage.success('Updated')
     formVisible.value = false; await fetchData()
   } catch (e: any) { ElMessage.error(e?.msg || e?.message || 'Failed') }
-  saving.value = false
 }
 
 async function handlePublish(row: any) {
@@ -479,10 +458,6 @@ async function handlePublish(row: any) {
     await fetchData()
   } catch (e: any) { ElMessage.error(e?.msg || e?.message || 'Publish failed') }
   publishingId.value = null
-}
-
-async function handleExport(row: any) {
-  try { const r = await ExportTemplate(row.id); const blob = new Blob([JSON.stringify(r.data?.data || r.data, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${row.name.replace(/\s+/g, '_')}.json`; a.click(); URL.revokeObjectURL(url); ElMessage.success('Exported') } catch { ElMessage.error('Export failed') }
 }
 
 function openImport() { importVisible.value = true; importFiles.value = []; importData.value = null }
@@ -496,6 +471,9 @@ async function handleImport() {
   if (!importData.value) return; importing.value = true
   try { await ImportTemplate({ data: importData.value }); ElMessage.success('Imported'); importVisible.value = false; await fetchData() } catch { ElMessage.error('Import failed') }
   importing.value = false
+}
+async function handleExport(row: any) {
+  try { const r = await ExportTemplate(row.id); const blob = new Blob([JSON.stringify(r.data?.data || r.data, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${row.name.replace(/\s+/g, '_')}.json`; a.click(); URL.revokeObjectURL(url); ElMessage.success('Exported') } catch { ElMessage.error('Export failed') }
 }
 async function handleDelete(row: any) {
   try { await ElMessageBox.confirm('Delete this template?', 'Confirm', { type: 'warning' }); await DeleteTemplate(row.id); ElMessage.success('Deleted'); await fetchData() } catch { /* cancelled */ }
