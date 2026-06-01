@@ -36,6 +36,7 @@ class OpsProjectViewSet(viewsets.ModelViewSet):
                 'owner_name': p.owner.username if p.owner else None,
                 'template_count': p.templates.count(),
                 'execution_count': p.executions.count(),
+                'max_schedule_plans': p.max_schedule_plans,
                 'created_at': p.created_at.isoformat(),
             }
             for p in queryset
@@ -48,6 +49,7 @@ class OpsProjectViewSet(viewsets.ModelViewSet):
             'id': p.id, 'name': p.name, 'description': p.description,
             'is_active': p.is_active,
             'owner_name': p.owner.username if p.owner else None,
+            'max_schedule_plans': p.max_schedule_plans,
             'created_at': p.created_at.isoformat(),
         }
         return DetailResponse(data=data)

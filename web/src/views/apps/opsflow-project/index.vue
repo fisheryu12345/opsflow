@@ -192,7 +192,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete, Setting } from '@element-plus/icons-vue'
 import { request } from '/@/utils/service'
@@ -247,7 +247,7 @@ async function fetchData() {
     if (filterStatus.value === 'inactive') items = items.filter(p => !p.is_active)
     projects.value = items
   } catch (e: any) {
-    ElMessage.error(e?.msg || 'Failed to load projects')
+    ElMessage.error(e?.msg || e?.message || 'Failed to load projects')
   } finally {
     loading.value = false
   }
@@ -259,7 +259,7 @@ function showForm(row: any | null) {
     form.value = { name: row.name, description: row.description || '', is_active: row.is_active ?? true, max_schedule_plans: row.max_schedule_plans ?? 20 }
   } else {
     formId.value = null
-    form.value = { name: '', description: '', is_active: true }
+    form.value = { name: '', description: '', is_active: true, max_schedule_plans: 20 }
   }
   formVisible.value = true
 }
@@ -272,16 +272,17 @@ async function showDetail(row: any) {
     detail.value = row
   }
   detailVisible.value = true
-  // Load members
+  // Load members, users, and current user id in parallel
   await Promise.all([
     loadMembers(row.id),
     loadAllUsers(),
+    (async () => {
+      try {
+        const userRes = await request({ url: '/api/system/user/user_info/', method: 'get' })
+        currentUserId.value = (userRes as any).data?.id || null
+      } catch { /* ignore */ }
+    })(),
   ])
-  // Get current user id
-  try {
-    const userRes = await request({ url: '/api/system/user/user_info/', method: 'get' })
-    currentUserId.value = (userRes as any).data?.id || null
-  } catch { /* ignore */ }
 }
 
 async function loadMembers(projectId: number) {
@@ -296,7 +297,7 @@ async function loadMembers(projectId: number) {
 async function loadAllUsers() {
   usersLoading.value = true
   try {
-    const res = await request({ url: '/api/system/user/', method: 'get', params: { page_size: 200 } })
+    const res = await request({ url: '/api/system/user/', method: 'get', params: { page_size: 10000 } })
     userOptions.value = (res as any).data?.results || (res as any).data || []
   } catch { userOptions.value = [] }
   usersLoading.value = false
@@ -305,13 +306,23 @@ async function loadAllUsers() {
 async function addMember() {
   if (!newMemberIds.value.length || !detail.value) return
   try {
-    for (const uid of newMemberIds.value) {
-      await AddProjectMember(detail.value.id, uid, newMemberRole.value)
+    const results = await Promise.allSettled(
+      newMemberIds.value.map(uid =>
+        AddProjectMember(detail.value.id, uid, newMemberRole.value)
+      )
+    )
+    const succeeded = results.filter(r => r.status === 'fulfilled').length
+    const failed = results.filter(r => r.status === 'rejected').length
+    if (failed > 0) {
+      ElMessage.warning(`${succeeded} member(s) added, ${failed} failed`)
+    } else {
+      ElMessage.success(`Added ${succeeded} member(s)`)
     }
-    ElMessage.success(`Added ${newMemberIds.value.length} member(s)`)
     newMemberIds.value = []
     await loadMembers(detail.value.id)
-  } catch (e: any) { ElMessage.error(e?.msg || 'Failed to add member') }
+  } catch (e: any) {
+    ElMessage.error(e?.msg || e?.message || 'Failed to add member')
+  }
 }
 
 async function removeMember(row: any) {
@@ -320,7 +331,7 @@ async function removeMember(row: any) {
     await RemoveProjectMember(detail.value.id, row.id)
     ElMessage.success('Member removed')
     await loadMembers(detail.value.id)
-  } catch (e: any) { ElMessage.error(e?.msg || 'Failed to remove member') }
+  } catch (e: any) { ElMessage.error(e?.msg || e?.message || 'Failed to remove member') }
 }
 
 async function handleSave() {
@@ -336,7 +347,7 @@ async function handleSave() {
     }
     formVisible.value = false; await fetchData()
   } catch (e: any) {
-    ElMessage.error(e?.msg || 'Save failed')
+    ElMessage.error(e?.msg || e?.message || 'Save failed')
   } finally {
     saving.value = false
   }
@@ -348,11 +359,19 @@ async function handleDelete(row: any) {
     ElMessage.success('Project deleted')
     detailVisible.value = false; await fetchData()
   } catch (e: any) {
-    ElMessage.error(e?.msg || 'Delete failed')
+    ElMessage.error(e?.msg || e?.message || 'Delete failed')
   }
 }
 
 function onSearch() { fetchData() }
+
+// When detail dialog closes, reset tab and close plugin visibility dialog
+watch(detailVisible, (v) => {
+  if (!v) {
+    detailTab.value = 'overview'
+    showPluginVisibility.value = false
+  }
+})
 
 onMounted(async () => {
   const { useOpsflowStore } = await import('/@/views/apps/opsflow/stores/opsflowStore')

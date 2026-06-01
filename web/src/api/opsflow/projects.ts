@@ -13,7 +13,7 @@ export function GetProjectDetail(id: number) {
 }
 
 /** Create project */
-export function CreateProject(data: { name: string; description?: string }) {
+export function CreateProject(data: { name: string; description?: string; max_schedule_plans?: number }) {
   return opsflowRequest({ url: prefix + 'projects/', method: 'post', data })
 }
 

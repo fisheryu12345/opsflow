@@ -151,53 +151,63 @@ async function handleSave() {
       .filter(p => p.id !== pid)
       .map(p => p.id)
 
+    // Build new allowed_projects per plugin WITHOUT mutating plugins.value
+    const newAllowed = new Map<string, number[]>()
     for (const plugin of plugins.value) {
       const wasEnabled = plugin.allowed_projects.length === 0 || plugin.allowed_projects.includes(pid)
       if (plugin.enabled === wasEnabled) continue
 
+      let next: number[]
       if (plugin.enabled) {
-        // Enable for this project → ensure projectId is in allowed_projects
         if (plugin.allowed_projects.length === 0) {
-          // Was public, now restricted but including this project
-          plugin.allowed_projects = [pid, ...otherIds]
+          next = [pid, ...otherIds]
         } else if (!plugin.allowed_projects.includes(pid)) {
-          plugin.allowed_projects.push(pid)
+          next = [...plugin.allowed_projects, pid]
+        } else {
+          continue
         }
       } else {
-        // Disable for this project → ensure projectId is NOT in allowed_projects
         if (plugin.allowed_projects.length === 0) {
-          // Was public, now hide from this project → set to all OTHER projects
-          plugin.allowed_projects = [...otherIds]
+          // Was public → restrict to all OTHER projects
+          next = otherIds.length > 0 ? [...otherIds] : [-1]
         } else {
-          plugin.allowed_projects = plugin.allowed_projects.filter(id => id !== pid)
+          next = plugin.allowed_projects.filter(id => id !== pid)
+          // If nothing left, use [-1] sentinel instead of [] ([]=public to backend)
+          if (next.length === 0) next = [-1]
         }
       }
+      newAllowed.set(plugin.code, next)
     }
 
-    const updates = plugins.value
-      .filter(p => p.allowed_projects.length > 0)
-      .map(p => ({ code: p.code, project_ids: p.allowed_projects }))
-    const clears = plugins.value
-      .filter(p => p.allowed_projects.length === 0)
-      .map(p => ({ code: p.code, project_ids: [] }))
+    if (newAllowed.size === 0) {
+      ElMessage.info('No changes to save')
+      saving.value = false
+      return
+    }
 
-    if (updates.length) await BatchSetPluginsVisibility(updates)
-    if (clears.length) await BatchSetPluginsVisibility(clears)
+    // Build payload and send as one batch call
+    const payload = Array.from(newAllowed.entries()).map(([code, ids]) => ({
+      code, project_ids: ids,
+    }))
+    await BatchSetPluginsVisibility(payload)
 
-    // Re-snapshot
-    plugins.value.forEach(p => {
-      p.allowed_projects = p.allowed_projects || []
-    })
+    // Apply changes to local state ONLY after successful API call
+    for (const plugin of plugins.value) {
+      const na = newAllowed.get(plugin.code)
+      if (na !== undefined) {
+        plugin.allowed_projects = na
+      }
+    }
     originalSnapshot.value = JSON.stringify(plugins.value.map(p => [p.code, p.enabled]))
     ElMessage.success('Plugin visibility updated')
   } catch (e: any) {
-    ElMessage.error(e?.msg || 'Save failed')
+    ElMessage.error(e?.msg || e?.message || 'Save failed')
   } finally {
     saving.value = false
   }
 }
 
-function handleReset() { loadData(); ElMessage.info('Changes discarded') }
+function handleReset() { searchQuery.value = ''; loadData(); ElMessage.info('Changes discarded') }
 
 watch(() => props.visible, (v) => { if (v) { loadData(); searchQuery.value = '' } })
 </script>
