@@ -8,7 +8,7 @@
           <h1 class="exec-hero-title">Executions</h1>
           <p class="exec-hero-subtitle">Pipeline execution history and monitoring</p>
         </div>
-        <ProjectSwitcher />
+        <ProjectSwitcher :dark="true" />
         <div class="exec-hero-center">
           <el-input v-model="searchQuery" placeholder="Search by template name..." clearable size="default"
             class="exec-search-input" @keyup.enter="onSearch" @clear="onSearch">

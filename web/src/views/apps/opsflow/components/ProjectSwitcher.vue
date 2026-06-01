@@ -1,5 +1,5 @@
 <template>
-  <div class="project-switcher" v-if="myProjects.length > 0">
+  <div class="project-switcher" v-if="myProjects.length > 0" :class="{ dark }">
     <el-select
       :model-value="currentProjectId"
       @change="onSwitch"
@@ -7,8 +7,12 @@
       size="default"
       popper-class="ps-popper"
     >
+      <template #prefix>
+        <el-icon class="ps-icon"><Collection /></el-icon>
+      </template>
       <el-option v-for="p in myProjects" :key="p.id" :label="p.name" :value="p.id">
         <div class="ps-option">
+          <el-icon class="ps-option-icon" :size="14"><FolderOpened /></el-icon>
           <span>{{ p.name }}</span>
           <el-tag :type="roleTag(p.role)" size="small" effect="plain">{{ p.role }}</el-tag>
         </div>
@@ -18,8 +22,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, withDefaults } from 'vue'
+import { Collection, FolderOpened } from '@element-plus/icons-vue'
 import { useOpsflowStore } from '../stores/opsflowStore'
+
+interface Props {
+  dark?: boolean
+}
+const props = withDefaults(defineProps<Props>(), { dark: false })
 
 const store = useOpsflowStore()
 const myProjects = computed(() => store.myProjects)
@@ -39,35 +49,67 @@ function onSwitch(id: number) {
 .project-switcher {
   flex: 0 0 auto;
 }
+/* ===== Light mode (default, used in toolbar) ===== */
 .project-switcher :deep(.el-select__wrapper) {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: #f5f7fa;
+  border: 1px solid #e4e7ed;
   box-shadow: none;
   border-radius: 10px;
   padding: 2px 12px;
   min-height: 33px;
 }
+.project-switcher :deep(.el-select__wrapper:hover) {
+  border-color: #409EFF;
+  background: #ecf5ff;
+}
 .project-switcher :deep(.el-select__placeholder) {
-  color: rgba(255,255,255,0.4);
+  color: #a8abb2;
   font-size: 14px;
 }
 .project-switcher :deep(.el-select__selected-item) {
-  color: #fff;
+  color: #303133;
   font-size: 14px;
 }
 .project-switcher :deep(.el-select__caret) {
-  color: rgba(255,255,255,0.4);
+  color: #a8abb2;
   font-size: 14px;
 }
-.project-switcher :deep(.el-select__wrapper:hover) {
-  border-color: rgba(255,255,255,0.25);
-  background: rgba(255,255,255,0.15);
+.ps-icon {
+  color: #a8abb2;
+  margin-right: 2px;
 }
+
+/* ===== Dark mode (for hero sections) ===== */
+.project-switcher.dark :deep(.el-select__wrapper) {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.project-switcher.dark :deep(.el-select__wrapper:hover) {
+  border-color: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.18);
+}
+.project-switcher.dark :deep(.el-select__placeholder) {
+  color: rgba(255,255,255,0.4);
+}
+.project-switcher.dark :deep(.el-select__selected-item) {
+  color: #fff;
+}
+.project-switcher.dark :deep(.el-select__caret) {
+  color: rgba(255,255,255,0.4);
+}
+.project-switcher.dark .ps-icon {
+  color: rgba(255,255,255,0.4);
+}
+
+/* ===== Option slot ===== */
 .ps-option {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 6px;
+}
+.ps-option-icon {
+  color: #c0c4cc;
+  flex-shrink: 0;
 }
 .ps-option span {
   flex: 1;

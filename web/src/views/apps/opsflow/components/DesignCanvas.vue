@@ -3,7 +3,9 @@
     <div class="canvas-body">
       <div class="canvas-toolbar-float" :class="{ collapsed: toolbarCollapsed }" :style="{ left: stencilCollapsed ? '32px' : '220px' }">
         <template v-if="!toolbarCollapsed">
-          <ProjectSwitcher />
+          <el-tooltip content="Switch project" placement="bottom">
+            <ProjectSwitcher />
+          </el-tooltip>
           <div class="toolbar-divider" />
           <el-tooltip content="Select template" placement="bottom">
             <el-select
@@ -60,9 +62,11 @@
             <el-button size="small" circle type="primary" @click="onSave" :icon="Upload" />
           </el-tooltip>
         </template>
-        <button class="toolbar-collapse-btn" @click="toolbarCollapsed = !toolbarCollapsed" :title="toolbarCollapsed ? 'Expand toolbar' : 'Collapse toolbar'">
-          <el-icon><component :is="toolbarCollapsed ? Expand : Fold" /></el-icon>
-        </button>
+        <el-tooltip :content="toolbarCollapsed ? 'Expand toolbar' : 'Collapse toolbar'" placement="bottom">
+          <button class="toolbar-collapse-btn" @click="toolbarCollapsed = !toolbarCollapsed">
+            <el-icon><component :is="toolbarCollapsed ? Expand : Fold" /></el-icon>
+          </button>
+        </el-tooltip>
       </div>
       <div class="stencil-wrapper" :class="{ collapsed: stencilCollapsed }">
         <div ref="stencilRef" class="stencil-panel" />

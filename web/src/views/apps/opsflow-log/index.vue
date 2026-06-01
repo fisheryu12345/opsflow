@@ -8,7 +8,7 @@
           <h1 class="log-hero-title">Audit Log</h1>
           <p class="log-hero-subtitle">Pipeline execution audit trail</p>
         </div>
-        <ProjectSwitcher />
+        <ProjectSwitcher :dark="true" />
         <div class="log-hero-center">
           <el-input v-model="searchQuery" placeholder="Search step or command..." clearable size="default"
             class="log-search-input" @keyup.enter="onSearch" @clear="onSearch">

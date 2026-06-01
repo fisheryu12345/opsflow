@@ -8,7 +8,7 @@
           <h1 class="wh-hero-title">Webhook</h1>
           <p class="wh-hero-subtitle">HTTP callback notifications for pipeline events</p>
         </div>
-        <ProjectSwitcher />
+        <ProjectSwitcher :dark="true" />
         <div class="wh-hero-center">
           <el-input
             v-model="searchQuery"

@@ -8,7 +8,7 @@
           <h1 class="sc-hero-title">Schedule Management</h1>
           <p class="sc-hero-subtitle">Manage recurring and one-time pipeline executions</p>
         </div>
-        <ProjectSwitcher />
+        <ProjectSwitcher :dark="true" />
         <div class="sc-hero-center">
           <el-input
             v-model="searchQuery"
@@ -178,7 +178,8 @@ onMounted(async () => {
   const { useOpsflowStore } = await import('/@/views/apps/opsflow/stores/opsflowStore');
   const store = useOpsflowStore();
   if (!store.myProjects.length) await store.fetchMyProjects();
-fetchList)
+  fetchList()
+})
 </script>
 
 <style scoped>

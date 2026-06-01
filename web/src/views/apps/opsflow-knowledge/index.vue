@@ -8,7 +8,7 @@
           <h1 class="kb-hero-title">Knowledge Base</h1>
           <p class="kb-hero-subtitle">Runbooks, incidents &amp; engineering docs</p>
         </div>
-        <ProjectSwitcher />
+        <ProjectSwitcher :dark="true" />
         <div class="kb-hero-center">
           <el-input
             v-model="searchQuery"

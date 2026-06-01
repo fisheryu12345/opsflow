@@ -8,7 +8,7 @@
           <h1 class="tpl-hero-title">Templates</h1>
           <p class="tpl-hero-subtitle">Pipeline template library</p>
         </div>
-        <ProjectSwitcher />
+        <ProjectSwitcher :dark="true" />
         <div class="tpl-hero-center">
           <el-input v-model="filterName" placeholder="Search templates..." clearable size="default"
             class="tpl-search-input" @keyup.enter="onFilter" @clear="onFilter">

@@ -8,7 +8,7 @@
           <h1 class="app-hero-title">Pending Approvals</h1>
           <p class="app-hero-subtitle">Executions awaiting human review</p>
         </div>
-        <ProjectSwitcher />
+        <ProjectSwitcher :dark="true" />
         <div class="app-hero-center">
           <el-input v-model="searchQuery" placeholder="Search by template..." clearable size="default"
             class="app-search-input" @keyup.enter="onSearch" @clear="onSearch">

@@ -150,7 +150,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Fold,
@@ -463,6 +463,27 @@ onMounted(async () => {
     selectedTemplateId.value = pending.id
     onSelectTemplate(pending.id)
   }
+})
+
+// Re-fetch templates when project switches via ProjectSwitcher
+function onProjectChanged() {
+  fetchTemplates()
+  const stillExists = templates.value.some(t => t.id === selectedTemplateId.value)
+  if (!stillExists) {
+    selectedTemplateId.value = null
+    store.setCurrentTemplate(null)
+    if (designCanvasRef.value) {
+      designCanvasRef.value.loadPipeline({ nodes: [], edges: [] })
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('project-changed', onProjectChanged)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('project-changed', onProjectChanged)
 })
 </script>
 
