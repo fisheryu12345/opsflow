@@ -197,7 +197,8 @@ const chatExpanded = ref(true)
 const chatMessages = ref<{ role: 'user' | 'ai'; content: string }[]>([])
 
 function onNodeSelect(node: any) {
-  chatExpanded.value = !node  // 选中节点 → 折叠；取消选中 → 展开
+  if (node) chatExpanded.value = false  // 选中节点 → 折叠 AI 对话框
+  // 取消选中时不自动展开，由用户手动控制
 }
 
 function onPluginPicked(plugin: { code: string; name: string; risk_level: string }) {
