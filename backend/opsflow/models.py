@@ -443,6 +443,10 @@ class PluginMeta(models.Model):
     is_active = models.BooleanField(default=True, verbose_name="Is Active")
     phase = models.IntegerField(choices=PHASE_CHOICES, default=PHASE_AVAILABLE,
                                  verbose_name="生命周期")
+    allowed_projects = models.JSONField(
+        default=list, blank=True, verbose_name="Allowed Project IDs",
+        help_text="[] 表示所有项目可见；[1,2,3] 表示仅指定的项目 ID 可见"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

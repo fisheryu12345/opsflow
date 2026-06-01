@@ -55,6 +55,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { GetPluginGroups } from '/@/api/opsflow/plugins'
+import { useOpsflowStore } from '../stores/opsflowStore'
 
 interface PluginItem {
   code: string
@@ -97,7 +98,12 @@ function deprecationWarning(phase?: number, label?: string): string {
 
 watch(() => props.visible, async (v) => {
   if (v) {
-    const res = await GetPluginGroups()
+    const store = useOpsflowStore()
+    const params: any = {}
+    if (store.currentProjectId) {
+      params.project_id = store.currentProjectId
+    }
+    const res = await GetPluginGroups(params)
     pluginGroups.value = res.data || {}
     const keys = Object.keys(pluginGroups.value)
     if (keys.length && !activeGroup.value) activeGroup.value = keys[0]

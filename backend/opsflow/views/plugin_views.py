@@ -8,15 +8,43 @@ from rest_framework.response import Response
 from opsflow.models import PluginMeta
 
 
+def _apply_project_visibility(qs, project_id):
+    """按项目可见性过滤插件列表
+
+    - project_id 为 None 或 0 → 不过滤
+    - allowed_projects=[] → 所有项目可见（默认）
+    - allowed_projects=[1,2,3] → 仅项目 1/2/3 可见
+    """
+    if not project_id:
+        return qs
+    from django.db.models import Q
+    return qs.filter(
+        Q(allowed_projects=[]) | Q(allowed_projects__contains=project_id)
+    )
+
+
 class PluginViewSet(viewsets.ReadOnlyModelViewSet):
     """标准插件只读接口 — 提供插件列表、详情、分组树"""
     queryset = PluginMeta.objects.filter(is_active=True)
     permission_classes = [IsAuthenticated]
     lookup_field = 'code'
 
-    def list(self, request, *args, **kwargs):
-        """返回所有已注册插件（按 code 聚合版本，不含 form_schema）"""
+    def get_project_filtered_queryset(self):
+        """获取按 project_id 过滤后的 queryset"""
         qs = self.get_queryset().filter(is_active=True)
+        project_id = self.request.query_params.get('project_id')
+        if project_id:
+            try:
+                qs = _apply_project_visibility(qs, int(project_id))
+            except (ValueError, TypeError):
+                pass
+        return qs
+
+    def list(self, request, *args, **kwargs):
+        """返回所有已注册插件（按 code 聚合版本，不含 form_schema）
+        GET /api/opsflow/plugins/?project_id=1 → 仅返回项目1可见的插件
+        """
+        qs = self.get_project_filtered_queryset()
         # 按 code 聚合版本
         version_map = {}
         for p in qs:
@@ -63,8 +91,10 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def groups(self, request):
-        """返回分组树结构（按 code 聚合，含版本列表）"""
-        qs = self.get_queryset().filter(is_active=True)
+        """返回分组树结构（按 code 聚合，含版本列表）
+        GET /api/opsflow/plugins/groups/?project_id=1 → 仅返回项目1可见的插件分组
+        """
+        qs = self.get_project_filtered_queryset()
         group_map = {}
         seen = set()
         for p in qs:
@@ -101,3 +131,98 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"code": 2000, "msg": "success", "data": data})
         except Exception as e:
             return Response({"code": 4000, "msg": str(e), "data": []})
+
+    # ── 项目级可见性管理 ──────────────────────────────────────────
+
+    @action(detail=True, methods=['get', 'post'], url_path='visibility')
+    def visibility(self, request, code=None):
+        """管理单个插件的项目可见性
+
+        GET  /plugins/{code}/visibility/ → 查看当前可见性配置
+        POST /plugins/{code}/visibility/ → 更新可见性
+            Body: {"project_ids": [1, 2, 3]} 或 {"project_ids": []}（对所有项目可见）
+        """
+        try:
+            plugin = PluginMeta.objects.filter(code=code).last()
+        except PluginMeta.DoesNotExist:
+            return Response({"code": 4000, "msg": "插件不存在", "data": None},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        if request.method == 'GET':
+            # 收集当前对该插件所有版本的可见性设置
+            versions = PluginMeta.objects.filter(code=code)
+            allowed = set()
+            for v in versions:
+                allowed.update(v.allowed_projects or [])
+            return Response({
+                "code": 2000, "msg": "success",
+                "data": {
+                    "code": code,
+                    "name": plugin.name,
+                    "group": plugin.group,
+                    "allowed_projects": sorted(allowed),
+                    "restricted": len(allowed) > 0,
+                }
+            })
+
+        # POST: 更新可见性 — 同步到该插件所有版本
+        project_ids = request.data.get('project_ids', [])
+        if not isinstance(project_ids, list):
+            return Response({"code": 4000, "msg": "project_ids must be a list", "data": None},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        updated = PluginMeta.objects.filter(code=code).update(allowed_projects=project_ids)
+        return Response({
+            "code": 2000, "msg": "success",
+            "data": {"code": code, "allowed_projects": project_ids, "updated_versions": updated},
+        })
+
+    @action(detail=False, methods=['get'], url_path='visibility-list')
+    def visibility_list(self, request):
+        """返回所有插件的可见性配置（供管理面板使用）
+
+        GET /plugins/visibility-list/ → [
+            {code, name, group, allowed_projects, restricted, template_count}
+        ]
+        """
+        qs = PluginMeta.objects.filter(is_active=True)
+        # 按 code 聚合
+        seen = set()
+        data = []
+        for p in qs:
+            if p.code not in seen:
+                seen.add(p.code)
+                data.append({
+                    "code": p.code,
+                    "name": p.name,
+                    "group": p.group,
+                    "description": p.description,
+                    "risk_level": p.risk_level,
+                    "allowed_projects": p.allowed_projects or [],
+                    "restricted": len(p.allowed_projects or []) > 0,
+                })
+        data.sort(key=lambda x: (x["group"], x["name"]))
+        return Response({"code": 2000, "msg": "success", "data": data})
+
+    @action(detail=False, methods=['post'], url_path='batch-visibility')
+    def batch_visibility(self, request):
+        """批量更新插件可见性
+
+        POST /plugins/batch-visibility/
+        Body: {"plugins": [{"code": "disk_check", "project_ids": [1,2]}, ...]}
+        """
+        plugins = request.data.get('plugins', [])
+        if not isinstance(plugins, list):
+            return Response({"code": 4000, "msg": "plugins must be a list", "data": None},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        results = []
+        for item in plugins:
+            code = item.get('code')
+            project_ids = item.get('project_ids', [])
+            if not code or not isinstance(project_ids, list):
+                continue
+            updated = PluginMeta.objects.filter(code=code).update(allowed_projects=project_ids)
+            results.append({"code": code, "allowed_projects": project_ids, "updated_versions": updated})
+
+        return Response({"code": 2000, "msg": "success", "data": results})

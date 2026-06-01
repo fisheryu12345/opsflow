@@ -155,6 +155,24 @@
             <el-button size="small" type="primary" @click="addMember" :disabled="!newMemberIds.length">Add</el-button>
           </div>
         </div>
+
+        <!-- Plugin Visibility Section -->
+        <div class="pj-section-card">
+          <div class="pj-section-header">
+            <div class="pj-section-header-left">
+              <span class="pj-section-dot" style="background: linear-gradient(135deg, #E6A23C, #f5d76e);" />
+              <span>Plugins</span>
+            </div>
+            <el-tag size="small" effect="plain" type="warning">Visibility</el-tag>
+          </div>
+          <div class="pj-plugins-summary">
+            <p>Control which plugins are visible to this project. Restricted plugins are only shown to
+            projects explicitly assigned to them.</p>
+            <el-button size="small" :icon="Setting" @click="showPluginVisibility = true">
+              Manage Plugin Visibility
+            </el-button>
+          </div>
+        </div>
       </template>
 
       <template #footer>
@@ -166,16 +184,20 @@
         </el-popconfirm>
       </template>
     </el-dialog>
+
+    <!-- Plugin Visibility Dialog -->
+    <PluginVisibilityDialog v-model:visible="showPluginVisibility" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, Setting } from '@element-plus/icons-vue'
 import { request } from '/@/utils/service'
 import { GetProjects, CreateProject, UpdateProject, DeleteProject, GetProjectDetail,
          GetProjectMembers, AddProjectMember, RemoveProjectMember } from '/@/api/opsflow/projects'
+import PluginVisibilityDialog from '/@/views/apps/opsflow/components/PluginVisibilityDialog.vue'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -205,6 +227,9 @@ const newMemberRole = ref('editor')
 const userOptions = ref<any[]>([])
 const usersLoading = ref(false)
 const currentUserId = ref<number | null>(null)
+
+// Plugin visibility
+const showPluginVisibility = ref(false)
 
 async function fetchData() {
   loading.value = true
@@ -445,4 +470,8 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 .pj-add-row { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+
+/* ===== Plugin Visibility ===== */
+.pj-plugins-summary { display: flex; flex-direction: column; gap: 10px; }
+.pj-plugins-summary p { margin: 0; font-size: 13px; color: #909399; line-height: 1.6; }
 </style>
