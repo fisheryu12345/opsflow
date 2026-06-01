@@ -104,106 +104,90 @@
       </template>
     </el-dialog>
 
-    <!-- Detail dialog -->
-    <el-dialog v-model="detailVisible" :title="detail?.name || ''" width="640px" top="5vh" destroy-on-close class="opsflow-dialog pj-detail-dialog">
+    <!-- Detail dialog with tabs -->
+    <el-dialog v-model="detailVisible" :title="detail?.name || ''" width="740px" top="5vh" destroy-on-close class="opsflow-dialog pj-detail-dialog">
       <template v-if="detail">
-        <!-- Meta badge -->
-        <div class="pj-detail-hero">
-          <span class="pj-badge" :class="detail.is_active ? 'badge-active' : 'badge-inactive'">
-            {{ detail.is_active ? 'Active' : 'Inactive' }}
-          </span>
-          <span class="pj-hero-owner" v-if="detail.owner_name">👤 {{ detail.owner_name }}</span>
-          <span class="pj-hero-date">{{ detail.created_at?.substring(0, 10) }}</span>
-        </div>
-
-        <!-- Info cards row -->
-        <div class="pj-detail-grid">
-          <div class="pj-info-card"><span class="pj-info-label">Description</span><span class="pj-info-value">{{ detail.description || '—' }}</span></div>
-          <div class="pj-info-card"><span class="pj-info-label">Templates</span><span class="pj-info-value">{{ detail.template_count ?? 0 }}</span></div>
-          <div class="pj-info-card"><span class="pj-info-label">Executions</span><span class="pj-info-value">{{ detail.execution_count ?? 0 }}</span></div>
-          <div class="pj-info-card"><span class="pj-info-label">Schedule Limit</span><span class="pj-info-value">{{ detail.max_schedule_plans ?? 20 }}</span></div>
-        </div>
-
-        <!-- Members Section -->
-        <div class="pj-section-card">
-          <div class="pj-section-header">
-            <div class="pj-section-header-left">
-              <span class="pj-section-dot" />
-              <span>Members</span>
+        <el-tabs v-model="detailTab" class="pj-detail-tabs">
+          <!-- ═══ Tab: Overview ═══ -->
+          <el-tab-pane label="Overview" name="overview">
+            <div class="pj-hero-row">
+              <span class="pj-badge" :class="detail.is_active ? 'badge-active' : 'badge-inactive'">
+                {{ detail.is_active ? 'Active' : 'Inactive' }}
+              </span>
+              <span class="pj-hero-label" v-if="detail.owner_name">Owner: {{ detail.owner_name }}</span>
+              <span class="pj-hero-date">Created {{ detail.created_at?.substring(0, 10) }}</span>
             </div>
-            <el-tag size="small" effect="plain" type="primary">{{ members.length }}</el-tag>
-          </div>
 
-          <el-table :data="members" v-loading="membersLoading" size="small" empty-text="No members" style="width:100%">
-            <el-table-column prop="username" label="User" min-width="120" />
-            <el-table-column label="Role" width="110">
-              <template #default="{ row }">
-                <el-tag :type="row.role === 'admin' ? 'danger' : row.role === 'editor' ? 'primary' : 'info'" size="small" effect="plain">{{ row.role }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label width="60" align="center">
-              <template #default="{ row }">
-                <el-button v-if="row.user_id !== currentUserId" size="small" text type="danger" @click="removeMember(row)">✕</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <div class="pj-add-row">
-            <el-select v-model="newMemberIds" filterable multiple collapse-tags collapse-tags-tooltip
-              :loading="usersLoading" placeholder="Select users..." style="width:240px" size="small" clearable>
-              <el-option v-for="u in userOptions" :key="u.id" :label="u.username" :value="u.id" />
-            </el-select>
-            <el-select v-model="newMemberRole" size="small" style="width:110px">
-              <el-option label="Editor" value="editor" />
-              <el-option label="Viewer" value="viewer" />
-            </el-select>
-            <el-button size="small" type="primary" @click="addMember" :disabled="!newMemberIds.length">Add</el-button>
-          </div>
-        </div>
-
-        <!-- Plugin Visibility Section -->
-        <div class="pj-section-card">
-          <div class="pj-section-header">
-            <div class="pj-section-header-left">
-              <span class="pj-section-dot" style="background: linear-gradient(135deg, #E6A23C, #f5d76e);" />
-              <span>Plugins</span>
+            <div class="pj-info-grid">
+              <div class="pj-info-card"><span class="pj-info-label">Desc</span><span class="pj-info-value">{{ detail.description || '—' }}</span></div>
+              <div class="pj-info-card"><span class="pj-info-label">Templates</span><span class="pj-info-value">{{ detail.template_count ?? 0 }}</span></div>
+              <div class="pj-info-card"><span class="pj-info-label">Executions</span><span class="pj-info-value">{{ detail.execution_count ?? 0 }}</span></div>
+              <div class="pj-info-card"><span class="pj-info-label">Schedule Limit</span><span class="pj-info-value">{{ detail.max_schedule_plans ?? 'Unlimited' }}</span></div>
             </div>
-            <el-tag size="small" effect="plain" type="warning">Visibility</el-tag>
-          </div>
-          <div class="pj-plugins-summary">
-            <p>Control which plugins are visible to this project. Restricted plugins are only shown to
-            projects explicitly assigned to them.</p>
-            <el-button size="small" :icon="Setting" @click="showPluginVisibility = true">
-              Manage Plugin Visibility
+
+            <div class="pj-overview-actions">
+              <el-button size="small" :icon="Edit" @click="showForm(detail); detailVisible = false">Edit</el-button>
+              <el-popconfirm title="Delete this project?" @confirm="handleDelete(detail)">
+                <template #reference>
+                  <el-button size="small" type="danger" :icon="Delete">Delete</el-button>
+                </template>
+              </el-popconfirm>
+            </div>
+          </el-tab-pane>
+
+          <!-- ═══ Tab: Members ═══ -->
+          <el-tab-pane label="Members" name="members">
+            <div class="pj-tab-header">
+              <span class="pj-tab-title">{{ members.length }} member{{ members.length !== 1 ? 's' : '' }}</span>
+            </div>
+            <el-table :data="members" v-loading="membersLoading" size="small" empty-text="No members" style="width:100%">
+              <el-table-column prop="username" label="User" min-width="140" />
+              <el-table-column label="Role" width="120">
+                <template #default="{ row }">
+                  <el-tag :type="row.role === 'admin' ? 'danger' : row.role === 'editor' ? 'primary' : 'info'" size="small" effect="plain">{{ row.role }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label width="60" align="center">
+                <template #default="{ row }">
+                  <el-button v-if="row.user_id !== currentUserId" size="small" text type="danger" @click="removeMember(row)">✕</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <div class="pj-add-row">
+              <el-select v-model="newMemberIds" filterable multiple collapse-tags collapse-tags-tooltip
+                :loading="usersLoading" placeholder="Select users..." style="width:260px" size="small" clearable>
+                <el-option v-for="u in userOptions" :key="u.id" :label="u.username" :value="u.id" />
+              </el-select>
+              <el-select v-model="newMemberRole" size="small" style="width:110px">
+                <el-option label="Editor" value="editor" />
+                <el-option label="Viewer" value="viewer" />
+              </el-select>
+              <el-button size="small" type="primary" @click="addMember" :disabled="!newMemberIds.length">Add</el-button>
+            </div>
+          </el-tab-pane>
+
+          <!-- ═══ Tab: Plugins ═══ -->
+          <el-tab-pane label="Plugins" name="plugins">
+            <div class="pj-tab-header">
+              <span class="pj-tab-title">Plugins for this project</span>
+            </div>
+            <p class="pj-tab-desc">Toggle which plugins are available when designing pipelines in this project.
+            When a plugin is switched off, it will not appear in the plugin picker for any template within this project.</p>
+            <el-button size="small" :icon="Setting" @click="showPluginVisibility = true" type="primary">
+              Manage Plugins
             </el-button>
-          </div>
-        </div>
+          </el-tab-pane>
 
-        <!-- Environment Variables Section -->
-        <div class="pj-section-card">
-          <div class="pj-section-header">
-            <div class="pj-section-header-left">
-              <span class="pj-section-dot" style="background: linear-gradient(135deg, #67C23A, #95de64);" />
-              <span>Environment Variables</span>
-            </div>
-            <el-tag size="small" effect="plain" type="success">Project</el-tag>
-          </div>
-          <ProjectEnvVarPanel :project-id="detail.id" />
-        </div>
-      </template>
-
-      <template #footer>
-        <el-button size="small" @click="showForm(detail); detailVisible = false" :icon="Edit">Edit</el-button>
-        <el-popconfirm title="Delete this project?" @confirm="handleDelete(detail)">
-          <template #reference>
-            <el-button size="small" type="danger" :icon="Delete">Delete</el-button>
-          </template>
-        </el-popconfirm>
+          <!-- ═══ Tab: Environment ═══ -->
+          <el-tab-pane label="Environment" name="env">
+            <ProjectEnvVarPanel :project-id="detail.id" />
+          </el-tab-pane>
+        </el-tabs>
       </template>
     </el-dialog>
 
     <!-- Plugin Visibility Dialog -->
-    <PluginVisibilityDialog v-model:visible="showPluginVisibility" />
+    <PluginVisibilityDialog v-model:visible="showPluginVisibility" :project-id="detail?.id" :project-name="detail?.name" />
   </div>
 </template>
 
@@ -236,6 +220,7 @@ const form = ref({ name: '', description: '', is_active: true, max_schedule_plan
 // Detail
 const detailVisible = ref(false)
 const detail = ref<any>(null)
+const detailTab = ref('overview')
 
 // Members
 const members = ref<any[]>([])
@@ -441,55 +426,61 @@ onMounted(async () => {
 .pj-stat-chip b { color: #4e5969; }
 .pj-card-time { font-size: 11px; color: #C0C4CC; }
 
-/* ===== Detail dialog (opsflow style) ===== */
+/* ===== Detail dialog (tabs style, OpsFlow consistent) ===== */
 .pj-detail-dialog { }
 .pj-detail-dialog :deep(.el-dialog__header) {
-  padding: 16px 20px; margin: 0; border-bottom: 1px solid #e4e7ed; font-weight: 600;
+  padding: 16px 24px; margin: 0; border-bottom: 1px solid #e4e7ed; font-weight: 600;
 }
-.pj-detail-dialog :deep(.el-dialog__body) { padding: 20px; }
-.pj-detail-dialog :deep(.el-dialog__footer) {
-  padding: 12px 20px; border-top: 1px solid #e4e7ed;
-}
+.pj-detail-dialog :deep(.el-dialog__body) { padding: 0; }
+.pj-detail-dialog :deep(.el-dialog__footer) { display: none; }
 
-/* Hero badge row */
-.pj-detail-hero {
-  display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
+/* ── Tabs ── */
+.pj-detail-tabs { }
+.pj-detail-tabs :deep(.el-tabs__header) {
+  margin: 0; padding: 0 24px; background: #fafafa;
+  border-bottom: 1px solid #e4e7ed;
+}
+.pj-detail-tabs :deep(.el-tabs__nav-wrap) { padding: 0; }
+.pj-detail-tabs :deep(.el-tabs__item) {
+  font-size: 13px; font-weight: 500; color: #606266;
+  padding: 14px 20px; height: auto; line-height: 1;
+}
+.pj-detail-tabs :deep(.el-tabs__item.is-active) { color: #409EFF; font-weight: 600; }
+.pj-detail-tabs :deep(.el-tabs__active-bar) { background: #409EFF; height: 2px; }
+.pj-detail-tabs :deep(.el-tabs__content) { padding: 20px 24px; }
+
+/* ── Hero row (Overview tab) ── */
+.pj-hero-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
 }
 .pj-badge {
   display: inline-flex; align-items: center; font-size: 11px; font-weight: 600;
   padding: 3px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.3px;
 }
-.pj-hero-owner { font-size: 13px; color: #606266; margin-left: auto; }
-.pj-hero-date { font-size: 12px; color: #909399; }
+.badge-active { background: #f0f9eb; color: #67C23A; }
+.badge-inactive { background: #f5f5f5; color: #909399; }
+.pj-hero-label { font-size: 13px; color: #606266; }
+.pj-hero-date { font-size: 12px; color: #909399; margin-left: auto; }
 
-/* Info grid */
-.pj-detail-grid {
-  display: flex; gap: 12px; margin-bottom: 20px;
+/* ── Info grid (Overview tab) ── */
+.pj-info-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;
 }
 .pj-info-card {
-  flex: 1; background: #f8f9fb; border-radius: 10px; padding: 14px 16px;
+  background: #f8f9fb; border-radius: 10px; padding: 14px 16px;
   border: 1px solid #f0f0f0; display: flex; flex-direction: column; gap: 6px;
 }
 .pj-info-label { font-size: 11px; color: #909399; text-transform: uppercase; letter-spacing: 0.3px; }
 .pj-info-value { font-size: 14px; font-weight: 600; color: #303133; }
 
-/* Section card (members) */
-.pj-section-card {
-  background: #f8f9fb; border-radius: 10px; padding: 16px 18px;
-  border: 1px solid #f0f0f0; margin-bottom: 8px;
-}
-.pj-section-header {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
-  font-size: 14px; font-weight: 600; color: #333;
-}
-.pj-section-header-left { display: flex; align-items: center; gap: 8px; flex: 1; }
-.pj-section-dot {
-  width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, #409EFF, #337ecc);
-  flex-shrink: 0;
-}
-.pj-add-row { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+/* ── Overview actions ── */
+.pj-overview-actions { display: flex; gap: 8px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
 
-/* ===== Plugin Visibility ===== */
-.pj-plugins-summary { display: flex; flex-direction: column; gap: 10px; }
-.pj-plugins-summary p { margin: 0; font-size: 13px; color: #909399; line-height: 1.6; }
+/* ── Tab header / desc ── */
+.pj-tab-header { margin-bottom: 14px; }
+.pj-tab-title { font-size: 14px; font-weight: 600; color: #303133; }
+.pj-tab-desc { margin: 0 0 14px; font-size: 13px; color: #909399; line-height: 1.6; }
+
+/* ── Member add row ── */
+.pj-add-row { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
 </style>
