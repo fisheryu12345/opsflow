@@ -618,4 +618,5 @@ loadTemplates()
 /* Variable References */
 .var-ref-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .var-ref-tag { font-family: monospace; }
+
 </style>

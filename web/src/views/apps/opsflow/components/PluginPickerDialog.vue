@@ -22,7 +22,10 @@
             v-for="plugin in filteredPlugins"
             :key="plugin.code"
             class="plugin-card"
-            :class="{ 'is-deprecated': isDeprecated(plugin.phase) }"
+            :class="{
+              'is-deprecated': isDeprecated(plugin.phase),
+              'is-selected': selectedPlugin?.code === plugin.code,
+            }"
             @click="selectPlugin(plugin)"
             @dblclick="confirmPlugin(plugin)"
           >
@@ -167,6 +170,12 @@ function riskTagType(risk: string): string {
 }
 .plugin-card:hover { border-color: #409EFF; background: #fafcff; }
 .plugin-card:active { background: #ecf5ff; }
+.plugin-card.is-selected {
+  border-color: #337ecc;
+  background: linear-gradient(135deg, #ecf5ff, #d9ecff);
+  box-shadow: 0 2px 8px rgba(64,158,255,0.15);
+}
+.plugin-card.is-selected .plugin-name { color: #1a56a0; }
 .plugin-card.is-deprecated { opacity: 0.75; border-style: dashed; }
 .plugin-card.is-deprecated:hover { border-color: #e6a23c; }
 .plugin-name { font-size: 13px; font-weight: 600; color: #303133; display: flex; align-items: center; gap: 6px; }

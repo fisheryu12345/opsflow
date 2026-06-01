@@ -1,22 +1,34 @@
 <template>
-  <el-select
-    v-model="val" :placeholder="placeholder" :disabled="disabled"
-    :multiple="multiple" :clearable="clearable" :loading="loading"
-    :filterable="isSearchable"
-    :default-first-option="true" size="small" style="width:100%"
-    :teleported="false"
-    @visible-change="onVisibleChange"
-  >
-    <el-option
-      v-for="opt in filteredOptions" :key="opt[valueKey]"
-      :label="opt[labelKey]"
-      :value="opt[valueKey]"
-    />
-  </el-select>
+  <div>
+    <template v-if="ready">
+      <el-select
+        v-model="localVal"
+        :placeholder="placeholder || '请选择'"
+        :disabled="disabled"
+        :clearable="clearable"
+        :multiple="multiple"
+        filterable
+        size="small"
+        style="width:100%"
+      >
+        <el-option
+          v-for="opt in options"
+          :key="opt.value"
+          :label="opt.label"
+          :value="opt.value"
+        />
+      </el-select>
+    </template>
+    <template v-else>
+      <div style="display:flex;align-items:center;gap:4px;height:28px;padding:0 8px;background:#f5f7fa;border-radius:4px;font-size:12px;color:#999;">
+        {{ loading ? '加载中...' : '请选择' }}
+      </div>
+    </template>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { request } from '/@/utils/service'
 
 const props = withDefaults(defineProps<{
@@ -48,26 +60,19 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits(['update:modelValue'])
 
 const loading = ref(false)
-const allOptions = ref<any[]>([])
+const options = ref<any[]>([])
+const localVal = ref(props.modelValue)
+const ready = ref(false)
 
-const isSearchable = computed(() => props.searchable && props.api_endpoint.length > 0)
+watch(() => props.modelValue, (v) => { localVal.value = v ?? '' })
+watch(localVal, (v) => { emit('update:modelValue', v) })
 
-/* Pass through all options; el-select's built-in filterable handles client-side search */
-const filteredOptions = computed(() => allOptions.value)
-
-const val = computed({
-  get: () => props.modelValue,
-  set: (v) => emit('update:modelValue', v),
-})
-
-async function fetchOptions(query?: string) {
+async function fetchOptions() {
   if (!props.api_endpoint) return
   loading.value = true
-  console.log('[TagAsyncSelect] fetchOptions called, endpoint:', props.api_endpoint)
+  ready.value = false
   try {
     const params: any = {}
-    if (query) params.q = query
-    // Parse depends_on: watch other form fields for re-fetching
     if (props.depends_on) {
       for (const dep of props.depends_on.split(',').map(s => s.trim())) {
         const depVal = props.formData[dep]
@@ -77,43 +82,25 @@ async function fetchOptions(query?: string) {
       }
     }
     const res = await request({ url: props.api_endpoint, method: 'get', params })
-    console.log('[TagAsyncSelect] response:', res)
     const data = res?.data?.data || res?.data || res || []
-    console.log('[TagAsyncSelect] extracted data:', data)
-    allOptions.value = Array.isArray(data) ? data : []
-    console.log('[TagAsyncSelect] options count:', allOptions.value.length)
-  } catch (e) {
-    console.error('[TagAsyncSelect] 请求失败:', props.api_endpoint, e)
-    allOptions.value = []
+    options.value = Array.isArray(data) ? data : []
+  } catch {
+    options.value = []
   } finally {
     loading.value = false
+    ready.value = true
   }
 }
 
-function onVisibleChange(visible: boolean) {
-  if (visible && allOptions.value.length === 0) {
-    fetchOptions()
-  }
-}
-
-/* Re-fetch when depends_on fields change */
 if (props.depends_on) {
   watch(
-    () => {
-      const deps = props.depends_on.split(',').map(s => s.trim())
-      return deps.map(d => props.formData[d]).join('|')
-    },
-    () => { fetchOptions() },
+    () => props.depends_on.split(',').map(d => props.formData[d.trim()]).join('|'),
+    () => fetchOptions(),
   )
 }
 
-/* Preload data on mount so dropdown shows options immediately */
 onMounted(() => {
-  console.log('[TagAsyncSelect] mounted, api_endpoint:', props.api_endpoint, 'tagCode:', props.tagCode)
-  if (props.api_endpoint) {
-    fetchOptions()
-  } else {
-    console.warn('[TagAsyncSelect] no api_endpoint, cannot fetch options')
-  }
+  if (props.api_endpoint) fetchOptions()
+  else ready.value = true
 })
 </script>
