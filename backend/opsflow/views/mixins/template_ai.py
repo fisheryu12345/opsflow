@@ -77,6 +77,7 @@ class TemplateAIMixin:
 
             from opsflow.models import FlowTemplate
             from opsflow.serializers import FlowTemplateSerializer
+            project_kwargs = self.resolve_project_kwargs(request)
             template = FlowTemplate.objects.create(
                 name=f"AI: {nl_input[:50]}",
                 pipeline_tree=pipeline,
@@ -85,6 +86,7 @@ class TemplateAIMixin:
                 ai_original_tree=pipeline.copy(),
                 is_draft=True,
                 created_by=request.user,
+                **project_kwargs,
             )
             return Response({
                 'code': 2000, 'msg': 'success',

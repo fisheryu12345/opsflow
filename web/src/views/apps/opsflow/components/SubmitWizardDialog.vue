@@ -5,7 +5,7 @@
     width="960px"
     top="4vh"
     :close-on-click-modal="false"
-    class="wizard-dialog"
+    class="opsflow-dialog wizard-dialog"
     @close="handleClose"
   >
     <!-- Step Progress -->
@@ -14,12 +14,10 @@
         <el-step title="① Validation" description="Pipeline Check" />
         <el-step title="② Change" description="Link Change Request" />
         <el-step title="③ Params" description="Variables" />
-        <el-step title="④ Risk" description="AI Analysis & Confirm" />
+        <el-step title="④ Risk" description="AI Analysis &amp; Confirm" />
         <el-step title="⑤ Schedule" description="Timing Strategy" />
       </el-steps>
     </div>
-
-    <el-divider style="margin: 16px 0 20px" />
 
     <div class="wizard-body" v-loading="stepLoading">
       <!-- ==================== Step 1: Validation ==================== -->

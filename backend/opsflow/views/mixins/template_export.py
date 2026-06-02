@@ -45,6 +45,7 @@ class TemplateExportImportMixin:
         name = td.get('name', 'Imported Template')
         if FlowTemplate.objects.filter(name=name).exists():
             name = f"{name} (imported {timezone.now().strftime('%Y%m%d_%H%M%S')})"
+        project_kwargs = self.resolve_project_kwargs(request)
         template = FlowTemplate.objects.create(
             name=name,
             pipeline_tree=td.get('pipeline_tree', {}),
@@ -55,6 +56,7 @@ class TemplateExportImportMixin:
             description=td.get('description', ''),
             is_draft=True,
             created_by=request.user,
+            **project_kwargs,
         )
         return Response({
             'code': 2000, 'msg': f'已导入模板: {template.name}',

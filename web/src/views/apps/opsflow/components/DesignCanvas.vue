@@ -68,7 +68,7 @@
           </el-tooltip>
           <div class="toolbar-divider" />
           <el-tooltip :show-after="500" content="Submit Execution" placement="bottom">
-            <el-button size="small" circle @click="showExecDialog = true" :icon="VideoPlay" class="btn-exec" />
+            <el-button size="small" circle @click="onSubmitExecution" :icon="VideoPlay" class="btn-exec" />
           </el-tooltip>
           <el-tooltip :show-after="500" content="Save draft" placement="bottom">
             <el-button size="small" circle @click="onSave" :icon="Upload" class="btn-save" />
@@ -128,7 +128,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, Coin, VideoPlay } from '@element-plus/icons-vue'
 // X6 CSS — 必须导入否则 Stencil、Minimap 等插件容器不显示
 import '@antv/x6/dist/index.css'
@@ -140,6 +140,7 @@ import GlobalVariablePanel from './GlobalVariablePanel.vue'
 import SubprocessStatusBadge from './SubprocessStatusBadge.vue'
 import ProjectSwitcher from './ProjectSwitcher.vue'
 import SubmitWizardDialog from './SubmitWizardDialog.vue'
+import { ConfirmDraft } from '/@/api/opsflow/templates'
 
 const props = defineProps<{
   templates?: any[]
@@ -190,6 +191,12 @@ const templateName = computed(() => {
   return tpl?.name || ''
 })
 
+const templateIsDraft = computed(() => {
+  if (!props.templateId || !props.templates) return true
+  const tpl = props.templates.find((t: any) => t.id === props.templateId)
+  return tpl?.is_draft !== false
+})
+
 const projectTemplates = computed(() => {
   return (props.templates || []).filter((t: any) => !t.is_public)
 })
@@ -208,6 +215,27 @@ function onGlobalVarsUpdated() {
 
 function onSubprocessUpdated() {
   // Subprocess refs updated — trigger re-fetch from badge component
+}
+
+async function onSubmitExecution() {
+  if (!props.templateId) return
+  if (templateIsDraft.value) {
+    try {
+      await ElMessageBox.confirm(
+        'This template is still a draft. Only published templates can create executions. Publish it now?',
+        'Publish Required',
+        { confirmButtonText: 'Publish', cancelButtonText: 'Cancel', type: 'warning' }
+      )
+      await ConfirmDraft(props.templateId)
+      ElMessage.success('Template published')
+      // Update local draft status
+      const tpl = props.templates?.find((t: any) => t.id === props.templateId)
+      if (tpl) tpl.is_draft = false
+    } catch {
+      return // User cancelled or publish failed
+    }
+  }
+  showExecDialog.value = true
 }
 
 const {
@@ -255,7 +283,6 @@ function loadPipeline(data: any) {
 function onSave() {
   const data = getGraphData()
   emit('save', data)
-  ElMessage.success('Draft saved')
 }
 
 function onNodeUpdate(newData: any) {

@@ -24,23 +24,16 @@ class SchedulePlanViewSet(ProjectFilteredViewSet):
     project_field = 'project'
 
     def perform_create(self, serializer):
-        # ── 项目归属 ──
-        project_id = self.request.query_params.get('project_id')
-        if project_id:
-            user_project_ids = self.get_user_project_ids()
-            if int(project_id) not in user_project_ids:
-                from rest_framework import exceptions
-                raise exceptions.PermissionDenied('无权在当前项目创建资源')
-            project_kwargs = {'project_id': project_id}
-        else:
-            from opsflow.models import OpsProject
-            default = OpsProject.objects.first()
-            project_kwargs = {'project': default} if default else {}
+        project_kwargs = self.resolve_project_kwargs(self.request)
+        pid = project_kwargs.get('project_id')
+        if pid and pid not in self.get_user_project_ids():
+            from rest_framework import exceptions
+            raise exceptions.PermissionDenied('无权在当前项目创建资源')
         # ── 定时任务数量校验 ──
-        if project_id:
+        if pid:
             from opsflow.models import OpsProject
             try:
-                project = OpsProject.objects.get(id=project_id)
+                project = OpsProject.objects.get(id=pid)
                 if project.max_schedule_plans > 0:
                     current_count = SchedulePlan.objects.filter(project_id=project_id).count()
                     if current_count >= project.max_schedule_plans:

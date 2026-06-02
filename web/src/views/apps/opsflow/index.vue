@@ -184,7 +184,7 @@ const pickerVisible = ref(false)
 const pendingTaskNode = ref<string | null>(null)
 
 function onSubmitExecution(execId: number) {
-  ElMessage.success({ message: `Execution #${execId} created. Go to Executions page to start it.`, duration: 5000 })
+  // SubmitWizardDialog already shows its own success message
 }
 
 // 选中节点 → 折叠 AI 面板
@@ -237,7 +237,7 @@ function renderContent(text: string): string {
 // 获取模板列表
 async function fetchTemplates() {
   try {
-    const res = await GetTemplates()
+    const res = await GetTemplates({ limit: 500 })
     templates.value = res.data || res.results || []
     store.setTemplates(templates.value)
   } catch (e) {
@@ -417,6 +417,9 @@ async function onWizardCreated(template: any) {
   await fetchTemplates()
   selectedTemplateId.value = template.id
   await onSelectTemplate(template.id)
+  if (designCanvasRef.value && template?.pipeline_tree?.nodes?.length) {
+    nextTick(() => designCanvasRef.value?.aiLayout())
+  }
 }
 
 // Diff 确认

@@ -53,7 +53,10 @@ class FlowTemplateViewSet(
                 raise exceptions.PermissionDenied('仅超级管理员可创建公共模板')
             instance = serializer.save(created_by=self.request.user, project=None)
         else:
-            instance = serializer.save(created_by=self.request.user)
+            project_kwargs = self.resolve_project_kwargs(self.request)
+            if 'project_id' in project_kwargs and project_kwargs['project_id'] not in self.get_user_project_ids():
+                raise exceptions.PermissionDenied('无权在当前项目创建资源')
+            instance = serializer.save(created_by=self.request.user, **project_kwargs)
         log_operation(self.request.user, 'create', 'template', instance.id, instance.name, request=self.request)
 
     def retrieve(self, request, *args, **kwargs):

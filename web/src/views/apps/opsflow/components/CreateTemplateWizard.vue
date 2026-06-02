@@ -1,121 +1,113 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="New Template Wizard"
-    width="680px"
-    top="8vh"
+    title="New Template"
+    width="700px"
+    top="6vh"
     :close-on-click-modal="false"
-    class="wizard-dialog"
+    class="create-wizard"
     @close="handleClose"
   >
     <!-- Step Progress -->
     <div class="wizard-steps">
-      <el-steps :active="activeStep" align-center finish-status="success" :space="240">
-        <el-step title="① 基本信息" description="Name & Category" />
-        <el-step title="② 创建方式" description="Creation Method" />
+      <el-steps :active="activeStep" align-center finish-status="success" :space="260">
+        <el-step title="① Basic Info" description="Name & Category" />
+        <el-step title="② Method" description="Creation Method" />
       </el-steps>
     </div>
 
-    <el-divider style="margin: 16px 0 20px" />
+    <el-divider style="margin: 16px 0 18px" />
 
-    <div class="wizard-body">
-      <!-- ==================== Step 1: Basic Info ==================== -->
-      <div v-show="activeStep === 0" class="step-content">
-        <div class="step-header">
-          <div class="step-icon">📋</div>
-          <div>
-            <h3 class="step-title">基本信息</h3>
-            <p class="step-desc">设置模板名称、分类和描述</p>
-          </div>
-        </div>
+    <!-- ==================== Step 1: Basic Info ==================== -->
+    <div v-show="activeStep === 0" class="step-content">
+      <el-form label-position="top" size="default" class="info-form">
+        <el-form-item label="Project" required>
+          <el-select v-model="form.project_id" placeholder="Select project..." filterable>
+            <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Template Name" required>
+          <el-input v-model="form.name" placeholder="e.g. Database Backup Pipeline" maxlength="200" />
+        </el-form-item>
+        <el-form-item label="Category" required>
+          <el-select v-model="form.category" placeholder="Select category..." filterable>
+            <el-option v-for="cat in categories" :key="cat.code" :label="cat.name" :value="cat.code" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Description (optional)">
+          <el-input v-model="form.description" type="textarea" :rows="2" placeholder="Briefly describe the purpose of this template" maxlength="500" />
+        </el-form-item>
+      </el-form>
+    </div>
 
-        <el-form label-width="80px" size="default" class="info-form">
-          <el-form-item label="名称" required>
-            <el-input v-model="form.name" placeholder="输入模板名称" maxlength="200" />
-          </el-form-item>
-          <el-form-item label="分类" required>
-            <el-select v-model="form.category" placeholder="选择分类" filterable style="width:100%">
-              <el-option v-for="cat in categories" :key="cat.code" :label="cat.name" :value="cat.code" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="描述">
-            <el-input v-model="form.description" type="textarea" :rows="3" placeholder="可选的模板描述" maxlength="500" />
-          </el-form-item>
-        </el-form>
-      </div>
-
-      <!-- ==================== Step 2: Creation Method ==================== -->
-      <div v-show="activeStep === 1" class="step-content">
-        <div class="step-header">
-          <div class="step-icon">🚀</div>
-          <div>
-            <h3 class="step-title">选择创建方式</h3>
-            <p class="step-desc">选择如何创建此模板</p>
-          </div>
-        </div>
-
-        <div class="method-options">
-          <!-- Blank -->
-          <div class="method-card" :class="{ selected: method === 'blank' }" @click="method = 'blank'">
+    <!-- ==================== Step 2: Creation Method ==================== -->
+    <div v-show="activeStep === 1" class="step-content">
+      <div class="method-options">
+        <!-- Blank -->
+        <div class="method-card" :class="{ selected: method === 'blank' }" @click="method = 'blank'">
+          <div class="method-card-left">
             <div class="method-icon">📄</div>
             <div class="method-info">
-              <div class="method-title">空白创建</div>
-              <div class="method-desc">创建空模板，从零开始设计流程</div>
+              <div class="method-title">Blank Canvas</div>
+              <div class="method-desc">Start from scratch — an empty pipeline with just Start & End nodes</div>
             </div>
-            <el-radio v-model="method" value="blank" size="small" />
           </div>
+          <el-radio v-model="method" value="blank" size="small" />
+        </div>
 
-          <!-- AI Generate -->
-          <div class="method-card" :class="{ selected: method === 'ai' }" @click="method = 'ai'">
+        <!-- AI Generate -->
+        <div class="method-card" :class="{ selected: method === 'ai' }" @click="method = 'ai'">
+          <div class="method-card-left">
             <div class="method-icon">🤖</div>
             <div class="method-info">
-              <div class="method-title">AI 生成</div>
-              <div class="method-desc">用自然语言描述，自动生成流程</div>
+              <div class="method-title">AI Generate</div>
+              <div class="method-desc">Describe your workflow in plain English — AI generates the pipeline for you</div>
             </div>
-            <el-radio v-model="method" value="ai" size="small" />
           </div>
+          <el-radio v-model="method" value="ai" size="small" />
+        </div>
 
-          <!-- Clone -->
-          <div class="method-card" :class="{ selected: method === 'clone' }" @click="method = 'clone'">
+        <!-- Clone -->
+        <div class="method-card" :class="{ selected: method === 'clone' }" @click="method = 'clone'">
+          <div class="method-card-left">
             <div class="method-icon">📋</div>
             <div class="method-info">
-              <div class="method-title">从已有模板克隆</div>
-              <div class="method-desc">基于已有模板创建副本</div>
+              <div class="method-title">Clone from Existing</div>
+              <div class="method-desc">Duplicate an existing template as a starting point</div>
             </div>
-            <el-radio v-model="method" value="clone" size="small" />
           </div>
+          <el-radio v-model="method" value="clone" size="small" />
         </div>
+      </div>
 
-        <!-- AI Input -->
-        <div v-if="method === 'ai'" class="method-extra">
-          <el-input
-            v-model="aiPrompt"
-            type="textarea"
-            :rows="4"
-            placeholder="描述你想要的流程，例如：每天凌晨2点备份数据库，然后发送通知到企业微信"
-          />
-        </div>
+      <!-- AI Input -->
+      <div v-if="method === 'ai'" class="method-extra">
+        <el-input
+          v-model="aiPrompt"
+          type="textarea"
+          :rows="4"
+          placeholder='e.g. "Inspect disk space on all hosts at 2 AM daily, then send an alert if usage exceeds 90%"'
+        />
+      </div>
 
-        <!-- Clone Selector -->
-        <div v-if="method === 'clone'" class="method-extra">
-          <el-select
-            v-model="cloneTemplateId"
-            placeholder="选择要克隆的模板..."
-            filterable
-            style="width:100%"
-            size="default"
-          >
-            <el-option-group v-if="projectTemplates.length" label="📁 项目模板">
-              <el-option v-for="t in projectTemplates" :key="t.id" :label="t.name" :value="t.id" />
-            </el-option-group>
-            <el-option-group v-if="publicTemplates.length" label="🌐 公共模板">
-              <el-option v-for="t in publicTemplates" :key="t.id" :value="t.id">
-                <span>{{ t.name }}</span>
-                <el-tag size="small" type="warning" style="margin-left:6px">公共</el-tag>
-              </el-option>
-            </el-option-group>
-          </el-select>
-        </div>
+      <!-- Clone Selector -->
+      <div v-if="method === 'clone'" class="method-extra">
+        <el-select
+          v-model="cloneTemplateId"
+          placeholder="Select a template to clone..."
+          filterable
+          style="width:100%"
+        >
+          <el-option-group v-if="projectTemplates.length" label="📁 Project Templates">
+            <el-option v-for="t in projectTemplates" :key="t.id" :label="t.name" :value="t.id" />
+          </el-option-group>
+          <el-option-group v-if="publicTemplates.length" label="🌐 Public Templates">
+            <el-option v-for="t in publicTemplates" :key="t.id" :value="t.id">
+              <span>{{ t.name }}</span>
+              <el-tag size="small" type="warning" style="margin-left:6px">public</el-tag>
+            </el-option>
+          </el-option-group>
+        </el-select>
       </div>
     </div>
 
@@ -143,6 +135,7 @@
             :loading="submitting"
             :disabled="!canSubmit"
             @click="handleCreate"
+            class="btn-create"
           >
             <el-icon><CircleCheck /></el-icon> Create
           </el-button>
@@ -154,23 +147,13 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-
-/** 从 API 响应中提取数据对象（兼容多种响应格式） */
-function extractData(res: any): any {
-  console.log('[extractData] input type:', typeof res, 'has id:', !!res?.id)
-  // service.ts 拦截器返回的是 response.data = {code:2000, data:{...}, msg:"..."}
-  if (res?.code === 2000 && res?.data) return res.data
-  // 如果直接是 axios 响应
-  if (res?.data?.code === 2000 && res?.data?.data) return res.data.data
-  // flat response
-  if (res?.id) return res
-  return res
-}
 import { ElMessage } from 'element-plus'
 import { CircleCheck } from '@element-plus/icons-vue'
-import { CreateTemplate, CreateFromAi, GetTemplateDetail, ExportTemplate } from '/@/api/opsflow/templates'
-import { GetTemplates } from '/@/api/opsflow/templates'
+import { CreateTemplate, CreateFromAi, ExportTemplate, ImportTemplate, GetTemplates, UpdateTemplate } from '/@/api/opsflow/templates'
 import { GetTemplateCategories } from '/@/api/opsflow/template-categories'
+import { useOpsflowStore } from '../stores/opsflowStore'
+
+const store = useOpsflowStore()
 
 const props = defineProps<{
   modelValue: boolean
@@ -191,10 +174,9 @@ const submitting = ref(false)
 const categories = ref<any[]>([])
 const allTemplates = ref<any[]>([])
 
-// Step 1 form
-const form = ref({ name: '', category: '', description: '' })
+const form = ref({ name: '', category: '', description: '', project_id: null as number | null })
+const projectList = computed(() => store.myProjects)
 
-// Step 2 method
 const method = ref<'blank' | 'ai' | 'clone'>('blank')
 const aiPrompt = ref('')
 const cloneTemplateId = ref<number | null>(null)
@@ -202,40 +184,40 @@ const cloneTemplateId = ref<number | null>(null)
 const projectTemplates = computed(() => (allTemplates.value || []).filter((t: any) => !t.is_public))
 const publicTemplates = computed(() => (allTemplates.value || []).filter((t: any) => t.is_public))
 
-// Navigation guards
-const canNext = computed(() => {
-  return form.value.name.trim() && form.value.category
-})
+const canNext = computed(() =>
+  form.value.project_id && form.value.name.trim() && form.value.category,
+)
 
 const canSubmit = computed(() => {
-  if (!form.value.name.trim() || !form.value.category) return false
+  if (!form.value.project_id || !form.value.name.trim() || !form.value.category) return false
   if (method.value === 'ai' && !aiPrompt.value.trim()) return false
   if (method.value === 'clone' && !cloneTemplateId.value) return false
   return true
 })
 
-function nextStep() {
-  if (activeStep.value < 1) {
-    activeStep.value++
-  }
-}
+function nextStep() { activeStep.value = Math.min(activeStep.value + 1, 1) }
+function prevStep() { activeStep.value = Math.max(activeStep.value - 1, 0) }
+function handleClose() { emit('update:modelValue', false) }
 
-function prevStep() {
-  if (activeStep.value > 0) {
-    activeStep.value--
-  }
+const extractData = (res: any): any => {
+  if (res?.code === 2000 && res?.data) return res.data
+  return res?.id ? res : res
 }
 
 async function handleCreate() {
   submitting.value = true
+  if (form.value.project_id) {
+    store.setCurrentProjectId(form.value.project_id)
+  }
   try {
     let template: any
 
     if (method.value === 'ai') {
       const res = await CreateFromAi({ input: aiPrompt.value })
       template = extractData(res)
+      // CreateFromAi 返回 {template: {...}, validation: {...}}，需解一层
+      if (template?.template?.id) template = template.template
       if (template?.id) {
-        const { UpdateTemplate } = await import('/@/api/opsflow/templates')
         await UpdateTemplate(template.id, {
           name: form.value.name,
           category: form.value.category,
@@ -253,7 +235,6 @@ async function handleCreate() {
         exportData.template.category = form.value.category
         exportData.template.description = form.value.description
       }
-      const { ImportTemplate } = await import('/@/api/opsflow/templates')
       const importRes = await ImportTemplate({ data: exportData })
       template = extractData(importRes)
     } else {
@@ -262,15 +243,10 @@ async function handleCreate() {
         category: form.value.category,
         description: form.value.description,
       })
-      console.log('[CreateWizard] raw CreateTemplate response:', JSON.stringify(res).slice(0, 500))
       template = extractData(res)
-      console.log('[CreateWizard] extractData result:', JSON.stringify(template).slice(0, 300))
     }
 
-    if (!template?.id) {
-      console.error('[CreateWizard] CreateTemplate failed: no id in response', JSON.stringify(template))
-      throw new Error('Template creation returned no ID')
-    }
+    if (!template?.id) throw new Error('Template creation returned no ID')
 
     ElMessage.success(`Template "${template.name}" created`)
     visible.value = false
@@ -283,81 +259,69 @@ async function handleCreate() {
   }
 }
 
-function handleClose() {
-  emit('update:modelValue', false)
-}
-
-// Load data on open
 watch(() => props.modelValue, async (val) => {
   if (!val) return
   activeStep.value = 0
-  form.value = { name: '', category: '', description: '' }
+  const defaultProject = store.currentProjectId || store.myProjects[0]?.id || null
+  form.value = { name: '', category: '', description: '', project_id: defaultProject }
   method.value = 'blank'
   aiPrompt.value = ''
   cloneTemplateId.value = null
 
   try {
-    const catRes = await GetTemplateCategories()
+    const [catRes, tplRes] = await Promise.all([
+      GetTemplateCategories(),
+      GetTemplates({ limit: 200 }),
+    ])
     categories.value = catRes.data?.data || catRes.data || []
-  } catch {
-    categories.value = []
-  }
-
-  try {
-    const tplRes = await GetTemplates({ limit: 200 })
     allTemplates.value = tplRes.data?.results || tplRes.data || tplRes.results || []
   } catch {
+    categories.value = []
     allTemplates.value = []
   }
 })
 </script>
 
 <style scoped>
-.wizard-dialog :deep(.el-dialog__body) {
-  padding: 0 24px;
-  min-height: 360px;
+.create-wizard :deep(.el-dialog__body) {
+  padding: 0 28px;
+  min-height: 340px;
 }
 
+/* Steps */
 .wizard-steps {
-  padding: 20px 0 0;
+  padding: 18px 0 0;
 }
 .wizard-steps :deep(.el-step__title) {
   font-size: 13px;
+  font-weight: 500;
 }
 .wizard-steps :deep(.el-step__description) {
   font-size: 11px;
-}
-
-.wizard-body {
-  min-height: 280px;
-}
-
-.step-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.step-icon {
-  font-size: 28px;
-  flex-shrink: 0;
-}
-.step-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: #303133;
-}
-.step-desc {
-  margin: 2px 0 0;
-  font-size: 12px;
   color: #909399;
 }
 
-.info-form {
-  max-width: 480px;
+/* Body */
+.step-content {
+  min-height: 280px;
+  padding-bottom: 8px;
 }
 
+/* ===== Step 1: Form ===== */
+.info-form {
+  max-width: 500px;
+}
+.info-form :deep(.el-form-item__label) {
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+  padding-bottom: 4px;
+}
+.info-form :deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+/* ===== Step 2: Method Cards ===== */
 .method-options {
   display: flex;
   flex-direction: column;
@@ -367,43 +331,52 @@ watch(() => props.modelValue, async (val) => {
 .method-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  border: 1px solid #ebeef5;
-  border-radius: 10px;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border: 1.5px solid #ebeef5;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  background: #fff;
 }
 .method-card:hover {
   border-color: #409EFF;
   background: #fafcff;
+  box-shadow: 0 2px 8px rgba(64,158,255,0.08);
 }
 .method-card.selected {
   border-color: #409EFF;
-  background: #ecf5ff;
+  background: linear-gradient(135deg, #ecf5ff, #f0f8ff);
+  box-shadow: 0 2px 12px rgba(64,158,255,0.12);
+}
+.method-card-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
 }
 .method-icon {
-  font-size: 24px;
+  font-size: 26px;
   flex-shrink: 0;
-}
-.method-info {
-  flex: 1;
+  width: 36px;
+  text-align: center;
 }
 .method-title {
   font-size: 14px;
   font-weight: 600;
   color: #303133;
+  margin-bottom: 2px;
 }
 .method-desc {
   font-size: 12px;
   color: #909399;
-  margin-top: 2px;
+  line-height: 1.4;
 }
-
 .method-extra {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
+/* Footer */
 .wizard-footer {
   display: flex;
   justify-content: space-between;
@@ -413,5 +386,13 @@ watch(() => props.modelValue, async (val) => {
   display: flex;
   gap: 10px;
   align-items: center;
+}
+.btn-create {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-color: transparent;
+}
+.btn-create:hover {
+  background: linear-gradient(135deg, #5a6fd6, #6a4199);
+  border-color: transparent;
 }
 </style>

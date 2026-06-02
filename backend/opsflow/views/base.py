@@ -67,21 +67,29 @@ class ProjectFilteredViewSet(viewsets.ModelViewSet):
         base_q = self._add_public_q(base_q, user_project_ids=user_project_ids)
         return qs.filter(base_q)
 
-    def perform_create(self, serializer):
-        project_id = self.request.query_params.get('project_id')
-        if project_id:
-            user_project_ids = self.get_user_project_ids()
-            if int(project_id) in user_project_ids:
-                serializer.save(project_id=project_id)
-                return
-            raise exceptions.PermissionDenied('无权在当前项目创建资源')
-        # 无 project_id 时使用默认项目
+    @staticmethod
+    def resolve_project_kwargs(request, project_id=None):
+        """解析项目归属，返回 {project} 或 {} 用于 create 调用
+
+        统一 ViewSet/Mixin 中重复的项目归属逻辑：
+        - 传 project_id → 返回 {'project_id': project_id}
+        - 不传           → 返回 {'project': 默认项目}
+        - 用户无权限     → 返回 {}（调用方自行决定是否报错）
+        """
+        pid = project_id or request.query_params.get('project_id')
+        if pid:
+            return {'project_id': int(pid)}
         from opsflow.models import OpsProject
-        default = OpsProject.objects.first()
-        if default:
-            serializer.save(project=default)
-        else:
-            serializer.save()
+        first = OpsProject.objects.first()
+        return {'project': first} if first else {}
+
+    def perform_create(self, serializer):
+        kwargs = self.resolve_project_kwargs(self.request)
+        if 'project_id' in kwargs:
+            user_project_ids = self.get_user_project_ids()
+            if kwargs['project_id'] not in user_project_ids:
+                raise exceptions.PermissionDenied('无权在当前项目创建资源')
+        serializer.save(**kwargs)
 
 
 class ProjectReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
