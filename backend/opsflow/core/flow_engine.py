@@ -221,6 +221,12 @@ class FlowEngine:
             self.execution.context["node_id_map"] = id_map
             self.execution.save(update_fields=["context"])
 
+            # 清理重试时可能残留的 pipeline data（Data/State/ExecutionData 的 node_id 唯一约束）
+            try:
+                self._cleanup_pipeline_data(pipeline)
+            except Exception as e:
+                logger.warning("[FlowEngine] _cleanup_pipeline_data error: %s", e)
+
             runtime = BambooDjangoRuntime()
             result = pipeline_api.run_pipeline(runtime=runtime, pipeline=pipeline)
 
@@ -288,6 +294,49 @@ class FlowEngine:
 
         if rollback_count:
             logger.info("[FlowEngine] rollback completed for %d nodes", rollback_count)
+
+    # -- Pipeline Re-run Cleanup --------------------------------------------
+
+    def _cleanup_pipeline_data(self, pipeline: dict):
+        """清理重试执行时残留的 bamboo-engine pipeline 数据
+
+        退出重试场景：pipeline 已存在旧的 Data/State/ExecutionData 记录，
+        其 node_id 使用模板原始 ID（如 node_1、node_3），再次运行会因
+        唯一约束冲突而失败。该方法在调用 run_pipeline 之前清理所有
+        与本次 pipeline 节点 ID 关联的旧记录。
+        """
+        all_node_ids = set()
+        for act_id in pipeline.get('activities', {}):
+            all_node_ids.add(act_id)
+        for gw_id in pipeline.get('gateways', {}):
+            all_node_ids.add(gw_id)
+        start = pipeline.get('start_event', {})
+        if start:
+            all_node_ids.add(start.get('id'))
+        end = pipeline.get('end_event', {})
+        if end:
+            all_node_ids.add(end.get('id'))
+        all_node_ids.discard(None)
+
+        if not all_node_ids:
+            return
+
+        from pipeline.eri.models import Data as PipelineData, State as PipelineState
+        from pipeline.eri.models import ExecutionData as PipelineExecutionData
+        from pipeline.eri.models import Schedule as PipelineSchedule
+        from pipeline.eri.models import Node as PipelineNode
+        from pipeline.eri.models import ExecutionHistory as PipelineExecutionHistory
+        from pipeline.eri.models import CallbackData as PipelineCallbackData
+
+        logger.info("[FlowEngine] Cleaning pipeline data for %d node IDs (re-run cleanup)",
+                     len(all_node_ids))
+        PipelineData.objects.filter(node_id__in=all_node_ids).delete()
+        PipelineExecutionData.objects.filter(node_id__in=all_node_ids).delete()
+        PipelineState.objects.filter(node_id__in=all_node_ids).delete()
+        PipelineSchedule.objects.filter(node_id__in=all_node_ids).delete()
+        PipelineNode.objects.filter(node_id__in=all_node_ids).delete()
+        PipelineExecutionHistory.objects.filter(node_id__in=all_node_ids).delete()
+        PipelineCallbackData.objects.filter(node_id__in=all_node_ids).delete()
 
     # -- Notification helpers ------------------------------------------------
 

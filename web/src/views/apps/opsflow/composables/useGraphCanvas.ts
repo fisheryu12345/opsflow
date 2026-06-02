@@ -36,9 +36,13 @@ function createDefaultGraph(
         allowLoop: false,
         snap: true,
         highlight: true,
-        validateConnection({ sourceMagnet, targetMagnet, sourcePort, targetPort }) {
+        validateConnection({ sourceCell, targetCell, sourceMagnet, targetMagnet, sourcePort, targetPort }) {
           if (!sourceMagnet) return false
           if (!targetPort && !targetMagnet) return false
+          // 禁止从 end_event 连出（end_event 只能有入边）
+          if (sourceCell?.getData()?.node_type === 'end_event') return false
+          // 禁止连向 start_event（start_event 只能有出边）
+          if (targetCell?.getData()?.node_type === 'start_event') return false
           return true
         },
         createEdge() {

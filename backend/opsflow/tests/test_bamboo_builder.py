@@ -100,6 +100,43 @@ class TestParseEdgeConditions:
         assert "_result_n1" in auto_vars
         assert conditions["n1->n2"] == "${_result_n1} == True"
 
+    def test_gateway_edges_link_to_predecessor(self):
+        """exclusive_gateway 出边的 success/failure 标签自动引用前驱活动节点的 _result"""
+        edges = [
+            {"from": "n1", "to": "gw1", "label": "success"},
+            {"from": "gw1", "to": "n2", "label": "success"},
+            {"from": "gw1", "to": "n3", "label": "failure"},
+        ]
+        nodes = [
+            {"id": "n1", "node_type": "atom"},
+            {"id": "gw1", "node_type": "exclusive_gateway"},
+            {"id": "n2", "node_type": "atom"},
+            {"id": "n3", "node_type": "atom"},
+        ]
+        conditions, auto_vars = _parse_edge_conditions(edges, effective_nodes=nodes)
+        # 应注册 _result_n1（前驱活动节点的 _result）
+        assert "_result_n1" in auto_vars
+        assert auto_vars["_result_n1"] == {"source_act": "n1", "source_key": "_result"}
+        # n1→gw1 出边：非网关 → 直接注册
+        assert conditions["n1->gw1"] == "${_result_n1} == True"
+        # gw1→n2/n3 出边：网关 → 回溯到 n1 的 _result
+        assert conditions["gw1->n2"] == "${_result_n1} == True"
+        assert conditions["gw1->n3"] == "${_result_n1} == False"
+
+    def test_gateway_no_predecessor_skips_auto_gen(self):
+        """网关没有非网关前驱时不生成自动条件（避免引用不存在的前驱变量）"""
+        edges = [
+            {"from": "gw1", "to": "n2", "label": "success"},
+        ]
+        nodes = [
+            {"id": "gw1", "node_type": "exclusive_gateway"},
+            {"id": "n2", "node_type": "atom"},
+        ]
+        conditions, auto_vars = _parse_edge_conditions(edges, effective_nodes=nodes)
+        # 没有前驱活动节点 → 不自动生成
+        assert "_result_n2" not in auto_vars  # 不引用自身
+        assert "gw1->n2" not in conditions    # 让 _get_condition 兜底
+
 
 class TestGetCondition:
     """_get_condition 条件回退逻辑"""
@@ -111,16 +148,16 @@ class TestGetCondition:
 
     def test_success_label_default(self):
         result = _get_condition({}, "n1", "n2", label="success")
-        assert result == "${_result == True}"
+        assert result == "${_result} == True"
 
     def test_failure_label_default(self):
         result = _get_condition({}, "n1", "n2", label="failure")
-        assert result == "${_result == False}"
+        assert result == "${_result} == False"
 
     def test_unknown_label_default(self):
         """默认 label 也返回 success 条件"""
         result = _get_condition({}, "n1", "n2", label="other")
-        assert result == "${_result == True}"
+        assert result == "${_result} == True"
 
     def test_condition_with_label_not_used(self):
         conditions = {"n1->n2": "${custom}"}
@@ -465,8 +502,8 @@ class TestExclusiveGatewayBuild:
         # 空的 conditions_map → _get_condition 按 label 回退
         elem = _create_element(node, outgoing, {})
         assert len(elem.conditions) == 2
-        assert elem.conditions[0] == "${_result == True}"   # success 默认
-        assert elem.conditions[1] == "${_result == False}"  # failure 默认
+        assert elem.conditions[0] == "${_result} == True"   # success 默认
+        assert elem.conditions[1] == "${_result} == False"  # failure 默认
 
     def test_build_full_exclusive_gateway_pipeline(self):
         """完整流程：atom → exclusive_gateway → 分支 A/B

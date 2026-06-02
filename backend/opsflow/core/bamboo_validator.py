@@ -125,7 +125,7 @@ def validate_bamboo_compatibility(pipeline_tree: dict, skip_schema=False) -> dic
         if node_type in ('exclusive_gateway', 'conditional_parallel_gateway') and len(successors) > 1:
             labels = {e.get('label', '') for e in successors}
             if not labels:
-                warnings.append(f"排他网关 '{n.get('label', n['id'])}' 缺少分支标签")
+                errors.append(f"排他网关 '{n.get('label', n['id'])}' 必须为每条出边设置 success 或 failure 标签")
             elif labels - {'success', 'failure'}:
                 warnings.append(
                     f"排他网关 '{n.get('label', n['id'])}' 分支标签含非 success/failure 值")

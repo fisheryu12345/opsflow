@@ -41,6 +41,15 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
     if not nodes:
         return _empty_pipeline(flow_template, target_hosts=target_hosts, global_vars=global_vars)
 
+    # 视觉节点 ID（用于 id_map 映射，使前端能更新这些节点的状态）
+    visual_start_id = None
+    visual_end_id = None
+    for n in nodes:
+        if n.get('node_type') == 'start_event':
+            visual_start_id = n['id']
+        elif n.get('node_type') == 'end_event':
+            visual_end_id = n['id']
+
     # 过滤视觉节点
     effective_nodes = [n for n in nodes if n.get('node_type') not in ('start_event', 'end_event')]
     effective_ids = {n['id'] for n in effective_nodes}
@@ -49,8 +58,12 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
     if not effective_nodes:
         return _empty_pipeline(flow_template)
 
-    # 扫描边条件
-    edge_conditions, auto_vars = _parse_edge_conditions(effective_edges)
+    # 注意：前端生成节点 ID 时应确保长度 ≤ 32 字符，
+    # 因为 bamboo-engine 的 Data/Node/State 等 model 中 node_id 字段 max_length=33。
+    # 使用标准 UUID v4（36 字符）会导致 MySQL Data too long 错误。
+
+    # 扫描边条件（传入 effective_nodes 以识别网关节点，跳过 auto-gen）
+    edge_conditions, auto_vars = _parse_edge_conditions(effective_edges, effective_nodes)
 
     # 构建邻接表
     out_edges: dict[str, list[dict]] = {n['id']: [] for n in effective_nodes}
@@ -217,6 +230,14 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
     for gw_id, gw_data in tree.get('gateways', {}).items():
         if gw_data.get('name'):
             id_map[gw_id] = gw_data['name']
+
+    # start_event / end_event 的 ID 映射（bamboo UUID → 视觉节点原始 ID）
+    start_event = tree.get('start_event', {})
+    if start_event.get('id') and visual_start_id:
+        id_map[start_event['id']] = visual_start_id
+    end_event = tree.get('end_event', {})
+    if end_event.get('id') and visual_end_id:
+        id_map[end_event['id']] = visual_end_id
 
     return tree, id_map
 

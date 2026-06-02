@@ -1,5 +1,5 @@
 import { ref, shallowRef } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Graph } from '@antv/x6'
 import { Stencil } from '@antv/x6-plugin-stencil'
 import { History } from '@antv/x6-plugin-history'
@@ -94,11 +94,137 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       canRedo.value = g.canRedo()
     })
     g.on('node:added', ({ node }) => {
+      // 限制 node_id ≤ 32 字符（bamboo-engine MySQL 字段 max_length=33）
+      // 自动生成 node_{N+1} 格式，与 AI 生成的 ID 一致
+      // X6 Node 无 setId 方法，用 setTimeout 异步替换
+      const oldId = node.id
+      if (oldId.length > 32 || /^node_\d+$/.test(oldId) === false) {
+        setTimeout(() => {
+          let maxN = 0
+          for (const cell of g.getNodes()) {
+            const m = cell.id.match(/^node_(\d+)$/)
+            if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
+          }
+          const newId = `node_${maxN + 1}`
+          const data = node.getData() || {}
+          const pos = node.getPosition()
+          const size = node.getSize()
+          const json = node.toJSON()
+          const ports = json.ports || node.getPorts()
+          g.removeCell(node.id)
+          const newNode = g.addNode({
+            shape: json.shape,
+            id: newId,
+            x: pos.x, y: pos.y,
+            width: size.width, height: size.height,
+            data: { ...data, id: newId },
+            attrs: json.attrs,
+            ports: ports,
+          })
+          // 修复引用旧 ID 的边
+          g.getEdges().forEach(edge => {
+            const src = edge.getSource()
+            const tgt = edge.getTarget()
+            if (typeof src === 'object' && src.cell === oldId) edge.setSource({ ...src, cell: newId })
+            if (typeof tgt === 'object' && tgt.cell === oldId) edge.setTarget({ ...tgt, cell: newId })
+          })
+          if (data?.node_type === 'atom' && !data?.atom_type) needPlugin(newId)
+        }, 0)
+        return
+      }
       const data = node.getData()
       if (data?.node_type === 'atom') {
         node.setSize({ width: 180, height: 48 })
         if (!data?.atom_type) needPlugin(node.id)
       }
+    })
+    // 连线完成后执行校验：出度约束 + 标签检查 + 网关 Prompt
+    g.on('edge:connected', ({ edge }) => {
+      const source = edge.getSourceCell()
+      if (!source || !source.isNode()) return
+      const sourceData = source.getData()
+      const sourceType = sourceData?.node_type
+
+      // ── 度约束校验 ──
+      const outEdges = g.getEdges().filter(e => {
+        const src = e.getSourceCell()
+        return src && src.id === source.id
+      })
+
+      // atom / '' 出度 ≤ 2
+      if (!sourceType || sourceType === 'atom') {
+        if (outEdges.length > 2) {
+          ElMessage.error(`活动节点 "${sourceData?.label || source.id}" 最多允许 2 条出边（success/failure）`)
+          g.removeEdge(edge.id)
+          return
+        }
+        if (outEdges.length === 2) {
+          const labels = new Set(outEdges.map(e => e.getLabels?.()?.[0]?.attrs?.text?.text || ''))
+          if (labels.size < 2 || !labels.has('success') || !labels.has('failure')) {
+            setTimeout(() => ElMessage.warning(`活动节点 "${sourceData?.label || source.id}" 的两条出边标签应为 success 和 failure`), 300)
+          }
+        }
+      }
+
+      // 汇聚网关出度 ≤ 1
+      if (sourceType === 'converge_gateway') {
+        if (outEdges.length > 1) {
+          ElMessage.error(`汇聚网关 "${sourceData?.label || source.id}" 最多允许 1 条出边`)
+          g.removeEdge(edge.id)
+          return
+        }
+        // 入边 < 2 提示建议改为直连（检查目标节点入度）
+        const target = edge.getTargetCell()
+        if (target && target.isNode()) {
+          const targetData = target.getData()
+          if (targetData?.node_type === 'converge_gateway') {
+            const inEdges = g.getEdges().filter(e => {
+              const tgt = e.getTargetCell()
+              return tgt && tgt.id === target.id
+            })
+            if (inEdges.length < 2) {
+              setTimeout(() => ElMessage.info(`汇聚网关 "${targetData?.label || target.id}" 入边少于 2 条，建议改用直接连接`), 300)
+            }
+          }
+        }
+      }
+
+      // ── 排他/条件并行网关：连接后 Prompt 选标签 ──
+      const needLabel = sourceType === 'exclusive_gateway' || sourceType === 'conditional_parallel_gateway'
+      if (!needLabel) return
+      const labels = edge.getLabels?.() || []
+      if (labels.length > 0 && labels[0]?.attrs?.text?.text) return
+
+      ElMessageBox.prompt('请选择分支类型', '分支', {
+        inputType: 'select',
+        inputOptions: [
+          { value: 'success', label: 'success（成功路径）' },
+          { value: 'failure', label: 'failure（失败路径）' },
+          { value: 'custom', label: '自定义条件' },
+        ],
+        inputValue: 'success',
+        confirmButtonText: '确定',
+        cancelButtonText: '取消（删除边）',
+        closeOnClickModal: false,
+      }).then(({ value }) => {
+        if (value === 'custom') {
+          ElMessageBox.prompt('请输入条件表达式（如 ${node_1.cpu} > 80）', '自定义条件', {
+            inputValue: '${_result} == True',
+            inputPlaceholder: '例如: ${node_1.cpu} > 80',
+            confirmButtonText: '确定',
+            cancelButtonText: '取消（删除边）',
+          }).then(({ value: expr }) => {
+            edge.setLabels([{ attrs: { text: { text: 'custom' } } }])
+            edge.setData({ condition: expr })
+          }).catch(() => {
+            g.removeEdge(edge.id)
+          })
+        } else {
+          edge.setLabels([{ attrs: { text: { text: value } } }])
+        }
+      }).catch(() => {
+        g.removeEdge(edge.id)
+      })
     })
 
     // 键盘快捷键

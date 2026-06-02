@@ -306,9 +306,22 @@ function onEdgeUpdate(newData: any) {
     const edge = graph.value.getCellById(selectedEdge.value.id)
     if (edge) {
       const prev = edge.getData() || {}
-      edge.setData({ ...prev, condition: newData.condition || '' })
+      const label = newData.label || ''
+      // success/failure 不需要 condition
+      const condition = label === 'custom' ? (newData.condition || prev.condition || '') : ''
+      edge.setData({ ...prev, condition })
+      // 标签显示在连线上
+      if (label) {
+        edge.setLabels([{ attrs: { text: { text: label } } }])
+      } else {
+        edge.setLabels([])
+      }
       // 更新本地 selectedEdge 引用
-      selectedEdge.value = { ...selectedEdge.value, condition: newData.condition || '' }
+      selectedEdge.value = {
+        ...selectedEdge.value,
+        label,
+        condition,
+      }
     }
   }
 }

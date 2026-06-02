@@ -198,9 +198,14 @@
         </div>
         <div class="prop-row">
           <span class="prop-label">Label</span>
-          <el-input v-model="edgeForm.label" size="small" disabled class="prop-input" />
+          <el-select v-model="edgeForm.label" size="small" style="width:100%" @change="onEdgeLabelChange">
+            <el-option label="success（成功路径）" value="success" />
+            <el-option label="failure（失败路径）" value="failure" />
+            <el-option label="custom（自定义条件）" value="custom" />
+          </el-select>
         </div>
-        <div class="prop-row-vertical">
+        <!-- 自定义条件输入（选择 custom 时显示） -->
+        <div class="prop-row-vertical" v-if="edgeForm.label === 'custom'">
           <span class="prop-label">Condition</span>
           <el-input
             v-model="edgeForm.condition"
@@ -210,10 +215,15 @@
             placeholder="${node_1.output_key > 0}"
             @change="emitEdgeUpdate"
           />
-          <p class="condition-hint">
-            Use <code>${node_id.key}</code> to reference node outputs.
-            Example: <code>${node_1.cpu_usage > 80}</code>
-          </p>
+          <div class="condition-hint">
+            <p>使用 <code>${node_id.key}</code> 引用节点输出。示例：</p>
+            <ul class="hint-list">
+              <li><code>${node_1._result}</code> 引用执行结果</li>
+              <li><code>${node_1.code} == 200</code> 状态码判断</li>
+              <li><code>${node_1.cpu} > 80</code> 数值比较</li>
+              <li><code>${node_1.status} == 'ok'</code> 字符串比较</li>
+            </ul>
+          </div>
         </div>
       </div>
     </template>
@@ -468,8 +478,18 @@ function emitUpdate() {
   emit('update', updated)
 }
 
+function onEdgeLabelChange(label: string) {
+  edgeForm.value.label = label
+  if (label === 'success') edgeForm.value.condition = ''
+  else if (label === 'failure') edgeForm.value.condition = ''
+  emitEdgeUpdate()
+}
+
 function emitEdgeUpdate() {
-  emit('update', { condition: edgeForm.value.condition || '' })
+  emit('update', {
+    label: edgeForm.value.label || '',
+    condition: edgeForm.value.condition || '',
+  })
 }
 
 async function loadTemplates() {

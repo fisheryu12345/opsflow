@@ -90,7 +90,7 @@ const statusStats = computed(() => {
   }
   return { completed, running, failed }
 })
-const statusTotal = computed(() => Math.max(graphNodeCount.value, Object.keys(nodeStatuses.value).length))
+const statusTotal = computed(() => Object.keys(nodeStatuses.value).length)
 const progressPct = computed(() => {
   const total = statusTotal.value
   return total > 0 ? Math.round((statusStats.value.completed / total) * 100) : 0
