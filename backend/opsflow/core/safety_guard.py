@@ -37,6 +37,11 @@ def validate_pipeline(pipeline: dict) -> dict:
 
     nodes = pipeline.get('nodes', [])
     edges = pipeline.get('edges', [])
+
+    # 空 pipeline 检测
+    if not nodes or len(nodes) == 0:
+        return {'valid': False, 'errors': ['pipeline 中无节点，请先编辑并保存模板'], 'warnings': []}
+
     errors = []
     warnings = []
     node_ids = {n['id'] for n in nodes}

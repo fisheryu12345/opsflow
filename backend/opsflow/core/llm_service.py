@@ -91,14 +91,14 @@ def analyze_pipeline(nodes: list, edges: list) -> dict:
 
     prompt = f"""You are an ops pipeline analysis expert. Analyze the following Pipeline Tree and return JSON in English:
 
-{{"summary": "Brief pipeline overview (one sentence)", "steps": ["Step description", ...], "risks": ["Risk description", ...], "suggestions": ["Suggestion", ...]}}
+{{"summary": "Brief pipeline overview (one sentence)", "steps": ["Step description", ...], "risks": [{{"level": "high|medium|low", "text": "Risk description"}}, ...], "suggestions": ["Suggestion", ...]}}
 
 Pipeline Tree:
 {pipeline_str}
 
 Requirements:
 - steps: list each node's operation in execution order
-- risks: analyze potential risks (e.g., missing backup, no rollback path)
+- risks: array of risk objects, each with a "level" (high/medium/low) and "text" (description). Analyze potential risks (e.g., missing backup, no rollback path, single point of failure, data loss, service disruption)
 - suggestions: provide optimization recommendations
 Return empty array for risks if none found. Return only JSON."""
 
