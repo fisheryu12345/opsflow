@@ -489,7 +489,9 @@ loadPlugins()
 loadTemplates()
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
 .property-panel {
   width: 280px;
   background: #fff;

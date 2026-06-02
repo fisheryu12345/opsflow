@@ -35,7 +35,9 @@ watch(() => props.templateId, async (id) => {
 watch(selectedSchemeId, (val) => emit('select', val))
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
 .scheme-selector { width: 100%; }
 .scheme-desc { color: #909399; font-size: 12px; }
 </style>

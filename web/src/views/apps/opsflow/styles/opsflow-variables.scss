@@ -1,0 +1,60 @@
+// ============================================================
+// OPSflow Design Tokens
+// Shared variables for colors, spacing, radii, gradients, shadows
+// ============================================================
+
+// ===== Colors =====
+$of-color-primary: #409EFF;
+$of-color-primary-dark: #337ecc;
+$of-color-accent: #667eea;
+$of-color-accent-dark: #764ba2;
+
+$of-bg-page: #f0f2f5;
+$of-bg-card: #f8f9fb;
+$of-bg-card-hover: #f5f9ff;
+$of-bg-light-blue: #ecf5ff;
+$of-bg-success: #f0f9eb;
+$of-bg-warning: #fdf6ec;
+$of-bg-danger: #fef0f0;
+$of-bg-suggestion: #f0f5ff;
+$of-bg-confirm: #fef7e0;
+$of-bg-header: #f5f7fa;
+
+$of-text-primary: #303133;
+$of-text-secondary: #666;
+$of-text-muted: #909399;
+$of-text-placeholder: #c0c4cc;
+
+$of-border-default: #e4e7ed;
+$of-border-card: #f0f0f0;
+$of-border-light: #ebeef5;
+$of-border-blue: #d9ecff;
+$of-border-success: #e1f3d8;
+$of-border-warning: #faecd8;
+$of-border-danger: #fde2e2;
+$of-border-confirm: #f5e7b4;
+
+// ===== Spacing & Radius =====
+$of-radius-card: 10px;
+$of-radius-sm: 8px;
+$of-radius-lg: 12px;
+
+$of-padding-card: 16px 18px;
+$of-padding-dialog-header: 16px 20px;
+$of-padding-dialog-body: 20px;
+$of-padding-dialog-footer: 12px 20px;
+
+// ===== Gradients =====
+$of-gradient-blue: linear-gradient(135deg, $of-color-primary, $of-color-primary-dark);
+$of-gradient-accent: linear-gradient(135deg, $of-color-accent, $of-color-accent-dark);
+$of-gradient-hero: linear-gradient(135deg, #ecf5ff 0%, #f8f9fb 100%);
+$of-gradient-manual: linear-gradient(135deg, #f8f9fb 0%, #f0f5ff 100%);
+
+// ===== Shadows =====
+$of-shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06);
+$of-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
+$of-shadow-primary: 0 2px 12px rgba(64, 158, 255, 0.12);
+
+// ===== Animation =====
+$of-transition-default: 0.2s;
+$of-fade-translate: 16px;

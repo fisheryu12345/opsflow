@@ -211,7 +211,8 @@ async function onUnhook() {
 watch(() => props.templateId, fetchVars, { immediate: true })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
 /* ---------- Layout ---------- */
 .gv-panel {
   width: 300px; min-width: 300px;
@@ -234,7 +235,7 @@ watch(() => props.templateId, fetchVars, { immediate: true })
 .gv-header-left { display: flex; align-items: center; gap: 8px; }
 .gv-header-icon {
   width: 28px; height: 28px; border-radius: 8px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: $of-gradient-accent;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 2px 8px rgba(102,126,234,0.3);
 }
@@ -311,7 +312,7 @@ watch(() => props.templateId, fetchVars, { immediate: true })
 .gv-drawer-icon {
   width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center;
 }
-.icon-edit { background: linear-gradient(135deg, #667eea, #764ba2); }
+.icon-edit { background: $of-gradient-accent; }
 .icon-add { background: linear-gradient(135deg, #52c41a, #73d13d); }
 .gv-form { padding: 0 20px; }
 .gv-form :deep(.el-form-item__label) { font-weight: 600; color: #606266; padding-bottom: 2px; }

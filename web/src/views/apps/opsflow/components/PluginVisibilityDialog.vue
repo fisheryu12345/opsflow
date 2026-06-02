@@ -212,7 +212,9 @@ function handleReset() { searchQuery.value = ''; loadData(); ElMessage.info('Cha
 watch(() => props.visible, (v) => { if (v) { loadData(); searchQuery.value = '' } })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
 .pv-dialog :deep(.el-dialog__body) { padding: 0; }
 .pv-body { max-height: 65vh; overflow-y: auto; padding: 18px 20px; }
 .pv-intro { font-size: 13px; color: #606266; margin-bottom: 14px; line-height: 1.6; }

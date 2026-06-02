@@ -111,7 +111,9 @@ async function deleteScheme(row: any) {
 watch(() => props.visible, (v) => { if (v) loadSchemes() })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
 .scheme-manager { min-height: 200px; }
 .scheme-header { margin-bottom: 12px; }
 </style>

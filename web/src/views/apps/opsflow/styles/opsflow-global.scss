@@ -1,0 +1,93 @@
+// ============================================================
+// OPSflow Reusable Classes & Mixins
+// Import via: @use '../styles/opsflow-global' as *;
+// ============================================================
+
+@import './opsflow-variables';
+
+// ===== Card =====
+.of-card {
+  background: $of-bg-card;
+  border: 1px solid $of-border-card;
+  border-radius: $of-radius-card;
+  padding: $of-padding-card;
+  transition: transform $of-transition-default, box-shadow $of-transition-default;
+}
+.of-card:hover {
+  transform: translateY(-1px);
+  box-shadow: $of-shadow-hover;
+}
+
+// ===== Animations =====
+.of-fade-in-up {
+  animation: ofFadeInUp 0.5s ease both;
+}
+.of-stagger-item {
+  animation: ofFadeInUp 0.4s ease both;
+}
+@keyframes ofFadeInUp {
+  from { opacity: 0; transform: translateY($of-fade-translate); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ===== Dialog Mixins =====
+// Use in component scoped styles:
+// .my-dialog :deep(.el-dialog__header) { @include of-dialog-header; }
+// .my-dialog :deep(.el-dialog__footer) { @include of-dialog-footer; }
+
+@mixin of-dialog-header {
+  padding: $of-padding-dialog-header;
+  margin: 0;
+  border-bottom: 1px solid $of-border-default;
+  font-weight: 600;
+}
+
+@mixin of-dialog-body {
+  padding: $of-padding-dialog-body;
+}
+
+@mixin of-dialog-footer {
+  padding: $of-padding-dialog-footer;
+  border-top: 1px solid $of-border-default;
+}
+
+// ===== Hover Effects =====
+@mixin of-hover-lift {
+  transition: transform $of-transition-default, box-shadow $of-transition-default;
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: $of-shadow-hover;
+  }
+}
+
+@mixin of-hover-shift {
+  transition: transform $of-transition-default, box-shadow $of-transition-default, border-color $of-transition-default;
+  &:hover {
+    transform: translateX(3px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+}
+
+// ===== Gradient Icon Circle =====
+@mixin of-icon-circle($size: 40px, $gradient: $of-gradient-blue) {
+  width: $size;
+  height: $size;
+  border-radius: 50%;
+  background: $gradient;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+// ===== Section Header =====
+@mixin of-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $of-text-primary;
+}

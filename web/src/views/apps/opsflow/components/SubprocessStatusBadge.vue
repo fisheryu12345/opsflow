@@ -81,7 +81,9 @@ watch(() => props.templateId, fetchStatus)
 onMounted(fetchStatus)
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
 .subprocess-status-badge {
   position: absolute;
   top: 12px;

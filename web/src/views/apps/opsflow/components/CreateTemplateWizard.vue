@@ -1,123 +1,160 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="New Template"
+    title="New Template Wizard"
     width="700px"
     top="6vh"
     :close-on-click-modal="false"
-    class="create-wizard"
+    class="opsflow-dialog create-wizard"
     @close="handleClose"
   >
     <!-- Step Progress -->
-    <div class="wizard-steps">
-      <el-steps :active="activeStep" align-center finish-status="success" :space="260">
-        <el-step title="① Basic Info" description="Name & Category" />
-        <el-step title="② Method" description="Creation Method" />
-      </el-steps>
-    </div>
-
-    <el-divider style="margin: 16px 0 18px" />
-
-    <!-- ==================== Step 1: Basic Info ==================== -->
-    <div v-show="activeStep === 0" class="step-content">
-      <el-form label-position="top" size="default" class="info-form">
-        <el-form-item label="Project" required>
-          <el-select v-model="form.project_id" placeholder="Select project..." filterable>
-            <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="Template Name" required>
-          <el-input v-model="form.name" placeholder="e.g. Database Backup Pipeline" maxlength="200" />
-        </el-form-item>
-        <el-form-item label="Category" required>
-          <el-select v-model="form.category" placeholder="Select category..." filterable>
-            <el-option v-for="cat in categories" :key="cat.code" :label="cat.name" :value="cat.code" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="Description (optional)">
-          <el-input v-model="form.description" type="textarea" :rows="2" placeholder="Briefly describe the purpose of this template" maxlength="500" />
-        </el-form-item>
-      </el-form>
-    </div>
-
-    <!-- ==================== Step 2: Creation Method ==================== -->
-    <div v-show="activeStep === 1" class="step-content">
-      <div class="method-options">
-        <!-- Blank -->
-        <div class="method-card" :class="{ selected: method === 'blank' }" @click="method = 'blank'">
-          <div class="method-card-left">
-            <div class="method-icon">📄</div>
-            <div class="method-info">
-              <div class="method-title">Blank Canvas</div>
-              <div class="method-desc">Start from scratch — an empty pipeline with just Start & End nodes</div>
-            </div>
-          </div>
-          <el-radio v-model="method" value="blank" size="small" />
-        </div>
-
-        <!-- AI Generate -->
-        <div class="method-card" :class="{ selected: method === 'ai' }" @click="method = 'ai'">
-          <div class="method-card-left">
-            <div class="method-icon">🤖</div>
-            <div class="method-info">
-              <div class="method-title">AI Generate</div>
-              <div class="method-desc">Describe your workflow in plain English — AI generates the pipeline for you</div>
-            </div>
-          </div>
-          <el-radio v-model="method" value="ai" size="small" />
-        </div>
-
-        <!-- Clone -->
-        <div class="method-card" :class="{ selected: method === 'clone' }" @click="method = 'clone'">
-          <div class="method-card-left">
-            <div class="method-icon">📋</div>
-            <div class="method-info">
-              <div class="method-title">Clone from Existing</div>
-              <div class="method-desc">Duplicate an existing template as a starting point</div>
-            </div>
-          </div>
-          <el-radio v-model="method" value="clone" size="small" />
-        </div>
-      </div>
-
-      <!-- AI Input -->
-      <div v-if="method === 'ai'" class="method-extra">
-        <el-input
-          v-model="aiPrompt"
-          type="textarea"
-          :rows="4"
-          placeholder='e.g. "Inspect disk space on all hosts at 2 AM daily, then send an alert if usage exceeds 90%"'
-        />
-      </div>
-
-      <!-- Clone Selector -->
-      <div v-if="method === 'clone'" class="method-extra">
-        <el-select
-          v-model="cloneTemplateId"
-          placeholder="Select a template to clone..."
-          filterable
-          style="width:100%"
+    <div class="wiz-header">
+      <div class="wiz-steps">
+        <div
+          v-for="(step, i) in steps"
+          :key="i"
+          class="wiz-step"
+          :class="{ active: activeStep === i, done: activeStep > i }"
         >
-          <el-option-group v-if="projectTemplates.length" label="📁 Project Templates">
-            <el-option v-for="t in projectTemplates" :key="t.id" :label="t.name" :value="t.id" />
-          </el-option-group>
-          <el-option-group v-if="publicTemplates.length" label="🌐 Public Templates">
-            <el-option v-for="t in publicTemplates" :key="t.id" :value="t.id">
-              <span>{{ t.name }}</span>
-              <el-tag size="small" type="warning" style="margin-left:6px">public</el-tag>
-            </el-option>
-          </el-option-group>
-        </el-select>
+          <div class="wiz-step-indicator">
+            <span v-if="activeStep > i" class="wiz-step-check">✓</span>
+            <span v-else>{{ i + 1 }}</span>
+          </div>
+          <div class="wiz-step-label">
+            <div class="wiz-step-title">{{ step.title }}</div>
+            <div class="wiz-step-desc">{{ step.desc }}</div>
+          </div>
+          <div v-if="i < steps.length - 1" class="wiz-step-connector" :class="{ done: activeStep > i }" />
+        </div>
+      </div>
+      <div class="wiz-progress">
+        <div class="wiz-progress-bar" :style="{ width: `${((activeStep + 1) / steps.length) * 100}%` }" />
+      </div>
+    </div>
+
+    <div class="wiz-body">
+      <!-- ==================== Step 1: Basic Info ==================== -->
+      <div v-show="activeStep === 0" class="wiz-step-panel">
+        <div class="panel-hero">
+          <div class="panel-hero-icon">📝</div>
+          <div class="panel-hero-text">
+            <h3>Basic Information</h3>
+            <p>Set the name, category, and project for your template</p>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <el-form label-position="top" size="default">
+            <el-form-item label="Project" required>
+              <el-select v-model="form.project_id" placeholder="Select project..." filterable>
+                <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="Template Name" required>
+              <el-input v-model="form.name" placeholder="e.g. Database Backup Pipeline" maxlength="200" />
+            </el-form-item>
+            <el-form-item label="Category" required>
+              <el-select v-model="form.category" placeholder="Select category..." filterable>
+                <el-option v-for="cat in categories" :key="cat.code" :label="cat.name" :value="cat.code" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="Description (optional)">
+              <el-input v-model="form.description" type="textarea" :rows="2" placeholder="Briefly describe the purpose of this template" maxlength="500" />
+            </el-form-item>
+          </el-form>
+        </div>
+      </div>
+
+      <!-- ==================== Step 2: Creation Method ==================== -->
+      <div v-show="activeStep === 1" class="wiz-step-panel">
+        <div class="panel-hero">
+          <div class="panel-hero-icon">🎯</div>
+          <div class="panel-hero-text">
+            <h3>Creation Method</h3>
+            <p>Choose how to create this template</p>
+          </div>
+        </div>
+
+        <div class="mode-selector">
+          <div class="mode-card" :class="{ active: method === 'blank' }" @click="method = 'blank'">
+            <div class="mode-card-icon">📄</div>
+            <div class="mode-card-content">
+              <div class="mode-card-title">Blank Canvas</div>
+              <div class="mode-card-desc">Start from scratch — an empty pipeline with just Start & End nodes</div>
+            </div>
+            <div class="mode-card-radio" :class="{ checked: method === 'blank' }" />
+          </div>
+
+          <div class="mode-card" :class="{ active: method === 'ai' }" @click="method = 'ai'">
+            <div class="mode-card-icon">🤖</div>
+            <div class="mode-card-content">
+              <div class="mode-card-title">AI Generate</div>
+              <div class="mode-card-desc">Describe your workflow in plain English — AI generates the pipeline for you</div>
+            </div>
+            <div class="mode-card-radio" :class="{ checked: method === 'ai' }" />
+          </div>
+
+          <div class="mode-card" :class="{ active: method === 'clone' }" @click="method = 'clone'">
+            <div class="mode-card-icon">📋</div>
+            <div class="mode-card-content">
+              <div class="mode-card-title">Clone from Existing</div>
+              <div class="mode-card-desc">Duplicate an existing template as a starting point</div>
+            </div>
+            <div class="mode-card-radio" :class="{ checked: method === 'clone' }" />
+          </div>
+        </div>
+
+        <transition name="panel-fade">
+          <div v-if="method === 'ai'" class="extra-card">
+            <div class="extra-card-header">
+              <el-icon size="15" color="#409EFF"><ChatDotSquare /></el-icon>
+              <span>Describe Your Pipeline</span>
+            </div>
+            <el-input
+              v-model="aiPrompt"
+              type="textarea"
+              :rows="4"
+              placeholder='e.g. "Inspect disk space on all hosts at 2 AM daily, then send an alert if usage exceeds 90%"'
+            />
+          </div>
+
+          <div v-else-if="method === 'clone'" class="extra-card">
+            <div class="extra-card-header">
+              <el-icon size="15" color="#409EFF"><CopyDocument /></el-icon>
+              <span>Select Source Template</span>
+            </div>
+            <el-select
+              v-model="cloneTemplateId"
+              placeholder="Select a template to clone..."
+              filterable
+              style="width:100%"
+              size="default"
+            >
+              <el-option-group v-if="projectTemplates.length" label="📁 Project Templates">
+                <el-option v-for="t in projectTemplates" :key="t.id" :label="t.name" :value="t.id" />
+              </el-option-group>
+              <el-option-group v-if="publicTemplates.length" label="🌐 Public Templates">
+                <el-option v-for="t in publicTemplates" :key="t.id" :value="t.id">
+                  <span>{{ t.name }}</span>
+                  <el-tag size="small" type="warning" style="margin-left:6px">public</el-tag>
+                </el-option>
+              </el-option-group>
+            </el-select>
+          </div>
+        </transition>
       </div>
     </div>
 
     <!-- Footer -->
     <template #footer>
-      <div class="wizard-footer">
-        <div class="footer-left">
-          <el-button v-if="activeStep > 0" text size="default" @click="prevStep">← Back</el-button>
+      <div class="wiz-footer">
+        <div class="wiz-footer-left">
+          <el-button v-if="activeStep > 0" text size="default" @click="prevStep">
+            ← Back
+          </el-button>
         </div>
-        <div class="footer-right">
+        <div class="wiz-footer-right">
           <el-button plain size="default" @click="visible = false">Cancel</el-button>
           <el-button
             v-if="activeStep < 1"
@@ -125,6 +162,7 @@
             size="default"
             :disabled="!canNext"
             @click="nextStep"
+            class="wiz-next-btn"
           >
             Continue →
           </el-button>
@@ -135,9 +173,9 @@
             :loading="submitting"
             :disabled="!canSubmit"
             @click="handleCreate"
-            class="btn-create"
+            class="wiz-create-btn"
           >
-            <el-icon><CircleCheck /></el-icon> Create
+            <el-icon><CircleCheck /></el-icon> Create Template
           </el-button>
         </div>
       </div>
@@ -148,7 +186,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { CircleCheck } from '@element-plus/icons-vue'
+import { CircleCheck, ChatDotSquare, CopyDocument } from '@element-plus/icons-vue'
 import { CreateTemplate, CreateFromAi, ExportTemplate, ImportTemplate, GetTemplates, UpdateTemplate } from '/@/api/opsflow/templates'
 import { GetTemplateCategories } from '/@/api/opsflow/template-categories'
 import { useOpsflowStore } from '../stores/opsflowStore'
@@ -163,6 +201,11 @@ const emit = defineEmits<{
   'update:modelValue': [v: boolean]
   'created': [template: any]
 }>()
+
+const steps = [
+  { title: 'Basic Info', desc: 'Name & Category' },
+  { title: 'Method', desc: 'Creation Method' },
+]
 
 const visible = computed({
   get: () => props.modelValue,
@@ -195,8 +238,8 @@ const canSubmit = computed(() => {
   return true
 })
 
-function nextStep() { activeStep.value = Math.min(activeStep.value + 1, 1) }
-function prevStep() { activeStep.value = Math.max(activeStep.value - 1, 0) }
+function nextStep() { activeStep.value = 1 }
+function prevStep() { activeStep.value = 0 }
 function handleClose() { emit('update:modelValue', false) }
 
 const extractData = (res: any): any => {
@@ -206,22 +249,17 @@ const extractData = (res: any): any => {
 
 async function handleCreate() {
   submitting.value = true
-  if (form.value.project_id) {
-    store.setCurrentProjectId(form.value.project_id)
-  }
+  if (form.value.project_id) store.setCurrentProjectId(form.value.project_id)
   try {
     let template: any
 
     if (method.value === 'ai') {
       const res = await CreateFromAi({ input: aiPrompt.value })
       template = extractData(res)
-      // CreateFromAi 返回 {template: {...}, validation: {...}}，需解一层
       if (template?.template?.id) template = template.template
       if (template?.id) {
         await UpdateTemplate(template.id, {
-          name: form.value.name,
-          category: form.value.category,
-          description: form.value.description,
+          name: form.value.name, category: form.value.category, description: form.value.description,
         })
         template.name = form.value.name
         template.category = form.value.category
@@ -239,9 +277,7 @@ async function handleCreate() {
       template = extractData(importRes)
     } else {
       const res = await CreateTemplate({
-        name: form.value.name,
-        category: form.value.category,
-        description: form.value.description,
+        name: form.value.name, category: form.value.category, description: form.value.description,
       })
       template = extractData(res)
     }
@@ -282,117 +318,286 @@ watch(() => props.modelValue, async (val) => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
+$accent: #409EFF;
+$accent-dark: #337ecc;
+
+/* ===== Layout ===== */
 .create-wizard :deep(.el-dialog__body) {
-  padding: 0 28px;
-  min-height: 340px;
+  padding: 0 !important;
+  min-height: 380px;
+}
+.create-wizard :deep(.el-dialog__footer) {
+  padding: 14px 24px;
 }
 
-/* Steps */
-.wizard-steps {
-  padding: 18px 0 0;
+/* ===== Step Header ===== */
+.wiz-header {
+  padding: 24px 24px 0;
 }
-.wizard-steps :deep(.el-step__title) {
+.wiz-steps {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.wiz-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  position: relative;
+  flex: 1;
+}
+.wiz-step-indicator {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: #f8f9fb;
+  color: #c0c4cc;
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s;
+}
+.wiz-step.active .wiz-step-indicator {
+  background: $accent;
+  color: #fff;
+  border-color: $accent;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.35);
+}
+.wiz-step.done .wiz-step-indicator {
+  background: #67C23A;
+  color: #fff;
+  border-color: #67C23A;
+}
+.wiz-step-check { font-size: 14px; }
+.wiz-step-label {
+  flex: 1;
+  min-width: 0;
+  padding-top: 3px;
+}
+.wiz-step-title {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
+  color: #c0c4cc;
+  transition: color 0.3s;
 }
-.wizard-steps :deep(.el-step__description) {
-  font-size: 11px;
-  color: #909399;
+.wiz-step.active .wiz-step-title { color: $accent; }
+.wiz-step.done .wiz-step-title { color: #67C23A; }
+.wiz-step-desc {
+  font-size: 10px;
+  color: #c0c4cc;
+  margin-top: 1px;
+}
+.wiz-step-connector {
+  flex: 1;
+  height: 2px;
+  background: #e8e8e8;
+  margin: 13px 12px 0;
+  min-width: 12px;
+  transition: background 0.3s;
+}
+.wiz-step-connector.done { background: #67C23A; }
+.wiz-progress {
+  height: 3px;
+  background: #f0f0f0;
+  border-radius: 2px;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+.wiz-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, $accent, #67C23A);
+  border-radius: 2px;
+  transition: width 0.4s ease;
 }
 
-/* Body */
-.step-content {
-  min-height: 280px;
-  padding-bottom: 8px;
+/* ===== Body ===== */
+.wiz-body {
+  padding: 20px 24px;
+  min-height: 260px;
+}
+.wiz-step-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-/* ===== Step 1: Form ===== */
-.info-form {
-  max-width: 500px;
+/* ===== Panel Hero ===== */
+.panel-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
 }
-.info-form :deep(.el-form-item__label) {
+.panel-hero-icon {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ecf5ff, #f0f8ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.08);
+}
+.panel-hero-text h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: $of-text-primary;
+  line-height: 1.3;
+}
+.panel-hero-text p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: $of-text-muted;
+  line-height: 1.4;
+}
+
+/* ===== Form Card ===== */
+.form-card {
+  background: #fff;
+  border: 1px solid $of-border-card;
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+.form-card :deep(.el-form-item__label) {
   font-size: 13px;
   font-weight: 600;
   color: #303133;
   padding-bottom: 4px;
 }
-.info-form :deep(.el-form-item) {
+.form-card :deep(.el-form-item) {
   margin-bottom: 18px;
 }
+.form-card :deep(.el-form-item:last-child) {
+  margin-bottom: 0;
+}
 
-/* ===== Step 2: Method Cards ===== */
-.method-options {
+/* ===== Mode Selector ===== */
+.mode-selector {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 16px;
 }
-.method-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 18px;
-  border: 1.5px solid #ebeef5;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: #fff;
-}
-.method-card:hover {
-  border-color: #409EFF;
-  background: #fafcff;
-  box-shadow: 0 2px 8px rgba(64,158,255,0.08);
-}
-.method-card.selected {
-  border-color: #409EFF;
-  background: linear-gradient(135deg, #ecf5ff, #f0f8ff);
-  box-shadow: 0 2px 12px rgba(64,158,255,0.12);
-}
-.method-card-left {
+.mode-card {
   display: flex;
   align-items: center;
   gap: 14px;
-  flex: 1;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1.5px solid #e8e8e8;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s;
 }
-.method-icon {
-  font-size: 26px;
+.mode-card:hover {
+  border-color: #c6e2ff;
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.06);
+}
+.mode-card.active {
+  border-color: $accent;
+  background: linear-gradient(135deg, #ecf5ff, #f5f9ff);
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.1);
+}
+.mode-card-icon {
+  font-size: 28px;
   flex-shrink: 0;
-  width: 36px;
+  width: 40px;
   text-align: center;
 }
-.method-title {
+.mode-card-content { flex: 1; }
+.mode-card-title {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: $of-text-primary;
   margin-bottom: 2px;
 }
-.method-desc {
+.mode-card-desc {
   font-size: 12px;
   color: #909399;
   line-height: 1.4;
 }
-.method-extra {
-  margin-top: 6px;
+.mode-card-radio {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 50%;
+  border: 2px solid #d0d0d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s;
+}
+.mode-card-radio.checked {
+  border-color: $accent;
+  background: $accent;
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.15);
+}
+.mode-card-radio.checked::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
 }
 
-/* Footer */
-.wizard-footer {
+/* ===== Extra Card ===== */
+.extra-card {
+  background: #fff;
+  border: 1px solid $of-border-card;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.extra-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #606266;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+/* ===== Footer ===== */
+.wiz-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.footer-left, .footer-right {
+.wiz-footer-left, .wiz-footer-right {
   display: flex;
   gap: 10px;
   align-items: center;
 }
-.btn-create {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-color: transparent;
+.wiz-next-btn {
+  background: linear-gradient(135deg, $accent, $accent-dark);
+  border: none;
 }
-.btn-create:hover {
-  background: linear-gradient(135deg, #5a6fd6, #6a4199);
-  border-color: transparent;
+.wiz-next-btn:hover {
+  background: linear-gradient(135deg, #60b0ff, $accent);
 }
+.wiz-create-btn {
+  background: $of-gradient-accent;
+  border: none;
+}
+.wiz-create-btn:hover {
+  filter: brightness(1.1);
+}
+
+/* ===== Transitions ===== */
+.panel-fade-enter-active { transition: all 0.3s ease; }
+.panel-fade-leave-active { transition: all 0.2s ease; }
+.panel-fade-enter-from { opacity: 0; transform: translateY(10px); }
+.panel-fade-leave-to { opacity: 0; }
 </style>

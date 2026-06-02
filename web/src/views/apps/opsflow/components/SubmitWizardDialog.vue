@@ -3,109 +3,130 @@
     v-model="visible"
     title="Submit Execution Wizard"
     width="960px"
-    top="4vh"
+    top="3vh"
     :close-on-click-modal="false"
-    class="opsflow-dialog wizard-dialog"
+    class="opsflow-dialog exec-wizard"
     @close="handleClose"
   >
     <!-- Step Progress -->
-    <div class="wizard-steps">
-      <el-steps :active="activeStep" align-center finish-status="success" :space="180">
-        <el-step title="① Validation" description="Pipeline Check" />
-        <el-step title="② Change" description="Link Change Request" />
-        <el-step title="③ Params" description="Variables" />
-        <el-step title="④ Risk" description="AI Analysis &amp; Confirm" />
-        <el-step title="⑤ Schedule" description="Timing Strategy" />
-      </el-steps>
+    <div class="wiz-header">
+      <div class="wiz-steps">
+        <div
+          v-for="(step, i) in steps"
+          :key="i"
+          class="wiz-step"
+          :class="{ active: activeStep === i, done: activeStep > i }"
+        >
+          <div class="wiz-step-indicator">
+            <span v-if="activeStep > i" class="wiz-step-check">✓</span>
+            <span v-else>{{ i + 1 }}</span>
+          </div>
+          <div class="wiz-step-label">
+            <div class="wiz-step-title">{{ step.title }}</div>
+            <div class="wiz-step-desc">{{ step.desc }}</div>
+          </div>
+          <div v-if="i < steps.length - 1" class="wiz-step-connector" :class="{ done: activeStep > i }" />
+        </div>
+      </div>
+      <div class="wiz-progress">
+        <div class="wiz-progress-bar" :style="{ width: `${((activeStep + 1) / steps.length) * 100}%` }" />
+      </div>
     </div>
 
-    <div class="wizard-body" v-loading="stepLoading">
+    <div class="wiz-body" v-loading="stepLoading">
       <!-- ==================== Step 1: Validation ==================== -->
-      <div v-show="activeStep === 0" class="step-content">
-        <div class="step-header">
-          <div class="step-icon">🔍</div>
-          <div>
-            <h3 class="step-title">Pipeline 构型校验</h3>
-            <p class="step-desc">校验流程拓扑结构、节点配置、引擎兼容性</p>
+      <div v-show="activeStep === 0" class="wiz-step-panel">
+        <div class="panel-hero">
+          <div class="panel-hero-icon">🔍</div>
+          <div class="panel-hero-text">
+            <h3>Pipeline Validation</h3>
+            <p>Validate topology, node configuration, and engine compatibility</p>
           </div>
         </div>
 
-        <!-- Pipeline Stats -->
-        <div class="stats-row">
-          <div class="stat-card">
-            <div class="stat-value">{{ pipelineNodes.length }}</div>
-            <div class="stat-label">Nodes</div>
+        <div class="metric-row">
+          <div class="metric-card">
+            <div class="metric-value">{{ pipelineNodes.length }}</div>
+            <div class="metric-label">Nodes</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ pipelineEdges.length }}</div>
-            <div class="stat-label">Edges</div>
+          <div class="metric-card">
+            <div class="metric-value">{{ pipelineEdges.length }}</div>
+            <div class="metric-label">Edges</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ atomTypesCount }}</div>
-            <div class="stat-label">Atom Types</div>
+          <div class="metric-card">
+            <div class="metric-value">{{ atomTypesCount }}</div>
+            <div class="metric-label">Atom Types</div>
           </div>
         </div>
 
-        <div class="step-action" v-if="!validationResult">
-          <el-button type="primary" size="default" :loading="stepLoading" @click="runValidation" :icon="Search">
+        <div v-if="!validationResult" class="wiz-action">
+          <el-button
+            type="primary"
+            size="large"
+            :loading="stepLoading"
+            @click="runValidation"
+            :icon="Search"
+            class="wiz-action-btn"
+          >
             Run Validation
           </el-button>
-          <span class="action-hint">调用 DeepSeek 分析流程结构合规性</span>
+          <span class="wiz-action-hint">AI analyzes pipeline structure for compliance</span>
         </div>
 
-        <!-- Validation Results -->
-        <div v-if="validationResult" class="result-section">
-          <div class="result-card result-pass" v-if="!validationResult.hasErrors">
-            <div class="result-icon">✅</div>
-            <div>
-              <div class="result-title">结构验证通过</div>
-              <div class="result-desc">拓扑完整，无孤立节点，网关路径正确，兼容 Bamboo 引擎</div>
+        <transition name="panel-fade">
+          <div v-if="validationResult" class="result-block">
+            <div v-if="!validationResult.hasErrors" class="result-hero result-hero-pass">
+              <div class="result-hero-icon">✓</div>
+              <div class="result-hero-text">
+                <div class="result-hero-title">Validation Passed</div>
+                <div class="result-hero-desc">Topology is complete, no orphan nodes, gateway paths correct, Bamboo engine compatible</div>
+              </div>
+            </div>
+
+            <div v-for="(w, i) in validationResult.warnings" :key="'w'+i" class="result-item result-item-warn">
+              <span class="result-item-icon">⚠</span>
+              <div>
+                <div class="result-item-title">Warning</div>
+                <div class="result-item-desc">{{ w }}</div>
+              </div>
+            </div>
+
+            <div v-for="(e, i) in validationResult.errors" :key="'e'+i" class="result-item result-item-error">
+              <span class="result-item-icon">✕</span>
+              <div>
+                <div class="result-item-title">Error</div>
+                <div class="result-item-desc">{{ e }}</div>
+              </div>
+            </div>
+
+            <div v-if="validationResult.suggestions?.length" class="suggest-block">
+              <div class="suggest-header">💡 Suggestions</div>
+              <ul class="suggest-list">
+                <li v-for="(s, i) in validationResult.suggestions" :key="i">{{ s }}</li>
+              </ul>
             </div>
           </div>
-
-          <div class="result-card result-warn" v-for="(w, i) in validationResult.warnings" :key="'w'+i">
-            <div class="result-icon">⚠️</div>
-            <div>
-              <div class="result-title">Warning</div>
-              <div class="result-desc">{{ w }}</div>
-            </div>
-          </div>
-
-          <div class="result-card result-error" v-for="(e, i) in validationResult.errors" :key="'e'+i">
-            <div class="result-icon">❌</div>
-            <div>
-              <div class="result-title">Error</div>
-              <div class="result-desc">{{ e }}</div>
-            </div>
-          </div>
-
-          <div v-if="validationResult.suggestions?.length" class="suggestion-box">
-            <div class="suggestion-title">💡 Suggestions</div>
-            <ul class="suggestion-list">
-              <li v-for="(s, i) in validationResult.suggestions" :key="i">{{ s }}</li>
-            </ul>
-          </div>
-        </div>
+        </transition>
       </div>
 
       <!-- ==================== Step 2: Change Request ==================== -->
-      <div v-show="activeStep === 1" class="step-content">
-        <div class="step-header">
-          <div class="step-icon">📋</div>
-          <div>
-            <h3 class="step-title">关联 ServiceNow Change Request</h3>
-            <p class="step-desc">选择与此流程关联的变更单</p>
+      <div v-show="activeStep === 1" class="wiz-step-panel">
+        <div class="panel-hero">
+          <div class="panel-hero-icon">📋</div>
+          <div class="panel-hero-text">
+            <h3>Link Change Request</h3>
+            <p>Select the change request associated with this pipeline</p>
           </div>
         </div>
 
         <div class="cr-selector" v-loading="crLoading">
           <el-select
             v-model="selectedCr"
-            placeholder="请选择 Change Request ..."
+            placeholder="Search change requests..."
             filterable
             value-key="cr_number"
             style="width:100%"
-            size="default"
+            size="large"
             @change="onCrChange"
           >
             <el-option
@@ -114,13 +135,19 @@
               :label="`${cr.cr_number} - ${cr.title}`"
               :value="cr"
             >
-              <div class="cr-option">
-                <div class="cr-option-top">
-                  <span class="cr-number">{{ cr.cr_number }}</span>
-                  <span class="cr-status" :class="cr.status">{{ cr.status === 'approved' ? 'Approved' : 'Pending' }}</span>
+              <div class="cr-opt">
+                <div class="cr-opt-head">
+                  <span class="cr-opt-number">{{ cr.cr_number }}</span>
+                  <el-tag
+                    :type="cr.status === 'approved' ? 'success' : 'warning'"
+                    size="small"
+                    effect="plain"
+                  >
+                    {{ cr.status === 'approved' ? 'Approved' : 'Pending' }}
+                  </el-tag>
                 </div>
-                <div class="cr-option-title">{{ cr.title }}</div>
-                <div class="cr-option-meta">
+                <div class="cr-opt-title">{{ cr.title }}</div>
+                <div class="cr-opt-meta">
                   <span>{{ cr.requester }}</span>
                   <span>{{ cr.change_window_start }} ~ {{ cr.change_window_end }}</span>
                 </div>
@@ -129,175 +156,200 @@
           </el-select>
         </div>
 
-        <!-- Selected CR Detail -->
-        <div v-if="selectedCr" class="cr-detail-card">
-          <div class="cr-detail-row">
-            <span class="cr-detail-label">CR Number</span>
-            <span class="cr-detail-value"><strong>{{ selectedCr.cr_number }}</strong></span>
+        <transition name="panel-fade">
+          <div v-if="selectedCr" class="info-card">
+            <div class="info-card-header">Change Request Details</div>
+            <div class="info-card-grid">
+              <div class="info-field">
+                <span class="info-label">CR Number</span>
+                <span class="info-value mono">{{ selectedCr.cr_number }}</span>
+              </div>
+              <div class="info-field">
+                <span class="info-label">Title</span>
+                <span class="info-value">{{ selectedCr.title }}</span>
+              </div>
+              <div class="info-field">
+                <span class="info-label">Status</span>
+                <span class="info-value">
+                  <el-tag
+                    :type="selectedCr.status === 'approved' ? 'success' : 'warning'"
+                    size="small"
+                  >
+                    {{ selectedCr.status === 'approved' ? 'Approved' : 'Pending' }}
+                  </el-tag>
+                </span>
+              </div>
+              <div class="info-field">
+                <span class="info-label">Change Window</span>
+                <span class="info-value">{{ selectedCr.change_window_start }} ~ {{ selectedCr.change_window_end }}</span>
+              </div>
+              <div class="info-field">
+                <span class="info-label">Requester</span>
+                <span class="info-value">{{ selectedCr.requester }}</span>
+              </div>
+              <div class="info-field info-field-full">
+                <div class="info-desc-label">Description</div>
+                <div class="info-desc-value">{{ selectedCr.description }}</div>
+              </div>
+            </div>
           </div>
-          <div class="cr-detail-row">
-            <span class="cr-detail-label">Title</span>
-            <span class="cr-detail-value">{{ selectedCr.title }}</span>
-          </div>
-          <div class="cr-detail-row">
-            <span class="cr-detail-label">Status</span>
-            <span class="cr-detail-value">
-              <el-tag :type="selectedCr.status === 'approved' ? 'success' : 'warning'" size="small">
-                {{ selectedCr.status === 'approved' ? 'Approved' : 'Pending' }}
-              </el-tag>
-            </span>
-          </div>
-          <div class="cr-detail-row">
-            <span class="cr-detail-label">Change Window</span>
-            <span class="cr-detail-value">{{ selectedCr.change_window_start }} ~ {{ selectedCr.change_window_end }}</span>
-          </div>
-          <div class="cr-detail-row">
-            <span class="cr-detail-label">Requester</span>
-            <span class="cr-detail-value">{{ selectedCr.requester }}</span>
-          </div>
-          <div class="cr-detail-row cr-detail-desc">
-            <span class="cr-detail-label">Description</span>
-            <span class="cr-detail-value">{{ selectedCr.description }}</span>
-          </div>
-        </div>
+        </transition>
       </div>
 
       <!-- ==================== Step 3: Parameters ==================== -->
-      <div v-show="activeStep === 2" class="step-content">
-        <div class="step-header">
-          <div class="step-icon">⚙️</div>
-          <div>
-            <h3 class="step-title">参数与变量配置</h3>
-            <p class="step-desc">设置流程执行所需的变量参数，仅需修改需要覆盖的默认值</p>
+      <div v-show="activeStep === 2" class="wiz-step-panel">
+        <div class="panel-hero">
+          <div class="panel-hero-icon">⚙️</div>
+          <div class="panel-hero-text">
+            <h3>Parameters &amp; Variables</h3>
+            <p>Override template variable defaults for this execution</p>
           </div>
         </div>
 
-        <div v-if="templateVarsKeys.length === 0" class="no-vars">
-          <el-empty description="No parameters defined in this template" :image-size="40" />
+        <div v-if="templateVarsKeys.length === 0" class="wiz-empty">
+          <el-empty description="No parameters defined in this template" :image-size="48" />
         </div>
-        <div v-else class="vars-grid">
-          <div v-for="key in templateVarsKeys" :key="key" class="var-row">
-            <div class="var-header">
-              <div class="var-info">
-                <span class="var-key">{{ key }}</span>
-                <el-tag size="small" effect="plain" class="var-type-tag">{{ varTypeLabel(templateVars[key]?.type) }}</el-tag>
+        <div v-else class="var-list">
+          <div v-for="key in templateVarsKeys" :key="key" class="var-item">
+            <div class="var-item-head">
+              <div class="var-item-info">
+                <span class="var-item-key">{{ key }}</span>
+                <el-tag size="small" effect="plain" class="var-item-tag">{{ varTypeLabel(templateVars[key]?.type) }}</el-tag>
               </div>
-              <span v-if="templateVars[key]?.description" class="var-desc">{{ templateVars[key].description }}</span>
+              <span v-if="templateVars[key]?.description" class="var-item-desc">{{ templateVars[key].description }}</span>
             </div>
             <el-input
               v-model="overrides[key]"
               :type="inputType(templateVars[key]?.type)"
-              :rows="templateVars[key]?.type === 'textarea' ? 2 : 1"
+              :rows="templateVars[key]?.type === 'textarea' ? 3 : 1"
               :placeholder="defaultPlaceholder(templateVars[key])"
-              size="small"
+              size="default"
             />
           </div>
         </div>
       </div>
 
       <!-- ==================== Step 4: Risk Analysis ==================== -->
-      <div v-show="activeStep === 3" class="step-content">
-        <div class="step-header">
-          <div class="step-icon">🛡️</div>
-          <div>
-            <h3 class="step-title">AI 风险分析与确认</h3>
-            <p class="step-desc">调用 DeepSeek 分析变更影响并逐条确认风险</p>
+      <div v-show="activeStep === 3" class="wiz-step-panel">
+        <div class="panel-hero">
+          <div class="panel-hero-icon">🛡️</div>
+          <div class="panel-hero-text">
+            <h3>AI Risk Analysis &amp; Confirmation</h3>
+            <p>Review change impact and acknowledge each risk item</p>
           </div>
         </div>
 
-        <div class="step-action" v-if="!riskResult">
-          <el-button type="warning" size="default" :loading="riskLoading" @click="runRiskAnalysis" :icon="Aim">
+        <div v-if="!riskResult" class="wiz-action">
+          <el-button
+            type="warning"
+            size="large"
+            :loading="riskLoading"
+            @click="runRiskAnalysis"
+            :icon="Aim"
+            class="wiz-action-btn"
+          >
             Execute Risk Analysis
           </el-button>
-          <span class="action-hint">调用 DeepSeek 分析变更影响与风险</span>
+          <span class="wiz-action-hint">AI analyzes change impact and identifies risks</span>
         </div>
 
-        <div v-if="riskResult" class="result-section">
-          <!-- Summary -->
-          <div class="analysis-card">
-            <div class="card-title">📋 变更概要</div>
-            <div class="card-body">{{ riskResult.summary }}</div>
-          </div>
+        <transition name="panel-fade">
+          <div v-if="riskResult" class="risk-block">
+            <div class="risk-section">
+              <div class="risk-section-icon">📋</div>
+              <div class="risk-section-title">Change Summary</div>
+              <p class="risk-section-body">{{ riskResult.summary }}</p>
+            </div>
 
-          <!-- Risk Items -->
-          <div class="analysis-card" v-if="riskResult.risks?.length">
-            <div class="card-title">⚠️ 风险项（请逐条确认）</div>
-            <div
-              v-for="(risk, i) in riskResult.risks"
-              :key="i"
-              class="risk-item"
-              :class="'risk-' + (risk.level || 'low')"
-            >
-              <el-checkbox v-model="riskChecked[i]" @change="onRiskCheckChange">
-                <div class="risk-content">
-                  <el-tag
-                    :type="risk.level === 'high' ? 'danger' : risk.level === 'medium' ? 'warning' : 'info'"
-                    size="small"
-                    effect="dark"
-                  >
-                    {{ risk.level === 'high' ? '高' : risk.level === 'medium' ? '中' : '低' }}
-                  </el-tag>
-                  <span class="risk-text">{{ risk.text }}</span>
-                </div>
+            <div v-if="riskResult.risks?.length" class="risk-section">
+              <div class="risk-section-icon">⚠️</div>
+              <div class="risk-section-title">Risk Items — acknowledge each to proceed</div>
+              <div
+                v-for="(risk, i) in riskResult.risks"
+                :key="i"
+                class="risk-card"
+                :class="'risk-card-' + (risk.level || 'low')"
+              >
+                <el-checkbox v-model="riskChecked[i]" @change="onRiskCheckChange">
+                  <div class="risk-card-content">
+                    <span class="risk-card-badge" :class="'badge-' + (risk.level || 'low')">
+                      {{ risk.level === 'high' ? 'High' : risk.level === 'medium' ? 'Medium' : 'Low' }}
+                    </span>
+                    <span class="risk-card-text">{{ risk.text }}</span>
+                  </div>
+                </el-checkbox>
+              </div>
+            </div>
+
+            <div v-if="riskResult.suggestions?.length" class="risk-section risk-section-suggest">
+              <div class="risk-section-icon">💡</div>
+              <div class="risk-section-title">Suggestions</div>
+              <ul class="suggest-list">
+                <li v-for="(s, i) in riskResult.suggestions" :key="i">{{ s }}</li>
+              </ul>
+            </div>
+
+            <div class="risk-confirm">
+              <el-checkbox v-model="riskConfirmed">
+                <span class="risk-confirm-text">
+                  <strong>I acknowledge all risks above</strong> and confirm this execution. I assume responsibility for any unlisted risks.
+                </span>
               </el-checkbox>
             </div>
           </div>
+        </transition>
 
-          <!-- Suggestions -->
-          <div class="analysis-card suggestion-card" v-if="riskResult.suggestions?.length">
-            <div class="card-title">💡 建议</div>
-            <ul class="suggestion-list">
-              <li v-for="(s, i) in riskResult.suggestions" :key="i">{{ s }}</li>
-            </ul>
-          </div>
-
-          <!-- Overall Confirm -->
-          <div class="confirm-bar">
-            <el-checkbox v-model="riskConfirmed">
-              <span class="confirm-text">
-                <strong>我已知晓上述所有风险</strong>，并确认执行此变更流程。如因未勾选的风险项导致问题，由我承担相应责任。
-              </span>
-            </el-checkbox>
-          </div>
-        </div>
-
-        <div v-if="stepError" class="step-error">
+        <div v-if="stepError" class="wiz-error">
           <el-alert :title="stepError" type="error" show-icon :closable="false" />
         </div>
       </div>
 
       <!-- ==================== Step 5: Schedule ==================== -->
-      <div v-show="activeStep === 4" class="step-content">
-        <div class="step-header">
-          <div class="step-icon">⏰</div>
-          <div>
-            <h3 class="step-title">定时执行策略</h3>
-            <p class="step-desc">设置审批通过后的执行策略</p>
+      <div v-show="activeStep === 4" class="wiz-step-panel">
+        <div class="panel-hero">
+          <div class="panel-hero-icon">⏰</div>
+          <div class="panel-hero-text">
+            <h3>Schedule Strategy</h3>
+            <p>Set execution timing after approval</p>
           </div>
         </div>
 
-        <div class="schedule-option">
-          <el-radio-group v-model="scheduleType" class="schedule-radios">
-            <el-radio value="timed" class="schedule-radio-item">
-              <div class="radio-content">
-                <div class="radio-title">✅ 定时执行</div>
-                <div class="radio-desc">审批通过后，在指定时间自动执行</div>
-              </div>
-            </el-radio>
-            <el-radio value="manual" class="schedule-radio-item">
-              <div class="radio-content">
-                <div class="radio-title">❌ 手动触发</div>
-                <div class="radio-desc">待 Change 在 ServiceNow 审批完毕后，在此处手动启动执行</div>
-              </div>
-            </el-radio>
-          </el-radio-group>
+        <div class="mode-selector">
+          <div
+            class="mode-card"
+            :class="{ active: scheduleType === 'timed' }"
+            @click="scheduleType = 'timed'"
+          >
+            <div class="mode-card-icon">⏱️</div>
+            <div class="mode-card-content">
+              <div class="mode-card-title">Scheduled Execution</div>
+              <div class="mode-card-desc">Auto-execute at a specified time after approval</div>
+            </div>
+            <div class="mode-card-radio" :class="{ checked: scheduleType === 'timed' }" />
+          </div>
+          <div
+            class="mode-card"
+            :class="{ active: scheduleType === 'manual' }"
+            @click="scheduleType = 'manual'"
+          >
+            <div class="mode-card-icon">👆</div>
+            <div class="mode-card-content">
+              <div class="mode-card-title">Manual Trigger</div>
+              <div class="mode-card-desc">Manually start after ServiceNow approval completes</div>
+            </div>
+            <div class="mode-card-radio" :class="{ checked: scheduleType === 'manual' }" />
+          </div>
         </div>
 
-        <template v-if="scheduleType === 'timed'">
-          <div class="schedule-picker">
-            <div class="picker-row">
-              <div class="picker-field">
-                <label class="picker-label">执行日期</label>
+        <transition name="panel-fade">
+          <div v-if="scheduleType === 'timed'" class="schedule-card">
+            <div class="schedule-card-header">
+              <el-icon size="16" color="#409EFF"><Calendar /></el-icon>
+              <span>Pick Execution Time</span>
+            </div>
+            <div class="schedule-pickers">
+              <div class="schedule-field">
+                <label class="schedule-label">Date</label>
                 <el-date-picker
                   v-model="scheduledDate"
                   type="date"
@@ -307,8 +359,8 @@
                   style="width: 100%"
                 />
               </div>
-              <div class="picker-field">
-                <label class="picker-label">执行时间</label>
+              <div class="schedule-field">
+                <label class="schedule-label">Time</label>
                 <el-time-picker
                   v-model="scheduledTime"
                   placeholder="Select time"
@@ -321,36 +373,41 @@
               </div>
             </div>
 
-            <div class="window-hint" v-if="selectedCr">
+            <div v-if="selectedCr" class="schedule-info schedule-info-blue">
               <el-icon><InfoFilled /></el-icon>
-              <span>Change 窗口：{{ selectedCr.change_window_start }} ~ {{ selectedCr.change_window_end }}，可选执行时间范围 {{ windowStart }} ~ {{ windowEndExclusive }}</span>
+              <span>Change window: <strong>{{ selectedCr.change_window_start }}</strong> ~ <strong>{{ selectedCr.change_window_end }}</strong> · Available: <strong>{{ windowStart }}</strong> ~ <strong>{{ windowEndExclusive }}</strong></span>
             </div>
 
-            <div class="cancel-warning">
-              <el-icon style="color:#F56C6C"><WarningFilled /></el-icon>
-              <span>如到达执行时间前 30 分钟仍未审批，该定时任务将<strong>自动取消</strong>。请确保审批流程及时完成。</span>
+            <div class="schedule-info schedule-info-red">
+              <el-icon><WarningFilled /></el-icon>
+              <span>If not approved <strong>30 minutes</strong> before the scheduled time, this plan <strong>auto-cancels</strong>. Ensure timely approval.</span>
             </div>
           </div>
-        </template>
 
-        <template v-else>
-          <div class="manual-hint">
-            <el-icon style="color:#409EFF"><InfoFilled /></el-icon>
-            <span>创建 Execution（状态: <code>pending_approval</code>），待 ServiceNow 审批完成后在此处手动启动执行。</span>
+          <div v-else class="manual-card">
+            <div class="manual-card-body">
+              <el-icon size="22" color="#409EFF"><InfoFilled /></el-icon>
+              <div class="manual-card-text">
+                <div class="manual-card-title">Manual Execution</div>
+                <div class="manual-card-desc">
+                  Creates an Execution with status <code>pending_approval</code>. After ServiceNow approves the change, you can manually start it from the Executions page.
+                </div>
+              </div>
+            </div>
           </div>
-        </template>
+        </transition>
       </div>
     </div>
 
     <!-- Footer -->
     <template #footer>
-      <div class="wizard-footer">
-        <div class="footer-left">
+      <div class="wiz-footer">
+        <div class="wiz-footer-left">
           <el-button v-if="activeStep > 0" text size="default" @click="prevStep">
             ← Back
           </el-button>
         </div>
-        <div class="footer-right">
+        <div class="wiz-footer-right">
           <el-button plain size="default" @click="visible = false">Cancel</el-button>
           <el-button
             v-if="activeStep < 4"
@@ -358,6 +415,7 @@
             size="default"
             :disabled="!canNext"
             @click="nextStep"
+            class="wiz-next-btn"
           >
             Continue →
           </el-button>
@@ -368,8 +426,9 @@
             :loading="submitting"
             :disabled="!canSubmit"
             @click="handleSubmit"
+            class="wiz-submit-btn"
           >
-            <el-icon><CircleCheck /></el-icon> Submit
+            <el-icon><CircleCheck /></el-icon> Submit Execution
           </el-button>
         </div>
       </div>
@@ -378,9 +437,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, reactive } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Aim, CircleCheck, InfoFilled, WarningFilled } from '@element-plus/icons-vue'
+import { Search, Aim, CircleCheck, InfoFilled, WarningFilled, Calendar } from '@element-plus/icons-vue'
 import { GetGlobalVariables, AnalyzePipeline } from '/@/api/opsflow/templates'
 import { CreateExecution } from '/@/api/opsflow/executions'
 import { CreateSchedulePlan } from '/@/api/opsflow/schedule-plans'
@@ -398,6 +457,14 @@ const emit = defineEmits<{
   'update:modelValue': [v: boolean]
   'execution-created': [execId: number]
 }>()
+
+const steps = [
+  { title: 'Validation', desc: 'Pipeline Check' },
+  { title: 'Change', desc: 'Link Change Request' },
+  { title: 'Params', desc: 'Variables' },
+  { title: 'Risk', desc: 'AI Analysis & Confirm' },
+  { title: 'Schedule', desc: 'Timing Strategy' },
+]
 
 // ---------- Dialog State ----------
 const visible = computed({
@@ -443,7 +510,6 @@ const selectedCr = ref<any>(null)
 const windowStart = computed(() => selectedCr.value?.change_window_start?.split(' ')[1] || '--:--')
 const windowEndExclusive = computed(() => {
   if (!selectedCr.value?.change_window_end) return '--:--'
-  // Subtract 1 hour for the exclusive end
   const parts = selectedCr.value.change_window_end.split(' ')
   const timeParts = (parts[1] || '00:00').split(':')
   let h = parseInt(timeParts[0]) - 1
@@ -531,7 +597,7 @@ async function runRiskAnalysis() {
 }
 
 function onRiskCheckChange() {
-  // recompute button state reactively
+  // reactively recomputes canNext
 }
 
 const allRisksChecked = computed(() => {
@@ -587,22 +653,13 @@ const canSubmit = computed(() => {
 })
 
 function nextStep() {
-  if (activeStep.value === 1 && !crList.value.length) {
-    loadCrList()
-  }
-  if (activeStep.value === 2) {
-    // Load vars if not loaded
-    if (!templateVarsKeys.value.length) loadVars()
-  }
-  if (activeStep.value < 4) {
-    activeStep.value++
-  }
+  if (activeStep.value === 1 && !crList.value.length) loadCrList()
+  if (activeStep.value === 2 && !templateVarsKeys.value.length) loadVars()
+  if (activeStep.value < 4) activeStep.value++
 }
 
 function prevStep() {
-  if (activeStep.value > 0) {
-    activeStep.value--
-  }
+  if (activeStep.value > 0) activeStep.value--
 }
 
 // ---------- Submit ----------
@@ -611,9 +668,7 @@ function buildVariableOverrides(): Record<string, any> {
   for (const key of templateVarsKeys.value) {
     const ov = overrides.value[key]
     const def = templateVars.value[key]?.value
-    if (ov !== undefined && ov !== null && ov !== def) {
-      vars[key] = ov
-    }
+    if (ov !== undefined && ov !== null && ov !== def) vars[key] = ov
   }
   return vars
 }
@@ -622,7 +677,6 @@ async function handleSubmit() {
   if (!props.templateId) return
   submitting.value = true
   try {
-    // Build context with CR and risk info
     const context: Record<string, any> = {}
     if (selectedCr.value) {
       context.cr_number = selectedCr.value.cr_number
@@ -632,7 +686,6 @@ async function handleSubmit() {
     context.risk_confirmed = riskConfirmed.value
     context.pipeline_validated = !!validationResult.value
 
-    // If timed schedule, create schedule plan first, then link to execution
     let scheduleId: number | null = null
     if (scheduleType.value === 'timed' && scheduledDate.value && scheduledTime.value) {
       const scheduleRes = await CreateSchedulePlan({
@@ -646,36 +699,26 @@ async function handleSubmit() {
       scheduleId = scheduleRes.data?.data?.id || scheduleRes.data?.id
     }
 
-    // Determine execution status based on CR approval
-    // If CR is already approved, set to pending (ready to start)
-    // If CR is still pending, set to pending_approval (waiting for approval)
     const execStatus = selectedCr.value?.status === 'approved' ? 'pending' : 'pending_approval'
 
-    // Create execution (with schedule_plan FK if available)
     const execData: Record<string, any> = {
       template: props.templateId,
       variable_overrides: buildVariableOverrides(),
       status: execStatus,
       context,
     }
-    if (scheduleId) {
-      execData.schedule_plan = scheduleId
-    }
+    if (scheduleId) execData.schedule_plan = scheduleId
     const execRes = await CreateExecution(execData)
 
     const exec = execRes.data?.data || execRes.data
     const execId = exec?.id
+    if (!execId) throw new Error('Execution creation returned no ID')
 
-    if (!execId) {
-      throw new Error('Execution creation returned no ID')
-    }
-
-    // Determine message based on schedule type
     if (scheduleType.value === 'timed') {
       ElMessage.success({
         message: execStatus === 'pending'
           ? `Execution #${execId} created. Scheduled at ${scheduledDate.value} ${scheduledTime.value}.`
-          : `Execution #${execId} created. Schedule set for ${scheduledDate.value} ${scheduledTime.value}. If not approved 30min before, it will auto-cancel.`,
+          : `Execution #${execId} created. Schedule set for ${scheduledDate.value} ${scheduledTime.value}. Auto-cancels if not approved 30min before.`,
         duration: 6000,
       })
     } else {
@@ -724,407 +767,714 @@ watch(() => props.modelValue, (val) => {
 })
 </script>
 
-<style scoped>
-.wizard-dialog :deep(.el-dialog__body) {
-  padding: 0 24px;
-  min-height: 360px;
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
+$accent: #409EFF;
+$accent-dark: #337ecc;
+$bg-card: #f8f9fb;
+$border-light: #e4e7ed;
+
+/* ===== Layout ===== */
+.exec-wizard :deep(.el-dialog__body) {
+  padding: 0 !important;
+  min-height: 400px;
+}
+.exec-wizard :deep(.el-dialog__footer) {
+  padding: 14px 24px;
 }
 
-/* Steps */
-.wizard-steps {
-  padding: 20px 0 0;
+/* ===== Step Header ===== */
+.wiz-header {
+  padding: 24px 24px 0;
 }
-.wizard-steps :deep(.el-step__title) {
-  font-size: 13px;
-}
-.wizard-steps :deep(.el-step__description) {
-  font-size: 11px;
-}
-
-/* Body */
-.wizard-body {
-  min-height: 280px;
-}
-
-/* Step Header */
-.step-header {
+.wiz-steps {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.step-icon {
-  font-size: 28px;
-  flex-shrink: 0;
-}
-.step-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: #303133;
-}
-.step-desc {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: #909399;
-}
-
-/* Step Action */
-.step-action {
   margin-bottom: 16px;
+}
+.wiz-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  position: relative;
+  flex: 1;
+}
+.wiz-step-indicator {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: $bg-card;
+  color: $of-text-muted;
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s;
 }
-.action-hint {
+.wiz-step.active .wiz-step-indicator {
+  background: $accent;
+  color: #fff;
+  border-color: $accent;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.35);
+}
+.wiz-step.done .wiz-step-indicator {
+  background: #67C23A;
+  color: #fff;
+  border-color: #67C23A;
+}
+.wiz-step-check {
+  font-size: 14px;
+}
+.wiz-step-label {
+  flex: 1;
+  min-width: 0;
+  padding-top: 3px;
+}
+.wiz-step-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: $of-text-muted;
+  transition: color 0.3s;
+}
+.wiz-step.active .wiz-step-title {
+  color: $accent;
+}
+.wiz-step.done .wiz-step-title {
+  color: #67C23A;
+}
+.wiz-step-desc {
+  font-size: 10px;
+  color: #c0c4cc;
+  margin-top: 1px;
+}
+.wiz-step-connector {
+  flex: 1;
+  height: 2px;
+  background: #e8e8e8;
+  margin: 13px 12px 0;
+  min-width: 12px;
+  transition: background 0.3s;
+}
+.wiz-step-connector.done {
+  background: #67C23A;
+}
+.wiz-progress {
+  height: 3px;
+  background: #f0f0f0;
+  border-radius: 2px;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+.wiz-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, $accent, #67C23A);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* ===== Body ===== */
+.wiz-body {
+  padding: 20px 24px;
+  min-height: 280px;
+}
+.wiz-step-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ===== Panel Hero ===== */
+.panel-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.panel-hero-icon {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ecf5ff, #f0f8ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.08);
+}
+.panel-hero-text h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: $of-text-primary;
+  line-height: 1.3;
+}
+.panel-hero-text p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: $of-text-muted;
+  line-height: 1.4;
+}
+
+/* ===== Action ===== */
+.wiz-action {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, #f8f9fb, #f0f5ff);
+  border: 1px dashed #d9ecff;
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+.wiz-action-btn {
+  box-shadow: 0 4px 14px rgba(64, 158, 255, 0.25);
+}
+.wiz-action-hint {
   font-size: 12px;
   color: #909399;
 }
 
-/* Stats Row */
-.stats-row {
+/* ===== Metric Cards ===== */
+.metric-row {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 14px;
 }
-.stat-card {
+.metric-card {
   flex: 1;
-  background: #f8f9fa;
-  padding: 14px;
-  border-radius: 10px;
+  background: #fff;
+  border: 1px solid $of-border-card;
+  border-radius: 12px;
+  padding: 18px 14px;
   text-align: center;
+  transition: all 0.25s;
 }
-.stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #303133;
+.metric-card:hover {
+  border-color: $accent;
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.08);
+  transform: translateY(-2px);
 }
-.stat-label {
+.metric-value {
+  font-size: 28px;
+  font-weight: 800;
+  background: linear-gradient(135deg, $accent, $accent-dark);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.metric-label {
   font-size: 11px;
   color: #909399;
-  margin-top: 2px;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* Result Section */
-.result-section {
+/* ===== Validation Results ===== */
+.result-block {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-.result-card {
+.result-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid;
+}
+.result-hero-pass {
+  background: linear-gradient(135deg, #f0f9eb, #f4fcf0);
+  border-color: #e1f3d8;
+}
+.result-hero-icon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  background: #67C23A;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+}
+.result-hero-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: #67C23A;
+  margin-bottom: 3px;
+}
+.result-hero-desc {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+.result-item {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
   border-radius: 8px;
   font-size: 13px;
+  border: 1px solid transparent;
 }
-.result-icon {
-  font-size: 18px;
-  flex-shrink: 0;
-}
-.result-pass {
-  background: #f0f9eb;
-}
-.result-warn {
-  background: #fdf6ec;
-}
-.result-error {
-  background: #fef0f0;
-}
-.result-title {
-  font-weight: 600;
-  margin-bottom: 2px;
-}
-.result-desc {
-  color: #666;
-  line-height: 1.5;
-}
-.result-pass .result-title { color: #67C23A; }
-.result-warn .result-title { color: #E6A23C; }
-.result-error .result-title { color: #F56C6C; }
+.result-item-warn { background: $of-bg-warning; border-color: #faecd8; }
+.result-item-error { background: $of-bg-danger; border-color: #fde2e2; }
+.result-item-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+.result-item-warn .result-item-icon { color: #E6A23C; }
+.result-item-error .result-item-icon { color: #F56C6C; }
+.result-item-title { font-weight: 600; margin-bottom: 2px; }
+.result-item-desc { color: #666; line-height: 1.5; }
+.result-item-warn .result-item-title { color: #E6A23C; }
+.result-item-error .result-item-title { color: #F56C6C; }
 
-.suggestion-box {
-  background: #f0f5ff;
-  border-radius: 8px;
-  padding: 12px 14px;
+.suggest-block {
+  background: linear-gradient(135deg, #f0f5ff, #f8fbff);
+  border: 1px solid #d9ecff;
+  border-radius: 10px;
+  padding: 14px 16px;
 }
-.suggestion-title {
+.suggest-header {
   font-weight: 600;
   font-size: 13px;
-  color: #409EFF;
+  color: $accent;
   margin-bottom: 6px;
 }
-.suggestion-list {
+.suggest-list {
   margin: 0;
   padding-left: 18px;
   font-size: 13px;
-  color: #666;
+  color: #555;
   line-height: 1.8;
 }
 
-/* Step 2: CR */
-.cr-selector {
-  margin-bottom: 16px;
-}
-.cr-option {
-  padding: 4px 0;
-}
-.cr-option-top {
+/* ===== CR Selector ===== */
+.cr-selector { margin-bottom: 4px; }
+.cr-opt { padding: 4px 0; }
+.cr-opt-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
-.cr-number {
+.cr-opt-number {
   font-weight: 700;
-  color: #409EFF;
+  color: $accent;
   font-family: monospace;
-}
-.cr-status {
-  font-size: 11px;
-  padding: 1px 8px;
-  border-radius: 8px;
-}
-.cr-status.approved { background: #f0f9eb; color: #67C23A; }
-.cr-status.pending { background: #fdf6ec; color: #E6A23C; }
-.cr-option-title {
   font-size: 13px;
-  color: #303133;
+}
+.cr-opt-title {
+  font-size: 13px;
+  color: $of-text-primary;
   margin-bottom: 2px;
 }
-.cr-option-meta {
+.cr-opt-meta {
   font-size: 11px;
   color: #909399;
   display: flex;
+  gap: 14px;
+}
+
+/* ===== Info Card ===== */
+.info-card {
+  background: #fff;
+  border: 1px solid $of-border-card;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.info-card-header {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: $of-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  background: $bg-card;
+  border-bottom: 1px solid $of-border-card;
+}
+.info-card-grid {
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+}
+.info-field {
+  width: 50%;
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+.info-field:nth-child(-n+2) { border-top: none; }
+.info-field-full { width: 100%; flex-direction: column; display: flex; }
+.info-label {
+  display: block;
+  font-size: 11px;
+  color: #909399;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.info-value {
+  font-size: 13px;
+  color: $of-text-primary;
+}
+.info-value.mono { font-family: monospace; }
+.info-desc-label {
+  font-size: 11px;
+  color: #909399;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.info-desc-value {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.6;
+}
+
+/* ===== Variables ===== */
+.wiz-empty { padding: 20px 0; }
+.var-list {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
-
-.cr-detail-card {
-  background: #f8f9fa;
+.var-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid $of-border-card;
   border-radius: 10px;
-  padding: 14px;
+  transition: all 0.2s;
 }
-.cr-detail-row {
-  display: flex;
-  padding: 6px 0;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 13px;
+.var-item:hover {
+  border-color: #c6e2ff;
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.06);
 }
-.cr-detail-row:last-child { border-bottom: none; }
-.cr-detail-label {
-  flex: 0 0 110px;
-  color: #909399;
-  flex-shrink: 0;
-}
-.cr-detail-value {
-  flex: 1;
-  color: #303133;
-}
-.cr-detail-desc {
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* Step 3: Variables */
-.no-vars { padding: 30px 0; }
-.vars-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.var-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  background: #fafafa;
-  border-radius: 8px;
-}
-.var-header {
+.var-item-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.var-info {
+.var-item-info {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
-.var-key {
+.var-item-key {
   font-family: monospace;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: $of-text-primary;
 }
-.var-type-tag { font-size: 10px; }
-.var-desc {
+.var-item-tag { font-size: 10px; }
+.var-item-desc {
   font-size: 11px;
   color: #c0c4cc;
 }
 
-/* Step 4: Risk */
-.analysis-card {
-  background: #f8f9fa;
+/* ===== Risk ===== */
+.risk-block {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.risk-section {
+  background: #fff;
+  border: 1px solid $of-border-card;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.risk-section-icon {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
   border-radius: 8px;
-  padding: 14px;
+  background: $bg-card;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
 }
-.card-title {
-  font-weight: 600;
+.risk-section-title {
+  flex: 1;
   font-size: 14px;
-  margin-bottom: 8px;
-  color: #303133;
+  font-weight: 600;
+  color: $of-text-primary;
+  line-height: 28px;
 }
-.card-body {
+.risk-section-body {
+  width: 100%;
+  margin: 4px 0 0 36px;
   font-size: 13px;
-  color: #666;
+  color: #555;
   line-height: 1.6;
 }
-.risk-item {
-  background: #fff;
+.risk-section-suggest {
+  background: linear-gradient(135deg, #f0f5ff, #f8fbff);
+  border-color: #d9ecff;
+}
+.risk-card {
+  width: 100%;
+  margin-left: 36px;
+  background: #fafafa;
   border-radius: 8px;
   padding: 10px 14px;
-  margin-bottom: 8px;
-  border: 1px solid;
+  margin-bottom: 4px;
+  border: 1px solid #e8eaed;
+  transition: all 0.2s;
 }
-.risk-high { border-color: #fef0f0; }
-.risk-medium { border-color: #fdf6ec; }
-.risk-low { border-color: #f0f5ff; }
-.risk-item :deep(.el-checkbox__label) { flex: 1; }
-.risk-content {
+.risk-card:hover {
+  transform: translateX(3px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.risk-card-high { border-left: 3px solid #F56C6C; }
+.risk-card-medium { border-left: 3px solid #E6A23C; }
+.risk-card-low { border-left: 3px solid #909399; }
+.risk-card :deep(.el-checkbox__label) { flex: 1; }
+.risk-card-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+.risk-card-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.badge-high { background: #fef0f0; color: #F56C6C; }
+.badge-medium { background: #fdf6ec; color: #E6A23C; }
+.badge-low { background: #f0f5ff; color: #909399; }
+.risk-card-text { padding-top: 1px; }
+
+.risk-confirm {
+  background: linear-gradient(135deg, #fef7e0, #fffdf5);
+  border: 1px solid #f5e7b4;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.risk-confirm-text {
+  font-size: 13px;
+  color: #7c6a2b;
+  line-height: 1.5;
+}
+.wiz-error { margin-top: 8px; }
+
+/* ===== Schedule ===== */
+.mode-selector {
+  display: flex;
+  gap: 14px;
+}
+.mode-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1.5px solid #e8e8e8;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.mode-card:hover {
+  border-color: #c6e2ff;
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.06);
+}
+.mode-card.active {
+  border-color: $accent;
+  background: linear-gradient(135deg, #ecf5ff, #f5f9ff);
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.1);
+}
+.mode-card-icon {
+  font-size: 30px;
+  flex-shrink: 0;
+}
+.mode-card-content {
+  flex: 1;
+}
+.mode-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: $of-text-primary;
+  margin-bottom: 2px;
+}
+.mode-card-desc {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.4;
+}
+.mode-card-radio {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 50%;
+  border: 2px solid #d0d0d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s;
+}
+.mode-card-radio.checked {
+  border-color: $accent;
+  background: $accent;
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.15);
+}
+.mode-card-radio.checked::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+/* Schedule card */
+.schedule-card {
+  background: #fff;
+  border: 1px solid $of-border-card;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.schedule-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #606266;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #ebeef5;
+}
+.schedule-pickers {
+  display: flex;
+  gap: 20px;
+}
+.schedule-field {
+  flex: 1;
+}
+.schedule-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #909399;
+  margin-bottom: 6px;
+}
+.schedule-info {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
   font-size: 13px;
-  color: #666;
   line-height: 1.5;
+  border: 1px solid;
 }
-.risk-text { padding-top: 1px; }
-.suggestion-card {
-  background: #f0f5ff;
-}
-.suggestion-list {
-  margin: 0;
-  padding-left: 18px;
-  font-size: 13px;
-  color: #666;
-  line-height: 1.8;
-}
-.confirm-bar {
-  background: #fef7e0;
-  border: 1px solid #fdf6ec;
-  border-radius: 8px;
-  padding: 12px 14px;
-}
-.confirm-text {
-  font-size: 13px;
-  color: #7c6a2b;
-}
-.step-error { margin-top: 12px; }
-
-/* Step 5: Schedule */
-.schedule-option {
-  margin-bottom: 20px;
-}
-.schedule-radios {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-}
-.schedule-radio-item {
-  border: 1px solid #e4e7ed;
-  border-radius: 10px;
-  padding: 14px;
-  width: 100%;
-  transition: all 0.2s;
-}
-.schedule-radio-item:has(:checked) {
-  border-color: #409EFF;
+.schedule-info-blue {
   background: #ecf5ff;
+  border-color: #d9ecff;
+  color: $accent;
 }
-.radio-content {
+.schedule-info-red {
+  background: #fef4f4;
+  border-color: #fde2e2;
+  color: #c45656;
+}
+.schedule-info-red .el-icon { color: #F56C6C; }
+.schedule-info strong { font-weight: 600; }
+
+/* Manual card */
+.manual-card {
+  background: linear-gradient(135deg, #fff, #f0f5ff);
+  border: 1px solid #d9ecff;
+  border-radius: 12px;
+  padding: 24px;
+}
+.manual-card-body {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.manual-card-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
-.radio-title {
-  font-size: 14px;
+.manual-card-title {
+  font-size: 15px;
   font-weight: 600;
-  color: #303133;
+  color: $of-text-primary;
 }
-.radio-desc {
-  font-size: 12px;
-  color: #909399;
-}
-.schedule-radio-item :deep(.el-radio__label) {
-  width: 100%;
-}
-
-.schedule-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.picker-row {
-  display: flex;
-  gap: 16px;
-}
-.picker-field {
-  flex: 1;
-}
-.picker-label {
-  display: block;
-  font-size: 12px;
-  color: #909399;
-  margin-bottom: 4px;
-}
-.window-hint {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #ecf5ff;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 12px;
-  color: #409EFF;
-}
-.cancel-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  background: #fef0f0;
-  border-radius: 8px;
-  padding: 10px 14px;
+.manual-card-desc {
   font-size: 13px;
-  color: #F56C6C;
+  color: #555;
+  line-height: 1.6;
 }
-.manual-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  background: #ecf5ff;
-  border-radius: 8px;
-  padding: 12px 14px;
-  font-size: 13px;
-  color: #409EFF;
-}
-.manual-hint code {
+.manual-card-desc code {
   background: #d9ecff;
   padding: 1px 6px;
   border-radius: 4px;
   font-family: monospace;
+  font-size: 12px;
 }
 
-/* Footer */
-.wizard-footer {
+/* ===== Footer ===== */
+.wiz-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.footer-left, .footer-right {
+.wiz-footer-left, .wiz-footer-right {
   display: flex;
   gap: 10px;
   align-items: center;
+}
+.wiz-next-btn {
+  background: linear-gradient(135deg, $accent, $accent-dark);
+  border: none;
+}
+.wiz-next-btn:hover {
+  background: linear-gradient(135deg, #60b0ff, $accent);
+}
+.wiz-submit-btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border: none;
+}
+.wiz-submit-btn:hover {
+  filter: brightness(1.1);
+}
+
+/* ===== Transitions ===== */
+.panel-fade-enter-active {
+  transition: all 0.35s ease;
+}
+.panel-fade-leave-active {
+  transition: all 0.2s ease;
+}
+.panel-fade-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.panel-fade-leave-to {
+  opacity: 0;
 }
 </style>

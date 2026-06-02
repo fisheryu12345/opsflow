@@ -59,7 +59,7 @@
           <el-tooltip :show-after="500" content="Auto layout" placement="bottom">
             <el-button size="small" circle type="warning" @click="aiLayout" :icon="Operation" />
           </el-tooltip>
-          <el-tooltip :show-after="500" content="New template" placement="bottom">
+          <el-tooltip :show-after="500" content="New template wizard" placement="bottom">
             <el-button size="small" circle type="success" @click="$emit('newTemplate')" :icon="Plus" />
           </el-tooltip>
           <div class="toolbar-divider" />
@@ -339,7 +339,9 @@ watch(selectedNode, (val) => {
 defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, zoomIn, zoomOut, fitCanvas, undo, redo })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
 .design-canvas-wrapper {
   height: 100%;
   width: 100%;
@@ -465,7 +467,7 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, z
   box-shadow: 0 4px 12px rgba(64,158,255,0.2);
 }
 .canvas-toolbar-right .el-button--primary {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: $of-gradient-accent;
   border-color: transparent; color: #fff;
 }
 .canvas-toolbar-right .el-button--primary:hover {

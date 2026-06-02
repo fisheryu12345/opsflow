@@ -78,7 +78,7 @@
       <div v-loading="analyzing" element-loading-text="AI analyzing..." class="analyze-body">
         <div v-if="analysisResult" class="analyze-content">
           <!-- Summary Hero -->
-          <div class="summary-hero fade-in-up">
+          <div class="summary-hero of-fade-in-up">
             <div class="summary-hero-icon"><el-icon size="22"><InfoFilled /></el-icon></div>
             <div class="summary-hero-text">
               <div class="summary-hero-label">Summary</div>
@@ -86,14 +86,14 @@
             </div>
           </div>
           <!-- Steps Timeline -->
-          <div class="section-card fade-in-up" v-if="analysisResult.steps?.length" :style="{ animationDelay: '0.15s' }">
+          <div class="section-card of-fade-in-up" v-if="analysisResult.steps?.length" :style="{ animationDelay: '0.15s' }">
             <div class="section-card-header">
               <el-icon size="16" color="#409EFF"><List /></el-icon>
               <span>Pipeline Steps</span>
               <el-tag size="small" type="primary" effect="plain">{{ analysisResult.steps.length }} steps</el-tag>
             </div>
             <div class="timeline">
-              <div v-for="(step, i) in analysisResult.steps" :key="i" class="timeline-item stagger-item" :style="{ animationDelay: `${0.3 + i * 0.12}s` }">
+              <div v-for="(step, i) in analysisResult.steps" :key="i" class="timeline-item of-stagger-item" :style="{ animationDelay: `${0.3 + i * 0.12}s` }">
                 <div class="timeline-marker">
                   <div class="timeline-dot">{{ i + 1 }}</div>
                   <div v-if="i < analysisResult.steps.length - 1" class="timeline-line" />
@@ -105,27 +105,27 @@
             </div>
           </div>
           <div class="section-card-row">
-            <div class="section-card section-card-half fade-in-up" v-if="analysisResult.risks?.length" :style="{ animationDelay: '0.3s' }">
+            <div class="section-card section-card-half of-fade-in-up" v-if="analysisResult.risks?.length" :style="{ animationDelay: '0.3s' }">
               <div class="section-card-header">
                 <el-icon size="16" color="#E6A23C"><WarningFilled /></el-icon>
                 <span>Risks</span>
                 <el-tag size="small" type="warning" effect="plain">{{ analysisResult.risks.length }}</el-tag>
               </div>
               <div class="risk-list">
-                <div v-for="(risk, i) in analysisResult.risks" :key="i" class="risk-item stagger-item" :style="{ animationDelay: `${0.5 + i * 0.08}s` }">
+                <div v-for="(risk, i) in analysisResult.risks" :key="i" class="risk-item of-stagger-item" :style="{ animationDelay: `${0.5 + i * 0.08}s` }">
                   <div class="risk-severity risk-severity-warning" />
                   <span>{{ risk }}</span>
                 </div>
               </div>
             </div>
-            <div class="section-card section-card-half fade-in-up" v-if="analysisResult.suggestions?.length" :style="{ animationDelay: '0.45s' }">
+            <div class="section-card section-card-half of-fade-in-up" v-if="analysisResult.suggestions?.length" :style="{ animationDelay: '0.45s' }">
               <div class="section-card-header">
                 <el-icon size="16" color="#409EFF"><Lightning /></el-icon>
                 <span>Suggestions</span>
                 <el-tag size="small" type="primary" effect="plain">{{ analysisResult.suggestions.length }}</el-tag>
               </div>
               <div class="suggestion-list">
-                <div v-for="(sug, i) in analysisResult.suggestions" :key="i" class="suggestion-item stagger-item" :style="{ animationDelay: `${0.6 + i * 0.08}s` }">
+                <div v-for="(sug, i) in analysisResult.suggestions" :key="i" class="suggestion-item of-stagger-item" :style="{ animationDelay: `${0.6 + i * 0.08}s` }">
                   <el-icon size="14" color="#409EFF"><CircleCheck /></el-icon>
                   <span>{{ sug }}</span>
                 </div>
@@ -473,7 +473,8 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import './styles/opsflow-global';
 /* ===== Layout ===== */
 .opsflow-page {
   position: absolute;
@@ -483,7 +484,7 @@ onBeforeUnmount(() => {
   bottom: 0;
   display: flex;
   flex-direction: column;
-  background: #f0f2f5;
+  background: $of-bg-page;
   overflow: hidden;
 }
 
@@ -495,8 +496,8 @@ onBeforeUnmount(() => {
   width: 380px;
   max-height: 520px;
   background: #fff;
-  border: 1px solid #e4e7ed;
-  border-radius: 12px;
+  border: 1px solid $of-border-default;
+  border-radius: $of-radius-lg;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
   z-index: 200;
   display: flex;
@@ -513,7 +514,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  background: linear-gradient(135deg, #409EFF, #337ecc);
+  background: $of-gradient-blue;
   background-size: 200% 100%;
   color: #fff;
   animation: headerShimmer 4s ease-in-out infinite;
@@ -568,7 +569,7 @@ onBeforeUnmount(() => {
   gap: 10px;
   min-height: 120px;
   max-height: 320px;
-  background: #f8f9fb;
+  background: $of-bg-card;
 }
 .chat-placeholder {
   display: flex;
@@ -592,7 +593,7 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 8px;
   padding: 10px 14px;
-  border-top: 1px solid #e4e7ed;
+  border-top: 1px solid $of-border-default;
   background: #fff;
   align-items: flex-end;
 }
@@ -675,7 +676,7 @@ onBeforeUnmount(() => {
   margin-top: 2px;
 }
 .chat-avatar-ai {
-  background: linear-gradient(135deg, #409EFF, #337ecc);
+  background: $of-gradient-blue;
   color: #fff;
 }
 .chat-avatar-user {
@@ -685,14 +686,14 @@ onBeforeUnmount(() => {
 .chat-bubble {
   max-width: 75%;
   padding: 8px 14px;
-  border-radius: 12px;
+  border-radius: $of-radius-lg;
   font-size: 13px;
   line-height: 1.6;
   word-break: break-word;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 .chat-msg.user .chat-bubble {
-  background: linear-gradient(135deg, #409EFF, #337ecc);
+  background: $of-gradient-blue;
   color: #fff;
   border-bottom-right-radius: 4px;
 }
@@ -732,25 +733,15 @@ onBeforeUnmount(() => {
   overflow: hidden;
   position: relative;
   margin: 8px;
-  border-radius: 8px;
+  border-radius: $of-radius-sm;
   background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: $of-shadow-card;
 }
 
 /* ===== Dialog ===== */
-.opsflow-dialog :deep(.el-dialog__header) {
-  padding: 16px 20px;
-  margin: 0;
-  border-bottom: 1px solid #e4e7ed;
-  font-weight: 600;
-}
-.opsflow-dialog :deep(.el-dialog__body) {
-  padding: 20px;
-}
-.opsflow-dialog :deep(.el-dialog__footer) {
-  padding: 12px 20px;
-  border-top: 1px solid #e4e7ed;
-}
+.opsflow-dialog :deep(.el-dialog__header) { @include of-dialog-header; }
+.opsflow-dialog :deep(.el-dialog__body) { @include of-dialog-body; }
+.opsflow-dialog :deep(.el-dialog__footer) { @include of-dialog-footer; }
 .form-tip {
   font-size: 11px;
   color: #999;
@@ -771,17 +762,17 @@ onBeforeUnmount(() => {
 .summary-hero {
   display: flex;
   gap: 14px;
-  background: linear-gradient(135deg, #ecf5ff 0%, #f8f9fb 100%);
-  border-left: 4px solid #409EFF;
-  border-radius: 10px;
-  padding: 16px 18px;
+  background: $of-gradient-hero;
+  border-left: 4px solid $of-color-primary;
+  border-radius: $of-radius-card;
+  padding: $of-padding-card;
   align-items: flex-start;
 }
 .summary-hero-icon {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #409EFF, #337ecc);
+  border-radius: $of-radius-card;
+  background: $of-gradient-blue;
   color: #fff;
   display: flex;
   align-items: center;
@@ -795,7 +786,7 @@ onBeforeUnmount(() => {
 .summary-hero-label {
   font-size: 13px;
   font-weight: 600;
-  color: #409EFF;
+  color: $of-color-primary;
   margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -809,10 +800,10 @@ onBeforeUnmount(() => {
 
 /* Section cards */
 .section-card {
-  background: #f8f9fb;
-  border-radius: 10px;
-  padding: 16px 18px;
-  border: 1px solid #f0f0f0;
+  background: $of-bg-card;
+  border-radius: $of-radius-card;
+  padding: $of-padding-card;
+  border: 1px solid $of-border-card;
 }
 .section-card-header {
   display: flex;
@@ -856,7 +847,7 @@ onBeforeUnmount(() => {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #409EFF, #337ecc);
+  background: $of-gradient-blue;
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -904,7 +895,7 @@ onBeforeUnmount(() => {
   padding: 10px 12px;
   background: #fff;
   border-radius: 6px;
-  border: 1px solid #fde2e2;
+  border: 1px solid $of-border-danger;
   font-size: 13px;
   line-height: 1.5;
   color: #555;
@@ -943,21 +934,6 @@ onBeforeUnmount(() => {
   color: #555;
 }
 
-/* ===== Animation Helpers ===== */
-/* Staggered fade-in for AI Analysis dialog sections */
-.fade-in-up {
-  animation: fadeInUp 0.5s ease both;
-}
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Staggered list items (timeline steps, risks, suggestions) */
-.stagger-item {
-  animation: fadeInUp 0.4s ease both;
-}
-
 /* Summary hero icon pulse */
 .summary-hero-icon {
   animation: heroPulse 2s ease-in-out infinite;
@@ -983,13 +959,12 @@ onBeforeUnmount(() => {
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* Section card hover lift */
+/* Section card — extends .of-card */
 .section-card {
-  transition: transform 0.2s, box-shadow 0.2s;
+  @extend .of-card;
 }
 .section-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  @include of-hover-lift;
 }
 
 /* Timeline dot pulse on hover */

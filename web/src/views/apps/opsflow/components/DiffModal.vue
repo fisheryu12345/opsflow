@@ -127,26 +127,18 @@ async function onConfirm() {
 defineExpose({ show })
 </script>
 
-<style scoped>
-.diff-dialog :deep(.el-dialog__header) {
-  padding: 16px 20px;
-  margin: 0;
-  border-bottom: 1px solid #e4e7ed;
-  font-weight: 600;
-}
-.diff-dialog :deep(.el-dialog__body) {
-  padding: 0;
-}
-.diff-dialog :deep(.el-dialog__footer) {
-  padding: 12px 20px;
-  border-top: 1px solid #e4e7ed;
-}
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
+.diff-dialog :deep(.el-dialog__header) { @include of-dialog-header; }
+.diff-dialog :deep(.el-dialog__body) { padding: 0; }
+.diff-dialog :deep(.el-dialog__footer) { @include of-dialog-footer; }
 .diff-stats {
   display: flex;
   gap: 16px;
   padding: 12px 20px;
-  background: #f8f9fb;
-  border-bottom: 1px solid #e4e7ed;
+  background: $of-bg-card;
+  border-bottom: 1px solid $of-border-default;
 }
 .diff-stat {
   font-size: 13px;
@@ -156,15 +148,15 @@ defineExpose({ show })
 }
 .diff-stat-add {
   color: #67c23a;
-  background: #f0f9eb;
+  background: $of-bg-success;
 }
 .diff-stat-remove {
   color: #f56c6c;
-  background: #fef0f0;
+  background: $of-bg-danger;
 }
 .diff-stat-modify {
   color: #e6a23c;
-  background: #fdf6ec;
+  background: $of-bg-warning;
 }
 .diff-container {
   display: flex;
@@ -182,11 +174,11 @@ defineExpose({ show })
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
+  background: $of-bg-header;
+  border-bottom: 1px solid $of-border-default;
   font-size: 13px;
   font-weight: 600;
-  color: #555;
+  color: $of-text-secondary;
   flex-shrink: 0;
 }
 .diff-content-wrapper {
@@ -198,7 +190,7 @@ defineExpose({ show })
   user-select: none;
   text-align: right;
   padding: 10px 0;
-  border-right: 1px solid #e4e7ed;
+  border-right: 1px solid $of-border-default;
   background: #fafafa;
   flex-shrink: 0;
 }
@@ -206,7 +198,7 @@ defineExpose({ show })
   font-size: 11px;
   line-height: 1.6;
   padding: 0 8px;
-  color: #c0c4cc;
+  color: $of-text-placeholder;
   font-family: 'SF Mono', 'Cascadia Code', monospace;
 }
 .diff-content {
@@ -223,16 +215,16 @@ defineExpose({ show })
   white-space: pre;
 }
 .diff-line-remove {
-  background: #fef0f0;
+  background: $of-bg-danger;
   color: #f56c6c;
 }
 .diff-line-add {
-  background: #f0f9eb;
+  background: $of-bg-success;
   color: #67c23a;
 }
 .diff-divider {
   width: 1px;
-  background: #e4e7ed;
+  background: $of-border-default;
   flex-shrink: 0;
 }
 </style>

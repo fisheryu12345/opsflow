@@ -1,0 +1,61 @@
+<h2>🎨 OPSflow 前端风格统一</h2>
+<p class="subtitle">现状: 15个组件, 发现10+处样式不一致</p>
+
+<div class="section">
+  <h3>📊 发现的主要问题</h3>
+  <div class="pros-cons" style="grid-template-columns: 1fr;">
+    <div class="pros">
+      <h4>🔴 高优先级</h4>
+      <ul>
+        <li><strong>对话框样式重复</strong> — 3个组件复制粘贴相同的 header/footer CSS</li>
+        <li><strong>5种不同的卡片变体</strong> — 同样的颜色但 padding/radius 不同</li>
+        <li><strong>动画类未共享</strong> — fade-in-up/stagger 只在 index.vue 里</li>
+        <li><strong>渐变 #667eea->#764ba2</strong> 在3个文件重复, 无变量</li>
+        <li><strong>搜索框圆角不统一</strong> — 8px, 10px, 默认值混用</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>💡 三种方案</h3>
+  <div class="cards" style="grid-template-columns: 1fr 1fr 1fr;">
+    <div class="card" data-choice="lightweight" onclick="toggleSelect(this)">
+      <div class="card-body">
+        <h3>A. 轻量规范</h3>
+        <p style="font-size: 13px; color: #666;">只整理文档 + 更新 CLAUDE.md</p>
+        <div style="margin-top: 8px; font-size: 12px; color: #909399;">
+          ✅ 快速, 零风险<br>
+          ❌ 现有不一致不修<br>
+          ❌ 无代码约束力
+        </div>
+      </div>
+    </div>
+    <div class="card" data-choice="full" onclick="toggleSelect(this)">
+      <div class="card-body">
+        <h3>B. 完整重构</h3>
+        <p style="font-size: 13px; color: #666;">建共享 SCSS + 重构全部15个组件</p>
+        <div style="margin-top: 8px; font-size: 12px; color: #909399;">
+          ✅ 彻底统一<br>
+          ✅ 长期可维护<br>
+          ❌ 工作量最大, 有回归风险
+        </div>
+      </div>
+    </div>
+    <div class="card" data-choice="progressive" onclick="toggleSelect(this)" style="border-color: #409EFF;">
+      <div class="card-body">
+        <h3>✨ C. 渐进式 (推荐)</h3>
+        <p style="font-size: 13px; color: #666;">建共享 SCSS + 改到哪个修哪个 + CLAUDE.md</p>
+        <div style="margin-top: 8px; font-size: 12px; color: #409EFF;">
+          ✅ 投入产出最佳<br>
+          ✅ 每次修改都在改善<br>
+          ✅ 进可攻退可守
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p style="font-size: 14px; font-weight: 500;">选一个方案, 然后在终端告诉我你的想法! 👇</p>
+</div>

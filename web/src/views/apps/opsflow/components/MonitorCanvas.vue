@@ -231,7 +231,9 @@ onActivated(() => {
 defineExpose({ loadGraphData, loadNodeStatuses, refreshCanvas, setExecutionStatus })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
 .monitor-canvas-wrapper { display: flex; flex-direction: column; height: 100%; }
 .monitor-header {
   display: flex; justify-content: space-between; align-items: center;
