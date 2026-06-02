@@ -29,8 +29,9 @@ class TestValidatePipeline:
         assert result.get("valid") is False
 
     def test_empty_nodes_pass(self):
+        """空 pipeline 应校验失败（与 flow_engine 的空检测一致）"""
         result = self._validate({"nodes": [], "edges": []})
-        assert result.get("valid") is True
+        assert result.get("valid") is False
 
     def test_unknown_atom_type(self):
         result = self._validate({

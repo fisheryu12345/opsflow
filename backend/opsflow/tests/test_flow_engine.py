@@ -167,7 +167,10 @@ class TestFlowEngineRun:
     @patch("opsflow.core.flow_engine.pipeline_api")
     def test_run_success_path(self, mock_api, mock_build, mock_validate):
         mock_validate.return_value = {"valid": True, "errors": [], "warnings": []}
-        mock_build.return_value = ({"id": "bp_001"}, {"uuid": "n1"})
+        mock_build.return_value = (
+            {"id": "bp_001", "activities": {"act1": {"type": "ServiceActivity"}}},
+            {"uuid": "n1"},
+        )
         mock_api.run_pipeline.return_value = Mock(result=True)
 
         exec_mock = self._make_execution()
@@ -196,7 +199,10 @@ class TestFlowEngineRun:
     @patch("opsflow.core.flow_engine.pipeline_api")
     def test_run_api_failure(self, mock_api, mock_build, mock_validate):
         mock_validate.return_value = {"valid": True, "errors": [], "warnings": []}
-        mock_build.return_value = ({"id": "bp_001"}, {"uuid": "n1"})
+        mock_build.return_value = (
+            {"id": "bp_001", "activities": {"act1": {"type": "ServiceActivity"}}},
+            {"uuid": "n1"},
+        )
         mock_api.run_pipeline.return_value = Mock(result=False, message="engine error")
 
         exec_mock = self._make_execution()
