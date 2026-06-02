@@ -586,8 +586,15 @@ async function runRiskAnalysis() {
   stepError.value = ''
   try {
     const res = await AnalyzePipeline({ nodes: props.pipelineNodes, edges: props.pipelineEdges || [] })
-    riskResult.value = res.data?.data || res.data
-    riskChecked.value = (riskResult.value?.risks || []).map(() => false)
+    const raw = res.data?.data || res.data
+    // Normalize risks: LLM may return strings or objects — convert to {level, text} format
+    if (raw?.risks?.length) {
+      raw.risks = raw.risks.map((r: any) =>
+        typeof r === 'string' ? { level: 'medium', text: r } : r
+      )
+    }
+    riskResult.value = raw
+    riskChecked.value = (raw?.risks || []).map(() => false)
     riskConfirmed.value = false
   } catch (e: any) {
     stepError.value = e?.msg || e?.message || 'Risk analysis failed'
