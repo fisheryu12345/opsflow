@@ -18,6 +18,35 @@ from opsflow.core.variable_resolver import resolve_params
 logger = logging.getLogger(__name__)
 
 
+def _promote_result(result_value: bool, parent_data) -> None:
+    """将节点 _result 立即提升到 pipeline 上下文，供排他网关条件评估
+
+    在 PluginService.execute 中调用，确保网关在条件评估前就能读到 _result。
+    """
+    try:
+        from pipeline.eri.runtime import BambooDjangoRuntime
+        from bamboo_engine.eri import ContextValue, ContextValueType
+
+        pd = dict(parent_data.inputs) if parent_data else {}
+        execution_id = pd.get('_execution_id')
+        if not execution_id:
+            return
+
+        from opsflow.models import FlowExecution
+        execution = FlowExecution.objects.get(id=execution_id)
+        bamboo_pipeline_id = execution.context.get("bamboo_pipeline_id")
+        if not bamboo_pipeline_id:
+            return
+
+        runtime = BambooDjangoRuntime()
+        runtime.upsert_plain_context_values(bamboo_pipeline_id, {
+            "_result": ContextValue(key="_result", type=ContextValueType.PLAIN, value=result_value),
+        })
+        logger.info("_promote_result: _result=%s promoted to pipeline %s", result_value, bamboo_pipeline_id)
+    except Exception:
+        logger.exception("_promote_result failed")
+
+
 class PluginService(Service):
     """通用 Service — 所有原子通过这一个类路由到 BasePlugin.execute()"""
 
@@ -80,11 +109,14 @@ class PluginService(Service):
             })
             if not success:
                 data.outputs['_error'] = result.get('error', '执行失败')
+            # 立即将 _result 提升到 pipeline 上下文（供排他网关条件评估）
+            _promote_result(success, parent_data)
             return success
         except Exception as e:
             logger.exception("插件 %s 执行异常", atom_type)
             data.outputs['_result'] = False
             data.outputs['_error'] = str(e)
+            _promote_result(False, parent_data)
             return False
 
     def _execute_independent_subprocess(self, data, parent_data, inputs):

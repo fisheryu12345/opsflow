@@ -380,7 +380,13 @@
       "Bash(rm -f /c/Users/dell/Desktop/Vue/backend/conftest.py /c/Users/dell/Desktop/Vue/backend/test_settings.py)",
       "Bash(taskkill /f /im python.exe)",
       "Bash(curl -s -o /dev/null -w \"Django: %{http_code}\" http://127.0.0.1:8000/)",
-      "Bash(celery -A application worker -P gevent -c 10 -Q er_execute,er_schedule,default --loglevel=info)"
+      "Bash(celery -A application worker -P gevent -c 10 -Q er_execute,er_schedule,default --loglevel=info)",
+      "Bash(find /c/Users/dell/Desktop/Vue/bk_sops/bk-sops-release_humming_bird/gcloud/taskflow3 -type f -name \"*.py\" | sort)",
+      "Read(//c/Users/dell/Desktop/Vue/bk_sops/bk-sops-release_humming_bird/gcloud/taskflow3/**)",
+      "Bash(find /c/Users/dell/Desktop/Vue/bk_sops/bk-sops-release_humming_bird/gcloud/tasktmpl3 -type f -name \"*.py\" | sort)",
+      "Read(//c/Users/dell/Desktop/Vue/bk_sops/bk-sops-release_humming_bird/gcloud/tasktmpl3/**)",
+      "Bash(find /c/Users/dell/Desktop/Vue/bk_sops/bk-sops-release_humming_bird/pipeline_plugins -type f -name \"*.py\" | sort)",
+      "Read(//c/Users/dell/Desktop/Vue/bk_sops/bk-sops-release_humming_bird/pipeline_plugins/**)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",
@@ -393,5 +399,8 @@
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\opsflow\\core",
       "C:\\Users\\dell\\Desktop\\Vue"
     ]
-  }
+  },
+  "disabledMcpjsonServers": [
+    "ruflo"
+  ]
 }

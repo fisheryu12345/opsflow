@@ -66,6 +66,12 @@ class FlowExecutionViewSet(
         template = execution.template
         if template and template.pipeline_tree:
             snapshot_tree = template.snapshot.get('pipeline_tree') if template.snapshot else None
+            # 检测 snapshot 是否过期：模板当前节点数 > snapshot 节点数 → 用当前树
+            if snapshot_tree:
+                sn_nd = len(snapshot_tree.get('nodes', []) or [])
+                cur_nd = len(template.pipeline_tree.get('nodes', []) or [])
+                if cur_nd > sn_nd:
+                    snapshot_tree = template.pipeline_tree
             if not snapshot_tree:
                 snapshot_tree = template.pipeline_tree
             execution.template_snapshot = {

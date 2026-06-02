@@ -6,7 +6,7 @@ from bamboo_engine.builder import (
     EmptyStartEvent, EmptyEndEvent,
     ExclusiveGateway, ParallelGateway, ConvergeGateway, SubProcess, build_tree,
 )
-from pipeline.builder.flow.data import NodeOutput
+from bamboo_engine.builder.flow.data import NodeOutput
 
 from opsflow.core.variable_resolver import get_global_vars_values
 from opsflow.core.pipeline_builder.conditions import _parse_edge_conditions, _get_condition
@@ -180,7 +180,11 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
         input_map['_execution_id'] = Var(type=Var.PLAIN, value=execution_id)
     data = Data(inputs=input_map)
     for var_name, spec in auto_vars.items():
-        data.inputs[var_name] = NodeOutput(
+        # 使用 ${var_name} 作为 data.inputs 的 key，使 extract_outputs 将 ContextValue
+        # 以 ${_result_n1} 格式存储，匹配 ExclusiveGateway handler 中
+        # Template.get_reference() 返回的引用格式（带 ${} 包装）
+        wrapped_name = f"${{{var_name}}}"
+        data.inputs[wrapped_name] = NodeOutput(
             type=Var.SPLICE,
             source_act=spec['source_act'],
             source_key=spec['source_key'],

@@ -164,33 +164,82 @@ Pipeline Tree JSON format:
   ]
 }}
 
-Node types and degree rules:
-  - atom: ServiceActivity, indegree>=1, outdegree 1-2 (2 edges must be success/failure)
-  - exclusive_gateway: selects one branch based on condition, indegree>=1, outdegree>=1
-  - parallel_gateway: executes all branches in parallel, must pair with converge_gateway, indegree>=1, outdegree>=1
-  - conditional_parallel_gateway: conditionally executes branches in parallel, must pair with converge_gateway, indegree>=1, outdegree>=1
-  - converge_gateway: merges multiple branches into one, indegree>=1, outdegree=1
+===== Node Types — Degree Rules (HARD CONSTRAINTS, MUST FOLLOW) =====
 
-===== Important: Gateway Usage Scenarios (understand and use correctly) =====
+| node_type | role | indegree(min) | outdegree | outdegree constraints |
+|-----------|------|---------------|-----------|----------------------|
+| atom / "" | atomic task / ServiceActivity | >=1 | 1~2 | if outdegree=2, labels MUST be exactly {"success", "failure"} |
+| exclusive_gateway | chooses ONE branch by condition | >=1 | >=1 | no upper limit |
+| parallel_gateway | runs ALL branches concurrently | >=1 | >=1 | MUST pair with converge_gateway |
+| conditional_parallel_gateway | runs branches whose conditions match | >=1 | >=1 | MUST pair with converge_gateway |
+| converge_gateway | merges multiple inbound branches | >=1 | MUST = 1 | outdegree > 1 causes WARNING, only 1st edge used |
+| start_event | visual start node (filtered at build) | — | — | not validated |
+| end_event | visual end node (filtered at build) | — | — | not validated |
 
-1. exclusive_gateway --- "choose one"
-   Scenario: after an operation, choose a path based on the result — only one path executes.
+===== Edge Label Rules (CRITICAL — most common errors) =====
+
+An edge has a "label" field and an optional "condition" field.
+
+1. **atom node with 2 outgoing edges**: labels MUST be "success" and "failure" EXACTLY.
+   - Correct: {"label": "success"} / {"label": "failure"}
+   - WRONG: {"label": "ok"} / {"label": "fail"} / {"label": "passed"} / {"label": "error"}
+   - The builder AUTO-inserts an ExclusiveGateway between the atom and its successors — do NOT manually add one.
+
+2. **atom node with 1 outgoing edge**: label can be anything or omitted.
+
+3. **exclusive_gateway with multiple outgoing edges**: each edge SHOULD have label "success"/"failure" or a custom condition. Missing labels cause WARNING.
+
+4. **parallel_gateway outgoing edges**: labels are NOT important (no condition evaluation). Can be anything or omitted.
+
+5. **conditional_parallel_gateway outgoing edges**: each edge SHOULD have a condition expression.
+
+6. **converge_gateway**: MUST have exactly 1 outgoing edge. Multiple outedges cause WARNING.
+
+7. **Edge label → auto-generated condition mapping**:
+   - label="success" → condition becomes ${_result == True}
+   - label="failure" → condition becomes ${_result == False}
+   - no label / other → condition defaults to ${_result == True}
+
+===== Gateway Pairing Rules (CRITICAL) =====
+
+1. **parallel_gateway** and **conditional_parallel_gateway** MUST be paired with a converge_gateway.
+2. ALL branches from the same parallel/conditional_parallel_gateway must converge to the SAME converge_gateway.
+3. converge_gateway indegree should be >= 2 (converges at least 2 branches). indegree < 2 causes WARNING.
+4. Do NOT connect a converge_gateway to another converge_gateway — this is likely a structural error.
+5. Do NOT connect a converge_gateway to a parallel_gateway — the converge point should come AFTER all parallel branches complete.
+
+===== Builder Auto-Insertion Rules (be aware — the system handles these automatically) =====
+
+The pipeline builder automatically inserts gateways in certain situations. Do NOT manually add these:
+
+1. **Atom node with 2 edges (success+failure)**: builder auto-inserts an ExclusiveGateway between the atom and its successors. You MAY add an explicit ExclusiveGateway if there are more than 2 branches or complex conditions, but for simple success/failure branching it is unnecessary.
+
+2. **Multiple root nodes (indegree=0)**: builder auto-inserts a ParallelGateway to fork all root nodes.
+
+3. **Node with no outgoing edges**: builder auto-connects to EmptyEndEvent.
+
+4. **Parallel/conditional_parallel_gateway**: builder auto-searches for converge_gateway via BFS and pairs them. You still MUST explicitly create the converge_gateway node in the pipeline.
+
+===== Gateway Usage Scenarios =====
+
+1. **exclusive_gateway — "choose one"**
+   Scenario: after an operation, choose exactly one path based on the result.
    Example: health check passes → deploy, fails → alert.
    Structure: atom → exclusive_gateway → (branch A OR branch B)
 
-2. parallel_gateway --- "execute all"
+2. **parallel_gateway — "execute all"**
    Scenario: multiple independent tasks run concurrently, no conditional branching.
-   Example: run the same operation on multiple servers simultaneously, backup multiple dirs concurrently.
-   Structure: parallel_gateway → (branch A, branch B) → converge_gateway (must pair)
+   Example: deploy to multiple servers simultaneously, backup multiple dirs concurrently.
+   Structure: parallel_gateway → (branch A, branch B, ...) → converge_gateway
 
-3. conditional_parallel_gateway --- "execute all that match"
-   Scenario: batch of parallel tasks, but some branches have conditions.
-   Example: deploy to multiple environments — staging uses one logic, production uses another.
-   Structure: conditional_parallel_gateway → (cond A, cond B) → converge_gateway (must pair)
+3. **conditional_parallel_gateway — "execute all that match"**
+   Scenario: batch of parallel tasks, some branches have conditions to decide whether to run.
+   Example: deploy to staging and production — staging uses one atom, production uses another.
+   Structure: conditional_parallel_gateway → (cond branch A, cond branch B) → converge_gateway
 
-4. converge_gateway --- "merge point"
-   Scenario: merge multiple divergent paths back into one.
-   Note: ALL branches diverged by parallel/conditional_parallel_gateway must converge to the SAME converge_gateway.
+4. **converge_gateway — "merge point"**
+   Scenario: merge multiple divergent/parallel paths back into one sequential flow.
+   Note: All branches diverged by parallel/conditional_parallel_gateway MUST converge to the SAME converge_gateway.
 
 ===== Complete Examples (reference these JSON patterns) =====
 
@@ -312,14 +361,52 @@ Safety rules:
 - High-risk operations (docker_deploy, service_control stop) must have a rollback path (failure edge pointing to rollback node)
 - Max retries must not exceed 10
 
-bamboo-engine constraints:
-1. The flow must be a DAG (Directed Acyclic Graph) — no circular dependencies
-2. Branch labels can only be "success" or "failure"
-3. All node IDs must be unique
-4. Nodes with only outgoing edges (no incoming) are start nodes
-5. All branches of parallel_gateway and conditional_parallel_gateway must converge to the same converge_gateway
-6. converge_gateway indegree must be >= 2 (converges at least 2 branches)
-7. Regular atom nodes can have at most 2 outgoing edges (success + failure)
-8. Target hosts: {hosts_str}
+===== Validation Checklist (self-check your output against these rules) =====
+
+BEFORE returning your JSON, verify ALL of these:
+
+**DAG & ID rules:**
+- [ ] The flow is a DAG — no circular dependencies, no cycles
+- [ ] All node IDs are unique (string format `^[a-zA-Z_][a-zA-Z0-9_]*$`)
+- [ ] All edges reference existing node IDs in both "from" and "to"
+
+**Atom node rules:**
+- [ ] atom node outdegree is 1 or 2 (never 3+)
+- [ ] If outdegree=2, edge labels are exactly one "success" and one "failure" (NOT "ok"/"fail"/"passed"/"error")
+- [ ] If atom has 2 edges (success+failure), do NOT manually insert an ExclusiveGateway — the builder does it automatically
+
+**Gateway degree rules:**
+- [ ] converge_gateway outdegree = 1 (NEVER connect multiple outgoing edges from converge_gateway)
+- [ ] exclusive_gateway indegree >= 1, outdegree >= 1
+- [ ] parallel_gateway indegree >= 1, outdegree >= 1
+- [ ] conditional_parallel_gateway indegree >= 1, outdegree >= 1
+
+**Gateway pairing rules:**
+- [ ] parallel_gateway has a converge_gateway somewhere downstream that ALL its branches flow into
+- [ ] conditional_parallel_gateway has a converge_gateway somewhere downstream that ALL its branches flow into
+- [ ] ALL branches from the same parallel/conditional_parallel_gateway converge to the SAME converge_gateway
+- [ ] converge_gateway indegree >= 2 (merges at least 2 branches)
+
+**Safety rules:**
+- [ ] deploy/upload/modify/delete operations have a backup_file node before them
+- [ ] High-risk operations (docker_deploy, service_control stop) have a rollback path (failure edge pointing to rollback node)
+- [ ] max_retries does not exceed 10
+
+===== Common Mistakes to Avoid =====
+
+| # | Mistake | Example | Correct |
+|---|---------|---------|---------|
+| 1 | converge_gateway has >1 outgoing edge | converge → nodeA AND converge → nodeB | converge → nodeA only |
+| 2 | atom node has 3+ outgoing edges | atom → A, atom → B, atom → C | Use exclusive_gateway or parallel_gateway |
+| 3 | atom 2-outedge labels not success/failure | "ok" / "fail" | "success" / "failure" |
+| 4 | parallel_gateway without converge_gateway | parallel → branches → 直接结束 | parallel → branches → converge_gateway |
+| 5 | converge_gateway indegree < 2 | 只有1条分支入边 | 至少2条分支汇聚到此 |
+| 6 | exclusive_gateway missing conditions | 多条出边无condition/无标签 | Add condition or label |
+| 7 | Circular dependency | A→B→C→A | Ensure DAG |
+| 8 | Manually inserting ExclusiveGateway after atom success/failure | atom → EXG → A/B | atom自动产生排他(不需要EXG) |
+| 9 | 并行分支汇聚到不同网关 | branch1→cg1, branch2→cg2 | All branches → same converge_gateway |
+| 10 | converge_gateway连到parallel_gateway | 汇聚后接并行分叉 | converge应在并行完成后 |
+
+Target hosts: {hosts_str}
 
 Return only JSON object, no explanations."""

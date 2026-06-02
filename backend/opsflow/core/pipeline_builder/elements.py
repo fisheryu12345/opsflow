@@ -4,7 +4,6 @@ from bamboo_engine.builder import (
     EmptyStartEvent,
     SubProcess, build_tree,
 )
-from pipeline.builder.flow.data import NodeOutput
 from opsflow.core.variable_resolver import get_global_vars_values
 from opsflow.core.pipeline_builder.conditions import _get_condition
 from opsflow.core.pipeline_builder.validation import _detect_circular_ref
@@ -18,7 +17,7 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
 
     if node_type == 'exclusive_gateway':
         from bamboo_engine.builder import ExclusiveGateway
-        gw = ExclusiveGateway()
+        gw = ExclusiveGateway(id=nid)
         gw.name = nid
         for i, edge in enumerate(outgoing_edges):
             cond = _get_condition(edge_conditions, nid, edge['to'], edge.get('label', ''))
@@ -27,13 +26,13 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
 
     if node_type == 'parallel_gateway':
         from bamboo_engine.builder import ParallelGateway
-        gw = ParallelGateway()
+        gw = ParallelGateway(id=nid)
         gw.name = nid
         return gw
 
     if node_type == 'conditional_parallel_gateway':
         from bamboo_engine.builder import ConditionalParallelGateway
-        cpg = ConditionalParallelGateway()
+        cpg = ConditionalParallelGateway(id=nid)
         cpg.name = nid
         for i, edge in enumerate(outgoing_edges):
             cond = _get_condition(edge_conditions, nid, edge['to'], edge.get('label', ''))
@@ -42,7 +41,7 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
 
     if node_type == 'converge_gateway':
         from bamboo_engine.builder import ConvergeGateway
-        gw = ConvergeGateway()
+        gw = ConvergeGateway(id=nid)
         gw.name = nid
         return gw
 
@@ -51,6 +50,7 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
             component_code="opsflow_plugin",
             skippable=False,
             retryable=False,
+            id=nid,
         )
         act.name = nid
         act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value='approval')
@@ -76,6 +76,7 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
                 component_code="opsflow_plugin",
                 skippable=True,
                 retryable=True,
+                id=nid,
             )
             act.name = nid
             act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value='subprocess_independent')
@@ -118,6 +119,7 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
             data=child_data,
             params=variable_mapping,
             global_outputs=output_mapping,
+            id=nid,
         )
         sp.name = nid
         return sp
@@ -132,6 +134,7 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
         skippable=True,
         retryable=True if node_max_retries > 0 else False,
         timeout=node.get('timeout_seconds', 60),
+        id=nid,
     )
     act.name = nid
     act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value=atom_type)

@@ -9,6 +9,7 @@ import logging
 
 from bamboo_engine import api as pipeline_api
 from bamboo_engine.builder import Data, Var
+from bamboo_engine.exceptions import ConnectionValidateError
 from pipeline.eri.runtime import BambooDjangoRuntime
 
 from opsflow.core.pipeline_builder import build_bamboo_pipeline
@@ -175,6 +176,30 @@ class FlowEngine:
                 execution_id=self.execution.id,
                 excluded_nodes=self.execution.excluded_nodes,
             )
+            # DEBUG: 打印 pipeline 拓扑结构
+            acts = pipeline.get('activities', {})
+            gws = pipeline.get('gateways', {})
+            flows = pipeline.get('flows', {})
+            logger.info("[FlowEngine] Pipeline tree built: %d activities, %d gateways, %d flows",
+                        len(acts), len(gws), len(flows))
+            for _aid, _act in acts.items():
+                logger.info("  activity %s: type=%s, outgoing=%s",
+                            _aid, _act.get('type'), _act.get('outgoing'))
+            for _gid, _gw in gws.items():
+                logger.info("  gateway %s: type=%s, outgoing=%s",
+                            _gid, _gw.get('type'), _gw.get('outgoing'))
+
+            # 空 pipeline 检测：没有活动节点也没有网关 → 模板未保存节点或 pipeline_tree 为空
+            if len(acts) == 0 and len(gws) == 0:
+                msg = "pipeline 为空：模板中没有节点或节点已被全部过滤，请检查模板并先保存后再执行"
+                logger.error("[FlowEngine] " + msg)
+                self.execution.context['_validation_error'] = msg
+                self.execution.status = "failed"
+                self.execution.ended_at = datetime.datetime.now()
+                self.execution.save(update_fields=["status", "ended_at", "context"])
+                self._notify_completed()
+                return
+
             bamboo_pipeline_id = pipeline.get("id", "")
 
             # 执行前创建自动重试策略和超时配置（参考 bk_sops）
@@ -200,10 +225,21 @@ class FlowEngine:
             result = pipeline_api.run_pipeline(runtime=runtime, pipeline=pipeline)
 
             if not result.result:
-                logger.error("[FlowEngine] run_pipeline failed: %s", result.message)
+                # 提取验证错误详情（ConnectionValidateError 含 failed_nodes + detail）
+                if hasattr(result, 'exc') and isinstance(result.exc, ConnectionValidateError):
+                    exc = result.exc
+                    detail_msg = "; ".join(
+                        f"Node {nid}: {str(detail).strip()}" for nid, detail in exc.detail.items()
+                    )
+                    logger.error("[FlowEngine] run_pipeline failed (validation errors): %s | failed_nodes=%s",
+                                 detail_msg, exc.failed_nodes)
+                    self.execution.context['_validation_error'] = detail_msg
+                else:
+                    logger.error("[FlowEngine] run_pipeline failed: %s", result.message)
+                    self.execution.context['_validation_error'] = result.message
                 self.execution.status = "failed"
                 self.execution.ended_at = datetime.datetime.now()
-                self.execution.save()
+                self.execution.save(update_fields=["status", "ended_at", "context"])
                 self.rollback_failed_nodes()
                 self._notify_completed()
                 return
@@ -217,7 +253,9 @@ class FlowEngine:
             logger.exception("[FlowEngine] run failed")
             self.execution.status = "failed"
             self.execution.ended_at = datetime.datetime.now()
-            self.execution.save()
+            if '_validation_error' not in self.execution.context:
+                self.execution.context['_validation_error'] = str(e)
+            self.execution.save(update_fields=["status", "ended_at", "context"])
             self.rollback_failed_nodes()
             self._notify_completed()
 

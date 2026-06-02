@@ -8,6 +8,11 @@ def _parse_edge_conditions(edges: list[dict]) -> tuple[dict[str, str], dict[str,
     将条件中的 ${node_id.key} 重写为自动生成的 var 名（如 _gwcond_node_1_cpu），
     并返回 NodeOutput 声明，供 build_bamboo_pipeline 在步骤 6 注入 Data.inputs。
 
+    对于没有自定义条件但带有 success/failure 标签的边，不做处理，由
+    _get_condition 兜底返回 bamboo-engine 原生支持的格式（${_result == True}）。
+    _result 是 bamboo-engine ExclusiveGateway handler 原生识别的关键字，指向
+    前驱节点的执行结果，无需通过 NodeOutput 变量引用。
+
     Returns:
         conditions: {"from->to": "rewritten_condition"}
         auto_vars: {"_gwcond_node_1_cpu": {"source_act": "node_1", "source_key": "cpu"}}
@@ -39,11 +44,16 @@ def _parse_edge_conditions(edges: list[dict]) -> tuple[dict[str, str], dict[str,
 
     for edge in edges:
         cond = (edge.get('condition') or '').strip()
-        if not cond:
-            continue
         key = f"{edge['from']}->{edge['to']}"
-        rewritten = _EXPR_PATTERN.sub(_replace_block, cond)
-        conditions[key] = rewritten
+
+        if cond:
+            # 自定义条件：正常处理变量引用
+            rewritten = _EXPR_PATTERN.sub(_replace_block, cond)
+            conditions[key] = rewritten
+        # 无自定义条件的边：不做处理，_get_condition 会兜底返回
+        # '${_result == True}' / '${_result == False}' 等 bamboo-engine 原生格式
+        # 注意：此处不能生成 NodeOutput 变量引用，因为 bamboo 树中的节点 ID 是哈希后的，
+        # 而 edge['from'] 是原始 ID, 会导致 NodeOutput source_act 找不到对应节点。
 
     return conditions, auto_vars
 
