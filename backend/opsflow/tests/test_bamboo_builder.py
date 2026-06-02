@@ -362,9 +362,16 @@ class TestValidateBambooCompatibility:
         assert len(result["warnings"]) > 0 or len(result["errors"]) == 0
 
     def test_single_node_pipeline(self):
+        """单节点有 start 入边 → 合法"""
         result = validate_bamboo_compatibility({
-            "nodes": [{"id": "n1", "node_type": "atom", "label": "N1", "atom_type": "ping_test"}],
-            "edges": [],
+            "nodes": [
+                {"id": "start", "node_type": "start_event", "label": "Start"},
+                {"id": "n1", "node_type": "atom", "label": "N1", "atom_type": "ping_test"},
+                {"id": "end", "node_type": "end_event", "label": "End"},
+            ],
+            "edges": [
+                {"from": "start", "to": "n1"},
+            ],
         })
         assert result["valid"] is True
 
@@ -433,13 +440,15 @@ class TestValidateBambooCompatibility:
         assert any("出度" in e for e in result["errors"])
 
     def test_valid_serial_pipeline(self):
-        """合法串行流程"""
+        """合法串行流程（start → n1 → n2）"""
         result = validate_bamboo_compatibility({
             "nodes": [
+                {"id": "start", "node_type": "start_event", "label": "Start"},
                 {"id": "n1", "node_type": "atom", "label": "N1", "atom_type": "ping_test"},
                 {"id": "n2", "node_type": "atom", "label": "N2", "atom_type": "send_alert"},
             ],
             "edges": [
+                {"from": "start", "to": "n1"},
                 {"from": "n1", "to": "n2"},
             ],
         })

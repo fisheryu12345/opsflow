@@ -59,6 +59,9 @@
           <el-tooltip :show-after="500" content="Auto layout" placement="bottom">
             <el-button size="small" circle type="warning" @click="aiLayout" :icon="Operation" />
           </el-tooltip>
+          <el-tooltip :show-after="500" content="Validate pipeline" placement="bottom">
+            <el-button size="small" circle @click="onValidate" :icon="CircleCheck" class="btn-validate" />
+          </el-tooltip>
           <el-tooltip :show-after="500" content="New template wizard" placement="bottom">
             <el-button size="small" circle type="success" @click="$emit('newTemplate')" :icon="Plus" />
           </el-tooltip>
@@ -129,7 +132,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, Coin, VideoPlay } from '@element-plus/icons-vue'
+import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, Coin, VideoPlay, CircleCheck } from '@element-plus/icons-vue'
 // X6 CSS — 必须导入否则 Stencil、Minimap 等插件容器不显示
 import '@antv/x6/dist/index.css'
 import '@antv/x6-plugin-stencil/dist/index.css'
@@ -141,6 +144,7 @@ import SubprocessStatusBadge from './SubprocessStatusBadge.vue'
 import ProjectSwitcher from './ProjectSwitcher.vue'
 import SubmitWizardDialog from './SubmitWizardDialog.vue'
 import { ConfirmDraft } from '/@/api/opsflow/templates'
+import { useGraphValidator } from '../composables/useGraphValidator'
 
 const props = defineProps<{
   templates?: any[]
@@ -219,6 +223,12 @@ function onSubprocessUpdated() {
 
 async function onSubmitExecution() {
   if (!props.templateId) return
+
+  // Validate before submit
+  const pipeline = getGraphData()
+  const result = validate(pipeline.nodes, pipeline.edges)
+  if (!showValidation(result)) return
+
   if (templateIsDraft.value) {
     try {
       await ElMessageBox.confirm(
@@ -246,6 +256,8 @@ const {
   undo, redo, canUndo, canRedo, destroy,
   enableResize, enableVisibilityRefresh,
 } = useDesignCanvas('design-canvas-container', emit)
+
+const { validate, showValidation } = useGraphValidator()
 
 const stencilRef = ref<HTMLElement | null>(null)
 const canvasRef = ref<HTMLElement | null>(null)
@@ -282,6 +294,8 @@ function loadPipeline(data: any) {
 
 function onSave() {
   const data = getGraphData()
+  const result = validate(data.nodes, data.edges)
+  if (!showValidation(result)) return
   emit('save', data)
 }
 
@@ -296,6 +310,26 @@ function onNodeUpdate(newData: any) {
         const label = newData.label || ''
         node.setLabel(label)
         node.setAttrs({ label: { text: label } })
+      }
+    }
+  }
+}
+
+/** 校验条件表达式中的 ${node_id} 引用 */
+function checkConditionRefs(condition: string) {
+  const data = getGraphData()
+  const nodeIds = new Set(data.nodes.map(n => n.id))
+  const EXPR_PATTERN = /\$\{([^}]*)\}/g
+  const VAR_REF_PATTERN = /([a-zA-Z_]\w*)\.([a-zA-Z_]\w*)/g
+  let match: RegExpExecArray | null
+  EXPR_PATTERN.lastIndex = 0
+  while ((match = EXPR_PATTERN.exec(condition)) !== null) {
+    const expr = match[1]
+    let varMatch: RegExpExecArray | null
+    VAR_REF_PATTERN.lastIndex = 0
+    while ((varMatch = VAR_REF_PATTERN.exec(expr)) !== null) {
+      if (!nodeIds.has(varMatch[1])) {
+        ElMessage.warning(`条件引用不存在的节点 '${varMatch[1]}'`)
       }
     }
   }
@@ -322,8 +356,16 @@ function onEdgeUpdate(newData: any) {
         label,
         condition,
       }
+      // 校验条件变量引用
+      if (condition) checkConditionRefs(condition)
     }
   }
+}
+
+function onValidate() {
+  const data = getGraphData()
+  const result = validate(data.nodes, data.edges)
+  showValidation(result)
 }
 
 onMounted(() => {
@@ -491,4 +533,6 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, z
 .btn-exec:hover { color: #85ce61; background: #e1f3d8; }
 .btn-save { color: #667eea; background: #eef0ff; }
 .btn-save:hover { color: #8596f0; background: #dde0fa; }
+.btn-validate { color: #E6A23C; background: #fdf6ec; }
+.btn-validate:hover { color: #ebb563; background: #faecd8; }
 </style>

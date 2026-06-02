@@ -45,12 +45,16 @@ def validate_bamboo_compatibility(pipeline_tree: dict, skip_schema=False) -> dic
     if not effective_nodes:
         return {'valid': True, 'errors': [], 'warnings': ['无有效节点']}
 
-    # 检查节点 ID 唯一性
+    # -----------------------------------------------------------
+    # 前端 X6 已前置校验项（useGraphValidator.ts + validateConnection）
+    # 保留后端检查作防御性校验，但用户提交前错误已被前端拦截
+    # -----------------------------------------------------------
+    # 检查节点 ID 唯一性（X6 原生保证 graph 内 ID 唯一）
     ids = [n['id'] for n in effective_nodes]
     if len(ids) != len(set(ids)):
         errors.append('节点 ID 不唯一')
 
-    # 检查边引用
+    # 检查边引用（X6 边只能从实际节点 port 拖出/连入，已原生保证）
     for e in effective_edges:
         if e.get('from') not in effective_ids:
             errors.append(f"边起始节点 '{e.get('from')}' 不存在")
@@ -65,6 +69,7 @@ def validate_bamboo_compatibility(pipeline_tree: dict, skip_schema=False) -> dic
         in_degree.setdefault(e['to'], 0)
         in_degree[e['to']] += 1
 
+    # 检查环（前端 save/validate 时已检测，连接时通过 validateConnection 拦截 end_event→X）
     queue = [nid for nid in effective_ids if in_degree.get(nid, 0) == 0]
     visited = 0
     while queue:
@@ -78,7 +83,7 @@ def validate_bamboo_compatibility(pipeline_tree: dict, skip_schema=False) -> dic
     if visited != len(effective_nodes):
         errors.append('流程中存在环，bamboo-engine 不支持')
 
-    # 节点出入度合法性校验
+    # 节点出入度合法性校验（前端 edge:connected 时已拦截超限连接 + label 检查）
     in_count: dict[str, int] = {n['id']: 0 for n in effective_nodes}
     out_count: dict[str, int] = {n['id']: 0 for n in effective_nodes}
     for e in edges:
@@ -103,6 +108,8 @@ def validate_bamboo_compatibility(pipeline_tree: dict, skip_schema=False) -> dic
             ic = in_count.get(n['id'], 0)
             oc = out_count.get(n['id'], 0)
             name = n.get('label', n['id'])
+            if ic < 1:
+                errors.append(f"活动 '{name}' 入度={ic}，要求 >= 1（没有入边的活动永远不会被执行）")
             if oc > 2:
                 errors.append(f"活动 '{name}' 出度={oc}，最多允许 2 条（success/failure）")
             if oc == 2:
@@ -118,7 +125,7 @@ def validate_bamboo_compatibility(pipeline_tree: dict, skip_schema=False) -> dic
         elif nt == 'converge_gateway':
             _check_degree(n, '汇聚网关', min_in=1, max_out=1)
 
-    # 检查网关出边条件
+    # 检查网关出边条件（前端 edge:connected 时已 Prompt 选择标签 + save 前校验）
     for n in effective_nodes:
         node_type = n.get('node_type', '')
         successors = [e for e in effective_edges if e.get('from') == n['id']]
@@ -138,7 +145,7 @@ def validate_bamboo_compatibility(pipeline_tree: dict, skip_schema=False) -> dic
             if len(predecessors) < 2:
                 warnings.append(f"汇聚网关 '{n.get('label', n['id'])}' 入边少于 2 条，建议改用直接连接")
 
-    # 校验自定义网关条件中的 ${node_id.key} 引用
+    # 校验自定义网关条件中的 ${node_id.key} 引用（前端 PropertyPanel 编辑 + save 前已校验）
     for e in effective_edges:
         cond = e.get('condition', '').strip()
         if not cond:
