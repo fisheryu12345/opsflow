@@ -10,7 +10,7 @@ import { MiniMap } from '@antv/x6-plugin-minimap'
 import { Keyboard } from '@antv/x6-plugin-keyboard'
 import { AiLayout } from '/@/api/opsflow/templates'
 import { useGraphCanvas, layoutNodes, defaultNodeLabel } from './useGraphCanvas'
-import { resolveNodeShape, updateAtomNode } from '../utils/shapes'
+import { resolveNodeShape, updateAtomNode, isPortConnected, refreshPortStates } from '../utils/shapes'
 
 export function useDesignCanvas(containerId: string, emit?: (event: string, ...args: any[]) => void) {
   // 使用通用 Graph composable（设计模式）
@@ -61,7 +61,16 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     }
 
     // 事件
-    g.on('node:click', ({ node }) => {
+    g.on('node:click', ({ node, e }) => {
+      // 检查是否点击了删除按钮（X6 自动为 markup 元素设置 data-tag 属性）
+      const target = e.target as SVGElement | null
+      const tag = target?.getAttribute?.('data-tag') || ''
+      if (tag === 'del-btn-bg' || tag === 'del-btn-icon') {
+        const data = node.getData()
+        const isProtected = data?.node_type === 'start_event' || data?.node_type === 'end_event'
+        if (!isProtected) node.remove()
+        return
+      }
       const data = node.getData()
       selectedNode.value = { ...data, id: data.id || node.id }
       selectedEdge.value = null
@@ -98,20 +107,40 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
           node.setPortProp(p.id, 'attrs/circle/strokeWidth', 2)
         }
       })
+      // 为 ops-atom 显示删除按钮（排除 start/end）
+      if (node.shape === 'ops-atom') {
+        const data = node.getData()
+        const isProtected = data?.node_type === 'start_event' || data?.node_type === 'end_event'
+        if (!isProtected) {
+          node.setAttrs({ 'del-btn-bg': { opacity: 1 }, 'del-btn-icon': { opacity: 1 } })
+        }
+      }
     })
     g.on('node:mouseleave', ({ node }) => {
       // 拖拽连线时保持所有连接桩显示
       if (_isConnecting.value) return
+      // 恢复连接桩大小，并根据连接状态设置颜色/显隐
+      refreshPortStates(node)
       node.getPorts().forEach(p => {
         if (p.id) {
-          node.setPortProp(p.id, 'attrs/circle/opacity', 0)
           node.setPortProp(p.id, 'attrs/circle/r', 5)       // 恢复
           node.setPortProp(p.id, 'attrs/circle/strokeWidth', 1.5)
         }
       })
+      // 隐藏删除按钮
+      if (node.shape === 'ops-atom') {
+        node.setAttrs({ 'del-btn-bg': { opacity: 0 }, 'del-btn-icon': { opacity: 0 } })
+      }
     })
-    // 连线拖拽结束（成功/取消）时重置连接状态
-    g.on('edge:removed', () => { _isConnecting.value = false })
+    g.on('edge:removed', ({ edge }) => {
+      _isConnecting.value = false
+      if (isLoading.value) return
+      // 刷新两端节点的 port 状态
+      const src = edge.getSourceCell()
+      const tgt = edge.getTargetCell()
+      if (src?.isNode()) refreshPortStates(src as Node)
+      if (tgt?.isNode()) refreshPortStates(tgt as Node)
+    })
     g.on('history:change', () => {
       canUndo.value = g.canUndo()
       canRedo.value = g.canRedo()
@@ -155,6 +184,8 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
             if (data?.atom_type) updateAtomNode(newNode)
             else needPlugin(newId)
           }
+          // ID 重建后刷新 port 连接状态
+          refreshPortStates(newNode)
         }, 0)
         return
       }
@@ -254,6 +285,15 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       })
     })
 
+    // 程序化添加边时更新两端 port 状态（isLoading 期间由 loadGraphData 统一管理 port）
+    g.on('edge:added', ({ edge }) => {
+      if (isLoading.value) return
+      const srcCell = edge.getSourceCell()
+      const tgtCell = edge.getTargetCell()
+      if (srcCell?.isNode()) refreshPortStates(srcCell as Node)
+      if (tgtCell?.isNode()) refreshPortStates(tgtCell as Node)
+    })
+
     // 键盘快捷键
     g.use(new Keyboard({ enabled: true }))
     g.bindKey('del', () => { const c = g.getSelectedCells(); if (c.length) g.removeCells(c) })
@@ -301,7 +341,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       { shape: 'ops-converge-gateway', label: 'Converge', width: 70, height: 92, attrs: { label: { text: 'Converge' } }, data: { node_type: 'converge_gateway' } },
       { shape: 'ops-approval', label: 'Approval', width: 70, height: 92, attrs: { label: { text: 'Approval' } }, data: { node_type: 'approval' } },
       { shape: 'ops-subprocess', label: 'Subprocess', width: 145, height: 48, attrs: { label: { text: 'Subprocess' } }, data: { node_type: 'subprocess' } },
-      { shape: 'ops-atom', label: 'Task Node', width: 145, height: 48, attrs: { label: { text: 'Task Node' } }, data: { node_type: 'atom' } },
+      { shape: 'ops-atom', label: 'Task Node', width: 160, height: 54, attrs: { label: { text: 'Task Node' } }, data: { node_type: 'atom' } },
     ]
 
     s.load(stencilNodes.map(n => graph.value!.createNode(n)), 'gateway')
@@ -433,6 +473,8 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     isLoading.value = true
     graph.value.resetCells(cells)
     isLoading.value = false
+    // 加载完成后刷新所有节点的 port 连接状态
+    graph.value.getNodes().forEach(n => refreshPortStates(n))
     graph.value.clearHistory?.()
     graph.value.centerContent()
     console.log('[loadGraphData] done, zoom:', graph.value?.zoom())

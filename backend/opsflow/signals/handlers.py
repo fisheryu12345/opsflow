@@ -65,23 +65,42 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
                 # 已派发自动重试，跳过正常失败处理
                 return
 
-        # 更新 DB 中的 node_status（持久化，页面刷新后可恢复）
-        _update_execution_node_status(execution, node_id, to_state)
-        # 状态树快照（增量更新，使用 bamboo UUID 内部追踪）
-        _update_state_tree(execution, node_id, to_state)
-        # 节点执行轨迹记录
-        _record_node_trace(execution, node_id, to_state)
-        # Redis 超时追踪（RUNNING→添加到期，FINISHED/FAILED→移除）
-        _update_node_timeout(execution, node_id, to_state)
+        # 每个步骤独立 try/except，确保单步失败不阻塞后续通知
+        try:
+            _update_execution_node_status(execution, node_id, to_state)
+        except Exception:
+            logger.exception("[Signal] _update_execution_node_status error exec=%s node=%s", execution.id, node_id)
+        try:
+            _update_state_tree(execution, node_id, to_state)
+        except Exception:
+            logger.exception("[Signal] _update_state_tree error exec=%s node=%s", execution.id, node_id)
+        try:
+            _record_node_trace(execution, node_id, to_state)
+        except Exception:
+            logger.exception("[Signal] _record_node_trace error exec=%s node=%s", execution.id, node_id)
+        try:
+            _update_node_timeout(execution, node_id, to_state)
+        except Exception:
+            logger.exception("[Signal] _update_node_timeout error exec=%s node=%s", execution.id, node_id)
         # 记录当前正在执行的节点（用于前端高亮 + API 查询）
         if to_state == states.RUNNING:
-            execution.current_node = mapped_node_id if mapped_node_id != node_id else node_id
-            execution.save(update_fields=["current_node"])
+            try:
+                execution.current_node = mapped_node_id if mapped_node_id != node_id else node_id
+                execution.save(update_fields=["current_node"])
+            except Exception:
+                logger.exception("[Signal] current_node save error exec=%s node=%s", execution.id, node_id)
         if to_state in (states.FINISHED, states.FAILED):
-            _log_node_result(execution, node_id, is_failed=(to_state == states.FAILED))
-            _write_node_trace_log(execution, node_id, is_failed=(to_state == states.FAILED))
-            # WS 推送使用映射后的原始节点 ID（前端通过 getCellById 查找）
-            _notify_node_status(execution, mapped_node_id, to_state.lower())
+            try:
+                _log_node_result(execution, node_id, is_failed=(to_state == states.FAILED))
+            except Exception:
+                logger.exception("[Signal] _log_node_result error exec=%s node=%s", execution.id, node_id)
+            try:
+                _write_node_trace_log(execution, node_id, is_failed=(to_state == states.FAILED))
+            except Exception:
+                logger.exception("[Signal] _write_node_trace_log error exec=%s node=%s", execution.id, node_id)
+            # WS 推送使用映射后的原始节点 ID + 前端期望的 "completed"/"failed" 值
+            ws_status = "completed" if to_state == states.FINISHED else "failed"
+            _notify_node_status(execution, mapped_node_id, ws_status)
         elif to_state == states.RUNNING:
             _notify_node_status(execution, mapped_node_id, "running")
 
