@@ -21,7 +21,10 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     getGraphData: baseGetGraphData,
     enableResize, enableVisibilityRefresh,
     destroy,
-  } = useGraphCanvas(containerId, { mode: 'design' })
+  } = useGraphCanvas(containerId, {
+    mode: 'design',
+    onConnectStart: () => { _isConnecting.value = true },
+  })
 
   const stencil = shallowRef<Stencil | null>(null)
   const selectedNode = ref<any>(null)
@@ -29,6 +32,9 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
 
   const canUndo = ref(false)
   const canRedo = ref(false)
+
+  /** 是否正在拖拽连线（连接桩在拖拽期间保持显示） */
+  const _isConnecting = ref(false)
 
   /** loading 标志：loadGraphData 期间抑制 node:added 误触发 */
   const isLoading = ref(false)
@@ -94,14 +100,18 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       })
     })
     g.on('node:mouseleave', ({ node }) => {
+      // 拖拽连线时保持所有连接桩显示
+      if (_isConnecting.value) return
       node.getPorts().forEach(p => {
         if (p.id) {
-          node.setPortProp(p.id, 'attrs/circle/opacity', 0.2)
+          node.setPortProp(p.id, 'attrs/circle/opacity', 0)
           node.setPortProp(p.id, 'attrs/circle/r', 5)       // 恢复
           node.setPortProp(p.id, 'attrs/circle/strokeWidth', 1.5)
         }
       })
     })
+    // 连线拖拽结束（成功/取消）时重置连接状态
+    g.on('edge:removed', () => { _isConnecting.value = false })
     g.on('history:change', () => {
       canUndo.value = g.canUndo()
       canRedo.value = g.canRedo()
@@ -156,6 +166,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     })
     // 连线完成后执行校验：出度约束 + 标签检查 + 网关 Prompt
     g.on('edge:connected', ({ edge }) => {
+      _isConnecting.value = false
       const source = edge.getSourceCell()
       if (!source || !source.isNode()) return
       const sourceData = source.getData()
@@ -395,7 +406,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     cells.push(graph.value.createNode({
       shape: 'ops-end-event',
       id: endId,
-      x: endFromData ? (positions[endId]?.x ?? maxContentX + 250) : maxContentX + 250,
+      x: endFromData ? (positions[endId]?.x ?? maxContentX + 320) : maxContentX + 320,
       y: endFromData ? (positions[endId]?.y ?? centerY) : centerY,
       label: 'End',
       attrs: { label: { text: 'End' } },

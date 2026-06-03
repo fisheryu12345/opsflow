@@ -6,6 +6,8 @@ export interface GraphCanvasOptions {
   mode: 'design' | 'monitor' | 'preview'
   /** 是否允许交互（监控模式为 false） */
   interacting?: boolean
+  /** 用户开始从端口拖拽连线时的回调 */
+  onConnectStart?: () => void
 }
 
 /** 创建通用 Graph 实例的共享配置 */
@@ -46,6 +48,7 @@ function createDefaultGraph(
           return true
         },
         createEdge() {
+          options.onConnectStart?.()
           return new Shape.Edge({
             attrs: {
               line: { stroke: '#DCDFE6', strokeWidth: 1.5, targetMarker: 'classic' },
@@ -66,7 +69,7 @@ export function layoutNodes(
   edges: { from: string; to: string }[],
   options?: { layerGap?: number; nodeGap?: number; startX?: number; startY?: number },
 ): Record<string, { x: number; y: number }> {
-  const LAYER_GAP = options?.layerGap ?? 250
+  const LAYER_GAP = options?.layerGap ?? 320
   const NODE_GAP = options?.nodeGap ?? 120
   const START_X = options?.startX ?? 50
   const START_Y = options?.startY ?? 40

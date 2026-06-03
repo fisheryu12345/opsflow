@@ -74,10 +74,10 @@ Shape.Rect.define({
   attrs: makeAtomAttrs(DEFAULT_GROUP_COLOR, DEFAULT_GROUP_ICON, '选择插件', ''),
   ports: {
     groups: {
-      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: DEFAULT_GROUP_COLOR, opacity: 0.2, stroke: DEFAULT_GROUP_COLOR, strokeWidth: 1.5 } } },
-      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: DEFAULT_GROUP_COLOR, opacity: 0.2, stroke: DEFAULT_GROUP_COLOR, strokeWidth: 1.5 } } },
-      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: DEFAULT_GROUP_COLOR, opacity: 0.2, stroke: DEFAULT_GROUP_COLOR, strokeWidth: 1.5 } } },
-      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: DEFAULT_GROUP_COLOR, opacity: 0.2, stroke: DEFAULT_GROUP_COLOR, strokeWidth: 1.5 } } },
+      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: DEFAULT_GROUP_COLOR, opacity: 0, stroke: DEFAULT_GROUP_COLOR, strokeWidth: 1.5 } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: DEFAULT_GROUP_COLOR, opacity: 0, stroke: DEFAULT_GROUP_COLOR, strokeWidth: 1.5 } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: DEFAULT_GROUP_COLOR, opacity: 0, stroke: DEFAULT_GROUP_COLOR, strokeWidth: 1.5 } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: DEFAULT_GROUP_COLOR, opacity: 0, stroke: DEFAULT_GROUP_COLOR, strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'top', group: 'top' },
@@ -108,7 +108,7 @@ Shape.Circle.define({
   },
   ports: {
     groups: {
-      out: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: '#67C23A', opacity: 0.2, stroke: '#67C23A', strokeWidth: 1.5 } } },
+      out: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: '#67C23A', opacity: 0, stroke: '#67C23A', strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'out', group: 'out' },
@@ -130,7 +130,7 @@ Shape.Circle.define({
   },
   ports: {
     groups: {
-      in: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: '#F56C6C', opacity: 0.2, stroke: '#F56C6C', strokeWidth: 1.5 } } },
+      in: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: '#F56C6C', opacity: 0, stroke: '#F56C6C', strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'in', group: 'in' },
@@ -186,10 +186,10 @@ function diamondAttrs(color: string, iconText: string, iconSize = 24) {
 function diamondPorts(color: string) {
   return {
     groups: {
-      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: color, opacity: 0.2, stroke: color, strokeWidth: 1.5 } } },
-      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: color, opacity: 0.2, stroke: color, strokeWidth: 1.5 } } },
-      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: color, opacity: 0.2, stroke: color, strokeWidth: 1.5 } } },
-      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: color, opacity: 0.2, stroke: color, strokeWidth: 1.5 } } },
+      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: color, opacity: 0, stroke: color, strokeWidth: 1.5 } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: color, opacity: 0, stroke: color, strokeWidth: 1.5 } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: color, opacity: 0, stroke: color, strokeWidth: 1.5 } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: color, opacity: 0, stroke: color, strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'top', group: 'top' },
@@ -279,10 +279,10 @@ Shape.Rect.define({
   },
   ports: {
     groups: {
-      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: '#2980B9', opacity: 0.2, stroke: '#2980B9', strokeWidth: 1.5 } } },
-      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: '#2980B9', opacity: 0.2, stroke: '#2980B9', strokeWidth: 1.5 } } },
-      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: '#2980B9', opacity: 0.2, stroke: '#2980B9', strokeWidth: 1.5 } } },
-      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: '#2980B9', opacity: 0.2, stroke: '#2980B9', strokeWidth: 1.5 } } },
+      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: '#2980B9', opacity: 0, stroke: '#2980B9', strokeWidth: 1.5 } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: '#2980B9', opacity: 0, stroke: '#2980B9', strokeWidth: 1.5 } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: '#2980B9', opacity: 0, stroke: '#2980B9', strokeWidth: 1.5 } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: '#2980B9', opacity: 0, stroke: '#2980B9', strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'top', group: 'top' },
