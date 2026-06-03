@@ -186,13 +186,13 @@ export function makeAtomAttrs(
     // 卡片主体（border 使用分组色）
     body: { fill: '#FFF', stroke: c, strokeWidth: 1, x: 0, y: 0, width: CARD_WIDTH, height: CARD_HEIGHT, rx: 8 },
     // 图标背景（28×28 圆角矩形，紧凑版）
-    'icon-bg': { fill: iconBg, stroke: iconStroke, strokeWidth: 1, x: 10, y: 8, width: 28, height: 28, rx: 6 },
+    'icon-bg': { fill: iconBg, stroke: iconStroke, strokeWidth: 1, x: 10, y: 6, width: 28, height: 28, rx: 6 },
     // 图标文字
-    icon: { text: icon || DEFAULT_ICON, fill: iconText, fontSize: 13, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 24, refY: 22 },
+    icon: { text: icon || DEFAULT_ICON, fill: iconText, fontSize: 13, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 24, refY: 20 },
     // 标题（与 icon 中线对齐 y=22）
-    label: { text: label, fill: '#303133', fontSize: 14, fontWeight: 600, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'middle', refX: 48, refY: 22 },
+    label: { text: label, fill: '#303133', fontSize: 14, fontWeight: 600, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'middle', refX: 48, refY: 20 },
     // 描述
-    desc: { text: desc || '', fill: 'rgba(0,0,0,0.65)', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 10, refY: 40 },
+    desc: { text: desc || '', fill: 'rgba(0,0,0,0.65)', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 10, refY: 36 },
     // 删除按钮（默认隐藏，hover 显示）
     'del-btn-bg': { fill: '#FF4D4F', cx: 196, cy: 12, r: 10, cursor: 'pointer', visibility: 'hidden' as const },
     'del-btn-icon': { text: '✕', fill: '#FFF', fontSize: 12, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 196, refY: 13, cursor: 'pointer', visibility: 'hidden' as const },
@@ -360,7 +360,7 @@ function diamondPorts() {
   }
 }
 
-// Gateways — 看图知意图标
+// Gateways — 看图知意图标（70×70，保持独立尺寸）
 registerNodeOnce('ops-exclusive-gateway', { width: 70, height: 70, markup: diamondMarkup, attrs: diamondAttrs('#E6A23C', '⊗', 28), ports: diamondPorts() })
 registerNodeOnce('ops-parallel-gateway', { width: 70, height: 70, markup: diamondMarkup, attrs: diamondAttrs('#409EFF', '⊞', 28), ports: diamondPorts() })
 registerNodeOnce('ops-conditional-parallel-gateway', { width: 70, height: 70, markup: diamondMarkup, attrs: diamondAttrs('#5CADFF', '◐', 26), ports: diamondPorts() })

@@ -69,7 +69,7 @@ export function layoutNodes(
   edges: { from: string; to: string }[],
   options?: { layerGap?: number; nodeGap?: number; startX?: number; startY?: number },
 ): Record<string, { x: number; y: number }> {
-  const LAYER_GAP = options?.layerGap ?? 320
+  const LAYER_GAP = options?.layerGap ?? 480
   const NODE_GAP = options?.nodeGap ?? 120
   const START_X = options?.startX ?? 50
   const START_Y = options?.startY ?? 40

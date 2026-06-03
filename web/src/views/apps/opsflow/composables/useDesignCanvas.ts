@@ -573,6 +573,14 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
         const cell = graph.value!.getCellById(pos.id)
         if (cell && cell.isNode()) cell.setPosition(pos.x, pos.y)
       }
+      // 展开水平间距，避免跨列连线折叠
+      const g = graph.value!
+      const minX = Math.min(...g.getNodes().map(n => n.getPosition().x))
+      for (const n of g.getNodes()) {
+        const p = n.getPosition()
+        const dx = p.x - minX
+        n.setPosition(minX + dx * 1.5, p.y)
+      }
       graph.value!.centerContent()
       ElMessage.success('AI layout complete')
     } catch {
