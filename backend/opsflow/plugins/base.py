@@ -21,6 +21,8 @@ class BasePlugin:
     version: str = "v1.0"
     description: str = ""
     risk_level: str = "low"      # low / medium / high
+    icon: str = ""               # 显示图标（emoji 或 Element Plus 图标名）
+    color: str = ""              # 主题色 hex（如 "#409EFF"）
     _need_schedule: bool = False # True=异步回调模式（长任务轮询）
 
     @classmethod

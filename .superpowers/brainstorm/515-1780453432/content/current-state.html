@@ -1,0 +1,52 @@
+<h2>Opsflow 原子节点现状</h2>
+<p class="subtitle">当前 design canvas 中的 <code>ops-atom</code> 就是一个纯白圆角矩形 + 文字</p>
+
+<div class="mockup" style="max-width: 500px; margin-top: 20px;">
+  <div class="mockup-header">设计态下的原子节点</div>
+  <div class="mockup-body" style="display: flex; gap: 30px; padding: 30px; justify-content: center; align-items: center; background: #f5f7fa;">
+    <!-- Current node representation -->
+    <svg width="180" height="48" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));">
+      <rect x="0" y="0" width="180" height="48" rx="6" ry="6" fill="white" stroke="#409EFF" stroke-width="1.5"/>
+      <text x="90" y="29" text-anchor="middle" font-family="Microsoft YaHei" font-size="13" fill="#333">发送钉钉通知</text>
+      <!-- ports -->
+      <circle cx="90" cy="0" r="4" fill="white" stroke="#409EFF" stroke-width="1.5" opacity="0.35"/>
+      <circle cx="180" cy="24" r="4" fill="white" stroke="#409EFF" stroke-width="1.5" opacity="0.35"/>
+      <circle cx="90" cy="48" r="4" fill="white" stroke="#409EFF" stroke-width="1.5" opacity="0.35"/>
+      <circle cx="0" cy="24" r="4" fill="white" stroke="#409EFF" stroke-width="1.5" opacity="0.35"/>
+    </svg>
+  </div>
+  <div class="mockup-header" style="margin-top: 10px;">运行态下的状态着色</div>
+  <div class="mockup-body" style="display: flex; gap: 15px; padding: 20px; justify-content: center; flex-wrap: wrap; background: #f5f7fa;">
+    <svg width="140" height="42" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));">
+      <rect x="0" y="0" width="140" height="42" rx="6" ry="6" fill="#f0f9eb" stroke="#67C23A" stroke-width="2"/>
+      <text x="70" y="26" text-anchor="middle" font-family="Microsoft YaHei" font-size="12" fill="#333">completed</text>
+    </svg>
+    <svg width="140" height="42">
+      <rect x="0" y="0" width="140" height="42" rx="6" ry="6" fill="#fef0f0" stroke="#F56C6C" stroke-width="2"/>
+      <text x="70" y="26" text-anchor="middle" font-family="Microsoft YaHei" font-size="12" fill="#333">failed</text>
+    </svg>
+    <svg width="140" height="42">
+      <rect x="0" y="0" width="140" height="42" rx="6" ry="6" fill="#fdf6ec" stroke="#E6A23C" stroke-width="2"/>
+      <text x="70" y="26" text-anchor="middle" font-family="Microsoft YaHei" font-size="12" fill="#333">running (pulse)</text>
+    </svg>
+    <svg width="140" height="42">
+      <rect x="0" y="0" width="140" height="42" rx="6" ry="6" fill="#f5f7fa" stroke="#C0C4CC" stroke-width="1.5"/>
+      <text x="70" y="26" text-anchor="middle" font-family="Microsoft YaHei" font-size="12" fill="#999">skipped</text>
+    </svg>
+  </div>
+</div>
+
+<h3 style="margin-top: 30px;">问题总结</h3>
+<p>当前原子节点只有文字标签和边框颜色变化，缺少以下视觉信息：</p>
+<ul>
+  <li>没有插件类型图标（无法快速区分"审批"、"通知"、"API调用"等）</li>
+  <li>执行状态表达有限（仅有边框变色 + pulse）</li>
+  <li>没有节点执行数据展示（耗时、重试次数、输入/输出预览）</li>
+  <li>设计态和运行态之间缺乏视觉张力</li>
+  <li>X6 的 custom SVG markup、path、动画能力未被充分利用</li>
+</ul>
+
+<div class="section">
+  <h3>接下来需要你的想法</h3>
+  <p>在浏览器中看了现状后，请告诉我你主要想通过美化达到什么目的？</p>
+</div>

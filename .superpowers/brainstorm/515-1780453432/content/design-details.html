@@ -1,0 +1,114 @@
+<h2>设计细节确认</h2>
+<p class="subtitle">在写入正式设计文档前，确认几个实现细节</p>
+
+<hr style="margin: 20px 0;">
+
+<div class="section">
+  <h3>问题 1：图标来源</h3>
+  <p>目前节点上显示插件类型图标，哪种方案更好？</p>
+  <div class="options" style="margin-top: 10px;">
+    <div class="option" data-choice="a" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>前端统一映射表</h3>
+        <p>在 shapes.ts 中维护一个 <code>pluginGroup → { color, icon }</code> 硬编码映射，不改后端</p>
+      </div>
+    </div>
+    <div class="option" data-choice="b" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>后端 PluginMeta 扩展</h3>
+        <p>给 PluginMeta 模型加 <code>icon</code> 和 <code>color</code> 字段，API 返回给前端，灵活可配置</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr style="margin: 20px 0;">
+
+<div class="section">
+  <h3>问题 2：节点尺寸</h3>
+  <p>当前 180x48，设计稿中 220x60（多了一行副标题）。你觉得？</p>
+  <div class="options" style="margin-top: 10px;">
+    <div class="option" data-choice="a" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>220×60，显示完整信息</h3>
+        <p>标题 + 副标题（分组名/状态描述），信息密度高</p>
+      </div>
+    </div>
+    <div class="option" data-choice="b" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>保持 180×48，紧凑</h3>
+        <p>只显示标题和图标，副标题通过 tooltip 展示</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr style="margin: 20px 0;">
+
+<div class="section">
+  <h3>问题 3：美化范围</h3>
+  <p>除了 ops-atom，还有哪些节点需要一起美化？</p>
+  <div class="options" data-multiselect style="margin-top: 10px;">
+    <div class="option" data-choice="start" onclick="toggleSelect(this)">
+      <div class="letter">✓</div>
+      <div class="content">
+        <h3>Start / End 事件</h3>
+        <p>圆形节点，统一视觉风格（加微阴影、精致化）</p>
+      </div>
+    </div>
+    <div class="option" data-choice="gateway" onclick="toggleSelect(this)">
+      <div class="letter">✓</div>
+      <div class="content">
+        <h3>网关节点</h3>
+        <p>菱形节点，统一阴影和交互</p>
+      </div>
+    </div>
+    <div class="option" data-choice="approval" onclick="toggleSelect(this)">
+      <div class="letter">✓</div>
+      <div class="content">
+        <h3>审批节点</h3>
+        <p>当前是菱形+🔐，考虑改成卡片式</p>
+      </div>
+    </div>
+    <div class="option" data-choice="subprocess" onclick="toggleSelect(this)">
+      <div class="letter">✓</div>
+      <div class="content">
+        <h3>子流程节点</h3>
+        <p>虚线边框，统一卡片风格</p>
+      </div>
+    </div>
+    <div class="option" data-choice="atom_only" onclick="toggleSelect(this)">
+      <div class="letter">✓</div>
+      <div class="content">
+        <h3>只做 ops-atom</h3>
+        <p>其他节点保持现状，避免改动过大</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr style="margin: 20px 0;">
+
+<div class="section">
+  <h3>问题 4：状态文本在运行态显示什么？</h3>
+  <div class="options" style="margin-top: 10px;">
+    <div class="option" data-choice="a" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>状态 + 耗时</h3>
+        <p>如"已完成 · 1.8s"、"失败 · Connection refused"</p>
+      </div>
+    </div>
+    <div class="option" data-choice="b" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>纯状态</h3>
+        <p>如"已完成"、"执行中"、"失败"，简洁干净</p>
+      </div>
+    </div>
+  </div>
+</div>

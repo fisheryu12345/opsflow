@@ -53,7 +53,7 @@ class TemplateSubprocessMixin:
                 'stale': stale_count,
                 'details': details,
             },
-        })
+        )
 
     @action(detail=True, methods=['post'], url_path='update-subprocess-refs')
     def update_subprocess_refs(self, request, pk=None):
@@ -90,7 +90,7 @@ class TemplateSubprocessMixin:
                 'updated_nodes': updated,
                 'message': f'已更新 {len(updated)} 个子流程引用',
             },
-        })
+        )
 
     def _extract_subprocess_refs(self, template) -> dict:
         """从 pipeline_tree 实时提取子流程引用（fallback）"""

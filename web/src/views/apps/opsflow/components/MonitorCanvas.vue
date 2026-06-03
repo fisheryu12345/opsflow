@@ -63,14 +63,13 @@ import { ref, watch, computed, onMounted, onActivated, onBeforeUnmount } from 'v
 import { Monitor, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
 import { useMonitor } from '../composables/useMonitor'
 import { useGraphCanvas, layoutNodes } from '../composables/useGraphCanvas'
-import { resolveNodeShape } from '../utils/shapes'
+import { resolveNodeShape, updateAtomNode } from '../utils/shapes'
 
 const props = defineProps<{ executionId: number; startedAt?: string; endedAt?: string }>()
 
 const canvasRef = ref<HTMLElement | null>(null)
 const graphNodeCount = ref(0)
 
-// 使用通用 Graph composable（监控模式）
 const {
   graph, zoomLevel,
   initGraph, zoomIn, zoomOut, fitCanvas,
@@ -116,7 +115,77 @@ const durationText = computed(() => {
   return `${Math.floor(sec / 60)}m ${sec % 60}s`
 })
 
-// ── 画布加载（监控模式：按给定数据渲染，不自动创建 start/end） ──
+// ── 运行态节点颜色映射（ops-atom 卡片风格） ──
+
+interface MonitorAttrs {
+  'accent-bar'?: Record<string, any>
+  body?: Record<string, any>
+  label?: Record<string, any>
+  subtitle?: Record<string, any>
+  'icon-bg'?: Record<string, any>
+  icon?: Record<string, any>
+  'status-dot'?: Record<string, any>
+}
+
+/** 根据状态生成 ops-atom 的全部 attrs 覆盖 */
+function atomMonitorAttrs(status: string, _label: string): MonitorAttrs {
+  const override: MonitorAttrs = {}
+  switch (status) {
+    case 'running':
+      override['accent-bar'] = { fill: '#E6A23C' }
+      override.body = { fill: '#FFFBF0', stroke: '#E6A23C', class: 'op-node-running' }
+      override.label = { fill: '#E6A23C' }
+      override.subtitle = { fill: '#E6A23C', text: '执行中' }
+      override['icon-bg'] = { stroke: '#E6A23C', strokeDasharray: '60 28' }
+      override['status-dot'] = { fill: '#E6A23C', class: 'op-dot-pulse' }
+      break
+    case 'completed':
+      override['accent-bar'] = { fill: '#67C23A' }
+      override.body = { fill: '#F0F9EB', stroke: '#67C23A', class: '' }
+      override.label = { fill: '#67C23A' }
+      override.subtitle = { fill: '#67C23A', text: '已完成' }
+      override['icon-bg'] = { fill: '#E1F3D8', stroke: '#67C23A', strokeDasharray: '' }
+      override.icon = { text: '✓', fill: '#67C23A', fontSize: 14 }
+      override['status-dot'] = { fill: '#67C23A', class: '' }
+      break
+    case 'failed':
+      override['accent-bar'] = { fill: '#F56C6C' }
+      override.body = { fill: '#FEF0F0', stroke: '#F56C6C', class: '' }
+      override.label = { fill: '#F56C6C' }
+      override.subtitle = { fill: '#F56C6C', text: '失败' }
+      override['icon-bg'] = { fill: '#FDE2E2', stroke: '#F56C6C', strokeDasharray: '' }
+      override.icon = { text: '✕', fill: '#F56C6C', fontSize: 14 }
+      override['status-dot'] = { fill: '#F56C6C', class: '' }
+      break
+    case 'skipped':
+      override['accent-bar'] = { fill: '#C0C4CC' }
+      override.body = { fill: '#F5F7FA', stroke: '#C0C4CC', class: '' }
+      override.label = { fill: '#C0C4CC' }
+      override.subtitle = { fill: '#C0C4CC', text: '已跳过' }
+      override['icon-bg'] = { fill: '#EBEEF5', stroke: '#C0C4CC', strokeDasharray: '' }
+      override['status-dot'] = { fill: '#C0C4CC', class: '' }
+      break
+    case 'pending_approval':
+      override['accent-bar'] = { fill: '#9B59B6' }
+      override.body = { fill: '#F3E8FF', stroke: '#9B59B6', class: '' }
+      override.label = { fill: '#9B59B6' }
+      override.subtitle = { fill: '#9B59B6', text: '等待审批' }
+      override['icon-bg'] = { fill: '#EDDDFF', stroke: '#9B59B6', strokeDasharray: '' }
+      override.icon = { text: '🔐', fontSize: 14 }
+      override['status-dot'] = { fill: '#9B59B6', class: '' }
+      break
+    default: // pending / undefined
+      override['accent-bar'] = { fill: '#909399' }
+      override.body = { fill: '#FFF', stroke: '#DCDFE6', class: '' }
+      override.label = { fill: '#C0C4CC' }
+      override.subtitle = { fill: '#C0C4CC', text: '等待执行' }
+      override['icon-bg'] = { fill: '#F5F7FA', stroke: '#DCDFE6', strokeDasharray: '' }
+      override['status-dot'] = { fill: 'transparent', class: '' }
+  }
+  return override
+}
+
+// ── 画布加载 ──
 
 function loadGraphData(data: { nodes: any[]; edges: any[] }) {
   if (!graph.value) { console.warn('[MonitorCanvas] graph not ready'); return }
@@ -136,13 +205,18 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
         const p = fallbackPos[node.id]
         if (p) { x = p.x; y = p.y }
       }
-      cells.push(graph.value.createNode({
+      const x6Node = graph.value.createNode({
         id: node.id,
         shape: shapeName,
         x: x ?? 0, y: y ?? 0,
         label: node.label || '',
         data: node,
-      }))
+      })
+      // 对 ops-atom 应用卡片样式（设计态默认）
+      if (x6Node.shape === 'ops-atom') {
+        updateAtomNode(x6Node)
+      }
+      cells.push(x6Node)
     }
 
     for (const edge of data.edges || []) {
@@ -160,7 +234,7 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
     graph.value.resetCells(cells)
     graph.value.centerContent()
 
-    // 重新应用已知状态（loadNodeStatuses 可能在画布创建前被调用）
+    // 重新应用已知状态
     if (Object.keys(nodeStatuses.value).length) {
       for (const [nid, s] of Object.entries(nodeStatuses.value)) applyNodeColor(nid, s)
     }
@@ -169,7 +243,7 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
   }
 }
 
-// ── 节点着色 + 运行态闪烁动画 ──
+// ── 节点着色（适配 ops-atom 卡片 markup + 传统节点） ──
 
 const runningNodeIds = new Set<string>()
 
@@ -177,24 +251,31 @@ function applyNodeColor(nodeId: string, status: string) {
   if (!graph.value) return
   const cell = graph.value.getCellById(nodeId)
   if (!cell || !cell.isNode()) return
-  const color = getNodeColor(status)
-  cell.setAttrByPath('body/stroke', color)
 
-  // 填充色 + 运行态闪烁 class
   const wasRunning = runningNodeIds.has(nodeId)
-  if (status === 'running') {
-    cell.setAttrByPath('body/fill', '#fdf6ec')
-    cell.setAttrByPath('body/class', 'op-node-running')
-    runningNodeIds.add(nodeId)
+  const isRunning = status === 'running'
+
+  if (cell.shape === 'ops-atom') {
+    const label = cell.getData()?.label || ''
+    const attrs = atomMonitorAttrs(status, label)
+    cell.setAttrs(attrs)
   } else {
-    if (wasRunning) {
-      runningNodeIds.delete(nodeId)
-      cell.setAttrByPath('body/class', '')
+    // 传统节点（start/end/gateway/approval/subprocess）
+    const color = getNodeColor(status)
+    cell.setAttrByPath('body/stroke', color)
+    if (isRunning) {
+      cell.setAttrByPath('body/fill', '#fdf6ec')
+      cell.setAttrByPath('body/class', 'op-node-running')
+    } else {
+      if (wasRunning) cell.setAttrByPath('body/class', '')
+      if (status === 'completed') cell.setAttrByPath('body/fill', '#f0f9eb')
+      else if (status === 'failed') cell.setAttrByPath('body/fill', '#fef0f0')
+      else if (status === 'skipped') cell.setAttrByPath('body/fill', '#f5f7fa')
     }
-    if (status === 'completed') cell.setAttrByPath('body/fill', '#f0f9eb')
-    else if (status === 'failed') cell.setAttrByPath('body/fill', '#fef0f0')
-    else if (status === 'skipped') cell.setAttrByPath('body/fill', '#f5f7fa')
   }
+
+  if (isRunning) runningNodeIds.add(nodeId)
+  else runningNodeIds.delete(nodeId)
 }
 
 watch(nodeStatuses, (statuses) => {
@@ -203,7 +284,6 @@ watch(nodeStatuses, (statuses) => {
 
 function loadNodeStatuses(statusMap: Record<string, string>) {
   nodeStatuses.value = { ...statusMap }
-  // 由下方 deep watch 统一处理 applyNodeColor，避免重复遍历
 }
 
 function refreshCanvas() {
@@ -224,7 +304,6 @@ onMounted(() => {
 })
 
 onActivated(() => {
-  // keep-alive 切回时刷新画布
   if (graph.value) graph.value.resize()
 })
 
@@ -250,15 +329,23 @@ defineExpose({ loadGraphData, loadNodeStatuses, refreshCanvas, setExecutionStatu
 .ws-connected .ws-dot { background: #67c23a; animation: pulse 2s infinite; }
 .ws-disconnected { background: #fef0f0; color: #f56c6c; }
 .ws-disconnected .ws-dot { background: #f56c6c; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-/* 运行态节点闪烁动画（边框 + 填充同步脉冲） */
+/* 运行态节点闪烁动画 */
 :deep(.op-node-running) {
   animation: op-pulse 1.5s ease-in-out infinite !important;
 }
 @keyframes op-pulse {
   0%, 100% { stroke-opacity: 1; stroke-width: 2.5; fill-opacity: 1; }
   50% { stroke-opacity: 0.3; fill-opacity: 0.5; }
+}
+
+/* 状态圆点脉动动画 */
+:deep(.op-dot-pulse) {
+  animation: op-dot-breathe 1.5s ease-in-out infinite;
+}
+@keyframes op-dot-breathe {
+  0%, 100% { opacity: 1; r: 4; }
+  50% { opacity: 0.3; r: 6; }
 }
 
 .header-stats { display: flex; align-items: center; gap: 10px; }

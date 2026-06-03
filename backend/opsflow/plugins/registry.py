@@ -122,6 +122,11 @@ def discover_variables():
         logger.warning("加载变量类型失败: %s", e)
 
 
+def _resolve_group_icon_color(cls) -> tuple:
+    """返回插件级 icon/color（默认空，前端维护 Group→图标映射）"""
+    return cls.icon or "", cls.color or ""
+
+
 def sync_plugin_meta_to_db():
     """将 PLUGIN_REGISTRY 中的插件元数据同步到 PluginMeta 表（支持多版本）"""
     from opsflow.models import PluginMeta
@@ -139,6 +144,8 @@ def sync_plugin_meta_to_db():
                 logger.error('sync_plugin_meta_to_db: plugin %s v%s config failed: %s', code, version, e)
                 continue
 
+            icon, color = _resolve_group_icon_color(cls)
+
             # 同步时保留已有 phase（不重置），新建时默认 PHASE_AVAILABLE
             existing = PluginMeta.objects.filter(code=code, version=version).first()
             defaults = {
@@ -146,6 +153,8 @@ def sync_plugin_meta_to_db():
                 "group": cls.group,
                 "description": cls.description,
                 "risk_level": cls.risk_level,
+                "icon": icon,
+                "color": color,
                 "form_schema": form_schema,
                 "output_schema": output_schema,
                 "is_active": True,

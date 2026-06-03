@@ -1,0 +1,110 @@
+<h2>三种美化方向的概念设计</h2>
+<p class="subtitle">基于 X6 的 SVG 能力，我构思了三个方向。看看哪个方向你更有感觉？</p>
+
+<div class="section">
+  <h3>方向 A：卡片化 · 精致感</h3>
+  <p class="subtitle">保留矩形轮廓，用阴影/渐变/左色条/图标提升设计品质</p>
+  <div style="display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; padding: 20px; background: #f5f7fa; border-radius: 10px;">
+    <!-- Card style node -->
+    <svg width="200" height="56" style="filter: drop-shadow(0 4px 12px rgba(64,158,255,0.2));">
+      <defs>
+        <linearGradient id="card-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#409EFF"/>
+          <stop offset="100%" stop-color="#66B1FF"/>
+        </linearGradient>
+      </defs>
+      <!-- left accent bar -->
+      <rect x="0" y="0" width="4" height="56" rx="2" fill="url(#card-grad)"/>
+      <!-- main body -->
+      <rect x="4" y="0" width="192" height="56" rx="8" ry="8" fill="white" stroke="#E4E7ED" stroke-width="1"/>
+      <!-- icon circle -->
+      <circle cx="28" cy="28" r="14" fill="#ECF5FF"/>
+      <text x="28" y="33" text-anchor="middle" font-size="14">🔔</text>
+      <!-- title -->
+      <text x="50" y="28" font-family="Microsoft YaHei" font-size="13" font-weight="600" fill="#303133">发送钉钉通知</text>
+      <!-- subtitle -->
+      <text x="50" y="44" font-family="Microsoft YaHei" font-size="11" fill="#909399">notification · v1.2</text>
+    </svg>
+  </div>
+  <div class="pros-cons" style="margin-top: 10px;">
+    <div class="pros"><h4>优点</h4><ul><li>实现简单，对现有结构改动小</li><li>设计感提升明显，精致感强</li><li>左色条可映射插件类别</li></ul></div>
+    <div class="cons"><h4>局限</h4><ul><li>所有节点形状统一，类型区分靠颜色/图标</li><li>状态反馈需要额外元素（徽章）</li></ul></div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>方向 B：形状差异化 · 一类型一形态</h3>
+  <p class="subtitle">不同插件品类用不同 SVG 路径形状，类似网关节点的多边形设计</p>
+  <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; align-items: center; padding: 20px; background: #f5f7fa; border-radius: 10px;">
+    <!-- notification - pill shape -->
+    <svg width="160" height="48" style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.12));">
+      <rect x="0" y="0" width="160" height="48" rx="24" ry="24" fill="white" stroke="#409EFF" stroke-width="1.5"/>
+      <text x="28" y="31" text-anchor="middle" font-size="16">🔔</text>
+      <text x="52" y="30" font-family="Microsoft YaHei" font-size="12" fill="#333">发送通知</text>
+    </svg>
+    <!-- API call - rounded rect with bracket -->
+    <svg width="160" height="48" style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.12));">
+      <rect x="0" y="0" width="160" height="48" rx="6" ry="6" fill="white" stroke="#67C23A" stroke-width="1.5"/>
+      <text x="22" y="33" text-anchor="middle" font-size="18" fill="#67C23A">&lt;/&gt;</text>
+      <text x="48" y="30" font-family="Microsoft YaHei" font-size="12" fill="#333">调用 API</text>
+    </svg>
+    <!-- data transform - hexagon -->
+    <svg width="160" height="52" style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.12));">
+      <polygon points="30,26 80,4 130,26 80,48" fill="white" stroke="#E6A23C" stroke-width="1.5"/>
+      <text x="80" y="32" text-anchor="middle" font-family="Microsoft YaHei" font-size="12" fill="#333">数据转换</text>
+    </svg>
+    <!-- approval - shield -->
+    <svg width="160" height="52" style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.12));">
+      <path d="M80,4 L140,16 L140,28 C140,42 80,50 80,50 C80,50 20,42 20,28 L20,16 Z" fill="white" stroke="#9B59B6" stroke-width="1.5"/>
+      <text x="80" y="32" text-anchor="middle" font-family="Microsoft YaHei" font-size="12" fill="#333">人工审批</text>
+    </svg>
+  </div>
+  <div class="pros-cons">
+    <div class="pros"><h4>优点</h4><ul><li>一眼识别插件类型，视觉效率最高</li><li>X6 原生支持自定义 path 形状</li><li>流程图看起来更生动、专业</li></ul></div>
+    <div class="cons"><h4>局限</h4><ul><li>形状设计需要投入（每类型设计 SVG path）</li><li>连接端口位置需要按形状适配</li><li>形状差异可能导致布局复杂化</li></ul></div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>方向 C：状态沉浸 · 设计态+运行态统一体验</h3>
+  <p class="subtitle">节点自带状态反馈环，设计态显示类型信息，运行态边框动画+进度指示</p>
+  <div style="display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; align-items: center; padding: 25px; background: #2c3e50; border-radius: 10px;">
+    <!-- running with animated border -->
+    <svg width="200" height="60">
+      <defs>
+        <linearGradient id="run-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#E6A23C"/>
+          <stop offset="100%" stop-color="#F56C6C"/>
+        </linearGradient>
+      </defs>
+      <rect x="2" y="2" width="196" height="56" rx="8" ry="8" fill="#1a1a2e" stroke="url(#run-grad)" stroke-width="3"/>
+      <circle cx="30" cy="30" r="12" fill="none" stroke="#E6A23C" stroke-width="2" stroke-dasharray="60 20" opacity="0.6">
+        <animateTransform attributeName="transform" type="rotate" from="0 30 30" to="360 30 30" dur="1.5s" repeatCount="indefinite"/>
+      </circle>
+      <text x="56" y="34" font-family="Microsoft YaHei" font-size="13" fill="#E6A23C" font-weight="600">运行中 · 发送通知</text>
+    </svg>
+    <!-- completed -->
+    <svg width="200" height="60">
+      <rect x="2" y="2" width="196" height="56" rx="8" ry="8" fill="#1a1a2e" stroke="#67C23A" stroke-width="3"/>
+      <circle cx="30" cy="30" r="12" fill="#67C23A" opacity="0.2"/>
+      <text x="30" y="35" text-anchor="middle" font-size="14" fill="#67C23A">✓</text>
+      <text x="56" y="34" font-family="Microsoft YaHei" font-size="13" fill="#67C23A" font-weight="600">已完成 · 发送通知</text>
+    </svg>
+    <!-- failed -->
+    <svg width="200" height="60">
+      <rect x="2" y="2" width="196" height="56" rx="8" ry="8" fill="#1a1a2e" stroke="#F56C6C" stroke-width="3"/>
+      <circle cx="30" cy="30" r="12" fill="#F56C6C" opacity="0.2"/>
+      <text x="30" y="35" text-anchor="middle" font-size="14" fill="#F56C6C">✕</text>
+      <text x="56" y="34" font-family="Microsoft YaHei" font-size="13" fill="#F56C6C" font-weight="600">失败 · 发送通知</text>
+    </svg>
+  </div>
+  <div class="pros-cons">
+    <div class="pros"><h4>优点</h4><ul><li>执行状态反馈最丰富直观</li><li>设计态与运行态视觉统一</li><li>用 X6 动画能力最充分</li></ul></div>
+    <div class="cons"><h4>局限</h4><ul><li>深色背景风格可能与整体主题不搭</li><li>实现复杂度较高</li><li>设计态可能不需要这么重的状态元素</li></ul></div>
+  </div>
+</div>
+
+<hr style="margin: 30px 0;">
+
+<h3>你的感觉？</h3>
+<p>先定大方向，具体细节后面可以逐步打磨。</p>

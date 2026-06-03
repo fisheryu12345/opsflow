@@ -10,7 +10,7 @@ import { MiniMap } from '@antv/x6-plugin-minimap'
 import { Keyboard } from '@antv/x6-plugin-keyboard'
 import { AiLayout } from '/@/api/opsflow/templates'
 import { useGraphCanvas, layoutNodes, defaultNodeLabel } from './useGraphCanvas'
-import { resolveNodeShape } from '../utils/shapes'
+import { resolveNodeShape, updateAtomNode } from '../utils/shapes'
 
 export function useDesignCanvas(containerId: string, emit?: (event: string, ...args: any[]) => void) {
   // 使用通用 Graph composable（设计模式）
@@ -82,6 +82,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     })
     g.on('node:change:data', ({ node }) => {
       if (node.id === selectedNode.value?.id) selectedNode.value = node.getData()
+      if (node.shape === 'ops-atom') updateAtomNode(node)
     })
     g.on('node:mouseenter', ({ node }) => {
       node.getPorts().forEach(p => {
@@ -95,7 +96,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     g.on('node:mouseleave', ({ node }) => {
       node.getPorts().forEach(p => {
         if (p.id) {
-          node.setPortProp(p.id, 'attrs/circle/opacity', 0.35)
+          node.setPortProp(p.id, 'attrs/circle/opacity', 0.2)
           node.setPortProp(p.id, 'attrs/circle/r', 5)       // 恢复
           node.setPortProp(p.id, 'attrs/circle/strokeWidth', 1.5)
         }
@@ -140,14 +141,17 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
             if (typeof src === 'object' && src.cell === oldId) edge.setSource({ ...src, cell: newId })
             if (typeof tgt === 'object' && tgt.cell === oldId) edge.setTarget({ ...tgt, cell: newId })
           })
-          if (data?.node_type === 'atom' && !data?.atom_type) needPlugin(newId)
+          if (data?.node_type === 'atom') {
+            if (data?.atom_type) updateAtomNode(newNode)
+            else needPlugin(newId)
+          }
         }, 0)
         return
       }
       const data = node.getData()
       if (data?.node_type === 'atom') {
-        node.setSize({ width: 180, height: 48 })
-        if (!data?.atom_type) needPlugin(node.id)
+        if (data?.atom_type) updateAtomNode(node)
+        else needPlugin(node.id)
       }
     })
     // 连线完成后执行校验：出度约束 + 标签检查 + 网关 Prompt
@@ -357,13 +361,18 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     for (const node of contentNodes) {
       const pos = positions[node.id] || { x: 0, y: 0 }
       const nodeLabel = node.label || defaultNodeLabel(node.node_type)
-      cells.push(graph.value.createNode({
+      const x6Node = graph.value.createNode({
         shape: resolveNodeShape(node),
         id: node.id, x: pos.x, y: pos.y,
         label: nodeLabel,
         attrs: { label: { text: nodeLabel } },
         data: node,
-      }))
+      })
+      // 对 ops-atom 节点应用卡片样式
+      if (x6Node.shape === 'ops-atom') {
+        updateAtomNode(x6Node)
+      }
+      cells.push(x6Node)
     }
 
     // 连线

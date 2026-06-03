@@ -1,0 +1,268 @@
+<h2>方案 A+C：卡片式精致节点 + 运行状态反馈</h2>
+<p class="subtitle">基于 X6 的 custom markup 实现，设计态+运行态统一风格</p>
+
+<div class="section">
+  <h3>一、节点整体结构</h3>
+  <p>使用 X6 的 <code>markup</code> 数组定义多层 SVG：左色条 + 主体 + 图标 + 标题 + 副标题</p>
+
+  <div style="display: flex; gap: 40px; flex-wrap: wrap; justify-content: center; padding: 30px; background: #f5f7fa; border-radius: 12px;">
+    <!-- Design state card -->
+    <div style="text-align: center;">
+      <div class="label">设计态</div>
+      <svg width="220" height="60" style="filter: drop-shadow(0 4px 12px rgba(64,158,255,0.15)); margin-top: 8px;">
+        <!-- shadow bg -->
+        <rect x="2" y="2" width="216" height="56" rx="8" ry="8" fill="rgba(0,0,0,0.06)"/>
+        <!-- left accent bar (blue for HTTP group) -->
+        <rect x="0" y="0" width="4" height="56" rx="2" fill="#409EFF"/>
+        <!-- main body -->
+        <rect x="4" y="0" width="212" height="56" rx="8" ry="8" fill="white" stroke="#E4E7ED" stroke-width="1"/>
+        <!-- icon circle bg -->
+        <circle cx="32" cy="28" r="14" fill="#ECF5FF" stroke="#D9ECFF" stroke-width="1"/>
+        <!-- icon text -->
+        <text x="32" y="33" text-anchor="middle" font-size="14" fill="#409EFF">🔗</text>
+        <!-- title -->
+        <text x="56" y="27" font-family="Microsoft YaHei" font-size="13" font-weight="600" fill="#303133">HTTP API 调用</text>
+        <!-- subtitle: group name -->
+        <text x="56" y="43" font-family="Microsoft YaHei" font-size="11" fill="#909399">HTTP · 低风险</text>
+        <!-- risk indicator dot -->
+        <circle cx="202" cy="12" r="4" fill="#67C23A" opacity="0.8"/>
+      </svg>
+    </div>
+
+    <!-- Monitor state - running -->
+    <div style="text-align: center;">
+      <div class="label">运行中</div>
+      <svg width="220" height="60" style="filter: drop-shadow(0 4px 16px rgba(230,162,60,0.3)); margin-top: 8px;">
+        <rect x="2" y="2" width="216" height="56" rx="8" ry="8" fill="rgba(0,0,0,0.06)"/>
+        <rect x="0" y="0" width="4" height="56" rx="2" fill="#E6A23C"/>
+        <rect x="4" y="0" width="212" height="56" rx="8" ry="8" fill="#FFFBF0" stroke="#E6A23C" stroke-width="1.5"/>
+        <!-- animated running ring -->
+        <circle cx="32" cy="28" r="14" fill="none" stroke="#E6A23C" stroke-width="2" stroke-dasharray="60 28" opacity="0.6">
+          <animateTransform attributeName="transform" type="rotate" from="0 32 28" to="360 32 28" dur="1.2s" repeatCount="indefinite"/>
+        </circle>
+        <text x="32" y="33" text-anchor="middle" font-size="14" fill="#E6A23C">⏳</text>
+        <text x="56" y="27" font-family="Microsoft YaHei" font-size="13" font-weight="600" fill="#E6A23C">HTTP API 调用</text>
+        <text x="56" y="43" font-family="Microsoft YaHei" font-size="11" fill="#E6A23C">执行中 · 耗时 2.3s</text>
+        <!-- pulse glow -->
+        <circle cx="208" cy="12" r="5" fill="#E6A23C" opacity="0.5">
+          <animate attributeName="opacity" values="0.5;0.1;0.5" dur="1.5s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+    </div>
+
+    <!-- Monitor state - completed -->
+    <div style="text-align: center;">
+      <div class="label">已完成</div>
+      <svg width="220" height="60" style="filter: drop-shadow(0 4px 12px rgba(103,194,58,0.2)); margin-top: 8px;">
+        <rect x="2" y="2" width="216" height="56" rx="8" ry="8" fill="rgba(0,0,0,0.06)"/>
+        <rect x="0" y="0" width="4" height="56" rx="2" fill="#67C23A"/>
+        <rect x="4" y="0" width="212" height="56" rx="8" ry="8" fill="#F0F9EB" stroke="#67C23A" stroke-width="1.5"/>
+        <circle cx="32" cy="28" r="14" fill="#E1F3D8"/>
+        <text x="32" y="33" text-anchor="middle" font-size="14" fill="#67C23A">✓</text>
+        <text x="56" y="27" font-family="Microsoft YaHei" font-size="13" font-weight="600" fill="#67C23A">HTTP API 调用</text>
+        <text x="56" y="43" font-family="Microsoft YaHei" font-size="11" fill="#67C23A">已完成 · 耗时 1.8s</text>
+      </svg>
+    </div>
+
+    <!-- Monitor state - failed -->
+    <div style="text-align: center;">
+      <div class="label">失败</div>
+      <svg width="220" height="60" style="filter: drop-shadow(0 4px 12px rgba(245,108,108,0.2)); margin-top: 8px;">
+        <rect x="2" y="2" width="216" height="56" rx="8" ry="8" fill="rgba(0,0,0,0.06)"/>
+        <rect x="0" y="0" width="4" height="56" rx="2" fill="#F56C6C"/>
+        <rect x="4" y="0" width="212" height="56" rx="8" ry="8" fill="#FEF0F0" stroke="#F56C6C" stroke-width="1.5"/>
+        <circle cx="32" cy="28" r="14" fill="#FDE2E2"/>
+        <text x="32" y="33" text-anchor="middle" font-size="14" fill="#F56C6C">✕</text>
+        <text x="56" y="27" font-family="Microsoft YaHei" font-size="13" font-weight="600" fill="#F56C6C">HTTP API 调用</text>
+        <text x="56" y="43" font-family="Microsoft YaHei" font-size="11" fill="#F56C6C">失败 · Connection refused</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<hr style="margin: 25px 0;">
+
+<div class="section">
+  <h3>二、插件分组 → 颜色 + 图标 映射方案</h3>
+  <p>结合 Element Plus 图标库，为每个插件分组分配主题色和概念图标</p>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 12px;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
+      <div style="width: 4px; height: 32px; border-radius: 2px; background: #409EFF;"></div>
+      <span style="font-size: 18px;">🔧</span>
+      <div><div style="font-size: 12px; font-weight: 600;">通用工具</div><div style="font-size: 10px; color: #999;">#409EFF</div></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
+      <div style="width: 4px; height: 32px; border-radius: 2px; background: #67C23A;"></div>
+      <span style="font-size: 18px;">🔗</span>
+      <div><div style="font-size: 12px; font-weight: 600;">HTTP</div><div style="font-size: 10px; color: #999;">#67C23A</div></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
+      <div style="width: 4px; height: 32px; border-radius: 2px; background: #E6A23C;"></div>
+      <span style="font-size: 18px;">🖥️</span>
+      <div><div style="font-size: 12px; font-weight: 600;">Ansible</div><div style="font-size: 10px; color: #999;">#E6A23C</div></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
+      <div style="width: 4px; height: 32px; border-radius: 2px; background: #F56C6C;"></div>
+      <span style="font-size: 18px;">📊</span>
+      <div><div style="font-size: 12px; font-weight: 600;">Monitor</div><div style="font-size: 10px; color: #999;">#F56C6C</div></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
+      <div style="width: 4px; height: 32px; border-radius: 2px; background: #9B59B6;"></div>
+      <span style="font-size: 18px;">💻</span>
+      <div><div style="font-size: 12px; font-weight: 600;">ESXi</div><div style="font-size: 10px; color: #999;">#9B59B6</div></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
+      <div style="width: 4px; height: 32px; border-radius: 2px; background: #00BCD4;"></div>
+      <span style="font-size: 18px;">🔌</span>
+      <div><div style="font-size: 12px; font-weight: 600;">Redfish</div><div style="font-size: 10px; color: #999;">#00BCD4</div></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
+      <div style="width: 4px; height: 32px; border-radius: 2px; background: #FF9800;"></div>
+      <span style="font-size: 18px;">🎫</span>
+      <div><div style="font-size: 12px; font-weight: 600;">ServiceNow</div><div style="font-size: 10px; color: #999;">#FF9800</div></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
+      <div style="width: 4px; height: 32px; border-radius: 2px; background: #607D8B;"></div>
+      <span style="font-size: 18px;">💾</span>
+      <div><div style="font-size: 12px; font-weight: 600;">NetApp</div><div style="font-size: 10px; color: #999;">#607D8B</div></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
+      <div style="width: 4px; height: 32px; border-radius: 2px; background: #795548;"></div>
+      <span style="font-size: 18px;">📈</span>
+      <div><div style="font-size: 12px; font-weight: 600;">Pmax</div><div style="font-size: 10px; color: #999;">#795548</div></div>
+    </div>
+  </div>
+
+  <p style="margin-top: 12px; font-size: 12px; color: #999;">
+    💡 未知分组回退到默认蓝色 #409EFF + ❓ 图标。图标后续可替换为 SVG path 而非 emoji，以获得更好的渲染一致性。
+  </p>
+</div>
+
+<hr style="margin: 25px 0;">
+
+<div class="section">
+  <h3>三、X6 实现方案</h3>
+
+  <div style="background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 8px; font-family: 'Courier New'; font-size: 12px; line-height: 1.6; overflow-x: auto;">
+    <pre style="margin: 0;">// Custom markup: 6 layers of SVG elements
+const markup = [
+  { tagName: 'rect', selector: 'shadow' },       // drop shadow (offset rect)
+  { tagName: 'rect', selector: 'accent-bar' },    // left colored bar (4px)
+  { tagName: 'rect', selector: 'body' },           // main card body
+  { tagName: 'circle', selector: 'icon-bg' },      // icon background circle
+  { tagName: 'text', selector: 'icon' },            // icon emoji/SVG
+  { tagName: 'text', selector: 'label' },            // node title
+  { tagName: 'text', selector: 'subtitle' },         // plugin group + risk
+  { tagName: 'circle', selector: 'status-dot' },     // status indicator dot
+]
+
+// Node.define with attrs for each selector
+const NodeCard = Shape.Rect.define({
+  shape: 'ops-atom',
+  width: 220,
+  height: 60,
+  markup,
+  attrs: {
+    body: { fill: '#FFF', stroke: '#E4E7ED', ... },
+    'accent-bar': { fill: '#409EFF', ... },
+    'icon-bg': { fill: '#ECF5FF', stroke: '#D9ECFF', ... },
+    label: { text: 'Node', ... },
+    subtitle: { text: 'group · risk', ... },
+    'status-dot': { r: 4, fill: 'transparent' },  // hidden in design mode
+  },
+})
+
+// Monitor mode: just update attrs based on execution status
+node.setAttrs({
+  body: { fill: '#F0F9EB', stroke: '#67C23A' },
+  'accent-bar': { fill: '#67C23A' },
+  label: { fill: '#67C23A' },
+  subtitle: { fill: '#67C23A', text: '已完成 · 耗时 1.8s' },
+  'status-dot': { fill: '#67C23A' },
+})
+
+// Running animation: X6 + CSS keyframes
+node.setAttrs({
+  'icon-bg': { stroke: '#E6A23C', strokeDasharray: '60 28' }
+}) // with animateTransform for rotation</pre>
+  </div>
+</div>
+
+<hr style="margin: 25px 0;">
+
+<div class="section">
+  <h3>四、端口交互增强</h3>
+  <p>在现有端口动画基础上，增加更精致的交互反馈</p>
+  <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; padding: 20px; background: #f5f7fa; border-radius: 10px;">
+    <div style="text-align: center;">
+      <div class="label">默认</div>
+      <svg width="160" height="40">
+        <rect x="0" y="0" width="160" height="40" rx="6" fill="white" stroke="#E4E7ED" stroke-width="1"/>
+        <text x="80" y="25" text-anchor="middle" font-size="11" fill="#999">节点</text>
+        <circle cx="80" cy="0" r="3" fill="white" stroke="#409EFF" stroke-width="1" opacity="0.2"/>
+        <circle cx="160" cy="20" r="3" fill="white" stroke="#409EFF" stroke-width="1" opacity="0.2"/>
+        <circle cx="80" cy="40" r="3" fill="white" stroke="#409EFF" stroke-width="1" opacity="0.2"/>
+        <circle cx="0" cy="20" r="3" fill="white" stroke="#409EFF" stroke-width="1" opacity="0.2"/>
+      </svg>
+    </div>
+    <div style="text-align: center;">
+      <div class="label">Hover</div>
+      <svg width="160" height="40">
+        <rect x="0" y="0" width="160" height="40" rx="6" fill="white" stroke="#409EFF" stroke-width="1.5"/>
+        <text x="80" y="25" text-anchor="middle" font-size="11" fill="#333">节点</text>
+        <circle cx="80" cy="0" r="5" fill="white" stroke="#409EFF" stroke-width="2"/>
+        <circle cx="160" cy="20" r="5" fill="white" stroke="#409EFF" stroke-width="2"/>
+        <circle cx="80" cy="40" r="5" fill="white" stroke="#409EFF" stroke-width="2"/>
+        <circle cx="0" cy="20" r="5" fill="white" stroke="#409EFF" stroke-width="2"/>
+      </svg>
+    </div>
+    <div style="text-align: center;">
+      <div class="label">连接拖拽中（目标高亮）</div>
+      <svg width="160" height="40">
+        <rect x="0" y="0" width="160" height="40" rx="6" fill="white" stroke="#409EFF" stroke-width="2"/>
+        <text x="80" y="25" text-anchor="middle" font-size="11" fill="#333">节点</text>
+        <circle cx="80" cy="0" r="7" fill="#ECF5FF" stroke="#409EFF" stroke-width="2.5"/>
+        <circle cx="160" cy="20" r="7" fill="#ECF5FF" stroke="#409EFF" stroke-width="2.5"/>
+        <circle cx="80" cy="40" r="7" fill="#ECF5FF" stroke="#409EFF" stroke-width="2.5"/>
+        <circle cx="0" cy="20" r="7" fill="#ECF5FF" stroke="#409EFF" stroke-width="2.5"/>
+        <!-- pulse ring animation -->
+        <circle cx="160" cy="20" r="12" fill="none" stroke="#409EFF" stroke-width="1" opacity="0.3">
+          <animate attributeName="r" values="7;14;7" dur="1s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.4;0;0.4" dur="1s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<hr style="margin: 25px 0;">
+
+<div class="section">
+  <h3>五、运行态 vs 设计态的差异总结</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+    <div style="padding: 12px; border-radius: 8px; border: 1px solid #D9ECFF; background: #ECF5FF;">
+      <h4 style="margin: 0 0 8px; font-size: 13px;">🎨 设计态</h4>
+      <ul style="margin: 0; padding-left: 16px; font-size: 12px;">
+        <li>白色卡片 + 浅灰边框</li>
+        <li>左色条显示插件分组颜色</li>
+        <li>图标 + 标题 + 副标题（分组名）</li>
+        <li>Port 默认半透明，hover 展开</li>
+        <li>风险等级小圆点右上角</li>
+      </ul>
+    </div>
+    <div style="padding: 12px; border-radius: 8px; border: 1px solid #E1F3D8; background: #F0F9EB;">
+      <h4 style="margin: 0 0 8px; font-size: 13px;">▶️ 运行态（在以上基础上叠加）</h4>
+      <ul style="margin: 0; padding-left: 16px; font-size: 12px;">
+        <li>边框颜色 → 执行状态色</li>
+        <li>背景填充 → 状态浅色背景</li>
+        <li>左色条 → 状态色</li>
+        <li>文字颜色 → 状态色</li>
+        <li>副标题 → 状态描述（执行中/耗时/错误）</li>
+        <li>图标区域 → 运行中旋转动画</li>
+        <li>右上角状态圆点 pulse 动画</li>
+        <li>Port 在运行态隐藏（不可编辑）</li>
+      </ul>
+    </div>
+  </div>
+</div>

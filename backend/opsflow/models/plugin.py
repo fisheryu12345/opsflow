@@ -18,6 +18,8 @@ class PluginMeta(models.Model):
     version = models.CharField(max_length=16, default='v1.0', verbose_name="Version")
     description = models.TextField(blank=True, verbose_name="Description")
     risk_level = models.CharField(max_length=16, default='low', verbose_name="Risk Level")
+    icon = models.CharField(max_length=32, default='', blank=True, verbose_name="Plugin Icon")
+    color = models.CharField(max_length=16, default='', blank=True, verbose_name="Plugin Theme Color")
     form_schema = models.JSONField(default=list, verbose_name="Form Schema")
     output_schema = models.JSONField(default=list, verbose_name="Output Schema")
     is_active = models.BooleanField(default=True, verbose_name="Is Active")

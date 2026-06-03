@@ -1,0 +1,13 @@
+{"type":"click","text":"B\n      \n        后端 PluginMeta 扩展\n        给 PluginMeta 模型加 icon 和 color 字段，API 返回给前端，灵活可配置","choice":"b","id":null,"timestamp":1780453857744}
+{"type":"click","text":"A\n      \n        220×60，显示完整信息\n        标题 + 副标题（分组名/状态描述），信息密度高","choice":"a","id":null,"timestamp":1780453907285}
+{"type":"click","text":"A\n      \n        220×60，显示完整信息\n        标题 + 副标题（分组名/状态描述），信息密度高","choice":"a","id":null,"timestamp":1780453918131}
+{"type":"click","text":"✓\n      \n        Start / End 事件\n        圆形节点，统一视觉风格（加微阴影、精致化）","choice":"start","id":null,"timestamp":1780453933739}
+{"type":"click","text":"✓\n      \n        网关节点\n        菱形节点，统一阴影和交互","choice":"gateway","id":null,"timestamp":1780453934737}
+{"type":"click","text":"✓\n      \n        审批节点\n        当前是菱形+🔐，考虑改成卡片式","choice":"approval","id":null,"timestamp":1780453935179}
+{"type":"click","text":"✓\n      \n        审批节点\n        当前是菱形+🔐，考虑改成卡片式","choice":"approval","id":null,"timestamp":1780453936083}
+{"type":"click","text":"✓\n      \n        子流程节点\n        虚线边框，统一卡片风格","choice":"subprocess","id":null,"timestamp":1780453936491}
+{"type":"click","text":"✓\n      \n        子流程节点\n        虚线边框，统一卡片风格","choice":"subprocess","id":null,"timestamp":1780453937537}
+{"type":"click","text":"✓\n      \n        只做 ops-atom\n        其他节点保持现状，避免改动过大","choice":"atom_only","id":null,"timestamp":1780453938095}
+{"type":"click","text":"✓\n      \n        只做 ops-atom\n        其他节点保持现状，避免改动过大","choice":"atom_only","id":null,"timestamp":1780453939307}
+{"type":"click","text":"✓\n      \n        子流程节点\n        虚线边框，统一卡片风格","choice":"subprocess","id":null,"timestamp":1780453940337}
+{"type":"click","text":"B\n      \n        纯状态\n        如\"已完成\"、\"执行中\"、\"失败\"，简洁干净","choice":"b","id":null,"timestamp":1780453951973}

@@ -56,6 +56,8 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                     "group": p.group,
                     "description": p.description,
                     "risk_level": p.risk_level,
+                    "icon": p.icon or "",
+                    "color": p.color or "",
                     "versions": [],
                 }
             version_map[p.code]["versions"].append(p.version)
@@ -81,6 +83,8 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
             "version": primary.version,
             "description": primary.description,
             "risk_level": primary.risk_level,
+            "icon": primary.icon or "",
+            "color": primary.color or "",
             "form_schema": primary.form_schema,
             "output_schema": primary.output_schema,
             "versions": all_versions,
@@ -105,6 +109,8 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                     "version": p.version,
                     "versions": [],
                     "risk_level": p.risk_level,
+                    "icon": p.icon or "",
+                    "color": p.color or "",
                     "phase": p.phase,
                     "phase_label": dict(PluginMeta.PHASE_CHOICES).get(p.phase, ''),
                 })
@@ -157,8 +163,8 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                     "group": plugin.group,
                     "allowed_projects": sorted(allowed),
                     "restricted": len(allowed) > 0,
-                }
-            })
+                },
+            )
 
         # POST: 更新可见性 — 同步到该插件所有版本
         project_ids = request.data.get('project_ids', [])
@@ -189,6 +195,8 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                     "group": p.group,
                     "description": p.description,
                     "risk_level": p.risk_level,
+                    "icon": p.icon or "",
+                    "color": p.color or "",
                     "allowed_projects": p.allowed_projects or [],
                     "restricted": len(p.allowed_projects or []) > 0,
                 })
