@@ -85,17 +85,17 @@
 
             <div v-for="(w, i) in validationResult.warnings" :key="'w'+i" class="result-item result-item-warn">
               <span class="result-item-icon">⚠</span>
-              <div>
-                <div class="result-item-title">Warning</div>
-                <div class="result-item-desc">{{ w }}</div>
+              <div class="result-item-body">
+                <span class="result-item-title">Warning</span>
+                <span class="result-item-desc">{{ w }}</span>
               </div>
             </div>
 
             <div v-for="(e, i) in validationResult.errors" :key="'e'+i" class="result-item result-item-error">
               <span class="result-item-icon">✕</span>
-              <div>
-                <div class="result-item-title">Error</div>
-                <div class="result-item-desc">{{ e }}</div>
+              <div class="result-item-body">
+                <span class="result-item-title">Error</span>
+                <span class="result-item-desc">{{ e }}</span>
               </div>
             </div>
 
@@ -1035,8 +1035,9 @@ $border-light: #e4e7ed;
 .result-item-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
 .result-item-warn .result-item-icon { color: #E6A23C; }
 .result-item-error .result-item-icon { color: #F56C6C; }
-.result-item-title { font-weight: 600; margin-bottom: 2px; }
-.result-item-desc { color: #666; line-height: 1.5; }
+.result-item-body { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.result-item-title { font-weight: 600; flex-shrink: 0; }
+.result-item-desc { color: #666; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .result-item-warn .result-item-title { color: #E6A23C; }
 .result-item-error .result-item-title { color: #F56C6C; }
 

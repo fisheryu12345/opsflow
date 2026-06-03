@@ -492,6 +492,8 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       if (x6Node.shape === 'ops-atom') {
         updateAtomNode(x6Node)
         x6Node.resize(CARD_WIDTH, CARD_HEIGHT)
+        // 原子卡片视觉重心偏下，上移 2px
+        x6Node.setPosition(x6Node.getPosition().x, x6Node.getPosition().y - 4)
       }
       if (x6Node.shape === 'ops-subprocess') {
         x6Node.resize(CARD_WIDTH, CARD_HEIGHT)
@@ -580,6 +582,13 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
         const p = n.getPosition()
         const dx = p.x - minX
         n.setPosition(minX + dx * 1.5, p.y)
+      }
+      // 原子卡片视觉重心偏下，Y 上移 2px
+      for (const n of g.getNodes()) {
+        if (n.shape === 'ops-atom') {
+          const p = n.getPosition()
+          n.setPosition(p.x, p.y - 4)
+        }
       }
       graph.value!.centerContent()
       ElMessage.success('AI layout complete')

@@ -216,6 +216,8 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
       if (x6Node.shape === 'ops-atom') {
         updateAtomNode(x6Node)
         x6Node.resize(CARD_WIDTH, CARD_HEIGHT)
+        // 原子卡片视觉重心偏下，上移 2px
+        x6Node.setPosition(x6Node.getPosition().x, x6Node.getPosition().y - 4)
       }
       cells.push(x6Node)
     }
