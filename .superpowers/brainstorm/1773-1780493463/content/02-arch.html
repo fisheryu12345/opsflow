@@ -1,0 +1,53 @@
+<h2>条件编辑器 — 架构设计</h2>
+
+<div class="section">
+  <h3>数据流</h3>
+  <div style="background: #f5f7fa; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 1.8;">
+    <div style="color: #909399;">// 用户操作流程</div>
+    <div>连接网关边 → <span style="color: #409EFF;">PropertyPanel</span> 显示简版条件</div>
+    <div>&emsp;→ 点击"编辑条件" → <span style="color: #409EFF;">ConditionDialog</span> 弹窗</div>
+    <div>&emsp;→ 选择变量 / 运算符 / 值 → 实时预览 ${...} 表达式</div>
+    <div>&emsp;→ 点确定 → 写入 <span style="color: #E6A23C;">edge.data.condition</span></div>
+    <br>
+    <div style="color: #909399;">// 数据结构（不改变现有 pipeline_tree 格式）</div>
+    <div>edge.data.condition = <span style="color: #67C23A;">"${node_1.cpu} > 80"</span></div>
+    <div>// 同时存储结构化条件供前端二次编辑</div>
+    <div>edge.data.conditionStruct = {</div>
+    <div>&emsp;logic: <span style="color: #67C23A;">"AND"</span>,</div>
+    <div>&emsp;rules: [{</div>
+    <div>&emsp;&emsp;source: <span style="color: #67C23A;">"node_1"</span>,</div>
+    <div>&emsp;&emsp;field: <span style="color: #67C23A;">"cpu"</span>,</div>
+    <div>&emsp;&emsp;op: <span style="color: #67C23A;">">"</span>,</div>
+    <div>&emsp;&emsp;value: <span style="color: #67C23A;">"80"</span></div>
+    <div>&emsp;}]</div>
+    <div>}</div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>组件关系</h3>
+  <div style="background: #f5f7fa; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 1.6;">
+    <span style="color: #409EFF;">PropertyPanel.vue</span> (选中边时)
+    ├── 标签下拉框（已有）
+    ├── 条件只读显示 + <span style="background: #ecf5ff; color: #409EFF; padding: 0 4px;">[编辑条件]</span> 按钮
+    │
+    <span style="color: #409EFF;">ConditionDialog.vue</span>  ← 新组件
+    ├── <span style="color: #E6A23C;">ConditionRow.vue</span>（单行：变量 + 运算符 + 值）
+    ├── AND/OR 切换 + 添加行按钮
+    ├── <span style="color: #E6A23C;">VariablePicker.vue</span>（变量选择下拉）
+    ├── 表达式实时预览区域
+    └── 校验结果提示
+
+    <span style="color: #409EFF;">useGraphCanvas.ts</span>
+    └── updateEdgeCondition(edgeId, struct)  ← 新方法
+        解析 struct → condition 字符串
+        写入 edge.data
+
+    <span style="color: #909399;">// 后端无改动 — 条件字符串格式不变</span>
+  </div>
+</div>
+
+<div class="section">
+  <h3>这个设计看起来对吗？</h3>
+  <p>没问题的话我接着 UI 布局细节。</p>
+</div>

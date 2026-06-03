@@ -230,6 +230,10 @@ python manage.py start_opsflow_scheduler
 | `apps/opsflow-log` | /ops/logs | opsflowLog |
 | `apps/opsflow-knowledge` | /ops/knowledge | opsflowKnowledge |
 | `apps/opsflow-dashboard` | /ops/dashboard | opsflowDashboard |
+| `apps/opsflow-approval` | /ops/approval | opsflowApproval |
+| `apps/opsflow-webhook` | /ops/webhook | opsflowWebhook |
+| `apps/opsflow-project` | /ops/project | opsflowProject |
+| `apps/opsflow-stats` | /ops/stats | opsflowStats |
 
 ## 6. 部署清单
 
@@ -255,3 +259,9 @@ python manage.py start_opsflow_scheduler
 | 2026-06-01 | `views/mixins/` 提取 | 创建 9 个 Mixin 类，template/execution 大 ViewSet 拆分 |
 | 2026-06-01 | `views/dashboard_views/` 包 | dashboard_views.py 拆分为 stats/trends/analytics 3 模块 |
 | 2026-06-01 | `core/bamboo_validator.py` | 从 bamboo_builder.py 提取 validate_bamboo_compatibility |
+| 2026-06-03 | `models.py` → `models/` 包 | 单 models.py 拆分为 11 模块包 |
+| 2026-06-03 | `mixins/` 扩展至 11 个 | 新增 template_collect, template_webhook 2 个 Mixin |
+| 2026-06-03 | `views/base.py` | 新增 ProjectFilteredViewSet 项目隔离基类 |
+| 2026-06-03 | `mock_view/` 目录 | 新增 8 组 CMDB Mock 数据端点 |
+| 2026-06-03 | `core/apigw/` 目录 | 新增外部 API 网关（API Token 认证） |
+| 2026-06-03 | `signals/timeout.py` | 新增超时信号处理器 |

@@ -330,7 +330,9 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
             confirmButtonText: '确定',
             cancelButtonText: '取消（删除边）',
           }).then(({ value: expr }) => {
-            edge.setLabels([{ attrs: { text: { text: 'custom' } } }])
+            // 显示截断的条件表达式代替 raw "custom"
+            const labelText = expr.length > 20 ? expr.substring(0, 17) + '...' : expr
+            edge.setLabels([{ attrs: { text: { text: labelText } } }])
             edge.setData({ condition: expr })
           }).catch(() => {
             g.removeEdge(edge.id)

@@ -369,9 +369,13 @@ function onEdgeUpdate(newData: any) {
       const label = newData.label || ''
       // success/failure labels need no condition expression / success/failure 不需要 condition
       const condition = label === 'custom' ? (newData.condition || prev.condition || '') : ''
-      edge.setData({ ...prev, condition })
+      const conditionStruct = label === 'custom' ? (newData.conditionStruct || prev.conditionStruct || null) : null
+      edge.setData({ ...prev, condition, conditionStruct })
       // Display label on the edge line / 标签显示在连线上
-      if (label) {
+      if (label === 'custom' && condition) {
+        const displayText = condition.length > 20 ? condition.substring(0, 17) + '...' : condition
+        edge.setLabels([{ attrs: { text: { text: displayText } } }])
+      } else if (label) {
         edge.setLabels([{ attrs: { text: { text: label } } }])
       } else {
         edge.setLabels([])

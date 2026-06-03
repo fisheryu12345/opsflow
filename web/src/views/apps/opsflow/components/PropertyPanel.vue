@@ -204,25 +204,34 @@
             <el-option label="custom（自定义条件）" value="custom" />
           </el-select>
         </div>
-        <!-- 自定义条件输入（选择 custom 时显示） -->
+        <!-- 自定义条件（结构化编辑器） -->
         <div class="prop-row-vertical" v-if="edgeForm.label === 'custom'">
           <span class="prop-label">Condition</span>
-          <el-input
-            v-model="edgeForm.condition"
-            type="textarea"
-            :rows="3"
-            size="small"
-            placeholder="${node_1.output_key > 0}"
-            @change="emitEdgeUpdate"
-          />
-          <div class="condition-hint">
-            <p>使用 <code>${node_id.key}</code> 引用节点输出。示例：</p>
-            <ul class="hint-list">
-              <li><code>${node_1._result}</code> 引用执行结果</li>
-              <li><code>${node_1.code} == 200</code> 状态码判断</li>
-              <li><code>${node_1.cpu} > 80</code> 数值比较</li>
-              <li><code>${node_1.status} == 'ok'</code> 字符串比较</li>
-            </ul>
+          <div class="condition-preview" @click="openConditionDialog">
+            <template v-if="edgeForm.condition">
+              <code class="condition-code">{{ edgeForm.condition }}</code>
+              <el-button size="small" text type="primary">
+                <el-icon><EditPen /></el-icon>
+                Edit
+              </el-button>
+            </template>
+            <template v-else>
+              <span class="condition-placeholder">Click to set condition expression</span>
+              <el-button size="small" text type="primary">Add</el-button>
+            </template>
+          </div>
+          <!-- 引用变量标签 -->
+          <div class="cond-refs" v-if="conditionRefs.length > 0">
+            <el-tag
+              v-for="ref in conditionRefs"
+              :key="ref"
+              size="small"
+              type="info"
+              effect="plain"
+              class="cond-ref-tag"
+            >
+              {{ ref }}
+            </el-tag>
           </div>
         </div>
       </div>
@@ -232,16 +241,31 @@
       <el-icon size="28" color="#c0c4cc"><Pointer /></el-icon>
       <p>Click a node or edge to view properties</p>
     </div>
+
+    <!-- 条件编辑器弹窗 -->
+    <ConditionDialog
+      :visible="conditionDialogVisible"
+      :initial-struct="conditionStruct"
+      :available-vars="availableVars"
+      :source-node-label="edgeData?.from || ''"
+      :target-node-label="edgeData?.to || ''"
+      @update:visible="conditionDialogVisible = $event"
+      @save="onConditionSave"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, nextTick } from 'vue'
-import { Setting, Pointer, WarnTriangleFilled, CircleCheckFilled, InfoFilled, Aim, Connection, Switch } from '@element-plus/icons-vue'
+import { ref, watch, computed } from 'vue'
+import { Setting, Pointer, WarnTriangleFilled, CircleCheckFilled, InfoFilled, Aim, Connection, Switch, EditPen } from '@element-plus/icons-vue'
 import RenderForm from '/@/components/RenderForm/RenderForm.vue'
 import TagVariableMapping from '/@/components/RenderForm/tags/TagVariableMapping.vue'
 import { GetPluginGroups, GetPluginDetail } from '/@/api/opsflow/plugins'
 import { GetTemplates } from '/@/api/opsflow/templates'
+import { useOpsflowStore } from '../stores/opsflowStore'
+import ConditionDialog from './ConditionDialog.vue'
+import { generateConditionExpr, extractAvailableVariables as getAvailableVars } from '../composables/useGraphCanvas'
+import type { ConditionStruct } from '../utils/shapes'
 
 const props = defineProps<{
   nodeData?: any
@@ -257,6 +281,21 @@ const emit = defineEmits<{
 /* ── Form state (MUST be before any computed/watcher that references them) ── */
 const form = ref<any>({})
 const edgeForm = ref<any>({ condition: '' })
+
+/* ── Condition editor state ── */
+const conditionDialogVisible = ref(false)
+const conditionStruct = ref<ConditionStruct | null>(null)
+const availableVars = ref<any[]>([])
+const opsflowStore = useOpsflowStore()
+
+const conditionRefs = computed(() => {
+  const cond = edgeForm.value?.condition || ''
+  if (!cond) return []
+  const refs = new Set<string>()
+  const m = cond.match(/\$\{([^}]+)\}/g)
+  if (m) m.forEach(r => refs.add(r.replace(/\$\{|\}/g, '')))
+  return [...refs]
+})
 
 /* ---------- Variable references detection ---------- */
 const varReferences = computed(() => {
@@ -445,8 +484,11 @@ watch(() => props.nodeData, (val) => {
 watch(() => props.edgeData, (val) => {
   if (val) {
     edgeForm.value = { condition: val.condition || '', label: val.label || '' }
+    // 回填条件结构化数据
+    conditionStruct.value = val.conditionStruct || null
   } else {
     edgeForm.value = { condition: '' }
+    conditionStruct.value = null
   }
 }, { immediate: true, deep: true })
 
@@ -478,10 +520,27 @@ function emitUpdate() {
   emit('update', updated)
 }
 
+/** 打开条件编辑器弹窗，同时刷新可用变量列表 */
+function openConditionDialog() {
+  // extractAvailableVariables(nodes, store) — PropertyPanel 无 graph 引用时传空数组
+  availableVars.value = getAvailableVars([], opsflowStore) || []
+  conditionDialogVisible.value = true
+}
+
+/** 条件编辑器保存回调 */
+function onConditionSave(struct: ConditionStruct) {
+  conditionStruct.value = struct
+  edgeForm.value.condition = struct.rules && struct.rules.length > 0
+    ? generateConditionExpr(struct.rules, struct.logic)
+    : ''
+  emitEdgeUpdate()
+}
+
 function onEdgeLabelChange(label: string) {
   edgeForm.value.label = label
   if (label === 'success') edgeForm.value.condition = ''
   else if (label === 'failure') edgeForm.value.condition = ''
+  conditionStruct.value = null
   emitEdgeUpdate()
 }
 
@@ -489,6 +548,7 @@ function emitEdgeUpdate() {
   emit('update', {
     label: edgeForm.value.label || '',
     condition: edgeForm.value.condition || '',
+    conditionStruct: conditionStruct.value || undefined,
   })
 }
 

@@ -39,12 +39,43 @@
 - [x] **编辑器 Executions 按钮删除** — 编辑与执行职责分离，工具栏移除运行记录入口
 - [x] **MonitorCanvas Cancel 按钮去重** — 进度条区域 Cancel 按钮已移除（执行详情页保留）
 
+### 最近完成（2026-06-03 文档更新时确认）
+
+- [x] **项目管理** — OpsProject / ProjectMember / ProjectEnvironmentVariable 模型 + CRUD + 成员管理
+- [x] **项目隔离** — ProjectFilteredViewSet 基类，按项目角色自动过滤数据
+- [x] **数据模型包拆分** — 单 models.py → models/ 包（11 模块）
+- [x] **TemplateNode/ExecutionNode 模型** — 节点持久化为独立行，支持 SQL 查询
+- [x] **ExecutionScheme 执行方案** — 预定义节点排除集 + 变量覆盖 + 默认方案
+- [x] **TemplateCategory 模板分类** — 可管理分类，支持排序和图标
+- [x] **TemplateCollect 模板收藏** — 用户收藏 + 检查端点
+- [x] **Webhook 回调系统** — WebhookConfig + WebhookLog 模型，事件触发 + HMAC 签名 + 重试
+- [x] **ApiToken 外部认证** — 外部 API 网关 Token 认证 + 权限控制
+- [x] **OperationRecord 操作审计** — CRUD/执行/审批操作自动记录
+- [x] **auto_retry 自动重试** — 节点 FAILED 时自动派发 Celery 重试
+- [x] **node_timeout 超时策略** — 可配置超时 + 强制失败/跳过动作
+- [x] **node_sync 节点同步** — pipeline_tree JSON ↔ TemplateNode/ExecutionNode 双向同步
+- [x] **Mako 变量解析** — Mako 模板引擎变量替换
+- [x] **conflict_checker 冲突检测** — 多人编辑时 pipeline_tree 冲突检测
+- [x] **audit_logger 审计日志器** — 统一操作记录入口
+- [x] **plugin_deprecation 生命周期** — 可用/即将弃用/已弃用三阶段
+- [x] **Pipeline Preview** — 排除节点后的清理预览
+- [x] **API Gateway** — 外部 API Token 认证 + 触发/状态/模板端点
+- [x] **CMDB Mock 数据** — 8 组 CMDB 模拟数据端点（CMDB 建设准备）
+- [x] **扩展插件: verify** — ip_ops_verify 验证插件
+- [x] **Dry Run 模式** — test 原子替换安全执行预览
+- [x] **useGraphCanvas / useGraphValidator / useAutoSave** — 前端画布管理/校验/自动保存 composables
+- [x] **CreateTemplateWizard.vue** — 三步创建模板向导
+- [x] **SubmitWizardDialog.vue** — 执行提导向弹窗
+- [x] **ProjectSwitcher / ProjectEnvVarPanel** — 前端项目切换与环境变量
+- [x] **opsflow-webhook / opsflow-project / opsflow-stats 页面** — 新增前端页面模块
+- [x] **模板分类管理前端** — template-categories API + 分类筛选
+
 ## ❌ 待处理
 
 ### 高优先级
 
 - [x] ~~**get_pipeline_states 状态验证** — 关闭（OpsFlow 用信号驱动 + 缓存，bk-sops 用实时查询，两套模式不同，此机制意义不大）~~
-- [ ] **X6 节点 UI 定型** — 统一节点视觉风格（尺寸、配色、图标、阴影、选中态），参考 bk_sops 节点设计规范，确保所有节点类型视觉层级清晰
+- [x] **X6 节点 UI 定型** — 统一节点视觉风格（尺寸、配色、图标、阴影、选中态），参考 bk_sops 节点设计规范，确保所有节点类型视觉层级清晰
 - [x] **流程图布局优化** — 适配 bk_sops Sugiyama 布局引擎（core/layout/ 18 文件），支持分层布线、交叉最小化、自动起止节点合成
 - [x] **X6 连线重叠修复** — Manhattan 路由 padding 配置 + 增大垂直间距（shift_y=144, NODE_GAP=120）
 
@@ -77,7 +108,31 @@
 - [x] **Dashboard 包拆解** — dashboard_views.py (524 行) 拆分为 dashboard_views/ 包（stats/trends/analytics 3 模块）
 - [x] **bamboo_validator 提取** — validate_bamboo_compatibility() 从 bamboo_builder.py 提取到独立模块
 
-### 待添加
+### 新增待办项
+
+- [ ] **Dry Run 增强** — Dry Run 执行完成后支持一键清理测试数据：
+  - Dry Run 创建的临时执行记录自动标记（`context.dry_run=True`）
+  - 清理命令：`clean_opsflow_data --dry-run-only` 删除所有 Dry Run 记录
+  - 前端 Dry Run 弹窗增加"清理"按钮
+
+- [ ] **模板自动保存** — 前端 `useAutoSave.ts` 已实现，但后端需要：
+  - 添加草稿自动保存间隔配置（目前前端 30s）
+  - 冲突检测提示（多人同时编辑时，`conflict_checker.py` 已实现检测逻辑但前端未集成）
+  - 版本差异对比前端展示优化
+
+- [ ] **项目级 RBAC 增强** — 目前项目成员分 admin/editor/viewer 三级，但：
+  - 未实现 viewer 只读权限强制（前端隐藏编辑按钮，后端尚需 permission_classes 检查）
+  - 未实现项目间模板共享的细化控制（`is_public` + `project_scope` 已实现但前端缺乏管理界面）
+
+- [ ] **操作审计前端页面** — OperationRecord 后端已实现，但前端 `opsflow-audit` 页面尚未开发：
+  - 后端 API `/api/opsflow/audit/` 已就绪
+  - 前端需新增审计日志浏览页面（过滤：操作类型/资源/操作人/时间范围）
+
+- [ ] **执行方案管理前端增强** — `SchemeManager.vue` 已基本完成，但还需：
+  - 方案对比（两个方案的 excluded_nodes 差异高亮）
+  - 方案复制（基于已有方案创建新方案）
+
+- [ ] **批量删除模板/执行** — 当前删除是单条操作，缺少批量选择删除端点。
 
 - [ ] **bk-sops 配置驱动表单架构借鉴** — 参考 bk-sops 原子表单的"配置驱动"思想，构建 OpsFlow 原子参数配置表单：
 
@@ -92,21 +147,6 @@
   | `$.atoms[code]` 全局注册 | 后端 API 动态返回表单 Schema (`GET /api/opsflow/atom-schema/{code}`) |
   | `tag_code` 字符串绑定 | 类型安全的字段 key (TypeScript enum + 运行时校验) |
   | 手写 `events` 联动 | 声明式联动规则 (dependencies + react-when) 或可视化规则引擎 |
-
-  **数据结构契约** (参考 tag_code 设计):
-  ```python
-  # 后端原子定义
-  class AtomMeta:
-      code: str          # 唯一标识
-      name: str          # 显示名称
-      form_schema: dict  # JSON Schema 描述参数结构
-      # 数据绑定: schema 中的 field_key 对应前端表单值的 key
-      # 执行时通过 field_key 取值: inputs["field_key"]
-
-  # 前端渲染 (Vue3 + JSON Schema Form)
-  # <VueForm :schema="atomMeta.form_schema" v-model="formValues" />
-  # formValues = { "host_ip": "...", "var_name": "..." }  # 按 field_key 组织
-  ```
 
   **需要解决的问题**:
   - 选择 JSON Schema 表单库 (Vue JSON Schema Form / Formily / Element Plus 动态表单?)

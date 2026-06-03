@@ -1,0 +1,159 @@
+<h2>前端网关条件编辑 UI — 三种方案对比</h2>
+<p class="subtitle">当前问题：条件表达式只能手写原始 ${node_1.cpu} > 80 文本，无提示、无校验、无结构</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>方案 A：极简增强版</h3>
+      <p style="color: #909399; margin: 4px 0 8px 0; font-size: 13px;">保留现有 PropertyPanel 文本区域 + 增强辅助功能</p>
+      <div style="background: #f5f7fa; border-radius: 6px; padding: 12px; margin-bottom: 8px; font-size: 13px; line-height: 1.6;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <span style="background: #E6A23C; color: #fff; padding: 0 8px; border-radius: 3px; font-size: 11px;">label</span>
+          <select style="flex:1; padding: 4px 8px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff;">
+            <option>success</option>
+            <option>failure</option>
+            <option selected>custom</option>
+          </select>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 8px;">
+          <span style="background: #409EFF; color: #fff; padding: 0 8px; border-radius: 3px; font-size: 11px;">expr</span>
+          <div style="flex:1; position: relative;">
+            <textarea style="width:100%; padding: 6px 30px 6px 6px; border: 1px solid #dcdfe6; border-radius: 4px; font-family: monospace; font-size: 12px; min-height: 40px;">${node_1.cpu} > 80</textarea>
+            <span style="position: absolute; right: 4px; top: 4px; background: #ecf5ff; color: #409EFF; padding: 2px 6px; border-radius: 3px; font-size: 11px; cursor: pointer;">{x}</span>
+          </div>
+        </div>
+        <div style="margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap;">
+          <span style="background: #f0f9eb; color: #67C23A; padding: 2px 8px; border-radius: 3px; font-size: 11px;">${node_1.cpu}</span>
+          <span style="background: #f0f9eb; color: #67C23A; padding: 2px 8px; border-radius: 3px; font-size: 11px;">${node_1.mem}</span>
+          <span style="background: #f0f9eb; color: #67C23A; padding: 2px 8px; border-radius: 3px; font-size: 11px;">${global.env}</span>
+          <span style="background: #ecf5ff; color: #909399; padding: 2px 8px; border-radius: 3px; font-size: 11px;">+ 点击插入变量</span>
+        </div>
+        <div style="margin-top: 6px; color: #67C23A; font-size: 12px;">✓ 校验通过：node_1.cpu 存在，类型 number</div>
+      </div>
+      <div class="pros-cons" style="font-size: 12px;">
+        <div class="pros">
+          <h4 style="margin:0 0 4px 0;">优势</h4>
+          <ul style="margin:0; padding-left: 16px;">
+            <li>改动最小，2-3 天</li>
+            <li>不改变已有交互流程</li>
+            <li>变量按钮弹出选择器快速插入</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4 style="margin:0 0 4px 0;">局限</h4>
+          <ul style="margin:0; padding-left: 16px;">
+            <li>仍然是自由文本输入</li>
+            <li>复杂条件容易写错语法</li>
+            <li>无运算符辅助选择</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>方案 B：条件构建器（推荐）</h3>
+      <p style="color: #909399; margin: 4px 0 8px 0; font-size: 13px;">结构化的行式条件编辑器，变量 + 运算符 + 值三段式</p>
+      <div style="background: #f5f7fa; border-radius: 6px; padding: 12px; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 8px;">
+          <span style="background: #67C23A; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px;">1</span>
+          <select style="padding: 4px 8px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; flex: 1;">
+            <option>node_1 (Disk Check) → cpu</option>
+            <option>node_1 (Disk Check) → mem</option>
+            <option>node_1 (Disk Check) → _result</option>
+            <option>global → env</option>
+            <option>_system → timestamp</option>
+          </select>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 8px;">
+          <span style="background: #E6A23C; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px;">2</span>
+          <div style="display: flex; gap: 4px; flex:1;">
+            <span style="padding: 4px 12px; border: 2px solid #409EFF; border-radius: 4px; background: #ecf5ff; font-weight: 600; cursor: pointer;">&gt;</span>
+            <span style="padding: 4px 12px; border: 1px solid #dcdfe6; border-radius: 4px; cursor: pointer;">&lt;</span>
+            <span style="padding: 4px 12px; border: 1px solid #dcdfe6; border-radius: 4px; cursor: pointer;">==</span>
+            <span style="padding: 4px 12px; border: 1px solid #dcdfe6; border-radius: 4px; cursor: pointer;">!=</span>
+            <span style="padding: 4px 12px; border: 1px solid #dcdfe6; border-radius: 4px; cursor: pointer;">contains</span>
+            <span style="padding: 4px 12px; border: 1px solid #dcdfe6; border-radius: 4px; cursor: pointer;">regex</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+          <span style="background: #F56C6C; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px;">3</span>
+          <input style="flex:1; padding: 4px 8px; border: 1px solid #dcdfe6; border-radius: 4px;" value="80" placeholder="比较值">
+          <span style="font-size: 11px; color: #909399;">(numeric)</span>
+        </div>
+        <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 12px;">
+          <button style="padding: 2px 8px; border: 1px dashed #dcdfe6; border-radius: 4px; background: #fff; cursor: pointer; color: #909399;">+ 添加条件（AND）</button>
+          <button style="padding: 2px 8px; border: 1px dashed #dcdfe6; border-radius: 4px; background: #fff; cursor: pointer; color: #909399;">+ 添加条件（OR）</button>
+        </div>
+        <div style="margin-top: 6px;">
+          <span style="background: #f0f9eb; color: #67C23A; padding: 2px 8px; border-radius: 3px; font-size: 11px;">生成：${node_1.cpu} > 80</span>
+        </div>
+      </div>
+      <div class="pros-cons" style="font-size: 12px;">
+        <div class="pros">
+          <h4 style="margin:0 0 4px 0;">优势</h4>
+          <ul style="margin:0; padding-left: 16px;">
+            <li>零学习成本，点选即可</li>
+            <li>类型感知（数值显示数字键盘提示）</li>
+            <li>支持 AND/OR 多条件组合</li>
+            <li>实时校验 + 表达式预览</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4 style="margin:0 0 4px 0;">局限</h4>
+          <ul style="margin:0; padding-left: 16px;">
+            <li>实现工作量大（5-7 天）</li>
+            <li>非常复杂的表达式可能不如文本灵活</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>方案 C：混合模式</h3>
+      <p style="color: #909399; margin: 4px 0 8px 0; font-size: 13px;">简单条件用快捷按钮，复杂条件回退到文本编辑器</p>
+      <div style="background: #f5f7fa; border-radius: 6px; padding: 12px; margin-bottom: 8px;">
+        <div style="margin-bottom: 8px;">
+          <span style="background: #ecf5ff; color: #409EFF; padding: 4px 10px; border-radius: 12px; font-size: 12px; margin-right: 4px;">${_result} == True</span>
+          <span style="background: #ecf5ff; color: #409EFF; padding: 4px 10px; border-radius: 12px; font-size: 12px; margin-right: 4px;">${_result} == False</span>
+          <span style="background: #fef0f0; color: #F56C6C; padding: 4px 10px; border-radius: 12px; font-size: 12px; margin-right: 4px;">自定义...</span>
+        </div>
+        <div style="border: 1px solid #dcdfe6; border-radius: 4px; padding: 8px;">
+          <div style="font-size: 12px; color: #606266; margin-bottom: 4px;">条件表达式：</div>
+          <textarea style="width:100%; padding: 6px; border: 1px solid #dcdfe6; border-radius: 4px; font-family: monospace; font-size: 12px; min-height: 60px;">${node_1.cpu} > 80 AND ${node_1.mem} < 50</textarea>
+          <div style="margin-top: 4px; display: flex; gap: 6px;">
+            <button style="padding: 2px 8px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; font-size: 11px; cursor: pointer;">{x} 插入变量</button>
+            <span style="color: #E6A23C; font-size: 12px;">⚠ ${node_2.mem} 不存在</span>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons" style="font-size: 12px;">
+        <div class="pros">
+          <h4 style="margin:0 0 4px 0;">优势</h4>
+          <ul style="margin:0; padding-left: 16px;">
+            <li>常用条件一键插入（成功/失败/结果判等）</li>
+            <li>复杂表达式保留灵活性</li>
+            <li>工作量适中（3-4 天）</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4 style="margin:0 0 4px 0;">局限</h4>
+          <ul style="margin:0; padding-left: 16px;">
+            <li>体验不够统一</li>
+            <li>多条件组合仍然靠手写</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section">
+  <h3>选一个你倾向的方案</h3>
+  <p>点击卡片选中，然后在终端回复确认。也可以告诉我你的想法或混搭需求。</p>
+</div>

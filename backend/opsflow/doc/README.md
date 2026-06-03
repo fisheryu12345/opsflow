@@ -68,9 +68,24 @@
 | 变量系统 | ✅ 完成 | 全局变量/引用计数/浏览器/变量提升 |
 | 调度计划 | ✅ 完成 | 一次性/CRON 定时触发，APScheduler 集成 |
 | Dashboard 仪表盘 | ✅ 完成 | 11 个端点，4 ECharts 图表 + 7 统计卡片 |
-| 9 组 43 个标准插件 | ✅ 完成 | Ansible/ESXi/NetApp/ServiceNow/Redfish/HTTP/Monitor/Pmax/Common |
-| 视图 Mixin 重构 | ✅ 完成 | 大文件拆分，9 个 Mixin 提取，支持维护 |
+| 12 组 51+ 个标准插件 | ✅ 完成 | Ansible/ESXi/NetApp/ServiceNow/Redfish/HTTP/Monitor/Pmax/Common/Verify |
+| 视图 Mixin 重构 | ✅ 完成 | 大文件拆分，11 个 Mixin 提取，支持维护 |
 | 模块化重构 | ✅ 完成 | signals 包/dashboard 包/validator 提取 |
+| 项目管理 | ✅ 完成 | OpsProject + ProjectMember + 项目隔离 + 项目切换器 |
+| Webhook 回调 | ✅ 完成 | 模板级 Webhook 配置 + 事件触发 + 投递日志 |
+| API Gateway | ✅ 完成 | 外部 API Token 认证 + 触发/状态/模板列表端点 |
+| 节点持久化 | ✅ 完成 | TemplateNode + ExecutionNode 独立行存储，支持 SQL 查询 |
+| 执行方案 | ✅ 完成 | 预定义节点排除集 + 变量覆盖 + 默认方案 |
+| 模板分类 | ✅ 完成 | TemplateCategory 可管理分类 + 前端分类筛选 |
+| 操作审计 | ✅ 完成 | OperationRecord 记录所有 CRUD + 执行/审批操作 |
+| 自动重试 | ✅ 完成 | 节点 FAILED 时自动触发 Celery 重试任务 |
+| 节点超时策略 | ✅ 完成 | 可配置超时 + 强制失败/跳过动作 |
+| 项目环境变量 | ✅ 完成 | 跨模板共享的项目级环境变量 |
+| Dry Run | ✅ 完成 | 用 test 原子替换后安全执行预览 |
+| 模板收藏 | ✅ 完成 | 用户收藏模板 + 收藏状态追踪 |
+| 冲突检测 | ✅ 完成 | 多人编辑时的 pipeline_tree 冲突检测 |
+| Mako 变量解析 | ✅ 完成 | Mako 模板引擎支持的变量替换 |
+| 节点同步 | ✅ 完成 | pipeline_tree JSON ↔ TemplateNode/ExecutionNode 双向同步 |
 
 ## 技术栈
 
@@ -88,5 +103,5 @@
 | WebSocket | Django Channels (RedisChannelLayer) |
 | 调度器 | APScheduler 3.11 + DjangoJobStore |
 | 插件协议 | BasePlugin + Pydantic form_schema |
-| 后端代码规模 | ~15,000 行 Python（含插件 2,800 行） |
-| 前端代码规模 | ~4,700 行 TypeScript/Vue |
+| 后端代码规模 | ~18,000 行 Python（含插件 3,272 行，核心引擎 4,526 行） |
+| 前端代码规模 | ~8,984 行 TypeScript/Vue |

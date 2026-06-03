@@ -36,7 +36,11 @@ PATCH /api/opsflow/templates/{id}/
 }
 ```
 
-**文件：** `views/template_views.py` → `models.py:FlowTemplate`
+**文件：** `views/template_views.py` → `models/template.py:FlowTemplate`
+
+保存时触发：
+1. `cleanup_unused_vars()` — 自动清理全局变量中的无用引用
+2. `sync_template_nodes()` — 将 pipeline_tree JSON 同步为 TemplateNode 独立行（支持 SQL 查询）
 
 ### 1.2 版本发布
 
@@ -49,26 +53,43 @@ PATCH /api/opsflow/templates/{id}/
 | 查看版本 | `GET /templates/{id}/versions/` | TemplateVersion 列表 |
 | 回滚 | `POST /templates/{id}/rollback/` | 恢复指定版本的 pipeline_tree |
 
-`publish_snapshot()` 动作（`models.py:FlowTemplate`）：
+`publish_snapshot()` 动作（`models/template.py:FlowTemplate`）：
 
 ```python
-def publish_snapshot(self, user=None):
+def publish_snapshot(self, user=None, version_note=""):
     if self.version is None:
         self.version = 1
-    # 冻结当前 pipeline_tree → snapshot 字段
+    # 提取子流程引用信息
+    subprocess_refs = {}
+    tree = self.pipeline_tree or {}
+    for node in tree.get('nodes', []):
+        if node.get('node_type') == 'subprocess':
+            params = node.get('params', {}) or {}
+            target_id = params.get('target_template_id')
+            if target_id:
+                subprocess_refs[node['id']] = {
+                    'target_template_id': target_id,
+                    'target_version': target.version or 1,
+                    'target_name': target.name,
+                    'variable_mapping': params.get('variable_mapping', {}),
+                    'output_mapping': params.get('output_mapping', {}),
+                }
+    # 冻结当前 pipeline_tree → snapshot 字段（含子流程引用）
     self.snapshot = {
         'pipeline_tree': self.pipeline_tree,
         'target_hosts': self.target_hosts,
         'global_vars': self.global_vars,
+        'subprocess_refs': subprocess_refs,
         'snapshot_at': timezone.now().isoformat(),
     }
-    # 创建版本历史记录
+    # 创建版本历史记录（含版本说明）
     TemplateVersion.objects.create(
         template=self, version=self.version,
         pipeline_tree=self.pipeline_tree,
         target_hosts=self.target_hosts,
         global_vars=self.global_vars,
-        created_by=self.created_by,
+        version_note=version_note,
+        created_by=created_by if user is None else user,
     )
     self.version += 1
     self.save()
@@ -182,40 +203,57 @@ def run(self):
     # 1. 从冻结快照读取（不读实时模板！）
     frozen = self.execution.template_snapshot or {}
     frozen_tree = frozen.get('pipeline_tree') or self.execution.context.get('pipeline_tree')
-    frozen_hosts = frozen.get('target_hosts')
-    frozen_vars = frozen.get('global_vars')
 
-    # 2. 安全校验（白名单、重试上限、高危回滚路径等）
-    validation = validate_pipeline(frozen_tree)
-    if not validation.get('valid'):
-        self.execution.status = "failed"
-        self.execution.ended_at = datetime.now()
-        self.execution.save()
-        self._notify_completed()
-        return
+    # 2. 执行时校验 pipeline_tree（防止外部篡改/损坏）
+    if frozen_tree:
+        validation = validate_pipeline(frozen_tree)
+        if not validation.get('valid'):
+            errors = '; '.join(validation.get('errors', []))
+            self.execution.status = "failed"
+            self.execution.ended_at = datetime.now()
+            self.execution.save()
+            self._notify_completed()
+            return
 
-    # 3. 编译成 bamboo-engine 标准 Pipeline Tree
+    # 3. 编译成 bamboo-engine 标准 Pipeline Tree（含 excluded_nodes 过滤）
     pipeline = build_bamboo_pipeline(
         self.template,
         pipeline_tree=frozen_tree,
-        target_hosts=frozen_hosts,
-        global_vars=frozen_vars,
+        target_hosts=frozen.get('target_hosts'),
+        global_vars=frozen.get('global_vars'),
+        execution_id=self.execution.id,
+        excluded_nodes=self.execution.excluded_nodes,
     )
+
+    # 空 pipeline 检测
+    if len(pipeline.get('activities', {})) == 0 and len(pipeline.get('gateways', {})) == 0:
+        self.execution.status = "failed"
+        self.execution.ended_at = datetime.now()
+        self._notify_completed()
+        return
 
     # 4. 持久化 bamboo_pipeline_id 到 context
     self.execution.context["bamboo_pipeline_id"] = pipeline["id"]
     self.execution.context["bamboo_pipeline"] = pipeline
     self.execution.save()
 
+    # 4b. 创建自动重试策略和超时配置
+    AutoRetryStrategyCreator(self.execution, pipeline_id).batch_create_strategy(frozen_tree or {})
+    batch_create_timeout_configs(self.execution, frozen_tree or {})
+
+    # 4c. 清理重试时可能残留的 pipeline data
+    self._cleanup_pipeline_data(pipeline)
+
     # 5. 委托给 bamboo-engine 执行（异步）
     runtime = BambooDjangoRuntime()
     result = pipeline_api.run_pipeline(runtime=runtime, pipeline=pipeline)
 
     if not result.result:
-        # 启动失败 → 回滚已失败的节点
+        # 启动失败 → 记录校验详情 → 回滚已失败的节点
         self.execution.status = "failed"
         self.execution.ended_at = datetime.now()
         self.rollback_failed_nodes()
+        self._notify_completed()
         return
 ```
 

@@ -134,6 +134,192 @@ export function layoutNodes(
   return positions
 }
 
+/** 条件运算符列表（模块级导出，供外部直接引用） */
+export const CONDITION_OPS = ['==', '!=', '>', '<', '>=', '<=', 'contains', 'not contains', 'startsWith', 'endsWith', 'regex'] as const
+
+/** 根据字段类型过滤可用运算符 */
+export function opsForType(fieldType: 'string' | 'number' | 'boolean'): string[] {
+  if (fieldType === 'boolean') return ['==', '!=']
+  if (fieldType === 'number') return ['==', '!=', '>', '<', '>=', '<=']
+  return ['==', '!=', 'contains', 'not contains', 'startsWith', 'endsWith', 'regex']
+}
+
+/**
+ * 结构化条件 → ${...} 表达式字符串
+ *
+ * 规则:
+ *   {source: "node_1", field: "cpu", op: ">", value: "80"}
+ *   → "${node_1.cpu} > 80"
+ *
+ * 字符串值自动加引号:
+ *   {fieldType: "string", value: "ok"}
+ *   → "${node_1.status} == \"ok\""
+ *
+ * 多条件 AND/OR 连接:
+ *   [{...}, {...}] with logic "AND"
+ *   → "${node_1.cpu} > 80 AND ${node_1.mem} < 50"
+ */
+export function generateConditionExpr(rules: ConditionRule[], logic: 'AND' | 'OR'): string {
+  if (!rules || rules.length === 0) return ''
+
+  const parts = rules.map((r) => {
+    const ref = `\${${r.source}.${r.field}}`
+
+    // 字符串值需要加引号（boolean 和 number 不加）
+    let val = r.value
+    if (r.fieldType === 'string' || (r.valueType === 'string' && r.fieldType !== 'boolean' && r.fieldType !== 'number')) {
+      val = `"${r.value.replace(/"/g, '\\"')}"`
+    }
+
+    return `${ref} ${r.op} ${val}`
+  })
+
+  return parts.join(` ${logic} `)
+}
+
+/**
+ * 提取指定节点的输出字段列表（纯函数版本，不依赖 composable）
+ */
+export function extractNodeOutputFields(
+  nodeData: any,
+  nodeType: string,
+): OutputField[] {
+  if (nodeData._outputSchema && Array.isArray(nodeData._outputSchema)) {
+    return nodeData._outputSchema.map((f: any) => ({
+      key: f.key || f.name,
+      label: f.name || f.key,
+      type: f.type || 'string',
+      description: f.description || '',
+    }))
+  }
+  const defaults = DEFAULT_OUTPUT_FIELDS[nodeType]
+  if (defaults && defaults.length > 0) return defaults
+  return [{ key: '_result', label: '_result', type: 'boolean', description: '执行结果' }]
+}
+
+/**
+ * 从画布节点列表提取所有可用变量（纯函数版本）
+ *
+ * @param nodes 画布节点列表（从 getGraphData 获取）
+ * @param store 可选的 Pinia store
+ */
+export function extractAvailableVariables(
+  nodes: { id: string; node_type: string; label: string; [key: string]: any }[],
+  store?: any,
+): VariableOption[] {
+  const result: VariableOption[] = []
+
+  // 上游节点输出
+  for (const n of nodes) {
+    if (n.node_type === 'end_event') continue
+    const label = n.label || n.id
+    const fields = extractNodeOutputFields(n, n.node_type)
+    for (const f of fields) {
+      result.push({
+        source: n.id,
+        sourceLabel: `${n.id} (${label})`,
+        sourceType: 'node',
+        field: f.key,
+        fieldLabel: `${f.key} (${f.type})`,
+        fieldType: f.type,
+      })
+    }
+  }
+
+  // 全局变量
+  const globalVars = store?.globalVariables || {}
+  for (const [key, val] of Object.entries<any>(globalVars)) {
+    let varType: 'string' | 'number' | 'boolean' = 'string'
+    if (val?.type === 'int' || val?.type === 'float') varType = 'number'
+    else if (val?.type === 'bool') varType = 'boolean'
+    result.push({
+      source: 'global', sourceLabel: 'Global Variables', sourceType: 'global',
+      field: key, fieldLabel: `${key} (${varType})`, fieldType: varType,
+    })
+  }
+
+  // 项目环境变量
+  const projectVars = store?.projectEnvVars || {}
+  for (const [key] of Object.entries<any>(projectVars)) {
+    result.push({
+      source: 'project', sourceLabel: 'Project Env Vars', sourceType: 'project',
+      field: key, fieldLabel: `${key} (string)`, fieldType: 'string',
+    })
+  }
+
+  // 系统变量
+  for (const sv of SYSTEM_VARIABLES) {
+    result.push({
+      source: '_system', sourceLabel: 'System Variables', sourceType: 'system',
+      field: sv.key, fieldLabel: `${sv.key} (${sv.type})`, fieldType: sv.type,
+    })
+  }
+
+  return result
+}
+
+/**
+ * 校验条件表达式
+ *
+ * 检查项:
+ *   1. ${...} 括号匹配
+ *   2. 引号匹配
+ *   3. node_id 引用存在性（需传入 nodeId 集合）
+ */
+export function validateConditionExpr(
+  conditionString: string,
+  nodeIds?: Set<string>,
+): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+  if (!conditionString.trim()) return { valid: true, errors: [] }
+
+  // 检查 ${...} 括号匹配
+  let depth = 0
+  for (const ch of conditionString) {
+    if (ch === '{') depth++
+    if (ch === '}') depth--
+    if (depth < 0) {
+      errors.push('多余的关闭括号 "}"')
+      return { valid: false, errors }
+    }
+  }
+  if (depth !== 0) {
+    errors.push('${...} 括号不匹配')
+    return { valid: false, errors }
+  }
+
+  // 检查引号匹配
+  let quoteCount = 0
+  for (const ch of conditionString) {
+    if (ch === '"' || ch === "'") quoteCount++
+  }
+  if (quoteCount % 2 !== 0) {
+    errors.push('引号不匹配')
+  }
+
+  // 检查 node_id 引用存在性
+  if (nodeIds && nodeIds.size > 0) {
+    const EXPR_PATTERN = /\$\{([^}]*)\}/g
+    const VAR_REF_PATTERN = /([a-zA-Z_]\w*)\.([a-zA-Z_]\w*)/g
+    let match: RegExpExecArray | null
+    while ((match = EXPR_PATTERN.exec(conditionString)) !== null) {
+      const expr = match[1]
+      let varMatch: RegExpExecArray | null
+      VAR_REF_PATTERN.lastIndex = 0
+      while ((varMatch = VAR_REF_PATTERN.exec(expr)) !== null) {
+        const refNodeId = varMatch[1]
+        // 跳过 global/project/_system 前缀
+        if (['global', 'project', '_system'].includes(refNodeId)) continue
+        if (!nodeIds.has(refNodeId)) {
+          errors.push(`引用的节点 '${refNodeId}' 不存在`)
+        }
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
 /** 默认节点 label 映射 */
 export function defaultNodeLabel(nodeType: string): string {
   const map: Record<string, string> = {

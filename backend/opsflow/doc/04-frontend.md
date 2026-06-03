@@ -8,16 +8,26 @@ index.vue (OpsFlow 主页面)
 ├── AI Chat 浮窗 (chat-float-panel)
 │   ├── 消息历史列表
 │   ├── 加载指示器
-│   └── 输入框 + Send 按钮
+│   ├── 输入框 + Send 按钮
+│   └── 建议快捷按钮
 │
+├── HelpDrawer (帮助抽屉)
+│   ├── 快捷键说明
+│   ├── 节点类型一览
+│   └── 操作指南
+│
+├── CreateTemplateWizard (创建模板向导)
+│   ├── Step 1: 输入自然语言描述
+│   ├── Step 2: AI 生成 + 预览
+│   └── Step 3: 保存模板
 │
 ├── DesignCanvas (设计画布)
-│   ├── 工具栏 (浮动左上角, 含模板选择器)
+│   ├── 工具栏 (浮动左上角, 含模板选择器 + 项目切换器)
 │   │   ├── Undo / Redo
 │   │   ├── Zoom In / Zoom Out / Fit
 │   │   ├── Diff / AI Analyze / AI Layout
-│   │   ├── New Template
-│   │   └── Save
+│   │   ├── New Template / Save
+│   │   └── Run / Submit
 │   ├── Stencil 组件面板 (左侧, 可折叠)
 │   │   ├── Test 组 (1)
 │   │   ├── Check 组 (3)
@@ -26,7 +36,7 @@ index.vue (OpsFlow 主页面)
 │   │   ├── VM (ESXi) 组 (5)
 │   │   ├── Storage (NetApp) 组 (5)
 │   │   ├── ITSM (ServiceNow) 组 (5)
-│   │   ├── BMC (Redfish) 组 (7)
+│   │   ├── BMC (Redfish) 组 (8)
 │   │   ├── Generic 组 (1)
 │   │   └── Gateway/Event 组 (6)
 │   ├── X6 Graph 画布
@@ -37,9 +47,15 @@ index.vue (OpsFlow 主页面)
 │   ├── 状态栏 (状态标签 + WebSocket 连接指示)
 │   └── X6 Graph (只读, 实时着色 + Tower 进度)
 │
+├── SubmitWizardDialog (执行提交向导)
+│   ├── Step 1: 选择执行方案（节点排除 + 变量覆盖）
+│   ├── Step 2: Dry Run 预览
+│   └── Step 3: 确认执行
+│
 ├── New Template Dialog
 ├── AI Analyze Dialog
-└── Diff Modal
+├── Diff Modal
+└── DryRunDialog (Dry Run 结果弹窗)
 
 ## 其他页面
 
@@ -74,6 +90,23 @@ index.vue (OpsFlow 主页面)
   - 节点类型分布环形图（Ansible/HTTP/ServiceNow/ESXi/Other）
 - 用户活跃度表格（用户名 / 执行次数 / 模板数 / 最后活跃时间）
 - 系统概览区（总节点数 / 活跃用户占比进度条）
+
+### 审批管理页 (web/src/views/apps/opsflow-approval/index.vue)
+- 待审批执行列表（表格：模板名称 / 待审节点 / 提交人 / 提交时间）
+- 审批操作（通过 / 拒绝 + 意见填写）
+
+### Webhook 管理页 (web/src/views/apps/opsflow-webhook/index.vue)
+- Webhook 配置列表（模板名称 / 回调 URL / 触发事件 / 启用状态）
+- 投递日志查看（状态 / 响应码 / 重试次数 / 时间）
+
+### 项目管理页 (web/src/views/apps/opsflow-project/index.vue)
+- 项目列表 + 创建/编辑弹窗
+- 成员管理（添加/移除成员 + 角色设定）
+- 环境变量管理（键值对编辑）
+
+### 统计概览页 (web/src/views/apps/opsflow-stats/index.vue)
+- 全局统计概览（执行总数 / 成功率 / 平均耗时）
+- 趋势图表
 ```
 
 ### 调度管理页 (web/src/views/apps/opsflow-template/schedule.vue)

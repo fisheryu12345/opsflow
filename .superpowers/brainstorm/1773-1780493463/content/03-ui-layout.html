@@ -1,0 +1,159 @@
+<h2>条件编辑器 — UI 布局</h2>
+
+<h3>ConditionDialog.vue 弹窗布局</h3>
+
+<div class="mockup" style="margin-bottom: 16px;">
+  <div class="mockup-header">编辑条件 - 边: node_1 → node_3</div>
+  <div style="padding: 12px;">
+
+    <!-- 条件行 1 -->
+    <div style="background: #f5f7fa; border-radius: 6px; padding: 12px; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px; font-size: 11px; color: #909399;">
+        <span style="color: #67C23A; font-weight: 600;">1</span>
+        <span>当</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <select style="flex: 2; padding: 6px 8px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff;">
+          <optgroup label="--- 上游节点 ---">
+            <option>node_1 (Disk Check) → _result</option>
+            <option>node_1 (Disk Check) → cpu</option>
+            <option>node_1 (Disk Check) → stdout</option>
+          </optgroup>
+          <optgroup label="--- 全局变量 ---">
+            <option>global → env</option>
+            <option>global → threshold</option>
+          </optgroup>
+          <optgroup label="--- 项目环境变量 ---">
+            <option>project → alert_email</option>
+            <option>project → notify_url</option>
+          </optgroup>
+          <optgroup label="--- 系统变量 ---">
+            <option>_system → timestamp</option>
+            <option>_system → current_user</option>
+          </optgroup>
+        </select>
+
+        <select style="flex: 1; padding: 6px 8px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff;">
+          <option>&gt;</option>
+          <option>&lt;</option>
+          <option>==</option>
+          <option>!=</option>
+          <option>&gt;=</option>
+          <option>&lt;=</option>
+          <option>contains</option>
+          <option>not contains</option>
+          <option>startsWith</option>
+          <option>endsWith</option>
+          <option>regex</option>
+        </select>
+
+        <input style="flex: 2; padding: 6px 8px; border: 1px solid #dcdfe6; border-radius: 4px;" value="80" placeholder="比较值">
+
+        <span style="padding: 4px 8px; font-size: 11px; color: #909399;">number</span>
+
+        <span style="cursor: pointer; color: #F56C6C; font-size: 18px; line-height: 1;">&times;</span>
+      </div>
+    </div>
+
+    <!-- AND 按钮 + 条件行 2 -->
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="background: #E6A23C; color: #fff; padding: 0 12px; border-radius: 4px; font-size: 12px; height: 28px; display: flex; align-items: center; cursor: pointer; position: relative;">
+        AND <span style="margin-left: 6px; font-size: 10px;">&#9660;</span>
+        <div style="position: absolute; top: 100%; left: 0; background: #fff; border: 1px solid #dcdfe6; border-radius: 4px; display: none; box-shadow: 0 2px 8px rgba(0,0,0,.1);">
+          <div style="padding: 6px 16px; cursor: pointer; font-size: 12px;">AND</div>
+          <div style="padding: 6px 16px; cursor: pointer; font-size: 12px;">OR</div>
+        </div>
+      </div>
+      <div style="flex:1; height: 1px; background: #ebeef5;"></div>
+    </div>
+
+    <!-- 条件行 2 -->
+    <div style="background: #f5f7fa; border-radius: 6px; padding: 12px; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px; font-size: 11px; color: #909399;">
+        <span style="color: #E6A23C; font-weight: 600;">2</span>
+        <span>当</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <select style="flex: 2; padding: 6px 8px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff;">
+          <option>node_1 (Disk Check) → mem</option>
+        </select>
+        <select style="flex: 1; padding: 6px 8px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff;">
+          <option>&lt;</option>
+        </select>
+        <input style="flex: 2; padding: 6px 8px; border: 1px solid #dcdfe6; border-radius: 4px;" value="50" placeholder="比较值">
+        <span style="padding: 4px 8px; font-size: 11px; color: #909399;">number</span>
+        <span style="cursor: pointer; color: #F56C6C; font-size: 18px; line-height: 1;">&times;</span>
+      </div>
+    </div>
+
+    <!-- 添加条件按钮 -->
+    <div style="margin-bottom: 12px;">
+      <span style="padding: 4px 12px; border: 1px dashed #dcdfe6; border-radius: 4px; font-size: 12px; color: #909399; cursor: pointer;">+ 添加条件</span>
+    </div>
+
+    <!-- 预览 + 校验 -->
+    <div style="background: #f0f9eb; border-radius: 4px; padding: 8px 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+      <span style="color: #67C23A; font-weight: 600;">&#10003;</span>
+      <span style="font-size: 12px; color: #303133;">校验通过</span>
+      <span style="font-size: 11px; color: #909399;">|</span>
+      <code style="font-size: 12px; color: #606266;">${node_1.cpu} > 80 AND ${node_1.mem} &lt; 50</code>
+    </div>
+
+  </div>
+  <div style="border-top: 1px solid #ebeef5; padding: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+    <button style="padding: 8px 20px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; cursor: pointer;">取消</button>
+    <button style="padding: 8px 20px; border: none; border-radius: 4px; background: #409EFF; color: #fff; cursor: pointer;">确定</button>
+  </div>
+</div>
+
+<h3>PropertyPanel 边选中状态变化</h3>
+
+<div style="display: flex; gap: 16px;">
+  <div class="mockup" style="flex: 1;">
+    <div class="mockup-header">当前（文本区域）</div>
+    <div style="padding: 12px; font-size: 13px;">
+      <div style="margin-bottom: 8px;">
+        <label style="color: #909399; font-size: 12px;">边标签</label>
+        <select style="width:100%; padding: 4px 8px; border: 1px solid #dcdfe6; border-radius: 4px;">
+          <option>success</option>
+          <option>failure</option>
+          <option selected>custom</option>
+        </select>
+      </div>
+      <div>
+        <label style="color: #909399; font-size: 12px;">条件表达式</label>
+        <textarea style="width:100%; padding: 6px; border: 1px solid #dcdfe6; border-radius: 4px; font-family: monospace; font-size: 12px; min-height: 60px;">${node_1.cpu} > 80</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup" style="flex: 1;">
+    <div class="mockup-header">改进后（只读预览 + 编辑按钮）</div>
+    <div style="padding: 12px; font-size: 13px;">
+      <div style="margin-bottom: 8px;">
+        <label style="color: #909399; font-size: 12px;">边标签</label>
+        <select style="width:100%; padding: 4px 8px; border: 1px solid #dcdfe6; border-radius: 4px;">
+          <option>success</option>
+          <option>failure</option>
+          <option selected>custom</option>
+        </select>
+      </div>
+      <div style="margin-bottom: 8px;">
+        <label style="color: #909399; font-size: 12px;">条件表达式</label>
+        <div style="background: #f5f7fa; border: 1px solid #dcdfe6; border-radius: 4px; padding: 6px 10px; font-family: monospace; font-size: 12px; display: flex; align-items: center; justify-content: space-between;">
+          <span>${node_1.cpu} > 80 AND ${node_1.mem} &lt; 50</span>
+          <span style="background: #409EFF; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">编辑</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <span style="background: #f0f9eb; color: #67C23A; padding: 2px 8px; border-radius: 3px; font-size: 11px;">node_1.cpu</span>
+        <span style="background: #f0f9eb; color: #67C23A; padding: 2px 8px; border-radius: 3px; font-size: 11px;">node_1.mem</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>这个布局可以吗？</h3>
+  <p>特别是：条件行的三段式（变量 → 运算符 → 值）这样排列看着顺眼吗？AND/OR 切换方式 OK 吗？</p>
+</div>

@@ -29,6 +29,10 @@ OpsFlow 采用**前后端分离 + 异步任务 + WebSocket 推送 + 多平台原
 - **MonitorCanvas**: 只读画布，通过 WebSocket 接收节点状态并实时着色（含 Tower 作业进度）
 - **AI Chat**: 浮窗式对话界面，支持多轮交互生成/修改 Pipeline
 - **DiffModal**: 对比 AI 原始生成和当前修改
+- **SubmitWizardDialog**: 执行提交向导弹窗（选择方案 + 变量覆盖 + Dry Run 预览）
+- **ProjectSwitcher**: 项目切换器，根据当前用户的项目成员角色切换数据范围
+- **SchemeSelector/Manager**: 执行方案选择和管理界面
+- **Webhook 管理**: 模板 Webhook 配置 + 投递日志查看
 
 ### 2. API 层
 
@@ -46,9 +50,23 @@ OpsFlow 采用**前后端分离 + 异步任务 + WebSocket 推送 + 多平台原
 - **NodeDispatcher**: 节点操作调度器，封装 retry/skip/force_fail + 轨迹和日志管理
 - **SubprocessDispatcher**: 独立子流程调度器，创建子 FlowExecution + 变量映射解析
 - **VariableResolver**: ${key} 模板变量替换引擎，支持 splice/split/lazy 类型
+- **VariableRegistry**: bk_sops 适配变量类型（SpliceVariable/LazyVariable 等 12 种）
 - **TowerService**: Ansible Tower (AWX) REST API 封装（触发/轮询/结果提取）
 - **AnsibleTrigger**: Ansible Tower HTTP 触发器，未配置时自动降级为模拟执行
 - **Layout Engine**: Sugiyama 分层图布局引擎（bk_sops drawing_new 适配），纯 Python 毫秒级
+- **AutoRetry**: 节点 FAILED 时自动触发重试，支持最大次数和重试间隔
+- **NodeTimeoutStrategy**: 节点超时检测 + 可配置动作（强制失败/强制失败并跳过）
+- **NodeSync**: pipeline_tree JSON ↔ TemplateNode/ExecutionNode 双向同步
+- **MakoResolver**: Mako 模板引擎变量替换
+- **ConflictChecker**: 多人编辑时的 pipeline_tree 冲突检测
+- **TraceLogger**: 节点执行轨迹的 JSON Lines 文件日志
+- **SchedulerService**: APScheduler 封装，一次性/CRON 计划调度
+- **SafetyGuard**: Pipeline 安全校验（白名单/高危/备份/AI 幻觉防御）
+- **LLMService**: DeepSeek AI 服务（生成/修改/分析 + RAG 知识库检索）
+- **APIGW**: 外部 API 网关（API Token 认证 + 触发/状态/模板列表端点）
+- **WebhookService**: Webhook 回调投递 + HMAC 签名 + 重试机制
+- **AuditLogger**: 操作审计日志记录器
+- **PluginDeprecation**: 插件生命周期管理（可用/即将弃用/已弃用）
 
 ### 4. 插件/原子层
 
@@ -60,9 +78,9 @@ OpsFlow 采用**前后端分离 + 异步任务 + WebSocket 推送 + 多平台原
 
 ### 5. 数据层
 
-- **MySQL (opsflow 自有表)**: FlowTemplate / TemplateVersion / FlowExecution / NodeExecutionTrace / OpsLog / SchedulePlan / OpsKnowledge / PluginMeta
+- **MySQL (opsflow 自有表)**: FlowTemplate / TemplateVersion / FlowExecution / NodeExecutionTrace / ExecutionNode / TemplateNode / ExecutionScheme / OpsLog / SchedulePlan / OpsKnowledge / PluginMeta / OpsProject / ProjectMember / TemplateCollect / TemplateCategory / OperationRecord / AutoRetryStrategy / NodeTimeoutConfig / WebhookConfig / WebhookLog / ApiToken / ProjectEnvironmentVariable — 共 20+ 张表
 - **MySQL (bamboo-engine ERI 表)**: 11 张内置状态表（Process/Node/ExecutionData 等）+ ComponentModel
-- **Redis**: Celery 消息队列、Tower 并发信号量、Channels WebSocket 层
+- **Redis**: Celery 消息队列、Channels WebSocket 层
 
 ## 执行流程
 

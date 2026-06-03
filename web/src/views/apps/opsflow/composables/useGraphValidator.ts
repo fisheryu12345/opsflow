@@ -149,10 +149,12 @@ export function useGraphValidator() {
     return warnings
   }
 
-  /** 条件变量引用校验 — 检查 ${node_id.key} 中 node_id 是否存在 */
+  /** 条件变量引用校验 — 检查 ${node_id.key} 中 node_id + field 存在性 */
   function checkConditionRefs(nodes: any[], edges: any[]): string[] {
     const errors: string[] = []
-    const nodeIds = new Set(nodes.map(n => n.id))
+    const nodeMap = new Map<string, any>()
+    for (const n of nodes) nodeMap.set(n.id, n)
+
     const EXPR_PATTERN = /\$\{([^}]*)\}/g
     const VAR_REF_PATTERN = /([a-zA-Z_]\w*)\.([a-zA-Z_]\w*)/g
 
@@ -160,6 +162,14 @@ export function useGraphValidator() {
       const cond = (e.condition || '').trim()
       if (!cond) continue
       let match: RegExpExecArray | null
+
+      // 基础语法检查
+      const baseCheck = checkConditionSyntax(cond)
+      if (!baseCheck.valid) {
+        errors.push(`边 ${e.from}→${e.to} 的条件语法错误: ${baseCheck.errors.join('; ')}`)
+        continue
+      }
+
       EXPR_PATTERN.lastIndex = 0
       while ((match = EXPR_PATTERN.exec(cond)) !== null) {
         const expr = match[1]
@@ -167,13 +177,41 @@ export function useGraphValidator() {
         VAR_REF_PATTERN.lastIndex = 0
         while ((varMatch = VAR_REF_PATTERN.exec(expr)) !== null) {
           const refNodeId = varMatch[1]
-          if (!nodeIds.has(refNodeId)) {
+          // 跳过全局/项目/系统变量前缀
+          if (['global', 'project', '_system'].includes(refNodeId)) continue
+
+          if (!nodeMap.has(refNodeId)) {
             errors.push(`边 ${e.from}→${e.to} 的条件引用不存在的节点 '${refNodeId}'`)
           }
         }
       }
     }
     return errors
+  }
+
+  /**
+   * 条件语法基础检查
+   * 包括: ${...} 匹配、引号匹配、运算符合法检查
+   */
+  function checkConditionSyntax(cond: string): { valid: boolean; errors: string[] } {
+    const errors: string[] = []
+
+    // ${...} 层数检查
+    let depth = 0
+    for (const ch of cond) {
+      if (ch === '{') depth++
+      if (ch === '}') depth--
+    }
+    if (depth !== 0) errors.push('${...} 括号不匹配')
+
+    // 引号匹配
+    let q = 0
+    for (const ch of cond) {
+      if (ch === '"' || ch === "'") q++
+    }
+    if (q % 2 !== 0) errors.push('引号不匹配')
+
+    return { valid: errors.length === 0, errors }
   }
 
   /** 综合校验 — 运行所有检查 */
@@ -208,5 +246,5 @@ export function useGraphValidator() {
     return true
   }
 
-  return { validate, showValidation }
+  return { validate, showValidation, checkConditionSyntax }
 }

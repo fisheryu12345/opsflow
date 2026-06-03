@@ -397,6 +397,65 @@ registerOnce('ops-subprocess', {
   ports: { groups: PORT_GROUPS, items: PORT_ITEMS },
 })
 
+// ── 输出字段类型定义（供条件编辑器使用） ──
+
+export interface OutputField {
+  key: string
+  label: string
+  type: 'string' | 'number' | 'boolean'
+  description?: string
+}
+
+/** 变量选择器选项 */
+export interface VariableOption {
+  source: string           // node_id 或 "global"/"project"/"_system"
+  sourceLabel: string      // 展示用标签
+  sourceType: 'node' | 'global' | 'project' | 'system'
+  field: string
+  fieldLabel: string
+  fieldType: 'string' | 'number' | 'boolean'
+}
+
+/** 结构化条件规则 */
+export interface ConditionRule {
+  source: string
+  field: string
+  fieldLabel?: string
+  fieldType?: 'string' | 'number' | 'boolean'
+  op: string
+  value: string
+  valueType?: 'string' | 'number' | 'boolean'
+}
+
+/** 结构化条件 */
+export interface ConditionStruct {
+  logic: 'AND' | 'OR'
+  rules: ConditionRule[]
+}
+
+/** 节点类型的默认输出字段 */
+export const DEFAULT_OUTPUT_FIELDS: Record<string, OutputField[]> = {
+  start_event: [],
+  end_event: [],
+  exclusive_gateway: [],
+  parallel_gateway: [],
+  conditional_parallel_gateway: [],
+  converge_gateway: [],
+  approval: [
+    { key: '_result', label: '_result', type: 'boolean', description: '审批结果' },
+    { key: 'approved_by', label: 'approved_by', type: 'string', description: '审批人' },
+  ],
+  subprocess: [
+    { key: '_result', label: '_result', type: 'boolean', description: '子流程执行结果' },
+  ],
+}
+
+/** 系统变量列表 */
+export const SYSTEM_VARIABLES: OutputField[] = [
+  { key: 'timestamp', label: '_system.timestamp', type: 'string', description: '当前时间戳' },
+  { key: 'current_user', label: '_system.current_user', type: 'string', description: '当前用户' },
+]
+
 // ── Node type map ──
 
 export function resolveNodeShape(node: any): string {
