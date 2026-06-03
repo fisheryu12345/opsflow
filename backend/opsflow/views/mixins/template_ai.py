@@ -122,12 +122,16 @@ class TemplateAIMixin:
         nodes = request.data.get('nodes', [])
         edges = request.data.get('edges', [])
         target_hosts = request.data.get('target_hosts', [])
+        chat_history = request.data.get('chat_history', [])
 
         if not nl_input:
             return Response({'code': 4000, 'msg': 'input is required', 'data': None},
                             status=status.HTTP_400_BAD_REQUEST)
         try:
-            pipeline = refine_pipeline(nl_input, nodes, edges, target_hosts)
+            pipeline = refine_pipeline(nl_input, nodes, edges, target_hosts, chat_history)
+
+            # 提取 AI 回答（非修改请求场景：用户提问/分析）
+            ai_answer = pipeline.pop('_answer', None)
 
             # AI 报告无法完成的请求
             errors = pipeline.get('_errors') or pipeline.get('_unsupported')
@@ -171,13 +175,16 @@ class TemplateAIMixin:
                     'data': {'validation': validation, 'pipeline_tree': pipeline}
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            response_data = {
+                'pipeline_tree': pipeline,
+                'validation': validation,
+                'bamboo_check': bamboo_check,
+            }
+            if ai_answer:
+                response_data['message'] = ai_answer
             return Response({
                 'code': 2000, 'msg': 'success',
-                'data': {
-                    'pipeline_tree': pipeline,
-                    'validation': validation,
-                    'bamboo_check': bamboo_check,
-                }
+                'data': response_data,
             })
         except Exception as e:
             return Response({'code': 4000, 'msg': str(e), 'data': None},

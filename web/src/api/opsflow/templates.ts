@@ -57,7 +57,7 @@ export function AnalyzePipeline(data: { nodes: any[]; edges: any[] }) {
   })
 }
 
-export function RefinePipeline(data: { input: string; nodes: any[]; edges: any[]; target_hosts?: string[] }) {
+export function RefinePipeline(data: { input: string; nodes: any[]; edges: any[]; target_hosts?: string[]; chat_history?: { role: string; content: string }[] }) {
   return opsflowRequest({
     url: prefix + 'templates/refine/',
     method: 'post',

@@ -39,32 +39,47 @@ def generate_pipeline(nl_input: str, target_hosts: list = None) -> dict:
     return result
 
 
-def refine_pipeline(nl_input: str, nodes: list, edges: list, target_hosts: list = None) -> dict:
+def refine_pipeline(nl_input: str, nodes: list, edges: list, target_hosts: list = None, chat_history: list = None) -> dict:
     """Multi-turn: modify existing Pipeline Tree based on new instruction"""
     client, model = _get_llm_client()
     system_prompt = _build_system_prompt(target_hosts or [])
 
     existing = json.dumps({'nodes': nodes, 'edges': edges}, ensure_ascii=False, indent=2)
     system_prompt += f'\n\n===== Current Pipeline Tree (result of previous iterations) =====\n{existing}\n\n'
-    system_prompt += """===== Critical: Iterative Modification Rules =====
+    system_prompt += """===== Critical: Interaction Rules =====
 You are in an iterative design conversation. The Pipeline Tree above is the result of previous iterations — DO NOT generate a brand new pipeline from scratch.
 
-Rules:
-1. Each new instruction is a MODIFICATION request on the EXISTING pipeline above.
-2. Preserve ALL existing nodes and edges that are still relevant. Only add, remove, or change specific parts based on the new instruction.
-3. If the user asks to add a step, INSERT new nodes/edges into the existing structure.
-4. If the user asks to change a step, MODIFY the relevant node's params/label/atom_type.
-5. If the user asks to remove a step, DELETE only those specific nodes and their edges (reconnect if needed).
-6. Return the COMPLETE updated pipeline JSON (including all unchanged parts), never return a diff or partial tree.
-7. Keep existing node IDs stable unless you have a specific reason to change them."""
+First, determine the user's intent. Important: if the user is making a request ("make it more complex", "add a step", "复杂化", "加一个..." etc.), it is a MODIFICATION, NOT a question.
 
+**A) QUESTION / ANALYSIS only** — user is purely asking about the flow, NOT asking you to change it:
+  - Examples: "is this flow correct?", "explain the flow", "what does this do?", "这个流程图是否正确?", "这个流程有什么问题?", "帮我分析一下这个流程"
+  - Do NOT modify the pipeline at all — return the EXISTING nodes/edges unchanged.
+  - Add a top-level field `"_answer"` with your Chinese text response (e.g., "该流程逻辑正确，步骤依次为...").
+  - `_answer` MUST be a string, in Chinese.
+
+**B) MODIFICATION** — user wants to change the flow in any way:
+  - Examples: "make it more complex", "复杂化一点", "加一个磁盘检查", "把这个改成并行", "帮我改一下", "添加节点", "删除xxx", "加个条件分支", "在...之后加一个..."
+  - Follow these modification rules:
+  1. Each new instruction is a MODIFICATION request on the EXISTING pipeline above.
+  2. Preserve ALL existing nodes and edges that are still relevant. Only add, remove, or change specific parts based on the new instruction.
+  3. If the user asks to add a step, INSERT new nodes/edges into the existing structure.
+  4. If the user asks to change a step, MODIFY the relevant node's params/label/atom_type.
+  5. If the user asks to remove a step, DELETE only those specific nodes and their edges (reconnect if needed).
+  6. Return the COMPLETE updated pipeline JSON (including all unchanged parts), never return a diff or partial tree.
+  7. Keep existing node IDs stable unless you have a specific reason to change them.
+  8. Do NOT add `_answer` field."""
+
+
+    messages = [{'role': 'system', 'content': system_prompt}]
+    if chat_history:
+        for msg in chat_history:
+            if msg.get('role') in ('user', 'assistant'):
+                messages.append({'role': msg['role'], 'content': msg['content']})
+    messages.append({'role': 'user', 'content': nl_input})
 
     response = client.chat.completions.create(
         model=model,
-        messages=[
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': nl_input},
-        ],
+        messages=messages,
         response_format={'type': 'json_object'},
         temperature=0.1,
     )
@@ -168,7 +183,7 @@ Pipeline Tree JSON format:
 
 | node_type | role | indegree(min) | outdegree | outdegree constraints |
 |-----------|------|---------------|-----------|----------------------|
-| atom / "" | atomic task / ServiceActivity | >=1 | 1~2 | if outdegree=2, labels MUST be exactly {"success", "failure"} |
+| atom / "" | atomic task / ServiceActivity | >=1 | 1~2 | if outdegree=2, labels MUST be exactly {{"success", "failure"}} |
 | exclusive_gateway | chooses ONE branch by condition | >=1 | >=1 | no upper limit |
 | parallel_gateway | runs ALL branches concurrently | >=1 | >=1 | MUST pair with converge_gateway |
 | conditional_parallel_gateway | runs branches whose conditions match | >=1 | >=1 | MUST pair with converge_gateway |
@@ -181,8 +196,8 @@ Pipeline Tree JSON format:
 An edge has a "label" field and an optional "condition" field.
 
 1. **atom node with 2 outgoing edges**: labels MUST be "success" and "failure" EXACTLY.
-   - Correct: {"label": "success"} / {"label": "failure"}
-   - WRONG: {"label": "ok"} / {"label": "fail"} / {"label": "passed"} / {"label": "error"}
+   - Correct: {{"label": "success"}} / {{"label": "failure"}}
+   - WRONG: {{"label": "ok"}} / {{"label": "fail"}} / {{"label": "passed"}} / {{"label": "error"}}
    - The builder AUTO-inserts an ExclusiveGateway between the atom and its successors — do NOT manually add one.
 
 2. **atom node with 1 outgoing edge**: label can be anything or omitted.
@@ -196,9 +211,9 @@ An edge has a "label" field and an optional "condition" field.
 6. **converge_gateway**: MUST have exactly 1 outgoing edge. Multiple outedges cause WARNING.
 
 7. **Edge label → auto-generated condition mapping**:
-   - label="success" → condition becomes ${_result == True}
-   - label="failure" → condition becomes ${_result == False}
-   - no label / other → condition defaults to ${_result == True}
+   - label="success" → condition becomes ${{_result == True}}
+   - label="failure" → condition becomes ${{_result == False}}
+   - no label / other → condition defaults to ${{_result == True}}
 
 ===== Gateway Pairing Rules (CRITICAL) =====
 

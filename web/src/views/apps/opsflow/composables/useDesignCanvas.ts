@@ -84,10 +84,22 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       if (node.id === selectedNode.value?.id) selectedNode.value = node.getData()
     })
     g.on('node:mouseenter', ({ node }) => {
-      node.getPorts().forEach(p => { if (p.id) node.setPortProp(p.id, 'attrs/circle/opacity', 1) })
+      node.getPorts().forEach(p => {
+        if (p.id) {
+          node.setPortProp(p.id, 'attrs/circle/opacity', 1)
+          node.setPortProp(p.id, 'attrs/circle/r', 6)       // 放大
+          node.setPortProp(p.id, 'attrs/circle/strokeWidth', 2)
+        }
+      })
     })
     g.on('node:mouseleave', ({ node }) => {
-      node.getPorts().forEach(p => { if (p.id) node.setPortProp(p.id, 'attrs/circle/opacity', 0) })
+      node.getPorts().forEach(p => {
+        if (p.id) {
+          node.setPortProp(p.id, 'attrs/circle/opacity', 0.35)
+          node.setPortProp(p.id, 'attrs/circle/r', 5)       // 恢复
+          node.setPortProp(p.id, 'attrs/circle/strokeWidth', 1.5)
+        }
+      })
     })
     g.on('history:change', () => {
       canUndo.value = g.canUndo()

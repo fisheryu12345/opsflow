@@ -30,6 +30,7 @@ import {
   TagRadio, TagInt, TagCodeEditor, TagDatetime,
   TagHostSelector, TagAsyncSelect, TagIpSelector, TagDataTable,
   TagVariableInput, TagMetaConfig, TagVariableMapping,
+  TagResourceSelector, TagCascader,
 } from './tags'
 import { HookVariable } from '/@/api/opsflow/templates'
 
@@ -46,6 +47,8 @@ const TAG_MAP: Record<string, any> = {
   async_select: TagAsyncSelect,
   ip_selector: TagIpSelector,
   datatable: TagDataTable,
+  resource_selector: TagResourceSelector,
+  cascader: TagCascader,
   variable_input: TagVariableInput,
   meta_config: TagMetaConfig,
   variable_mapping: TagVariableMapping,

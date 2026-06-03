@@ -11,6 +11,9 @@ from .mock_view.servers import cmdb_servers
 from .mock_view.netapp import cmdb_netapp_clusters
 from .mock_view.servicenow import cmdb_servicenow_instances, servicenow_change_requests
 from .mock_view.pmax import cmdb_pmax_arrays
+from .mock_view.ip_pools import cmdb_ip_pools
+from .mock_view.resources import cmdb_resources
+from .mock_view.categories import cmdb_categories
 from .views.dashboard_views import (
     dashboard_stats, dashboard_trend, dashboard_schedule_stats,
     dashboard_top_templates, dashboard_user_activity,
@@ -84,5 +87,8 @@ urlpatterns = [
     path('cmdb/servicenow-instances/', cmdb_servicenow_instances, name='opsflow-cmdb-servicenow-instances'),
     path('cmdb/servicenow-change-requests/', servicenow_change_requests, name='opsflow-servicenow-change-requests'),
     path('cmdb/pmax-arrays/', cmdb_pmax_arrays, name='opsflow-cmdb-pmax-arrays'),
+    path('cmdb/ip-pools/', cmdb_ip_pools, name='opsflow-cmdb-ip-pools'),
+    path('cmdb/resources/', cmdb_resources, name='opsflow-cmdb-resources'),
+    path('cmdb/categories/', cmdb_categories, name='opsflow-cmdb-categories'),
 
 ] + router.urls

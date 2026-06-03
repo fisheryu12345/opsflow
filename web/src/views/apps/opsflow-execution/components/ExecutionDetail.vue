@@ -11,11 +11,11 @@
         </el-tag>
       </div>
       <div class="detail-header-actions">
-        <el-button type="success" :disabled="execution.status !== 'pending'" :loading="starting"
+        <el-button type="success" :disabled="execDetail.status !== 'pending'" :loading="starting"
                    @click="onStart">Start</el-button>
-        <el-button type="warning" :disabled="execution.status !== 'running'" :loading="pausing"
+        <el-button type="warning" :disabled="execDetail.status !== 'running'" :loading="pausing"
                    @click="onPause">Pause</el-button>
-        <el-button type="primary" :disabled="execution.status !== 'paused'" :loading="resuming"
+        <el-button type="primary" :disabled="execDetail.status !== 'paused'" :loading="resuming"
                    @click="onResume">Resume</el-button>
         <el-button type="danger" :disabled="selectedNodeId === null" @click="onRetry">Retry</el-button>
         <el-button type="info" :disabled="selectedNodeId === null" @click="onSkip">Skip</el-button>

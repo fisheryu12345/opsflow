@@ -11,10 +11,10 @@ Shape.Rect.define({
   },
   ports: {
     groups: {
-      top: { position: { name: 'top' }, attrs: { circle: { r: 4, magnet: true, fill: '#409EFF', opacity: 0 } } },
-      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 4, magnet: true, fill: '#409EFF', opacity: 0 } } },
-      left: { position: { name: 'left' }, attrs: { circle: { r: 4, magnet: true, fill: '#409EFF', opacity: 0 } } },
-      right: { position: { name: 'right' }, attrs: { circle: { r: 4, magnet: true, fill: '#409EFF', opacity: 0 } } },
+      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: '#409EFF', opacity: 0.35, stroke: '#409EFF', strokeWidth: 1.5 } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: '#409EFF', opacity: 0.35, stroke: '#409EFF', strokeWidth: 1.5 } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: '#409EFF', opacity: 0.35, stroke: '#409EFF', strokeWidth: 1.5 } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: '#409EFF', opacity: 0.35, stroke: '#409EFF', strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'top', group: 'top' },
@@ -36,7 +36,7 @@ Shape.Circle.define({
   },
   ports: {
     groups: {
-      out: { position: { name: 'right' }, attrs: { circle: { r: 4, magnet: true, fill: '#67C23A', opacity: 0 } } },
+      out: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: '#67C23A', opacity: 0.35, stroke: '#67C23A', strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'out', group: 'out' },
@@ -55,7 +55,7 @@ Shape.Circle.define({
   },
   ports: {
     groups: {
-      in: { position: { name: 'left' }, attrs: { circle: { r: 4, magnet: true, fill: '#F56C6C', opacity: 0 } } },
+      in: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: '#F56C6C', opacity: 0.35, stroke: '#F56C6C', strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'in', group: 'in' },
@@ -102,10 +102,10 @@ Node.define({
   },
   ports: {
     groups: {
-      top: { position: { name: 'top' }, attrs: { circle: { r: 4, magnet: true, fill: '#E6A23C', opacity: 0 } } },
-      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 4, magnet: true, fill: '#E6A23C', opacity: 0 } } },
-      left: { position: { name: 'left' }, attrs: { circle: { r: 4, magnet: true, fill: '#E6A23C', opacity: 0 } } },
-      right: { position: { name: 'right' }, attrs: { circle: { r: 4, magnet: true, fill: '#E6A23C', opacity: 0 } } },
+      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: '#E6A23C', opacity: 0.35, stroke: '#E6A23C', strokeWidth: 1.5 } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: '#E6A23C', opacity: 0.35, stroke: '#E6A23C', strokeWidth: 1.5 } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: '#E6A23C', opacity: 0.35, stroke: '#E6A23C', strokeWidth: 1.5 } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: '#E6A23C', opacity: 0.35, stroke: '#E6A23C', strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'top', group: 'top' },
@@ -155,10 +155,10 @@ Node.define({
   },
   ports: {
     groups: {
-      top: { position: { name: 'top' }, attrs: { circle: { r: 4, magnet: true, fill: '#409EFF', opacity: 0 } } },
-      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 4, magnet: true, fill: '#409EFF', opacity: 0 } } },
-      left: { position: { name: 'left' }, attrs: { circle: { r: 4, magnet: true, fill: '#409EFF', opacity: 0 } } },
-      right: { position: { name: 'right' }, attrs: { circle: { r: 4, magnet: true, fill: '#409EFF', opacity: 0 } } },
+      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: '#409EFF', opacity: 0.35, stroke: '#409EFF', strokeWidth: 1.5 } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: '#409EFF', opacity: 0.35, stroke: '#409EFF', strokeWidth: 1.5 } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: '#409EFF', opacity: 0.35, stroke: '#409EFF', strokeWidth: 1.5 } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: '#409EFF', opacity: 0.35, stroke: '#409EFF', strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'top', group: 'top' },
@@ -208,10 +208,10 @@ Node.define({
   },
   ports: {
     groups: {
-      top: { position: { name: 'top' }, attrs: { circle: { r: 4, magnet: true, fill: '#5CADFF', opacity: 0 } } },
-      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 4, magnet: true, fill: '#5CADFF', opacity: 0 } } },
-      left: { position: { name: 'left' }, attrs: { circle: { r: 4, magnet: true, fill: '#5CADFF', opacity: 0 } } },
-      right: { position: { name: 'right' }, attrs: { circle: { r: 4, magnet: true, fill: '#5CADFF', opacity: 0 } } },
+      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: '#5CADFF', opacity: 0.35, stroke: '#5CADFF', strokeWidth: 1.5 } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: '#5CADFF', opacity: 0.35, stroke: '#5CADFF', strokeWidth: 1.5 } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: '#5CADFF', opacity: 0.35, stroke: '#5CADFF', strokeWidth: 1.5 } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: '#5CADFF', opacity: 0.35, stroke: '#5CADFF', strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'top', group: 'top' },
@@ -260,10 +260,10 @@ Node.define({
   },
   ports: {
     groups: {
-      top: { position: { name: 'top' }, attrs: { circle: { r: 4, magnet: true, fill: '#909399', opacity: 0 } } },
-      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 4, magnet: true, fill: '#909399', opacity: 0 } } },
-      left: { position: { name: 'left' }, attrs: { circle: { r: 4, magnet: true, fill: '#909399', opacity: 0 } } },
-      right: { position: { name: 'right' }, attrs: { circle: { r: 4, magnet: true, fill: '#909399', opacity: 0 } } },
+      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: '#909399', opacity: 0.35, stroke: '#909399', strokeWidth: 1.5 } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: '#909399', opacity: 0.35, stroke: '#909399', strokeWidth: 1.5 } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: '#909399', opacity: 0.35, stroke: '#909399', strokeWidth: 1.5 } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: '#909399', opacity: 0.35, stroke: '#909399', strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'top', group: 'top' },
@@ -312,10 +312,10 @@ Node.define({
   },
   ports: {
     groups: {
-      top: { position: { name: 'top' }, attrs: { circle: { r: 4, magnet: true, fill: '#9B59B6', opacity: 0 } } },
-      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 4, magnet: true, fill: '#9B59B6', opacity: 0 } } },
-      left: { position: { name: 'left' }, attrs: { circle: { r: 4, magnet: true, fill: '#9B59B6', opacity: 0 } } },
-      right: { position: { name: 'right' }, attrs: { circle: { r: 4, magnet: true, fill: '#9B59B6', opacity: 0 } } },
+      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: '#9B59B6', opacity: 0.35, stroke: '#9B59B6', strokeWidth: 1.5 } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: '#9B59B6', opacity: 0.35, stroke: '#9B59B6', strokeWidth: 1.5 } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: '#9B59B6', opacity: 0.35, stroke: '#9B59B6', strokeWidth: 1.5 } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: '#9B59B6', opacity: 0.35, stroke: '#9B59B6', strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'top', group: 'top' },
@@ -338,10 +338,10 @@ Shape.Rect.define({
   },
   ports: {
     groups: {
-      top: { position: { name: 'top' }, attrs: { circle: { r: 4, magnet: true, fill: '#2980B9', opacity: 0 } } },
-      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 4, magnet: true, fill: '#2980B9', opacity: 0 } } },
-      left: { position: { name: 'left' }, attrs: { circle: { r: 4, magnet: true, fill: '#2980B9', opacity: 0 } } },
-      right: { position: { name: 'right' }, attrs: { circle: { r: 4, magnet: true, fill: '#2980B9', opacity: 0 } } },
+      top: { position: { name: 'top' }, attrs: { circle: { r: 5, magnet: true, fill: '#2980B9', opacity: 0.35, stroke: '#2980B9', strokeWidth: 1.5 } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: 5, magnet: true, fill: '#2980B9', opacity: 0.35, stroke: '#2980B9', strokeWidth: 1.5 } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: 5, magnet: true, fill: '#2980B9', opacity: 0.35, stroke: '#2980B9', strokeWidth: 1.5 } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: 5, magnet: true, fill: '#2980B9', opacity: 0.35, stroke: '#2980B9', strokeWidth: 1.5 } } },
     },
     items: [
       { id: 'top', group: 'top' },

@@ -536,3 +536,13 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, z
 .btn-validate { color: #E6A23C; background: #fdf6ec; }
 .btn-validate:hover { color: #ebb563; background: #faecd8; }
 </style>
+
+<style lang="scss">
+/* X6 连接端口（magnet）hover 动画 — 非 scoped 确保穿透 X6 SVG */
+.x6-graph {
+  .x6-port-body circle {
+    transition: opacity 0.2s ease, r 0.2s ease, stroke-width 0.2s ease;
+    cursor: crosshair;
+  }
+}
+</style>

@@ -341,13 +341,14 @@ async function onGenerate() {
       await fetchTemplates()
     } else {
       const canvasData = designCanvasRef.value!.getGraphData()
-      const res = await RefinePipeline({ input, nodes: canvasData.nodes, edges: canvasData.edges })
+      const chatHistory = chatMessages.value.map(m => ({ role: m.role, content: m.content }))
+      const res = await RefinePipeline({ input, nodes: canvasData.nodes, edges: canvasData.edges, chat_history: chatHistory })
       const data = res.data?.data || res.data
       const pipelineTree = data?.pipeline_tree
       if (pipelineTree && designCanvasRef.value) {
         designCanvasRef.value.loadPipeline(pipelineTree)
         nextTick(() => designCanvasRef.value?.aiLayout())
-        chatMessages.value.push({ role: 'ai', content: 'Pipeline updated according to your instructions.' })
+        chatMessages.value.push({ role: 'ai', content: data?.message || 'Pipeline updated according to your instructions.' })
         if (data?.validation?.warnings?.length) {
           ElMessage.warning(`Safety warning: ${data.validation.warnings.join('; ')}`)
         }
