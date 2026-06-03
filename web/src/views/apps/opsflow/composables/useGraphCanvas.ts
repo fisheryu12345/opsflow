@@ -1,5 +1,7 @@
 import { ref, shallowRef, onBeforeUnmount } from 'vue'
 import { Graph, Shape } from '@antv/x6'
+import type { OutputField, VariableOption, ConditionRule, ConditionStruct } from '../utils/shapes'
+import { DEFAULT_OUTPUT_FIELDS, SYSTEM_VARIABLES } from '../utils/shapes'
 
 /** 通用 Graph 选项 — 设计/监控/预览模式通过 mode 区分 */
 export interface GraphCanvasOptions {
