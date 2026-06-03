@@ -195,6 +195,11 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
           if (data?.node_type === 'subprocess') {
             newNode.resize(CARD_WIDTH, CARD_HEIGHT)
           }
+          // 统一画布节点高度（stencil 高度含 label 空间，画布 label 隐藏）
+          const GATEWAY_TYPES = ['exclusive_gateway', 'parallel_gateway', 'conditional_parallel_gateway', 'converge_gateway', 'approval']
+          if (GATEWAY_TYPES.includes(data?.node_type)) {
+            newNode.resize(70, 70)
+          }
           // ID 重建后刷新 port 连接状态
           refreshPortStates(newNode)
         }, 0)
@@ -431,11 +436,13 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     )
 
     const hasSavedPositions = nodesList.some(n => n.x != null && n.y != null)
+    console.log('[loadGraphData] hasSavedPositions:', hasSavedPositions, 'contentNodes:', contentNodes.map(n => ({ id: n.id, type: n.node_type, x: n.x, y: n.y })))
     const positions = hasSavedPositions
       ? Object.fromEntries(
           nodesList.filter(n => n.x != null && n.y != null).map(n => [n.id, { x: n.x, y: n.y }]),
         )
       : layoutNodes(contentNodes, contentEdges)
+    console.log('[loadGraphData] computed positions:', positions)
 
     const cells: any[] = []
 
@@ -448,6 +455,9 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     const centerY = allY.length > 0
       ? (Math.min(...allY) + Math.max(...allY)) / 2
       : 40
+    // Start/End 高度 82 ≠ content 高度 70，y 偏移 (82-70)/2=6 使中心线对齐
+    // 始终使用 auto 计算的 y，忽略 AI/保存的位置，确保中心线一致
+    const startEndY = centerY - 6
 
     // Start 节点
     const startId = startFromData?.id || '__start__'
@@ -456,7 +466,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       id: startId,
       width: 56, height: 82,
       x: startFromData ? (positions[startId]?.x ?? 10) : 10,
-      y: startFromData ? (positions[startId]?.y ?? centerY) : centerY,
+      y: startEndY,
       label: 'Start',
       attrs: { label: { text: 'Start' } },
       data: startFromData || { id: startId, node_type: 'start_event' },
@@ -514,7 +524,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       id: endId,
       width: 56, height: 82,
       x: endFromData ? (positions[endId]?.x ?? maxContentX + 320) : maxContentX + 320,
-      y: endFromData ? (positions[endId]?.y ?? centerY) : centerY,
+      y: startEndY,
       label: 'End',
       attrs: { label: { text: 'End' } },
       data: endFromData || { id: endId, node_type: 'end_event' },

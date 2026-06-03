@@ -47,7 +47,7 @@ function registerGraphOnce(name: string, config: any) {
 // ============================================================
 
 export const CARD_WIDTH = 208
-export const CARD_HEIGHT = 64
+export const CARD_HEIGHT = 70
 
 // ── 端口常量 ──
 export const PORT_DOT_RADIUS = 4
@@ -156,14 +156,14 @@ export function refreshPortStates(node: Node) {
   }
 }
 
-// ── 生成原子卡片 attrs（参考案例 card 布局，紧凑版 208×64） ──
+// ── 生成原子卡片 attrs（参考案例 card 布局，紧凑版 208×70） ──
 //
-//   ┌── Card 260×64, rx:8 ────────────────────────────┐
+//   ┌── Card 208×70, rx:8 ────────────────────────────┐
 //   │                                                    │
 //   │  ┌── icon ──┐  Title 15px                  [×]     │  y:8～36
 //   │  │  28×28   │                                       │
 //   │  └──────────┘                                       │
-//   │  Description 12px                                   │  y:38～58
+//   │  Description 12px                                   │  y:40～60
 //   │                                              ●      │  status-dot
 //   └────────────────────────────────────────────────────┘
 
@@ -192,14 +192,14 @@ export function makeAtomAttrs(
     // 标题（与 icon 中线对齐 y=22）
     label: { text: label, fill: '#303133', fontSize: 14, fontWeight: 600, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'middle', refX: 48, refY: 22 },
     // 描述
-    desc: { text: desc || '', fill: 'rgba(0,0,0,0.65)', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 10, refY: 40 },
+    desc: { text: desc || '', fill: 'rgba(0,0,0,0.65)', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 10, refY: 44 },
     // 删除按钮（默认隐藏，hover 显示）
     'del-btn-bg': { fill: '#FF4D4F', cx: 196, cy: 14, r: 10, cursor: 'pointer', visibility: 'hidden' as const },
     'del-btn-icon': { text: '✕', fill: '#FFF', fontSize: 12, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 196, refY: 15, cursor: 'pointer', visibility: 'hidden' as const },
     // 状态点：绿=已配置, 橙=待配置, 透明=默认
     'status-dot': {
       fill: configured === true ? '#67C23A' : configured === false ? '#E6A23C' : 'transparent',
-      cx: 200, cy: 56, r: 4, stroke: 'none',
+      cx: 200, cy: 64, r: 4, stroke: 'none',
     },
   }
 }
