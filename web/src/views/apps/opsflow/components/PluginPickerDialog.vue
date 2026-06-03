@@ -44,7 +44,7 @@
               </el-tag>
             </div>
           </div>
-          <el-empty v-if="!filteredPlugins.length" :description="searchQuery ? 'No matching plugins' : 'Select a group'" />
+          <el-empty v-if="!filteredPlugins.length" :description="searchQuery ? 'No matching plugins' : 'Select a group'" :image-size="40" />
         </div>
       </div>
     </div>

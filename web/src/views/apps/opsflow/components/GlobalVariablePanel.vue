@@ -41,7 +41,7 @@
           <span v-if="v.reference_count === 0" class="gv-item-unused-label">unreferenced</span>
         </div>
       </div>
-      <el-empty v-if="!filteredVars.length" :description="searchQuery ? 'No matching variables' : 'No variables yet'" :image-size="36" />
+      <el-empty v-if="!filteredVars.length" :description="searchQuery ? 'No matching variables' : 'No variables yet'" :image-size="40" />
     </div>
 
     <!-- Drawer -->

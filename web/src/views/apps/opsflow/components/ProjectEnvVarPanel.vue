@@ -11,7 +11,7 @@
     <div v-if="loading" v-loading="loading" style="min-height: 80px" />
 
     <div v-else-if="filteredList.length === 0" class="env-empty">
-      <el-empty :description="search ? 'No matching variables' : 'No environment variables yet'" :image-size="50" />
+      <el-empty :description="search ? 'No matching variables' : 'No environment variables yet'" :image-size="40" />
     </div>
 
     <div v-else class="env-list">

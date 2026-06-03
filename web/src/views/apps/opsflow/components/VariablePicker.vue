@@ -4,7 +4,7 @@
     filterable
     size="small"
     style="width:100%"
-    placeholder="Select variable"
+    :placeholder="placeholder"
     @change="onSelect"
     :clearable="clearable"
   >
@@ -36,9 +36,11 @@ const props = withDefaults(defineProps<{
   options: VariableOption[]
   modelValue?: string
   clearable?: boolean
+  placeholder?: string
 }>(), {
   modelValue: '',
   clearable: true,
+  placeholder: 'Select variable',
 })
 
 const emit = defineEmits<{
@@ -99,7 +101,9 @@ function onSelect(value: string) {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
 .variable-option {
   display: flex;
   align-items: center;
@@ -112,13 +116,13 @@ function onSelect(value: string) {
   font-weight: 600;
   flex-shrink: 0;
 }
-.var-source-tag.node { background: #ecf5ff; color: #409EFF; }
-.var-source-tag.global { background: #f0f9eb; color: #67C23A; }
-.var-source-tag.project { background: #fdf6ec; color: #E6A23C; }
-.var-source-tag.system { background: #f4f4f5; color: #909399; }
+.var-source-tag.node { background: $of-bg-light-blue; color: $of-color-primary; }
+.var-source-tag.global { background: $of-bg-success; color: #67C23A; }
+.var-source-tag.project { background: $of-bg-warning; color: #E6A23C; }
+.var-source-tag.system { background: #f4f4f5; color: $of-text-muted; }
 .var-field-label {
   font-size: 12px;
-  color: #303133;
+  color: $of-text-primary;
   font-family: monospace;
 }
 </style>

@@ -207,7 +207,7 @@
         </div>
 
         <div v-if="templateVarsKeys.length === 0" class="wiz-empty">
-          <el-empty description="No parameters defined in this template" :image-size="48" />
+          <el-empty description="No parameters defined in this template" :image-size="40" />
         </div>
         <div v-else class="var-list">
           <div v-for="key in templateVarsKeys" :key="key" class="var-item">

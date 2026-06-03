@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     :model-value="visible"
-    title="Edit Condition"
+    :title="dialogTitle"
     width="680px"
     :close-on-click-modal="false"
     @update:model-value="$emit('update:visible', $event)"
@@ -39,14 +39,25 @@
         </template>
       </div>
 
-      <!-- 空状态 -->
+      <!-- 空状态 + 快捷条件按钮 -->
       <div v-else class="rules-empty">
         <el-icon size="24" color="#c0c4cc"><Plus /></el-icon>
-        <p>No conditions yet. Add one below.</p>
+        <p>Add a condition or pick a quick preset:</p>
+        <div class="quick-presets">
+          <el-button size="small" @click="addPreset('_result', '==', 'True')" title="${_result} == True">
+            <el-icon><CircleCheck /></el-icon> Success
+          </el-button>
+          <el-button size="small" @click="addPreset('_result', '==', 'False')" title="${_result} == False">
+            <el-icon><CloseBold /></el-icon> Failure
+          </el-button>
+          <el-button size="small" @click="addRule">
+            <el-icon><Plus /></el-icon> Custom
+          </el-button>
+        </div>
       </div>
 
       <!-- 添加条件 -->
-      <div class="add-rule-row">
+      <div class="add-rule-row" v-if="rules.length > 0">
         <el-button size="small" type="primary" plain @click="addRule">
           <el-icon><Plus /></el-icon>
           Add Condition
@@ -78,7 +89,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Plus, ArrowDown, CircleCheck, WarningFilled } from '@element-plus/icons-vue'
+import { Plus, ArrowDown, CircleCheck, CloseBold, WarningFilled } from '@element-plus/icons-vue'
 import ConditionRow from './ConditionRow.vue'
 import { generateConditionExpr } from '../composables/useGraphCanvas'
 import type { VariableOption, ConditionRule, ConditionStruct } from '../utils/shapes'
@@ -106,6 +117,14 @@ const rules = ref<ConditionRule[]>([])
 const logic = ref<'AND' | 'OR'>('AND')
 const errors = ref<Record<number, string>>({})
 const conditionExpr = ref('')
+
+const dialogTitle = computed(() => {
+  const base = 'Edit Condition'
+  if (props.sourceNodeLabel && props.targetNodeLabel) {
+    return `${base}: ${props.sourceNodeLabel} → ${props.targetNodeLabel}`
+  }
+  return base
+})
 
 const isValid = computed(() => {
   return rules.value.length > 0 && Object.keys(errors.value).length === 0
@@ -166,6 +185,28 @@ function addRule() {
   rules.value.push(createEmptyRule())
 }
 
+/** 添加快捷条件（用第一个可用变量，找不到就用空行） */
+function addPreset(field: string, op: string, value: string) {
+  const firstNodeVar = props.availableVars.find(v => v.sourceType === 'node' && v.field === field)
+  if (firstNodeVar) {
+    rules.value.push({
+      source: firstNodeVar.source,
+      field: firstNodeVar.field,
+      fieldLabel: firstNodeVar.fieldLabel,
+      fieldType: firstNodeVar.fieldType,
+      op,
+      value,
+    })
+    rebuildExpr()
+  } else {
+    // 找不到 _result 变量时退化为空行
+    const rule = createEmptyRule()
+    rule.op = op
+    rule.value = value
+    rules.value.push(rule)
+  }
+}
+
 function setLogic(cmd: string) {
   logic.value = cmd as 'AND' | 'OR'
   rebuildExpr()
@@ -192,7 +233,9 @@ function onClosed() {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
 .condition-dialog-body {
   min-height: 200px;
   max-height: 500px;
@@ -219,19 +262,19 @@ function onClosed() {
   user-select: none;
 }
 .logic-btn.and {
-  background: #fdf6ec;
+  background: $of-bg-warning;
   color: #E6A23C;
-  border: 1px solid #f5d6a6;
+  border: 1px solid $of-border-warning;
 }
 .logic-btn.or {
-  background: #ecf5ff;
-  color: #409EFF;
+  background: $of-bg-light-blue;
+  color: $of-color-primary;
   border: 1px solid #b3d8ff;
 }
 .connector-line {
   flex: 1;
   height: 1px;
-  background: #ebeef5;
+  background: $of-border-light;
 }
 .rules-empty {
   display: flex;
@@ -239,18 +282,25 @@ function onClosed() {
   align-items: center;
   justify-content: center;
   padding: 40px 0;
-  color: #c0c4cc;
-  gap: 8px;
+  color: $of-text-placeholder;
+  gap: 12px;
 }
 .rules-empty p {
   margin: 0;
   font-size: 13px;
+  color: $of-text-muted;
+}
+.quick-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 .add-rule-row {
   margin-bottom: 12px;
 }
 .preview-bar {
-  background: #f5f7fa;
+  background: $of-bg-header;
   border-radius: 6px;
   padding: 10px 14px;
 }
@@ -262,14 +312,14 @@ function onClosed() {
 }
 .preview-label {
   font-size: 12px;
-  color: #909399;
+  color: $of-text-muted;
   white-space: nowrap;
   margin-top: 2px;
 }
 .preview-expr {
   font-size: 13px;
   font-family: monospace;
-  color: #303133;
+  color: $of-text-primary;
   word-break: break-all;
   line-height: 1.5;
 }

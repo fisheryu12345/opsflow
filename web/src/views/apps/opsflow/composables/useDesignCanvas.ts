@@ -379,8 +379,8 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
           const t = d(n).node_type
           if (t === 'start_event')                n.setPosition({ x: 26, y: 8 })
           else if (t === 'end_event')             n.setPosition({ x: 110, y: 8 })
-          else if (t === 'exclusive_gateway')     n.setPosition({ x: 14, y: 100 })
-          else if (t === 'parallel_gateway')      n.setPosition({ x: 110, y: 100 })
+          else if (t === 'exclusive_gateway')     n.setPosition({ x: 14, y: 82 })
+          else if (t === 'parallel_gateway')      n.setPosition({ x: 110, y: 82 })
           else if (t === 'conditional_parallel_gateway') n.setPosition({ x: 14, y: 184 })
           else if (t === 'converge_gateway')      n.setPosition({ x: 110, y: 184 })
           else if (t === 'approval')              n.setPosition({ x: 63, y: 284 })

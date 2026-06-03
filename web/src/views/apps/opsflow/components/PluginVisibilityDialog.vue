@@ -34,7 +34,7 @@
       </div>
 
       <el-empty v-if="filteredPlugins.length === 0 && !loading"
-        description="No plugins found" :image-size="60" />
+        description="No plugins found" :image-size="40" />
     </div>
 
     <template #footer>

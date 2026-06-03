@@ -94,27 +94,27 @@
         <h2 class="help-h2">2. Design Pipeline</h2>
         <div class="help-node-grid">
           <div class="help-node-item">
-            <span class="help-node-tag" style="background:#E1F3D8;color:#67C23A">🟢</span>
+            <span class="help-node-tag help-node-tag-start">🟢</span>
             <span>Start / End</span>
           </div>
           <div class="help-node-item">
-            <span class="help-node-tag" style="background:#FFF;color:#409EFF;border:1px solid #409EFF">▢</span>
+            <span class="help-node-tag help-node-tag-task">▢</span>
             <span>Task Node <em class="help-warn">plugin required</em></span>
           </div>
           <div class="help-node-item">
-            <span class="help-node-tag" style="background:#fff;color:#E6A23C;border:1px solid #E6A23C">🔷×</span>
+            <span class="help-node-tag help-node-tag-exclusive">🔷×</span>
             <span>Exclusive Gateway (condition)</span>
           </div>
           <div class="help-node-item">
-            <span class="help-node-tag" style="background:#fff;color:#409EFF;border:1px solid #409EFF">🔷+</span>
+            <span class="help-node-tag help-node-tag-parallel">🔷+</span>
             <span>Parallel Gateway (fan-out)</span>
           </div>
           <div class="help-node-item">
-            <span class="help-node-tag" style="background:#fff;color:#909399;border:1px solid #909399">🔷⊕</span>
+            <span class="help-node-tag help-node-tag-converge">🔷⊕</span>
             <span>Converge Gateway (join)</span>
           </div>
           <div class="help-node-item">
-            <span class="help-node-tag" style="background:#EBF5FB;color:#2980B9;border:1px dashed #2980B9">⬜</span>
+            <span class="help-node-tag help-node-tag-subprocess">⬜</span>
             <span>Subprocess (reuse template)</span>
           </div>
         </div>
@@ -234,11 +234,13 @@ const visible = computed({
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
 .help-drawer :deep(.el-drawer__header) {
   margin-bottom: 0;
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid $of-border-card;
 }
 .help-drawer-header {
   display: flex;
@@ -252,7 +254,7 @@ const visible = computed({
   gap: 8px;
   font-size: 16px;
   font-weight: 700;
-  color: #1f2937;
+  color: $of-text-primary;
 }
 .help-drawer-icon {
   font-size: 20px;
@@ -261,7 +263,7 @@ const visible = computed({
   padding: 4px 20px 20px;
   font-size: 13px;
   line-height: 1.7;
-  color: #374151;
+  color: $of-text-secondary;
 }
 .help-section {
   margin-bottom: 22px;
@@ -269,16 +271,16 @@ const visible = computed({
 .help-h2 {
   font-size: 15px;
   font-weight: 700;
-  color: #1f2937;
+  color: $of-text-primary;
   margin: 0 0 10px;
   padding-bottom: 6px;
-  border-bottom: 2px solid #409EFF;
+  border-bottom: 2px solid $of-color-primary;
   display: inline-block;
 }
 .help-h3 {
   font-size: 13px;
   font-weight: 600;
-  color: #4b5563;
+  color: $of-text-muted;
   margin: 12px 0 6px;
 }
 
@@ -289,9 +291,9 @@ const visible = computed({
   flex-wrap: wrap;
   gap: 6px;
   padding: 12px 14px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  background: $of-bg-card;
+  border-radius: $of-radius-sm;
+  border: 1px solid $of-border-default;
 }
 .help-flow-step {
   display: flex;
@@ -299,13 +301,13 @@ const visible = computed({
   gap: 4px;
   font-size: 12px;
   font-weight: 600;
-  color: #374151;
+  color: $of-text-secondary;
 }
 .help-flow-num {
-  color: #409EFF;
+  color: $of-color-primary;
 }
 .help-flow-arrow {
-  color: #d1d5db;
+  color: $of-text-placeholder;
   font-size: 14px;
 }
 
@@ -322,8 +324,8 @@ const visible = computed({
   gap: 10px;
   padding: 8px 10px;
   background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid $of-border-default;
+  border-radius: $of-radius-sm;
 }
 .help-method-icon {
   font-size: 18px;
@@ -338,12 +340,12 @@ const visible = computed({
 .help-method p {
   margin: 0;
   font-size: 11px;
-  color: #6b7280;
+  color: $of-text-muted;
 }
 .help-tip {
   font-size: 12px;
-  background: #fefce8;
-  border: 1px solid #fde68a;
+  background: $of-bg-confirm;
+  border: 1px solid $of-border-confirm;
   border-radius: 6px;
   padding: 8px 10px;
   color: #92400e;
@@ -362,7 +364,7 @@ const visible = computed({
   gap: 6px;
   font-size: 11px;
   padding: 4px 6px;
-  background: #f9fafb;
+  background: $of-bg-card-hover;
   border-radius: 4px;
 }
 .help-node-tag {
@@ -380,6 +382,13 @@ const visible = computed({
   font-style: normal;
   font-size: 10px;
 }
+/* Node tag color variants — replaces inline styles */
+.help-node-tag-start { background: #E1F3D8; color: #67C23A; }
+.help-node-tag-task { background: #fff; color: $of-color-primary; border: 1px solid $of-color-primary; }
+.help-node-tag-exclusive { background: #fff; color: #E6A23C; border: 1px solid #E6A23C; }
+.help-node-tag-parallel { background: #fff; color: $of-color-primary; border: 1px solid $of-color-primary; }
+.help-node-tag-converge { background: #fff; color: $of-text-muted; border: 1px solid $of-text-muted; }
+.help-node-tag-subprocess { background: #EBF5FB; color: #2980B9; border: 1px dashed #2980B9; }
 
 /* Lists */
 .help-list {
@@ -387,14 +396,14 @@ const visible = computed({
   padding-left: 18px;
   font-size: 12px;
   line-height: 2;
-  color: #4b5563;
+  color: $of-text-muted;
 }
 .help-list code {
-  background: #ecf5ff;
+  background: $of-bg-light-blue;
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 11px;
-  color: #409EFF;
+  color: $of-color-primary;
 }
 
 /* Wizard steps */
@@ -406,10 +415,10 @@ const visible = computed({
 }
 .help-wiz-item {
   padding: 4px 10px;
-  background: #ecf5ff;
+  background: $of-bg-light-blue;
   border-radius: 12px;
   font-size: 11px;
-  color: #409EFF;
+  color: $of-color-primary;
   font-weight: 500;
 }
 
@@ -420,18 +429,18 @@ const visible = computed({
   flex-wrap: wrap;
   gap: 4px;
   padding: 8px 10px;
-  background: #f9fafb;
+  background: $of-bg-card-hover;
   border-radius: 6px;
   font-size: 11px;
   font-family: monospace;
 }
 .help-state { padding: 2px 6px; border-radius: 3px; }
-.help-state.pending { background: #f3f4f6; color: #6b7280; }
-.help-state.running { background: #fef3c7; color: #d97706; }
-.help-state.completed { background: #d1fae5; color: #059669; }
-.help-state.failed { background: #fee2e2; color: #dc2626; }
-.help-state-arrow { color: #d1d5db; }
-.help-state-divider { color: #e5e7eb; }
+.help-state.pending { background: #f3f4f6; color: $of-text-muted; }
+.help-state.running { background: $of-bg-warning; color: #d97706; }
+.help-state.completed { background: $of-bg-success; color: #059669; }
+.help-state.failed { background: $of-bg-danger; color: #dc2626; }
+.help-state-arrow { color: $of-text-placeholder; }
+.help-state-divider { color: $of-border-default; }
 
 /* Grid actions */
 .help-grid {
@@ -441,11 +450,11 @@ const visible = computed({
 }
 .help-grid-item {
   padding: 6px 8px;
-  background: #f9fafb;
+  background: $of-bg-card-hover;
   border-radius: 4px;
   font-size: 11px;
-  color: #4b5563;
-  border: 1px solid #f0f0f0;
+  color: $of-text-muted;
+  border: 1px solid $of-border-card;
 }
 
 /* FAQ */
@@ -453,25 +462,25 @@ const visible = computed({
   margin-bottom: 10px;
   padding: 10px;
   background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid $of-border-default;
+  border-radius: $of-radius-sm;
 }
 .help-faq-q {
   font-weight: 600;
   font-size: 12px;
-  color: #1f2937;
+  color: $of-text-primary;
   margin-bottom: 4px;
 }
 .help-faq-a {
   font-size: 12px;
-  color: #6b7280;
+  color: $of-text-muted;
   line-height: 1.5;
 }
 .help-faq-a code {
-  background: #ecf5ff;
+  background: $of-bg-light-blue;
   padding: 1px 4px;
   border-radius: 3px;
   font-size: 11px;
-  color: #409EFF;
+  color: $of-color-primary;
 }
 </style>

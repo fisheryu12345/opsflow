@@ -660,18 +660,46 @@ loadTemplates()
   color: #909399;
   line-height: 1.6;
 }
-.condition-hint {
-  margin: 4px 0 0;
-  font-size: 11px;
-  color: #909399;
-  line-height: 1.5;
-}
-.condition-hint code {
+/* Condition preview (new structural editor) */
+.condition-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
   background: #f5f7fa;
-  padding: 1px 5px;
-  border-radius: 3px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-height: 32px;
+}
+.condition-preview:hover {
+  border-color: #409EFF;
+  background: #ecf5ff;
+}
+.condition-code {
+  font-size: 12px;
+  font-family: monospace;
+  color: #303133;
+  word-break: break-all;
+  line-height: 1.5;
+  flex: 1;
+}
+.condition-placeholder {
+  font-size: 12px;
+  color: #c0c4cc;
+  flex: 1;
+}
+.cond-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.cond-ref-tag {
+  font-family: monospace;
   font-size: 11px;
-  color: #409EFF;
 }
 /* Output Parameters */
 .output-list { display: flex; flex-direction: column; gap: 6px; }

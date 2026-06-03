@@ -13,12 +13,14 @@
         @select="onVariableSelect"
         @update:model-value="onVariableKeyChange"
         :clearable="false"
+        placeholder="Select a variable..."
       />
       <el-select
         v-model="localRule.op"
         size="small"
         class="field-cell op-cell"
         @change="emitChange"
+        :disabled="!localRule.source"
       >
         <el-option
           v-for="op in filteredOps"
@@ -33,9 +35,11 @@
         class="field-cell"
         :placeholder="valuePlaceholder"
         :type="valueInputType"
+        :disabled="!localRule.source"
         @change="emitChange"
       />
-      <span class="field-type-badge">{{ fieldTypeLabel }}</span>
+      <span class="field-type-badge" v-if="localRule.source">{{ fieldTypeLabel }}</span>
+      <span class="field-type-badge hint" v-else>?</span>
     </div>
   </div>
 </template>
@@ -114,14 +118,16 @@ function emitChange() {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/opsflow-global';
+
 .condition-row {
-  background: #f5f7fa;
+  background: $of-bg-header;
   border-radius: 6px;
   padding: 10px 12px;
   margin-bottom: 8px;
   border: 1px solid transparent;
-  transition: border-color 0.2s;
+  transition: border-color $of-transition-default;
 }
 .condition-row.has-error {
   border-color: #F56C6C;
@@ -145,7 +151,7 @@ function emitChange() {
 }
 .row-label {
   font-size: 12px;
-  color: #909399;
+  color: $of-text-muted;
   flex: 1;
 }
 .row-fields {
@@ -161,10 +167,15 @@ function emitChange() {
 }
 .field-type-badge {
   font-size: 10px;
-  color: #909399;
+  color: $of-text-muted;
   background: #e9e9eb;
   padding: 2px 8px;
   border-radius: 3px;
   white-space: nowrap;
+}
+.field-type-badge.hint {
+  color: $of-text-placeholder;
+  background: $of-bg-header;
+  font-style: italic;
 }
 </style>
