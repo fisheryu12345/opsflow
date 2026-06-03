@@ -110,6 +110,25 @@ def notify_node_status(execution_id, node_id, status, message=''):
     _ws_notify(execution_id, node_id, status, message)
 
 
+@shared_task(queue='er_execute')
+def notify_execution_completed(execution_id, execution_status):
+    """Celery 任务 — 推送执行完成通知到 WebSocket
+
+    使用与 notify_node_status 相同的队列（er_execute），确保消息有序：
+    notify_node_status 先入队 → notify_execution_completed 后入队，
+    Celery 按 FIFO 顺序投递，避免 execution_completed 先于节点状态
+    到达前端的时序竞争。
+    """
+    from channels.layers import get_channel_layer
+    channel_layer = get_channel_layer()
+    run_async(
+        channel_layer.group_send(
+            f"execution_{execution_id}",
+            {"type": "execution.completed", "status": execution_status},
+        )
+    )
+
+
 @shared_task(bind=True, max_retries=0)
 def auto_retry_node_task(self, execution_id, node_id):
     """Celery 任务 — 自动重试失败节点（由 auto_retry dispatch 触发）

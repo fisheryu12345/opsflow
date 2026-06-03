@@ -22,9 +22,9 @@ export function useMonitor() {
           nodeStatuses.value[msg.node_id] = msg.status
         } else if (msg.type === 'execution_completed') {
           executionStatus.value = msg.status
-          if (msg.status === 'completed') {
-            connected.value = false
-          }
+          // 不断开 WS：保留连接以接收可能延迟到达的节点状态消息
+          //（Celery 通知 vs 前端 execution_completed 的时序竞争）
+          // 用户离开页面时 onBeforeUnmount → disconnect() 会清理连接
         } else if (msg.type === 'init_state') {
           if (msg.data.node_status) {
             nodeStatuses.value = { ...msg.data.node_status }

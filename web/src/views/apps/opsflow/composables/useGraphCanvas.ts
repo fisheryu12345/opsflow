@@ -19,7 +19,7 @@ function createDefaultGraph(
   return new Graph({
     container,
     grid: true,
-    panning: { enabled: isDesign },
+    panning: { enabled: options.mode !== 'preview' },
     mousewheel: { enabled: true, zoomAtMousePosition: true },
     interacting: options.interacting ?? isDesign,
     connecting: {

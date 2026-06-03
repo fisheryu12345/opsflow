@@ -238,6 +238,11 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
     if (Object.keys(nodeStatuses.value).length) {
       for (const [nid, s] of Object.entries(nodeStatuses.value)) applyNodeColor(nid, s)
     }
+
+    // 边加载完成后触发动画（解决 setExecutionStatus 早于 loadGraphData 的时序问题）
+    if (executionStatus.value === 'running') {
+      setEdgeAnimation(true)
+    }
   } catch (e) {
     console.error('[MonitorCanvas] loadGraphData error:', e)
   }
@@ -294,6 +299,52 @@ function setExecutionStatus(status: string) {
   executionStatus.value = status
 }
 
+// ── X6 transition 驱动边流动动画 ──
+
+let edgeAnimationActive = false
+
+function setEdgeAnimation(active: boolean) {
+  edgeAnimationActive = active
+  if (!graph.value) return
+  graph.value.getEdges().forEach(edge => {
+    edge.stopTransition('attrs/line/strokeDashoffset')
+    if (active) {
+      edge.setAttrByPath('line/class', '')
+      edge.setAttrByPath('line/strokeDasharray', '8 4')
+      edge.setAttrByPath('line/stroke', '#E6A23C')
+      edge.setAttrByPath('line/strokeWidth', 2)
+      edge.setAttrByPath('line/strokeDashoffset', 0)
+      const tick = () => {
+        if (!edgeAnimationActive) return
+        edge.transition('attrs/line/strokeDashoffset', -12, {
+          timing: 'linear',
+          duration: 350,
+        })
+        edge.once('transition:complete', () => {
+          // -12 和 0 在 8+4 模式下视觉相同，快照重置无跳变
+          edge.setAttrByPath('line/strokeDashoffset', 0)
+          tick()
+        })
+      }
+      tick()
+    } else {
+      edge.setAttrByPath('line/class', '')
+      edge.setAttrByPath('line/strokeDashoffset', 0)
+      edge.setAttrByPath('line/strokeDasharray', '')
+      edge.setAttrByPath('line/stroke', '#DCDFE6')
+      edge.setAttrByPath('line/strokeWidth', 1.5)
+    }
+  })
+}
+
+watch(executionStatus, (status) => {
+  if (status === 'running') {
+    setEdgeAnimation(true)
+  } else if (['completed', 'failed', 'cancelled', 'paused'].includes(status)) {
+    setEdgeAnimation(false)
+  }
+})
+
 // ── 生命周期 ──
 
 onMounted(() => {
@@ -347,6 +398,7 @@ defineExpose({ loadGraphData, loadNodeStatuses, refreshCanvas, setExecutionStatu
   0%, 100% { opacity: 1; r: 4; }
   50% { opacity: 0.3; r: 6; }
 }
+
 
 .header-stats { display: flex; align-items: center; gap: 10px; }
 .hstat-item { display: flex; align-items: center; gap: 3px; }
