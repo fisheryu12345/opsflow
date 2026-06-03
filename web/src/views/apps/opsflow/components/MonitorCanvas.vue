@@ -89,7 +89,8 @@ const statusStats = computed(() => {
   }
   return { completed, running, failed }
 })
-const statusTotal = computed(() => Object.keys(nodeStatuses.value).length)
+/** Total 使用画布节点数而非 nodeStatuses 长度，避免 Total 从 0 开始跳变 */
+const statusTotal = computed(() => graphNodeCount.value || 1)
 const progressPct = computed(() => {
   const total = statusTotal.value
   return total > 0 ? Math.round((statusStats.value.completed / total) * 100) : 0
@@ -287,8 +288,22 @@ watch(nodeStatuses, (statuses) => {
   for (const [nid, s] of Object.entries(statuses)) applyNodeColor(nid, s)
 }, { deep: true })
 
+/** TERMINAL_STATES — 终态列表，API 轮询返回的非终态值不覆盖 WS 已收到的终态 */
+const TERMINAL_STATES = new Set(['completed', 'failed', 'cancelled', 'skipped'])
+
 function loadNodeStatuses(statusMap: Record<string, string>) {
-  nodeStatuses.value = { ...statusMap }
+  // 合并而非替换 — API 响应可能比 WebSocket 慢一步，全量替换会
+  // 重置已通过 WS 收到的终态节点为 running/pending，导致进度条倒退、
+  // 节点颜色来回跳变。
+  //
+  // 规则：对已在终态的节点，不覆盖为非终态。
+  const merged = { ...nodeStatuses.value }
+  for (const [nid, s] of Object.entries(statusMap)) {
+    const existing = merged[nid]
+    if (existing && TERMINAL_STATES.has(existing)) continue  // 不覆盖终态
+    merged[nid] = s
+  }
+  nodeStatuses.value = merged
 }
 
 function refreshCanvas() {
