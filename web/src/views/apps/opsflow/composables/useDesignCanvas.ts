@@ -10,7 +10,7 @@ import { MiniMap } from '@antv/x6-plugin-minimap'
 import { Keyboard } from '@antv/x6-plugin-keyboard'
 import { AiLayout } from '/@/api/opsflow/templates'
 import { useGraphCanvas, layoutNodes, defaultNodeLabel } from './useGraphCanvas'
-import { resolveNodeShape, updateAtomNode, isPortConnected, refreshPortStates } from '../utils/shapes'
+import { resolveNodeShape, updateAtomNode, refreshPortStates, showNodePorts, PORT_DOT_RADIUS, CARD_WIDTH, CARD_HEIGHT } from '../utils/shapes'
 
 export function useDesignCanvas(containerId: string, emit?: (event: string, ...args: any[]) => void) {
   // 使用通用 Graph composable（设计模式）
@@ -100,36 +100,39 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       if (node.shape === 'ops-atom') updateAtomNode(node)
     })
     g.on('node:mouseenter', ({ node }) => {
+      // 参考案例：hover 显示所有端口
+      showNodePorts(node, true)
+      // 放大端口圆点便于点击
       node.getPorts().forEach(p => {
         if (p.id) {
-          node.setPortProp(p.id, 'attrs/circle/opacity', 1)
-          node.setPortProp(p.id, 'attrs/circle/r', 6)       // 放大
+          node.setPortProp(p.id, 'attrs/circle/r', 6)
           node.setPortProp(p.id, 'attrs/circle/strokeWidth', 2)
         }
       })
-      // 为 ops-atom 显示删除按钮（排除 start/end）
-      if (node.shape === 'ops-atom') {
+      // 为 ops-atom / ops-subprocess 显示删除按钮
+      if (node.shape === 'ops-atom' || node.shape === 'ops-subprocess') {
         const data = node.getData()
         const isProtected = data?.node_type === 'start_event' || data?.node_type === 'end_event'
         if (!isProtected) {
-          node.setAttrs({ 'del-btn-bg': { opacity: 1 }, 'del-btn-icon': { opacity: 1 } })
+          node.setAttrs({ 'del-btn-bg': { visibility: 'visible' }, 'del-btn-icon': { visibility: 'visible' } })
         }
       }
     })
     g.on('node:mouseleave', ({ node }) => {
       // 拖拽连线时保持所有连接桩显示
       if (_isConnecting.value) return
-      // 恢复连接桩大小，并根据连接状态设置颜色/显隐
-      refreshPortStates(node)
+      // 参考案例：已连接的端口保持蓝色可见，未连接的隐藏
+      showNodePorts(node, false)
+      // 恢复端口大小
       node.getPorts().forEach(p => {
         if (p.id) {
-          node.setPortProp(p.id, 'attrs/circle/r', 5)       // 恢复
-          node.setPortProp(p.id, 'attrs/circle/strokeWidth', 1.5)
+          node.setPortProp(p.id, 'attrs/circle/r', PORT_DOT_RADIUS)
+          node.setPortProp(p.id, 'attrs/circle/strokeWidth', 1)
         }
       })
       // 隐藏删除按钮
-      if (node.shape === 'ops-atom') {
-        node.setAttrs({ 'del-btn-bg': { opacity: 0 }, 'del-btn-icon': { opacity: 0 } })
+      if (node.shape === 'ops-atom' || node.shape === 'ops-subprocess') {
+        node.setAttrs({ 'del-btn-bg': { visibility: 'hidden' }, 'del-btn-icon': { visibility: 'hidden' } })
       }
     })
     g.on('edge:removed', ({ edge }) => {
@@ -162,6 +165,9 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
           const pos = node.getPosition()
           const size = node.getSize()
           const json = node.toJSON()
+          // stencil 紧凑形状 → 画布标准形状
+          if (json.shape === 'ops-atom-stencil') json.shape = 'ops-atom'
+          if (json.shape === 'ops-subprocess-stencil') json.shape = 'ops-subprocess'
           const ports = json.ports || node.getPorts()
           g.removeCell(node.id)
           const newNode = g.addNode({
@@ -181,8 +187,13 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
             if (typeof tgt === 'object' && tgt.cell === oldId) edge.setTarget({ ...tgt, cell: newId })
           })
           if (data?.node_type === 'atom') {
+            // 强制使用标准卡片尺寸（从调色板拖入时尺寸可能不对）
             if (data?.atom_type) updateAtomNode(newNode)
             else needPlugin(newId)
+            newNode.resize(CARD_WIDTH, CARD_HEIGHT)
+          }
+          if (data?.node_type === 'subprocess') {
+            newNode.resize(CARD_WIDTH, CARD_HEIGHT)
           }
           // ID 重建后刷新 port 连接状态
           refreshPortStates(newNode)
@@ -190,9 +201,43 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
         return
       }
       const data = node.getData()
-      if (data?.node_type === 'atom') {
-        if (data?.atom_type) updateAtomNode(node)
-        else needPlugin(node.id)
+      const isAtomLike = data?.node_type === 'atom' || data?.node_type === 'subprocess' || data?.node_type === undefined
+      if (isAtomLike) {
+        // stencil 紧凑形状 → 画布标准形状
+        const stencilToReal: Record<string, { shape: string; width: number; height: number }> = {
+          'ops-atom-stencil': { shape: 'ops-atom', width: CARD_WIDTH, height: CARD_HEIGHT },
+          'ops-subprocess-stencil': { shape: 'ops-subprocess', width: 200, height: 56 },
+        }
+        const real = stencilToReal[node.shape]
+        if (real) {
+          const pos = node.getPosition()
+          const edges = g.getEdges().filter(e => e.getSourceCellId() === node.id || e.getTargetCellId() === node.id)
+          g.removeCell(node.id)
+          const realNode = g.addNode({
+            shape: real.shape,
+            id: data.id || node.id,
+            x: pos.x, y: pos.y,
+            width: real.width, height: real.height,
+            data: { ...data, id: data.id || node.id },
+            ports: node.getPorts(),
+          })
+          // 重连边
+          edges.forEach(edge => {
+            const src = edge.getSource()
+            const tgt = edge.getTarget()
+            if (typeof src === 'object' && src.cell === (data.id || node.id)) edge.setSource({ ...src, cell: realNode.id })
+            if (typeof tgt === 'object' && tgt.cell === (data.id || node.id)) edge.setTarget({ ...tgt, cell: realNode.id })
+          })
+          if (data?.atom_type) updateAtomNode(realNode)
+          else if (data?.node_type === 'atom') needPlugin(realNode.id)
+          return
+        }
+        // 强制使用标准卡片尺寸（从调色板拖入时尺寸可能不对）
+        if (data?.node_type === 'atom') {
+          node.resize(CARD_WIDTH, CARD_HEIGHT)
+          if (data?.atom_type) updateAtomNode(node)
+          else needPlugin(node.id)
+        }
       }
     })
     // 连线完成后执行校验：出度约束 + 标签检查 + 网关 Prompt
@@ -249,9 +294,25 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
 
       // ── 排他/条件并行网关：连接后 Prompt 选标签 ──
       const needLabel = sourceType === 'exclusive_gateway' || sourceType === 'conditional_parallel_gateway'
-      if (!needLabel) return
+      if (!needLabel) {
+        // 非网关连接：刷新两端端口连接状态
+        const target = edge.getTargetCell()
+        if (target?.isNode()) refreshPortStates(target as Node)
+        refreshPortStates(source as Node)
+        return
+      }
       const labels = edge.getLabels?.() || []
-      if (labels.length > 0 && labels[0]?.attrs?.text?.text) return
+      if (labels.length > 0 && labels[0]?.attrs?.text?.text) {
+        // 已有标签的边：刷新端口状态
+        const target = edge.getTargetCell()
+        if (target?.isNode()) refreshPortStates(target as Node)
+        refreshPortStates(source as Node)
+        return
+      }
+
+      // 刷新两端端口状态（即使 Prompt 未关闭，端口已显示连接态）
+      { const target = edge.getTargetCell(); if (target?.isNode()) refreshPortStates(target as Node) }
+      refreshPortStates(source as Node)
 
       ElMessageBox.prompt('请选择分支类型', '分支', {
         inputType: 'select',
@@ -321,27 +382,27 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
           const t = d(n).node_type
           if (t === 'start_event')                n.setPosition({ x: 26, y: 8 })
           else if (t === 'end_event')             n.setPosition({ x: 110, y: 8 })
-          else if (t === 'exclusive_gateway')     n.setPosition({ x: 14, y: 106 })
-          else if (t === 'parallel_gateway')      n.setPosition({ x: 110, y: 106 })
-          else if (t === 'conditional_parallel_gateway') n.setPosition({ x: 14, y: 208 })
-          else if (t === 'converge_gateway')      n.setPosition({ x: 110, y: 208 })
-          else if (t === 'approval')              n.setPosition({ x: 63, y: 312 })
-          else if (t === 'subprocess')            n.setPosition({ x: 27, y: 416 })
-          else if (t === 'atom')                  n.setPosition({ x: 27, y: 474 })
+          else if (t === 'exclusive_gateway')     n.setPosition({ x: 14, y: 100 })
+          else if (t === 'parallel_gateway')      n.setPosition({ x: 110, y: 100 })
+          else if (t === 'conditional_parallel_gateway') n.setPosition({ x: 14, y: 184 })
+          else if (t === 'converge_gateway')      n.setPosition({ x: 110, y: 184 })
+          else if (t === 'approval')              n.setPosition({ x: 63, y: 284 })
+          else if (t === 'subprocess')            n.setPosition({ x: 4, y: 388 })
+          else if (t === 'atom')                  n.setPosition({ x: 4, y: 446 })
         })
       },
     })
 
     const stencilNodes = [
-      { shape: 'ops-start-event', label: 'Start', width: 56, height: 80, attrs: { label: { text: 'Start', refY: 76 } }, data: { node_type: 'start_event' } },
-      { shape: 'ops-end-event', label: 'End', width: 56, height: 80, attrs: { label: { text: 'End', refY: 76 } }, data: { node_type: 'end_event' } },
-      { shape: 'ops-exclusive-gateway', label: 'Condition', width: 70, height: 92, attrs: { label: { text: 'Condition' } }, data: { node_type: 'exclusive_gateway' } },
-      { shape: 'ops-parallel-gateway', label: 'Parallel', width: 70, height: 92, attrs: { label: { text: 'Parallel' } }, data: { node_type: 'parallel_gateway' } },
-      { shape: 'ops-conditional-parallel-gateway', label: 'Cond. Parallel', width: 70, height: 92, attrs: { label: { text: 'Cond. Parallel' } }, data: { node_type: 'conditional_parallel_gateway' } },
-      { shape: 'ops-converge-gateway', label: 'Converge', width: 70, height: 92, attrs: { label: { text: 'Converge' } }, data: { node_type: 'converge_gateway' } },
-      { shape: 'ops-approval', label: 'Approval', width: 70, height: 92, attrs: { label: { text: 'Approval' } }, data: { node_type: 'approval' } },
-      { shape: 'ops-subprocess', label: 'Subprocess', width: 145, height: 48, attrs: { label: { text: 'Subprocess' } }, data: { node_type: 'subprocess' } },
-      { shape: 'ops-atom', label: 'Task Node', width: 160, height: 54, attrs: { label: { text: 'Task Node' } }, data: { node_type: 'atom' } },
+      { shape: 'ops-start-event', label: 'Start', width: 56, height: 82, attrs: { label: { text: 'Start', visibility: 'visible', refY: 80 } }, data: { node_type: 'start_event' } },
+      { shape: 'ops-end-event', label: 'End', width: 56, height: 82, attrs: { label: { text: 'End', visibility: 'visible', refY: 80 } }, data: { node_type: 'end_event' } },
+      { shape: 'ops-exclusive-gateway', label: 'Exclusive', width: 70, height: 92, attrs: { label: { text: 'Exclusive', visibility: 'visible' } }, data: { node_type: 'exclusive_gateway' } },
+      { shape: 'ops-parallel-gateway', label: 'Parallel', width: 70, height: 92, attrs: { label: { text: 'Parallel', visibility: 'visible' } }, data: { node_type: 'parallel_gateway' } },
+      { shape: 'ops-conditional-parallel-gateway', label: 'Conditional', width: 70, height: 92, attrs: { label: { text: 'Conditional', visibility: 'visible' } }, data: { node_type: 'conditional_parallel_gateway' } },
+      { shape: 'ops-converge-gateway', label: 'Converge', width: 70, height: 92, attrs: { label: { text: 'Converge', visibility: 'visible' } }, data: { node_type: 'converge_gateway' } },
+      { shape: 'ops-approval', label: 'Approval', width: 70, height: 92, attrs: { label: { text: 'Approval', visibility: 'visible' } }, data: { node_type: 'approval' } },
+      { shape: 'ops-subprocess-stencil', label: 'Subprocess', width: 168, height: 48, attrs: { iconLabel: { text: 'S' }, title: { text: 'Subprocess' } }, data: { node_type: 'subprocess' } } as any,
+      { shape: 'ops-atom-stencil', label: 'Task Node', width: 168, height: 48, attrs: { iconLabel: { text: 'T' }, title: { text: 'Task Node' } }, data: { node_type: 'atom' } } as any,
     ]
 
     s.load(stencilNodes.map(n => graph.value!.createNode(n)), 'gateway')
@@ -419,9 +480,13 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
         attrs: { label: { text: nodeLabel } },
         data: node,
       })
-      // 对 ops-atom 节点应用卡片样式
+      // 对 ops-atom / ops-subprocess 节点应用卡片样式
       if (x6Node.shape === 'ops-atom') {
         updateAtomNode(x6Node)
+        x6Node.resize(CARD_WIDTH, CARD_HEIGHT)
+      }
+      if (x6Node.shape === 'ops-subprocess') {
+        x6Node.resize(CARD_WIDTH, CARD_HEIGHT)
       }
       cells.push(x6Node)
     }

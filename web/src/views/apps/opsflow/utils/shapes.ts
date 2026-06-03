@@ -1,4 +1,58 @@
-import { Shape, Node } from '@antv/x6'
+import { Graph, Shape, Node } from '@antv/x6'
+
+// ── HMR 防重复注册 ──
+
+function registerOnce(name: string, config: any) {
+  try {
+    Shape.Rect.define({ shape: name, ...config })
+  } catch {
+    // HMR 热更新时已注册，忽略
+  }
+}
+
+function registerNodeOnce(name: string, config: any) {
+  try {
+    Node.define({ shape: name, ...config })
+  } catch {
+    // HMR 热更新时已注册，忽略
+  }
+}
+
+function registerCircleOnce(name: string, config: any) {
+  try {
+    Shape.Circle.define({ shape: name, ...config })
+  } catch {
+    // HMR 热更新时已注册，忽略
+  }
+}
+
+function registerGraphOnce(name: string, config: any) {
+  try {
+    Graph.registerNode(name, config, true)
+  } catch {
+    // HMR 热更新时已注册，忽略
+  }
+}
+
+// ============================================================
+// 参考案例样式：agent-card 卡片设计（260×96）
+//   .agent-card { border:1px solid #5F95FF; border-radius:8px;
+//                 padding:12px; background:#fff; width:260px; height:96px }
+//   .header { display:flex; align-items:center; gap:12px }
+//   .icon   { width:32px; height:32px; border-radius:8px; display:flex;
+//             align-items:center; justify-content:center; font-weight:600 }
+//   .title  { font-size:16px; font-weight:600 }
+//   .desc   { font-size:13px; color:rgba(0,0,0,0.65) }
+//   .actions { margin-left:auto }
+// ============================================================
+
+export const CARD_WIDTH = 208
+export const CARD_HEIGHT = 64
+
+// ── 端口常量 ──
+export const PORT_DOT_RADIUS = 4
+const COLOR_PORT_GRAY = '#C2C8D5'
+const COLOR_PORT_BLUE = '#5F95FF'
 
 // ── Group → icon/color 映射（后端不存 emoji，前端维护映射表） ──
 
@@ -15,48 +69,41 @@ const GROUP_CONFIG: Record<string, { icon: string; color: string }> = {
   '验证工具':  { icon: '✓', color: '#67C23A' },
 }
 
-const DEFAULT_GROUP_COLOR = '#409EFF'
-const DEFAULT_GROUP_ICON = '◇'
+const DEFAULT_COLOR = '#409EFF'
+const DEFAULT_ICON = '◇'
 
-// ── Port 常量 ──
-const PORT_RADIUS = 5
-const COLOR_PORT_GRAY = '#C2C8D5'
-const COLOR_PORT_BLUE = '#5F95FF'
-
-/** 根据分组名解析 icon 和 color */
-function resolveGroupConfig(group: string): { icon: string; color: string } {
+function resolveGroup(group: string) {
   const cfg = GROUP_CONFIG[group]
-  return cfg || { icon: DEFAULT_GROUP_ICON, color: DEFAULT_GROUP_COLOR }
+  return cfg || { icon: DEFAULT_ICON, color: DEFAULT_COLOR }
 }
 
-// ── Port 通用群组定义（所有形状共享相同的默认端口样式） ──
+// ── 端口群组定义（参考案例：visibility 控制显隐） ──
 
-const BASE_PORT_ATTRS = {
-  r: PORT_RADIUS,
+const PORT_ATTRS = {
+  r: PORT_DOT_RADIUS,
   magnet: true,
   stroke: COLOR_PORT_GRAY,
-  strokeWidth: 1.5,
+  strokeWidth: 1,
   fill: COLOR_PORT_GRAY,
-  opacity: 0,
+  style: { visibility: 'hidden' as const },
 }
 
 const PORT_GROUPS = {
-  top: { position: { name: 'top' }, attrs: { circle: { ...BASE_PORT_ATTRS } } },
-  bottom: { position: { name: 'bottom' }, attrs: { circle: { ...BASE_PORT_ATTRS } } },
-  left: { position: { name: 'left' }, attrs: { circle: { ...BASE_PORT_ATTRS } } },
-  right: { position: { name: 'right' }, attrs: { circle: { ...BASE_PORT_ATTRS } } },
+  top:    { position: { name: 'top' },    attrs: { circle: { ...PORT_ATTRS } } },
+  right:  { position: { name: 'right' },  attrs: { circle: { ...PORT_ATTRS } } },
+  bottom: { position: { name: 'bottom' }, attrs: { circle: { ...PORT_ATTRS } } },
+  left:   { position: { name: 'left' },   attrs: { circle: { ...PORT_ATTRS } } },
 }
-
 const PORT_ITEMS = [
   { id: 'top', group: 'top' },
+  { id: 'right', group: 'right' },
   { id: 'bottom', group: 'bottom' },
   { id: 'left', group: 'left' },
-  { id: 'right', group: 'right' },
 ]
 
-// ── Port 连接状态工具函数 ──
+// ── 端口工具函数（参考案例：isPortConnected → setPortDot → showNodePorts） ──
 
-/** 判断节点的某个 port 是否有已连接的边 */
+/** 判断节点的某个端口是否有已连接的边 */
 export function isPortConnected(node: Node, portId: string): boolean {
   const model = node.model
   if (!model) return false
@@ -68,154 +115,222 @@ export function isPortConnected(node: Node, portId: string): boolean {
   )
 }
 
-/** 设置单个 port 的连接状态样式：已连接=蓝色常亮，未连接=灰色隐藏 */
-export function setPortState(node: Node, portId: string, connected: boolean) {
-  const fill = connected ? COLOR_PORT_BLUE : COLOR_PORT_GRAY
-  const stroke = connected ? COLOR_PORT_BLUE : COLOR_PORT_GRAY
-  const opacity = connected ? 1 : 0
-  node.setPortProp(portId, 'attrs/circle/fill', fill)
-  node.setPortProp(portId, 'attrs/circle/stroke', stroke)
-  node.setPortProp(portId, 'attrs/circle/opacity', opacity)
+/** 设置端口显隐 */
+function setPortVisible(node: Node, portId: string, visible: boolean) {
+  node.setPortProp(portId, 'attrs/circle/style/visibility', visible ? 'visible' : 'hidden')
 }
 
-/** 刷新节点所有 port 的连接状态样式 */
-export function refreshPortStates(node: Node) {
-  const ports = node.getPorts()
-  for (let i = 0; i < ports.length; i += 1) {
-    const id = ports[i].id as string
-    const connected = isPortConnected(node, id)
-    setPortState(node, id, connected)
+/** 设置端口颜色 */
+function setPortColor(node: Node, portId: string, color: string) {
+  node.setPortProp(portId, 'attrs/circle/fill', color)
+  node.setPortProp(portId, 'attrs/circle/stroke', color)
+}
+
+/** 设置端口显隐+颜色 */
+function setPortDot(node: Node, portId: string, visible: boolean, color?: string) {
+  setPortVisible(node, portId, visible)
+  if (color) setPortColor(node, portId, color)
+}
+
+/** 控制节点所有端口的显隐（参考案例：showNodePorts） */
+export function showNodePorts(node: Node, show: boolean) {
+  const ps = node.getPorts()
+  for (let i = 0; i < ps.length; i += 1) {
+    const id = ps[i].id as string
+    if (show) {
+      setPortVisible(node, id, true)
+    } else {
+      const connected = isPortConnected(node, id)
+      setPortDot(node, id, connected, connected ? COLOR_PORT_BLUE : COLOR_PORT_GRAY)
+    }
   }
 }
 
-/** 生成 ops-atom 卡片节点的所有 attrs（设计态） */
+/** 刷新节点所有端口的连接状态样式 */
+export function refreshPortStates(node: Node) {
+  const ps = node.getPorts()
+  for (let i = 0; i < ps.length; i += 1) {
+    const id = ps[i].id as string
+    const connected = isPortConnected(node, id)
+    setPortDot(node, id, connected, connected ? COLOR_PORT_BLUE : COLOR_PORT_GRAY)
+  }
+}
+
+// ── 生成原子卡片 attrs（参考案例 card 布局，紧凑版 208×64） ──
+//
+//   ┌── Card 260×64, rx:8 ────────────────────────────┐
+//   │                                                    │
+//   │  ┌── icon ──┐  Title 15px                  [×]     │  y:8～36
+//   │  │  28×28   │                                       │
+//   │  └──────────┘                                       │
+//   │  Description 12px                                   │  y:38～58
+//   │                                              ●      │  status-dot
+//   └────────────────────────────────────────────────────┘
+
 export function makeAtomAttrs(
   color: string,
   icon: string,
   label: string,
-  subtitle: string,
+  desc: string,
   configured?: boolean,
 ) {
-  const c = color || DEFAULT_GROUP_COLOR
+  const c = color || DEFAULT_COLOR
+  // icon 背景色：color 18% 透明度填充 + 30% 描边
+  const iconBg = `${c}18`
+  const iconStroke = `${c}30`
+  const iconText = c
+
   return {
-    shadow: { fill: 'rgba(0,0,0,0.08)', x: 2, y: 2, width: 236, height: 68, rx: 10 },
-    'accent-bar': { fill: c, x: 0, y: 0, width: 4, height: 72, rx: 2 },
-    body: { fill: '#FFF', stroke: '#E4E7ED', strokeWidth: 1, x: 4, y: 0, width: 232, height: 72, rx: 10 },
-    'icon-bg': { fill: `${c}15`, stroke: `${c}30`, strokeWidth: 1, cx: 34, cy: 36, r: 16 },
-    icon: { text: icon || DEFAULT_GROUP_ICON, fill: c, fontSize: 16, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 34, refY: 36 },
-    label: { text: label, fill: '#303133', fontSize: 13, fontWeight: 600, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 60, refY: 18 },
-    subtitle: { text: subtitle || '', fill: '#909399', fontSize: 11, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 60, refY: 38 },
-    // Status dot: bottom-right, green=已配置插件, orange=待配置, transparent=默认
+    // 背景阴影
+    shadow: { fill: 'rgba(0,0,0,0.06)', x: 2, y: 2, width: CARD_WIDTH, height: CARD_HEIGHT, rx: 8 },
+    // 卡片主体（border 使用分组色）
+    body: { fill: '#FFF', stroke: c, strokeWidth: 1, x: 0, y: 0, width: CARD_WIDTH, height: CARD_HEIGHT, rx: 8 },
+    // 图标背景（28×28 圆角矩形，紧凑版）
+    'icon-bg': { fill: iconBg, stroke: iconStroke, strokeWidth: 1, x: 10, y: 8, width: 28, height: 28, rx: 6 },
+    // 图标文字
+    icon: { text: icon || DEFAULT_ICON, fill: iconText, fontSize: 13, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 24, refY: 22 },
+    // 标题（与 icon 中线对齐 y=22）
+    label: { text: label, fill: '#303133', fontSize: 14, fontWeight: 600, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'middle', refX: 48, refY: 22 },
+    // 描述
+    desc: { text: desc || '', fill: 'rgba(0,0,0,0.65)', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 10, refY: 40 },
+    // 删除按钮（默认隐藏，hover 显示）
+    'del-btn-bg': { fill: '#FF4D4F', cx: 196, cy: 14, r: 10, cursor: 'pointer', visibility: 'hidden' as const },
+    'del-btn-icon': { text: '✕', fill: '#FFF', fontSize: 12, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 196, refY: 15, cursor: 'pointer', visibility: 'hidden' as const },
+    // 状态点：绿=已配置, 橙=待配置, 透明=默认
     'status-dot': {
       fill: configured === true ? '#67C23A' : configured === false ? '#E6A23C' : 'transparent',
-      cx: 226,
-      cy: 62,
-      r: 4,
-      stroke: 'none',
+      cx: 200, cy: 56, r: 4, stroke: 'none',
     },
-    // Delete button（默认隐藏，hover 时通过 tools 显示）
-    'del-btn-bg': { fill: '#FF4D4F', cx: 226, cy: 14, r: 10, cursor: 'pointer', opacity: 0 },
-    'del-btn-icon': { text: '×', fill: '#fff', fontSize: 14, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 226, refY: 14.5, cursor: 'pointer', opacity: 0 },
   }
 }
 
-/** 运行时根据节点 data 更新 ops-atom 的视觉属性 */
+/** 运行时根据节点 data 更新原子卡片视觉 */
 export function updateAtomNode(node: Node) {
   const data = node.getData() || {}
-  const group = data.group || ''
-  const groupCfg = resolveGroupConfig(group)
-  const color = groupCfg.color
-  const icon = groupCfg.icon
+  const groupName = data.group || ''
+  const groupCfg = resolveGroup(groupName)
   const label = data.label || '未命名节点'
   const risk = data.risk_level || ''
-  const subtitle = group ? `${group}${risk ? ' · ' + risk : ''}` : ''
-  // configured = 已有 atom_type（已分配插件）
+  const desc = groupName ? `${groupName}${risk ? ' · ' + risk : ''}` : ''
   const configured = !!data.atom_type
-  node.setAttrs(makeAtomAttrs(color, icon, label, subtitle, configured))
+  node.setAttrs(makeAtomAttrs(groupCfg.color, groupCfg.icon, label, desc, configured))
 }
 
-// ── ops-atom: 卡片式原子节点（240x72） ────────────────────────────
-
-const ATOM_WIDTH = 240
-const ATOM_HEIGHT = 72
+// ── ops-atom: 卡片式原子节点（208×64，参考案例 card 设计） ──
 
 const atomMarkup = [
   { tagName: 'rect', selector: 'shadow' },
-  { tagName: 'rect', selector: 'accent-bar' },
   { tagName: 'rect', selector: 'body' },
-  { tagName: 'circle', selector: 'icon-bg' },
+  { tagName: 'rect', selector: 'icon-bg' },
   { tagName: 'text', selector: 'icon' },
   { tagName: 'text', selector: 'label' },
-  { tagName: 'text', selector: 'subtitle' },
-  { tagName: 'circle', selector: 'status-dot' },
-  // Delete button（hover 时显示）
+  { tagName: 'text', selector: 'desc' },
   { tagName: 'circle', selector: 'del-btn-bg' },
   { tagName: 'text', selector: 'del-btn-icon' },
+  { tagName: 'circle', selector: 'status-dot' },
 ]
 
-Shape.Rect.define({
-  shape: 'ops-atom',
-  width: ATOM_WIDTH,
-  height: ATOM_HEIGHT,
+registerOnce('ops-atom', {
+  width: CARD_WIDTH,
+  height: CARD_HEIGHT,
   markup: atomMarkup,
-  attrs: makeAtomAttrs(DEFAULT_GROUP_COLOR, DEFAULT_GROUP_ICON, '选择插件', '', false),
-  ports: {
-    groups: PORT_GROUPS,
-    items: PORT_ITEMS,
-  },
+  attrs: makeAtomAttrs(DEFAULT_COLOR, DEFAULT_ICON, '选择插件', '', false),
+  ports: { groups: PORT_GROUPS, items: PORT_ITEMS },
 })
 
-// ── Start event — 绿色圆 ────────────────────────────────────────
+// ── ops-atom-stencil: 调色板用图标+标题预览 ──
 
-const circleShadowMarkup = [
-  { tagName: 'circle', selector: 'shadow' },
+const stencilMarkup = [
+  { tagName: 'rect', selector: 'body' },
+  { tagName: 'rect', selector: 'iconRect' },
+  { tagName: 'text', selector: 'iconLabel' },
+  { tagName: 'text', selector: 'title' },
+]
+
+registerGraphOnce('ops-atom-stencil', {
+  inherit: 'rect',
+  width: 168,
+  height: 48,
+  markup: stencilMarkup,
+  attrs: {
+    body: { fill: '#FFF', stroke: '#5F95FF', strokeWidth: 1, rx: 8, ry: 8 },
+    iconRect: { width: 28, height: 28, rx: 6, ry: 6, refX: 10, refY: 10, fill: '#F0F5FF' },
+    iconLabel: { refX: 24, refY: 24, textAnchor: 'middle', textVerticalAnchor: 'middle', fontSize: 12, fontWeight: 600, fill: '#1D39C4' },
+    title: { refX: 46, refY: 24, textAnchor: 'start', textVerticalAnchor: 'middle', fontSize: 13, fontWeight: 600, fill: '#141414' },
+  },
+  ports: { groups: PORT_GROUPS, items: PORT_ITEMS },
+})
+
+// ── ops-subprocess-stencil: 调色板用图标+标题预览（虚边 + S） ──
+
+registerGraphOnce('ops-subprocess-stencil', {
+  inherit: 'rect',
+  width: 168,
+  height: 48,
+  markup: stencilMarkup,
+  attrs: {
+    body: { fill: '#EBF5FB', stroke: '#2980B9', strokeWidth: 1.5, rx: 8, ry: 8, strokeDasharray: '5 3' },
+    iconRect: { width: 28, height: 28, rx: 6, ry: 6, refX: 10, refY: 10, fill: '#D6EAF8' },
+    iconLabel: { refX: 24, refY: 24, textAnchor: 'middle', textVerticalAnchor: 'middle', fontSize: 12, fontWeight: 600, fill: '#2980B9' },
+    title: { refX: 46, refY: 24, textAnchor: 'start', textVerticalAnchor: 'middle', fontSize: 13, fontWeight: 600, fill: '#2C3E50' },
+  },
+  ports: { groups: PORT_GROUPS, items: PORT_ITEMS },
+})
+
+/** 创建调色板预览节点配置 */
+export function createStencilNode(cfg: { iconText?: string; title?: string }) {
+  return {
+    shape: 'ops-atom-stencil',
+    width: 168,
+    height: 48,
+    attrs: {
+      iconRect: { fill: '#F0F5FF' },
+      iconLabel: { text: cfg.iconText || '' },
+      title: { text: cfg.title || '' },
+    },
+    data: { node_type: 'atom' },
+  }
+}
+
+// ── Start event — 绿色圆（画布隐藏 label） ──
+
+const circleMarkup = [
   { tagName: 'circle', selector: 'body' },
+  { tagName: 'text', selector: 'icon' },
   { tagName: 'text', selector: 'label' },
 ]
 
-Shape.Circle.define({
-  shape: 'ops-start-event',
+registerCircleOnce('ops-start-event', {
   width: 56,
   height: 56,
-  markup: circleShadowMarkup,
+  markup: circleMarkup,
   attrs: {
-    shadow: { fill: 'rgba(103,194,58,0.15)', cx: 30, cy: 30, r: 30 },
-    body: { fill: '#E1F3D8', stroke: '#67C23A', strokeWidth: 2.5, cx: 28, cy: 28, r: 28 },
-    label: { fill: '#333', fontSize: 11, fontFamily: 'Microsoft YaHei', refY: 62 },
+    body: { fill: '#E1F3D8', stroke: '#67C23A', strokeWidth: 2.5, cx: 28, cy: 28, r: 26 },
+    icon: { text: '▶', fill: '#67C23A', fontSize: 48, fontWeight: 900, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 32, refY: 42 },
+    label: { fill: '#333', fontSize: 11, fontFamily: 'Microsoft YaHei', refX: 28, refY: 72, textAnchor: 'middle', visibility: 'hidden' as const },
   },
   ports: {
-    groups: {
-      out: { position: { name: 'right' }, attrs: { circle: { r: PORT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, opacity: 0, stroke: COLOR_PORT_GRAY, strokeWidth: 1.5 } } },
-    },
-    items: [
-      { id: 'out', group: 'out' },
-    ],
+    groups: { out: { position: { name: 'right' }, attrs: { circle: { r: PORT_DOT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, style: { visibility: 'hidden' }, stroke: COLOR_PORT_GRAY, strokeWidth: 1 } } } },
+    items: [{ id: 'out', group: 'out' }],
   },
 })
 
-// ── End event — 红色圆 ──────────────────────────────────────────
-
-Shape.Circle.define({
-  shape: 'ops-end-event',
+registerCircleOnce('ops-end-event', {
   width: 56,
   height: 56,
-  markup: circleShadowMarkup,
+  markup: circleMarkup,
   attrs: {
-    shadow: { fill: 'rgba(245,108,108,0.15)', cx: 30, cy: 30, r: 30 },
-    body: { fill: '#FDE2E2', stroke: '#F56C6C', strokeWidth: 2.5, cx: 28, cy: 28, r: 28 },
-    label: { fill: '#333', fontSize: 11, fontFamily: 'Microsoft YaHei', refY: 62 },
+    body: { fill: '#FDE2E2', stroke: '#F56C6C', strokeWidth: 2.5, cx: 28, cy: 28, r: 26 },
+    icon: { text: '■', fill: '#F56C6C', fontSize: 64, fontWeight: 900, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 28, refY: 36 },
+    label: { fill: '#333', fontSize: 11, fontFamily: 'Microsoft YaHei', refX: 28, refY: 72, textAnchor: 'middle', visibility: 'hidden' as const },
   },
   ports: {
-    groups: {
-      in: { position: { name: 'left' }, attrs: { circle: { r: PORT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, opacity: 0, stroke: COLOR_PORT_GRAY, strokeWidth: 1.5 } } },
-    },
-    items: [
-      { id: 'in', group: 'in' },
-    ],
+    groups: { in: { position: { name: 'left' }, attrs: { circle: { r: PORT_DOT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, style: { visibility: 'hidden' }, stroke: COLOR_PORT_GRAY, strokeWidth: 1 } } } },
+    items: [{ id: 'in', group: 'in' }],
   },
 })
 
-// ── Gateway 菱形基础 markup ─────────────────────────────────────
+// ── Gateway 菱形基础 markup ──
 
 const diamondMarkup = [
   { tagName: 'path', selector: 'shadow' },
@@ -224,153 +339,65 @@ const diamondMarkup = [
   { tagName: 'text', selector: 'label' },
 ]
 
-/** 生成网格菱形节点的通用 attrs */
 function diamondAttrs(color: string, iconText: string, iconSize = 24) {
   return {
-    shadow: {
-      d: 'M 37 7 L 67 37 L 37 67 L 7 37 Z',
-      fill: `${color}15`,
-      stroke: 'none',
-    },
-    body: {
-      d: 'M 35 5 L 65 35 L 35 65 L 5 35 Z',
-      fill: '#FFF',
-      stroke: color,
-      strokeWidth: 2,
-    },
-    icon: {
-      text: iconText,
-      fill: color,
-      fontSize: iconSize,
-      fontWeight: 'bold',
-      textAnchor: 'middle',
-      textVerticalAnchor: 'middle',
-      refX: 35,
-      refY: 33,
-    },
-    label: {
-      fill: '#333',
-      fontSize: 11,
-      fontFamily: 'Microsoft YaHei',
-      textAnchor: 'middle',
-      textVerticalAnchor: 'top',
-      refX: 35,
-      refY: 74,
-    },
+    shadow: { d: 'M 37 7 L 67 37 L 37 67 L 7 37 Z', fill: `${color}15`, stroke: 'none' },
+    body: { d: 'M 35 5 L 65 35 L 35 65 L 5 35 Z', fill: '#FFF', stroke: color, strokeWidth: 2 },
+    icon: { text: iconText, fill: color, fontSize: iconSize, fontWeight: 900, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 35, refY: 33 },
+    label: { fill: '#333', fontSize: 11, fontFamily: 'Microsoft YaHei', textAnchor: 'middle', textVerticalAnchor: 'top', refX: 35, refY: 74, visibility: 'hidden' as const },
   }
 }
 
 function diamondPorts() {
   return {
     groups: {
-      top: { position: { name: 'top' }, attrs: { circle: { r: PORT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, opacity: 0, stroke: COLOR_PORT_GRAY, strokeWidth: 1.5 } } },
-      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: PORT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, opacity: 0, stroke: COLOR_PORT_GRAY, strokeWidth: 1.5 } } },
-      left: { position: { name: 'left' }, attrs: { circle: { r: PORT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, opacity: 0, stroke: COLOR_PORT_GRAY, strokeWidth: 1.5 } } },
-      right: { position: { name: 'right' }, attrs: { circle: { r: PORT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, opacity: 0, stroke: COLOR_PORT_GRAY, strokeWidth: 1.5 } } },
+      top: { position: { name: 'top' }, attrs: { circle: { r: PORT_DOT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, stroke: COLOR_PORT_GRAY, strokeWidth: 1, style: { visibility: 'hidden' } } } },
+      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: PORT_DOT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, stroke: COLOR_PORT_GRAY, strokeWidth: 1, style: { visibility: 'hidden' } } } },
+      left: { position: { name: 'left' }, attrs: { circle: { r: PORT_DOT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, stroke: COLOR_PORT_GRAY, strokeWidth: 1, style: { visibility: 'hidden' } } } },
+      right: { position: { name: 'right' }, attrs: { circle: { r: PORT_DOT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, stroke: COLOR_PORT_GRAY, strokeWidth: 1, style: { visibility: 'hidden' } } } },
     },
-    items: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
+    items: PORT_ITEMS,
   }
 }
 
-// ── Exclusive gateway — 菱形（橙色 X） ──────────────────────────
+// Gateways — 看图知意图标
+registerNodeOnce('ops-exclusive-gateway', { width: 70, height: 70, markup: diamondMarkup, attrs: diamondAttrs('#E6A23C', '⊗', 28), ports: diamondPorts() })
+registerNodeOnce('ops-parallel-gateway', { width: 70, height: 70, markup: diamondMarkup, attrs: diamondAttrs('#409EFF', '⊞', 28), ports: diamondPorts() })
+registerNodeOnce('ops-conditional-parallel-gateway', { width: 70, height: 70, markup: diamondMarkup, attrs: diamondAttrs('#5CADFF', '◐', 26), ports: diamondPorts() })
+registerNodeOnce('ops-converge-gateway', { width: 70, height: 70, markup: diamondMarkup, attrs: diamondAttrs('#909399', '⨁', 28), ports: diamondPorts() })
+registerNodeOnce('ops-approval', { width: 70, height: 70, markup: diamondMarkup, attrs: diamondAttrs('#9B59B6', '✓', 28), ports: diamondPorts() })
 
-Node.define({
-  shape: 'ops-exclusive-gateway',
-  width: 70,
-  height: 70,
-  markup: diamondMarkup,
-  attrs: diamondAttrs('#E6A23C', '×', 24),
-  ports: diamondPorts(),
-})
-
-// ── Parallel gateway — 菱形（蓝色 +） ───────────────────────────
-
-Node.define({
-  shape: 'ops-parallel-gateway',
-  width: 70,
-  height: 70,
-  markup: diamondMarkup,
-  attrs: diamondAttrs('#409EFF', '+', 28),
-  ports: diamondPorts(),
-})
-
-// ── Conditional parallel gateway — 菱形（青色 ✓） ──────────────
-
-Node.define({
-  shape: 'ops-conditional-parallel-gateway',
-  width: 70,
-  height: 70,
-  markup: diamondMarkup,
-  attrs: diamondAttrs('#5CADFF', '✓', 24),
-  ports: diamondPorts(),
-})
-
-// ── Converge gateway — 菱形（灰色 ⨁） ──────────────────────────
-
-Node.define({
-  shape: 'ops-converge-gateway',
-  width: 70,
-  height: 70,
-  markup: diamondMarkup,
-  attrs: diamondAttrs('#909399', '⨁', 22),
-  ports: diamondPorts(),
-})
-
-// ── Approval node — 菱形（紫色 🔐） ─────────────────────────────
-
-Node.define({
-  shape: 'ops-approval',
-  width: 70,
-  height: 70,
-  markup: diamondMarkup,
-  attrs: diamondAttrs('#9B59B6', '🔐', 22),
-  ports: diamondPorts(),
-})
-
-// ── Subprocess node — 卡片式虚线框 ─────────────────────────────
+// ── ops-subprocess: 卡片式虚线框（与 ops-atom 一致布局，208×64） ──
 
 const subMarkup = [
   { tagName: 'rect', selector: 'shadow' },
-  { tagName: 'rect', selector: 'accent-bar' },
   { tagName: 'rect', selector: 'body' },
+  { tagName: 'rect', selector: 'icon-bg' },
   { tagName: 'text', selector: 'icon' },
   { tagName: 'text', selector: 'label' },
+  { tagName: 'text', selector: 'desc' },
+  { tagName: 'circle', selector: 'del-btn-bg' },
+  { tagName: 'text', selector: 'del-btn-icon' },
 ]
 
-Shape.Rect.define({
-  shape: 'ops-subprocess',
-  width: 200,
-  height: 56,
+registerOnce('ops-subprocess', {
+  width: CARD_WIDTH,
+  height: CARD_HEIGHT,
   markup: subMarkup,
   attrs: {
-    shadow: { fill: 'rgba(41,128,185,0.1)', x: 2, y: 2, width: 196, height: 56, rx: 8 },
-    'accent-bar': { fill: '#2980B9', x: 0, y: 0, width: 4, height: 56, rx: 2 },
-    body: { fill: '#EBF5FB', stroke: '#2980B9', strokeWidth: 2, x: 4, y: 0, width: 192, height: 56, rx: 8, strokeDasharray: '6 3' },
-    icon: { text: '↻', fill: '#2980B9', fontSize: 16, refX: 28, refY: 32, textAnchor: 'middle', textVerticalAnchor: 'middle' },
-    label: { fill: '#2C3E50', fontSize: 13, fontFamily: 'Microsoft YaHei', refX: 52, refY: 32, textVerticalAnchor: 'middle' },
+    shadow: { fill: 'rgba(41,128,185,0.08)', x: 2, y: 2, width: CARD_WIDTH, height: CARD_HEIGHT, rx: 8 },
+    body: { fill: '#F0F8FF', stroke: '#2980B9', strokeWidth: 1.5, x: 0, y: 0, width: CARD_WIDTH, height: CARD_HEIGHT, rx: 8, strokeDasharray: '6 3' },
+    'icon-bg': { fill: '#D6EAF8', stroke: '#85C1E9', strokeWidth: 1, x: 10, y: 8, width: 28, height: 28, rx: 6 },
+    icon: { text: 'S', fill: '#2980B9', fontSize: 13, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 24, refY: 22 },
+    label: { text: 'Subprocess', fill: '#1A5276', fontSize: 14, fontWeight: 600, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 48, refY: 10 },
+    desc: { text: '', fill: 'rgba(0,0,0,0.65)', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 10, refY: 40 },
+    'del-btn-bg': { fill: '#FF4D4F', cx: 196, cy: 14, r: 10, cursor: 'pointer', visibility: 'hidden' as const },
+    'del-btn-icon': { text: '✕', fill: '#FFF', fontSize: 12, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 196, refY: 15, cursor: 'pointer', visibility: 'hidden' as const },
   },
-  ports: {
-    groups: {
-      top: { position: { name: 'top' }, attrs: { circle: { r: PORT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, opacity: 0, stroke: COLOR_PORT_GRAY, strokeWidth: 1.5 } } },
-      bottom: { position: { name: 'bottom' }, attrs: { circle: { r: PORT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, opacity: 0, stroke: COLOR_PORT_GRAY, strokeWidth: 1.5 } } },
-      left: { position: { name: 'left' }, attrs: { circle: { r: PORT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, opacity: 0, stroke: COLOR_PORT_GRAY, strokeWidth: 1.5 } } },
-      right: { position: { name: 'right' }, attrs: { circle: { r: PORT_RADIUS, magnet: true, fill: COLOR_PORT_GRAY, opacity: 0, stroke: COLOR_PORT_GRAY, strokeWidth: 1.5 } } },
-    },
-    items: [
-      { id: 'top', group: 'top' },
-      { id: 'bottom', group: 'bottom' },
-      { id: 'left', group: 'left' },
-      { id: 'right', group: 'right' },
-    ],
-  },
+  ports: { groups: PORT_GROUPS, items: PORT_ITEMS },
 })
 
-// ── Node type map ───────────────────────────────────────────────
+// ── Node type map ──
 
 export function resolveNodeShape(node: any): string {
   const typeMap: Record<string, string> = {

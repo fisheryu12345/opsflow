@@ -178,7 +178,6 @@ import HelpDrawer from './components/HelpDrawer.vue'
 
 const store = useOpsflowStore()
 
-
 const designCanvasRef = ref<InstanceType<typeof DesignCanvas> | null>(null)
 const diffModalRef = ref<InstanceType<typeof DiffModal> | null>(null)
 
@@ -223,7 +222,7 @@ function onNodeSelect(node: any) {
   // Don't auto-expand on deselect — user controls it manually / 取消选中时不自动展开，由用户手动控制
 }
 
-function onPluginPicked(plugin: { code: string; name: string; risk_level: string }) {
+function onPluginPicked(plugin: { code: string; name: string; risk_level: string; group?: string }) {
   if (!pendingTaskNode.value || !designCanvasRef.value?.graph) return
   const node = designCanvasRef.value.graph.getCellById(pendingTaskNode.value)
   if (node && node.isNode()) {
@@ -234,6 +233,7 @@ function onPluginPicked(plugin: { code: string; name: string; risk_level: string
       plugin_code: plugin.code,
       risk_level: plugin.risk_level,
       label: plugin.name,
+      group: plugin.group || oldData.group || '',
     })
     node.setLabel(plugin.name)
     node.setAttrs({ label: { text: plugin.name } })
@@ -463,8 +463,6 @@ async function onDiffConfirmed() {
     ElMessage.error(e?.msg || e?.message || 'Save failed')
   }
 }
-
-
 
 onMounted(async () => {
   await store.fetchMyProjects()

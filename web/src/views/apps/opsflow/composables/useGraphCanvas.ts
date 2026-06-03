@@ -135,9 +135,9 @@ export function layoutNodes(
 /** 默认节点 label 映射 */
 export function defaultNodeLabel(nodeType: string): string {
   const map: Record<string, string> = {
-    exclusive_gateway: 'Condition?',
+    exclusive_gateway: 'Exclusive',
     parallel_gateway: 'Parallel',
-    conditional_parallel_gateway: 'Cond. Parallel',
+    conditional_parallel_gateway: 'Conditional',
     converge_gateway: 'Converge',
     approval: 'Approval',
     subprocess: 'SubProcess',
