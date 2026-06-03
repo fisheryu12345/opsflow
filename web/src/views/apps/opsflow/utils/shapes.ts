@@ -306,7 +306,7 @@ registerCircleOnce('ops-start-event', {
   markup: circleMarkup,
   attrs: {
     body: { fill: '#E1F3D8', stroke: '#67C23A', strokeWidth: 2.5, cx: 28, cy: 28, r: 26 },
-    icon: { text: '▶', fill: '#67C23A', fontSize: 48, fontWeight: 900, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 32, refY: 42 },
+    icon: { text: '▶', fill: '#67C23A', fontSize: 48, fontWeight: 900, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 30, refY: 30 },
     label: { fill: '#333', fontSize: 11, fontFamily: 'Microsoft YaHei', refX: 28, refY: 72, textAnchor: 'middle', visibility: 'hidden' as const },
   },
   ports: {
@@ -321,7 +321,7 @@ registerCircleOnce('ops-end-event', {
   markup: circleMarkup,
   attrs: {
     body: { fill: '#FDE2E2', stroke: '#F56C6C', strokeWidth: 2.5, cx: 28, cy: 28, r: 26 },
-    icon: { text: '■', fill: '#F56C6C', fontSize: 64, fontWeight: 900, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 28, refY: 36 },
+    icon: { text: '■', fill: '#F56C6C', fontSize: 64, fontWeight: 900, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 28, refY: 24 },
     label: { fill: '#333', fontSize: 11, fontFamily: 'Microsoft YaHei', refX: 28, refY: 72, textAnchor: 'middle', visibility: 'hidden' as const },
   },
   ports: {

@@ -63,7 +63,7 @@ import { ref, watch, computed, onMounted, onActivated, onBeforeUnmount } from 'v
 import { Monitor, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
 import { useMonitor } from '../composables/useMonitor'
 import { useGraphCanvas, layoutNodes } from '../composables/useGraphCanvas'
-import { resolveNodeShape, updateAtomNode } from '../utils/shapes'
+import { resolveNodeShape, updateAtomNode, CARD_WIDTH, CARD_HEIGHT } from '../utils/shapes'
 
 const props = defineProps<{ executionId: number; startedAt?: string; endedAt?: string }>()
 
@@ -215,6 +215,7 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
       // 对 ops-atom 应用卡片样式（设计态默认）
       if (x6Node.shape === 'ops-atom') {
         updateAtomNode(x6Node)
+        x6Node.resize(CARD_WIDTH, CARD_HEIGHT)
       }
       cells.push(x6Node)
     }
