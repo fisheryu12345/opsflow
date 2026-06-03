@@ -454,6 +454,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     cells.push(graph.value.createNode({
       shape: 'ops-start-event',
       id: startId,
+      width: 56, height: 82,
       x: startFromData ? (positions[startId]?.x ?? 10) : 10,
       y: startFromData ? (positions[startId]?.y ?? centerY) : centerY,
       label: 'Start',
@@ -511,6 +512,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     cells.push(graph.value.createNode({
       shape: 'ops-end-event',
       id: endId,
+      width: 56, height: 82,
       x: endFromData ? (positions[endId]?.x ?? maxContentX + 320) : maxContentX + 320,
       y: endFromData ? (positions[endId]?.y ?? centerY) : centerY,
       label: 'End',
