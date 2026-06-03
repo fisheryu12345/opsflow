@@ -186,11 +186,11 @@ export function makeAtomAttrs(
     // 卡片主体（border 使用分组色）
     body: { fill: '#FFF', stroke: c, strokeWidth: 1, x: 0, y: 0, width: CARD_WIDTH, height: CARD_HEIGHT, rx: 8 },
     // 图标背景（28×28 圆角矩形，紧凑版）
-    'icon-bg': { fill: iconBg, stroke: iconStroke, strokeWidth: 1, x: 10, y: 4, width: 28, height: 28, rx: 6 },
+    'icon-bg': { fill: iconBg, stroke: iconStroke, strokeWidth: 1, x: 10, y: 3, width: 24, height: 24, rx: 6 },
     // 图标文字
-    icon: { text: icon || DEFAULT_ICON, fill: iconText, fontSize: 13, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 24, refY: 18 },
-    // 标题（与 icon 中线对齐）
-    label: { text: label, fill: '#303133', fontSize: 14, fontWeight: 600, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'middle', refX: 48, refY: 18 },
+    icon: { text: icon || DEFAULT_ICON, fill: iconText, fontSize: 12, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 22, refY: 15 },
+    // 标题
+    label: { text: label, fill: '#303133', fontSize: 14, fontWeight: 600, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'middle', refX: 44, refY: 15 },
     // 描述（靠底对齐）
     desc: { text: desc || '', fill: 'rgba(0,0,0,0.65)', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'bottom', refX: 10, refY: 56 },
     // 删除按钮（默认隐藏，hover 显示）
@@ -387,9 +387,9 @@ registerOnce('ops-subprocess', {
   attrs: {
     shadow: { fill: 'rgba(41,128,185,0.08)', x: 2, y: 2, width: CARD_WIDTH, height: CARD_HEIGHT, rx: 8 },
     body: { fill: '#F0F8FF', stroke: '#2980B9', strokeWidth: 1.5, x: 0, y: 0, width: CARD_WIDTH, height: CARD_HEIGHT, rx: 8, strokeDasharray: '6 3' },
-    'icon-bg': { fill: '#D6EAF8', stroke: '#85C1E9', strokeWidth: 1, x: 10, y: 8, width: 28, height: 28, rx: 6 },
-    icon: { text: 'S', fill: '#2980B9', fontSize: 13, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 24, refY: 22 },
-    label: { text: 'Subprocess', fill: '#1A5276', fontSize: 14, fontWeight: 600, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 48, refY: 10 },
+    'icon-bg': { fill: '#D6EAF8', stroke: '#85C1E9', strokeWidth: 1, x: 10, y: 3, width: 24, height: 24, rx: 6 },
+    icon: { text: 'S', fill: '#2980B9', fontSize: 12, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 22, refY: 15 },
+    label: { text: 'Subprocess', fill: '#1A5276', fontSize: 14, fontWeight: 600, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 44, refY: 4 },
     desc: { text: '', fill: 'rgba(0,0,0,0.65)', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'bottom', refX: 10, refY: 54 },
     'del-btn-bg': { fill: '#FF4D4F', cx: 196, cy: 12, r: 10, cursor: 'pointer', visibility: 'hidden' as const },
     'del-btn-icon': { text: '✕', fill: '#FFF', fontSize: 12, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 196, refY: 13, cursor: 'pointer', visibility: 'hidden' as const },
