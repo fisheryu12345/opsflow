@@ -2,7 +2,6 @@ import { ref, shallowRef } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Graph } from '@antv/x6'
 import { Stencil } from '@antv/x6-plugin-stencil'
-import { History } from '@antv/x6-plugin-history'
 import { Snapline } from '@antv/x6-plugin-snapline'
 import { Clipboard } from '@antv/x6-plugin-clipboard'
 import { Selection } from '@antv/x6-plugin-selection'
@@ -30,8 +29,6 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
   const selectedNode = ref<any>(null)
   const selectedEdge = ref<any>(null)
 
-  const canUndo = ref(false)
-  const canRedo = ref(false)
 
   /** 是否正在拖拽连线（连接桩在拖拽期间保持显示） */
   const _isConnecting = ref(false)
@@ -52,7 +49,6 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     if (!g) return
 
     // 设计模式额外插件
-    g.use(new History({}))
     g.use(new Snapline({}))
     g.use(new Clipboard({}))
     g.use(new Selection({ rubberband: true, showNodeSelectionBox: true }))
@@ -143,10 +139,6 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       const tgt = edge.getTargetCell()
       if (src?.isNode()) refreshPortStates(src as Node)
       if (tgt?.isNode()) refreshPortStates(tgt as Node)
-    })
-    g.on('history:change', () => {
-      canUndo.value = g.canUndo()
-      canRedo.value = g.canRedo()
     })
     g.on('node:added', ({ node }) => {
       // 限制 node_id ≤ 32 字符（bamboo-engine MySQL 字段 max_length=33）
@@ -366,8 +358,6 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     g.bindKey('backspace', () => { const c = g.getSelectedCells(); if (c.length) g.removeCells(c) })
     g.bindKey('ctrl+c', () => g.copy(g.getSelectedCells()))
     g.bindKey('ctrl+v', () => g.paste({ offset: 32 }))
-    g.bindKey('ctrl+z', () => g.undo())
-    g.bindKey('ctrl+y', () => g.redo())
   }
 
   // ── Stencil ──
@@ -549,7 +539,6 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     isLoading.value = false
     // 加载完成后刷新所有节点的 port 连接状态
     graph.value.getNodes().forEach(n => refreshPortStates(n))
-    graph.value.clearHistory?.()
     graph.value.centerContent()
     console.log('[loadGraphData] done, zoom:', graph.value?.zoom())
   }
@@ -597,8 +586,6 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     }
   }
 
-  function undo() { graph.value?.undo() }
-  function redo() { graph.value?.redo() }
 
   const onTaskNodeDropped = ref<((nodeId: string) => void) | null>(null)
 
@@ -608,7 +595,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     getGraphData: baseGetGraphData,
     aiLayout, onTaskNodeDropped,
     zoomIn, zoomOut, fitCanvas, zoomLevel,
-    undo, redo, canUndo, canRedo, enableResize, enableVisibilityRefresh,
+    enableResize, enableVisibilityRefresh,
     destroy,
   }
 }

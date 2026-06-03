@@ -519,6 +519,8 @@ loadTemplates()
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 201;
 }
 .panel-header {
   display: flex;

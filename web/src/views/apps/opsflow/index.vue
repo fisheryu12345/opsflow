@@ -77,7 +77,8 @@
                     @analyze="onAnalyze" @new-template="showNewTemplateDialog"
                     @node-select="onNodeSelect"
                     @node-need-plugin="onNodeNeedPlugin"
-                    @submit-execution="onSubmitExecution" />
+                    @submit-execution="onSubmitExecution"
+                    @dry-run="onDryRun" />
     </div>
 
     <!-- Plugin picker dialog / 插件选择器 -->
@@ -85,6 +86,9 @@
 
     <!-- New template wizard / 新建模板向导 -->
     <CreateTemplateWizard v-model="newDialogVisible" @created="onWizardCreated" />
+
+    <!-- Dry Run Dialog / Dry Run 监控弹窗 -->
+    <DryRunDialog v-model="showDryRunDialog" :execution-id="dryRunExecId" />
 
     <!-- Diff modal / Diff 弹窗 -->
     <DiffModal ref="diffModalRef" :template-id="diffTemplateId" :ai-original="aiOriginal" :current="currentTree"
@@ -174,6 +178,7 @@ import DesignCanvas from './components/DesignCanvas.vue'
 import DiffModal from './components/DiffModal.vue'
 import PluginPickerDialog from './components/PluginPickerDialog.vue'
 import CreateTemplateWizard from './components/CreateTemplateWizard.vue'
+import DryRunDialog from './components/DryRunDialog.vue'
 import HelpDrawer from './components/HelpDrawer.vue'
 
 const store = useOpsflowStore()
@@ -204,8 +209,17 @@ const analysisResult = ref<any>(null)
 const pickerVisible = ref(false)
 const pendingTaskNode = ref<string | null>(null)
 
+// Dry Run
+const showDryRunDialog = ref(false)
+const dryRunExecId = ref<number | null>(null)
+
 function onSubmitExecution(execId: number) {
   // SubmitWizardDialog already shows its own success message
+}
+
+function onDryRun(execId: number) {
+  dryRunExecId.value = execId
+  showDryRunDialog.value = true
 }
 
 function quickFill(text: string) {

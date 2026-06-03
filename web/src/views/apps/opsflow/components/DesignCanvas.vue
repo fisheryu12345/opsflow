@@ -29,15 +29,6 @@
             </el-select>
           </el-tooltip>
           <div class="toolbar-divider" />
-          <el-button-group>
-            <el-tooltip :show-after="500" content="Undo" placement="bottom">
-              <el-button size="small" circle :disabled="!canUndo" @click="undo" :icon="RefreshLeft" />
-            </el-tooltip>
-            <el-tooltip :show-after="500" content="Redo" placement="bottom">
-              <el-button size="small" circle :disabled="!canRedo" @click="redo" :icon="RefreshRight" />
-            </el-tooltip>
-          </el-button-group>
-          <div class="toolbar-divider" />
           <div class="zoom-controls">
             <el-tooltip :show-after="500" content="Zoom in" placement="bottom">
               <el-button size="small" text :icon="ZoomIn" @click="zoomIn" />
@@ -73,6 +64,9 @@
           <div class="toolbar-divider" />
           <el-tooltip :show-after="500" content="Submit Execution" placement="bottom">
             <el-button size="small" circle @click="onSubmitExecution" :icon="VideoPlay" class="btn-exec" data-tour="submit-exec" />
+          </el-tooltip>
+          <el-tooltip :show-after="500" content="Dry Run - test with mock atoms" placement="bottom">
+            <el-button size="small" circle @click="onDryRun" :icon="Monitor" class="btn-dryrun" />
           </el-tooltip>
           <el-tooltip :show-after="500" content="Save draft" placement="bottom">
             <el-button size="small" circle @click="onSave" :icon="Upload" class="btn-save" />
@@ -137,7 +131,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, Coin, VideoPlay, CircleCheck } from '@element-plus/icons-vue'
+import { CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, Coin, VideoPlay, CircleCheck, Monitor } from '@element-plus/icons-vue'
 // X6 CSS — required for Stencil, Minimap plugin containers / 必须导入否则 Stencil、Minimap 等插件容器不显示
 import '@antv/x6/dist/index.css'
 import '@antv/x6-plugin-stencil/dist/index.css'
@@ -149,6 +143,7 @@ import SubprocessStatusBadge from './SubprocessStatusBadge.vue'
 import ProjectSwitcher from './ProjectSwitcher.vue'
 import SubmitWizardDialog from './SubmitWizardDialog.vue'
 import { ConfirmDraft } from '/@/api/opsflow/templates'
+import { DryRunExecution } from '/@/api/opsflow/executions'
 import { useGraphValidator } from '../composables/useGraphValidator'
 
 const props = defineProps<{
@@ -165,6 +160,7 @@ const emit = defineEmits<{
   nodeSelect: [node: any]
   nodeNeedPlugin: [nodeId: string]
   submitExecution: [execId: number]
+  dryRun: [execId: number]
 }>()
 
 const showVarPanel = ref(false)
@@ -253,12 +249,37 @@ async function onSubmitExecution() {
   showExecDialog.value = true
 }
 
+async function onDryRun() {
+  if (!props.templateId) {
+    ElMessage.warning('请先选择一个模板')
+    return
+  }
+  const { nodes, edges } = getGraphData()
+  // 替换所有任务节点为 test 原子
+  for (const node of nodes) {
+    if (node.node_type === 'atom' || (!node.node_type && node.atom_type)) {
+      node.atom_type = 'test_print_time'
+      node.plugin_code = 'test_print_time'
+      node.params = {}
+    }
+  }
+  try {
+    const res = await DryRunExecution({ template: props.templateId, pipeline_tree: { nodes, edges } })
+    const execId = res.data?.data?.id || res.data?.id
+    if (!execId) throw new Error('创建失败，未返回执行 ID')
+    ElMessage.success(`Dry Run #${execId} 已启动`)
+    emit('dryRun', execId)
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.msg || e?.msg || 'Dry Run 创建失败')
+  }
+}
+
 const {
   graph, stencil, selectedNode, selectedEdge,
   initGraph, initStencil, loadGraphData, getGraphData,
   aiLayout, onTaskNodeDropped,
   zoomIn, zoomOut, fitCanvas, zoomLevel,
-  undo, redo, canUndo, canRedo, destroy,
+  destroy,
   enableResize, enableVisibilityRefresh,
 } = useDesignCanvas('design-canvas-container', emit)
 
@@ -396,7 +417,7 @@ watch(selectedNode, (val) => {
   emit('nodeSelect', val)
 })
 
-defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, zoomIn, zoomOut, fitCanvas, undo, redo })
+defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, zoomIn, zoomOut, fitCanvas })
 </script>
 
 <style lang="scss" scoped>
@@ -536,6 +557,8 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, z
 /* Unique custom colors for buttons without type */
 .btn-exec { color: #67C23A; background: #f0f9eb; }
 .btn-exec:hover { color: #85ce61; background: #e1f3d8; }
+.btn-dryrun { color: #9B59B6; background: #f3e8ff; }
+.btn-dryrun:hover { color: #b07cd6; background: #edddfa; }
 .btn-save { color: #667eea; background: #eef0ff; }
 .btn-save:hover { color: #8596f0; background: #dde0fa; }
 .btn-validate { color: #E6A23C; background: #fdf6ec; }

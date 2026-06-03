@@ -5,16 +5,17 @@
 """
 
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from opsflow.models import FlowExecution
+from opsflow.models import FlowExecution, OpsProject
 from opsflow.serializers import FlowExecutionSerializer, FlowExecutionDetailSerializer
 from opsflow.views.base import ProjectFilteredViewSet
 from opsflow.views.mixins.execution_lifecycle import ExecutionLifecycleMixin
 from opsflow.views.mixins.execution_node_command import ExecutionNodeCommandMixin
 from opsflow.views.mixins.execution_approval import ExecutionApprovalMixin
 from opsflow.views.mixins.execution_trace import ExecutionTraceMixin
-from dvadmin.utils.json_response import DetailResponse, SuccessResponse
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 
 
 class FlowExecutionViewSet(
@@ -131,3 +132,62 @@ class FlowExecutionViewSet(
             serializer.instance.save(update_fields=['template_snapshot'])
         # ── 结束 ──
         return DetailResponse(data=serializer.data, msg="创建成功")
+
+    @action(detail=False, methods=['post'])
+    def dry_run(self, request):
+        """Dry Run — 用 test 原子替换后执行，不保存模板
+
+        接收前端已替换好的 pipeline_tree，直接创建执行记录并启动。
+        """
+        import datetime
+        from opsflow.core.flow_engine import FlowEngine
+        from opsflow.core.node_sync import sync_execution_nodes
+        from opsflow.models import FlowTemplate
+
+        template_id = request.data.get('template')
+        pipeline_tree = request.data.get('pipeline_tree')
+
+        if not template_id or not pipeline_tree:
+            return ErrorResponse(msg="缺少 template 或 pipeline_tree 参数", code=4000, status=400)
+
+        try:
+            template = FlowTemplate.objects.get(id=template_id)
+        except FlowTemplate.DoesNotExist:
+            return ErrorResponse(msg="模板不存在", code=4000, status=404)
+
+        # 项目归属（复用 perform_create 的逻辑）
+        project_id = request.query_params.get('project_id')
+        if project_id:
+            user_project_ids = self.get_user_project_ids()
+            if int(project_id) not in user_project_ids:
+                from rest_framework import exceptions
+                raise exceptions.PermissionDenied('无权在当前项目创建资源')
+            project = None  # 用 project_id 直接设
+        else:
+            project = OpsProject.objects.first()
+
+        execution = FlowExecution(
+            template=template,
+            project_id=int(project_id) if project_id else (project.id if project else None),
+            created_by=request.user,
+            status='pending',
+            node_status={},
+            state_tree={},
+            context={'dry_run': True},
+            template_snapshot={
+                'pipeline_tree': pipeline_tree,
+                'target_hosts': [],
+                'global_vars': {},
+                'template_version': template.version,
+            },
+        )
+        execution.save()
+
+        # 同步执行节点
+        sync_execution_nodes(execution)
+
+        # 启动执行
+        engine = FlowEngine(execution)
+        engine.start()
+
+        return DetailResponse(data={"id": execution.id}, msg="Dry run 执行已创建")

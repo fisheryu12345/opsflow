@@ -93,3 +93,7 @@ export function GetExecutionTraces(id: number, node_id?: string) {
 export function GetNodeTraceLog(id: number, node_id: string) {
   return opsflowRequest({ url: prefix + `executions/${id}/trace_log/`, method: 'get', params: { node_id } })
 }
+
+export function DryRunExecution(data: { template: number; pipeline_tree: { nodes: any[]; edges: any[] } }) {
+  return opsflowRequest({ url: prefix + 'executions/dry_run/', method: 'post', data })
+}

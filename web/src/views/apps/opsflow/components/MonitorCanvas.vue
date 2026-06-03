@@ -236,6 +236,7 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
     graphNodeCount.value = (data.nodes || []).length
     graph.value.resetCells(cells)
     graph.value.centerContent()
+    graph.value.zoomToFit({ padding: 24, maxZoom: 1 })
 
     // 重新应用已知状态
     if (Object.keys(nodeStatuses.value).length) {

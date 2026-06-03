@@ -364,7 +364,7 @@ async function loadPipeline(full = true) {
     }
     // 首次加载时绘制拓扑图；轮询时只更新节点状态（避免 resetCells + centerContent 闪烁）
     if (full && !graphInitialized) {
-      const tree = ex.pipeline_tree || ex.context?.pipeline_tree
+      const tree = ex.pipeline_tree || ex.context?.pipeline_tree || ex.template_snapshot?.pipeline_tree
       if (tree) {
         monitorRef.value.loadGraphData(toGraphData(tree))
       } else if (ex.template) {
