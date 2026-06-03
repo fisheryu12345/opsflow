@@ -399,8 +399,8 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     })
 
     const stencilNodes = [
-      { shape: 'ops-start-event', label: 'Start', width: 56, height: 82, attrs: { label: { text: 'Start', visibility: 'visible', refY: 80 } }, data: { node_type: 'start_event' } },
-      { shape: 'ops-end-event', label: 'End', width: 56, height: 82, attrs: { label: { text: 'End', visibility: 'visible', refY: 80 } }, data: { node_type: 'end_event' } },
+      { shape: 'ops-start-event', width: 56, height: 56, data: { node_type: 'start_event' } },
+      { shape: 'ops-end-event', width: 56, height: 56, data: { node_type: 'end_event' } },
       { shape: 'ops-exclusive-gateway', label: 'Exclusive', width: 70, height: 92, attrs: { label: { text: 'Exclusive', visibility: 'visible' } }, data: { node_type: 'exclusive_gateway' } },
       { shape: 'ops-parallel-gateway', label: 'Parallel', width: 70, height: 92, attrs: { label: { text: 'Parallel', visibility: 'visible' } }, data: { node_type: 'parallel_gateway' } },
       { shape: 'ops-conditional-parallel-gateway', label: 'Conditional', width: 70, height: 92, attrs: { label: { text: 'Conditional', visibility: 'visible' } }, data: { node_type: 'conditional_parallel_gateway' } },
@@ -455,20 +455,17 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     const centerY = allY.length > 0
       ? (Math.min(...allY) + Math.max(...allY)) / 2
       : 40
-    // Start/End 高度 82 ≠ content 高度 70，y 偏移 (82-70)/2=6 使中心线对齐
-    // 始终使用 auto 计算的 y，忽略 AI/保存的位置，确保中心线一致
-    const startEndY = centerY - 6
+    // 所有节点高度统一为 56px，start/end 与内容节点中心线天然一致
+    const startEndY = centerY
 
     // Start 节点
     const startId = startFromData?.id || '__start__'
     cells.push(graph.value.createNode({
       shape: 'ops-start-event',
       id: startId,
-      width: 56, height: 82,
+      width: 56, height: 56,
       x: startFromData ? (positions[startId]?.x ?? 10) : 10,
       y: startEndY,
-      label: 'Start',
-      attrs: { label: { text: 'Start' } },
       data: startFromData || { id: startId, node_type: 'start_event' },
     }))
     if (!startFromData) {
@@ -522,11 +519,9 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     cells.push(graph.value.createNode({
       shape: 'ops-end-event',
       id: endId,
-      width: 56, height: 82,
+      width: 56, height: 56,
       x: endFromData ? (positions[endId]?.x ?? maxContentX + 320) : maxContentX + 320,
       y: startEndY,
-      label: 'End',
-      attrs: { label: { text: 'End' } },
       data: endFromData || { id: endId, node_type: 'end_event' },
     }))
     if (!endFromData) {

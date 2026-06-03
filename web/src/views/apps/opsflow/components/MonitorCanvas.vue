@@ -206,15 +206,10 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
         const p = fallbackPos[node.id]
         if (p) { x = p.x; y = p.y }
       }
-      // 开始/结束节点使用 56×82（与 design 模式一致），为图标提供垂直空间
-      const isStartEnd = shapeName === 'ops-start-event' || shapeName === 'ops-end-event'
       const x6Node = graph.value.createNode({
         id: node.id,
         shape: shapeName,
         x: x ?? 0, y: y ?? 0,
-        width: isStartEnd ? 56 : undefined,
-        height: isStartEnd ? 82 : undefined,
-        label: node.label || '',
         data: node,
       })
       // 对 ops-atom 应用卡片样式（设计态默认）

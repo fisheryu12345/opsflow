@@ -47,7 +47,7 @@ function registerGraphOnce(name: string, config: any) {
 // ============================================================
 
 export const CARD_WIDTH = 208
-export const CARD_HEIGHT = 70
+export const CARD_HEIGHT = 56
 
 // ── 端口常量 ──
 export const PORT_DOT_RADIUS = 4
@@ -192,14 +192,14 @@ export function makeAtomAttrs(
     // 标题（与 icon 中线对齐 y=22）
     label: { text: label, fill: '#303133', fontSize: 14, fontWeight: 600, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'middle', refX: 48, refY: 22 },
     // 描述
-    desc: { text: desc || '', fill: 'rgba(0,0,0,0.65)', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 10, refY: 44 },
+    desc: { text: desc || '', fill: 'rgba(0,0,0,0.65)', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 10, refY: 40 },
     // 删除按钮（默认隐藏，hover 显示）
-    'del-btn-bg': { fill: '#FF4D4F', cx: 196, cy: 14, r: 10, cursor: 'pointer', visibility: 'hidden' as const },
-    'del-btn-icon': { text: '✕', fill: '#FFF', fontSize: 12, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 196, refY: 15, cursor: 'pointer', visibility: 'hidden' as const },
+    'del-btn-bg': { fill: '#FF4D4F', cx: 196, cy: 12, r: 10, cursor: 'pointer', visibility: 'hidden' as const },
+    'del-btn-icon': { text: '✕', fill: '#FFF', fontSize: 12, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 196, refY: 13, cursor: 'pointer', visibility: 'hidden' as const },
     // 状态点：绿=已配置, 橙=待配置, 透明=默认
     'status-dot': {
       fill: configured === true ? '#67C23A' : configured === false ? '#E6A23C' : 'transparent',
-      cx: 200, cy: 64, r: 4, stroke: 'none',
+      cx: 200, cy: 50, r: 4, stroke: 'none',
     },
   }
 }
@@ -391,8 +391,8 @@ registerOnce('ops-subprocess', {
     icon: { text: 'S', fill: '#2980B9', fontSize: 13, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 24, refY: 22 },
     label: { text: 'Subprocess', fill: '#1A5276', fontSize: 14, fontWeight: 600, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 48, refY: 10 },
     desc: { text: '', fill: 'rgba(0,0,0,0.65)', fontSize: 12, fontFamily: 'Microsoft YaHei', textAnchor: 'start', textVerticalAnchor: 'top', refX: 10, refY: 40 },
-    'del-btn-bg': { fill: '#FF4D4F', cx: 196, cy: 14, r: 10, cursor: 'pointer', visibility: 'hidden' as const },
-    'del-btn-icon': { text: '✕', fill: '#FFF', fontSize: 12, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 196, refY: 15, cursor: 'pointer', visibility: 'hidden' as const },
+    'del-btn-bg': { fill: '#FF4D4F', cx: 196, cy: 12, r: 10, cursor: 'pointer', visibility: 'hidden' as const },
+    'del-btn-icon': { text: '✕', fill: '#FFF', fontSize: 12, fontWeight: 600, textAnchor: 'middle', textVerticalAnchor: 'middle', refX: 196, refY: 13, cursor: 'pointer', visibility: 'hidden' as const },
   },
   ports: { groups: PORT_GROUPS, items: PORT_ITEMS },
 })
