@@ -11,9 +11,34 @@ from opsflow.core.llm_service import generate_pipeline, analyze_pipeline, refine
 from opsflow.core.layout import compute_layout
 from opsflow.core.safety_guard import validate_pipeline
 from opsflow.core.bamboo_validator import validate_bamboo_compatibility
+from opsflow.plugins.registry import get_plugin
 from dvadmin.utils.json_response import DetailResponse
 
 logger = logging.getLogger(__name__)
+
+
+def _enrich_atom_nodes(pipeline: dict) -> dict:
+    """Enrich AI-generated atom nodes with group/risk_level from plugin registry
+
+    AI output lacks 'group' on atom nodes, causing frontend updateAtomNode()
+    to fall back to default icon (◇) and color (#409EFF). This injects the
+    correct group/risk_level so the frontend can resolve proper icon/color/desc.
+    """
+    for node in pipeline.get('nodes', []):
+        atom_type = node.get('atom_type', '')
+        if not atom_type:
+            continue
+        # Only process atom nodes (node_type is '' or 'atom')
+        if node.get('node_type', '') not in ('', 'atom'):
+            continue
+        cls = get_plugin(atom_type)
+        if cls is None:
+            continue
+        if not node.get('group'):
+            node['group'] = cls.group
+        if not node.get('risk_level'):
+            node['risk_level'] = cls.risk_level
+    return pipeline
 
 
 class TemplateAIMixin:
@@ -54,6 +79,9 @@ class TemplateAIMixin:
                     return Response({'code': 4000, 'msg': '好的，我理解您想要这个功能，但目前系统暂不支持，建议换个方式实现',
                                      'data': {'pipeline_tree': pipeline}},
                                     status=status.HTTP_400_BAD_REQUEST)
+
+            # Enrich atom nodes with group/risk_level from plugin registry
+            _enrich_atom_nodes(pipeline)
 
             validation = validate_pipeline(pipeline)
             bamboo_check = validate_bamboo_compatibility(pipeline)
@@ -155,6 +183,9 @@ class TemplateAIMixin:
                     return Response({'code': 4000, 'msg': '好的，我理解您想要这个功能，但目前系统暂不支持，建议换个方式实现',
                                      'data': {'pipeline_tree': pipeline}},
                                     status=status.HTTP_400_BAD_REQUEST)
+
+            # Enrich atom nodes with group/risk_level from plugin registry
+            _enrich_atom_nodes(pipeline)
 
             validation = validate_pipeline(pipeline)
             bamboo_check = validate_bamboo_compatibility(pipeline)

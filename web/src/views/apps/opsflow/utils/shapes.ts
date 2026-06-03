@@ -211,7 +211,7 @@ export function updateAtomNode(node: Node) {
   const groupCfg = resolveGroup(groupName)
   const label = data.label || '未命名节点'
   const risk = data.risk_level || ''
-  const desc = groupName ? `${groupName}${risk ? ' · ' + risk : ''}` : ''
+  const desc = groupName ? `${groupName}${risk ? ' · ' + risk : ''}` : (data.atom_type ? `[${data.atom_type}]` : '')
   const configured = !!data.atom_type
   node.setAttrs(makeAtomAttrs(groupCfg.color, groupCfg.icon, label, desc, configured))
 }
