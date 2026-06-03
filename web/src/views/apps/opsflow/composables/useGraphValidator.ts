@@ -193,7 +193,7 @@ export function useGraphValidator() {
     return { valid: errors.length === 0, errors, warnings }
   }
 
-  /** 显示校验结果 */
+  /** 显示校验结果 — 无 errors/warnings 时显示成功消息 */
   function showValidation(result: ValidationResult): boolean {
     if (result.errors.length > 0) {
       result.errors.forEach(e => ElMessage.error(e))
@@ -201,6 +201,9 @@ export function useGraphValidator() {
     }
     if (result.warnings.length > 0) {
       result.warnings.forEach(w => ElMessage.warning(w))
+    }
+    if (result.errors.length === 0 && result.warnings.length === 0) {
+      ElMessage.success('校验通过，流程正常')
     }
     return true
   }
