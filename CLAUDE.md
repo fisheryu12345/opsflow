@@ -25,6 +25,8 @@ cd web && npm install && npm run dev  # localhost:8080
 - Validate input at system boundaries; NEVER commit secrets/.env files
 - NEVER add `Co-Authored-By` trailer to commits
 - ALWAYS run tests after code changes; verify build succeeds before committing
+- **Code language:** All code strings MUST be in English. Only comments use bilingual (Chinese + English) format.
+- **No emoji in DB:** NEVER store emoji characters in MySQL backend — filter or replace them before saving. MySQL (utf8mb3) does not support 4-byte Unicode (emoji).
 
 ## Architecture
 
@@ -38,12 +40,21 @@ cd web && npm install && npm run dev  # localhost:8080
 
 ## API Response Convention
 
-Custom views **MUST** wrap: `return Response({'code': 2000, 'msg': 'success', 'data': {...}})`
+All opsflow API responses **MUST** use `DetailResponse` / `ErrorResponse` from `dvadmin.utils.json_response`. **Bare `Response()` or default DRF format is forbidden** — the frontend interceptor requires `code` field in every response.
+
+| Function | When | Signature |
+|----------|------|-----------|
+| `DetailResponse(data, msg='success')` | Success (any endpoint) | Returns `{"code": 2000, "data": ..., "msg": "success"}` |
+| `ErrorResponse(msg, data=None, code=4000, status=400)` | Business error | Returns `{"code": 4000, "data": ..., "msg": "..."}` |
+| `SuccessResponse(data, msg='success', page=1, limit=1, total=1)` | Paginated list | Returns `{"code": 2000, "page": ..., "limit": ..., "total": ..., "data": ..., "msg": "success"}` |
+
 | Code | Meaning |
 |------|---------|
 | `2000` | Success | `4000` | Business error | `401` | Auth | `400` | Bad request |
 
-ModelViewSets auto-wrap; custom `APIView`/`APIViewSet` must wrap manually.
+- Success (no pagination) → `DetailResponse(data=serializer.data)`
+- Success (paginated list) → use `self.get_paginated_response()` or `SuccessResponse(data=data, total=count)`
+- Business error → `ErrorResponse(msg='something went wrong', code=4000)`
 
 ## Logging Convention
 

@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from rest_framework.decorators import action
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 
 from opsflow.models import FlowTemplate
@@ -34,7 +35,7 @@ class TemplateExportImportMixin:
             },
             "versions": list(versions),
         }
-        return Response({'code': 2000, 'msg': 'success', 'data': bundle})
+        return DetailResponse(data=bundle)
 
     @action(detail=False, methods=['post'])
     def import_template(self, request):
@@ -58,14 +59,11 @@ class TemplateExportImportMixin:
             created_by=request.user,
             **project_kwargs,
         )
-        return Response({
-            'code': 2000, 'msg': f'已导入模板: {template.name}',
-            'data': FlowTemplateSerializer(template).data,
-        })
+        return DetailResponse(data=FlowTemplateSerializer(template).data, msg=f'Imported: {template.name}')
 
     @action(detail=False, methods=['get'])
     def categories(self, request):
         """返回所有已使用的类别列表"""
         cats = FlowTemplate.objects.values('category').distinct().order_by('category')
         data = [c['category'] for c in cats if c['category']]
-        return Response({'code': 2000, 'msg': 'success', 'data': data})
+        return DetailResponse(data=data)

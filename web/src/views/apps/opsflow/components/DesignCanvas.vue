@@ -9,6 +9,7 @@
           <div class="toolbar-divider" />
           <el-tooltip :show-after="500" content="Select template" placement="bottom">
             <el-select
+              data-tour="template-selector"
               :model-value="templateId"
               placeholder="Select template"
               clearable filterable
@@ -16,13 +17,13 @@
               style="width: 200px"
               @change="(val: any) => emit('changeTemplate', val)"
             >
-              <el-option-group v-if="projectTemplates.length" label="📁 项目模板">
+              <el-option-group v-if="projectTemplates.length" label="📁 Project Templates">
                 <el-option v-for="t in projectTemplates" :key="t.id" :label="t.name" :value="t.id" />
               </el-option-group>
-              <el-option-group v-if="publicTemplates.length" label="🌐 公共模板">
+              <el-option-group v-if="publicTemplates.length" label="🌐 Public Templates">
                 <el-option v-for="t in publicTemplates" :key="t.id" :value="t.id">
                   <span>{{ t.name }}</span>
-                  <el-tag size="small" type="warning" style="margin-left: 6px;">公共</el-tag>
+                  <el-tag size="small" type="warning" style="margin-left: 6px;">Public</el-tag>
                 </el-option>
               </el-option-group>
             </el-select>
@@ -71,7 +72,7 @@
           </el-tooltip>
           <div class="toolbar-divider" />
           <el-tooltip :show-after="500" content="Submit Execution" placement="bottom">
-            <el-button size="small" circle @click="onSubmitExecution" :icon="VideoPlay" class="btn-exec" />
+            <el-button size="small" circle @click="onSubmitExecution" :icon="VideoPlay" class="btn-exec" data-tour="submit-exec" />
           </el-tooltip>
           <el-tooltip :show-after="500" content="Save draft" placement="bottom">
             <el-button size="small" circle @click="onSave" :icon="Upload" class="btn-save" />
@@ -84,21 +85,25 @@
         </el-tooltip>
       </div>
       <div class="stencil-wrapper" :class="{ collapsed: stencilCollapsed }">
-        <div ref="stencilRef" class="stencil-panel" />
+        <div ref="stencilRef" class="stencil-panel" data-tour="stencil" />
       </div>
       <button class="stencil-toggle" :class="{ collapsed: stencilCollapsed }" @click="toggleStencil">
         <el-icon><component :is="stencilCollapsed ? 'DArrowRight' : 'DArrowLeft'" /></el-icon>
       </button>
       <div id="design-canvas-container" ref="canvasRef" class="x6-canvas" />
       <div ref="minimapRef" class="minimap-container" :style="{ left: stencilCollapsed ? '32px' : '250px' }" />
+      <!-- Tour anchor for Step 3 (property panel area) — always present so the tour can find it -->
+      <div data-tour="property-panel-anchor" class="tour-anchor-pp" />
       <PropertyPanel
         v-if="selectedNode"
+        data-tour="property-panel"
         :node-data="selectedNode"
         :template-id="templateId"
         @update="onNodeUpdate"
       />
       <PropertyPanel
         v-else-if="selectedEdge"
+        data-tour="property-panel"
         :edge-data="selectedEdge"
         @update="onEdgeUpdate"
       />
@@ -133,7 +138,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { RefreshLeft, RefreshRight, CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, Coin, VideoPlay, CircleCheck } from '@element-plus/icons-vue'
-// X6 CSS — 必须导入否则 Stencil、Minimap 等插件容器不显示
+// X6 CSS — required for Stencil, Minimap plugin containers / 必须导入否则 Stencil、Minimap 等插件容器不显示
 import '@antv/x6/dist/index.css'
 import '@antv/x6-plugin-stencil/dist/index.css'
 import '@antv/x6-plugin-minimap/dist/index.css'
@@ -269,7 +274,7 @@ function toggleStencil() {
   nextTick(() => graph.value?.resize())
 }
 
-// 接收外部传入的 pipeline 数据
+// Load pipeline data from external source / 接收外部传入的 pipeline 数据
 function loadPipeline(data: any) {
   console.log('[loadPipeline] called, data:', !!data, 'nodes:', data?.nodes?.length, 'edges:', data?.edges?.length, 'graph exists:', !!graph.value)
   if (!data) {
@@ -315,7 +320,7 @@ function onNodeUpdate(newData: any) {
   }
 }
 
-/** 校验条件表达式中的 ${node_id} 引用 */
+/** Validate condition expression ${node_id} references / 校验条件表达式中的 ${node_id} 引用 */
 function checkConditionRefs(condition: string) {
   const data = getGraphData()
   const nodeIds = new Set(data.nodes.map(n => n.id))
@@ -341,22 +346,22 @@ function onEdgeUpdate(newData: any) {
     if (edge) {
       const prev = edge.getData() || {}
       const label = newData.label || ''
-      // success/failure 不需要 condition
+      // success/failure labels need no condition expression / success/failure 不需要 condition
       const condition = label === 'custom' ? (newData.condition || prev.condition || '') : ''
       edge.setData({ ...prev, condition })
-      // 标签显示在连线上
+      // Display label on the edge line / 标签显示在连线上
       if (label) {
         edge.setLabels([{ attrs: { text: { text: label } } }])
       } else {
         edge.setLabels([])
       }
-      // 更新本地 selectedEdge 引用
+      // Update local selectedEdge reference / 更新本地 selectedEdge 引用
       selectedEdge.value = {
         ...selectedEdge.value,
         label,
         condition,
       }
-      // 校验条件变量引用
+      // Validate condition variable references / 校验条件变量引用
       if (condition) checkConditionRefs(condition)
     }
   }
@@ -381,12 +386,12 @@ onMounted(() => {
       console.error('[DesignCanvas] initStencil error:', e)
     }
   }
-  // 使用共享的 resize/visibility 自适应
+  // 使用共享的 resize/visibility 自适应 / Shared resize & visibility adapters
   enableResize()
   enableVisibilityRefresh()
 })
 
-// 选中节点变化时通知父组件（AI 面板折叠/展开）
+// Notify parent when selected node changes (collapses AI panel) / 选中节点变化时通知父组件（AI 面板折叠/展开）
 watch(selectedNode, (val) => {
   emit('nodeSelect', val)
 })
@@ -535,6 +540,16 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, z
 .btn-save:hover { color: #8596f0; background: #dde0fa; }
 .btn-validate { color: #E6A23C; background: #fdf6ec; }
 .btn-validate:hover { color: #ebb563; background: #faecd8; }
+.btn-validate:hover { color: #ebb563; background: #faecd8; }
+/* Tour anchor for property panel — positioned where PropertyPanel sits */
+.tour-anchor-pp {
+  position: absolute;
+  right: 0;
+  top: 60px;
+  width: 360px;
+  height: 40px;
+  pointer-events: none;
+}
 </style>
 
 <style lang="scss">

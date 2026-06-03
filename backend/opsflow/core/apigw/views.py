@@ -1,6 +1,7 @@
 """API 网关公开端点 — 供第三方系统集成调用"""
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 
 from .auth import ApiTokenAuthentication
@@ -16,13 +17,13 @@ def trigger_execution(request):
     params = request.data.get('params', {})
 
     if not template_id:
-        return Response({'code': 4000, 'msg': 'template_id is required', 'data': None})
+        return ErrorResponse(msg='template_id is required', data=None, code=4000)
 
     from opsflow.models import FlowTemplate, FlowExecution
     try:
         template = FlowTemplate.objects.get(id=template_id)
     except FlowTemplate.DoesNotExist:
-        return Response({'code': 4000, 'msg': 'Template not found', 'data': None})
+        return ErrorResponse(msg='Template not found', data=None, code=4000)
 
     execution = FlowExecution.objects.create(
         template=template,
@@ -44,10 +45,7 @@ def trigger_execution(request):
     engine = FlowEngine(execution)
     engine.start(sync=False)
 
-    return Response({
-        'code': 2000, 'msg': 'Execution started',
-        'data': {'execution_id': execution.id, 'status': execution.status},
-    })
+    return DetailResponse(data={'execution_id': execution.id, 'status': execution.status}, msg='Execution started')
 
 
 @api_view(['GET'])
@@ -59,15 +57,13 @@ def get_execution_status(request, execution_id):
     try:
         execution = FlowExecution.objects.get(id=execution_id)
     except FlowExecution.DoesNotExist:
-        return Response({'code': 4000, 'msg': 'Execution not found', 'data': None})
+        return ErrorResponse(msg='Execution not found', data=None, code=4000)
 
-    return Response({
-        'code': 2000, 'data': {
-            'execution_id': execution.id,
-            'status': execution.status,
-            'started_at': execution.started_at,
-            'ended_at': execution.ended_at,
-        },
+    return DetailResponse(data={
+        'execution_id': execution.id,
+        'status': execution.status,
+        'started_at': execution.started_at,
+        'ended_at': execution.ended_at,
     })
 
 
@@ -78,4 +74,4 @@ def list_templates(request):
     """列出已发布模板"""
     from opsflow.models import FlowTemplate
     templates = FlowTemplate.objects.filter(is_draft=False).values('id', 'name', 'category', 'description', 'version')
-    return Response({'code': 2000, 'data': list(templates)})
+    return DetailResponse(data=list(templates))

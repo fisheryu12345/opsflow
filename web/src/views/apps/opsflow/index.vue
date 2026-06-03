@@ -1,13 +1,18 @@
 <template>
   <div class="opsflow-page">
-    <!-- AI 对话浮窗 -->
+    <!-- Main AI chat float panel / AI 对话浮窗 -->
     <div v-if="chatExpanded" class="chat-float-panel">
       <div class="chat-float-header">
         <div class="chat-header-left">
           <el-icon size="16"><ChatDotSquare /></el-icon>
           <span>AI Design</span>
         </div>
-        <el-button size="small" circle :icon="Fold" @click="chatExpanded = false" />
+        <div class="chat-header-actions">
+          <el-tooltip :show-after="500" content="Quick start guide" placement="bottom">
+            <el-button size="small" circle :icon="Reading" @click="store.openHelpDrawer()" class="chat-hdr-btn" />
+          </el-tooltip>
+          <el-button size="small" circle :icon="Fold" @click="chatExpanded = false" class="chat-hdr-btn" />
+        </div>
       </div>
       <div class="chat-float-history" ref="chatScrollRef">
         <div v-for="(msg, i) in chatMessages" :key="i" :class="['chat-msg', msg.role]">
@@ -19,7 +24,7 @@
             <el-icon size="14"><User /></el-icon>
           </div>
         </div>
-        <!-- 加载指示器 -->
+        <!-- Loading indicator / 加载指示器 -->
         <div v-if="generating" class="chat-msg ai">
           <div class="chat-avatar chat-avatar-ai">
             <el-icon size="14"><ChatDotSquare /></el-icon>
@@ -31,6 +36,18 @@
         <div v-if="chatMessages.length === 0 && !generating" class="chat-placeholder">
           <el-icon size="24"><ChatLineSquare /></el-icon>
           <p>Hi! Describe the ops workflow you want to create, or start dragging nodes from the left panel.</p>
+          <!-- Quick suggestion tags for new users -->
+          <div v-if="!store.isOnboarded" class="quick-suggestions">
+            <el-tag @click="quickFill('Create a pipeline to check disk space on all servers')" effect="plain" class="qs-tag">
+              💾 Disk check pipeline
+            </el-tag>
+            <el-tag @click="quickFill('Restart nginx if health check fails')" effect="plain" class="qs-tag">
+              🔄 Health check → auto restart
+            </el-tag>
+            <el-tag @click="quickFill('Schedule this pipeline to run daily at 2am')" effect="plain" class="qs-tag">
+              ⏰ Daily schedule
+            </el-tag>
+          </div>
         </div>
       </div>
       <div class="chat-float-input">
@@ -53,7 +70,7 @@
       AI Design
     </el-button>
 
-    <!-- 主体 -->
+    <!-- Main body / 主体 -->
     <div class="opsflow-body">
       <DesignCanvas ref="designCanvasRef" :templates="templates" :template-id="selectedTemplateId"
                     @change-template="onSelectTemplate" @save="onSaveDraft" @diff="onDiff"
@@ -63,17 +80,17 @@
                     @submit-execution="onSubmitExecution" />
     </div>
 
-    <!-- 插件选择器 -->
+    <!-- Plugin picker dialog / 插件选择器 -->
     <PluginPickerDialog v-model:visible="pickerVisible" @select="onPluginPicked" />
 
-    <!-- 新建模板向导 -->
+    <!-- New template wizard / 新建模板向导 -->
     <CreateTemplateWizard v-model="newDialogVisible" @created="onWizardCreated" />
 
-    <!-- Diff 弹窗 -->
+    <!-- Diff modal / Diff 弹窗 -->
     <DiffModal ref="diffModalRef" :template-id="diffTemplateId" :ai-original="aiOriginal" :current="currentTree"
                @confirmed="onDiffConfirmed" />
 
-    <!-- AI 分析弹窗 -->
+    <!-- AI analysis dialog / AI 分析弹窗 -->
     <el-dialog v-model="analyzeVisible" title="AI Pipeline Analysis" width="740px" top="5vh" class="opsflow-dialog">
       <div v-loading="analyzing" element-loading-text="AI analyzing..." class="analyze-body">
         <div v-if="analysisResult" class="analyze-content">
@@ -137,6 +154,9 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- Help Drawer -->
+    <HelpDrawer v-model:visible="store.showHelpDrawer" />
   </div>
 </template>
 
@@ -144,7 +164,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Fold,
+  Fold, Reading,
   ChatDotSquare, ChatLineSquare, User, InfoFilled,
   WarningFilled, Lightning, List, CircleCheck,
 } from '@element-plus/icons-vue'
@@ -154,19 +174,21 @@ import DesignCanvas from './components/DesignCanvas.vue'
 import DiffModal from './components/DiffModal.vue'
 import PluginPickerDialog from './components/PluginPickerDialog.vue'
 import CreateTemplateWizard from './components/CreateTemplateWizard.vue'
+import HelpDrawer from './components/HelpDrawer.vue'
 
 const store = useOpsflowStore()
+
 
 const designCanvasRef = ref<InstanceType<typeof DesignCanvas> | null>(null)
 const diffModalRef = ref<InstanceType<typeof DiffModal> | null>(null)
 
-// 模板相关
+// Template state / 模板相关
 const templates = ref<any[]>([])
 const selectedTemplateId = ref<number | null>(null)
 const nlInput = ref('')
 const generating = ref(false)
 
-// 新建模板向导
+// New template wizard / 新建模板向导
 const newDialogVisible = ref(false)
 
 // Diff
@@ -174,12 +196,12 @@ const diffTemplateId = ref(0)
 const aiOriginal = ref<any>({})
 const currentTree = ref<any>({})
 
-// AI 分析
+// AI analysis / AI 分析
 const analyzeVisible = ref(false)
 const analyzing = ref(false)
 const analysisResult = ref<any>(null)
 
-// 插件选择器
+// Plugin picker / 插件选择器
 const pickerVisible = ref(false)
 const pendingTaskNode = ref<string | null>(null)
 
@@ -187,13 +209,18 @@ function onSubmitExecution(execId: number) {
   // SubmitWizardDialog already shows its own success message
 }
 
-// 选中节点 → 折叠 AI 面板
+function quickFill(text: string) {
+  nlInput.value = text
+  onGenerate()
+}
+
+// Collapse AI panel when node is selected / 选中节点 → 折叠 AI 面板
 const chatExpanded = ref(true)
 const chatMessages = ref<{ role: 'user' | 'ai'; content: string }[]>([])
 
 function onNodeSelect(node: any) {
-  if (node) chatExpanded.value = false  // 选中节点 → 折叠 AI 对话框
-  // 取消选中时不自动展开，由用户手动控制
+  if (node) chatExpanded.value = false  // Collapse AI panel when node selected / 选中节点 → 折叠 AI 对话框
+  // Don't auto-expand on deselect — user controls it manually / 取消选中时不自动展开，由用户手动控制
 }
 
 function onPluginPicked(plugin: { code: string; name: string; risk_level: string }) {
@@ -234,7 +261,7 @@ function renderContent(text: string): string {
     .replace(/\n/g, '<br>')
 }
 
-// 获取模板列表
+// Fetch template list / 获取模板列表
 async function fetchTemplates() {
   try {
     const res = await GetTemplates({ limit: 500 })
@@ -245,7 +272,7 @@ async function fetchTemplates() {
   }
 }
 
-// 选择模板
+// Select template / 选择模板
 async function onSelectTemplate(id: any) {
   selectedTemplateId.value = id
   if (!id) return
@@ -263,7 +290,7 @@ async function onSelectTemplate(id: any) {
       if (template?.pipeline_tree && typeof template.pipeline_tree === 'object') {
         designCanvasRef.value.loadPipeline(template.pipeline_tree)
       } else {
-        // pipeline_tree 为 null/非对象时加载空白画布（自动显示 Start→End）
+        // Null/non-object pipeline_tree → load blank canvas (auto-shows Start→End) / pipeline_tree 为 null/非对象时加载空白画布
         console.log('[onSelectTemplate] pipeline_tree null or not object, loading empty')
         designCanvasRef.value.loadPipeline({ nodes: [], edges: [] })
       }
@@ -276,7 +303,7 @@ async function onSelectTemplate(id: any) {
   }
 }
 
-// AI 生成/多轮对话
+// AI generation / multi-turn chat / AI 生成/多轮对话
 const LAYOUT_KEYWORDS = ['layout', 'arrange', 'align', 'organize']
 
 async function onGenerate() {
@@ -363,7 +390,7 @@ async function onGenerate() {
   }
 }
 
-// 保存草稿
+// Save draft / 保存草稿
 async function onSaveDraft(data: any) {
   if (!selectedTemplateId.value) {
     ElMessage.warning('Please select or create a template first')
@@ -386,7 +413,7 @@ function onDiff() {
   diffModalRef.value?.show()
 }
 
-// AI 分析
+// AI analysis / AI 分析
 async function onAnalyze() {
   if (!designCanvasRef.value) return
   const data = designCanvasRef.value.getGraphData()
@@ -453,7 +480,7 @@ onMounted(async () => {
 // Re-fetch templates when project switches via ProjectSwitcher
 function onProjectChanged() {
   fetchTemplates()
-  // 公共模板不受项目切换影响，保留当前选中
+  // Public templates survive project switches; keep current selection
   if (store.currentTemplate?.is_public) return
   const stillExists = templates.value.some(t => t.id === selectedTemplateId.value)
   if (!stillExists) {
@@ -560,6 +587,16 @@ onBeforeUnmount(() => {
 }
 .chat-float-header :deep(.el-button:hover) {
   background: rgba(255, 255, 255, 0.3);
+}
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  z-index: 1;
+}
+.chat-hdr-btn {
+  font-size: 13px !important;
 }
 .chat-float-history {
   flex: 1;
@@ -725,6 +762,26 @@ onBeforeUnmount(() => {
 @keyframes typingBounce {
   0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
   40% { transform: scale(1); opacity: 1; }
+}
+
+/* ===== Quick Suggestions ===== */
+.quick-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 10px;
+}
+.qs-tag {
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  transition: all 0.2s;
+}
+.qs-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
 }
 
 

@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from opsflow.models import FlowTemplate, ExecutionScheme
 from opsflow.serializers import ExecutionSchemeSerializer
 from opsflow.views.base import ProjectFilteredViewSet
+from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 
 
 class ExecutionSchemeViewSet(ProjectFilteredViewSet):
@@ -21,6 +22,35 @@ class ExecutionSchemeViewSet(ProjectFilteredViewSet):
         if template_id:
             qs = qs.filter(template_id=template_id)
         return qs
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return SuccessResponse(data=serializer.data, msg="获取成功")
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return DetailResponse(data=serializer.data, msg="获取成功")
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return DetailResponse(data=serializer.data, msg="创建成功")
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return DetailResponse(data=serializer.data, msg="更新成功")
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return Response({'code': 2000, 'msg': 'success', 'data': None})
 
     def perform_create(self, serializer):
         template_id = self.kwargs.get('template_pk')

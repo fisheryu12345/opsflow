@@ -9,6 +9,7 @@
 from dataclasses import dataclass
 from typing import Any
 
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 
 
@@ -60,13 +61,10 @@ class ErrorCodes:
 
 def api_success(data: Any = None, msg: str = "success") -> Response:
     """标准成功响应"""
-    return Response({'code': 2000, 'msg': msg, 'data': data})
+    return DetailResponse(data=data, msg=msg)
 
 
 def api_error(err: _ErrorCode, msg: str | None = None,
               data: Any = None, http_status: int = 400) -> Response:
     """标准错误响应"""
-    return Response(
-        {'code': err.code, 'msg': msg or err.message, 'data': data},
-        status=http_status,
-    )
+    return ErrorResponse(data=data, msg=msg or err.message, code=err.code, status=http_status)

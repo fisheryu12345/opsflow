@@ -3,6 +3,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 
 from opsflow.models import PluginMeta
@@ -59,7 +60,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                 }
             version_map[p.code]["versions"].append(p.version)
         data = list(version_map.values())
-        return Response({"code": 2000, "msg": "success", "data": data})
+        return DetailResponse(data=data)
 
     def retrieve(self, request, *args, **kwargs):
         """返回单个插件详情 + 完整 form_schema（支持 ?version= 参数）"""
@@ -69,10 +70,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
         if version:
             qs = qs.filter(version=version)
         if not qs.exists():
-            return Response(
-                {"code": 4000, "msg": "插件不存在", "data": None},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return ErrorResponse(msg="Plugin not found", data=None, code=4000, status=status.HTTP_404_NOT_FOUND)
         # 取最后一次创建的版本作为主数据
         primary = qs.last()
         all_versions = list(qs.values_list('version', flat=True))
@@ -87,7 +85,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
             "output_schema": primary.output_schema,
             "versions": all_versions,
         }
-        return Response({"code": 2000, "msg": "success", "data": data})
+        return DetailResponse(data=data)
 
     @action(detail=False, methods=['get'])
     def groups(self, request):
@@ -114,7 +112,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
             for entry in group_map.get(p.group, []):
                 if entry["code"] == p.code and p.version not in entry["versions"]:
                     entry["versions"].append(p.version)
-        return Response({"code": 2000, "msg": "success", "data": group_map})
+        return DetailResponse(data=group_map)
 
     @action(detail=False, methods=['get'])
     def variable_types(self, request):
@@ -128,9 +126,9 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                  "tag": info.get("tag", "")}
                 for code, info in types.items()
             ]
-            return Response({"code": 2000, "msg": "success", "data": data})
+            return DetailResponse(data=data)
         except Exception as e:
-            return Response({"code": 4000, "msg": str(e), "data": []})
+            return ErrorResponse(msg=str(e), data=[], code=4000)
 
     # ── 项目级可见性管理 ──────────────────────────────────────────
 
@@ -145,8 +143,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             plugin = PluginMeta.objects.filter(code=code).last()
         except PluginMeta.DoesNotExist:
-            return Response({"code": 4000, "msg": "插件不存在", "data": None},
-                            status=status.HTTP_404_NOT_FOUND)
+            return ErrorResponse(msg="Plugin not found", data=None, code=4000, status=status.HTTP_404_NOT_FOUND)
 
         if request.method == 'GET':
             # 收集当前对该插件所有版本的可见性设置
@@ -154,9 +151,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
             allowed = set()
             for v in versions:
                 allowed.update(v.allowed_projects or [])
-            return Response({
-                "code": 2000, "msg": "success",
-                "data": {
+            return DetailResponse(data={
                     "code": code,
                     "name": plugin.name,
                     "group": plugin.group,
@@ -168,14 +163,10 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
         # POST: 更新可见性 — 同步到该插件所有版本
         project_ids = request.data.get('project_ids', [])
         if not isinstance(project_ids, list):
-            return Response({"code": 4000, "msg": "project_ids must be a list", "data": None},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return ErrorResponse(msg="project_ids must be a list", data=None, code=4000, status=status.HTTP_400_BAD_REQUEST)
 
         updated = PluginMeta.objects.filter(code=code).update(allowed_projects=project_ids)
-        return Response({
-            "code": 2000, "msg": "success",
-            "data": {"code": code, "allowed_projects": project_ids, "updated_versions": updated},
-        })
+        return DetailResponse(data={"code": code, "allowed_projects": project_ids, "updated_versions": updated})
 
     @action(detail=False, methods=['get'], url_path='visibility-list')
     def visibility_list(self, request):
@@ -202,7 +193,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                     "restricted": len(p.allowed_projects or []) > 0,
                 })
         data.sort(key=lambda x: (x["group"], x["name"]))
-        return Response({"code": 2000, "msg": "success", "data": data})
+        return DetailResponse(data=data)
 
     @action(detail=False, methods=['post'], url_path='batch-visibility')
     def batch_visibility(self, request):
@@ -213,8 +204,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
         """
         plugins = request.data.get('plugins', [])
         if not isinstance(plugins, list):
-            return Response({"code": 4000, "msg": "plugins must be a list", "data": None},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return ErrorResponse(msg="plugins must be a list", data=None, code=4000, status=status.HTTP_400_BAD_REQUEST)
 
         results = []
         for item in plugins:
@@ -225,4 +215,4 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
             updated = PluginMeta.objects.filter(code=code).update(allowed_projects=project_ids)
             results.append({"code": code, "allowed_projects": project_ids, "updated_versions": updated})
 
-        return Response({"code": 2000, "msg": "success", "data": results})
+        return DetailResponse(data=results)

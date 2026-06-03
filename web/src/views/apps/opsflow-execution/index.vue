@@ -15,6 +15,7 @@
 </template>
 
 <script setup lang="ts">
+import { ElMessage } from 'element-plus'
 import { ref, onMounted } from 'vue'
 import ExecutionList from './components/ExecutionList.vue'
 import ExecutionDetail from './components/ExecutionDetail.vue'
@@ -34,6 +35,12 @@ function onExecutionUpdate(exec: any) {
 
 onMounted(async () => {
   if (!store.myProjects.length) await store.fetchMyProjects()
+
+  const key = 'opsflow_tour_execution'
+  if (!localStorage.getItem(key)) {
+    ElMessage.info({ message: '📋 执行记录 — 点详情进入监控画布，可对失败节点 Retry/Skip，或 Pause/Cancel 执行', duration: 6000 })
+    localStorage.setItem(key, 'true')
+  }
 })
 </script>
 

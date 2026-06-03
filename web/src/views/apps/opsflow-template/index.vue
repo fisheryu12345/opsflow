@@ -492,6 +492,12 @@ onMounted(async () => {
   if (!opsflowStore.myProjects.length) await opsflowStore.fetchMyProjects();
   await fetchData();
   window.addEventListener('project-changed', onProjectChanged)
+
+  const key = 'opsflow_tour_template'
+  if (!localStorage.getItem(key)) {
+    ElMessage.info({ message: '📁 模板管理 — 可管理版本（发布/回滚）、设置定时计划、管理执行方案', duration: 6000 })
+    localStorage.setItem(key, 'true')
+  }
 })
 
 onBeforeUnmount(() => {

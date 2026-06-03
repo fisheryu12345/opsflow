@@ -59,7 +59,7 @@ class ProjectFilteredViewSet(viewsets.ModelViewSet):
         project_id = self.request.query_params.get('project_id')
         if project_id:
             if int(project_id) not in user_project_ids:
-                raise exceptions.PermissionDenied('无权访问该项目')
+                raise exceptions.PermissionDenied('No access to this project')
             base_q = Q(**{self.project_field + '_id': project_id})
             base_q = self._add_public_q(base_q, project_id=project_id)
             return qs.filter(base_q)
@@ -88,7 +88,7 @@ class ProjectFilteredViewSet(viewsets.ModelViewSet):
         if 'project_id' in kwargs:
             user_project_ids = self.get_user_project_ids()
             if kwargs['project_id'] not in user_project_ids:
-                raise exceptions.PermissionDenied('无权在当前项目创建资源')
+                raise exceptions.PermissionDenied('No permission to create resources in this project')
         serializer.save(**kwargs)
 
 
@@ -135,7 +135,7 @@ class ProjectReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
         project_id = self.request.query_params.get('project_id')
         if project_id:
             if int(project_id) not in user_project_ids:
-                raise exceptions.PermissionDenied('无权访问该项目')
+                raise exceptions.PermissionDenied('No access to this project')
             base_q = Q(**{self.project_field + '_id': project_id})
             base_q = self._add_public_q(base_q, project_id=project_id)
             return qs.filter(base_q)

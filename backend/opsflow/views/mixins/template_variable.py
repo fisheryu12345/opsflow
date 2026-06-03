@@ -1,6 +1,7 @@
 """Template Variable — 全局变量/变量浏览器/变量提升端点 Mixin"""
 
 from rest_framework.decorators import action
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -16,17 +17,11 @@ class TemplateVariableMixin:
         """获取或更新可提升的全局变量配置"""
         template = self.get_object()
         if request.method == 'GET':
-            return Response({
-                'code': 2000, 'msg': 'success',
-                'data': template.hook_variables or {},
-            })
+            return DetailResponse(data=template.hook_variables or {})
         hook_vars = request.data.get('hook_variables', request.data)
         template.hook_variables = hook_vars
         template.save(update_fields=['hook_variables'])
-        return Response({
-            'code': 2000, 'msg': '变量配置已更新',
-            'data': template.hook_variables,
-        })
+        return DetailResponse(data=template.hook_variables, msg='Hook variables updated')
 
     @action(detail=True, methods=['get', 'post', 'patch'], url_path='global-variables')
     def global_variables(self, request, pk=None):
@@ -46,7 +41,7 @@ class TemplateVariableMixin:
             for key, entry in normalized.items():
                 entry["reference_count"] = count_variable_references(tree, key)
                 result[key] = entry
-            return Response({'code': 2000, 'msg': 'success', 'data': result})
+            return DetailResponse(data=result)
 
         if request.method == 'POST':
             template.global_vars = request.data.get('global_vars', {})
@@ -56,7 +51,7 @@ class TemplateVariableMixin:
             # ── 结束 ──
             template.save(update_fields=['global_vars'])
             normalized = normalize_global_vars(template.global_vars)
-            return Response({'code': 2000, 'msg': '全局变量已更新', 'data': normalized})
+            return DetailResponse(data=normalized, msg='Global variables updated')
 
         # PATCH — 合并更新
         updates = request.data.get('global_vars', {})
@@ -79,7 +74,7 @@ class TemplateVariableMixin:
         # ── 结束 ──
         template.save(update_fields=['global_vars'])
         normalized = normalize_global_vars(template.global_vars)
-        return Response({'code': 2000, 'msg': '全局变量已更新', 'data': normalized})
+        return DetailResponse(data=normalized, msg='全局变量已更新')
 
     @action(detail=True, methods=['get'], url_path='variable-browser')
     def variable_browser(self, request, pk=None):
@@ -139,13 +134,10 @@ class TemplateVariableMixin:
         else:
             project_vars = []
 
-        return Response({
-            'code': 2000, 'msg': 'success',
-            'data': {
-                "global_variables": global_vars,
-                "node_outputs": node_outputs,
-                "project_variables": project_vars,
-            },
+        return DetailResponse(data={
+            "global_variables": global_vars,
+            "node_outputs": node_outputs,
+            "project_variables": project_vars,
         })
 
     @action(detail=True, methods=['post'], url_path='hook-variable')
@@ -159,8 +151,7 @@ class TemplateVariableMixin:
         description = request.data.get('description', '')
 
         if not var_key or not node_id:
-            return Response({'code': 4000, 'msg': 'var_key and node_id are required', 'data': None},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return ErrorResponse(msg='var_key and node_id are required', data=None, code=4000, status=status.HTTP_400_BAD_REQUEST)
 
         current = normalize_global_vars(template.global_vars)
 
@@ -184,7 +175,7 @@ class TemplateVariableMixin:
 
         template.global_vars = current
         template.save(update_fields=['global_vars', 'hook_variables'])
-        return Response({'code': 2000, 'msg': '变量已提升为全局变量', 'data': current[var_key]})
+        return DetailResponse(data=current[var_key], msg='Variable promoted to global')
 
     @action(detail=True, methods=['post'], url_path='unhook-variable')
     def unhook_variable(self, request, pk=None):
@@ -195,8 +186,7 @@ class TemplateVariableMixin:
         current = normalize_global_vars(template.global_vars)
 
         if var_key not in current:
-            return Response({'code': 4000, 'msg': f'变量 {var_key} 不存在', 'data': None},
-                            status=status.HTTP_404_NOT_FOUND)
+            return ErrorResponse(msg=f'Variable {var_key} not found', data=None, code=4000, status=status.HTTP_404_NOT_FOUND)
 
         # 移除 source_info 但保留变量
         current[var_key].update({
@@ -205,4 +195,4 @@ class TemplateVariableMixin:
         })
         template.global_vars = current
         template.save(update_fields=['global_vars'])
-        return Response({'code': 2000, 'msg': '已解除变量关联', 'data': current[var_key]})
+        return DetailResponse(data=current[var_key], msg='Variable unhooked')

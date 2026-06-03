@@ -1,6 +1,7 @@
 """Template Collect — 收藏/取消收藏端点 Mixin"""
 
 from rest_framework.decorators import action
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -19,10 +20,7 @@ class TemplateCollectMixin:
             user=request.user,
             template=template,
         )
-        return Response({
-            'code': 2000, 'msg': 'Collected' if created else 'Already collected',
-            'data': {'collected': True},
-        })
+        return DetailResponse(data={'collected': True}, msg='Collected' if created else 'Already collected')
 
     @action(detail=True, methods=['post'])
     def uncollect(self, request, pk=None):
@@ -31,10 +29,7 @@ class TemplateCollectMixin:
         deleted, _ = TemplateCollect.objects.filter(
             user=request.user, template=template
         ).delete()
-        return Response({
-            'code': 2000, 'msg': 'Uncollected' if deleted else 'Not collected',
-            'data': {'collected': False},
-        })
+        return DetailResponse(data={'collected': False}, msg='Uncollected' if deleted else 'Not collected')
 
     @action(detail=True, methods=['get'])
     def is_collected(self, request, pk=None):
@@ -43,6 +38,4 @@ class TemplateCollectMixin:
         collected = TemplateCollect.objects.filter(
             user=request.user, template=template
         ).exists()
-        return Response({
-            'code': 2000, 'data': {'collected': collected},
-        })
+        return DetailResponse(data={'collected': collected})

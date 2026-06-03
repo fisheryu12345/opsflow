@@ -307,6 +307,12 @@ onMounted(async () => {
   const store = useOpsflowStore();
   if (!store.myProjects.length) await store.fetchMyProjects();
   fetchData()
+
+  const key = 'opsflow_tour_knowledge'
+  if (!localStorage.getItem(key)) {
+    ElMessage.info({ message: '📚 知识库 — 运维操作文档，与流程关联，故障处理参考', duration: 6000 })
+    localStorage.setItem(key, 'true')
+  }
 })
 </script>
 

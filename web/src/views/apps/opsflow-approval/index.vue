@@ -179,6 +179,12 @@ onMounted(async () => {
   const store = useOpsflowStore();
   if (!store.myProjects.length) await store.fetchMyProjects();
   fetchData()
+
+  const key = 'opsflow_tour_approval'
+  if (!localStorage.getItem(key)) {
+    ElMessage.info({ message: '✅ 审批中心 — 流程中的审批节点暂停后，在此 Approve/Reject。批准后流程自动继续', duration: 6000 })
+    localStorage.setItem(key, 'true')
+  }
 })
 </script>
 

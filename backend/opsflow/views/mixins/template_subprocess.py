@@ -1,6 +1,7 @@
 """Template Subprocess — 子流程版本追踪端点 Mixin"""
 
 from rest_framework.decorators import action
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 
 from opsflow.models import FlowTemplate
@@ -47,9 +48,7 @@ class TemplateSubprocessMixin:
             })
 
         stale_count = sum(1 for d in details if d['stale'])
-        return Response({
-            'code': 2000, 'msg': 'success',
-            'data': {
+        return DetailResponse(data={
                 'total': len(details),
                 'stale': stale_count,
                 'details': details,
@@ -86,9 +85,7 @@ class TemplateSubprocessMixin:
 
         template.pipeline_tree = tree
         template.save(update_fields=['pipeline_tree'])
-        return Response({
-            'code': 2000, 'msg': 'success',
-            'data': {
+        return DetailResponse(data={
                 'total': len(updated),
                 'updated_nodes': updated,
                 'message': f'已更新 {len(updated)} 个子流程引用',

@@ -10,7 +10,7 @@
   >
     <!-- Step Progress -->
     <div class="wiz-header">
-      <div class="wiz-steps">
+      <div class="wiz-steps" data-tour="wizard-steps">
         <div
           v-for="(step, i) in steps"
           :key="i"

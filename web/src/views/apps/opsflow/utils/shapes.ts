@@ -1,6 +1,6 @@
 import { Shape, Node } from '@antv/x6'
 
-// 原子操作节点
+// Atom node (task node with plugin) / 原子操作节点
 Shape.Rect.define({
   shape: 'ops-atom',
   width: 180,
@@ -25,7 +25,7 @@ Shape.Rect.define({
   },
 })
 
-// 开始事件 — 绿色圆
+// Start event — green circle / 开始事件 — 绿色圆
 Shape.Circle.define({
   shape: 'ops-start-event',
   width: 56,
@@ -44,7 +44,7 @@ Shape.Circle.define({
   },
 })
 
-// 结束事件 — 红色圆
+// End event — red circle / 结束事件 — 红色圆
 Shape.Circle.define({
   shape: 'ops-end-event',
   width: 56,
@@ -63,7 +63,7 @@ Shape.Circle.define({
   },
 })
 
-// 排他网关 — 菱形（橙色 X）
+// Exclusive gateway — orange diamond / 排他网关 — 菱形（橙色 X）
 Node.define({
   shape: 'ops-exclusive-gateway',
   width: 70,
@@ -116,7 +116,7 @@ Node.define({
   },
 })
 
-// 并行网关 — 菱形（蓝色 +）
+// Parallel gateway — blue diamond / 并行网关 — 菱形（蓝色 +）
 Node.define({
   shape: 'ops-parallel-gateway',
   width: 70,
@@ -169,7 +169,7 @@ Node.define({
   },
 })
 
-// 条件并行网关 — 菱形（青色 ✓）
+// Conditional parallel gateway — cyan diamond / 条件并行网关 — 菱形（青色 ✓）
 Node.define({
   shape: 'ops-conditional-parallel-gateway',
   width: 70,
@@ -222,7 +222,7 @@ Node.define({
   },
 })
 
-// 汇聚网关 — 菱形（紫色）
+// Converge gateway — purple diamond / 汇聚网关 — 菱形（紫色）
 Node.define({
   shape: 'ops-converge-gateway',
   width: 70,
@@ -274,7 +274,7 @@ Node.define({
   },
 })
 
-// 审批节点 — 紫色菱形 + 🔐
+// Approval node — purple diamond / 审批节点 — 紫色菱形
 Node.define({
   shape: 'ops-approval',
   width: 70,
@@ -326,7 +326,7 @@ Node.define({
   },
 })
 
-// 子流程节点 — 虚线边框蓝色矩形
+// Subprocess node — dashed blue rect / 子流程节点 — 虚线边框蓝色矩形
 Shape.Rect.define({
   shape: 'ops-subprocess',
   width: 200,

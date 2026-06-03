@@ -36,7 +36,7 @@ class FlowTemplate(models.Model):
     project_scope = models.JSONField(default=list, blank=True, verbose_name="Visible Project Scope")
 
     def clean(self):
-        """公共模板不应绑定到具体项目"""
+        """Public templates should not be bound to a specific project"""
         if self.is_public:
             self.project = None
 

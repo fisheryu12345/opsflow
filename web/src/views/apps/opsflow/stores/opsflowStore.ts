@@ -48,6 +48,7 @@ interface OpsflowState {
   currentProjectId: number | null
   projects: any[]
   myProjects: MyProject[]
+  showHelpDrawer: boolean
 }
 
 export const useOpsflowStore = defineStore('opsflow', {
@@ -61,11 +62,13 @@ export const useOpsflowStore = defineStore('opsflow', {
     currentProjectId: null,
     projects: [],
     myProjects: [],
+    showHelpDrawer: false,
   }),
   getters: {
     isDesignMode: (state) => state.mode === 'design',
     isMonitorMode: (state) => state.mode === 'monitor',
     currentProject: (state) => state.myProjects.find(p => p.id === state.currentProjectId) || null,
+    isOnboarded: () => !!localStorage.getItem('opsflow_onboarded'),
     globalVariableList: (state) => {
       const vars = state.globalVariables
       return Object.entries(vars).map(([key, val]: [string, any]) => ({
@@ -148,5 +151,17 @@ export const useOpsflowStore = defineStore('opsflow', {
         console.warn('Failed to load projects:', e)
       }
     },
+
+    toggleHelpDrawer() {
+      this.showHelpDrawer = !this.showHelpDrawer
+    },
+    openHelpDrawer() {
+      this.showHelpDrawer = true
+    },
+    closeHelpDrawer() {
+      this.showHelpDrawer = false
+    },
+
+
   },
 })

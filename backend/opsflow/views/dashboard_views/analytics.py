@@ -5,6 +5,7 @@ from datetime import timedelta
 from django.db.models import Count, Avg, Q, F, Max, Sum, Case, Value, IntegerField, When
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 
 from ...models import FlowExecution, NodeExecutionTrace
@@ -41,7 +42,7 @@ def dashboard_top_templates(request):
             "avg_duration": avg_sec,
             "success_rate": success_rate,
         })
-    return Response({"code": 2000, "msg": "success", "data": data})
+    return DetailResponse(data=data)
 
 
 @api_view(["GET"])
@@ -66,7 +67,7 @@ def dashboard_user_activity(request):
             "template_count": r["template_count"],
             "last_active": r["last_active"].strftime("%Y-%m-%d") if r["last_active"] else None,
         })
-    return Response({"code": 2000, "msg": "success", "data": data})
+    return DetailResponse(data=data)
 
 
 @api_view(["GET"])
@@ -82,7 +83,7 @@ def dashboard_status_distribution(request):
         {"status": r["status"], "count": r["count"], "label": status_labels.get(r["status"], r["status"])}
         for r in rows
     ]
-    return Response({"code": 2000, "msg": "success", "data": data})
+    return DetailResponse(data=data)
 
 
 @api_view(["GET"])
@@ -98,7 +99,7 @@ def dashboard_node_type_distribution(request):
     for r in rows:
         label = r["atom_type"] or "unknown"
         data.append({"type": r["atom_type"] or "unknown", "count": r["count"], "label": label})
-    return Response({"code": 2000, "msg": "success", "data": data})
+    return DetailResponse(data=data)
 
 
 @api_view(["GET"])
@@ -134,7 +135,7 @@ def dashboard_duration_distribution(request):
     }
     agg = base.aggregate(**{key: Sum(expr) for key, expr in bucket_map.items()})
     buckets = [{"range": key, "count": agg.get(key, 0) or 0} for key in bucket_map]
-    return Response({"code": 2000, "msg": "success", "data": buckets})
+    return DetailResponse(data=buckets)
 
 
 @api_view(["GET"])
@@ -162,7 +163,7 @@ def dashboard_node_duration_top(request):
         }
         for r in rows
     ]
-    return Response({"code": 2000, "msg": "success", "data": data})
+    return DetailResponse(data=data)
 
 
 @api_view(["GET"])
@@ -196,4 +197,4 @@ def dashboard_template_stats(request):
             "avg_duration": avg_sec,
             "success_rate": success_rate,
         })
-    return Response({"code": 2000, "msg": "success", "data": data})
+    return DetailResponse(data=data)

@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.db.models.functions import TruncDate
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 
 from ...models import FlowExecution
@@ -70,7 +71,7 @@ def dashboard_trend(request):
         entry["avg_duration"] = dur_map.get(d, 0)
         result.append(entry)
 
-    return Response({"code": 2000, "msg": "success", "data": result})
+    return DetailResponse(data=result)
 
 
 @api_view(["GET"])
@@ -106,4 +107,4 @@ def dashboard_success_rate_trend(request):
         if entry["total"] > 0:
             entry["rate"] = round(entry["completed"] / entry["total"] * 100, 1)
         result.append(entry)
-    return Response({"code": 2000, "msg": "success", "data": result})
+    return DetailResponse(data=result)
