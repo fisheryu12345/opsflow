@@ -106,6 +106,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                 group_map.setdefault(p.group, []).append({
                     "code": p.code,
                     "name": p.name,
+                    "description": p.description,
                     "version": p.version,
                     "versions": [],
                     "risk_level": p.risk_level,

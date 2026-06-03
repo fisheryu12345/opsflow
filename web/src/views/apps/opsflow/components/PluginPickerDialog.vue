@@ -63,6 +63,7 @@ import { useOpsflowStore } from '../stores/opsflowStore'
 interface PluginItem {
   code: string
   name: string
+  description?: string
   risk_level: string
   phase?: number
   phase_label?: string
