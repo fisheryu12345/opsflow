@@ -49,13 +49,27 @@ class FlowTemplate(models.Model):
         # 提取子流程引用信息
         subprocess_refs = {}
         tree = self.pipeline_tree or {}
+        # Batch query: collect all target_template_ids first
+        target_ids = set()
         for node in tree.get('nodes', []):
             if node.get('node_type') == 'subprocess':
                 params = node.get('params', {}) or {}
                 target_id = params.get('target_template_id')
                 if target_id:
-                    try:
-                        target = FlowTemplate.objects.get(id=target_id)
+                    target_ids.add(target_id)
+        # Single batch query, index by id
+        template_map = {}
+        if target_ids:
+            for t in FlowTemplate.objects.filter(id__in=target_ids):
+                template_map[str(t.id)] = t
+        # Build subprocess refs using pre-loaded templates
+        for node in tree.get('nodes', []):
+            if node.get('node_type') == 'subprocess':
+                params = node.get('params', {}) or {}
+                target_id = params.get('target_template_id')
+                if target_id:
+                    target = template_map.get(target_id)
+                    if target:
                         subprocess_refs[node['id']] = {
                             'target_template_id': target_id,
                             'target_version': target.version or 1,
@@ -63,7 +77,7 @@ class FlowTemplate(models.Model):
                             'variable_mapping': params.get('variable_mapping', {}),
                             'output_mapping': params.get('output_mapping', {}),
                         }
-                    except FlowTemplate.DoesNotExist:
+                    else:
                         subprocess_refs[node['id']] = {
                             'target_template_id': target_id,
                             'target_version': None,

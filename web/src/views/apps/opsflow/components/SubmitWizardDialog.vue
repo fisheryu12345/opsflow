@@ -440,10 +440,10 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Aim, CircleCheck, InfoFilled, WarningFilled, Calendar } from '@element-plus/icons-vue'
-import { GetGlobalVariables, AnalyzePipeline } from '/@/api/opsflow/templates'
-import { CreateExecution } from '/@/api/opsflow/executions'
-import { CreateSchedulePlan } from '/@/api/opsflow/schedule-plans'
-import { GetServicenowChangeRequests } from '/@/api/opsflow/servicenow'
+import { GetGlobalVariables, AnalyzePipeline } from '../api/templates'
+import { CreateExecution } from '../api/executions'
+import { CreateSchedulePlan } from '../api/schedule-plans'
+import { GetServicenowChangeRequests } from '../api/servicenow'
 
 const props = defineProps<{
   modelValue: boolean

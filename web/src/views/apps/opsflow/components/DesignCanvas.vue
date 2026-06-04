@@ -142,8 +142,8 @@ import GlobalVariablePanel from './GlobalVariablePanel.vue'
 import SubprocessStatusBadge from './SubprocessStatusBadge.vue'
 import ProjectSwitcher from './ProjectSwitcher.vue'
 import SubmitWizardDialog from './SubmitWizardDialog.vue'
-import { ConfirmDraft } from '/@/api/opsflow/templates'
-import { DryRunExecution } from '/@/api/opsflow/executions'
+import { ConfirmDraft } from '../api/templates'
+import { DryRunExecution } from '../api/executions'
 import { useGraphValidator } from '../composables/useGraphValidator'
 
 const props = defineProps<{

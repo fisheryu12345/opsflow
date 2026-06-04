@@ -52,7 +52,7 @@
 import { ref, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { GetSchemes, CreateScheme, UpdateScheme, DeleteScheme } from '/@/api/opsflow/templates'
+import { GetSchemes, CreateScheme, UpdateScheme, DeleteScheme } from '../api/templates'
 
 const props = defineProps<{ templateId: number | null; visible: boolean }>()
 const emit = defineEmits(['update:visible', 'updated'])

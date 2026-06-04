@@ -25,6 +25,32 @@ class FlowEngine:
         self.execution = execution
         self.template = execution.template
 
+    @property
+    def _runtime(self):
+        return BambooDjangoRuntime()
+
+    def _update_node_status(self, node_id, status="retrying"):
+        """更新节点状态和执行状态（retry/retry_subprocess 共享）"""
+        node_status = self.execution.node_status or {}
+        node_status[node_id] = status
+        self.execution.node_status = node_status
+        self.execution.status = "running"
+        self.execution.save(update_fields=["node_status", "status"])
+
+    def _fail_execution(self, msg, save_fields=None, do_rollback=False):
+        """标记执行为失败状态 — run() 中多处失败路径共享"""
+        self.execution.status = "failed"
+        self.execution.ended_at = datetime.datetime.now()
+        if msg:
+            self.execution.context['_validation_error'] = msg
+        save_fields = save_fields or ["status", "ended_at"]
+        if msg:
+            save_fields.append("context")
+        self.execution.save(update_fields=save_fields)
+        if do_rollback:
+            self.rollback_failed_nodes()
+        self._notify_completed()
+
     # -- External API --------------------------------------------------------
 
     def start(self, sync=False):
@@ -49,8 +75,7 @@ class FlowEngine:
         """暂停执行 — 委托给 BambooDjangoRuntime"""
         bamboo_pipeline_id = self.execution.context.get("bamboo_pipeline_id")
         if bamboo_pipeline_id:
-            runtime = BambooDjangoRuntime()
-            result = pipeline_api.pause_pipeline(runtime, bamboo_pipeline_id)
+            result = pipeline_api.pause_pipeline(self._runtime, bamboo_pipeline_id)
             if not result.result:
                 logger.error("[FlowEngine] pause failed: %s", result.message)
         self.execution.status = "paused"
@@ -62,8 +87,7 @@ class FlowEngine:
         if not bamboo_pipeline_id:
             logger.error("[FlowEngine] resume: no bamboo_pipeline_id in context")
             return
-        runtime = BambooDjangoRuntime()
-        result = pipeline_api.resume_pipeline(runtime, bamboo_pipeline_id)
+        result = pipeline_api.resume_pipeline(self._runtime, bamboo_pipeline_id)
         if not result.result:
             logger.error("[FlowEngine] resume failed: %s", result.message)
             return
@@ -72,34 +96,23 @@ class FlowEngine:
 
     def retry(self, node_id):
         """重试指定失败节点 — 委托给 BambooDjangoRuntime"""
-        runtime = BambooDjangoRuntime()
-        result = pipeline_api.retry_node(runtime, node_id)
+        result = pipeline_api.retry_node(self._runtime, node_id)
         if not result.result:
             logger.error("[FlowEngine] retry node %s failed: %s", node_id, result.message)
         else:
-            node_status = self.execution.node_status or {}
-            node_status[node_id] = "retrying"
-            self.execution.node_status = node_status
-            self.execution.status = "running"
-            self.execution.save(update_fields=["node_status", "status"])
+            self._update_node_status(node_id, "retrying")
 
     def retry_subprocess(self, node_id):
         """重试子流程节点 — 委托给 bamboo_engine.api.retry_subprocess"""
-        runtime = BambooDjangoRuntime()
-        result = pipeline_api.retry_subprocess(runtime, node_id)
+        result = pipeline_api.retry_subprocess(self._runtime, node_id)
         if not result.result:
             logger.error("[FlowEngine] retry subprocess %s failed: %s", node_id, result.message)
         else:
-            node_status = self.execution.node_status or {}
-            node_status[node_id] = "retrying"
-            self.execution.node_status = node_status
-            self.execution.status = "running"
-            self.execution.save(update_fields=["node_status", "status"])
+            self._update_node_status(node_id, "retrying")
 
     def skip(self, node_id):
         """跳过指定失败节点 — 委托给 BambooDjangoRuntime"""
-        runtime = BambooDjangoRuntime()
-        result = pipeline_api.skip_node(runtime, node_id)
+        result = pipeline_api.skip_node(self._runtime, node_id)
         if not result.result:
             logger.error("[FlowEngine] skip node %s failed: %s", node_id, result.message)
         else:
@@ -109,15 +122,9 @@ class FlowEngine:
             self.execution.save(update_fields=["node_status"])
 
     def force_fail(self, node_id, ex_data=""):
-        """强制让指定节点进入失败状态 — 委托给 BambooDjangoRuntime
-
-        Args:
-            node_id: 目标节点 ID
-            ex_data: 可选的失败原因描述
-        """
-        runtime = BambooDjangoRuntime()
+        """强制让指定节点进入失败状态 — 委托给 BambooDjangoRuntime"""
         result = pipeline_api.forced_fail_activity(
-            runtime, node_id, ex_data=ex_data, send_post_set_state_signal=True,
+            self._runtime, node_id, ex_data=ex_data, send_post_set_state_signal=True,
         )
         if not result.result:
             logger.error("[FlowEngine] force_fail node %s failed: %s", node_id, result.message)
@@ -131,18 +138,14 @@ class FlowEngine:
         """取消终止执行 — 撤销 pipeline 并标记为 cancelled"""
         bamboo_pipeline_id = self.execution.context.get("bamboo_pipeline_id")
         if bamboo_pipeline_id:
-            runtime = BambooDjangoRuntime()
-            result = pipeline_api.revoke_pipeline(runtime, bamboo_pipeline_id)
+            result = pipeline_api.revoke_pipeline(self._runtime, bamboo_pipeline_id)
             if not result.result:
                 logger.error("[FlowEngine] cancel failed: %s", result.message)
         self.execution.status = "cancelled"
         self.execution.ended_at = datetime.datetime.now()
         self.execution.save(update_fields=["status", "ended_at"])
         self._send_ws_completed()
-        logger.info(
-            "[FlowEngine] execution %s cancelled",
-            self.execution.id,
-        )
+        logger.info("[FlowEngine] execution %s cancelled", self.execution.id)
 
     # -- Run ------------------------------------------------------------------
 
@@ -163,10 +166,7 @@ class FlowEngine:
                 if not validation.get('valid'):
                     errors = '; '.join(validation.get('errors', []))
                     logger.error("[FlowEngine] pipeline validation failed before run: %s", errors)
-                    self.execution.status = "failed"
-                    self.execution.ended_at = datetime.datetime.now()
-                    self.execution.save()
-                    self._notify_completed()
+                    self._fail_execution(errors)
                     return
             pipeline, id_map = build_bamboo_pipeline(
                 self.template,
@@ -193,11 +193,7 @@ class FlowEngine:
             if len(acts) == 0 and len(gws) == 0:
                 msg = "pipeline 为空：模板中没有节点或节点已被全部过滤，请检查模板并先保存后再执行"
                 logger.error("[FlowEngine] " + msg)
-                self.execution.context['_validation_error'] = msg
-                self.execution.status = "failed"
-                self.execution.ended_at = datetime.datetime.now()
-                self.execution.save(update_fields=["status", "ended_at", "context"])
-                self._notify_completed()
+                self._fail_execution(msg, save_fields=["status", "ended_at", "context"])
                 return
 
             bamboo_pipeline_id = pipeline.get("id", "")
@@ -227,8 +223,7 @@ class FlowEngine:
             except Exception as e:
                 logger.warning("[FlowEngine] _cleanup_pipeline_data error: %s", e)
 
-            runtime = BambooDjangoRuntime()
-            result = pipeline_api.run_pipeline(runtime=runtime, pipeline=pipeline)
+            result = pipeline_api.run_pipeline(runtime=self._runtime, pipeline=pipeline)
 
             if not result.result:
                 # 提取验证错误详情（ConnectionValidateError 含 failed_nodes + detail）
@@ -243,11 +238,9 @@ class FlowEngine:
                 else:
                     logger.error("[FlowEngine] run_pipeline failed: %s", result.message)
                     self.execution.context['_validation_error'] = result.message
-                self.execution.status = "failed"
-                self.execution.ended_at = datetime.datetime.now()
-                self.execution.save(update_fields=["status", "ended_at", "context"])
-                self.rollback_failed_nodes()
-                self._notify_completed()
+                self._fail_execution(self.execution.context.get('_validation_error'),
+                                     save_fields=["status", "ended_at", "context"],
+                                     do_rollback=True)
                 return
 
             logger.info(
@@ -257,13 +250,11 @@ class FlowEngine:
 
         except Exception as e:
             logger.exception("[FlowEngine] run failed")
-            self.execution.status = "failed"
-            self.execution.ended_at = datetime.datetime.now()
             if '_validation_error' not in self.execution.context:
                 self.execution.context['_validation_error'] = str(e)
-            self.execution.save(update_fields=["status", "ended_at", "context"])
-            self.rollback_failed_nodes()
-            self._notify_completed()
+            self._fail_execution(self.execution.context.get('_validation_error'),
+                                 save_fields=["status", "ended_at", "context"],
+                                 do_rollback=True)
 
     # -- Rollback / Compensation -------------------------------------------
 
@@ -275,14 +266,10 @@ class FlowEngine:
             return
 
         logger.info("[FlowEngine] rolling back %d failed nodes", len(failed_nodes))
-        from bamboo_engine import api as pipeline_api
-        from pipeline.eri.runtime import BambooDjangoRuntime
-        runtime = BambooDjangoRuntime()
-
         rollback_count = 0
         for node_id in failed_nodes:
             try:
-                result = pipeline_api.get_execution_data_outputs(runtime, node_id)
+                result = pipeline_api.get_execution_data_outputs(self._runtime, node_id)
                 if not (result.result and result.data):
                     continue
                 outputs = result.data.get('outputs', {}) if isinstance(result.data, dict) else {}

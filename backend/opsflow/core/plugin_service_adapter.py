@@ -18,6 +18,16 @@ from opsflow.core.variable_resolver import resolve_params
 logger = logging.getLogger(__name__)
 
 
+def _extract_params(data):
+    """从 data.inputs 中提取 _atom_type/_plugin_version/_max_retries 和用户参数"""
+    inputs = dict(data.inputs)
+    atom_type = inputs.pop('_atom_type', '')
+    plugin_version = inputs.pop('_plugin_version', None)
+    max_retries = inputs.pop('_max_retries', None)
+    params = {k: v for k, v in inputs.items() if not k.startswith('_')}
+    return atom_type, plugin_version, max_retries, params
+
+
 def _promote_result(result_value: bool, parent_data) -> None:
     """将节点 _result 立即提升到 pipeline 上下文，供排他网关条件评估
 
@@ -57,22 +67,12 @@ class PluginService(Service):
         return []
 
     def execute(self, data, parent_data):
-        """执行插件 — 从 data.inputs 中提取 _atom_type 和参数
-
-        支持:
-          - 读取 parent_data 中的 global_vars / target_hosts
-          - 在节点参数中解析 ${key} 变量引用
-          - 设置 _result 及各项标准输出字段
-          - subprocess_independent 原子类型 → 独立子流程调度
-        """
-        inputs = dict(data.inputs)
-        atom_type = inputs.pop('_atom_type', '')
-        plugin_version = inputs.pop('_plugin_version', None)
-        max_retries = inputs.pop('_max_retries', None)
+        """执行插件 — 从 data.inputs 中提取 _atom_type 和参数"""
+        atom_type, plugin_version, max_retries, params = _extract_params(data)
 
         # ├─ Independent Subprocess (Phase 5) ────────────────────────────
         if atom_type == 'subprocess_independent':
-            return self._execute_independent_subprocess(data, parent_data, inputs)
+            return self._execute_independent_subprocess(data, parent_data, params)
 
         plugin_cls = get_plugin(atom_type, version=plugin_version)
         if not plugin_cls:
@@ -80,9 +80,6 @@ class PluginService(Service):
             data.outputs['_error'] = f"未知插件: {atom_type}"
             logger.error("PluginService.execute: 未知插件 %s", atom_type)
             return False
-
-        # 过滤内部字段（以 _ 开头的）
-        params = {k: v for k, v in inputs.items() if not k.startswith('_')}
 
         # === 变量解析 ===
         pd = dict(parent_data.inputs) if parent_data else {}
@@ -171,16 +168,8 @@ class PluginService(Service):
         return False
 
     def schedule(self, data, parent_data, callback_data=None):
-        """异步调度回调 — 长任务轮询/完成检查
-
-        适用于 need_schedule=True 的异步插件（如 Tower 作业、K8s 部署）。
-        同步插件直接返回 True。
-
-        Args:
-            callback_data: webhook 回调数据（未实现，预留）
-        """
-        inputs = dict(data.inputs)
-        atom_type = inputs.get('_atom_type', '')
+        """异步调度回调 — 长任务轮询/完成检查"""
+        atom_type, plugin_version, max_retries, params = _extract_params(data)
 
         plugin_cls = get_plugin(atom_type)
         if not plugin_cls:
@@ -189,8 +178,6 @@ class PluginService(Service):
         # 同步插件 → 直接完成
         if not plugin_cls.need_schedule():
             return True
-
-        params = {k: v for k, v in inputs.items() if not k.startswith('_')}
         context = dict(data.outputs)
 
         try:
@@ -204,13 +191,11 @@ class PluginService(Service):
             return False
 
     def rollback(self, data, parent_data):
-        inputs = dict(data.inputs)
-        atom_type = inputs.pop('_atom_type', '')
+        atom_type, _, _, params = _extract_params(data)
         plugin_cls = get_plugin(atom_type)
         if not plugin_cls:
             return False
 
-        params = {k: v for k, v in inputs.items() if not k.startswith('_')}
         context = dict(data.outputs)
         try:
             instance = plugin_cls()

@@ -10,7 +10,7 @@ from datetime import datetime
 from django.db import connection
 from django.utils import timezone
 
-from bamboo_engine import states
+from opsflow.core.states import map_bamboo_node_state
 
 logger = logging.getLogger(__name__)
 
@@ -27,18 +27,10 @@ def _update_execution_node_status(execution, node_id, to_state):
     使用 execution.context.node_id_map 将 bamboo-engine UUID 映射回
     原始 pipeline_tree 节点 ID（前端 X6 图形 ID），确保节点颜色正确。
     """
-    status_map = {
-        states.READY: "pending",
-        states.RUNNING: "running",
-        states.FINISHED: "completed",
-        states.FAILED: "failed",
-        states.SUSPENDED: "paused",
-        states.REVOKED: "cancelled",
-        states.BLOCKED: "blocked",
-    }
-    mapped = status_map.get(to_state)
-    if not mapped:
+    node_state = map_bamboo_node_state(to_state)
+    if node_state is None:
         return
+    mapped = node_state.value
 
     # 映射 bamboo UUID → 原始 pipeline_tree 节点 ID
     id_map = execution.context.get('node_id_map', {}) if execution.context else {}
@@ -76,16 +68,10 @@ def _update_execution_node_status(execution, node_id, to_state):
 
 def _update_state_tree(execution, node_id, to_state):
     """增量更新 FlowExecution.state_tree — 时间/耗时/错误详情"""
-    STATUS_MAP = {
-        states.FINISHED: "completed",
-        states.FAILED: "failed",
-        states.RUNNING: "running",
-        states.REVOKED: "cancelled",
-        states.SUSPENDED: "paused",
-    }
-    mapped = STATUS_MAP.get(to_state)
-    if not mapped:
+    node_state = map_bamboo_node_state(to_state)
+    if node_state is None:
         return
+    mapped = node_state.value
 
     tree = dict(execution.state_tree or {})
     entry = dict(tree.get(node_id, {}))
@@ -114,14 +100,8 @@ def _update_state_tree(execution, node_id, to_state):
 
 
 def _map_bamboo_state(to_state) -> str:
-    """将 bamboo-engine 状态映射为简洁字符串"""
-    mapping = {
-        states.FINISHED: "completed",
-        states.FAILED: "failed",
-        states.RUNNING: "running",
-        states.READY: "pending",
-        states.REVOKED: "cancelled",
-        states.SUSPENDED: "paused",
-        states.BLOCKED: "blocked",
-    }
-    return mapping.get(to_state, str(to_state).lower())
+    """将 bamboo-engine 状态映射为简洁字符串（统一使用 states.py 规范映射）"""
+    node_state = map_bamboo_node_state(to_state)
+    if node_state is None:
+        return str(to_state).lower()
+    return node_state.value

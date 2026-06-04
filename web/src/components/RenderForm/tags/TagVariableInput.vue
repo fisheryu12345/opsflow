@@ -28,7 +28,7 @@
 import { computed, ref } from 'vue'
 import { WarningFilled, FolderOpened, Upload } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { HookVariable } from '/@/api/opsflow/templates'
+import { HookVariable } from '/@/views/apps/opsflow/api/templates'
 import VariableBrowser from '/@/views/apps/opsflow/components/VariableBrowser.vue'
 
 const props = withDefaults(defineProps<{

@@ -1,55 +1,8 @@
 import { defineStore } from 'pinia'
-import { setProjectId } from '/@/api/opsflow/request'
+import { setProjectId } from '../api/request'
+import type { FlowTemplate, FlowExecution, MyProject, OpsflowState } from '../types'
 
 const STORAGE_KEY = 'opsflow_active_project_id'
-
-interface FlowTemplate {
-  id: number
-  name: string
-  pipeline_tree: any
-  target_hosts: string[]
-  global_vars: any
-  is_draft: boolean
-  is_public?: boolean
-  project_scope?: string[]
-  ai_original_tree: any
-  created_by_name: string
-  created_at: string
-  updated_at: string
-}
-
-interface FlowExecution {
-  id: number
-  template: number
-  template_name: string
-  status: string
-  node_status: Record<string, string>
-  context: any
-  current_node: string
-  started_at: string | null
-  ended_at: string | null
-  created_by_name: string
-  created_at: string
-}
-
-interface MyProject {
-  id: number
-  name: string
-  role: string
-}
-
-interface OpsflowState {
-  mode: 'design' | 'monitor'
-  currentTemplate: FlowTemplate | null
-  currentExecution: FlowExecution | null
-  templates: FlowTemplate[]
-  executions: FlowExecution[]
-  globalVariables: Record<string, any>
-  currentProjectId: number | null
-  projects: any[]
-  myProjects: MyProject[]
-  showHelpDrawer: boolean
-}
 
 export const useOpsflowStore = defineStore('opsflow', {
   state: (): OpsflowState => ({
@@ -121,7 +74,7 @@ export const useOpsflowStore = defineStore('opsflow', {
     /** 加载当前用户可访问的项目列表（用于项目切换器） */
     async fetchMyProjects() {
       try {
-        const { GetMyProjects } = await import('/@/api/opsflow/projects')
+        const { GetMyProjects } = await import('../api/projects')
         const res = await GetMyProjects()
         this.myProjects = res.data || []
 
@@ -141,7 +94,7 @@ export const useOpsflowStore = defineStore('opsflow', {
 
     async loadProjects() {
       try {
-        const { GetProjects } = await import('/@/api/opsflow/projects')
+        const { GetProjects } = await import('../api/projects')
         const res = await GetProjects()
         this.projects = res.data || []
         if (!this.currentProjectId && this.projects.length > 0) {

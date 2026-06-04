@@ -51,8 +51,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { GetPluginsVisibilityList, BatchSetPluginsVisibility } from '/@/api/opsflow/plugins'
-import { GetProjects } from '/@/api/opsflow/projects'
+import { GetPluginsVisibilityList, BatchSetPluginsVisibility } from '../api/plugins'
+import { GetProjects } from '../api/projects'
 
 interface PluginItem {
   code: string

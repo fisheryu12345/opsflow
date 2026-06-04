@@ -120,8 +120,8 @@
 import { ref, reactive, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Clock, Refresh, InfoFilled, CircleCheck } from '@element-plus/icons-vue'
-import { CreateSchedulePlan, UpdateSchedulePlan } from '/@/api/opsflow/schedule-plans'
-import { GetTemplates } from '/@/api/opsflow/templates'
+import { CreateSchedulePlan, UpdateSchedulePlan } from '../../opsflow/api/schedule-plans'
+import { GetTemplates } from '../../opsflow/api/templates'
 
 const props = defineProps<{
   modelValue: boolean

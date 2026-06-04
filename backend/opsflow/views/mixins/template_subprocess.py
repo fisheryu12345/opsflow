@@ -25,16 +25,22 @@ class TemplateSubprocessMixin:
             subprocess_refs = self._extract_subprocess_refs(template)
 
         details = []
+        # Batch query: collect all target_template_ids first
+        target_ids = {ref.get('target_template_id') for ref in subprocess_refs.values() if ref.get('target_template_id')}
+        template_map = {}
+        if target_ids:
+            for t in FlowTemplate.objects.filter(id__in=target_ids):
+                template_map[str(t.id)] = t
         for node_id, ref in subprocess_refs.items():
             target_id = ref.get('target_template_id')
             ref_version = ref.get('target_version')
-            try:
-                target = FlowTemplate.objects.get(id=target_id)
+            target = template_map.get(target_id) if target_id else None
+            if target:
                 current_version = target.version or 1
                 stale = (ref_version is not None and
                          current_version is not None and
                          ref_version != current_version)
-            except FlowTemplate.DoesNotExist:
+            else:
                 current_version = None
                 stale = True
 
@@ -63,6 +69,19 @@ class TemplateSubprocessMixin:
         nodes = tree.get('nodes', [])
 
         updated = []
+        # Batch query: collect all target_template_ids first
+        target_ids = set()
+        for node in nodes:
+            if node.get('node_type') != 'subprocess':
+                continue
+            params = node.get('params', {}) or {}
+            target_id = params.get('target_template_id')
+            if target_id:
+                target_ids.add(target_id)
+        template_map = {}
+        if target_ids:
+            for t in FlowTemplate.objects.filter(id__in=target_ids):
+                template_map[str(t.id)] = t
         for node in nodes:
             if node.get('node_type') != 'subprocess':
                 continue
@@ -70,18 +89,17 @@ class TemplateSubprocessMixin:
             target_id = params.get('target_template_id')
             if not target_id:
                 continue
-            try:
-                target = FlowTemplate.objects.get(id=target_id)
-                current_version = target.version or 1
-                params['_referenced_version'] = current_version
-                node['params'] = params
-                updated.append({
-                    'node_id': node['id'],
-                    'target_template_id': target_id,
-                    'new_version': current_version,
-                })
-            except FlowTemplate.DoesNotExist:
+            target = template_map.get(target_id)
+            if not target:
                 continue
+            current_version = target.version or 1
+            params['_referenced_version'] = current_version
+            node['params'] = params
+            updated.append({
+                'node_id': node['id'],
+                'target_template_id': target_id,
+                'new_version': current_version,
+            })
 
         template.pipeline_tree = tree
         template.save(update_fields=['pipeline_tree'])

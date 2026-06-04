@@ -74,7 +74,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { Link, Search, ArrowDown } from '@element-plus/icons-vue'
-import { GetVariableBrowser } from '/@/api/opsflow/templates'
+import { GetVariableBrowser } from '../api/templates'
 
 const props = defineProps<{
   modelValue: boolean

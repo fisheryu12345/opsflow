@@ -3,11 +3,10 @@
 import logging
 
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework import status
 
 from opsflow.models import WebhookConfig, WebhookLog
-from dvadmin.utils.json_response import DetailResponse, SuccessResponse
+from dvadmin.utils.json_response import DetailResponse, SuccessResponse, ErrorResponse
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +47,7 @@ class TemplateWebhookMixin:
         enabled = request.data.get('enabled', True)
 
         if not name or not url:
-            return Response({'code': 4000, 'msg': 'name and url are required', 'data': None},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return ErrorResponse(msg='name and url are required', status=status.HTTP_400_BAD_REQUEST)
 
         wh = WebhookConfig.objects.create(
             template=template,
@@ -71,12 +69,11 @@ class TemplateWebhookMixin:
         try:
             wh = WebhookConfig.objects.get(id=webhook_id, template=template)
         except WebhookConfig.DoesNotExist:
-            return Response({'code': 4000, 'msg': 'Webhook not found', 'data': None},
-                            status=status.HTTP_404_NOT_FOUND)
+            return ErrorResponse(msg='Webhook not found', status=status.HTTP_404_NOT_FOUND)
 
         if request.method == 'DELETE':
             wh.delete()
-            return Response({'code': 2000, 'msg': 'success', 'data': None})
+            return DetailResponse(msg='success')
 
         # PATCH
         for field in ('name', 'url', 'secret', 'trigger_events',
@@ -93,8 +90,7 @@ class TemplateWebhookMixin:
         try:
             wh = WebhookConfig.objects.get(id=webhook_id, template=template)
         except WebhookConfig.DoesNotExist:
-            return Response({'code': 4000, 'msg': 'Webhook not found', 'data': None},
-                            status=status.HTTP_404_NOT_FOUND)
+            return ErrorResponse(msg='Webhook not found', status=status.HTTP_404_NOT_FOUND)
 
         logs = WebhookLog.objects.filter(webhook=wh)[:50]
         data = [

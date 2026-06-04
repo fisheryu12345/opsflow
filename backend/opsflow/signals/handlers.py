@@ -22,6 +22,14 @@ from opsflow.signals.timeout import _update_node_timeout  # Redis 超时追踪
 logger = logging.getLogger(__name__)
 
 
+def _safe_signal_handler(func, execution, node_id, to_state):
+    """安全执行信号处理函数，异常时仅记录日志不阻断后续处理器"""
+    try:
+        func(execution, node_id, to_state)
+    except Exception:
+        logger.exception("[Signal] %s error exec=%s node=%s", func.__name__, execution.id, node_id)
+
+
 def _try_webhook(execution, event: str):
     """尝试触发 Webhook 回调（best-effort）"""
     try:
@@ -66,22 +74,15 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
                 return
 
         # 每个步骤独立 try/except，确保单步失败不阻塞后续通知
-        try:
-            _update_execution_node_status(execution, node_id, to_state)
-        except Exception:
-            logger.exception("[Signal] _update_execution_node_status error exec=%s node=%s", execution.id, node_id)
-        try:
-            _update_state_tree(execution, node_id, to_state)
-        except Exception:
-            logger.exception("[Signal] _update_state_tree error exec=%s node=%s", execution.id, node_id)
-        try:
-            _record_node_trace(execution, node_id, to_state)
-        except Exception:
-            logger.exception("[Signal] _record_node_trace error exec=%s node=%s", execution.id, node_id)
-        try:
-            _update_node_timeout(execution, node_id, to_state)
-        except Exception:
-            logger.exception("[Signal] _update_node_timeout error exec=%s node=%s", execution.id, node_id)
+        signal_steps = [
+            _update_execution_node_status,
+            _update_state_tree,
+            _record_node_trace,
+            _update_node_timeout,
+        ]
+        for step_func in signal_steps:
+            _safe_signal_handler(step_func, execution, node_id, to_state)
+
         # 记录当前正在执行的节点（用于前端高亮 + API 查询）
         if to_state == states.RUNNING:
             try:

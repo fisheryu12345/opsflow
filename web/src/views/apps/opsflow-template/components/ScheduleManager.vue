@@ -41,7 +41,7 @@ import {
   ResumeSchedulePlan,
   TriggerSchedulePlan,
   DeleteSchedulePlan,
-} from '/@/api/opsflow/schedule-plans'
+} from '../../opsflow/api/schedule-plans'
 import ScheduleTable from './ScheduleTable.vue'
 import ScheduleForm from './ScheduleForm.vue'
 

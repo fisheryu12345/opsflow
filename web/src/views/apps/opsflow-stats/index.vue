@@ -101,7 +101,7 @@ import {
   GetDashboardSuccessRateTrend, GetDashboardTemplateStats,
   getMockDurationDistribution, getMockNodeDurationTop,
   getMockSuccessRateTrend, getMockTemplateStats,
-} from '/@/api/opsflow/dashboard'
+} from '../opsflow/api/dashboard'
 
 /* ---------- State ---------- */
 const loading = ref(false)

@@ -103,5 +103,6 @@
 | WebSocket | Django Channels (RedisChannelLayer) |
 | 调度器 | APScheduler 3.11 + DjangoJobStore |
 | 插件协议 | BasePlugin + Pydantic form_schema |
-| 后端代码规模 | ~18,000 行 Python（含插件 3,272 行，核心引擎 4,526 行） |
-| 前端代码规模 | ~8,984 行 TypeScript/Vue |
+| 后端代码规模 | ~19,000 行 Python（含插件 3,272 行，核心引擎 4,526 行，测试 3,422 行） |
+| 前端代码规模 | ~9,000 行 TypeScript/Vue（含 13 个 API 模块，21+ 组件） |
+| 文档规模 | 9 份 PDF/Markdown 文档（架构/代码/引擎/前端/功能状态/部署/对比分析/模型说明/核心流程） |

@@ -397,40 +397,65 @@ registerOnce('ops-subprocess', {
   ports: { groups: PORT_GROUPS, items: PORT_ITEMS },
 })
 
-// ── 输出字段类型定义（供条件编辑器使用） ──
+// ── 共享类型从 types/ 集中导入 ──
+export type { OutputField, VariableOption, ConditionRule, ConditionStruct } from '../types'
 
-export interface OutputField {
-  key: string
-  label: string
-  type: 'string' | 'number' | 'boolean'
-  description?: string
+// ── 边条件验证集中（从前端 3 个分散文件移至此处） ──
+
+/** ${...} 变量引用正则 */
+export const EXPR_PATTERN = /\$\{([^}]*)\}/g
+/** var.field 匹配正则 */
+export const VAR_REF_PATTERN = /([a-zA-Z_]\w*)\.([a-zA-Z_]\w*)/g
+
+/** 默认边样式（6 处副本集中至此） */
+export const DEFAULT_EDGE_ATTRS = {
+  line: { stroke: '#DCDFE6', strokeWidth: 1.5, targetMarker: 'classic' },
 }
 
-/** 变量选择器选项 */
-export interface VariableOption {
-  source: string           // node_id 或 "global"/"project"/"_system"
-  sourceLabel: string      // 展示用标签
-  sourceType: 'node' | 'global' | 'project' | 'system'
-  field: string
-  fieldLabel: string
-  fieldType: 'string' | 'number' | 'boolean'
+/** 检查边条件表达式的括号和引号匹配 */
+export function checkConditionSyntax(expr: string): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+  let braceCount = 0
+  let inQuote: string | null = null
+  for (const ch of expr) {
+    if (ch === '"' || ch === "'") {
+      inQuote = inQuote === ch ? null : (inQuote ?? ch)
+      continue
+    }
+    if (!inQuote) {
+      if (ch === '{') braceCount++
+      if (ch === '}') braceCount--
+    }
+  }
+  if (braceCount !== 0) errors.push('Braces mismatch')
+  if (inQuote) errors.push('Unclosed quote')
+  return { valid: errors.length === 0, errors }
 }
 
-/** 结构化条件规则 */
-export interface ConditionRule {
-  source: string
-  field: string
-  fieldLabel?: string
-  fieldType?: 'string' | 'number' | 'boolean'
-  op: string
-  value: string
-  valueType?: 'string' | 'number' | 'boolean'
+/** 检查条件中的节点引用是否存在于当前画布 */
+export function checkConditionRefs(
+  expr: string,
+  nodeIds: Set<string>,
+): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+  const match = EXPR_PATTERN.exec(expr)
+  if (match) {
+    const refMatch = VAR_REF_PATTERN.exec(match[1])
+    if (refMatch && !nodeIds.has(refMatch[1]) && refMatch[1] !== '_result') {
+      errors.push(`Unknown node reference: ${refMatch[1]}`)
+    }
+  }
+  return { valid: errors.length === 0, errors }
 }
 
-/** 结构化条件 */
-export interface ConditionStruct {
-  logic: 'AND' | 'OR'
-  rules: ConditionRule[]
+/** X6 节点缩放辅助 */
+export const CARD_WIDTH = 208
+export const CARD_HEIGHT = 56
+
+export function resizeCard(node: any): void {
+  if (node.resize) {
+    node.resize(CARD_WIDTH, CARD_HEIGHT)
+  }
 }
 
 /** 节点类型的默认输出字段 */

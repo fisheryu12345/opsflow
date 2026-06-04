@@ -188,7 +188,7 @@ import {
   GetDashboardStats, GetDashboardTrend, GetDashboardScheduleStats,
   GetDashboardTopTemplates, GetDashboardUserActivity,
   GetDashboardStatusDistribution, GetDashboardNodeTypeDistribution,
-} from '/@/api/opsflow/dashboard'
+} from '../opsflow/api/dashboard'
 
 const loading = ref(false)
 const period = ref<'7d' | '14d' | '30d'>('30d')

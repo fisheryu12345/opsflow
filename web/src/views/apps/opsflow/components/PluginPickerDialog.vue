@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { GetPluginGroups } from '/@/api/opsflow/plugins'
+import { GetPluginGroups } from '../api/plugins'
 import { useOpsflowStore } from '../stores/opsflowStore'
 
 interface PluginItem {

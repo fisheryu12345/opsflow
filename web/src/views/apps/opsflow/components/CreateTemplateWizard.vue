@@ -187,8 +187,8 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { CircleCheck, ChatDotSquare, CopyDocument } from '@element-plus/icons-vue'
-import { CreateTemplate, CreateFromAi, ExportTemplate, ImportTemplate, GetTemplates, UpdateTemplate } from '/@/api/opsflow/templates'
-import { GetTemplateCategories } from '/@/api/opsflow/template-categories'
+import { CreateTemplate, CreateFromAi, ExportTemplate, ImportTemplate, GetTemplates, UpdateTemplate } from '../api/templates'
+import { GetTemplateCategories } from '../api/template-categories'
 import { useOpsflowStore } from '../stores/opsflowStore'
 
 const store = useOpsflowStore()

@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { GetTemplateVersions, RollbackTemplate } from '/@/api/opsflow/templates'
+import { GetTemplateVersions, RollbackTemplate } from '../../opsflow/api/templates'
 
 const props = withDefaults(defineProps<{
   visible?: boolean

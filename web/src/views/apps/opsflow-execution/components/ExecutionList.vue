@@ -132,7 +132,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Refresh, Search, View, VideoPlay, VideoPause, Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { GetExecutions, StartExecution as StartExec, PauseExecution, CancelExecution } from '/@/api/opsflow/executions'
+import { GetExecutions, StartExecution as StartExec, PauseExecution, CancelExecution } from '../../opsflow/api/executions'
 import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const emit = defineEmits<{ viewDetail: [execution: any] }>()

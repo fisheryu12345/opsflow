@@ -70,6 +70,18 @@
 - [x] **opsflow-webhook / opsflow-project / opsflow-stats 页面** — 新增前端页面模块
 - [x] **模板分类管理前端** — template-categories API + 分类筛选
 
+### 最近完成（2026-06-04 代码优化）
+
+- [x] **P0-1: signals/handlers.py 重复 try/except** — 7 个 try/except 合并为 _safe_signal_handler 循环
+- [x] **P0-2: 消除重复状态映射** — signals/state.py 3 份映射统一使用 states.py
+- [x] **P0-3: pipeline_builder 长函数拆分** — 220 行 build_bamboo_pipeline 拆为 7 个专注函数
+- [x] **P0-4: template_ai.py Response 统一** — 14 处替换为 DetailResponse/ErrorResponse，提取验证逻辑
+- [x] **P1-1: 修复 3 处 N+1 查询** — models/template.py + template_subprocess.py 批量预取
+- [x] **P1-2: base.py 继承去重** — ProjectReadOnlyViewSet 继承 ProjectFilteredViewSet，消除 40 行重复
+- [x] **P1-3: FlowEngine 提取帮助方法** — _runtime / _fail_execution / _update_node_status
+- [x] **P1-4: template_views.py 标准化** — 分页用 get_paginated_response，全部 Response 替换
+- [x] **API 迁移** — web/src/api/opsflow/ 迁移到 views/apps/opsflow/api/，13 文件 + 44 处 import
+
 ## ❌ 待处理
 
 ### 高优先级

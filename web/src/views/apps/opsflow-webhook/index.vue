@@ -193,10 +193,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete, Link } from '@element-plus/icons-vue'
-import { GetTemplates } from '/@/api/opsflow/templates'
+import { GetTemplates } from '../opsflow/api/templates'
 import {
   GetWebhooks, CreateWebhook, UpdateWebhook, DeleteWebhook, GetWebhookLogs,
-} from '/@/api/opsflow/webhooks'
+} from '../opsflow/api/webhooks'
 
 import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const loading = ref(false)

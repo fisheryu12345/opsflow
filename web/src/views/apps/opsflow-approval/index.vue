@@ -91,7 +91,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh, Search, CircleCheck, Close, Clock } from '@element-plus/icons-vue'
-import { GetPendingApprovals, ApproveNode, RejectNode } from '/@/api/opsflow/executions'
+import { GetPendingApprovals, ApproveNode, RejectNode } from '../opsflow/api/executions'
 
 import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const loading = ref(false)

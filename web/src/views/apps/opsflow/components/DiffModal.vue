@@ -46,7 +46,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ChatDotSquare, EditPen, Check } from '@element-plus/icons-vue'
-import { ConfirmDraft } from '/@/api/opsflow/templates'
+import { ConfirmDraft } from '../api/templates'
 
 const props = defineProps<{
   templateId: number

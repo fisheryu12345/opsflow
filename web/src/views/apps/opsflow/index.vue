@@ -173,7 +173,7 @@ import {
   WarningFilled, Lightning, List, CircleCheck,
 } from '@element-plus/icons-vue'
 import { useOpsflowStore } from './stores/opsflowStore'
-import { GetTemplates, GetTemplateDetail, CreateFromAi, CreateTemplate, GetDiff, AnalyzePipeline, RefinePipeline, AiLayout, UpdateTemplate } from '/@/api/opsflow/templates'
+import { GetTemplates, GetTemplateDetail, CreateFromAi, CreateTemplate, GetDiff, AnalyzePipeline, RefinePipeline, AiLayout, UpdateTemplate } from './api/templates'
 import DesignCanvas from './components/DesignCanvas.vue'
 import DiffModal from './components/DiffModal.vue'
 import PluginPickerDialog from './components/PluginPickerDialog.vue'

@@ -77,7 +77,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Edit, Delete, View, Hide } from '@element-plus/icons-vue'
-import { GetProjectEnvVars, SetProjectEnvVars, PatchProjectEnvVars } from '/@/api/opsflow/projects'
+import { GetProjectEnvVars, SetProjectEnvVars, PatchProjectEnvVars } from '../api/projects'
 
 interface EnvVarItem {
   id?: number

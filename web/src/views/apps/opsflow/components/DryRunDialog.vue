@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import ExecutionDetail from '/@/views/apps/opsflow-execution/components/ExecutionDetail.vue'
-import { GetExecutionDetail } from '/@/api/opsflow/executions'
+import { GetExecutionDetail } from '../api/executions'
 
 const props = defineProps<{
   modelValue: boolean

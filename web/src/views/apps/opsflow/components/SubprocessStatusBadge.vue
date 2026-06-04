@@ -41,7 +41,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
-import { GetSubprocessStatus, UpdateSubprocessRefs } from '/@/api/opsflow/templates'
+import { GetSubprocessStatus, UpdateSubprocessRefs } from '../api/templates'
 
 const props = defineProps<{ templateId: number | null }>()
 const emit = defineEmits<{ updated: [] }>()

@@ -35,6 +35,22 @@ class ExecutionApprovalMixin:
                 })
         return api_success(data=result, msg="获取成功")
 
+    def _record_approval_decision(self, execution, node_id, user, decision_data):
+        """记录审批决策到 context 并恢复执行（approve/reject 共享）"""
+        ctx = dict(execution.context or {})
+        approval = dict(ctx.get('_approval_decisions', {}))
+        approval[node_id] = {
+            'by': str(user),
+            'at': datetime.datetime.now().isoformat(),
+            **decision_data,
+        }
+        ctx['_approval_decisions'] = approval
+        ctx['_last_operator'] = str(user)
+        execution.context = ctx
+        execution.save(update_fields=['context'])
+        if execution.status == PipelineState.PAUSED:
+            FlowEngine(execution).resume()
+
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
         """审批通过 — 标记节点为已审批并恢复执行"""
@@ -43,18 +59,8 @@ class ExecutionApprovalMixin:
         if not node_id:
             return api_error(ErrorCodes.NODE_ID_REQUIRED)
         comment = request.data.get('comment', '')
-        # 记录审批信息到 context
-        ctx = dict(execution.context or {})
-        approval = dict(ctx.get('_approval_decisions', {}))
-        approval[node_id] = {'approved': True, 'by': str(request.user),
-                             'at': datetime.datetime.now().isoformat(), 'comment': comment}
-        ctx['_approval_decisions'] = approval
-        ctx['_last_operator'] = str(request.user)
-        execution.context = ctx
-        execution.save(update_fields=['context'])
-        # 如果 pipeline 处于暂停状态，恢复执行
-        if execution.status == PipelineState.PAUSED:
-            FlowEngine(execution).resume()
+        self._record_approval_decision(execution, node_id, request.user,
+                                       {'approved': True, 'comment': comment})
         return api_success(msg='审批通过')
 
     @action(detail=True, methods=['post'])
@@ -65,14 +71,6 @@ class ExecutionApprovalMixin:
         if not node_id:
             return api_error(ErrorCodes.NODE_ID_REQUIRED)
         reason = request.data.get('reason', '审批拒绝')
-        ctx = dict(execution.context or {})
-        approval = dict(ctx.get('_approval_decisions', {}))
-        approval[node_id] = {'approved': False, 'by': str(request.user),
-                             'at': datetime.datetime.now().isoformat(), 'reason': reason}
-        ctx['_approval_decisions'] = approval
-        ctx['_last_operator'] = str(request.user)
-        execution.context = ctx
-        execution.save(update_fields=['context'])
-        if execution.status == PipelineState.PAUSED:
-            FlowEngine(execution).resume()
+        self._record_approval_decision(execution, node_id, request.user,
+                                       {'approved': False, 'reason': reason})
         return api_success(msg='已拒绝')

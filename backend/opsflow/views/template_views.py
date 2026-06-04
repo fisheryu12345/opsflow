@@ -8,8 +8,6 @@ import logging
 from rest_framework import viewsets, status, exceptions
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-
 from opsflow.models import FlowTemplate
 from opsflow.serializers import FlowTemplateSerializer
 from opsflow.views.mixins.template_ai import TemplateAIMixin
@@ -22,7 +20,7 @@ from opsflow.views.mixins.template_webhook import TemplateWebhookMixin
 from opsflow.views.base import ProjectFilteredViewSet
 from opsflow.core.audit_logger import log_operation
 from opsflow.core.plugin_deprecation import check_deprecated_plugins_in_template
-from dvadmin.utils.json_response import DetailResponse, SuccessResponse
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 
 logger = logging.getLogger(__name__)
 
@@ -69,11 +67,9 @@ class FlowTemplateViewSet(
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            return SuccessResponse(data=serializer.data, page=int(request.query_params.get('page', 1)),
-                                   limit=self.paginator.get_page_size(request) if hasattr(self.paginator, 'get_page_size') else 10,
-                                   total=self.paginator.page.paginator.count if hasattr(self.paginator, 'page') else queryset.count())
+            return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
-        return SuccessResponse(data=serializer.data, total=queryset.count())
+        return DetailResponse(data=serializer.data)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -86,12 +82,10 @@ class FlowTemplateViewSet(
         instance = self.get_object()
         # non-superuser cannot edit public templates
         if instance.is_public and not request.user.is_superuser:
-            return Response({'code': 4000, 'msg': 'Only superusers can edit public templates', 'data': None},
-                            status=status.HTTP_403_FORBIDDEN)
+            return ErrorResponse(msg='Only superusers can edit public templates', code=4000, status=status.HTTP_403_FORBIDDEN)
         # non-superuser cannot make template public
         if request.data.get('is_public') and not request.user.is_superuser:
-            return Response({'code': 4000, 'msg': 'Only superusers can set a template as public', 'data': None},
-                            status=status.HTTP_403_FORBIDDEN)
+            return ErrorResponse(msg='Only superusers can set a template as public', code=4000, status=status.HTTP_403_FORBIDDEN)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
@@ -114,7 +108,7 @@ class FlowTemplateViewSet(
         """检查模板中是否引用已弃用的插件"""
         template = self.get_object()
         result = check_deprecated_plugins_in_template(template)
-        return Response({'code': 2000, 'msg': 'success', 'data': result})
+        return DetailResponse(data=result)
 
     @action(detail=False, methods=['post'])
     def update_plugin_phase(self, request):
@@ -123,24 +117,21 @@ class FlowTemplateViewSet(
         version = request.data.get('version', '')
         phase = request.data.get('phase')
         if not code or phase is None:
-            return Response({'code': 4000, 'msg': 'code and phase required', 'data': None},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return ErrorResponse(msg='code and phase required', code=4000)
         from opsflow.models import PluginMeta
         filters = {'code': code}
         if version:
             filters['version'] = version
         updated = PluginMeta.objects.filter(**filters).update(phase=phase)
-        return Response({'code': 2000, 'msg': 'success', 'data': {'updated': updated}})
+        return DetailResponse(data={'updated': updated})
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         if instance.is_public:
             if not request.user.is_superuser:
-                return Response({'code': 4000, 'msg': 'Only superusers can delete public templates', 'data': None},
-                                status=status.HTTP_403_FORBIDDEN)
+                return ErrorResponse(msg='Only superusers can delete public templates', code=4000)
         elif instance.created_by and instance.created_by != request.user:
-            return Response({'code': 4000, 'msg': 'Only the creator can delete this template', 'data': None},
-                            status=status.HTTP_403_FORBIDDEN)
+            return ErrorResponse(msg='Only the creator can delete this template', code=4000)
         log_operation(request.user, 'delete', 'template', instance.id, instance.name, request=request)
         instance.delete()
-        return Response({'code': 2000, 'msg': 'success', 'data': None})
+        return DetailResponse(data=None)

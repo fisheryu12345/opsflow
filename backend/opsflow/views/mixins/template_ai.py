@@ -4,7 +4,6 @@ import re
 import logging
 
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework import status
 
 from opsflow.core.llm_service import generate_pipeline, analyze_pipeline, refine_pipeline
@@ -12,9 +11,13 @@ from opsflow.core.layout import compute_layout
 from opsflow.core.safety_guard import validate_pipeline
 from opsflow.core.bamboo_validator import validate_bamboo_compatibility
 from opsflow.plugins.registry import get_plugin
-from dvadmin.utils.json_response import DetailResponse
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 
 logger = logging.getLogger(__name__)
+
+# Module-level Chinese message constants (used in AI validation responses)
+MSG_UNSUPPORTED_OPERATION = '好的，我理解您想要这个功能，但目前系统暂不支持，建议换个方式实现'
+MSG_UNSUPPORTED_ATOM = '好的，我理解您的意思，但目前系统还不支持这个操作，咱先试试其他功能吧'
 
 
 def _enrich_atom_nodes(pipeline: dict) -> dict:
@@ -44,6 +47,57 @@ def _enrich_atom_nodes(pipeline: dict) -> dict:
 class TemplateAIMixin:
     """AI 生成、分析、布局端点混入"""
 
+    @classmethod
+    def _validate_ai_pipeline(cls, pipeline: dict, nl_input: str) -> dict:
+        """Validate an AI-generated pipeline, returning a result dict.
+
+        Returns:
+            On failure: {'valid': False, 'msg': str, 'data': dict}
+            On success: {'valid': True, 'validation': dict, 'bamboo_check': dict}
+        """
+        # AI reported unsupported request
+        errors = pipeline.get('_errors') or pipeline.get('_unsupported')
+        if errors:
+            return {'valid': False, 'msg': MSG_UNSUPPORTED_OPERATION,
+                    'data': {'pipeline_tree': pipeline}}
+
+        # AI should not generate shell atoms — indicates fallback to non-existent feature
+        if any(n.get('atom_type') == 'shell' for n in pipeline.get('nodes', [])):
+            return {'valid': False, 'msg': MSG_UNSUPPORTED_OPERATION,
+                    'data': {'pipeline_tree': pipeline}}
+
+        # Check cross-platform VM misuse: user says VM/虚拟机 but AI uses other platform atoms
+        nl_lower = nl_input.lower()
+        is_vm_request = any(kw in nl_lower for kw in ['vm', '虚拟机', '虚机', 'esxi'])
+        for node in pipeline.get('nodes', []):
+            atom = node.get('atom_type', '')
+            if is_vm_request and atom.startswith('netapp_'):
+                return {'valid': False, 'msg': MSG_UNSUPPORTED_OPERATION,
+                        'data': {'pipeline_tree': pipeline}}
+
+        # Enrich atom nodes with group/risk_level from plugin registry
+        _enrich_atom_nodes(pipeline)
+
+        # Run validation checks
+        validation = validate_pipeline(pipeline)
+        bamboo_check = validate_bamboo_compatibility(pipeline)
+
+        # Reject pipelines with unknown atoms or other severe errors
+        if not validation.get('valid'):
+            unknown_atoms = set()
+            for err in validation.get('errors', []):
+                m = re.search(r"未知原子类型 '(\w+)'", err)
+                if m:
+                    unknown_atoms.add(m.group(1))
+            if unknown_atoms:
+                msg = MSG_UNSUPPORTED_ATOM
+            else:
+                msg = '流程有一些问题需要调整，请检查后重试'
+            return {'valid': False, 'msg': msg,
+                    'data': {'validation': validation, 'pipeline_tree': pipeline}}
+
+        return {'valid': True, 'validation': validation, 'bamboo_check': bamboo_check}
+
     @action(detail=False, methods=['post'])
     def create_from_ai(self, request):
         """接收自然语言描述，调用 DeepSeek 生成 Pipeline Tree，保存为草稿"""
@@ -52,56 +106,16 @@ class TemplateAIMixin:
         global_vars = request.data.get('global_vars', {})
 
         if not nl_input:
-            return Response({'code': 4000, 'msg': 'input is required', 'data': None},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return ErrorResponse(msg='input is required', code=4000)
         try:
             pipeline = generate_pipeline(nl_input, target_hosts)
 
-            # AI 报告无法完成的请求
-            errors = pipeline.get('_errors') or pipeline.get('_unsupported')
-            if errors:
-                return Response({'code': 4000, 'msg': '好的，我理解您想要这个功能，但目前系统暂不支持，建议换个方式实现',
-                                 'data': {'pipeline_tree': pipeline}},
-                                status=status.HTTP_400_BAD_REQUEST)
-
-            # AI 不应生成 shell 原子 — 说明用不存在的功能做了 fallback
-            if any(n.get('atom_type') == 'shell' for n in pipeline.get('nodes', [])):
-                return Response({'code': 4000, 'msg': '好的，我理解您想要这个功能，但目前系统暂不支持，建议换个方式实现',
-                                 'data': {'pipeline_tree': pipeline}},
-                                status=status.HTTP_400_BAD_REQUEST)
-
-            # 检查跨平台误用：用户说 VM/虚拟机 但 AI 用了其他平台的原子
-            nl_lower = nl_input.lower()
-            is_vm_request = any(kw in nl_lower for kw in ['vm', '虚拟机', '虚机', 'esxi'])
-            for node in pipeline.get('nodes', []):
-                atom = node.get('atom_type', '')
-                if is_vm_request and atom.startswith('netapp_'):
-                    return Response({'code': 4000, 'msg': '好的，我理解您想要这个功能，但目前系统暂不支持，建议换个方式实现',
-                                     'data': {'pipeline_tree': pipeline}},
-                                    status=status.HTTP_400_BAD_REQUEST)
-
-            # Enrich atom nodes with group/risk_level from plugin registry
-            _enrich_atom_nodes(pipeline)
-
-            validation = validate_pipeline(pipeline)
-            bamboo_check = validate_bamboo_compatibility(pipeline)
-
-            # 拒绝保存含有未知原子等严重错误的流程
-            if not validation.get('valid'):
-                # 检测未知原子类型 → 友善提示
-                unknown_atoms = set()
-                for err in validation.get('errors', []):
-                    m = re.search(r"未知原子类型 '(\w+)'", err)
-                    if m:
-                        unknown_atoms.add(m.group(1))
-                if unknown_atoms:
-                    msg = '好的，我理解您的意思，但目前系统还不支持这个操作，咱先试试其他功能吧'
-                else:
-                    msg = '流程有一些问题需要调整，请检查后重试'
-                return Response({
-                    'code': 4000, 'msg': msg,
-                    'data': {'validation': validation, 'pipeline_tree': pipeline}
-                }, status=status.HTTP_400_BAD_REQUEST)
+            # Validate the AI-generated pipeline
+            result = self._validate_ai_pipeline(pipeline, nl_input)
+            if not result['valid']:
+                return ErrorResponse(msg=result['msg'], data=result['data'], code=4000)
+            validation = result['validation']
+            bamboo_check = result['bamboo_check']
 
             from opsflow.models import FlowTemplate
             from opsflow.serializers import FlowTemplateSerializer
@@ -116,17 +130,13 @@ class TemplateAIMixin:
                 created_by=request.user,
                 **project_kwargs,
             )
-            return Response({
-                'code': 2000, 'msg': 'success',
-                'data': {
-                    'template': FlowTemplateSerializer(template).data,
-                    'validation': validation,
-                    'bamboo_check': bamboo_check,
-                }
+            return DetailResponse(data={
+                'template': FlowTemplateSerializer(template).data,
+                'validation': validation,
+                'bamboo_check': bamboo_check,
             })
         except Exception as e:
-            return Response({'code': 4000, 'msg': str(e), 'data': None},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return ErrorResponse(msg=str(e), code=4000, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['post'])
     def analyze(self, request):
@@ -134,14 +144,12 @@ class TemplateAIMixin:
         nodes = request.data.get('nodes', [])
         edges = request.data.get('edges', [])
         if not nodes:
-            return Response({'code': 4000, 'msg': 'nodes is required', 'data': None},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return ErrorResponse(msg='nodes is required', code=4000)
         try:
             result = analyze_pipeline(nodes, edges)
-            return Response({'code': 2000, 'msg': 'success', 'data': result})
+            return DetailResponse(data=result)
         except Exception as e:
-            return Response({'code': 4000, 'msg': str(e), 'data': None},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return ErrorResponse(msg=str(e), code=4000, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['post'])
     def refine(self, request):
@@ -153,58 +161,19 @@ class TemplateAIMixin:
         chat_history = request.data.get('chat_history', [])
 
         if not nl_input:
-            return Response({'code': 4000, 'msg': 'input is required', 'data': None},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return ErrorResponse(msg='input is required', code=4000)
         try:
             pipeline = refine_pipeline(nl_input, nodes, edges, target_hosts, chat_history)
 
-            # 提取 AI 回答（非修改请求场景：用户提问/分析）
+            # Extract AI answer (non-modification scenarios: user question/analysis)
             ai_answer = pipeline.pop('_answer', None)
 
-            # AI 报告无法完成的请求
-            errors = pipeline.get('_errors') or pipeline.get('_unsupported')
-            if errors:
-                return Response({'code': 4000, 'msg': '好的，我理解您想要这个功能，但目前系统暂不支持，建议换个方式实现',
-                                 'data': {'pipeline_tree': pipeline}},
-                                status=status.HTTP_400_BAD_REQUEST)
-
-            # AI 不应生成 shell 原子
-            if any(n.get('atom_type') == 'shell' for n in pipeline.get('nodes', [])):
-                return Response({'code': 4000, 'msg': '好的，我理解您想要这个功能，但目前系统暂不支持，建议换个方式实现',
-                                 'data': {'pipeline_tree': pipeline}},
-                                status=status.HTTP_400_BAD_REQUEST)
-
-            # 检查跨平台误用
-            nl_lower = nl_input.lower()
-            is_vm_request = any(kw in nl_lower for kw in ['vm', '虚拟机', '虚机', 'esxi'])
-            for node in pipeline.get('nodes', []):
-                atom = node.get('atom_type', '')
-                if is_vm_request and atom.startswith('netapp_'):
-                    return Response({'code': 4000, 'msg': '好的，我理解您想要这个功能，但目前系统暂不支持，建议换个方式实现',
-                                     'data': {'pipeline_tree': pipeline}},
-                                    status=status.HTTP_400_BAD_REQUEST)
-
-            # Enrich atom nodes with group/risk_level from plugin registry
-            _enrich_atom_nodes(pipeline)
-
-            validation = validate_pipeline(pipeline)
-            bamboo_check = validate_bamboo_compatibility(pipeline)
-
-            # 拒绝返回含有未知原子等严重错误的流程
-            if not validation.get('valid'):
-                unknown_atoms = set()
-                for err in validation.get('errors', []):
-                    m = re.search(r"未知原子类型 '(\w+)'", err)
-                    if m:
-                        unknown_atoms.add(m.group(1))
-                if unknown_atoms:
-                    msg = '好的，我理解您的意思，但目前系统还不支持这个操作，咱先试试其他功能吧'
-                else:
-                    msg = '流程有一些问题需要调整，请检查后重试'
-                return Response({
-                    'code': 4000, 'msg': msg,
-                    'data': {'validation': validation, 'pipeline_tree': pipeline}
-                }, status=status.HTTP_400_BAD_REQUEST)
+            # Validate the refined pipeline
+            result = self._validate_ai_pipeline(pipeline, nl_input)
+            if not result['valid']:
+                return ErrorResponse(msg=result['msg'], data=result['data'], code=4000)
+            validation = result['validation']
+            bamboo_check = result['bamboo_check']
 
             response_data = {
                 'pipeline_tree': pipeline,
@@ -213,13 +182,9 @@ class TemplateAIMixin:
             }
             if ai_answer:
                 response_data['message'] = ai_answer
-            return Response({
-                'code': 2000, 'msg': 'success',
-                'data': response_data,
-            })
+            return DetailResponse(data=response_data)
         except Exception as e:
-            return Response({'code': 4000, 'msg': str(e), 'data': None},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return ErrorResponse(msg=str(e), code=4000, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['post'])
     def ai_layout(self, request):
@@ -227,24 +192,19 @@ class TemplateAIMixin:
         nodes = request.data.get('nodes', [])
         edges = request.data.get('edges', [])
         if not nodes:
-            return Response({'code': 4000, 'msg': 'nodes is required', 'data': None},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return ErrorResponse(msg='nodes is required', code=4000)
         try:
             positions = compute_layout(nodes, edges)
-            return Response({'code': 2000, 'msg': 'success', 'data': {'positions': positions}})
+            return DetailResponse(data={'positions': positions})
         except Exception as e:
             logger.exception("Layout failed")
-            return Response({'code': 4000, 'msg': str(e), 'data': None},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return ErrorResponse(msg=str(e), code=4000, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['get'])
     def diff(self, request, pk=None):
         """返回 AI 原稿 vs 当前修改，供前端 Diff 弹窗使用"""
         template = self.get_object()
-        return Response({
-            'code': 2000, 'msg': 'success',
-            'data': {
-                'ai_original': template.ai_original_tree,
-                'current': template.pipeline_tree,
-            }
+        return DetailResponse(data={
+            'ai_original': template.ai_original_tree,
+            'current': template.pipeline_tree,
         })

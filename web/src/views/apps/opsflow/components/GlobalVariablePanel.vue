@@ -109,7 +109,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Coin, Delete, Link, Edit } from '@element-plus/icons-vue'
-import { GetGlobalVariables, UpdateGlobalVariables, PatchGlobalVariables, UnhookVariable } from '/@/api/opsflow/templates'
+import { GetGlobalVariables, UpdateGlobalVariables, PatchGlobalVariables, UnhookVariable } from '../api/templates'
 
 const props = defineProps<{ templateId: number | null }>()
 const emit = defineEmits<{ update: [] }>()

@@ -32,7 +32,7 @@ import {
   TagVariableInput, TagMetaConfig, TagVariableMapping,
   TagResourceSelector, TagCascader,
 } from './tags'
-import { HookVariable } from '/@/api/opsflow/templates'
+import { HookVariable } from '/@/views/apps/opsflow/api/templates'
 
 const TAG_MAP: Record<string, any> = {
   input: TagInput,

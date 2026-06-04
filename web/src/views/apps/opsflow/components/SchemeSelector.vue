@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { GetSchemes } from '/@/api/opsflow/templates'
+import { GetSchemes } from '../api/templates'
 
 const props = defineProps<{ templateId: number | null }>()
 const emit = defineEmits<{ select: [schemeId: number | null] }>()

@@ -92,53 +92,13 @@ class ProjectFilteredViewSet(viewsets.ModelViewSet):
         serializer.save(**kwargs)
 
 
-class ProjectReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
-    """只读版 ProjectFilteredViewSet"""
-    project_field = 'project'
-    include_public = False
-
-    def get_user_project_ids(self):
-        from opsflow.models import ProjectMember
-        user = self.request.user
-        if user.is_superuser:
-            from opsflow.models import OpsProject
-            return list(OpsProject.objects.values_list('id', flat=True))
-        return list(ProjectMember.objects.filter(
-            user=user
-        ).values_list('project_id', flat=True))
-
-    def _add_public_q(self, q=None, project_id=None, user_project_ids=None):
-        q = q or Q()
-        if not self.include_public:
-            return q
-        if project_id is not None:
-            return q | Q(is_public=True, project_scope__contains='*') | Q(is_public=True, project_scope__contains=str(project_id))
-        q = q | Q(is_public=True, project_scope__contains='*')
-        if user_project_ids:
-            for pid in user_project_ids:
-                q = q | Q(is_public=True, project_scope__contains=str(pid))
-        return q
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        user = self.request.user
-        if user.is_superuser:
-            project_id = self.request.query_params.get('project_id')
-            if project_id:
-                base_q = Q(**{self.project_field + '_id': project_id})
-                if self.include_public:
-                    base_q |= Q(is_public=True)
-                return qs.filter(base_q)
-            return qs
-
-        user_project_ids = self.get_user_project_ids()
-        project_id = self.request.query_params.get('project_id')
-        if project_id:
-            if int(project_id) not in user_project_ids:
-                raise exceptions.PermissionDenied('No access to this project')
-            base_q = Q(**{self.project_field + '_id': project_id})
-            base_q = self._add_public_q(base_q, project_id=project_id)
-            return qs.filter(base_q)
-        base_q = Q(**{self.project_field + '__in': user_project_ids})
-        base_q = self._add_public_q(base_q, user_project_ids=user_project_ids)
-        return qs.filter(base_q)
+class ProjectReadOnlyViewSet(ProjectFilteredViewSet):
+    """只读版 ProjectFilteredViewSet — 禁用写操作"""
+    def create(self, request, *args, **kwargs):
+        return self.http_method_not_allowed(request, *args, **kwargs)
+    def update(self, request, *args, **kwargs):
+        return self.http_method_not_allowed(request, *args, **kwargs)
+    def partial_update(self, request, *args, **kwargs):
+        return self.http_method_not_allowed(request, *args, **kwargs)
+    def destroy(self, request, *args, **kwargs):
+        return self.http_method_not_allowed(request, *args, **kwargs)

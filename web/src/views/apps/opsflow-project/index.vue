@@ -197,7 +197,7 @@ import { ElMessage } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete, Setting } from '@element-plus/icons-vue'
 import { request } from '/@/utils/service'
 import { GetProjects, CreateProject, UpdateProject, DeleteProject, GetProjectDetail,
-         GetProjectMembers, AddProjectMember, RemoveProjectMember } from '/@/api/opsflow/projects'
+         GetProjectMembers, AddProjectMember, RemoveProjectMember } from '../opsflow/api/projects'
 import PluginVisibilityDialog from '/@/views/apps/opsflow/components/PluginVisibilityDialog.vue'
 import ProjectEnvVarPanel from '/@/views/apps/opsflow/components/ProjectEnvVarPanel.vue'
 

@@ -7,7 +7,7 @@ import { Clipboard } from '@antv/x6-plugin-clipboard'
 import { Selection } from '@antv/x6-plugin-selection'
 import { MiniMap } from '@antv/x6-plugin-minimap'
 import { Keyboard } from '@antv/x6-plugin-keyboard'
-import { AiLayout } from '/@/api/opsflow/templates'
+import { AiLayout } from '../api/templates'
 import { useGraphCanvas, layoutNodes, defaultNodeLabel } from './useGraphCanvas'
 import { resolveNodeShape, updateAtomNode, refreshPortStates, showNodePorts, PORT_DOT_RADIUS, CARD_WIDTH, CARD_HEIGHT } from '../utils/shapes'
 

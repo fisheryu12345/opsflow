@@ -168,7 +168,7 @@
 import { ref, computed, onMounted, reactive } from 'vue'
 import { Refresh, Plus, Search, Edit, Delete, Clock, Notification, Document } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { GetKnowledgeList, CreateKnowledge, UpdateKnowledge, DeleteKnowledge } from '/@/api/opsflow/knowledge'
+import { GetKnowledgeList, CreateKnowledge, UpdateKnowledge, DeleteKnowledge } from '../opsflow/api/knowledge'
 
 import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const loading = ref(false)

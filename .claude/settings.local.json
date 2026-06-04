@@ -386,7 +386,9 @@
       "Bash(find /c/Users/dell/Desktop/Vue/bk_sops/bk-sops-release_humming_bird/gcloud/tasktmpl3 -type f -name \"*.py\" | sort)",
       "Read(//c/Users/dell/Desktop/Vue/bk_sops/bk-sops-release_humming_bird/gcloud/tasktmpl3/**)",
       "Bash(find /c/Users/dell/Desktop/Vue/bk_sops/bk-sops-release_humming_bird/pipeline_plugins -type f -name \"*.py\" | sort)",
-      "Read(//c/Users/dell/Desktop/Vue/bk_sops/bk-sops-release_humming_bird/pipeline_plugins/**)"
+      "Read(//c/Users/dell/Desktop/Vue/bk_sops/bk-sops-release_humming_bird/pipeline_plugins/**)",
+      "Read(//c/Users/dell/Desktop/Vue/**)",
+      "Bash(python -m py_compile backend/opsflow/signals/state.py backend/opsflow/signals/handlers.py backend/opsflow/core/flow_engine.py backend/opsflow/core/safety_guard.py backend/opsflow/core/pipeline_builder/__init__.py backend/opsflow/core/plugin_service_adapter.py backend/opsflow/views/base.py backend/opsflow/views/template_views.py backend/opsflow/views/mixins/execution_node_command.py backend/opsflow/views/mixins/execution_approval.py backend/opsflow/views/mixins/template_webhook.py backend/opsflow/views/mixins/template_ai.py)"
     ],
     "additionalDirectories": [
       "C:\\Users\\dell\\Desktop\\Vue\\backend\\stock\\backtest\\data",

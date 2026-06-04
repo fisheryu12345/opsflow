@@ -115,7 +115,7 @@
 import { ElMessage } from 'element-plus'
 import { ref, computed, onMounted } from 'vue'
 import { Search, Refresh } from '@element-plus/icons-vue'
-import { GetLogs } from '/@/api/opsflow/logs'
+import { GetLogs } from '../opsflow/api/logs'
 
 import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
 const loading = ref(false)
