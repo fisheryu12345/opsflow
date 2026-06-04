@@ -135,3 +135,10 @@ export function UpdateScheme(templateId: number, schemeId: number, data: any) {
 export function DeleteScheme(templateId: number, schemeId: number) {
   return opsflowRequest({ url: prefix + `templates/${templateId}/schemes/${schemeId}/`, method: 'delete' })
 }
+
+/* ---------- CRUD named re-exports (for compatibility) ---------- */
+export const GetTemplates = templateCrud.list
+export const GetTemplateDetail = templateCrud.detail
+export const CreateTemplate = templateCrud.create
+export const UpdateTemplate = templateCrud.update
+export const DeleteTemplate = templateCrud.delete

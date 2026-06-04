@@ -449,8 +449,8 @@ export function checkConditionRefs(
 }
 
 /** X6 节点缩放辅助 */
-export const CARD_WIDTH = 208
-export const CARD_HEIGHT = 56
+// export const CARD_WIDTH = 208
+// export const CARD_HEIGHT = 56
 
 export function resizeCard(node: any): void {
   if (node.resize) {
