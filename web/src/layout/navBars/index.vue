@@ -11,7 +11,13 @@
 			</div>
 		</template>
 		<template v-else>
-			<!-- Default layout: Logo collapse btn + TagsView + User -->
+			<!-- Default layout: Collapse btn + TagsView + User -->
+			<SvgIcon
+				class="navbars-collapse-icon"
+				:name="themeConfig.isCollapse ? 'ele-Expand' : 'ele-Fold'"
+				:size="16"
+				@click="onToggleCollapse"
+			/>
 			<div class="navbars-tags-area" v-if="setShowTagsView">
 				<TagsView />
 			</div>
@@ -29,6 +35,7 @@ import { storeToRefs } from 'pinia';
 import { useThemeConfig } from '/@/stores/themeConfig';
 import { useRoutesList } from '/@/stores/routesList';
 import mittBus from '/@/utils/mitt';
+import { Local } from '/@/utils/storage';
 
 // 引入组件
 const User = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/user.vue'));
@@ -42,6 +49,13 @@ const storesRoutesList = useRoutesList();
 const { themeConfig } = storeToRefs(storesThemeConfig);
 const { routesList } = storeToRefs(storesRoutesList);
 const route = useRoute();
+
+// 折叠/展开侧边栏
+const onToggleCollapse = () => {
+	themeConfig.value.isCollapse = !themeConfig.value.isCollapse;
+	Local.remove('themeConfig');
+	Local.set('themeConfig', themeConfig.value);
+};
 
 // 是否显示 tagsView
 const setShowTagsView = computed(() => {
@@ -128,12 +142,12 @@ onUnmounted(() => {
 
 .navbars-tags-area {
 	flex: 1;
-	min-width: 0;
+	min-width: 120px;
 	height: 100%;
 	display: flex;
 	align-items: center;
 	overflow: hidden;
-	padding-left: 8px;
+	padding-left: 4px;
 	:deep(.layout-navbars-tagsview) {
 		height: 100%;
 		display: flex;
@@ -161,6 +175,20 @@ onUnmounted(() => {
 	:deep(.layout-navbars-tagsview-ul-li-iconfont) {
 		font-size: 11px;
 	}
+}
+
+.navbars-collapse-icon {
+	flex-shrink: 0;
+	cursor: pointer;
+	font-size: 18px;
+	color: var(--next-bg-topBarColor);
+	height: 100%;
+	width: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0.8;
+	&:hover { opacity: 1; }
 }
 
 .navbars-right-area {
