@@ -1,63 +1,59 @@
 import { request } from '/@/utils/service';
-import { PageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
-import { apiPrefix } from '/@/views/system/messageCenter/api';
-export function GetUserInfo(query: PageQuery) {
-	return request({
-		url: '/api/system/user/user_info/',
-		method: 'get',
-		params: query,
-	});
+
+export interface QueryParams {
+  page?: number;
+  limit?: number;
+  [key: string]: any;
 }
 
-/**
- * 更新用户信息
- * @param data
- */
-export function updateUserInfo(data: AddReq) {
-	return request({
-		url: '/api/system/user/update_user_info/',
-		method: 'put',
-		data: data,
-	});
+export interface PasswordPayload {
+  oldPassword: string;
+  newPassword: string;
+  newPassword2: string;
 }
 
-/**
- * 获取自己接收的消息
- * @param query
- * @returns {*}
- * @constructor
- */
-export function GetSelfReceive(query: PageQuery) {
-	return request({
-		url: '/api/system/message_center/get_self_receive/',
-		method: 'get',
-		params: query,
-	});
+/** 获取用户个人信息 */
+export function GetUserInfo(params?: QueryParams) {
+  return request({
+    url: '/api/system/user/user_info/',
+    method: 'get',
+    params,
+  });
 }
 
-/***
- * 修改密码
- * @param data
- */
-export function UpdatePassword(data: EditReq) {
-	return request({
-		url: '/api/system/user/change_password/',
-		method: 'put',
-		data: data,
-	});
+/** 更新用户信息 */
+export function updateUserInfo(data: Record<string, any>) {
+  return request({
+    url: '/api/system/user/update_user_info/',
+    method: 'put',
+    data,
+  });
 }
 
-/***
- * 上传头像
- * @param data
- */
-export function uploadAvatar(data: AddReq) {
-	return request({
-		url: 'api/system/file/',
-		method: 'post',
-		data: data,
-		headers: {
-			'Content-Type': 'multipart/form-data',
-		},
-	});
+/** 获取自己接收的消息（最新几条） */
+export function GetSelfReceive(params?: QueryParams) {
+  return request({
+    url: '/api/system/message_center/get_self_receive/',
+    method: 'get',
+    params,
+  });
+}
+
+/** 修改密码 */
+export function UpdatePassword(data: PasswordPayload) {
+  return request({
+    url: '/api/system/user/change_password/',
+    method: 'put',
+    data,
+  });
+}
+
+/** 上传头像 */
+export function uploadAvatar(data: FormData) {
+  return request({
+    url: '/api/system/file/',
+    method: 'post',
+    data,
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
 }

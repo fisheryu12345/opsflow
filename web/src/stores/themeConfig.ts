@@ -81,12 +81,8 @@ export const useThemeConfig = defineStore('themeConfig', {
 			isShowLogo: true,
 			// 初始化变量，用于 el-scrollbar 的高度更新，请勿删除
 			isShowLogoChange: false,
-			// 是否开启 Breadcrumb，强制经典、横向布局不显示
-			isBreadcrumb: true,
 			// 是否开启 Tagsview
 			isTagsview: true,
-			// 是否开启 Breadcrumb 图标
-			isBreadcrumbIcon: true,
 			// 是否开启 Tagsview 图标
 			isTagsviewIcon: true,
 			// 是否开启 TagsView 缓存
@@ -121,7 +117,7 @@ export const useThemeConfig = defineStore('themeConfig', {
 
 			/**
 			 * 布局切换
-			 * 注意：为了演示，切换布局时，颜色会被还原成默认，代码位置：/@/layout/navBars/breadcrumb/setings.vue
+			 * 注意：为了演示，切换布局时，颜色会被还原成默认
 			 * 中的 `initSetLayoutChange(设置布局切换，重置主题样式)` 方法
 			 */
 			// 布局切换：可选值"<defaults|classic|transverse|columns>"，默认 defaults

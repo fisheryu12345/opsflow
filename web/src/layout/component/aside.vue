@@ -126,7 +126,7 @@ onBeforeMount(() => {
 			state.menuList = res.children;
 		}
 	});
-	mittBus.on('getBreadcrumbIndexSetFilterRoutes', () => {
+	mittBus.on('setSendClassicChildren', () => {
 		setFilterRoutes();
 	});
 	mittBus.on('layoutMobileResize', (res: LayoutMobileResize) => {

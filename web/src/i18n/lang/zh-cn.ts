@@ -106,8 +106,6 @@ export default {
         threeLockScreenTime: '自动锁屏(s/秒)',
         fourTitle: '界面显示',
         fourIsShowLogo: '侧边栏 Logo',
-        fourIsBreadcrumb: '开启 Breadcrumb',
-        fourIsBreadcrumbIcon: '开启 Breadcrumb 图标',
         fourIsTagsview: '开启 Tagsview',
         fourIsTagsviewIcon: '开启 Tagsview 图标',
         fourIsCacheTagsView: '开启 TagsView 缓存',

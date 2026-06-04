@@ -102,7 +102,7 @@
 	</div>
 </template>
 
-<script setup lang="ts" name="layoutBreadcrumbUser">
+<script setup lang="ts" name="layoutHeaderUser">
 import { defineAsyncComponent, ref, computed, reactive, onMounted, unref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox, ElMessage } from 'element-plus';

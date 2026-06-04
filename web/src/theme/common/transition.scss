@@ -34,22 +34,6 @@
 	opacity: 0;
 }
 
-/* Breadcrumb 面包屑过渡动画
-------------------------------- */
-.breadcrumb-enter-active,
-.breadcrumb-leave-active {
-	transition: all 0.5s ease;
-}
-.breadcrumb-enter-from,
-.breadcrumb-leave-active {
-	opacity: 0;
-	transform: translateX(20px);
-}
-.breadcrumb-leave-active {
-	position: absolute;
-	z-index: -1;
-}
-
 /* logo 过渡动画
 ------------------------------- */
 @keyframes logoAnimation {

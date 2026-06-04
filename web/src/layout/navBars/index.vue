@@ -120,13 +120,13 @@ const setSendClassicChildren = (path: string) => {
 
 onMounted(() => {
 	setFilterRoutes();
-	mittBus.on('getBreadcrumbIndexSetFilterRoutes', () => {
+	mittBus.on('setSendClassicChildren', () => {
 		setFilterRoutes();
 	});
 });
 
 onUnmounted(() => {
-	mittBus.off('getBreadcrumbIndexSetFilterRoutes', () => {});
+	mittBus.off('setSendClassicChildren', () => {});
 });
 </script>
 

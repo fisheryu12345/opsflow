@@ -1,0 +1,181 @@
+// ============================================================
+// System Pages Global Design Tokens & Classes
+// Import in every system page:  @use './styles/system-global' as *;
+// ============================================================
+
+// ===== Colors =====
+$sys-bg-page: #f0f2f5;
+$sys-color-primary: #409eff;
+$sys-color-primary-dark: #337ecc;
+$sys-color-success: #67c23a;
+$sys-color-warning: #e6a23c;
+$sys-color-danger: #f56c6c;
+$sys-color-info: #909399;
+
+$sys-text-primary: #303133;
+$sys-text-regular: #606266;
+$sys-text-secondary: #909399;
+$sys-text-placeholder: #c0c4cc;
+
+$sys-border-light: #ebeef5;
+$sys-border-card: #f0f0f0;
+
+// ===== Shadows =====
+$sys-shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06);
+$sys-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+$sys-shadow-primary: 0 2px 12px rgba(64, 158, 255, 0.12);
+
+// ===== Radius =====
+$sys-radius: 10px;
+$sys-radius-sm: 8px;
+
+// ===== Gradients =====
+$sys-gradient-primary: linear-gradient(135deg, #409eff, #337ecc);
+$sys-gradient-accent: linear-gradient(135deg, #667eea, #764ba2);
+$sys-gradient-success: linear-gradient(135deg, #67c23a, #409eff);
+$sys-gradient-warning: linear-gradient(135deg, #e6a23c, #f56c6c);
+$sys-gradient-danger: linear-gradient(135deg, #f56c6c, #e6a23c);
+$sys-gradient-info: linear-gradient(135deg, #909399, #606266);
+$sys-gradient-hero: linear-gradient(135deg, #ecf5ff 0%, #f8f9fb 100%);
+
+// ============================================================
+// Mixins
+// ============================================================
+
+// Gradient icon circle (30px for section headers)
+@mixin sys-icon-circle($size: 30px, $gradient: $sys-gradient-primary) {
+  width: $size;
+  height: $size;
+  border-radius: 8px;
+  background: $gradient;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+// Section header with icon + text + bottom border
+@mixin sys-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid $sys-border-card;
+  font-size: 15px;
+  font-weight: 600;
+  color: $sys-text-primary;
+}
+
+// Hover lift effect
+@mixin sys-hover-lift {
+  transition: transform 0.2s, box-shadow 0.2s;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $sys-shadow-hover;
+  }
+}
+
+@mixin sys-hover-shift {
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  &:hover {
+    transform: translateX(3px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+}
+
+// ============================================================
+// Reusable Classes
+// ============================================================
+
+// Page wrapper — full width with padding
+.sys-page {
+  width: 100%;
+}
+
+// Main content card — the standard container
+.sys-card {
+  background: #fff;
+  border-radius: $sys-radius;
+  box-shadow: $sys-shadow-card;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+// Card with a header bar
+.sys-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid $sys-border-light;
+  background: #fafbfc;
+
+  .sys-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: $sys-text-primary;
+
+    .sys-card-icon {
+      @include sys-icon-circle;
+    }
+  }
+
+  .sys-card-extra {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.sys-card-body {
+  padding: 16px 20px;
+}
+
+// ===== Animations =====
+.sys-fade-in-up {
+  animation: sysFadeInUp 0.5s ease both;
+}
+.sys-stagger-item {
+  animation: sysFadeInUp 0.4s ease both;
+}
+@keyframes sysFadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+// ===== Tag badges =====
+.sys-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 1px 10px;
+  border-radius: 12px;
+
+  &.is-active { background: #f0f9eb; color: #67c23a; }
+  &.is-inactive { background: #fef0f0; color: #f56c6c; }
+  &.is-pending { background: #fdf6ec; color: #e6a23c; }
+}
+
+// ===== Empty state =====
+.sys-empty-card {
+  text-align: center;
+  padding: 40px 0;
+  color: $sys-text-placeholder;
+}
+
+// ============================================================
+// Responsive
+// ============================================================
+@media screen and (max-width: 768px) {
+  .sys-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
