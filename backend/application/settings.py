@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "opsflow",
     "iam",
     "integration",
+    "cmdb",
 ]
 
 MIDDLEWARE = [
@@ -148,6 +149,18 @@ DATABASES = {
         # },
     }
 }
+
+# ──────────────────────────────────────────────
+#  Neo4j 图数据库 (CMDB 拓扑存储)
+# ──────────────────────────────────────────────
+NEO4J_PROTOCOL = locals().get("NEO4J_PROTOCOL", "bolt")
+NEO4J_HOST = locals().get("NEO4J_HOST", "localhost")
+NEO4J_PORT = locals().get("NEO4J_PORT", 7687)
+NEO4J_USER = locals().get("NEO4J_USER", "neo4j")
+NEO4J_PASSWORD = locals().get("NEO4J_PASSWORD", "password")
+
+# Django database router: cmdb MySQL models → 'default'
+DATABASE_ROUTERS = ['cmdb.neo4j_router.CmdbNeo4jRouter']
 
 AUTH_USER_MODEL = "system.Users"
 USERNAME_FIELD = "username"
