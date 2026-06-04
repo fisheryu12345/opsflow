@@ -17,7 +17,7 @@ class StockConfig(AppConfig):
             ip_addresses = socket.gethostbyname_ex(hostname)[2]
             
             # 检查是否包含目标IP
-            target_ip = '172.25.21.216'
+            target_ip = '172.25.21.218'
             if target_ip not in ip_addresses:
                 print(f"[INFO] 当前IP地址 {ip_addresses} 不是目标IP {target_ip}，跳过启动定时器")
                 return
