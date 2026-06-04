@@ -94,6 +94,8 @@ urlpatterns = (
             path("api/opsflow/", include("opsflow.urls")),
             # IAM URLs
             path("api/iam/", include("iam.urls")),
+            # Integration Hub URLs
+            path("api/integration/", include("integration.urls")),
             re_path(r'^admin/', admin.site.urls),  # Django admin route
         ]
         + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

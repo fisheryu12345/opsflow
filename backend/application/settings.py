@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     "pipeline.contrib.engine_admin",
     "opsflow",
     "iam",
+    "integration",
 ]
 
 MIDDLEWARE = [
