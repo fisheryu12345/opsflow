@@ -10,7 +10,7 @@ class NodeState(str, Enum):
     """节点状态枚举 — 每个节点的生命周期状态"""
     PENDING = "pending"            # 等待执行（CREATED / READY）
     RUNNING = "running"            # 执行中
-    FINISHED = "finished"          # 成功完成（COMPLETED）
+    FINISHED = "completed"          # 成功完成（COMPLETED）
     FAILED = "failed"              # 执行失败
     PAUSED = "paused"              # 人工暂停（SUSPENDED）
     SKIPPED = "skipped"            # 被跳过
