@@ -125,11 +125,11 @@ hostname = socket.gethostname()
 ip_addresses = socket.gethostbyname_ex(hostname)[2]
 
 # 检查是否包含目标IP
-target_ip = '172.25.21.216'
+target_ip = '172.25.21.218'
 if target_ip in ip_addresses:
     DB_HOST = '127.0.0.1'  # 内网环境使用本地数据库
 else:
-    DB_HOST = '139.196.194.73'  # 外网环境使用公网IP
+    DB_HOST = '139.224.43.174'  # 外网环境使用公网IP
 
 DATABASES = {
     'default': {
