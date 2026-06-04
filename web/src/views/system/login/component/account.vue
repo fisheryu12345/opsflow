@@ -62,7 +62,6 @@ import { formatAxis } from '/@/utils/formatTime';
 import { NextLoading } from '/@/utils/loading';
 import * as loginApi from '/@/views/system/login/api';
 import { useUserInfo } from '/@/stores/userInfo';
-import { useAccountStore } from '/@/stores/account';
 import { DictionaryStore } from '/@/stores/dictionary';
 import { SystemConfigStore } from '/@/stores/systemConfig';
 import { BtnPermissionStore } from '/@/plugin/permission/store.permission';
@@ -174,8 +173,6 @@ export default defineComponent({
 			getUserInfo();
 			//获取所有字典
 			DictionaryStore().getSystemDictionarys();
-			// 加载当前用户的交易账户（确保账户就绪后再跳转，避免页面空白）
-			await useAccountStore().fetchAccounts();
 
 			// 初始化登录成功时间问候语
 			let currentTimeInfo = currentTime.value;

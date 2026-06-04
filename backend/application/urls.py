@@ -88,8 +88,6 @@ urlpatterns = (
             # 仅用于开发，上线需关闭
             path("api/token/", LoginTokenView.as_view()),
             
-            # Stock app URLs
-            path("api/stock/", include("stock.urls")),
             # OpsAgent URLs
             path("api/ops/", include("opsagent.urls")),
             # OpsFlow URLs

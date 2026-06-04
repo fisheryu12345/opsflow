@@ -69,8 +69,6 @@ INSTALLED_APPS = [
     "django_apscheduler",
     "django_extensions",   
     "dvadmin.system",
-    "stock",
-    "hvob_mbi",
     "opsagent",
     # ------------------------------------------------------------------ #
     #  OpsFlow Pipeline 引擎 (bamboo-pipeline)                            #

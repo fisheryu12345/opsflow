@@ -1,1 +1,0 @@
-# Serializers for stock app
