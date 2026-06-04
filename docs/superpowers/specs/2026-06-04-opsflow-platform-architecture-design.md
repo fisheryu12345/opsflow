@@ -335,7 +335,220 @@ Webhook → OpsFlow 告警接收
 
 ---
 
-## 5. 技术栈汇总
+## 5. 统一 App 代码结构规范
+
+所有新建 Django App 必须遵循同一套代码结构和基类约定，确保模块间的可维护性和一致性。
+
+### 5.1 目录规范
+
+每个标准 CRUD 类 App 使用以下目录结构：
+
+```
+app_name/                          # Django App
+├── __init__.py
+├── apps.py                        # AppConfig, 配置 verbose_name
+├── admin.py                       # Django Admin 注册
+├── urls.py                        # 路由 (SimpleRouter + path())
+├── serializers.py                 # 序列化器 (统一文件, 简洁时)
+│   ├── xxx_serializer()           #   或拆分为 serializers/ 目录
+│   └── ...
+├── filters.py                     # filter_fields / search_fields (可选)
+├── models/
+│   ├── __init__.py                # 重新导出所有模型
+│   ├── entity_a.py                # 按领域拆分的模型文件
+│   └── entity_b.py
+├── views/
+│   ├── __init__.py
+│   ├── entity_a.py                # 每个模型/领域一个 ViewSet 文件
+│   └── entity_b.py
+├── services/                      # 业务逻辑层 (保持 views 轻薄)
+│   ├── __init__.py
+│   ├── some_service.py
+│   └── ...
+├── management/commands/           # 管理命令
+├── migrations/
+└── tests/
+```
+
+> **说明：** `models/` 目录拆分仅在 `models.py` 超过 200 行时使用。对仅有 1-2 个简单模型的 App，可保留单一 `models.py` 文件。
+
+### 5.2 基类约定
+
+| 组件 | 基类 | 来源 | 说明 |
+|------|------|------|------|
+| **Model** | `CoreModel` | `dvadmin.utils.models` | 自动获得 id / creator / modifier / create_datetime / update_datetime / description / deleted |
+| **ViewSet** | `CustomModelViewSet` | `dvadmin.utils.viewset` | 自动注入统一响应格式、按动作切换序列化器、批量删除、导入/导出 |
+| **Serializer** | `CustomModelSerializer` | `dvadmin.utils.serializers` | 自动填充 creator / modifier / dept_belong_id，格式化时间字段 |
+| **Response** | `DetailResponse` / `SuccessResponse` / `ErrorResponse` | `dvadmin.utils.json_response` | 统一 `{"code": 2000, "data": ..., "msg": "..."}` 格式 |
+
+**例外情况：**
+- CMDB App 的 Neo4j 节点模型使用 `neomodel.StructuredNode`，不适用 `CoreModel`；但 CMDB 的模型定义（MySQL 侧）仍使用 `CoreModel`
+- 复杂视图（如 ITSM 状态机驱动、监控告警收敛）可通过 `mixins` 组合扩展 `CustomModelViewSet`
+- 只读视图（如日志、审计）可使用 `ReadOnlyModelViewSet` 或 `ListModelMixin + RetrieveModelMixin`
+
+### 5.3 代码模板
+
+#### models/entity.py
+
+```python
+# -*- coding: utf-8 -*-
+"""Model definition for EntityX
+
+实体名称 — 简要说明
+"""
+
+import logging
+
+from django.db import models
+from dvadmin.utils.models import CoreModel
+
+logger = logging.getLogger(__name__)
+
+class EntityX(CoreModel):
+    """实体X — 核心业务对象"""
+    name = models.CharField(max_length=128, verbose_name="名称")
+    code = models.CharField(max_length=64, unique=True, null=True, blank=True, verbose_name="编码")
+    status = models.CharField(max_length=32, default="active", verbose_name="状态")
+    # ... 更多字段
+    extra_config = models.JSONField(default=dict, verbose_name="扩展配置")
+
+    class Meta:
+        db_table = "ops_entity_x"
+        verbose_name = "实体X"
+        verbose_name_plural = verbose_name
+        ordering = ["-create_datetime"]
+
+    def __str__(self):
+        return self.name
+```
+
+**命名规范：**
+- 表名前缀：`ops_<app_short>_<name>`（如 `ops_cmdb_biz`、`ops_itsm_incident`）
+- 模型名：驼峰，单数（`Incident`、`ServiceRequest`）
+- 字段：蛇形，全小写
+
+#### views/entity.py
+
+```python
+# -*- coding: utf-8 -*-
+"""ViewSet for EntityX
+
+实体名称 CRUD 接口
+"""
+
+from rest_framework import filters
+
+from dvadmin.utils.viewset import CustomModelViewSet
+from dvadmin.utils.json_response import DetailResponse
+
+from ..models import EntityX
+from ..serializers import (
+    EntityXSerializer,
+    EntityXCreateUpdateSerializer,
+)
+
+FSM = 'entity_x_viewset'
+
+
+class EntityXViewSet(CustomModelViewSet):
+    """
+    实体X管理
+
+    list: 查询列表
+    create: 创建
+    update: 修改
+    retrieve: 详情
+    destroy: 删除
+    """
+    model = EntityX
+    queryset = EntityX.objects.all()
+    serializer_class = EntityXSerializer
+    create_serializer_class = EntityXCreateUpdateSerializer
+    update_serializer_class = EntityXCreateUpdateSerializer
+    filter_fields = ["status", "name"]
+    search_fields = ["name", "code"]
+    ordering = ["-create_datetime"]
+```
+
+#### serializers.py
+
+```python
+# -*- coding: utf-8 -*-
+"""Serializers for EntityX
+"""
+
+from dvadmin.utils.serializers import CustomModelSerializer
+from .models import EntityX
+
+
+class EntityXSerializer(CustomModelSerializer):
+    """列表/详情"""
+    class Meta:
+        model = EntityX
+        fields = "__all__"
+
+
+class EntityXCreateUpdateSerializer(CustomModelSerializer):
+    """创建/修改"""
+    class Meta:
+        model = EntityX
+        fields = "__all__"
+        read_only_fields = ["code"]
+```
+
+#### urls.py
+
+```python
+# -*- coding: utf-8 -*-
+"""URL configuration for app_name
+"""
+
+from django.urls import path, include
+from rest_framework import routers
+
+from .views.entity import EntityXViewSet
+
+router = routers.SimpleRouter()
+router.register(r'entity-x', EntityXViewSet)
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+```
+
+**路由命名规则：** URL 路径使用 `kebab-case`（连字符），对应 Model 名转换：`Incident` → `incidents`、`ServiceRequest` → `service-requests`。
+
+### 5.4 分层职责
+
+```
+ViewSet (视图层)          → 请求/响应处理，权限校验，参数验证
+  ↓
+Serializer (序列化层)    → 数据校验、字段映射、嵌套展示
+  ↓
+Model (模型层)           → 数据定义、ORM 查询、字段约束
+  ↓
+Service (服务层, 可选)    → 复杂业务逻辑、跨模型操作、外部调用
+```
+
+- **ViewSet** 保持薄层：只做请求解析和响应返回
+- **Service** 承载核心业务逻辑（状态机、收敛算法、SLA 计时等）
+- **Model** 只做数据定义和基础查询，不做业务判断
+
+### 5.5 已有 App 的对齐策略
+
+| App | 当前模式 | 对齐计划 |
+|-----|---------|---------|
+| **cmdb** 🆕 | 新建 | 全面遵循本规范 |
+| **itsm** 🆕 | 新建 | 全面遵循本规范 |
+| **monitor** 🆕 | 新建 | 全面遵循本规范 |
+| **integration** 🆕 | 新建 | 全面遵循本规范 |
+| **job_platform** 🆕 | 新建 | 全面遵循本规范 |
+| **portal** 🆕 | 新建 | 轻后端，简化结构 |
+| **open_api** 🆕 | 新建 | 遵循本规范 |
+| opsflow (已有) | 使用 `models.Model` + 标准 `ModelSerializer` | 不必重构，新功能保持现状 |
+| opsagent (已有) | 使用 `models.Model` + 标准 `ModelSerializer` | 不必重构，新功能保持现状 |
+
+## 7. 技术栈汇总
 
 | 层 | 技术选型 | 备注 |
 |----|---------|------|
@@ -360,7 +573,7 @@ Webhook → OpsFlow 告警接收
 
 ---
 
-## 6. 分阶段演进路线
+## 8. 分阶段演进路线
 
 ### Phase 1 (~10 周) · 核心闭环
 
@@ -394,123 +607,166 @@ Webhook → OpsFlow 告警接收
 
 ---
 
-## 7. 项目目录结构
+## 9. 项目目录结构
 
 ```
 backend/
 ├── cmdb/                    # 🆕 CMDB 配置管理
+│   ├── __init__.py
+│   ├── apps.py              # AppConfig
+│   ├── admin.py
+│   ├── urls.py              # SimpleRouter + path()
+│   ├── serializers.py       # CustomModelSerializer 子类
 │   ├── models/
-│   │   ├── __init__.py
-│   │   ├── node_types.py    # neomodel 节点定义
-│   │   ├── relationships.py # 关系定义
-│   │   └── model_schema.py  # MySQL 模型定义
+│   │   ├── __init__.py      # 重新导出所有模型
+│   │   ├── model_schema.py  # MySQL 模型定义 (CoreModel)
+│   │   └── node_types.py    # Neo4j 节点定义 (neomodel)
 │   ├── views/
-│   │   ├── biz.py
+│   │   ├── __init__.py
+│   │   ├── biz.py           # ViewSet per entity
 │   │   ├── host.py
 │   │   ├── topology.py
 │   │   └── model_manage.py
-│   ├── serializers/
 │   ├── services/
-│   │   ├── sync_service.py  # 云资产同步
+│   │   ├── sync_service.py  # 云资产同步 (通过集成中心)
 │   │   └── topology_service.py
-│   ├── neo4j_router.py      # 双数据源路由
-│   ├── urls.py
-│   └── admin.py
+│   └── neo4j_router.py      # 双数据源路由
 │
 ├── itsm/                    # 🆕 ITSM 服务管理
+│   ├── __init__.py
+│   ├── apps.py
+│   ├── admin.py
+│   ├── urls.py
+│   ├── serializers.py
 │   ├── models/
-│   │   ├── incident.py
-│   │   ├── change.py
+│   │   ├── __init__.py
+│   │   ├── incident.py      # 事件工单 (CoreModel)
+│   │   ├── change.py        # 变更 (CoreModel)
 │   │   ├── service_request.py
 │   │   ├── problem.py
-│   │   └── sla.py
+│   │   └── sla.py           # SLA 定义
 │   ├── views/
-│   ├── services/
-│   │   ├── state_machine.py # 状态机引擎
-│   │   ├── sla_timer.py     # SLA 计时
-│   │   └── escalation.py    # 升级策略
-│   ├── urls.py
-│   └── admin.py
+│   │   ├── __init__.py
+│   │   ├── incident.py
+│   │   ├── change.py
+│   │   └── ...
+│   └── services/
+│       ├── state_machine.py # 状态机引擎
+│       ├── sla_timer.py     # SLA 计时器
+│       └── escalation.py    # 升级策略
 │
 ├── monitor/                 # 🆕 监控告警
+│   ├── __init__.py
+│   ├── apps.py
+│   ├── admin.py
+│   ├── urls.py
+│   ├── serializers.py
 │   ├── models/
+│   │   ├── __init__.py
 │   │   ├── alert_rule.py
 │   │   ├── alert_event.py
-│   │   ├── notification_group.py
-│   │   └── target.py
+│   │   ├── notification.py  # 通知组/策略
+│   │   └── target.py        # 监控目标
 │   ├── views/
-│   ├── services/
-│   │   ├── alert_convergence.py  # 告警收敛
-│   │   ├── grafana_client.py     # Grafana API 对接
-│   │   └── incident_trigger.py   # 触发 ITSM 工单
-│   ├── urls.py
-│   └── admin.py
+│   │   ├── alert_event.py
+│   │   ├── alert_rule.py
+│   │   └── target.py
+│   └── services/
+│       ├── alert_convergence.py  # 告警收敛引擎
+│       ├── grafana_client.py     # Grafana API 客户端
+│       └── incident_trigger.py   # 联动 ITSM 工单
 │
 ├── integration/             # 🆕 集成中心
+│   ├── __init__.py
+│   ├── apps.py
+│   ├── admin.py
+│   ├── urls.py
+│   ├── serializers.py
 │   ├── models/
+│   │   ├── __init__.py
+│   │   ├── connector.py     # ConnectorDefinition + Instance
+│   │   ├── credential.py    # ConnectorCredential (AES 加密)
+│   │   └── integration_log.py
+│   ├── views/
 │   │   ├── connector.py
 │   │   ├── credential.py
 │   │   └── integration_log.py
-│   ├── views/
-│   ├── adapters/            # 适配器实现
+│   ├── adapters/            # 连接器适配器实现
 │   │   ├── base.py          # BaseConnector 抽象类
-│   │   ├── cloud/
+│   │   ├── cloud/           # 云厂商
 │   │   │   ├── aliyun.py
 │   │   │   ├── tencent.py
 │   │   │   └── huawei.py
-│   │   ├── notification/
+│   │   ├── notification/    # 通知通道
 │   │   │   ├── sms.py
 │   │   │   ├── mail.py
 │   │   │   ├── wecom.py
 │   │   │   └── dingtalk.py
-│   │   └── auth/
+│   │   └── auth/            # 认证源
 │   │       ├── ldap.py
 │   │       └── ad.py
-│   ├── services/
-│   │   ├── credential_service.py  # 凭证加密/解密
-│   │   └── health_service.py
-│   ├── url.py
-│   └── admin.py
+│   └── services/
+│       ├── credential_service.py  # 凭证加密/解密
+│       └── health_service.py      # 健康检查
 │
 ├── job_platform/            # 🆕 作业平台
+│   ├── __init__.py
+│   ├── apps.py
+│   ├── admin.py
+│   ├── urls.py
+│   ├── serializers.py
 │   ├── models/
+│   │   ├── __init__.py
+│   │   ├── job.py           # 作业定义
+│   │   ├── script.py        # 脚本管理
+│   │   ├── execution.py     # 执行记录
+│   │   └── approval_rule.py # 高危命令规则
+│   ├── views/
 │   │   ├── job.py
 │   │   ├── script.py
-│   │   ├── execution.py
-│   │   └── approval_rule.py
-│   ├── views/
-│   ├── services/
-│   │   ├── executor.py      # 执行引擎（复用 opsagent 通道）
-│   │   ├── dengerous_cmd.py # 高危命令过滤
-│   │   └── file_dist.py     # 文件分发
-│   ├── urls.py
-│   └── admin.py
+│   │   └── execution.py
+│   └── services/
+│       ├── executor.py      # 执行引擎 (复用 opsagent)
+│       ├── dangerous_cmd.py # 高危命令过滤
+│       └── file_dist.py     # 文件分发
 │
-├── portal/                  # 🆕 运维门户
+├── portal/                  # 🆕 运维门户 (轻后端)
+│   ├── __init__.py
+│   ├── apps.py
+│   ├── urls.py
 │   ├── views/
 │   │   └── dashboard.py     # 聚合查询接口
-│   └── urls.py
+│   └── services/
+│       └── aggregator.py    # 跨模块数据聚合
 │
-├── open_api/                # 🆕 开放 API
-│   ├── models/
-│   │   ├── api_app.py
-│   │   ├── api_token.py
-│   │   └── webhook.py
-│   ├── views/               # 各模块开放端点
-│   │   ├── cmdb.py
-│   │   ├── itsm.py
-│   │   ├── monitor.py
-│   │   ├── job.py
-│   │   └── opsflow.py
+├── open_api/                # 🆕 开放 API (独立 app)
+│   ├── __init__.py
+│   ├── apps.py
+│   ├── admin.py
+│   ├── urls.py
+│   ├── serializers.py
 │   ├── auth.py              # Token 认证/签名验证
 │   ├── throttle.py          # 频率限制/配额
-│   ├── urls.py
-│   └── admin.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── api_app.py       # 第三方应用
+│   │   ├── api_token.py     # 访问凭证
+│   │   └── webhook.py       # 事件订阅
+│   ├── views/
+│   │   ├── api_app.py
+│   │   ├── api_token.py
+│   │   ├── cmdb.py          # CMDB 开放端点
+│   │   ├── itsm.py          # ITSM 开放端点
+│   │   ├── monitor.py       # 监控开放端点
+│   │   ├── job.py           # 作业开放端点
+│   │   └── opsflow.py       # OpsFlow 开放端点
+│   └── services/
+│       └── webhook_service.py
 │
-├── opsflow/                 # 已有，无需改动
+├── opsflow/                 # 已有，保持现状
 ├── opsagent/                # 已有，执行通道适配给作业平台
-├── dvadmin/                 # 已有，无需改动
-└── iam/                     # 已有，无需改动
+├── dvadmin/                 # 已有，保持现状
+└── iam/                     # 已有，保持现状
 
 web/src/
 ├── views/apps/
@@ -535,7 +791,7 @@ web/src/
 
 ---
 
-## 8. 关键架构决策记录 (ADR)
+## 10. 关键架构决策记录 (ADR)
 
 | 决策 | 选项 | 选择 | 理由 |
 |------|------|------|------|
@@ -550,7 +806,7 @@ web/src/
 
 ---
 
-## 9. 附录
+## 11. 附录
 
 ### 9.1 参考
 
