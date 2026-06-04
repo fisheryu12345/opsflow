@@ -104,6 +104,12 @@ urlpatterns = (
             path("api/monitor/", include("monitor.urls")),
             # Job Platform URLs
             path("api/job-platform/", include("job_platform.urls")),
+            # Portal URLs
+            path("api/portal/", include("portal.urls")),
+            # Open API management URLs
+            path("api/open-api/", include("open_api.urls")),
+            # Open API external URLs (third-party facing) - separate urlconf
+            path("api/v2/open/", include("open_api.external_urls")),
             re_path(r'^admin/', admin.site.urls),  # Django admin route
         ]
         + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

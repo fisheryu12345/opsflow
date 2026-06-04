@@ -84,6 +84,8 @@ INSTALLED_APPS = [
     "itsm",
     "monitor",
     "job_platform",
+    "portal",
+    "open_api",
 ]
 
 MIDDLEWARE = [
