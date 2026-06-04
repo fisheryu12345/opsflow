@@ -107,7 +107,7 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
 
 
 def _handle_root_state_change(execution, to_state):
-    """处理根 pipeline 节点状态变化 — 更新 FlowExecution.status"""
+    """处理根 pipeline 节点状态变化 — 更新 FlowExecution.status + 清扫 node_status"""
     target = map_pipeline_state(to_state)
     if target is None:
         return
@@ -115,7 +115,8 @@ def _handle_root_state_change(execution, to_state):
     if target == PipelineState.COMPLETED:
         execution.status = PipelineState.COMPLETED
         execution.ended_at = datetime.datetime.now()
-        execution.save(update_fields=["status", "ended_at"])
+        _sweep_node_status(execution, "completed")
+        execution.save(update_fields=["status", "ended_at", "node_status"])
         _notify_completed(execution)
         # Webhook 回调
         _try_webhook(execution, 'completed')
@@ -124,7 +125,8 @@ def _handle_root_state_change(execution, to_state):
     elif target == PipelineState.FAILED:
         execution.status = PipelineState.FAILED
         execution.ended_at = datetime.datetime.now()
-        execution.save(update_fields=["status", "ended_at"])
+        _sweep_node_status(execution, "failed")
+        execution.save(update_fields=["status", "ended_at", "node_status"])
         # 触发失败节点回滚
         try:
             from opsflow.core.flow_engine import FlowEngine
@@ -140,7 +142,8 @@ def _handle_root_state_change(execution, to_state):
     elif target == PipelineState.CANCELLED:
         execution.status = PipelineState.CANCELLED
         execution.ended_at = datetime.datetime.now()
-        execution.save(update_fields=["status", "ended_at"])
+        _sweep_node_status(execution, "cancelled")
+        execution.save(update_fields=["status", "ended_at", "node_status"])
         _notify_completed(execution)
 
     elif target == PipelineState.PAUSED:
@@ -150,3 +153,19 @@ def _handle_root_state_change(execution, to_state):
     elif target == PipelineState.RUNNING:
         execution.status = PipelineState.RUNNING
         execution.save(update_fields=["status"])
+
+
+def _sweep_node_status(execution, terminal_status):
+    """清扫 node_status：将所有仍为 running 的节点置为终态
+
+    流程已完成但个别节点的信号因时序竞争或并发原因未更新到终态时，
+    批量补全确保前端计数准确。
+    """
+    ns = dict(execution.node_status or {})
+    changed = False
+    for k, v in ns.items():
+        if v in ("running", "finished"):
+            ns[k] = terminal_status
+            changed = True
+    if changed:
+        execution.node_status = ns
