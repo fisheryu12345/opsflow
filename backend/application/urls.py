@@ -98,6 +98,10 @@ urlpatterns = (
             path("api/integration/", include("integration.urls")),
             # CMDB URLs
             path("api/cmdb/", include("cmdb.urls")),
+            # ITSM URLs
+            path("api/itsm/", include("itsm.urls")),
+            # Monitor URLs
+            path("api/monitor/", include("monitor.urls")),
             re_path(r'^admin/', admin.site.urls),  # Django admin route
         ]
         + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

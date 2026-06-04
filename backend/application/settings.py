@@ -81,6 +81,8 @@ INSTALLED_APPS = [
     "iam",
     "integration",
     "cmdb",
+    "itsm",
+    "monitor",
 ]
 
 MIDDLEWARE = [
