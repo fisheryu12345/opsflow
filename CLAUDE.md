@@ -2,7 +2,7 @@
 
 Full-stack application with django-vue3-admin. Includes ops workflow engine.
 
-**Stack:** Python 3.11+ / Django 4.2.7 / DRF 3.14 / MySQL / Redis / Celery | Vue 3 / TypeScript / Vite 4 / Element Plus / Pinia / ECharts | TqSDK / APScheduler
+**Stack:** Python 3.11+ / Django 4.2.7 / DRF 3.14 / MySQL / Redis / Celery | Vue 3 / TypeScript / Vite 4 / Element Plus / Pinia / ECharts | APScheduler
 
 ## Quick Start
 
@@ -30,13 +30,11 @@ cd web && npm install && npm run dev  # localhost:8080
 
 ## Architecture
 
-- **Backend:** Django apps under `stock/` (trading), `dvadmin/` (RBAC), `opsflow/` (ops),
+- **Backend:** Django apps under `dvadmin/` (RBAC), `opsflow/` (ops), `opsagent/`,
   `plugins/` — config in `conf/env.py`, settings in `application/settings.py`
-- **Frontend:** `web/src/views/apps/` (trading pages), `views/system/` (RBAC),
+- **Frontend:** `web/src/views/apps/` (OpsFlow app pages), `views/system/` (RBAC),
   `api/` (axios clients), `stores/` (Pinia), `router/`, `utils/`
-- **API:** `api/stock/*` (trading data), `api/system/*` (RBAC), `api/opsflow/*`
-- All `symbol` fields use exchange-prefixed format `{EXCHANGE}.{contract_code}` (e.g. `SHFE.rb2510`)
-- Redis distributed lock: `stock/utils/redis_lock.py` — auto-renewal, 30s TTL
+- **API:** `api/system/*` (RBAC), `api/opsflow/*`, `api/ops/*` (opsagent)
 
 ## API Response Convention
 
@@ -58,8 +56,8 @@ All opsflow API responses **MUST** use `DetailResponse` / `ErrorResponse` from `
 
 ## Logging Convention
 
-**Do NOT use** `logger.*`. Use `log_trade(fsm_name, msg, ...)` / `log_error(fsm_name, msg)` instead.
-Define module-level `FSM = 'my_func_name'` constant for reuse.
+Use `import logging; logger = logging.getLogger(__name__)` for standard Django logging.
+Define module-level `FSM = 'my_func_name'` constant for reusable context labels.
 
 ## Agent Coordination
 

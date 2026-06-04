@@ -28,7 +28,7 @@ export function opsflowRequest(config: any) {
 }
 
 /** API 基础路径 — 所有 opsflow API 文件应统一引用此常量 */
-export const prefix = '/api/opsflow'
+export const prefix = '/api/opsflow/'
 
 /**
  * CRUD API 工厂 — 减少重复的 5 函数模板代码
@@ -38,10 +38,10 @@ export const prefix = '/api/opsflow'
  */
 export function createCrudApi(resource: string) {
   return {
-    list: (params?: any) => opsflowRequest({ url: `${prefix}/${resource}/`, method: 'get', params }),
-    detail: (id: number) => opsflowRequest({ url: `${prefix}/${resource}/${id}/`, method: 'get' }),
-    create: (data: any) => opsflowRequest({ url: `${prefix}/${resource}/`, method: 'post', data }),
-    update: (id: number, data: any) => opsflowRequest({ url: `${prefix}/${resource}/${id}/`, method: 'patch', data }),
-    delete: (id: number) => opsflowRequest({ url: `${prefix}/${resource}/${id}/`, method: 'delete' }),
+    list: (params?: any) => opsflowRequest({ url: `${prefix}${resource}/`, method: 'get', params }),
+    detail: (id: number) => opsflowRequest({ url: `${prefix}${resource}/${id}/`, method: 'get' }),
+    create: (data: any) => opsflowRequest({ url: `${prefix}${resource}/`, method: 'post', data }),
+    update: (id: number, data: any) => opsflowRequest({ url: `${prefix}${resource}/${id}/`, method: 'patch', data }),
+    delete: (id: number) => opsflowRequest({ url: `${prefix}${resource}/${id}/`, method: 'delete' }),
   }
 }

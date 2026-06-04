@@ -1,6 +1,6 @@
 import { opsflowRequest, prefix, createCrudApi } from './request'
 
-const T = prefix + '/templates/'
+const T = prefix + 'templates/'
 
 export const templateCrud = createCrudApi('templates')
 
