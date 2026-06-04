@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     "cmdb",
     "itsm",
     "monitor",
+    "job_platform",
 ]
 
 MIDDLEWARE = [

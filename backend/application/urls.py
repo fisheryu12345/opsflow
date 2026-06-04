@@ -102,6 +102,8 @@ urlpatterns = (
             path("api/itsm/", include("itsm.urls")),
             # Monitor URLs
             path("api/monitor/", include("monitor.urls")),
+            # Job Platform URLs
+            path("api/job-platform/", include("job_platform.urls")),
             re_path(r'^admin/', admin.site.urls),  # Django admin route
         ]
         + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
