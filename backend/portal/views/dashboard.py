@@ -72,7 +72,7 @@ def _get_alert_stats():
 def _get_execution_stats():
     """获取执行统计"""
     try:
-        from job_platform.models.models import JobExecution
+        from job_platform.models import JobExecution
         return {
             'running': JobExecution.objects.filter(status='running').count(),
             'pending': JobExecution.objects.filter(status='pending').count(),

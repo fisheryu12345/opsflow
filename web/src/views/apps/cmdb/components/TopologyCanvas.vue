@@ -46,10 +46,17 @@ const count = ref(0)
 const ctxNode = ref<any>(null)
 const ctxPos = ref({ x: 0, y: 0 })
 
-const NAMES: Record<string, string> = { biz: '业务', set: '集群', module: '模块', host: '主机', process: '进程' }
-const TAG_TYPES: Record<string, string> = { biz: 'primary', set: 'success', module: 'warning', host: 'info', process: '' }
-function typeLabel(t: string) { return NAMES[t] || t }
+const NAMES: Record<string, string> = { Biz: '业务', Set: '集群', Module: '模块', Host: '主机', Process: '进程', biz: '业务', set: '集群', module: '模块', host: '主机', process: '进程' }
+const TAG_TYPES: Record<string, string> = { Biz: 'primary', Set: 'success', Module: 'warning', Host: 'info', Process: '', biz: 'primary', set: 'success', module: 'warning', host: 'info', process: '' }
+function typeLabel(t: string) { return NAMES[t] || t || '未知' }
 function tagType(t: string) { return TAG_TYPES[t] || 'info' }
+
+function getType(n: any): string { return n.model_code || n.type || '' }
+function getAttrs(n: any): any { return n.attrs || n }
+function getStatus(n: any): string {
+  const a = getAttrs(n)
+  return a.status || ''
+}
 
 // ─── Build tree ───
 function toTree(): any {
@@ -59,7 +66,8 @@ function toTree(): any {
   const parent: Record<string, string> = {}
   for (const n of props.nodes) { nodeMap[n.id] = n; children[n.id] = [] }
   for (const e of props.edges) {
-    if (e.type === 'depends_on' || e.type === 'runs') continue
+    // Skip non-hierarchical relationships for tree building
+    if (e.type === 'RUNS' || e.type === 'DEPENDS_ON' || e.type === 'runs' || e.type === 'depends_on') continue
     if (children[e.from]) children[e.from].push(e.to)
     parent[e.to] = e.from
   }
@@ -69,18 +77,21 @@ function toTree(): any {
   function walk(id: string): any {
     const n = nodeMap[id]
     if (!n) return null
-    const s = n.attrs?.status || ''
-    const color = n.type === 'host' || n.type === 'process'
-      ? ({ normal: '#52c41a', alarm: '#f5222d', offline: '#8c8c8c', maintenance: '#faad14' }[s] || '#1890ff')
-      : ({ biz: '#1890ff', set: '#52c41a', module: '#722ed1', host: '#13c2c2', process: '#8c8c8c' }[n.type] || '#1890ff')
+    const a = getAttrs(n)
+    const st = getStatus(n)
+    const tp = getType(n)
+    const color = (tp === 'Host' || tp === 'host' || tp === 'Process' || tp === 'process')
+      ? ({ normal: '#52c41a', alarm: '#f5222d', offline: '#8c8c8c', maintenance: '#faad14' }[st] || '#1890ff')
+      : ({ Biz: '#1890ff', Set: '#52c41a', Module: '#722ed1', Host: '#13c2c2', Process: '#8c8c8c',
+           biz: '#1890ff', set: '#52c41a', module: '#722ed1', host: '#13c2c2', process: '#8c8c8c' }[tp] || '#1890ff')
     const kids = (children[id] || []).map(walk).filter(Boolean)
     return {
       id,
       label: (n.label || id).slice(0, 20),
-      type: n.type,
+      type: tp,
       color,
-      sub: n.type === 'host' ? (n.attrs?.ip || '') : n.type === 'process' ? (n.attrs?.name || '') : '',
-      attrs: n.attrs || {},
+      sub: tp === 'Host' || tp === 'host' ? (a.ip || a.hostname || '') : tp === 'Process' || tp === 'process' ? (a.name || '') : '',
+      attrs: a,
       collapsible: kids.length > 0,
       collapsed: true,
       children: kids.length ? kids : undefined,

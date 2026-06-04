@@ -146,17 +146,67 @@ SAMPLE_INTEGRATIONS = [
 ]
 
 SAMPLE_CMDB_MODELS = [
-    {"code": "server", "name": "服务器", "category": "host",
+    {"code": "server", "name": "服务器", "cls_id": "bk_host_manage",
      "fields": [{"name": "ip", "label": "IP 地址", "field_type": "ip"},
                 {"name": "os", "label": "操作系统", "field_type": "string"},
                 {"name": "cpu_cores", "label": "CPU 核数", "field_type": "integer"},
                 {"name": "memory_gb", "label": "内存(GB)", "field_type": "integer"},
                 {"name": "disk_gb", "label": "磁盘(GB)", "field_type": "integer"}]},
-    {"code": "database", "name": "数据库实例", "category": "custom",
+    {"code": "database", "name": "数据库实例", "cls_id": "bk_uncategorized",
      "fields": [{"name": "engine", "label": "数据库引擎", "field_type": "string"},
                 {"name": "version", "label": "版本", "field_type": "string"},
                 {"name": "port", "label": "端口", "field_type": "integer"},
                 {"name": "role", "label": "角色", "field_type": "enum"}]},
+]
+
+SAMPLE_CMDB_INSTANCES = {
+    "Biz": [
+        {"name": "电商平台", "lifecycle": "生产", "operator": "admin"},
+        {"name": "支付系统", "lifecycle": "生产", "operator": "admin"},
+        {"name": "大数据平台", "lifecycle": "生产", "operator": "admin"},
+    ],
+    "Set": [
+        {"name": "电商-生产", "env_type": "生产"},
+        {"name": "电商-测试", "env_type": "测试"},
+        {"name": "支付-生产", "env_type": "生产"},
+        {"name": "大数据-生产", "env_type": "生产"},
+    ],
+    "Module": [
+        {"name": "Web 服务", "service_type": "web"},
+        {"name": "数据库", "service_type": "db"},
+        {"name": "缓存", "service_type": "cache"},
+        {"name": "消息队列", "service_type": "mq"},
+    ],
+    "Host": [
+        {"ip": "10.0.0.1", "hostname": "web-01", "os_type": "linux", "cpu_cores": 8, "memory_mb": 32768, "disk_gb": 500, "status": "normal", "region": "北京"},
+        {"ip": "10.0.0.2", "hostname": "web-02", "os_type": "linux", "cpu_cores": 8, "memory_mb": 32768, "disk_gb": 500, "status": "normal", "region": "北京"},
+        {"ip": "10.0.1.1", "hostname": "db-master", "os_type": "linux", "cpu_cores": 16, "memory_mb": 65536, "disk_gb": 2000, "status": "normal", "region": "北京"},
+        {"ip": "10.0.1.2", "hostname": "db-slave", "os_type": "linux", "cpu_cores": 16, "memory_mb": 65536, "disk_gb": 2000, "status": "normal", "region": "北京"},
+        {"ip": "10.0.2.1", "hostname": "cache-01", "os_type": "linux", "cpu_cores": 4, "memory_mb": 65536, "disk_gb": 100, "status": "normal", "region": "北京"},
+        {"ip": "10.0.3.1", "hostname": "mq-01", "os_type": "linux", "cpu_cores": 8, "memory_mb": 16384, "disk_gb": 200, "status": "alarm", "region": "北京"},
+        {"ip": "192.168.1.1", "hostname": "web-pay-01", "os_type": "linux", "cpu_cores": 8, "memory_mb": 32768, "disk_gb": 500, "status": "normal", "region": "上海"},
+        {"ip": "192.168.10.1", "hostname": "bigdata-node1", "os_type": "linux", "cpu_cores": 32, "memory_mb": 262144, "disk_gb": 5000, "status": "normal", "region": "北京"},
+    ],
+    "Process": [
+        {"name": "nginx", "port": 80, "protocol": "http", "status": "running"},
+        {"name": "mysql", "port": 3306, "protocol": "tcp", "status": "running"},
+        {"name": "redis", "port": 6379, "protocol": "tcp", "status": "running"},
+        {"name": "rabbitmq", "port": 5672, "protocol": "tcp", "status": "running"},
+        {"name": "java-app", "port": 8080, "protocol": "http", "status": "running"},
+    ],
+}
+
+CMDB_TOPOLOGY = [
+    # (biz_name, set_name, module_name, host_ip, process_name)
+    ("电商平台", "电商-生产", "Web 服务", "10.0.0.1", "nginx"),
+    ("电商平台", "电商-生产", "Web 服务", "10.0.0.2", "nginx"),
+    ("电商平台", "电商-生产", "数据库", "10.0.1.1", "mysql"),
+    ("电商平台", "电商-生产", "数据库", "10.0.1.2", "mysql"),
+    ("电商平台", "电商-生产", "缓存", "10.0.2.1", "redis"),
+    ("电商平台", "电商-生产", "消息队列", "10.0.3.1", "rabbitmq"),
+    ("电商平台", "电商-测试", "Web 服务", "10.0.0.1", "nginx"),
+    ("支付系统", "支付-生产", "数据库", "192.168.1.1", "java-app"),
+    ("大数据平台", "大数据-生产", "数据库", "192.168.10.1", "java-app"),
 ]
 
 
@@ -229,7 +279,10 @@ class Command(BaseCommand):
         # ── Step 14: CMDB Model Definitions ──
         self._create_cmdb_models()
 
-        # ── Step 15: Audit / Operation Records ──
+        # ── Step 15: CMDB Neo4j Instances ──
+        self._create_cmdb_instances()
+
+        # ── Step 16: Audit / Operation Records ──
         self._create_audit_records()
 
         self.stdout.write(self.style.SUCCESS("\nAll mock data created successfully!"))
@@ -837,11 +890,12 @@ class Command(BaseCommand):
 
     def _create_cmdb_models(self):
         self.stdout.write("\n>>> Creating CMDB Model Definitions ...")
-        from cmdb.models import ModelDefinition, ModelField
+        from cmdb.models import Classification, ModelDefinition, ModelField
         for m in SAMPLE_CMDB_MODELS:
+            cls_obj = Classification.objects.filter(cls_id=m["cls_id"]).first()
             obj, created = self._get_or_create(
                 ModelDefinition, code=m["code"], name=m["name"],
-                defaults_update={"category": m["category"]},
+                defaults_update={"classification": cls_obj, "source": "custom"},
             )
             self.stdout.write(f"  {'+' if created else ' '} ModelDef: {m['name']} ({m['code']})")
             for f in m["fields"]:
@@ -851,6 +905,59 @@ class Command(BaseCommand):
                 )
                 if f_created:
                     self.stdout.write(f"    + Field: {f['label']}")
+
+    def _create_cmdb_instances(self):
+        """创建 CMDB 实例数据到 Neo4j 及拓扑关联"""
+        self.stdout.write("\n>>> Creating CMDB Neo4j Instances ...")
+        from cmdb.services.node_service import NodeService
+        from cmdb.services.association_service import AssociationService
+
+        asst = AssociationService()
+        created_map = {}  # (model_code, name_or_ip) -> instance_id
+
+        # 1. 创建所有节点
+        for model_code, records in SAMPLE_CMDB_INSTANCES.items():
+            svc = NodeService(model_code)
+            for rec in records:
+                key_name = rec.get('name') or rec.get('ip') or rec.get('hostname', '')
+                try:
+                    instance = svc.create(rec)
+                    created_map[(model_code, key_name)] = instance['instance_id']
+                    self.stdout.write(f"  + {model_code}: {key_name}")
+                except Exception as e:
+                    self.stdout.write(f"    ~ {model_code}: {key_name} (skip: {e})")
+
+        # 2. 建立拓扑关联
+        self.stdout.write(">>> Creating CMDB Topology Relations ...")
+        for biz_name, set_name, mod_name, host_ip, proc_name in CMDB_TOPOLOGY:
+            biz_id = created_map.get(('Biz', biz_name))
+            set_id = created_map.get(('Set', set_name))
+            mod_id = created_map.get(('Module', mod_name))
+            host_id = created_map.get(('Host', host_ip))
+            proc_id = created_map.get(('Process', proc_name))
+
+            if biz_id and set_id:
+                try:
+                    asst.create_relation(biz_id, set_id, 'CONTAINS')
+                except Exception:
+                    pass
+            if set_id and mod_id:
+                try:
+                    asst.create_relation(set_id, mod_id, 'CONTAINS')
+                except Exception:
+                    pass
+            if mod_id and host_id:
+                try:
+                    asst.create_relation(mod_id, host_id, 'CONTAINS')
+                except Exception:
+                    pass
+            if host_id and proc_id:
+                try:
+                    asst.create_relation(host_id, proc_id, 'RUNS')
+                except Exception:
+                    pass
+
+        self.stdout.write(f"  Created {len(CMDB_TOPOLOGY)} topology relations")
 
     def _create_audit_records(self):
         self.stdout.write("\n>>> Creating Operation Records ...")

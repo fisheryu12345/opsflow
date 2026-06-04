@@ -1,37 +1,38 @@
 <template>
-  <el-form ref="formRef" :rules="rules" :model="deptFormData" label-width="100px" class="dfc-form">
-    <el-form-item label="父级部门" prop="parent">
-      <el-tree-select
-        v-model="deptFormData.parent"
-        :props="defaultTreeProps"
-        :data="deptDefaultList"
-        :cache-data="props.cacheData"
-        lazy
-        check-strictly
-        :load="handleTreeLoad"
-        placeholder="请选择父级部门"
-        style="width:100%"
-      />
-    </el-form-item>
-    <el-form-item label="部门名称" prop="name">
-      <el-input v-model="deptFormData.name" placeholder="请输入部门名称" maxlength="50" />
-    </el-form-item>
-    <el-form-item label="部门标识" prop="key">
-      <el-input v-model="deptFormData.key" placeholder="请输入唯一标识" maxlength="50" />
-    </el-form-item>
-    <el-form-item label="负责人">
-      <el-input v-model="deptFormData.owner" placeholder="请输入负责人" />
-    </el-form-item>
-    <el-form-item label="备注">
-      <el-input v-model="deptFormData.description" type="textarea" maxlength="200" show-word-limit :rows="3" placeholder="可选" />
-    </el-form-item>
-    <el-form-item>
-      <el-button type="primary" :loading="deptBtnLoading" round @click="handleUpdateMenu">
-        {{ deptFormData.id ? '保存修改' : '新增部门' }}
-      </el-button>
-      <el-button @click="handleClose">取消</el-button>
-    </el-form-item>
-  </el-form>
+  <div class="dfc">
+    <el-form ref="formRef" :rules="rules" :model="f" label-width="100px" size="small">
+      <el-form-item label="父级部门" prop="parent">
+        <el-tree-select
+          v-model="f.parent"
+          :props="treeSelProps"
+          :data="deptList"
+          :cache-data="props.cacheData"
+          lazy check-strictly
+          :load="onTreeLoad"
+          placeholder="顶级部门（留空）"
+          clearable
+        />
+      </el-form-item>
+      <el-form-item label="部门名称" prop="name">
+        <el-input v-model="f.name" placeholder="请输入" maxlength="50" />
+      </el-form-item>
+      <el-form-item label="部门标识" prop="key">
+        <el-input v-model="f.key" placeholder="唯一标识" maxlength="50" />
+      </el-form-item>
+      <el-form-item label="负责人">
+        <el-input v-model="f.owner" placeholder="可选" />
+      </el-form-item>
+      <el-form-item label="备注">
+        <el-input v-model="f.description" type="textarea" maxlength="200" show-word-limit :rows="3" placeholder="可选" />
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" :loading="loading" @click="onSubmit" round>
+          {{ f.id ? '保存修改' : '新增部门' }}
+        </el-button>
+        <el-button @click="onCancel">取消</el-button>
+      </el-form-item>
+    </el-form>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -42,60 +43,51 @@ import { successNotification } from '/@/utils/message';
 import { DeptFormDataType, TreeItemType, APIResponseData } from '../../types';
 import type Node from 'element-plus/es/components/tree/src/model/node';
 
-interface IProps { initFormData: TreeItemType | null; treeData: TreeItemType[]; cacheData: TreeItemType[]; }
-
-const defaultTreeProps = {
-  children: 'children', label: 'name', value: 'id',
-  isLeaf: (data: TreeItemType, node: Node) => !node?.data.hasChild,
-};
-
-const formRef = ref<InstanceType<typeof ElForm>>();
-const rules = reactive<FormRules>({
-  name: [{ required: true, message: '部门名称必填', trigger: 'blur' }],
-  key: [{ required: true, message: '部门标识必填', trigger: 'blur' }],
+const props = withDefaults(defineProps<{ initFormData: TreeItemType | null; treeData: TreeItemType[]; cacheData: TreeItemType[] }>(), {
+  initFormData: () => null, treeData: () => [], cacheData: () => [],
 });
-
-const props = withDefaults(defineProps<IProps>(), { initFormData: () => null, treeData: () => [], cacheData: () => [] });
 const emit = defineEmits(['drawerClose']);
 
-const deptDefaultList = ref<TreeItemType[]>([]);
-const deptFormData = reactive<DeptFormDataType>({ key: '', parent: '', name: '', owner: '', description: '' });
-const deptBtnLoading = ref(false);
+const treeSelProps = { children: 'children', label: 'name', value: 'id', isLeaf: (_d: any, node: Node) => !node?.data?.hasChild };
+const formRef = ref<InstanceType<typeof ElForm>>();
+const rules: FormRules = { name: [{ required: true, message: '必填', trigger: 'blur' }], key: [{ required: true, message: '必填', trigger: 'blur' }] };
 
-const setFormData = () => {
-  if (props.initFormData?.id) {
-    deptFormData.id = props.initFormData.id;
-    deptFormData.key = props.initFormData.key || '';
-    deptFormData.parent = props.initFormData.parent || '';
-    deptFormData.name = props.initFormData.name || '';
-    deptFormData.owner = props.initFormData.owner || '';
-    deptFormData.description = props.initFormData.description || '';
-  }
+const deptList = ref<TreeItemType[]>([]);
+const f = reactive<DeptFormDataType>({ key: '', parent: '', name: '', owner: '', description: '' });
+const loading = ref(false);
+
+const setData = () => {
+  if (!props.initFormData?.id) return;
+  f.id = props.initFormData.id;
+  f.key = props.initFormData.key || '';
+  f.parent = props.initFormData.parent || '';
+  f.name = props.initFormData.name || '';
+  f.owner = props.initFormData.owner || '';
+  f.description = props.initFormData.description || '';
 };
 
-const handleTreeLoad = (node: Node, resolve: Function) => {
-  if (node.level !== 0) lazyLoadDept({ parent: node.data.id }).then((res: APIResponseData) => resolve(res.data));
+const onTreeLoad = (node: Node, resolve: Function) => {
+  if (node.level !== 0) lazyLoadDept({ parent: node.data.id }).then((r: APIResponseData) => resolve(r.data));
 };
 
-const handleUpdateMenu = () => {
+const onSubmit = () => {
   formRef.value?.validate(async (valid) => {
     if (!valid) return;
-    deptBtnLoading.value = true;
+    loading.value = true;
     try {
-      const res = deptFormData.id ? await UpdateObj(deptFormData) : await AddObj(deptFormData);
-      if (res?.code === 2000) { successNotification(res.msg as string); handleClose('submit'); }
-    } finally { deptBtnLoading.value = false; }
+      const res = f.id ? await UpdateObj(f) : await AddObj(f);
+      if (res?.code === 2000) { successNotification(res.msg as string); emit('drawerClose', 'submit'); }
+    } finally { loading.value = false; }
   });
 };
 
-const handleClose = (type = '') => { emit('drawerClose', type); formRef.value?.resetFields(); };
+const onCancel = () => emit('drawerClose');
 
-onMounted(() => { props.treeData.forEach(i => deptDefaultList.value.push(i)); setFormData(); });
+onMounted(() => { props.treeData.forEach(i => deptList.value.push(i)); setData(); });
 </script>
 
 <style scoped lang="scss">
-.dfc-form {
-  padding: 20px;
-  box-sizing: border-box;
+.dfc {
+  padding: 20px; box-sizing: border-box;
 }
 </style>

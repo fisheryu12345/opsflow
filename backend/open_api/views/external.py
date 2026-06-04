@@ -83,26 +83,41 @@ def query_incident(request, incident_id):
 @csrf_exempt
 @require_http_methods(['POST'])
 def trigger_execution(request):
-    """第三方触发作业执行"""
+    """第三方触发作业执行（支持 Plan 或快速执行）"""
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
         return JsonResponse({'code': 4000, 'msg': '无效的 JSON'}, status=400)
 
-    from job_platform.models.models import JobDefinition, JobExecution
-    job_id = data.get('job_id')
+    from job_platform.models import JobExecution, Plan, Script
+    plan_id = data.get('plan_id')
+    script_id = data.get('script_id')
     target_hosts = data.get('target_hosts', [])
+    variables = data.get('params', {})
 
-    try:
-        job = JobDefinition.objects.get(id=job_id)
-    except JobDefinition.DoesNotExist:
-        return JsonResponse({'code': 4000, 'msg': '作业不存在'}, status=404)
+    if plan_id:
+        try:
+            plan = Plan.objects.get(id=plan_id)
+        except Plan.DoesNotExist:
+            return JsonResponse({'code': 4000, 'msg': '执行方案不存在'}, status=404)
+        execution = JobExecution.objects.create(
+            plan=plan, template=plan.template, status='pending',
+            variables=variables, triggered_by='api',
+            target_config={'static_hosts': target_hosts},
+        )
+    elif script_id:
+        try:
+            script = Script.objects.get(id=script_id)
+        except Script.DoesNotExist:
+            return JsonResponse({'code': 4000, 'msg': '脚本不存在'}, status=404)
+        execution = JobExecution.objects.create(
+            status='pending', variables=variables, triggered_by='api',
+            target_config={'static_hosts': target_hosts},
+        )
+    else:
+        return JsonResponse({'code': 4000, 'msg': '请提供 plan_id 或 script_id'}, status=400)
 
-    execution = JobExecution.objects.create(
-        job=job, status='pending', target_hosts=target_hosts,
-        params=data.get('params', {}), executor=job.executor,
-    )
-    from job_platform.services.executor import async_execute_job
-    async_execute_job(execution.id)
+    from job_platform.services.executor import async_execute_plan
+    async_execute_plan(execution.id)
 
     return JsonResponse({'code': 2000, 'msg': 'success', 'data': {'execution_id': execution.id}})

@@ -63,11 +63,12 @@ class TopologyService:
         Returns:
             {impacted: [{id, model_code, label, depth}], paths: [...]}
         """
-        dir_sym = '->' if direction == 'downstream' else '<-'
+        dir_sym = '-' if direction == 'downstream' else '<-'
+        end_sym = '->' if direction == 'downstream' else '-'
 
         cypher = (
             "MATCH (src {instance_id: $id}) "
-            f"MATCH path = (src)-[{dir_sym}*1..{max_depth}]->(affected) "
+            f"MATCH path = (src){dir_sym}[*1..{max_depth}]{end_sym}(affected) "
             "RETURN affected, "
             "       [rel IN relationships(path) | type(rel)] as rel_types, "
             "       length(path) as depth "

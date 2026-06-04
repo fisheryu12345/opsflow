@@ -30,7 +30,7 @@ class ModelDefinitionViewSet(CustomModelViewSet):
     update_serializer_class = ModelDefinitionCreateUpdateSerializer
     filter_fields = ['classification', 'is_builtin', 'source']
     search_fields = ['code', 'name']
-    ordering = ['-is_builtin', 'sort_order', 'name']
+    ordering = ['-is_builtin', 'name']
 
     def perform_destroy(self, instance):
         if instance.is_builtin:

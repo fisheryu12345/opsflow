@@ -58,7 +58,7 @@ class AssociationService:
             "  __created_at: $now, "
             "  src_model: src.__model_code, "
             "  dst_model: dst.__model_code "
-            "}}]->(dst) "
+            "}]->(dst) "
             "RETURN r, src.__model_code as src_model, "
             "       dst.__model_code as dst_model"
         )
@@ -168,8 +168,8 @@ class AssociationService:
         Returns:
             {nodes: [...], edges: [...]}
         """
-        dir_map = {'out': '->', 'in': '<-', 'both': '-'}
-        dir_sym = dir_map.get(direction, '->')
+        dir_map = {'out': ('-', '->'), 'in': ('<-', '-'), 'both': ('-', '-')}
+        start_sym, end_sym = dir_map.get(direction, ('-', '->'))
 
         type_filter = ''
         if asst_types:
@@ -177,7 +177,7 @@ class AssociationService:
 
         cypher = (
             "MATCH (n {instance_id: $id}) "
-            f"MATCH path = (n)-[r{type_filter}*1..{max_depth}]{dir_sym}(neighbor) "
+            f"MATCH path = (n){start_sym}[r{type_filter}*1..{max_depth}]{end_sym}(neighbor) "
             "RETURN neighbor, [rel IN r | rel.__asst_type] as rel_types, "
             "       length(path) as depth "
             "ORDER BY depth"

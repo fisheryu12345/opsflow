@@ -411,13 +411,13 @@ async function loadTickets() {
     const params: any = {}
     if (ticketFilter.value) params.current_status = ticketFilter.value
     const res = await ticketApi.list(params)
-    tickets.value = res.data || []
+    tickets.value = res?.results || res?.data || res || []
   } finally { loadingTickets.value = false }
 }
 
 async function loadDeployedVersions() {
   const res = await workflowVersionApi.list()
-  deployedVersions.value = res.data || []
+  deployedVersions.value = res?.results || res?.data || res || []
 }
 
 async function onCreateTicket() {
@@ -428,35 +428,50 @@ async function onCreateTicket() {
   submittingTicket.value = true
   try {
     const res = await ticketApi.create({ ...newTicket })
-    const ticket = res.data || res
-    await SubmitTicket(ticket.id || ticket.pk)
-    ElMessage.success('工单创建并提交成功')
+    console.debug('[ITSM] create response:', res)
+    // Resolve ID from nested response: res = {code:2000, data: {id:X,...}, msg:...}
+    const respData = res?.data || res
+    const ticketId = respData?.id || respData?.pk
+    if (!ticketId) {
+      ElMessage.error('创建失败(server): ' + (res?.msg || JSON.stringify(res)))
+      submittingTicket.value = false
+      return
+    }
+    try {
+      await SubmitTicket(ticketId)
+      ElMessage.success('工单 #' + ticketId + ' 创建并提交成功')
+    } catch (submitErr: any) {
+      ElMessage.warning('工单 #' + ticketId + ' 已创建但提交失败: ' + (submitErr?.msg || ''))
+    }
     showCreateTicket.value = false
     await loadTickets()
   } catch (e: any) {
-    ElMessage.error(e?.msg || '创建失败')
+    ElMessage.error(e?.msg || e?.message || '创建失败(exception)')
   } finally { submittingTicket.value = false }
 }
 
 async function onSubmitTicket(row: any) {
+  if (!row?.id) { ElMessage.error('无效工单'); return }
   try {
     await SubmitTicket(row.id)
     ElMessage.success('工单已提交，pipeline 已启动')
     await loadTickets()
   } catch (e: any) {
-    ElMessage.error(e?.msg || '提交失败')
+    ElMessage.error(e?.msg || e?.message || '提交失败')
   }
 }
 
 async function onViewTicket(row: any) {
   detailTicket.value = row
+  if (!row?.id) { showTicketDetail.value = true; return }
   try {
     const res = await ticketApi.detail(row.id)
-    const data = res.data || res
-    ticketNodeStatus.value = data.node_status ? Object.values(data.node_status) : []
-    const res2 = await GetTicketStatus(row.id)
-    if (res2.data?.node_status) {
-      ticketNodeStatus.value = res2.data.node_status
+    const ticketDetail = res?.data || res
+    ticketNodeStatus.value = ticketDetail.node_status ? Object.values(ticketDetail.node_status) : []
+    const statusRes = await GetTicketStatus(row.id)
+    const statusData = statusRes?.data || statusRes
+    if (statusData?.node_status) {
+      ticketNodeStatus.value = statusData.node_status
     }
   } catch { ticketNodeStatus.value = [] }
   showTicketDetail.value = true
@@ -514,7 +529,7 @@ async function loadWorkflows() {
     const params: any = {}
     if (wfFilter.value) params.itsm_type = wfFilter.value
     const res = await workflowApi.list(params)
-    workflows.value = res.data || []
+    workflows.value = res?.results || res?.data || res || []
   } finally { loadingWf.value = false }
 }
 
@@ -530,8 +545,18 @@ async function onDeployWorkflow(wf: any) {
   }
 }
 
-function onCreateTicketFromWf(wf: any) {
-  newTicket.workflow_version = wf.id
+async function onCreateTicketFromWf(wf: any) {
+  // Ensure deployed versions are loaded
+  if (!deployedVersions.value.length) {
+    const res = await workflowVersionApi.list()
+    deployedVersions.value = res?.results || res?.data || res || []
+  }
+  const version = deployedVersions.value.find((v: any) => v.workflow === wf.id)
+  if (!version) {
+    ElMessage.warning('该流程模板尚未部署，请先部署')
+    return
+  }
+  newTicket.workflow_version = version.id
   newTicket.title = `${wf.name} 工单`
   newTicket.itsm_type = wf.itsm_type
   showCreateTicket.value = true
@@ -592,7 +617,7 @@ const showCreateIncident = ref(false)
 
 async function loadIncidents() {
   loadingIncidents.value = true
-  try { const res = await incidentApi.list(); incidents.value = res.data || [] } finally { loadingIncidents.value = false }
+  try { const res = await incidentApi.list(); incidents.value = res?.results || res?.data || res || [] } finally { loadingIncidents.value = false }
 }
 async function assignIncident(row: any) {
   const { value } = await ElMessageBox.prompt('输入处理人 ID', '分派工单')
@@ -614,7 +639,7 @@ const loadingChanges = ref(false)
 const changes = ref<any[]>([])
 async function loadChanges() {
   loadingChanges.value = true
-  try { const res = await changeApi.list(); changes.value = res.data || [] } finally { loadingChanges.value = false }
+  try { const res = await changeApi.list(); changes.value = res?.results || res?.data || res || [] } finally { loadingChanges.value = false }
 }
 async function approveChange(row: any) {
   await ApproveChange(row.id); ElMessage.success('已批准'); await loadChanges()
@@ -628,7 +653,7 @@ const loadingSla = ref(false)
 const slaPolicies = ref<any[]>([])
 async function loadSla() {
   loadingSla.value = true
-  try { const res = await slaPolicyApi.list(); slaPolicies.value = res.data || [] } finally { loadingSla.value = false }
+  try { const res = await slaPolicyApi.list(); slaPolicies.value = res?.results || res?.data || res || [] } finally { loadingSla.value = false }
 }
 
 // ===== Utility =====

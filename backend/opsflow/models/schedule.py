@@ -7,6 +7,7 @@ class SchedulePlan(models.Model):
     class ScheduleType(models.TextChoices):
         ONE_TIME = 'one_time', 'One-time'
         CRON = 'cron', 'Periodic'
+        CMDB_EVENT = 'cmdb_event', 'CMDB Event'
 
     class Status(models.TextChoices):
         ACTIVE = 'active', 'Active'

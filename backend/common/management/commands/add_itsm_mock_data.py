@@ -220,37 +220,51 @@ class Command(BaseCommand):
         wf_count = st_count = tr_count = fi_count = vr_count = 0
 
         for wf_def in SAMPLE_WORKFLOWS:
-            wf, created = Workflow.objects.get_or_create(
-                name=wf_def["name"],
-                defaults={
-                    "itsm_type": wf_def["itsm_type"],
-                    "description": wf_def.get("description", ""),
-                    "is_draft": False, "is_enabled": True,
-                    "created_by": admin.username,
-                },
-            )
-            if created or force:
-                wf_count += 1
+            wf = Workflow.objects.filter(name=wf_def["name"]).first()
+            if wf and force:
+                wf.itsm_type = wf_def["itsm_type"]
+                wf.description = wf_def.get("description", "")
+                wf.is_draft = False
+                wf.is_enabled = True
+                wf.save()
+                created = True
+            elif not wf:
+                wf = Workflow.objects.create(
+                    name=wf_def["name"],
+                    itsm_type=wf_def["itsm_type"],
+                    description=wf_def.get("description", ""),
+                    is_draft=False, is_enabled=True,
+                    creator=admin,
+                )
+                created = True
+            else:
+                created = False
 
             state_map = {}
             for sdef in wf_def["states"]:
-                state, sc = State.objects.get_or_create(
-                    workflow=wf,
-                    name=sdef["name"],
-                    defaults={
-                        "type": sdef["type"],
-                        "is_builtin": sdef.get("is_builtin", False),
-                        "processors_type": sdef.get("processors_type", "PERSON"),
-                        "processors": sdef.get("processors", ""),
-                        "fields": sdef.get("fields", []),
-                    },
-                )
+                state = State.objects.filter(workflow=wf, name=sdef["name"]).first()
                 state_map[sdef["name"]] = state
-                if sc:
+                if state and force:
+                    state.type = sdef["type"]
+                    state.is_builtin = sdef.get("is_builtin", False)
+                    state.processors_type = sdef.get("processors_type", "PERSON")
+                    state.processors = sdef.get("processors", "")
+                    state.fields = sdef.get("fields", [])
+                    state.save()
+                elif not state:
+                    state = State.objects.create(
+                        workflow=wf, name=sdef["name"],
+                        type=sdef["type"],
+                        is_builtin=sdef.get("is_builtin", False),
+                        processors_type=sdef.get("processors_type", "PERSON"),
+                        processors=sdef.get("processors", ""),
+                        fields=sdef.get("fields", []),
+                    )
                     st_count += 1
+                    state_map[sdef["name"]] = state
 
                 for fdef in sdef.get("fields", []):
-                    _, fc = Field.objects.get_or_create(
+                    _, created = Field.objects.get_or_create(
                         state=state,
                         key=fdef["key"],
                         defaults={
@@ -259,7 +273,7 @@ class Command(BaseCommand):
                             "choice": fdef.get("choice", []),
                         },
                     )
-                    if fc:
+                    if created:
                         fi_count += 1
 
             for tdef in wf_def["transitions"]:
@@ -280,7 +294,7 @@ class Command(BaseCommand):
                         tr_count += 1
 
             if created or force:
-                wf.create_version(operator=admin.username, message="Mock deploy")
+                wf.create_version(operator=admin, message="Mock deploy")
                 vr_count += 1
 
         self.stdout.write(f"  + {wf_count} Workflows + {st_count} States + {tr_count} Transitions")
@@ -305,7 +319,7 @@ class Command(BaseCommand):
                     "itsm_type": wf.itsm_type,
                     "priority": ts["priority"],
                     "current_status": "draft",
-                    "creator": admin.username,
+                    "creator": admin,
                     "meta": {"source": "mock_data"},
                 },
             )

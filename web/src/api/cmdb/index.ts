@@ -1,5 +1,6 @@
+/// <reference types="vite/client" />
 /**
- * CMDB API
+ * CMDB API — 重构版（匹配新版纯 Cypher 后端 API）
  */
 import { request } from '/@/utils/service'
 
@@ -15,30 +16,72 @@ export function createCrudApi(resource: string) {
   }
 }
 
-export const modelDefinitionApi = createCrudApi('model-definitions')
-export const modelFieldApi = createCrudApi('model-fields')
-export const bizApi = createCrudApi('bizs')
-export const setApi = createCrudApi('sets')
-export const moduleApi = createCrudApi('modules')
-export const hostApi = createCrudApi('hosts')
-export const topologyApi = createCrudApi('topology')
+// ─── Schema API（MySQL） ───
+export const classificationsApi = createCrudApi('classifications')
+export const modelDefinitionsApi = createCrudApi('model-definitions')
+export const modelFieldsApi = createCrudApi('model-fields')
+export const attributeGroupsApi = createCrudApi('attribute-groups')
+export const associationTypesApi = createCrudApi('association-types')
+export const modelAssociationsApi = createCrudApi('model-associations')
+export const instanceAssociationsApi = createCrudApi('instance-associations')
+export const objectUniquesApi = createCrudApi('object-uniques')
+export const mainlineToposApi = createCrudApi('mainline-topos')
 
-export function GetBizTopology(id: string) {
-  return request({ url: `${prefix}/bizs/${id}/topology/`, method: 'get' })
+// ─── 动态实例 API（Neo4j） ───
+export function getInstances(modelCode: string, params?: any) {
+  return request({ url: `${prefix}/instances/${modelCode}/`, method: 'get', params })
 }
 
-export function GetHostGraph(params: { ip?: string; hostname?: string }) {
-  return request({ url: `${prefix}/topology/host_graph/`, method: 'get', params })
+export function createInstance(modelCode: string, data: any) {
+  return request({ url: `${prefix}/instances/${modelCode}/`, method: 'post', data })
 }
 
-export function GetImpactAnalysis(params: { node_id: string; node_type?: string }) {
-  return request({ url: `${prefix}/topology/impact/`, method: 'get', params })
+export function updateInstance(modelCode: string, id: string, data: any) {
+  return request({ url: `${prefix}/instances/${modelCode}/${id}/`, method: 'patch', data })
 }
 
-export function SearchNodes(q: string) {
-  return request({ url: `${prefix}/topology/search/`, method: 'get', params: { q } })
+export function deleteInstance(modelCode: string, id: string) {
+  return request({ url: `${prefix}/instances/${modelCode}/${id}/`, method: 'delete' })
 }
 
-export function BatchImportHosts(data: any[]) {
-  return request({ url: `${prefix}/hosts/batch_import/`, method: 'post', data })
+export function getInstanceDetail(modelCode: string, id: string) {
+  return request({ url: `${prefix}/instances/${modelCode}/${id}/`, method: 'get' })
+}
+
+// ─── 实例关联 API ───
+export function createRelation(data: { src_id: string; dst_id: string; asst_type: string }) {
+  return request({ url: `${prefix}/instance-associations/`, method: 'post', data })
+}
+
+export function deleteRelation(relId: string) {
+  return request({ url: `${prefix}/instance-associations/${relId}/`, method: 'delete' })
+}
+
+export function listRelations(params?: any) {
+  return request({ url: `${prefix}/instance-associations/`, method: 'get', params })
+}
+
+export function getNeighbors(instanceId: string, params?: { direction?: string; max_depth?: number }) {
+  return request({
+    url: `${prefix}/instance-associations/neighbors/`,
+    method: 'get',
+    params: { instance_id: instanceId, ...params },
+  })
+}
+
+// ─── 拓扑 API ───
+export function getTopology() {
+  return request({ url: `${prefix}/topology/`, method: 'get' })
+}
+
+export function getTopologyTree(rootId: string, params?: { depth?: number }) {
+  return request({ url: `${prefix}/topology/tree/`, method: 'get', params: { root_id: rootId, ...params } })
+}
+
+export function getImpact(nodeId: string, params?: { direction?: string; depth?: number }) {
+  return request({ url: `${prefix}/topology/impact/`, method: 'get', params: { node_id: nodeId, ...params } })
+}
+
+export function globalSearch(q: string, params?: { model_codes?: string[]; limit?: number }) {
+  return request({ url: `${prefix}/topology/search/`, method: 'get', params: { q, ...params } })
 }

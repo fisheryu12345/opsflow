@@ -16,9 +16,9 @@ class TicketSerializer(CustomModelSerializer):
 class TicketCreateSerializer(CustomModelSerializer):
     class Meta:
         model = Ticket
-        fields = ['title', 'workflow_version', 'itsm_type',
-                  'priority', 'urgency', 'impact', 'meta']
-        read_only_fields = ['sn', 'current_status']
+        fields = '__all__'
+        read_only_fields = ['sn', 'current_status', 'pipeline_id',
+                            'creator', 'create_datetime', 'update_datetime']
 
 
 class TicketSubmitSerializer(CustomModelSerializer):

@@ -167,7 +167,7 @@ defineExpose({ fetchData });
 </script>
 
 <style lang="scss" scoped>
-@use '../../../apps/opsflow/styles/opsflow-global' as *;
+@use '../../../../apps/opsflow/styles/opsflow-global' as *;
 
 .columns-table-com {
 	height: 100%;

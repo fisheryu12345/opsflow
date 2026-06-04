@@ -98,7 +98,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../apps/opsflow/styles/opsflow-global' as *;
+@use '../../../../apps/opsflow/styles/opsflow-global' as *;
 
 .item-com {
 	width: 100%;

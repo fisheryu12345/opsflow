@@ -25,7 +25,7 @@ class TicketViewSet(CustomModelViewSet):
     ordering = ['-create_datetime']
 
     def perform_create(self, serializer):
-        instance = serializer.save(creator=self.request.user.username)
+        instance = serializer.save(creator=self.request.user)
         instance.do_after_create()
         return instance
 

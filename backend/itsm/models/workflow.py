@@ -76,7 +76,10 @@ class Workflow(CoreModel):
                 'direction': t.direction,
             }
         fields_data = {}
-        for f in self.fields.all():
+        workflow_fields = []
+        for s in self.states.all():
+            workflow_fields.extend(list(s.field_defs.all()))
+        for f in workflow_fields:
             fields_data[f.id] = {
                 'id': f.id, 'state_id': f.state_id,
                 'key': f.key, 'name': f.name, 'type': f.type,
@@ -89,12 +92,12 @@ class Workflow(CoreModel):
             }
         return WorkflowVersion.objects.create(
             workflow=self,
-            version=self.updated_at.strftime('%Y%m%d%H%M%S') if self.updated_at else '',
+            version=self.update_datetime.strftime('%Y%m%d%H%M%S') if hasattr(self, 'update_datetime') and self.update_datetime else '',
             version_message=message,
             states=states_data,
             transitions=transitions_data,
             fields=fields_data,
-            created_by=operator,
+            creator=operator,
         )
 
 

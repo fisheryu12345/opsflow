@@ -1,5 +1,6 @@
 <template>
-  <el-dialog v-model="visible" title="Manage Execution Schemes" width="600px" @close="loadSchemes">
+  <el-dialog :model-value="visible" title="Manage Execution Schemes" width="600px"
+    @update:model-value="$emit('update:visible', $event)" @close="loadSchemes">
     <div class="scheme-manager">
       <div class="scheme-header">
         <el-button size="small" type="primary" :icon="Plus" @click="showEditor = true; editForm = { name: '', description: '', excluded_nodes: [], variable_overrides: {}, is_default: false }">
