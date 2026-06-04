@@ -1,0 +1,162 @@
+<h2>OpsFlow 完整运维平台 · 总体架构</h2>
+<p class="subtitle">从现有底座到完整 IT 运维管理平台的蓝图</p>
+
+<div class="section">
+  <h3>系统分层架构</h3>
+  <div style="font-family: monospace; line-height: 1.4; background: #0d1117; padding: 20px; border-radius: 8px; color: #c9d1d9;">
+    <pre style="margin:0;white-space:pre-wrap;word-break:break-word;">
+┌────────────────────────────────────────────────────────────┐
+│                   🖥️  展示层 (Web)                          │
+│  Vue 3 + Element Plus + TypeScript + ECharts               │
+│  仪表盘│CMDB│监控│日志│工单│审批│流程编排│AI助手│管理后台  │
+└──────────────────────────┬─────────────────────────────────┘
+                           │ API Gateway (REST + WebSocket)
+┌──────────────────────────▼─────────────────────────────────┐
+│               🔌  API 网关 / BFF 层                         │
+│   dvadmin router + opsflow router + opsagent router         │
+│   JWT 认证 | 权限校验 | 请求日志 | 频率限制 | 项目隔离     │
+└──────────────────────────┬─────────────────────────────────┘
+                           │
+┌──────────────────────────▼─────────────────────────────────┐
+│              🧩  业务服务层 (Django Apps)                    │
+│                                                             │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
+│  │  CMDB    │ │ ITSM/工单│ │ 监控告警 │ │   日志   │      │
+│  │  🆕核心  │ │  🆕核心  │ │  🆕核心  │ │  🆕核心  │      │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘      │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
+│  │ OpsFlow  │ │OpsAgent  │ │  IAM     │ │ dvadmin  │      │
+│  │ ✅ 已有  │ │ ✅ 已有  │ │ ✅ 已有  │ │ ✅底座   │      │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
+└──────────────────────────┬─────────────────────────────────┘
+                           │
+┌──────────────────────────▼─────────────────────────────────┐
+│              ⚙️  核心引擎层                                  │
+│  ├─ Pipeline Engine (bamboo-engine)  ├─ Scheduler (APScheduler)│
+│  ├─ Celery Task Queue (3 queues)     ├─ WebSocket (Channels) │
+│  ├─ Variable System / Mako Resolver  ├─ Webhook Dispatcher   │
+│  └─ Plugin Registry (10+ 插件组)     └─ AI Agent Loop         │
+└──────────────────────────┬─────────────────────────────────┘
+                           │
+┌──────────────────────────▼─────────────────────────────────┐
+│              🗄️  数据层                                     │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
+│  │  MySQL   │ │  Redis   │ │   ES     │ │  TSDB   │      │
+│  │(业务数据)│ │(缓存/队)│ │  🆕      │ │  🆕    │      │
+│  │          │ │          │ │(日志存储)│ │(监控数)│      │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
+│  ┌──────────┐ ┌──────────┐                                 │
+│  │ 对象存储  │ │  LLM API │                                 │
+│  │ 🆕(附件) │ │(DeepSeek)│                                 │
+│  └──────────┘ └──────────┘                                 │
+└────────────────────────────────────────────────────────────┘
+
+=== 颜色标记 ===
+✅ 已有    🆕 新增    🏗️ 部分已有
+</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>六大新增模块依赖关系</h3>
+  <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+    <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 12px 16px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: #238636; color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">1</div>
+        <div style="flex:1;">
+          <strong style="color: #58a6ff;">CMDB 配置管理</strong>
+          <div style="color: #8b949e; font-size: 0.85em;">业务/集群/模块/主机/进程模型 · 拓扑管理 · 模型自定义 · 事件推送</div>
+        </div>
+        <div style="color: #2ea043; font-size: 1.2em;">← 数据底座</div>
+      </div>
+    </div>
+    <div style="border-left: 2px dashed #30363d; height: 16px; margin-left: 18px;"></div>
+    <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 12px 16px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: #1f6feb; color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">2</div>
+        <div style="flex:1;">
+          <strong style="color: #58a6ff;">ITSM + 工单系统</strong>
+          <div style="color: #8b949e; font-size: 0.85em;">服务目录 · 事件/问题/变更管理 · SLA · 审批流联动 · 服务请求</div>
+        </div>
+        <div style="color: #2ea043;">建立在 CMDB 之上</div>
+      </div>
+    </div>
+    <div style="border-left: 2px dashed #30363d; height: 16px; margin-left: 18px;"></div>
+    <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 12px 16px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: #1f6feb; color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">3</div>
+        <div style="flex:1;">
+          <strong style="color: #58a6ff;">监控 + 告警系统</strong>
+          <div style="color: #8b949e; font-size: 0.85em;">数据源接入(Prometheus/Zabbix) · 告警收敛 · 通知路由 · 自动工单</div>
+        </div>
+        <div style="color: #2ea043;">自动创建工单 → ITSM</div>
+      </div>
+    </div>
+    <div style="border-left: 2px dashed #30363d; height: 16px; margin-left: 18px;"></div>
+    <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 12px 16px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: #1f6feb; color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">4</div>
+        <div style="flex:1;">
+          <strong style="color: #58a6ff;">日志系统</strong>
+          <div style="color: #8b949e; font-size: 0.85em;">集中采集 · 全文检索(ES) · 日志聚类 · 关联到 CMDB 资产</div>
+        </div>
+        <div style="color: #2ea043;">可并行</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px; background: #161b22; border-radius: 8px; padding: 16px;">
+  <h3>数据流闭环</h3>
+  <div style="font-family: monospace; color: #c9d1d9; font-size: 0.9em; line-height: 1.6;">
+    监控采集指标 → 触发告警规则 → 告警收敛 → 自动创建事件工单(ITSM)
+         ↓                                                        ↓
+    通知负责人 ← 升级策略 ← SLA计时                        OpsFlow 自动修复
+         ↓                                                        ↓
+    工单转变更 → 变更审批 → OpsFlow执行 → CMDB更新 ←──────────┘
+         ↓
+    知识库沉淀(OpsKnowledge)
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>技术选型建议</h3>
+  <div class="options" style="margin-top: 8px;" data-multiselect>
+    <div class="option" data-choice="cmdb-mysql" onclick="toggleSelect(this)">
+      <div class="letter">1</div>
+      <div class="content">
+        <h3>CMDB → Django ORM + MySQL</h3>
+        <p>利用现有 dvadmin CoreModel 基类扩展，最省力。适合 10w 级资产</p>
+      </div>
+    </div>
+    <div class="option" data-choice="cmdb-hybrid" onclick="toggleSelect(this)">
+      <div class="letter">2</div>
+      <div class="content">
+        <h3>CMDB → 模型自定义 + JSON 扩展字段</h3>
+        <p>核心关系用 MySQL，自定义属性用 JSON，避免 EAV 性能问题</p>
+      </div>
+    </div>
+    <div class="option" data-choice="monitor-prom" onclick="toggleSelect(this)">
+      <div class="letter">3</div>
+      <div class="content">
+        <h3>监控告警 → Prometheus 数据源适配</h3>
+        <p>OpsFlow 做告警规则管理、收敛、通知。Prometheus 做指标采集存储</p>
+      </div>
+    </div>
+    <div class="option" data-choice="log-es" onclick="toggleSelect(this)">
+      <div class="letter">4</div>
+      <div class="content">
+        <h3>日志 → Filebeat + Elasticsearch</h3>
+        <p>OpsFlow 做日志检索界面、权限控制。ES 集群做存储和搜索</p>
+      </div>
+    </div>
+    <div class="option" data-choice="itsm-django" onclick="toggleSelect(this)">
+      <div class="letter">5</div>
+      <div class="content">
+        <h3>ITSM → Django Workflow Engine</h3>
+        <p>工单系统基于状态机，流程可配置，复用 OpsFlow 的审批节点能力</p>
+      </div>
+    </div>
+  </div>
+  <p style="color: #8b949e; margin-top: 8px; font-size: 0.85em;">可以点选多个技术选项让我知道你的倾向</p>
+</div>

@@ -1,0 +1,178 @@
+<h2>架构补充 · 对外 API 网关层</h2>
+<p class="subtitle">第三方系统→OpsFlow 平台的双向集成入口</p>
+
+<div class="section">
+  <h3>平台集成总线</h3>
+  <div style="font-family: monospace; font-size: 0.78em; background: #0d1117; padding: 16px; border-radius: 8px; color: #c9d1d9; line-height: 1.5; overflow-x: auto;">
+<pre style="margin:0;">
+                     外部第三方系统
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │  运维友商系统  │  客户自建系统  │  上级平台  │  移动APP  │  小程序  │
+  └────────┬──────────────┬──────────────┬───────────────┬─────────────┘
+           │              │              │               │
+           │              │              │               │
+           ▼              ▼              ▼               ▼
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │              🌐 对外 API 网关 (Open API Gateway) 🆕                 │
+  │                                                                      │
+  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
+  │  │ 认证鉴权  │ │ 频率限制  │ │ 签名验证  │ │ 数据脱敏  │ │ 调用计费 │  │
+  │  │ API Token│ │ 配额管理 │ │ HMAC-SHA│ │ 字段级   │ │ 计量    │  │
+  │  │ OAuth2   │ │          │ │          │ │          │ │          │  │
+  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘  │
+  └──────────────────────────┬──────────────────────────────────────────┘
+                             │
+  ┌──────────────────────────▼──────────────────────────────────────────┐
+  │         API 路由 /api/v2/open/  (与内部 API /api/ 隔离)             │
+  │                                                                      │
+  │  ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐     │
+  │  │CMDB   │ │ITSM   │ │作业   │ │告警   │ │集成   │ │OpsFlow│     │
+  │  │开放API│ │开放API│ │开放API│ │开放API│ │开放API│ │开放API│     │
+  │  └───────┘ └───────┘ └───────┘ └───────┘ └───────┘ └───────┘     │
+  └─────────────────────────────────────────────────────────────────────┘
+                             │
+                             ▼
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │  业务层: CMDB │ ITSM │ Monitor │ 作业平台 │ 集成中心 │ OpsFlow      │
+  └─────────────────────────────────────────────────────────────────────┘</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>已有的基础 (opsflow/apigw)</h3>
+  <div style="background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 0.85em; color: #c9d1d9;">
+<pre style="margin:0;">
+<span style="color: #8b949e;"># 已有模型 opsflow/models/auth.py</span>
+<span style="color:#7ee787;">class</span> <span style="color:#d2a8ff;">ApiToken</span>(CoreModel):
+    <span style="color:#ffa657;">name</span>     = CharField()        <span style="color:#8b949e;"># 应用名称</span>
+    <span style="color:#ffa657;">token</span>    = CharField(unique)   <span style="color:#8b949e;"># 生成的 token</span>
+    <span style="color:#ffa657;">expire_at</span>= DateTimeField()    <span style="color:#8b949e;"># 过期时间</span>
+    <span style="color:#ffa657;">allow_ips</span>= JSONField()        <span style="color:#8b949e;"># IP 白名单</span>
+
+<span style="color:#8b949e;"># 已有视图 opsflow/views/apigw/</span>
+- <span style="color:#ffa657;">cmdb.py</span>    → CMDB mock 端点
+- <span style="color:#ffa657;">execution.py</span> → 流程执行端点
+- <span style="color:#ffa657;">webhook.py</span>  → Webhook 接收端点
+
+<span style="color:#8b949e;"># 需要扩展: 从 opsflow 专属 → 全平台统一</span>
+</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>对外 API 模型扩展</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+    <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 14px;">
+      <h4 style="color: #58a6ff; margin: 0 0 6px 0;">ApiApp (应用管理)</h4>
+      <div style="color: #8b949e; font-size: 0.85em;">
+        name, description, company, contact_email<br>
+        status (active/disabled), rate_limit (qps)<br>
+        allowed_apis (JSON: 可访问的 API 列表)<br>
+        callback_url (异步结果回调)
+      </div>
+    </div>
+    <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 14px;">
+      <h4 style="color: #58a6ff; margin: 0 0 6px 0;">ApiToken 扩展</h4>
+      <div style="color: #8b949e; font-size: 0.85em;">
+        关联 ApiApp, 支持多 token 轮换<br>
+        支持 access_key + secret_key 双因子<br>
+        到期自动失效, 手动吊销<br>
+        最后使用时间, 调用计数
+      </div>
+    </div>
+    <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 14px;">
+      <h4 style="color: #58a6ff; margin: 0 0 6px 0;">OpenApiLog (调用日志)</h4>
+      <div style="color: #8b949e; font-size: 0.85em;">
+        关联 ApiApp + ApiToken<br>
+        request_path, method, params<br>
+        response_status, duration_ms<br>
+        ip_address, user_agent
+      </div>
+    </div>
+    <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 14px;">
+      <h4 style="color: #58a6ff; margin: 0 0 6px 0;">Webhook 订阅</h4>
+      <div style="color: #8b949e; font-size: 0.85em;">
+        第三方注册事件回调<br>
+        事件类型: 工单状态变更/告警触发/作业完成/审批结果<br>
+        签名验证, 重试策略, 死信队列
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>开放 API 清单 (首批)</h3>
+  <div style="overflow-x: auto;">
+    <table style="width:100%; border-collapse: collapse; color: #c9d1d9; font-size: 0.82em;">
+      <tr style="border-bottom: 1px solid #30363d;">
+        <th style="padding: 8px; text-align: left; color: #8b949e;">模块</th>
+        <th style="padding: 8px; text-align: left; color: #8b949e;">API</th>
+        <th style="padding: 8px; text-align: left; color: #8b949e;">场景</th>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>CMDB</strong></td>
+        <td style="padding: 8px;">查询资产 / 同步资产 / 拓扑查询</td>
+        <td style="padding: 8px;">第三方同步资产数据到 OpsFlow</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>ITSM</strong></td>
+        <td style="padding: 8px;">创建工单 / 查询工单 / 工单回调</td>
+        <td style="padding: 8px;">外部系统提单, 工单状态同步</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>监控告警</strong></td>
+        <td style="padding: 8px;">告警推送 / 查询告警 / 确认告警</td>
+        <td style="padding: 8px;">非 Prometheus 系统的告警接入</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>作业平台</strong></td>
+        <td style="padding: 8px;">执行作业 / 查询结果 / 上传脚本</td>
+        <td style="padding: 8px;">外部系统触发运维操作</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>OpsFlow</strong></td>
+        <td style="padding: 8px;">启动流程 / 查询状态 / 审批操作</td>
+        <td style="padding: 8px;">已有, 扩展到全平台</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px;"><strong>事件回调</strong></td>
+        <td style="padding: 8px;">Webhook 事件订阅 / 事件推送</td>
+        <td style="padding: 8px;">工单完成/告警触发主动通知第三方</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>API 架构决策</h3>
+  <div class="options" style="margin-top: 8px;">
+    <div class="option" data-choice="apigw-old" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>扩展现有 opsflow/apigw → 全平台</h3>
+        <p>在已有 apigw 基础上增加 CMDB/ITSM/Monitor 等开放端点。复用 ApiToken 认证和基础架构</p>
+        <div style="color: #8b949e; font-size: 0.85em;">最小改动 · 统一入口 · URL 前缀 /api/v2/open/</div>
+      </div>
+    </div>
+    <div class="option" data-choice="apigw-new" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>独立的 open_api App</h3>
+        <p>新建独立的 open_api Django app，每个模块的开放视图放在这里。内部模块提供 service 层接口，open_api 负责组装和暴露</p>
+        <div style="color: #8b949e; font-size: 0.85em;">职责清晰 · 内部 API 和开放 API 物理隔离</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="background: #1a2332; border: 1px solid #58a6ff; border-radius: 8px; padding: 16px; margin-top: 20px;">
+  <p style="color: #58a6ff; margin: 0 0 6px 0;"><strong>📐 设计原则</strong></p>
+  <ul style="color: #c9d1d9; margin: 0;">
+    <li><strong>内外隔离</strong> — 对外 API 使用独立路由前缀 (<code>/api/v2/open/</code>)，与内部 API 物理隔离</li>
+    <li><strong>应用级权限</strong> — 每个第三方应用一个 ApiApp，独立 Token、独立配额、独立 IP 白名单</li>
+    <li><strong>双向</strong> — 既支持第三方调用 OpsFlow (Open API)，也支持 OpsFlow 回调第三方 (Webhook)</li>
+    <li><strong>规范化</strong> — 统一响应格式 (复用 DetailResponse/ErrorResponse 标准)，提供 OpenAPI 文档</li>
+  </ul>
+</div>
+
+<p style="color: #8b949e; margin-top: 16px;">你是倾向扩展现有的 opsflow/apigw (A)，还是建独立的 open_api app (B)？</p>

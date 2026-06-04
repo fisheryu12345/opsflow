@@ -1,3 +1,10 @@
+/**
+ * OpsFlow WebSocket monitor composable
+ *
+ * Provides two consumption modes:
+ *   reactive    – nodeStatuses ref (Vue reactive, batched)
+ *   callback    – onNodeStatus(nodeId, status) fires per WS message (unbatched)
+ */
 import { ref, onBeforeUnmount } from 'vue'
 
 export function useMonitor() {
@@ -5,6 +12,15 @@ export function useMonitor() {
   const connected = ref(false)
   const nodeStatuses = ref<Record<string, string>>({})
   const executionStatus = ref<string>('')
+
+  /** Per-message callback — fires for every WS message (unbatched) */
+  let _onNodeStatus: ((nodeId: string, status: string, oldStatus?: string) => void) | null = null
+  let _onExecutionCompleted: ((status: string) => void) | null = null
+  let _onInitState: ((data: any) => void) | null = null
+
+  function onNodeStatus(cb: typeof _onNodeStatus) { _onNodeStatus = cb }
+  function onExecutionCompleted(cb: typeof _onExecutionCompleted) { _onExecutionCompleted = cb }
+  function onInitState(cb: typeof _onInitState) { _onInitState = cb }
 
   function connect(executionId: number) {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -19,9 +35,12 @@ export function useMonitor() {
       try {
         const msg = JSON.parse(event.data)
         if (msg.type === 'node_status') {
+          const old = nodeStatuses.value[msg.node_id]
           nodeStatuses.value[msg.node_id] = msg.status
+          _onNodeStatus?.(msg.node_id, msg.status, old)
         } else if (msg.type === 'execution_completed') {
           executionStatus.value = msg.status
+          _onExecutionCompleted?.(msg.status)
           // 不断开 WS：保留连接以接收可能延迟到达的节点状态消息
           //（Celery 通知 vs 前端 execution_completed 的时序竞争）
           // 用户离开页面时 onBeforeUnmount → disconnect() 会清理连接
@@ -30,6 +49,7 @@ export function useMonitor() {
             nodeStatuses.value = { ...msg.data.node_status }
           }
           executionStatus.value = msg.data.status
+          _onInitState?.(msg.data)
         }
       } catch (e) {
         console.error('WebSocket 消息解析失败', e)
@@ -70,5 +90,6 @@ export function useMonitor() {
   return {
     ws, connected, nodeStatuses, executionStatus,
     connect, disconnect, send, getNodeColor,
+    onNodeStatus, onExecutionCompleted, onInitState,
   }
 }

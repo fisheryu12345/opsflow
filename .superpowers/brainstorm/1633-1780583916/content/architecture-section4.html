@@ -1,0 +1,178 @@
+<h2>架构设计 · 第四节：ITSM 工单系统</h2>
+<p class="subtitle">存储：MySQL (事务数据) + Neo4j (CMDB关联) | 状态机驱动 | 联动 OpsFlow 审批流</p>
+
+<div class="section">
+  <h3>ITSM 流程体系</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+    <div style="background: #1a2332; border: 1px solid #d29922; border-radius: 8px; padding: 16px;">
+      <h4 style="color: #d29922; margin: 0 0 8px 0;">🎫 事件管理 (Incident)</h4>
+      <div style="color: #8b949e; font-size: 0.85em;">
+        监控告警触发生成 · 用户提报 · SLA 计时 · 升级策略 · 解决后关闭<br>
+        <span style="color: #c9d1d9;">优先级：P1/P2/P3/P4</span>
+      </div>
+    </div>
+    <div style="background: #1a2332; border: 1px solid #58a6ff; border-radius: 8px; padding: 16px;">
+      <h4 style="color: #58a6ff; margin: 0 0 8px 0;">📋 服务请求 (Service Request)</h4>
+      <div style="color: #8b949e; font-size: 0.85em;">
+        用户自助提单 · 权限申请 · 资源申请 · 标准化审批流 · 自动交付<br>
+        <span style="color: #c9d1d9;">服务目录 → 表单 → 审批 → 交付</span>
+      </div>
+    </div>
+    <div style="background: #1a2332; border: 1px solid #2ea043; border-radius: 8px; padding: 16px;">
+      <h4 style="color: #2ea043; margin: 0 0 8px 0;">🔄 变更管理 (Change)</h4>
+      <div style="color: #8b949e; font-size: 0.85em;">
+        变更申请 · 风险评估 · CAB 审批 · 变更窗口 · 回滚计划 · OpsFlow 执行<br>
+        <span style="color: #c9d1d9;">标准/普通/紧急变更</span>
+      </div>
+    </div>
+    <div style="background: #1a2332; border: 1px solid #f85149; border-radius: 8px; padding: 16px;">
+      <h4 style="color: #f85149; margin: 0 0 8px 0;">🔍 问题管理 (Problem)</h4>
+      <div style="color: #8b949e; font-size: 0.85em;">
+        根因分析 · 已知错误 · 知识库沉淀 · 预防措施 · 关联事件<br>
+        <span style="color: #c9d1d9;">定位、原因、解决方案 → OpsKnowledge</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>工单生命周期状态机</h3>
+  <div style="font-family: monospace; font-size: 0.8em; background: #0d1117; padding: 16px; border-radius: 8px; color: #c9d1d9; overflow-x: auto;">
+<pre style="margin:0;">
+以事件工单为例：
+            ┌──────────┐
+            │  新建     │
+            └────┬─────┘
+                 │
+            ┌────▼─────┐    ┌───────────┐
+            │  待分派   │───▶│  升级     │
+            └────┬─────┘    └───────────┘
+                 │               ↑
+            ┌────▼─────┐        │
+            │  处理中   │────────┘ (超时/SLA 违例)
+            └────┬─────┘
+                 │
+            ┌────▼─────┐    ┌───────────┐
+            │  已解决   │───▶│  重新打开  │
+            └────┬─────┘    └───────────┘
+                 │               ↑
+            ┌────▼─────┐        │
+            │  已关闭   │────────┘ (用户确认未解决)
+            └──────────┘
+
+状态转换可由: 用户操作 / API 触发 / SLA 超时 / 自动化规则 驱动
+</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>Django 数据模型设计</h3>
+  <div style="font-family: monospace; font-size: 0.8em; background: #0d1117; padding: 16px; border-radius: 8px; color: #c9d1d9;">
+<pre style="margin:0;">
+<span style="color: #8b949e;"># itsm/models/incident.py</span>
+
+<span style="color:#7ee787;">class</span> <span style="color:#d2a8ff;">Incident</span>(CoreModel):              <span style="color:#8b949e;"># 继承 dvadmin CoreModel → 自动 id/creator/.../deleted</span>
+    <span style="color:#ffa657;">incident_id</span>  = CharField(max_length=32, unique=True)
+    <span style="color:#ffa657;">title</span>        = CharField(max_length=255)
+    <span style="color:#ffa657;">description</span>  = TextField()
+    <span style="color:#ffa657;">status</span>       = CharField(choices=INCIDENT_STATUS)  <span style="color:#8b949e;"># 状态机</span>
+    <span style="color:#ffa657;">priority</span>     = CharField(choices=PRIORITY)        <span style="color:#8b949e;"># P1-P4</span>
+    <span style="color:#ffa657;">source</span>       = CharField(choices=SOURCE)          <span style="color:#8b949e;"># 监控告警/用户提报/API</span>
+    <span style="color:#ffa657;">category</span>     = ForeignKey(ServiceCategory)       <span style="color:#8b949e;"># 服务分类</span>
+    <span style="color:#ffa657;">assignee</span>     = ForeignKey(User, null=True)       <span style="color:#8b949e;"># 当前处理人</span>
+    <span style="color:#ffa657;">sla_policy</span>   = ForeignKey(SlaPolicy)
+    <span style="color:#ffa657;">sla_deadline</span> = DateTimeField()                   <span style="color:#8b949e;"># SLA 截止时间</span>
+    <span style="color:#ffa657;">sla_status</span>   = CharField(choices=SLA_STATUS)     <span style="color:#8b949e;"># 正常/警告/违例</span>
+
+    <span style="color:#8b949e;"># CMDB 关联 (Neo4j 节点 ID)</span>
+    <span style="color:#ffa657;">cmdb_biz_id</span>  = CharField(max_length=64, null=True)
+    <span style="color:#ffa657;">cmdb_host_id</span> = CharField(max_length=64, null=True)  <span style="color:#8b949e;"># 关联受影响的主机</span>
+    <span style="color:#ffa657;">cmdb_data</span>    = JSONField(default=dict)             <span style="color:#8b949e;"># 快照: 资产详情</span>
+
+    <span style="color:#8b949e;"># 来源告警 (监控联动)</span>
+    <span style="color:#ffa657;">alert_id</span>     = CharField(max_length=64, null=True)  <span style="color:#8b949e;"># Grafana Alert ID</span>
+    <span style="color:#ffa657;">alert_data</span>   = JSONField(default=dict)             <span style="color:#8b949e;"># 告警原始数据</span>
+</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>SLA 体系设计</h3>
+  <div style="background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px;">
+    <table style="width:100%; border-collapse: collapse; color: #c9d1d9; font-size: 0.85em;">
+      <tr style="border-bottom: 1px solid #30363d;">
+        <th style="padding: 6px; text-align: left; color: #8b949e;">优先级</th>
+        <th style="padding: 6px; text-align: left; color: #8b949e;">响应时间</th>
+        <th style="padding: 6px; text-align: left; color: #8b949e;">解决时间</th>
+        <th style="padding: 6px; text-align: left; color: #8b949e;">升级策略</th>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 6px;"><strong style="color: #f85149;">P1 危急</strong></td>
+        <td style="padding: 6px;">≤ 15 分钟</td>
+        <td style="padding: 6px;">≤ 4 小时</td>
+        <td style="padding: 6px;">10 分钟未响应 → 升级到主管</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 6px;"><strong style="color: #d29922;">P2 高</strong></td>
+        <td style="padding: 6px;">≤ 1 小时</td>
+        <td style="padding: 6px;">≤ 8 小时</td>
+        <td style="padding: 6px;">30 分钟未响应 → 升级到主管</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 6px;"><strong style="color: #58a6ff;">P3 中</strong></td>
+        <td style="padding: 6px;">≤ 4 小时</td>
+        <td style="padding: 6px;">≤ 24 小时</td>
+        <td style="padding: 6px;">2 小时未响应 → 升级</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px;">P4 低</td>
+        <td style="padding: 6px;">≤ 24 小时</td>
+        <td style="padding: 6px;">≤ 72 小时</td>
+        <td style="padding: 6px;">24 小时未响应 → 提醒</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>ITSM 前端页面规划</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">工单工作台</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">待处理/我提报/我处理/所有工单 · 多维筛选</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">工单详情</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">时间线 · 操作记录 · 关联资产 · 关联告警 · 关联变更</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">SLA 看板</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">实时 SLA 状态 · 违例工单 · 趋势统计 · 升级处理</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">服务目录</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">用户自助 · 服务分类 · 表单模板 · 自动分派</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">变更日历</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">变更甘特图 · 维护窗口 · 冲突检测 · 审批看板</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">统计报表</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">工单量趋势 · MTTR · SLA 达标率 · 分类分布</span>
+    </div>
+  </div>
+</div>
+
+<div style="background: #1a2332; border: 1px solid #d29922; border-radius: 8px; padding: 16px; margin-top: 20px;">
+  <p style="color: #d29922; margin: 0 0 8px 0;"><strong>你关心的要点：</strong></p>
+  <ul style="color: #c9d1d9; margin: 0;">
+    <li>工单通过 cmdb_biz_id / cmdb_host_id 关联 CMDB 资产 (Neo4j 节点 ID)</li>
+    <li>工单创建时快照资产数据到 cmdb_data JSON 字段（防止资产变更后工单信息丢失）</li>
+    <li>监控告警自动创建的事件工单自动携带 alert_id / alert_data</li>
+    <li>服务请求类工单可关联 OpsFlow 执行计划实现自动交付</li>
+    <li>审批节点复用 OpsFlow 现有 approval 机制</li>
+  </ul>
+</div>
+
+<p style="color: #8b949e; margin-top: 16px;">ITSM 设计对得上吗？确认后进入最后一节：Phase 1 实施路线图。</p>

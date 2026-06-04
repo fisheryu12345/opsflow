@@ -1,0 +1,156 @@
+<h2>架构设计 · 第三节：数据采集层设计</h2>
+<p class="subtitle">Prometheus(推)→TSDB | Telegraf(拉)→InfluxDB | Grafana可视化+告警 | OpsFlow平台联动</p>
+
+<div class="section">
+  <h3>数据采集整体架构</h3>
+  <div style="font-family: monospace; font-size: 0.8em; background: #0d1117; padding: 16px; border-radius: 8px; color: #c9d1d9; line-height: 1.5;">
+<pre style="margin:0;">
+┌─────────────────────────────────────────────────────────────────────┐
+│                         数据采集层                                    │
+│                                                                      │
+│  ┌─────────────────────────────┐  ┌─────────────────────────────┐  │
+│  │  路径 A: Prometheus 生态     │  │  路径 B: TICK 生态          │  │
+│  │  (Pull 拉模式)              │  │  (Push 推模式)              │  │
+│  │                             │  │                             │  │
+│  │  node_exporter  ─┐         │  │  Telegraf ──▶ InfluxDB     │  │
+│  │  kube_state_met  │         │  │   ↑          ↑               │  │
+│  │  blackbox_exp    ├─▶PromTSDB│  │   ├─ 应用自定义指标          │  │
+│  │  mysql_exp       │         │  │   ├─ 网络设备(Syslog/SNMP)    │  │
+│  │  nginx_exp       │         │  │   ├─ 业务指标(API埋点)        │  │
+│  │  custom_exp     ─┘         │  │   └─ JMX/Kafka/DB            │  │
+│  └──────────────┬──────────────┘  └──────────────┬──────────────┘  │
+│                 │                                 │                 │
+│                 ▼                                 ▼                 │
+│  ┌─────────────────────────────┐  ┌─────────────────────────────┐  │
+│  │    Prometheus Server        │  │     InfluxDB                │  │
+│  │    Metric 存储 + 查询       │  │     Metric 存储 + 持续查询  │  │
+│  │    Record Rules + Alert     │  │     Task/Flux               │  │
+│  └──────────────┬──────────────┘  └──────────────┬──────────────┘  │
+└─────────────────┼─────────────────────────────────┼────────────────┘
+                  │                                 │
+┌─────────────────▼─────────────────────────────────▼────────────────┐
+│                       Grafana                                         │
+│    Dashboard 可视化 │ Alert Rules 管理 │ Notification Channel       │
+│                                                                      │
+│    Grafana Alerting API ◀════ OpsFlow 读取告警事件 ═══▶ 联动 ITSM   │
+└──────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>两条采集路径的职责划分</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px;">
+    <div style="background: #1a2332; border: 1px solid #1f6feb; border-radius: 8px; padding: 16px;">
+      <h4 style="color: #58a6ff; margin: 0 0 8px 0;">🔵 Prometheus + Exporter</h4>
+      <div style="color: #8b949e; font-size: 0.85em;">
+        <strong style="color: #c9d1d9;">拉模式 (Pull)</strong><br>
+        • 基础设施指标 (CPU/内存/磁盘/网络)<br>
+        • 中间件指标 (MySQL/Redis/Nginx)<br>
+        • K8s 集群指标 (kube-state-metrics)<br>
+        • 网络探测 (blackbox-exporter)<br>
+        • 自定义 exporter<br>
+        <br>
+        <strong style="color: #c9d1d9;">存储：</strong>Prometheus TSDB (本地/远端)<br>
+        <strong style="color: #c9d1d9;">保留策略：</strong>短期高精度 (15d)
+      </div>
+    </div>
+    <div style="background: #1a2332; border: 1px solid #2ea043; border-radius: 8px; padding: 16px;">
+      <h4 style="color: #2ea043; margin: 0 0 8px 0;">🟢 Telegraf + InfluxDB</h4>
+      <div style="color: #8b949e; font-size: 0.85em;">
+        <strong style="color: #c9d1d9;">推模式 (Push)</strong><br>
+        • 业务自定义指标 (API 埋点)<br>
+        • 网络设备指标 (SNMP/Syslog)<br>
+        • 应用性能指标 (JMX/Kafka)<br>
+        • 云厂商指标 (AWS/Azure/阿里云)<br>
+        • 自定义脚本采集<br>
+        <br>
+        <strong style="color: #c9d1d9;">存储：</strong>InfluxDB<br>
+        <strong style="color: #c9d1d9;">保留策略：</strong>长期抽样 (90d+)
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>OpsFlow 平台的监控集成点</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 8px;">
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px;">
+      <div style="color: #d29922; font-weight: bold;">① 告警消费</div>
+      <div style="color: #8b949e; font-size: 0.85em; margin-top: 4px;">
+        OpsFlow 通过 Grafana Alerting API 读取告警事件 → 创建 ITSM 事件工单 → 通知负责人
+      </div>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px;">
+      <div style="color: #d29922; font-weight: bold;">② 数据源管理</div>
+      <div style="color: #8b949e; font-size: 0.85em; margin-top: 4px;">
+        OpsFlow 管理监控目标(Target)注册，自动同步 CMDB 主机到 Prometheus SD 或 Telegraf 配置
+      </div>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px;">
+      <div style="color: #d29922; font-weight: bold;">③ 仪表盘嵌入</div>
+      <div style="color: #8b949e; font-size: 0.85em; margin-top: 4px;">
+        OpsFlow 页面通过 iframe/Grafana API 嵌入 CMDB 资产的实时监控面板
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>告警→工单联动流程</h3>
+  <div style="background: #0d1117; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 0.85em; color: #c9d1d9;">
+<pre style="margin:0;">
+Grafana Alert 触发
+    ↓
+Grafana Webhook / Alertmanager Webhook
+    ↓
+OpsFlow webhook receiver (复用 ops_webhook_config)
+    ↓
+告警收敛引擎: 去重 + 聚合 + 抑制 (Redis 缓存)
+    ↓
+关联 CMDB: 根据标签/hostname/IP 找到受影响资产
+    ↓
+确定影响范围 & 影响业务
+    ↓
+┌─── 自动模式 ─────────────────────────┐
+│  创建事件工单 (Incident)              │
+│  SLA 开始计时                        │
+│  通知负责人 (WebSocket/企微/邮件)    │
+└──────────────────────────────────────┘
+</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>监控管理前端页面</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">监控目标管理</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">Exporter/Telegraf 注册、Target 分组、健康状态</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">告警事件中心</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">告警列表、收敛历史、事件详情、关联工单</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">资产监控面板</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">CMDB 资产关联实时指标、历史趋势、Grafana 嵌入</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">通知策略</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">通知组、值班表、通知模板、发送记录</span>
+    </div>
+  </div>
+</div>
+
+<div style="background: #1a2332; border: 1px solid #d29922; border-radius: 8px; padding: 16px; margin-top: 20px;">
+  <p style="color: #d29922; margin: 0 0 8px 0;"><strong>⚡ 确认：目前的监控方案</strong></p>
+  <ul style="color: #c9d1d9; margin: 0;">
+    <li>采集：<strong>Prometheus + Exporter</strong> (基础设施) + <strong>Telegraf + InfluxDB</strong> (业务/网络设备)</li>
+    <li>可视化 + 告警：<strong>Grafana</strong> (双数据源: Prometheus + InfluxDB)</li>
+    <li>OpsFlow 集成：通过 <strong>Grafana Alerting API / Webhook</strong> 消费告警 → 联动 ITSM 工单</li>
+    <li>告警收敛、通知路由、资产关联由 OpsFlow 平台管理</li>
+  </ul>
+</div>
+
+<p style="color: #8b949e; margin-top: 16px;">这部分对得上你的想法吗？确认后进入下一节：ITSM 工单系统设计。</p>

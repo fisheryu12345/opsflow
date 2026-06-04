@@ -1,0 +1,155 @@
+<h2>Phase 1 最终范围 · 完整架构蓝图</h2>
+<p class="subtitle">8个模块 · 3条主线 · 完整运维闭环</p>
+
+<div class="section">
+  <h3>总览</h3>
+  <div style="font-family: monospace; font-size: 0.78em; background: #0d1117; padding: 16px; border-radius: 8px; color: #c9d1d9; line-height: 1.4; overflow-x: auto;">
+<pre style="margin:0;">
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                    ✅ Phase 1 完整模块 (8个模块, ~10周)                          │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐     │
+│  │                   运维门户 (Portal)                                       │     │
+│  │  待办聚合 · 快捷操作 · 全局搜索 · 个人面板                               │     │
+│  └─────────────────────────────────────────────────────────────────────────┘     │
+│                                                                                  │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐             │
+│  │  CMDB    │ │  作业    │ │  ITSM    │ │  监控     │ │  日志    │             │
+│  │  Neo4j   │ │  平台    │ │  工单    │ │  告警     │ │  中心    │             │
+│  │  拓扑    │ │  批量    │ │  SLA     │ │ Prom+Inf │ │  ES      │             │
+│  │  模型    │ │  文件    │ │  变更    │ │  Grafana │ │  (P2)   │             │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └──────────┘             │
+│       │            │            │            │                                 │
+│       └──────┬─────┴─────┬──────┘            │                                 │
+│              │           │                   │                                 │
+│  ┌───────────▼───────────▼───────────────────▼────┐                            │
+│  │            🔌 集成中心 (Integration Hub)         │                            │
+│  │  阿里云│腾讯云│华为云│短信│邮件│企微│钉钉│LDAP  │                            │
+│  └──────────────────────┬─────────────────────────┘                            │
+│                         │                                                      │
+│  ┌──────────────────────▼─────────────────────────────────────────────────┐    │
+│  │  已有底座: OpsFlow引擎│OpsAgent AI│IAM权限│dvadmin RBAC│Celery│Scheduler│    │
+│  └─────────────────────────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>各模块技术方案速览</h3>
+  <div style="overflow-x: auto;">
+    <table style="width:100%; border-collapse: collapse; color: #c9d1d9; font-size: 0.82em;">
+      <tr style="border-bottom: 1px solid #30363d;">
+        <th style="padding: 8px; text-align: left; color: #8b949e;">模块</th>
+        <th style="padding: 8px; text-align: left; color: #8b949e;">App 名称</th>
+        <th style="padding: 8px; text-align: left; color: #8b949e;">存储</th>
+        <th style="padding: 8px; text-align: left; color: #8b949e;">关键依赖</th>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>CMDB</strong></td>
+        <td style="padding: 8px;"><code>cmdb</code></td>
+        <td style="padding: 8px;">Neo4j (neomodel) + MySQL (schema)</td>
+        <td style="padding: 8px;">集成中心(云资产同步)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>ITSM</strong></td>
+        <td style="padding: 8px;"><code>itsm</code></td>
+        <td style="padding: 8px;">MySQL</td>
+        <td style="padding: 8px;">CMDB(资产关联), OpsFlow(审批)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>监控告警</strong></td>
+        <td style="padding: 8px;"><code>monitor</code></td>
+        <td style="padding: 8px;">MySQL (规则/配置)</td>
+        <td style="padding: 8px;">CMDB(关联资产), Grafana API</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>集成中心</strong></td>
+        <td style="padding: 8px;"><code>integration</code></td>
+        <td style="padding: 8px;">MySQL (凭证AES加密)</td>
+        <td style="padding: 8px;">无</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>作业平台</strong></td>
+        <td style="padding: 8px;"><code>job_platform</code></td>
+        <td style="padding: 8px;">MySQL</td>
+        <td style="padding: 8px;">opsagent(SSH/local_exec), CMDB(目标主机)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>运维门户</strong></td>
+        <td style="padding: 8px;"><code>portal</code></td>
+        <td style="padding: 8px;">— (聚合层, 轻后端)</td>
+        <td style="padding: 8px;">所有模块(聚合数据)</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px;"><strong>日志中心</strong></td>
+        <td style="padding: 8px;"><code>log_center</code></td>
+        <td style="padding: 8px;">Elasticsearch (P2)</td>
+        <td style="padding: 8px;">CMDB(主机关联)</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>新增前端页面</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px;">
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">运维门户</strong>
+      <div style="color: #8b949e; font-size: 0.8em;">首页 · 个人工作台 · 快捷操作 · 通知中心</div>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">CMDB</strong>
+      <div style="color: #8b949e; font-size: 0.8em;">业务管理 · 主机管理 · 拓扑视图 · 模型管理</div>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">作业平台</strong>
+      <div style="color: #8b949e; font-size: 0.8em;">作业执行 · 文件分发 · 执行记录 · 脚本管理</div>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">ITSM</strong>
+      <div style="color: #8b949e; font-size: 0.8em;">工单工作台 · 工单详情 · SLA看板 · 变更日历</div>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">监控告警</strong>
+      <div style="color: #8b949e; font-size: 0.8em;">告警事件 · 资产监控 · 通知策略 · 目标管理</div>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">集成中心</strong>
+      <div style="color: #8b949e; font-size: 0.8em;">连接器市场 · 实例管理 · 凭证管理 · 调用监控</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>Phase 1 → Phase 2 演进</h3>
+  <div style="display: flex; gap: 12px; margin-top: 8px;">
+    <div style="flex: 1; background: #0d1117; border: 1px solid #238636; border-radius: 8px; padding: 12px;">
+      <div style="color: #2ea043; font-weight: bold; font-size: 0.85em;">🏁 Phase 1 (~10周)</div>
+      <div style="color: #8b949e; font-size: 0.8em; margin-top: 4px;">
+        CMDB + ITSM + 监控告警 + 集成中心 + 作业平台 + 运维门户<br>
+        <span style="color: #c9d1d9;">完整运维闭环：发现→流程→执行→沉淀</span>
+      </div>
+    </div>
+    <div style="flex: 1; background: #0d1117; border: 1px solid #1f6feb; border-radius: 8px; padding: 12px;">
+      <div style="color: #58a6ff; font-weight: bold; font-size: 0.85em;">⏩ Phase 2 (~6周)</div>
+      <div style="color: #8b949e; font-size: 0.8em; margin-top: 4px;">
+        日志中心 + AIOps + 报表中心<br>
+        <span style="color: #c9d1d9;">可观测 + 智能化</span>
+      </div>
+    </div>
+    <div style="flex: 1; background: #0d1117; border: 1px solid #bc8cff; border-radius: 8px; padding: 12px;">
+      <div style="color: #bc8cff; font-weight: bold; font-size: 0.85em;">🎯 Phase 3 (~6周)</div>
+      <div style="color: #8b949e; font-size: 0.8em; margin-top: 4px;">
+        巡检合规 + 容量规划 + 安全运营<br>
+        <span style="color: #c9d1d9;">治理 + 合规</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="background: #1a2332; border: 1px solid #58a6ff; border-radius: 8px; padding: 16px; margin-top: 20px;">
+  <p style="color: #c9d1d9; margin: 0;">
+    整体架构设计全部完成。<strong>确认无误的话，我会开始写正式的架构设计文档</strong>，保存到 <code>docs/superpowers/specs/</code> 并提交到 git。然后进入实施计划阶段。
+  </p>
+</div>

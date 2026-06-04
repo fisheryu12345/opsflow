@@ -1,0 +1,105 @@
+<h2>OpsFlow 架构决策 · 基于你的选择</h2>
+<p class="subtitle">CMDB → Neo4j | 单体优先 | 阶段化演进</p>
+
+<div class="section">
+  <h3>✅ 已确认：CMDB 采用 Neo4j</h3>
+  <div style="background: #0d1117; border: 1px solid #238636; border-radius: 8px; padding: 16px; margin-top: 8px;">
+    <p style="color: #8b949e; margin: 0;">CMDB 天然适合图数据库：</p>
+    <ul style="color: #c9d1d9;">
+      <li><strong>拓扑建模</strong> — 业务 → 集群 → 模块 → 主机 → 进程，天然是图结构</li>
+      <li><strong>影响分析</strong> — "这台主机挂了会影响哪些服务？"在 Neo4j 里是 O(1) 级别的遍历</li>
+      <li><strong>路径发现</strong> — 调用链追踪、网络依赖分析，图数据库比 MySQL JOIN 快 10-100×</li>
+      <li><strong>自定义模型</strong> — Neo4j 的 schema-free 特性天然适配 CMDB 模型动态扩展的需求</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>待确认：三大架构决策</h3>
+
+  <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 16px; margin-top: 12px;">
+    <h4>决策 1：CMDB 的技术架构怎么搭？</h4>
+    <div class="options" style="margin-top: 8px;">
+      <div class="option" data-choice="neomodel" onclick="toggleSelect(this)">
+        <div class="letter">A</div>
+        <div class="content">
+          <h3>neomodel (Python OGM)</h3>
+          <p>类 Django ORM 的图对象映射库，用 Python 定义节点/关系，与 Django 集成最好</p>
+          <div style="color: #8b949e; font-size: 0.85em;">pip install neomodel · 支持 Django Signal · 熟悉度高</div>
+        </div>
+      </div>
+      <div class="option" data-choice="py2neo" onclick="toggleSelect(this)">
+        <div class="letter">B</div>
+        <div class="content">
+          <h3>py2neo (底层驱动)</h3>
+          <p>更灵活的 Cypher 查询构建，适合复杂图查询，但需要手写 Cypher</p>
+          <div style="color: #8b949e; font-size: 0.85em;">更灵活 · 学习曲线高 · 完全控制 SQL/Cypher</div>
+        </div>
+      </div>
+      <div class="option" data-choice="django-neo4j" onclick="toggleSelect(this)">
+        <div class="letter">C</div>
+        <div class="content">
+          <h3>Django + Neo4j 双数据源</h3>
+          <p>CMDB 业务数据在 Neo4j，关联的 RBAC/审批/审计在 MySQL，Django 配置双数据库路由</p>
+          <div style="color: #8b949e; font-size: 0.85em;">最佳实践 · 各取所长 · 需要 router 配置</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 16px; margin-top: 12px;">
+    <h4>决策 2：ITSM 工单是否也采用图数据存储？</h4>
+    <div class="options" style="margin-top: 8px;">
+      <div class="option" data-choice="itsm-mysql" onclick="toggleSelect(this)">
+        <div class="letter">A</div>
+        <div class="content">
+          <h3>ITSM → MySQL 纯关系模型</h3>
+          <p>工单/流程/SLA 是事务性数据，MySQL 更合适。状态机引擎 + 流程模板</p>
+          <div style="color: #8b949e; font-size: 0.85em;">ACID 事务保障 · Django ORM 直接使用 · 成熟度高</div>
+        </div>
+      </div>
+      <div class="option" data-choice="itsm-hybrid" onclick="toggleSelect(this)">
+        <div class="letter">B</div>
+        <div class="content">
+          <h3>工单主体 MySQL + CMDB 关联走 Neo4j</h3>
+          <p>工单表中的资产/配置项字段存储 Neo4j 节点 ID，查询时跨数据源联合</p>
+          <div style="color: #8b949e; font-size: 0.85em;">灵活关联 · 复杂度中等</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 16px; margin-top: 12px;">
+    <h4>决策 3：第一阶段(Phase 1)的边界是什么？</h4>
+    <div class="options" style="margin-top: 8px;">
+      <div class="option" data-choice="scope-minimal" onclick="toggleSelect(this)">
+        <div class="letter">A</div>
+        <div class="content">
+          <h3>最小可用 CMDB</h3>
+          <p>只做 CMDB 核心模型（业务/集群/模块/主机/进程）、拓扑视图、基础 CRUD API。先让 CMDB 跑起来，其他模块后续接入</p>
+          <div style="color: #8b949e; font-size: 0.85em;">~2周 · 最聚焦</div>
+        </div>
+      </div>
+      <div class="option" data-choice="scope-cmdb-itsm" onclick="toggleSelect(this)">
+        <div class="letter">B</div>
+        <div class="content">
+          <h3>CMDB + ITSM 工单绑定</h3>
+          <p>CMDB 上线同时搭建工单系统，工单能关联 CMDB 配置项，事件管理走通"发现→提单→处理→关闭"闭环</p>
+          <div style="color: #8b949e; font-size: 0.85em;">~4周 · 闭环价值</div>
+        </div>
+      </div>
+      <div class="option" data-choice="scope-full" onclick="toggleSelect(this)">
+        <div class="letter">C</div>
+        <div class="content">
+          <h3>CMDB + ITSM + 监控告警接入</h3>
+          <p>三条线一起：CMDB 定义资产、工单管流程、监控发现即告警，告警自动创建事件工单</p>
+          <div style="color: #8b949e; font-size: 0.85em;">~8周 · 高风险高回报</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <p style="color: #8b949e;">页面有三组决策，每组都选一个你倾向的选项。或者直接在终端回复也行。</p>
+</div>

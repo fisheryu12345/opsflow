@@ -1,0 +1,213 @@
+<h2>架构更新 · 集成中心 + 完整生态</h2>
+<p class="subtitle">集成中心作为外部系统的统一网关，所有模块通过它访问外部服务</p>
+
+<div class="section">
+  <h3>加入集成中心后的完整架构</h3>
+  <div style="font-family: monospace; font-size: 0.78em; background: #0d1117; padding: 16px; border-radius: 8px; color: #c9d1d9; line-height: 1.4; overflow-x: auto;">
+<pre style="margin:0;">
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                               前端 (Vue 3 + TS)                                   │
+│  CMDB视图 │ 工单中心 │ 监控大屏 │ 集成中心 │ 流程编排 │ AI助手 │ 管理后台       │
+└─────────────────────────────────┬────────────────────────────────────────────────┘
+                                  │ REST + WebSocket (JWT)
+┌─────────────────────────────────▼────────────────────────────────────────────────┐
+│                          API 网关 / BFF 层                                        │
+│  dvadmin router → 权限校验 → 项目隔离 → 请求日志 → 频率限制                      │
+└─────────────────────────────────┬────────────────────────────────────────────────┘
+                                  │
+┌─────────────────────────────────▼────────────────────────────────────────────────┐
+│                        🧩  业务服务层 (Django Apps)                              │
+│                                                                                  │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐                   │
+│  │  CMDB   │ │  ITSM   │ │ Monitor │ │   Log   │ │   IAM   │                   │
+│  │  🆕核心 │ │  🆕核心 │ │  🆕核心 │ │  🆕P2  │ │ ✅已有  │                   │
+│  │ Neo4j   │ │ 工单/SLA│ │ Prom+Inf│ │ ES检索  │ │ 权限    │                   │
+│  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ └─────────┘                   │
+│       │           │           │           │                                     │
+│       └──────┬────┴────┬──────┘           │                                     │
+│              │         │                  │                                     │
+│  ┌───────────▼─────────▼──────────────────▼─────┐                               │
+│  │         🔌 集成中心 (Integration Hub) 🆕       │                               │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────────┐ │                               │
+│  │  │ 连接器管理 │ │ 凭证管理  │ │ 调用审计/监控 │ │                               │
+│  │  │ 注册/配置 │ │ 加密存储 │ │ 限流/熔断    │ │                               │
+│  │  └────┬─────┘ └────┬─────┘ └──────┬───────┘ │                               │
+│  │       │            │              │          │                               │
+│  │  ┌────▼────────────▼──────────────▼───────┐  │                               │
+│  │  │        适配器层 (Connector Adapters)     │  │                               │
+│  │  │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐  │  │                               │
+│  │  │  │阿里云│ │腾讯云│ │华为云│ │私有云│  │  │                               │
+│  │  │  └──────┘ └──────┘ └──────┘ └──────┘  │  │                               │
+│  │  │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐  │  │                               │
+│  │  │  │短信   │ │邮件   │ │企微   │ │钉钉   │  │                               │
+│  │  │  └──────┘ └──────┘ └──────┘ └──────┘  │  │                               │
+│  │  │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐  │  │                               │
+│  │  │  │LDAP  │ │AD    │ │VMware│ │...   │  │  │                               │
+│  │  │  └──────┘ └──────┘ └──────┘ └──────┘  │  │                               │
+│  │  └──────────────────────────────────────────┘  │                               │
+│  └────────────────────────────────────────────────┘                               │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐     │
+│  │  OpsFlow (引擎) │ OpsAgent (AI) │ dvadmin (底座) │ Celery (任务队列)    │     │
+│  └─────────────────────────────────────────────────────────────────────────┘     │
+└─────────────────────────────────┬────────────────────────────────────────────────┘
+                                  │
+┌─────────────────────────────────▼────────────────────────────────────────────────┐
+│  数据层                         │                       外部系统                 │
+│  ┌──────┐ ┌─────┐ ┌─────┐ ┌────┐ │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐      │
+│  │MySQL │ │Neo4j│ │Redis│ │ ES │ │  │阿里云│ │腾讯云│ │华为云│ │短信  │      │
+│  │事务  │ │CMDB │ │缓存 │ │日志│ │  │      │ │      │ │      │ │网关  │      │
+│  └──────┘ └─────┘ └─────┘ └────┘ │  └──────┘ └──────┘ └──────┘ └──────┘      │
+└──────────────────────────────────┘──────────────────────────────────────────────┘
+</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>集成中心核心模型</h3>
+  <div style="font-family: monospace; font-size: 0.8em; background: #0d1117; padding: 16px; border-radius: 8px; color: #c9d1d9;">
+<pre style="margin:0;">
+<span style="color: #8b949e;"># integration/models/</span>
+
+<span style="color:#7ee787;">class</span> <span style="color:#d2a8ff;">ConnectorDefinition</span>(CoreModel):           <span style="color:#8b949e;"># 连接器定义</span>
+    <span style="color:#ffa657;">code</span>     = CharField(unique=True)          <span style="color:#8b949e;"># aliyun_ecs / wecom / sms_aliyun</span>
+    <span style="color:#ffa657;">name</span>     = CharField()                     <span style="color:#8b949e;"># 阿里云ECS / 企业微信</span>
+    <span style="color:#ffa657;">category</span> = CharField(choices=CATEGORY)      <span style="color:#8b949e;"># cloud / notification / auth / paas</span>
+    <span style="color:#ffa657;">version</span>   = CharField()
+    <span style="color:#ffa657;">icon</span>      = CharField()                     <span style="color:#8b949e;"># 图标 URL</span>
+    <span style="color:#ffa657;">config_schema</span> = JSONField()               <span style="color:#8b949e;"># 配置表单 JSON Schema</span>
+    <span style="color:#ffa657;">is_active</span> = BooleanField(default=True)
+    <span style="color:#ffa657;">provider_class</span>= CharField()                <span style="color:#8b949e;"># Python 类路径</span>
+
+<span style="color:#7ee787;">class</span> <span style="color:#d2a8ff;">ConnectorInstance</span>(CoreModel):             <span style="color:#8b949e;"># 连接器实例 (一个定义可多个实例)</span>
+    <span style="color:#ffa657;">definition</span> = FK(ConnectorDefinition)
+    <span style="color:#ffa657;">name</span>       = CharField()                   <span style="color:#8b949e;"># "生产环境阿里云"</span>
+    <span style="color:#ffa657;">config</span>     = JSONField()                   <span style="color:#8b949e;"># region, endpoint 等非敏感配置</span>
+    <span style="color:#ffa657;">status</span>     = CharField(choices=STATUS)      <span style="color:#8b949e;"># online / offline / error</span>
+    <span style="color:#ffa657;">health_check_url</span> = CharField()
+    <span style="color:#ffa657;">last_health_check</span>= DateTimeField()
+    <span style="color:#ffa657;">is_active</span>  = BooleanField(default=True)
+
+<span style="color:#7ee787;">class</span> <span style="color:#d2a8ff;">ConnectorCredential</span>(CoreModel):          <span style="color:#8b949e;"># 凭证 (加密存储)</span>
+    <span style="color:#ffa657;">instance</span>   = FK(ConnectorInstance)
+    <span style="color:#ffa657;">name</span>       = CharField()                   <span style="color:#8b949e;"># "阿里云 AK"</span>
+    <span style="color:#ffa657;">cred_type</span>  = CharField(choices=CRED_TYPE)   <span style="color:#8b949e;"># access_key / password / token / cert</span>
+    <span style="color:#ffa657;">encrypted_value</span> = TextField()            <span style="color:#8b949e;"># AES-256 加密存储</span>
+    <span style="color:#ffa657;">expire_at</span>  = DateTimeField(null=True)     <span style="color:#8b949e;"># 过期时间</span>
+
+<span style="color:#7ee787;">class</span> <span style="color:#d2a8ff;">IntegrationLog</span>(CoreModel):               <span style="color:#8b949e;"># 调用审计日志</span>
+    <span style="color:#ffa657;">instance</span>   = FK(ConnectorInstance)
+    <span style="color:#ffa657;">action</span>     = CharField()                   <span style="color:#8b949e;"># describe_instances / send_sms</span>
+    <span style="color:#ffa657;">request</span>    = JSONField()
+    <span style="color:#ffa657;">response</span>   = JSONField()
+    <span style="color:#ffa657;">status</span>     = CharField(choices=CALL_STATUS) <span style="color:#8b949e;"># success / failed / timeout</span>
+    <span style="color:#ffa657;">duration_ms</span>= IntegerField()
+    <span style="color:#ffa657;">error_msg</span>  = TextField(null=True)
+    <span style="color:#ffa657;">source</span>     = CharField()                   <span style="color:#8b949e;"># 调用来源模块</span>
+</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>适配器架构</h3>
+  <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 16px;">
+    <div style="font-family: monospace; font-size: 0.85em; color: #c9d1d9;">
+<pre style="margin:0;">
+<span style="color: #8b949e;"># integration/adapters/base.py</span>
+<span style="color:#7ee787;">class</span> <span style="color:#d2a8ff;">BaseConnector</span>(ABC):
+    """所有连接器必须实现的接口"""
+    <span style="color:#ff79c6;">@abstractmethod</span>
+    <span style="color:#7ee787;">def</span> <span style="color:#d2a8ff;">health_check</span>(self) -> HealthResult: ...
+    <span style="color:#ff79c6;">@abstractmethod</span>
+    <span style="color:#7ee787;">def</span> <span style="color:#d2a8ff;">get_client</span>(self) -> Any: ...          <span style="color:#8b949e;"># 返回 SDK 客户端</span>
+
+<span style="color:#8b949e;"># integration/adapters/cloud/aliyun.py</span>
+<span style="color:#7ee787;">class</span> <span style="color:#d2a8ff;">AliyunConnector</span>(BaseConnector):
+    <span style="color:#7ee787;">def</span> <span style="color:#d2a8ff;">get_client</span>(self):
+        <span style="color:#7ee787;">return</span> AcsClient(self.ak, self.sk, self.region)
+
+<span style="color:#8b949e;"># integration/adapters/notification/sms.py</span>
+<span style="color:#7ee787;">class</span> <span style="color:#d2a8ff;">AliyunSmsConnector</span>(BaseConnector):
+    <span style="color:#7ee787;">def</span> <span style="color:#d2a8ff;">send</span>(self, phone, template, params): ...
+</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>Module 集成点矩阵</h3>
+  <div style="overflow-x: auto;">
+    <table style="width:100%; border-collapse: collapse; color: #c9d1d9; font-size: 0.8em;">
+      <tr style="border-bottom: 1px solid #30363d;">
+        <th style="padding: 8px; text-align: left; color: #8b949e;">模块</th>
+        <th style="padding: 8px; text-align: left; color: #8b949e;">通过集成中心调用的外部系统</th>
+        <th style="padding: 8px; text-align: left; color: #8b949e;">场景</th>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>CMDB</strong></td>
+        <td style="padding: 8px;">阿里云 ECS / 腾讯云 CVM / 华为云 / VMware</td>
+        <td style="padding: 8px;">自动同步云上资产</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>Monitor</strong></td>
+        <td style="padding: 8px;">云监控 API (CloudMonitor/CloudWatch)</td>
+        <td style="padding: 8px;">拉取云监控指标</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>ITSM</strong></td>
+        <td style="padding: 8px;">短信/邮件/企微/钉钉</td>
+        <td style="padding: 8px;">工单通知、审批提醒</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>OpsFlow</strong></td>
+        <td style="padding: 8px;">Ansible Tower / 云 API / LDAP</td>
+        <td style="padding: 8px;">自动化执行、用户同步</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 8px;"><strong>OpsAgent</strong></td>
+        <td style="padding: 8px;">DeepSeek API (已有) / 其他 LLM</td>
+        <td style="padding: 8px;">AI 助手</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px;"><strong>集成中心自身</strong></td>
+        <td style="padding: 8px;">LDAP/AD (认证源)</td>
+        <td style="padding: 8px;">统一身份认证</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>集成中心前端页面</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">连接器市场</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">浏览可用连接器 · 安装/升级 · 查看适配器版本</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">实例管理</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">配置连接实例 · 凭证管理(加密) · 健康检查 · 启停</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">调用监控</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">实时调用量 · 成功率/延时 · 错误分布 · Top 慢调用</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">凭证管理</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">AK/SK/密码 加密存储 · 过期提醒 · 轮换记录 · 访问审计</span>
+    </div>
+  </div>
+</div>
+
+<div style="background: #1a2332; border: 1px solid #58a6ff; border-radius: 8px; padding: 16px; margin-top: 20px;">
+  <p style="color: #58a6ff; margin: 0 0 8px 0;"><strong>📐 集成中心的设计原则</strong></p>
+  <ul style="color: #c9d1d9; margin: 0;">
+    <li><strong>所有外部调用走集成中心</strong> — 不准其他模块直接调用外部 API，强制通过集成中心</li>
+    <li><strong>凭证统一加密管理</strong> — AES-256 加密存储，审计所有凭证使用记录</li>
+    <li><strong>连接器可插拔</strong> — 每个适配器是一个 Python class，注册后自动发现</li>
+    <li><strong>统一熔断/限流</strong> — 防止外部 API 不稳定级联影响整个平台</li>
+    <li><strong>健康检查</strong> — 定期检测外部服务可达性，状态可视化</li>
+  </ul>
+</div>
+
+<p style="color: #8b949e; margin-top: 16px;">你觉得集成中心的定位和设计对得上吗？确认后我更新整体架构文档。</p>

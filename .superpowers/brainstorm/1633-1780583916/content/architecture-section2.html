@@ -1,0 +1,171 @@
+<h2>架构设计 · 第二节：CMDB 模型设计</h2>
+<p class="subtitle">存储：Neo4j (neomodel OGM) | 关联查询：Django MySQL + Neo4j 双数据源</p>
+
+<div class="section">
+  <h3>整体技术栈确认</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+    <div style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <span style="color: #8b949e;">CMDB 存储</span><br>
+      <span style="color: #58a6ff; font-weight: bold;">Neo4j (neomodel OGM)</span>
+    </div>
+    <div style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <span style="color: #8b949e;">CMDB + ITSM 关联</span><br>
+      <span style="color: #58a6ff; font-weight: bold;">MySQL + Neo4j 双数据源</span>
+    </div>
+    <div style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <span style="color: #8b949e;">监控指标存储</span><br>
+      <span style="color: #58a6ff; font-weight: bold;">Prometheus TSDB</span>
+    </div>
+    <div style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <span style="color: #8b949e;">可视化和告警</span><br>
+      <span style="color: #58a6ff; font-weight: bold;">Grafana (对接 Alerting API)</span>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>CMDB 核心数据模型 (Neo4j)</h3>
+  <div style="font-family: monospace; font-size: 0.8em; background: #0d1117; padding: 16px; border-radius: 8px; color: #c9d1d9; line-height: 1.6;">
+<pre style="margin:0;">
+┌─ 节点(Node) ─────────────────────────────────────────────────┐
+│                                                               │
+│  (Biz)────:contains────▶(Set)────:contains────▶(Module)      │
+│   业务       包含       集群       包含       模块             │
+│   ▲                                                        │
+│   │ :belongs_to                                               │
+│   │                                                           │
+│  (Host)────:runs────▶(Process)──:depends_on──▶(Process)     │
+│   主机       运行       进程       依赖       进程             │
+│   │                                                           │
+│   │ :deployed_to                                              │
+│   │                                                           │
+│  (App)────:connects_to──▶(DB)                                │
+│   应用       连接       数据库                                 │
+│                                                               │
+│  (User)──:owns────▶(Biz)                                     │
+│   用户     拥有       业务                                     │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>neomodel 节点定义 (示意)</h3>
+  <div style="font-family: monospace; font-size: 0.8em; background: #0d1117; padding: 16px; border-radius: 8px; color: #c9d1d9;">
+<pre style="margin:0;">
+<span style="color: #8b949e;"># cmdb/models/node_types.py</span>
+
+<span style="color:#7ee787;">class</span> <span style="color:#d2a8ff;">Biz</span>(StructuredNode):
+    <span style="color:#ffa657;">biz_id</span>       = UniqueIdProperty()    <span style="color:#8b949e;"># 业务ID</span>
+    <span style="color:#ffa657;">name</span>         = StringProperty()       <span style="color:#8b949e;"># 业务名称</span>
+    <span style="color:#ffa657;">lifecycle</span>    = StringProperty(choices=LIFECYCLE)  <span style="color:#8b949e;"># 生命周期</span>
+    <span style="color:#ffa657;">operator</span>     = StringProperty()
+    <span style="color:#ffa657;">description</span>  = StringProperty()
+    <span style="color:#ffa657;">created_at</span>   = DateTimeProperty(default_now=True)
+
+    <span style="color:#8b949e;"># 关系</span>
+    <span style="color:#ffa657;">sets</span> = RelationshipTo('Set', 'CONTAINS')
+
+<span style="color:#7ee787;">class</span> <span style="color:#d2a8ff;">Host</span>(StructuredNode):
+    <span style="color:#ffa657;">host_id</span>      = UniqueIdProperty()
+    <span style="color:#ffa657;">ip</span>           = StringProperty(required=True)
+    <span style="color:#ffa657;">hostname</span>     = StringProperty()
+    <span style="color:#ffa657;">os_type</span>      = StringProperty()
+    <span style="color:#ffa657;">cpu_cores</span>    = IntegerProperty()
+    <span style="color:#ffa657;">memory_mb</span>    = IntegerProperty()
+    <span style="color:#ffa657;">disk_gb</span>      = IntegerProperty()
+    <span style="color:#ffa657;">status</span>       = StringProperty(choices=HOST_STATUS)
+    <span style="color:#ffa657;">agent_status</span> = StringProperty(choices=AGENT_STATUS)
+    <span style="color:#ffa657;">agent_version</span>= StringProperty()
+    <span style="color:#ffa657;">labels</span>       = JSONProperty()       <span style="color:#8b949e;"># 自定义标签</span>
+
+    <span style="color:#8b949e;"># 关系</span>
+    <span style="color:#ffa657;">module</span>  = RelationshipTo('Module', 'BELONGS_TO')
+    <span style="color:#ffa657;">process</span> = RelationshipTo('Process', 'RUNS')
+</pre>
+    <div style="color: #8b949e; margin-top: 8px;">🛈 所有节点继承 StructuredNode，关系通过 RelationshipTo/From 定义</div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>模型自定义引擎 (关键设计)</h3>
+  <div style="background: #1a2332; border: 1px solid #2d4a7a; border-radius: 8px; padding: 16px;">
+    <p style="color: #c9d1d9; margin: 0;">CMDB 不能只支持固定模型——用户需要自定义模型和字段：</p>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px;">
+      <div style="border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+        <div style="color: #58a6ff; font-weight: bold;">模型定义</div>
+        <div style="color: #8b949e; font-size: 0.85em;">
+          MySQL 表存模型 schema<br>
+          MySQL 表存字段定义<br>
+          Neo4j 标签(Tag)实例化<br>
+          支持: 字符串/整数/枚举/日期/JSON/关联
+        </div>
+      </div>
+      <div style="border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+        <div style="color: #58a6ff; font-weight: bold;">动态节点</div>
+        <div style="color: #8b949e; font-size: 0.85em;">
+          通过 neomodel 动态创建 Node<br>
+          标签 = 模型标识<br>
+          共性字段预定义<br>
+          自定义字段 JSON<br>
+          Cypher 查询动态构建
+        </div>
+      </div>
+      <div style="border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+        <div style="color: #58a6ff; font-weight: bold;">拓扑视图</div>
+        <div style="color: #8b949e; font-size: 0.85em;">
+          Neo4j Browser 式拓扑图<br>
+          力导向布局<br>
+          按模型/标签过滤<br>
+          展开/折叠子图<br>
+          影响分析路径高亮
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>双数据源策略</h3>
+  <div style="background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px;">
+    <table style="width:100%; border-collapse: collapse; color: #c9d1d9;">
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 6px;"><strong style="color: #58a6ff;">MySQL (+ Django ORM)</strong></td>
+        <td style="padding: 6px;">模型定义、权限、审计日志、工单数据、用户、审批</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #30363d;">
+        <td style="padding: 6px;"><strong style="color: #2ea043;">Neo4j (neomodel)</strong></td>
+        <td style="padding: 6px;">CMDB 节点实例、拓扑关系、自定义属性、影响分析</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px;"><strong style="color: #d29922;">桥接机制</strong></td>
+        <td style="padding: 6px;">MySQL 存 neo4j_node_id 引用，Django Neo4j Router 自动选择数据源</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>CMDB 前端页面规划</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">业务管理</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">业务树 · 集群/模块级联 · CRUD · 导入导出</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">主机管理</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">主机列表 · IP/主机名搜索 · 批量操作 · 关联拓扑</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">拓扑视图</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">力导向图 · 分层展开 · 影响分析 · 依赖追踪</span>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px;">
+      <strong style="color: #58a6ff;">模型管理</strong><br>
+      <span style="color: #8b949e; font-size: 0.85em;">自定义模型/字段 · 关联关系 · 验证规则</span>
+    </div>
+  </div>
+</div>
+
+<p style="color: #8b949e; margin-top: 16px;">这一节对得上吗？确认后进入 CMDB 的 API 设计和关系定义详情。</p>

@@ -1,0 +1,116 @@
+<h2>架构设计 · 第一节：整体蓝图</h2>
+<p class="subtitle">已确认：CMDB→Neo4j | ITSM→MySQL+Neo4j混合 | Phase1→CMDB+ITSM+告警</p>
+
+<div class="section">
+  <h3>应用架构总览</h3>
+  <div style="font-family: monospace; line-height: 1.5; background: #0d1117; padding: 16px; border-radius: 8px; color: #c9d1d9; font-size: 0.85em; overflow-x: auto;">
+<pre style="margin:0;">
+┌─────────────────────────────────────────────────────────────────────┐
+│                       前端 (Vue 3 + TS)                              │
+│     CMDB视图 │ 工单中心 │ 监控大屏 │ 日志检索 │ 流程编排 │ AI助手  │
+└──────────────────────┬──────────────────────────────────────────────┘
+                       │ REST + WebSocket (JWT)
+┌──────────────────────▼──────────────────────────────────────────────┐
+│                        API 网关层                                    │
+│   dvadmin router → 权限校验 → 项目隔离 → 请求日志                    │
+└──────────────────────┬──────────────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────────────┐
+│     Django Apps — 单体优先，模块内聚，依赖倒置                       │
+│                                                                      │
+│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐         │
+│  │  cmdb (🆕)     │  │ itsm (🆕)      │  │  monitor (🆕)  │         │
+│  │  ───────────   │  │  ───────────   │  │  ───────────   │         │
+│  │  Neo4j OGM     │  │ 状态机引擎     │  │ Prometheus适配 │         │
+│  │  拓扑管理      │  │ 工单/变更/事件 │  │ 告警规则引擎   │         │
+│  │  自定义模型    │  │ SLA计时器      │  │ 通知路由       │         │
+│  │  变更推送      │  │ 审批流联动     │  │ CMDB联动       │         │
+│  └───────┬────────┘  └───────┬────────┘  └───────┬────────┘         │
+│          │                   │                   │                  │
+│  ┌───────▼───────────────────▼───────────────────▼────────┐         │
+│  │          核心设施层 (已有 + 扩展)                        │         │
+│  │  ┌─────────┐ ┌──────────┐ ┌────────┐ ┌──────────┐     │         │
+│  │  │OpsFlow  │ │OpsAgent  │ │ IAM    │ │ Celery   │     │         │
+│  │  │引擎/调度│ │AI 运维   │ │权限自助│ │任务队列  │     │         │
+│  │  └─────────┘ └──────────┘ └────────┘ └──────────┘     │         │
+│  └────────────────────────────────────────────────────────┘         │
+└──────────────────────┬──────────────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────────────┐
+│  数据层                                                              │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐      │
+│  │  MySQL  │ │  Neo4j  │ │  Redis  │ │   ES    │ │对象存储 │      │
+│  │ 事务数据│ │ CMDB图  │ │缓存/队  │ │ 日志🆕 │ │附件🆕  │      │
+│  │ 审批/工  │ │ 拓扑关  │ │列/通知  │ │ 存储    │ │工单附件 │      │
+│  │ 单/用户 │ │ 系      │ │         │ │         │ │         │      │
+│  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘      │
+└─────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>CMDB → ITSM → 监控 · 数据流</h3>
+  <div style="background: #161b22; border-radius: 8px; padding: 20px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+
+      <div style="border: 1px solid #1f6feb; border-radius: 8px; padding: 12px;">
+        <div style="color: #58a6ff; font-weight: bold; font-size: 0.85em;">① 监控发现异常</div>
+        <div style="color: #8b949e; font-size: 0.8em; margin-top: 4px;">
+          Prometheus/Zabbix<br>
+          ↓<br>
+          OpsFlow 告警引擎<br>
+          ↓ 收敛/去重<br>
+          ↓ 关联 CMDB 资产<br>
+          ↓ 确定影响范围
+        </div>
+      </div>
+
+      <div style="border: 1px solid #2ea043; border-radius: 8px; padding: 12px;">
+        <div style="color: #2ea043; font-weight: bold; font-size: 0.85em;">② ITSM 事件工单</div>
+        <div style="color: #8b949e; font-size: 0.8em; margin-top: 4px;">
+          自动创建事件工单<br>
+          ↓<br>
+          SLA 计时开始<br>
+          ↓<br>
+          负责人响应处理<br>
+          ↓ 升级策略
+        </div>
+      </div>
+
+      <div style="border: 1px solid #d29922; border-radius: 8px; padding: 12px;">
+        <div style="color: #d29922; font-weight: bold; font-size: 0.85em;">③ 自动化修复</div>
+        <div style="color: #8b949e; font-size: 0.8em; margin-top: 4px;">
+          工单触发 OpsFlow<br>
+          ↓<br>
+          Ansible Playbook<br>
+          ↓<br>
+          执行结果反馈<br>
+          ↓ 更新 CMDB 状态<br>
+          ↓ 关闭工单
+        </div>
+      </div>
+
+    </div>
+    <div style="color: #8b949e; font-size: 0.85em; text-align: center; margin-top: 12px;">
+      🔄 全程联动：CMDB(知道有什么) → 监控(发现异常) → ITSM(管理流程) → OpsFlow(自动化修复) → CMDB(更新状态)
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>对 Phase 1 范围的提醒</h3>
+  <div style="background: #1a2332; border: 1px solid #d29922; border-radius: 8px; padding: 16px;">
+    <p style="color: #d29922; margin: 0 0 8px 0;"><strong>⚡ 你选择了"全都要"Phase 1，这是一个 ~8 周的 scope</strong></p>
+    <p style="color: #8b949e; margin: 0;">具体包含：</p>
+    <ul style="color: #c9d1d9; margin-top: 8px;">
+      <li><strong>CMDB</strong> — 模型引擎 + 业务/集群/模块/主机/进程模型 + 拓扑视图 + Neo4j 集成</li>
+      <li><strong>ITSM</strong> — 事件管理 + 服务请求 + 变更管理 + SLA + 审批流联动 + 工单看板</li>
+      <li><strong>监控告警</strong> — Prometheus 数据源接入 + 告警规则管理 + 告警收敛 + 通知路由 + 自动创建工单</li>
+    </ul>
+    <p style="color: #8b949e; font-size: 0.85em; margin-top: 8px;">日志系统作为 Phase 2 按原计划推后。</p>
+    <p style="color: #ffa657; font-size: 0.85em;"><strong>你觉得这个范围目前准确吗？</strong></p>
+  </div>
+</div>
+
+<p style="color: #8b949e; margin-top: 16px;">下一步：确认整体蓝图后，深入 CMDB 的模型设计</p>

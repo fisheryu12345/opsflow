@@ -1,0 +1,150 @@
+<h2>完整性差距分析 · 从 IT 智能运营平台视角</h2>
+<p class="subtitle">已规划 vs 完整平台能力矩阵</p>
+
+<div class="section">
+  <h3>完整 IT 智能运营平台能力全景</h3>
+  <div style="font-family: monospace; font-size: 0.78em; background: #0d1117; padding: 16px; border-radius: 8px; color: #c9d1d9; line-height: 1.5; overflow-x: auto;">
+<pre style="margin:0;">
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                     IT 智能运营平台 · 能力全景                    │
+  │                                                                      │
+  │  ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐     │
+  │  │CMDB   │ │作业平 │ │监控告 │ │日志   │ │ ITSM  │ │集成中 │     │
+  │  │配置管 │ │台     │ │警     │ │中心   │ │服务管 │ │心     │     │
+  │  │理     │ │作业平  │ │可观测  │ │日志分 │ │理     │ │连接器  │     │
+  │  │✅已规 │ │台🏗️   │ │性     │ │析🏗️  │ │✅已规 │ │✅已规 │     │
+  │  │划     │ │       │ │✅已规 │ │       │ │划     │ │划     │     │
+  │  └───────┘ └───────┘ └───────┘ └───────┘ └───────┘ └───────┘     │
+  │                                                                      │
+  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐           │
+  │  │巡检合规│ │容量规划│ │自服务  │ │报表中心│ │AIOps  │           │
+  │  │安全基  │ │资源预  │ │服务目  │ │报告自  │ │异常检  │           │
+  │  │线🏗️   │ │测🏗️   │ │录🏗️   │ │动化🏗️ │ │测/BTI │           │
+  │  │        │ │        │ │        │ │        │ │🏗️     │           │
+  │  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘           │
+  │                                                                      │
+  │  ┌───────────┐ ┌───────────┐ ┌───────────┐                          │
+  │  │运维门户   │ │AI 智能    │ │统一认证   │                          │
+  │  │服务台/个  │ │运维助手   │ │RBAC/SSO  │                          │
+  │  │人工作台   │ │✅已有     │ │✅已有     │                          │
+  │  │🏗️        │ │           │ │           │                          │
+  │  └───────────┘ └───────────┘ └───────────┘                          │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  ✅ 已规划 (Phase1/2)     🏗️ 待评估 (建议补充)
+</pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>我认为值得补充的模块</h3>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px;">
+
+    <div style="background: #1a2332; border: 1px solid #1f6feb; border-radius: 8px; padding: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <h4 style="color: #58a6ff; margin: 0;">🛠️ 作业平台</h4>
+        <span style="background: #d29922; color: #0d1117; font-size: 0.7em; padding: 2px 8px; border-radius: 10px;">推荐 +P1</span>
+      </div>
+      <p style="color: #8b949e; font-size: 0.85em; margin-top: 6px;">
+        对标 bk-job 或 AWX：批量脚本执行、文件分发、命令通道、执行账户管理、高危命令拦截。<br><br>
+        <strong>为什么需要：</strong>OpsFlow 的编排擅长复杂流程，但日常运维更多是"在这 10 台机器上执行这个命令"——作业平台覆盖这个高频场景。<br><br>
+        <strong>与现有关系：</strong>操作平台执行的结果可触发 OpsFlow 流程；opsagent 的 SSH/本地执行可作技术基础。
+      </p>
+    </div>
+
+    <div style="background: #1a2332; border: 1px solid #2ea043; border-radius: 8px; padding: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <h4 style="color: #2ea043; margin: 0;">🖥️ 运维门户/工作台</h4>
+        <span style="background: #d29922; color: #0d1117; font-size: 0.7em; padding: 2px 8px; border-radius: 10px;">推荐 +P1</span>
+      </div>
+      <p style="color: #8b949e; font-size: 0.85em; margin-top: 6px;">
+        统一进入入口：待办事项聚合、快捷操作、个人面板、全局搜索。<br><br>
+        <strong>为什么需要：</strong>目前用户要分别进 CMDB/ITSM/OpsFlow 页面，入口分散。门户聚合"我的待审批""我提报的工单""正在运行的流程""当前告警"到一张个人工作台。<br><br>
+        <strong>与现有关系：</strong>现有 dvadmin 菜单系统 + opsflow 的各入口页面基础上，增加一个首页门户。
+      </p>
+    </div>
+
+    <div style="background: #1a2332; border: 1px solid #f85149; border-radius: 8px; padding: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <h4 style="color: #f85149; margin: 0;">🧪 巡检与合规</h4>
+        <span style="background: #30363d; color: #8b949e; font-size: 0.7em; padding: 2px 8px; border-radius: 10px;">P2 可选</span>
+      </div>
+      <p style="color: #8b949e; font-size: 0.85em; margin-top: 6px;">
+        安全基线检查、合规扫描、漏洞管理、补丁管理、配置漂移检测。<br><br>
+        <strong>为什么需要：</strong>企业运维的刚性需求，尤其是通过等保/ISO 认证时。<br><br>
+        <strong>建议：</strong>可以设计为可扩展的检查框架 + 预置规则包，对接 OpenSCAP/Lynis 等开源工具。
+      </p>
+    </div>
+
+    <div style="background: #1a2332; border: 1px solid #d29922; border-radius: 8px; padding: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <h4 style="color: #d29922; margin: 0;">📊 报表中心</h4>
+        <span style="background: #30363d; color: #8b949e; font-size: 0.7em; padding: 2px 8px; border-radius: 10px;">P2 可选</span>
+      </div>
+      <p style="color: #8b949e; font-size: 0.85em; margin-top: 6px;">
+        运维报告自动生成和定时发送：周报/月报、SLA 报告、资源利用率报告、工单统计、合规报告。<br><br>
+        <strong>建议：</strong>初期可以大屏统计替代，报告引擎留到 P2。
+      </p>
+    </div>
+
+    <div style="background: #1a2332; border: 1px solid #bc8cff; border-radius: 8px; padding: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <h4 style="color: #bc8cff; margin: 0;">🤖 AIOps 能力</h4>
+        <span style="background: #30363d; color: #8b949e; font-size: 0.7em; padding: 2px 8px; border-radius: 10px;">P2 可选</span>
+      </div>
+      <p style="color: #8b949e; font-size: 0.85em; margin-top: 6px;">
+        基于已有 OpsAgent + OpsKnowledge 扩展：<br>
+        · 告警智能聚合/根因分析<br>
+        · 异常检测（基于 Prometheus/InfluxDB 数据）<br>
+        · 运维预测（容量趋势、故障预测）<br>
+        · ChatOps 交互（企微/钉钉通过集成中心 → AI 助手）<br><br>
+        <strong>建议：</strong>现已有 DeepSeek 集成 + RAG + AgentMemory，这是 AIOps 很好的起点。
+      </p>
+    </div>
+
+    <div style="background: #1a2332; border: 1px solid #ff7b72; border-radius: 8px; padding: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <h4 style="color: #ff7b72; margin: 0;">📦 容量规划</h4>
+        <span style="background: #30363d; color: #8b949e; font-size: 0.7em; padding: 2px 8px; border-radius: 10px;">P3 远期</span>
+      </div>
+      <p style="color: #8b949e; font-size: 0.85em; margin-top: 6px;">
+        基于历史监控数据的趋势预测、资源饱和度分析、扩容建议。依赖监控数据积累到一定量后才有意义。
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>推荐的分层演进策略</h3>
+  <div style="background: #0d1117; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 0.85em; color: #c9d1d9;">
+<pre style="margin:0;">
+┌────────────────────────────────────────────────────────────┐
+│ Phase 1 (8-10周) · 核心闭环                                │
+│  CMDB + ITSM + 监控告警 + 集成中心                          │
+│  + 🆕 运维门户(个人工作台)  + 🆕 作业平台(批量执行)        │
+│  = 完整的运维"发现→流程→执行"链                             │
+├────────────────────────────────────────────────────────────┤
+│ Phase 2 (4-6周) · 可观测 + 智能                             │
+│  日志中心(ES) + AIOps(异常检测/根因分析) + 报表中心         │
+│  = 从"被动响应"到"主动发现"                                  │
+├────────────────────────────────────────────────────────────┤
+│ Phase 3 (4-6周) · 合规 + 治理                               │
+│  巡检合规 + 容量规划 + 安全运营                             │
+│  = 满足企业合规需求                                          │
+└────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</div>
+
+<div style="background: #1a2332; border: 1px solid #d29922; border-radius: 8px; padding: 16px; margin-top: 20px;">
+  <p style="color: #d29922; margin: 0 0 6px 0;"><strong>🤔 我的主要建议：</strong></p>
+  <p style="color: #c9d1d9; margin: 0;">
+    <strong>作业平台</strong>和<strong>运维门户</strong>是值得提前到 Phase 1 的——它们不增加太多开发量，但对用户体验和平台完整性影响很大。<br><br>
+    作业平台可以基于 opsagent 已有的 SSH/local_exec 工具扩展，加一个批量执行界面 + 执行记录 + 高危命令拦截。<br><br>
+    运维门户就是一个聚合首页，把各模块的待办事项、通知、概览数据拉到一张页面，前端的活儿比后端多。
+  </p>
+</div>
+
+<p style="color: #8b949e; margin-top: 16px;">你觉得呢？哪些模块你想加进来，哪些暂时放一放？</p>

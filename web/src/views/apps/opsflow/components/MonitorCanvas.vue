@@ -76,7 +76,11 @@ const {
   enableResize, enableVisibilityRefresh,
 } = useGraphCanvas('monitor-canvas-container', { mode: 'monitor' })
 
-const { connected: wsConnected, nodeStatuses, executionStatus, connect, disconnect, getNodeColor } = useMonitor()
+const {
+  connected: wsConnected, nodeStatuses, executionStatus,
+  connect, disconnect, getNodeColor,
+  onNodeStatus, onExecutionCompleted, onInitState,
+} = useMonitor()
 
 // Live node stats
 const statusStats = computed(() => {
@@ -238,10 +242,15 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
     graph.value.centerContent()
     graph.value.zoomToFit({ padding: 24, maxZoom: 1 })
 
-    // 重新应用已知状态
-    if (Object.keys(nodeStatuses.value).length) {
-      for (const [nid, s] of Object.entries(nodeStatuses.value)) applyNodeColor(nid, s)
-    }
+    // 应用节点颜色：直接遍历画布节点，从 nodeStatuses 查状态
+    // 避免 getCellById 在 resetCells 后找不到节点的问题
+    const statuses = nodeStatuses.value
+    graph.value.getNodes().forEach((cell: any) => {
+      const nid = cell.id
+      if (nid && statuses[nid]) {
+        applyNodeColor(nid, statuses[nid])
+      }
+    })
 
     // 边加载完成后触发动画（解决 setExecutionStatus 早于 loadGraphData 的时序问题）
     if (executionStatus.value === 'running') {
@@ -287,9 +296,45 @@ function applyNodeColor(nodeId: string, status: string) {
   else runningNodeIds.delete(nodeId)
 }
 
-watch(nodeStatuses, (statuses) => {
-  for (const [nid, s] of Object.entries(statuses)) applyNodeColor(nid, s)
-}, { deep: true })
+// 使用 per-message callback 而非 watch，确保每条 WS 消息独立驱动着色
+// 避免 Vue 批量合并导致中间态丢失（running 未渲染就被 completed 覆盖）
+onMounted(() => {
+  // 初始加载时通过 watch 批量着色（API 轮询场景）
+  const stopWatch = watch(nodeStatuses, (statuses) => {
+    if (!graph.value) return
+    for (const [nid, st] of Object.entries(statuses)) {
+      const cell = graph.value.getCellById(nid)
+      if (cell?.isNode()) applyNodeColor(nid, st)
+    }
+  }, { deep: true })
+
+  // WS 逐条消息着色 — completed 延迟一帧以允许 running 先渲染
+  onNodeStatus((nid, status, oldStatus) => {
+    if (!graph.value) return
+    if (status === 'running') {
+      // running 立即着色
+      const cell = graph.value.getCellById(nid)
+      if (cell?.isNode()) applyNodeColor(nid, status)
+    } else if (status === 'completed' || status === 'failed') {
+      // 如果旧状态是 running → 先刷 running 颜色，下一帧再刷终态
+      if (oldStatus === 'running') {
+        const cell = graph.value.getCellById(nid)
+        if (cell?.isNode()) applyNodeColor(nid, 'running')
+        requestAnimationFrame(() => {
+          const cell2 = graph.value.getCellById(nid)
+          if (cell2?.isNode()) applyNodeColor(nid, status)
+        })
+      } else {
+        const cell = graph.value.getCellById(nid)
+        if (cell?.isNode()) applyNodeColor(nid, status)
+      }
+    }
+  })
+
+  onExecutionCompleted((_status) => {
+    stopWatch?.()
+  })
+})
 
 /** TERMINAL_STATES — 终态列表，API 轮询返回的非终态值不覆盖 WS 已收到的终态 */
 const TERMINAL_STATES = new Set(['completed', 'failed', 'cancelled', 'skipped'])
