@@ -86,6 +86,7 @@ INSTALLED_APPS = [
     "job_platform",
     "portal",
     "open_api",
+    "common",
 ]
 
 MIDDLEWARE = [

@@ -194,7 +194,7 @@
 import { ref, computed, onMounted, onActivated, onBeforeUnmount, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Refresh, Monitor, Document, Close, DArrowLeft, DArrowRight, CircleCheck, Clock, WarningFilled, Upload, Download } from '@element-plus/icons-vue'
-import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode, CancelExecution, GetExecutionTraces, GetNodeTraceLog, ApproveNode, RejectNode } from '../../opsflow/api/executions'
+import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode, CancelExecution, GetExecutionTraces, GetNodeTraceLog, ApproveNode, RejectNode, GetEngineStates } from '../../opsflow/api/executions'
 import { GetTemplateDetail } from '../../opsflow/api/templates'
 import { GetLogs } from '../../opsflow/api/logs'
 import MonitorCanvas from '/@/views/apps/opsflow/components/MonitorCanvas.vue'

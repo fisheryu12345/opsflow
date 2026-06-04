@@ -10,6 +10,10 @@ export function GetExecutionDetail(id: number) {
   return opsflowRequest({ url: prefix + `executions/${id}/`, method: 'get' })
 }
 
+export function GetEngineStates(id: number) {
+  return opsflowRequest({ url: prefix + `executions/${id}/engine_states/`, method: 'get' })
+}
+
 export function CreateExecution(data: any) {
   return opsflowRequest({ url: prefix + 'executions/', method: 'post', data })
 }
