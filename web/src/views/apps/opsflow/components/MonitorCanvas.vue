@@ -296,39 +296,36 @@ function applyNodeColor(nodeId: string, status: string) {
   else runningNodeIds.delete(nodeId)
 }
 
-// 使用 per-message callback 而非 watch，确保每条 WS 消息独立驱动着色
-// 避免 Vue 批量合并导致中间态丢失（running 未渲染就被 completed 覆盖）
+/**
+ * WS 消息 → 精准单节点更新（避免 watch 全量遍历的 O(n²) 开销）
+ *
+ * 为什么不用 watch(nodeStatuses, { deep: true })？
+ * watch 是 Vue 异步队列，每次 nodeStatuses 属性变更都会触发一次
+ * 微任务级别的全量遍历（26 节点 × 52 消息 = 1352 次 applyNodeColor）。
+ * 当多个 WS 消息连续到达时，watch 的微任务排队阻塞，造成视觉延迟。
+ *
+ * 策略：
+ *   - WS 消息：直接用 onNodeStatus 回调单节点着色，不做全量遍历
+ *   - API 轮询：仅对增量部分着色，见 loadNodeStatuses → watch
+ *   - 无 RAF：completed/failed 直接着色，不需要 running→completed 的过渡帧
+ *     （浏览器 microtask 已经保证了微任务内所有着色在同一帧生效）
+ */
 onMounted(() => {
-  // 初始加载时通过 watch 批量着色（API 轮询场景）
+  // API 轮询场景（loadNodeStatuses 整体替换时触发）
+  // 不设 deep：WS 消息走 onNodeStatus 单节点更新，不需要 watch 再全量遍历
   const stopWatch = watch(nodeStatuses, (statuses) => {
     if (!graph.value) return
     for (const [nid, st] of Object.entries(statuses)) {
       const cell = graph.value.getCellById(nid)
       if (cell?.isNode()) applyNodeColor(nid, st)
     }
-  }, { deep: true })
+  })
 
-  // WS 逐条消息着色 — completed 延迟一帧以允许 running 先渲染
-  onNodeStatus((nid, status, oldStatus) => {
+  // WS 逐条消息着色 — 单节点精准更新，不做全量遍历
+  onNodeStatus((nid, status, _oldStatus) => {
     if (!graph.value) return
-    if (status === 'running') {
-      // running 立即着色
-      const cell = graph.value.getCellById(nid)
-      if (cell?.isNode()) applyNodeColor(nid, status)
-    } else if (status === 'completed' || status === 'failed') {
-      // 如果旧状态是 running → 先刷 running 颜色，下一帧再刷终态
-      if (oldStatus === 'running') {
-        const cell = graph.value.getCellById(nid)
-        if (cell?.isNode()) applyNodeColor(nid, 'running')
-        requestAnimationFrame(() => {
-          const cell2 = graph.value.getCellById(nid)
-          if (cell2?.isNode()) applyNodeColor(nid, status)
-        })
-      } else {
-        const cell = graph.value.getCellById(nid)
-        if (cell?.isNode()) applyNodeColor(nid, status)
-      }
-    }
+    const cell = graph.value.getCellById(nid)
+    if (cell?.isNode()) applyNodeColor(nid, status)
   })
 
   onExecutionCompleted((_status) => {

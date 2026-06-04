@@ -9,6 +9,7 @@
 		"lint-fix": "eslint --fix --ext .js --ext .jsx --ext .vue src/"
 	},
 	"dependencies": {
+		"@antv/g6": "^4.8.25",
 		"@antv/x6": "2.19.1",
 		"@antv/x6-plugin-clipboard": "2.1.5",
 		"@antv/x6-plugin-dnd": "^2.1.1",

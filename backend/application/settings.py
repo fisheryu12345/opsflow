@@ -87,6 +87,7 @@ INSTALLED_APPS = [
     "portal",
     "open_api",
     "common",
+    "mock_service",
 ]
 
 MIDDLEWARE = [

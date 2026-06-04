@@ -24,6 +24,7 @@ class ConnectorDefinition(CoreModel):
         ('auth', '认证源'),
         ('paas', 'PaaS 平台'),
         ('monitor', '监控系统'),
+        ('ai', 'AI 服务'),
         ('other', '其他'),
     )
 

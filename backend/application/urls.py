@@ -88,6 +88,8 @@ urlpatterns = (
             # 仅用于开发，上线需关闭
             path("api/token/", LoginTokenView.as_view()),
             
+            # Mock Service URLs (模拟数据服务)
+            path("api/mock/", include("mock_service.urls")),
             # OpsAgent URLs
             path("api/ops/", include("opsagent.urls")),
             # OpsFlow URLs

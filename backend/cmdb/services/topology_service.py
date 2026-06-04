@@ -13,21 +13,52 @@ def get_biz_topology(biz):
     """获取业务的完整拓扑树"""
     from ..models.node_types import Set, Module, Host, Process
 
-    nodes = [{'id': biz.biz_id, 'label': biz.name, 'type': 'biz'}]
+    biz_node = {'id': biz.biz_id, 'label': biz.name, 'type': 'biz', 'attrs': {
+        'lifecycle': biz.lifecycle, 'operator': biz.operator, 'description': biz.description,
+    }}
+    nodes = [biz_node]
     edges = []
+    process_ids = set()
 
     for s in biz.sets.all():
-        nodes.append({'id': s.set_id, 'label': s.name, 'type': 'set'})
+        nodes.append({'id': s.set_id, 'label': s.name, 'type': 'set', 'attrs': {
+            'env_type': s.env_type, 'description': s.description,
+        }})
         edges.append({'from': biz.biz_id, 'to': s.set_id, 'type': 'contains'})
         for m in s.modules.all():
-            nodes.append({'id': m.module_id, 'label': m.name, 'type': 'module'})
+            nodes.append({'id': m.module_id, 'label': m.name, 'type': 'module', 'attrs': {
+                'service_type': m.service_type, 'description': m.description,
+            }})
             edges.append({'from': s.set_id, 'to': m.module_id, 'type': 'contains'})
             for h in m.hosts.all():
-                nodes.append({'id': h.host_id, 'label': h.hostname or h.ip, 'type': 'host'})
+                nodes.append({
+                    'id': h.host_id, 'label': h.hostname or h.ip, 'type': 'host',
+                    'attrs': {
+                        'ip': h.ip, 'hostname': h.hostname, 'status': h.status,
+                        'os_type': h.os_type, 'cpu_cores': h.cpu_cores,
+                        'memory_mb': h.memory_mb, 'disk_gb': h.disk_gb,
+                        'agent_status': h.agent_status, 'region': h.region,
+                    },
+                })
                 edges.append({'from': m.module_id, 'to': h.host_id, 'type': 'contains'})
                 for p in h.processes.all():
-                    nodes.append({'id': p.process_id, 'label': f"{p.name}:{p.port}", 'type': 'process'})
-                    edges.append({'from': h.host_id, 'to': p.process_id, 'type': 'runs'})
+                    pid = p.process_id
+                    process_ids.add(pid)
+                    nodes.append({
+                        'id': pid, 'label': f"{p.name}:{p.port}", 'type': 'process',
+                        'attrs': {
+                            'name': p.name, 'port': p.port, 'protocol': p.protocol,
+                            'status': p.status, 'version': p.version,
+                        },
+                    })
+                    edges.append({'from': h.host_id, 'to': pid, 'type': 'runs'})
+
+    # 补充 Process DEPENDS_ON 跨进程依赖关系
+    for p in Process.nodes.all():
+        if p.process_id in process_ids:
+            for dep in p.depends_on.all():
+                if dep.process_id in process_ids:
+                    edges.append({'from': p.process_id, 'to': dep.process_id, 'type': 'depends_on'})
 
     return {'nodes': nodes, 'edges': edges}
 
@@ -42,14 +73,27 @@ def get_host_graph(host):
 
     # 主机自身
     host_key = f"host:{host.host_id}"
-    nodes.append({'id': host_key, 'label': host.hostname or host.ip, 'type': 'host'})
+    nodes.append({
+        'id': host_key, 'label': host.hostname or host.ip, 'type': 'host',
+        'attrs': {
+            'ip': host.ip, 'hostname': host.hostname, 'status': host.status,
+            'os_type': host.os_type, 'cpu_cores': host.cpu_cores,
+            'memory_mb': host.memory_mb, 'disk_gb': host.disk_gb,
+            'agent_status': host.agent_status, 'region': host.region,
+        },
+    })
     seen.add(host_key)
 
     # 所属模块
     for m in host.module.all():
         mod_key = f"module:{m.module_id}"
         if mod_key not in seen:
-            nodes.append({'id': mod_key, 'label': m.name, 'type': 'module'})
+            nodes.append({
+                'id': mod_key, 'label': m.name, 'type': 'module',
+                'attrs': {
+                    'service_type': m.service_type, 'description': m.description,
+                },
+            })
             seen.add(mod_key)
         edges.append({'from': mod_key, 'to': host_key, 'type': 'belongs_to'})
 
@@ -58,7 +102,15 @@ def get_host_graph(host):
             if other.host_id != host.host_id:
                 other_key = f"host:{other.host_id}"
                 if other_key not in seen:
-                    nodes.append({'id': other_key, 'label': other.hostname or other.ip, 'type': 'host'})
+                    nodes.append({
+                        'id': other_key, 'label': other.hostname or other.ip, 'type': 'host',
+                        'attrs': {
+                            'ip': other.ip, 'hostname': other.hostname, 'status': other.status,
+                            'os_type': other.os_type, 'cpu_cores': other.cpu_cores,
+                            'memory_mb': other.memory_mb, 'disk_gb': other.disk_gb,
+                            'agent_status': other.agent_status, 'region': other.region,
+                        },
+                    })
                     seen.add(other_key)
                 edges.append({'from': mod_key, 'to': other_key, 'type': 'contains'})
 
@@ -66,9 +118,34 @@ def get_host_graph(host):
     for p in host.processes.all():
         proc_key = f"process:{p.process_id}"
         if proc_key not in seen:
-            nodes.append({'id': proc_key, 'label': f"{p.name}:{p.port}", 'type': 'process'})
+            nodes.append({
+                'id': proc_key, 'label': f"{p.name}:{p.port}", 'type': 'process',
+                'attrs': {
+                    'name': p.name, 'port': p.port, 'protocol': p.protocol,
+                    'status': p.status, 'version': p.version,
+                },
+            })
             seen.add(proc_key)
         edges.append({'from': host_key, 'to': proc_key, 'type': 'runs'})
+
+    # 进程 DEPENDS_ON 跨进程依赖
+    for p in host.processes.all():
+        proc_key = f"process:{p.process_id}"
+        for dep in p.depends_on.all():
+            dep_key = f"process:{dep.process_id}"
+            if dep_key in seen:
+                edges.append({'from': proc_key, 'to': dep_key, 'type': 'depends_on'})
+            elif dep_key not in seen:
+                # Also add the dependency node if not already in graph
+                nodes.append({
+                    'id': dep_key, 'label': f"{dep.name}:{dep.port}", 'type': 'process',
+                    'attrs': {
+                        'name': dep.name, 'port': dep.port, 'protocol': dep.protocol,
+                        'status': dep.status, 'version': dep.version,
+                    },
+                })
+                seen.add(dep_key)
+                edges.append({'from': proc_key, 'to': dep_key, 'type': 'depends_on'})
 
     return {'nodes': nodes, 'edges': edges}
 
