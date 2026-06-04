@@ -1,6 +1,6 @@
 <template>
 	<div class="columns-form-com">
-		<el-form ref="formRef" :model="formData" :rules="formRules" label-width="80px">
+		<el-form ref="formRef" :model="formData" :rules="formRules" label-width="80px" size="small">
 			<el-form-item label="字段名" prop="field_name">
 				<el-input v-model="formData.field_name" placeholder="请输入字段名" />
 			</el-form-item>
@@ -21,8 +21,8 @@
 				<el-switch v-model="formData.is_query" />
 			</el-form-item>
 
-			<el-form-item>
-				<el-button type="primary" @click="handleSubmit" :loading="btnLoading"> 确定 </el-button>
+			<el-form-item class="columns-form-actions">
+				<el-button type="primary" @click="handleSubmit" :loading="btnLoading">确定</el-button>
 				<el-button @click="handleClose">取消</el-button>
 			</el-form-item>
 		</el-form>
@@ -40,11 +40,11 @@ const props = defineProps({
 	currentInfo: {
 		type: Object as () => CurrentInfoType,
 		required: true,
-		default: () => {},
+		default: () => ({}),
 	},
 	initFormData: {
 		type: Object as () => Partial<ColumnsFormDataType>,
-		default: () => {},
+		default: () => ({}),
 	},
 });
 const emit = defineEmits(['drawerClose']);
@@ -55,14 +55,14 @@ const formRules = reactive({
 	title: [{ required: true, message: '请输入列名！', trigger: 'blur' }],
 });
 
-let formData = reactive<ColumnsFormDataType>({
+const formData = reactive<ColumnsFormDataType>({
 	field_name: '',
 	title: '',
 	is_create: true,
 	is_update: true,
 	is_query: true,
 });
-let btnLoading = ref(false);
+const btnLoading = ref(false);
 
 const setMenuFormData = () => {
 	if (props.initFormData?.id) {
@@ -107,9 +107,16 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@use '../../../apps/opsflow/styles/opsflow-global' as *;
+
 .columns-form-com {
-	height: 100%;
 	padding: 20px;
 	box-sizing: border-box;
+}
+.columns-form-actions {
+	margin-top: 24px;
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
 }
 </style>

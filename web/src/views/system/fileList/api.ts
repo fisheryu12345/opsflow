@@ -1,41 +1,49 @@
 import { request } from '/@/utils/service';
-import { UserPageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
 
 export const apiPrefix = '/api/system/file/';
-export function GetList(query: UserPageQuery) {
-	return request({
-		url: apiPrefix,
-		method: 'get',
-		params: query,
-	});
-}
-export function GetObj(id: InfoReq) {
-	return request({
-		url: apiPrefix + id,
-		method: 'get',
-	});
+
+export interface FileRecord {
+  id: number;
+  name: string;
+  url: string;
+  md5sum: string;
 }
 
-export function AddObj(obj: AddReq) {
-	return request({
-		url: apiPrefix,
-		method: 'post',
-		data: obj,
-	});
+export function GetList(params: any) {
+  return request({
+    url: apiPrefix,
+    method: 'get',
+    params,
+  });
 }
 
-export function UpdateObj(obj: EditReq) {
-	return request({
-		url: apiPrefix + obj.id + '/',
-		method: 'put',
-		data: obj,
-	});
+export function GetObj(id: number) {
+  return request({
+    url: apiPrefix + id,
+    method: 'get',
+  });
 }
 
-export function DelObj(id: DelReq) {
-	return request({
-		url: apiPrefix + id + '/',
-		method: 'delete',
-		data: { id },
-	});
+export function AddObj(obj: any) {
+  return request({
+    url: apiPrefix,
+    method: 'post',
+    data: obj,
+  });
+}
+
+export function UpdateObj(obj: any) {
+  return request({
+    url: apiPrefix + obj.id + '/',
+    method: 'put',
+    data: obj,
+  });
+}
+
+export function DelObj(id: number) {
+  return request({
+    url: apiPrefix + id + '/',
+    method: 'delete',
+    data: { id },
+  });
 }

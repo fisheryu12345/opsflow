@@ -1,108 +1,149 @@
 <template>
-  <el-drawer v-model="drawerVisible" title="权限配置" direction="rtl" size="60%" :close-on-click-modal="false"
-             :before-close="handleDrawerClose"
-             :destroy-on-close="true"
+  <el-drawer
+    v-model="drawerVisible"
+    title="权限配置"
+    direction="rtl"
+    size="60%"
+    :close-on-click-modal="false"
+    :before-close="handleDrawerClose"
+    :destroy-on-close="true"
+    class="pc-drawer"
   >
     <template #header>
-      <el-row>
-        <el-col :span="4">
-          <div>当前角色:
-            <el-tag>{{ props.roleName }}</el-tag>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div>
-            <el-button size="small" type="primary" class="pc-save-btn" @click="handleSavePermission">保存菜单授权
-            </el-button>
-          </div>
-        </el-col>
-      </el-row>
+      <div class="pc-drawer-header">
+        <div class="pc-drawer-title">
+          <span class="pc-drawer-icon">
+            <el-icon :size="16"><Setting /></el-icon>
+          </span>
+          <span>权限配置</span>
+        </div>
+        <div class="pc-drawer-meta">
+          <span class="pc-role-label">当前角色：</span>
+          <el-tag type="primary" effect="dark" round>{{ props.roleName }}</el-tag>
+        </div>
+        <el-button type="primary" size="small" :icon="Plus" @click="handleSavePermission" class="pc-save-btn">
+          保存菜单授权
+        </el-button>
+      </div>
     </template>
-    <div class="permission-com" v-loading="loading">
-      <el-empty v-if="!loading && menuData.length === 0" description="暂无权限数据" />
+
+    <div class="pc-body" v-loading="loading">
+      <!-- 空状态 -->
+      <el-empty v-if="!loading && menuData.length === 0" :image-size="60" description="暂无权限数据" />
+
+      <!-- 菜单权限列表 -->
       <el-collapse v-if="menuData.length > 0" v-model="collapseCurrent" @change="handleCollapseChange" accordion>
-        <el-collapse-item v-for="(item,mIndex) in menuData" :key="mIndex" :name="mIndex"
-                          style="    background-color: #fafafa;">
+        <el-collapse-item v-for="(item, mIndex) in menuData" :key="mIndex" :name="mIndex">
           <template #title>
-            <div>
+            <div class="pc-collapse-title-wrap">
               <div class="pc-collapse-title">
-                <el-checkbox v-model="item.isCheck" @click.stop="null">
-                  <span>{{ item.name }}</span>
+                <el-checkbox v-model="item.isCheck" @click.stop>
+                  <span class="pc-menu-name">{{ item.name }}</span>
                 </el-checkbox>
               </div>
-              <div v-show="!collapseCurrent.includes(mIndex)" @click.stop="null" style="text-align: left;">
-                <el-checkbox v-for="btn in item.btns" :key="btn.value" :label="btn.value" v-model="btn.isCheck">
+              <div v-if="!collapseCurrent.includes(mIndex)" class="pc-collapse-btns" @click.stop>
+                <el-checkbox v-for="btn in item.btns" :key="btn.value" v-model="btn.isCheck" :label="btn.value" size="small">
                   {{ btn.name }}
                 </el-checkbox>
               </div>
             </div>
           </template>
-          <div class="pc-collapse-main">
-            <div class="pccm-item">
-              <p>允许对这些数据有以下操作</p>
-              <el-checkbox v-for="(btn,bIndex) in item.btns" :key="bIndex" v-model="btn.isCheck" :label="btn.value">
-                <div class="btn-item">
-                  {{ btn.data_range !== null ? `${btn.name}(${formatDataRange(btn.data_range)})` : btn.name }}
-                  <span v-show="btn.isCheck" @click.stop.prevent="handleSettingClick(item, btn.id)">
-                    <el-icon><Setting/></el-icon>
-                  </span>
+
+          <div class="pc-collapse-body">
+            <!-- 按钮权限 -->
+            <div class="pc-section">
+              <div class="pc-section-label">
+                <el-icon><Operation /></el-icon> 操作权限
+              </div>
+              <div class="pc-btn-grid">
+                <div v-for="(btn, bIndex) in item.btns" :key="bIndex" class="pc-btn-card" :class="{ 'is-checked': btn.isCheck }">
+                  <el-checkbox v-model="btn.isCheck" :label="btn.value">
+                    <div class="pc-btn-info">
+                      <span class="pc-btn-name">
+                        {{ btn.name }}
+                        <span v-if="btn.data_range !== null" class="pc-btn-range">
+                          ({{ formatDataRange(btn.data_range) }})
+                        </span>
+                      </span>
+                    </div>
+                  </el-checkbox>
+                  <el-button
+                    v-if="btn.isCheck"
+                    text
+                    type="primary"
+                    size="small"
+                    class="pc-btn-setting"
+                    @click.stop="handleSettingClick(item, btn.id)"
+                  >
+                    <el-icon><Setting /></el-icon> 数据范围
+                  </el-button>
                 </div>
-              </el-checkbox>
+              </div>
             </div>
 
-            <div class="pccm-item">
-              <p>对这些数据有以下字段权限</p>
-
-              <ul class="columns-list">
-                <li class="columns-head">
-                  <div class="width-txt">
-                    <span>字段</span>
-                  </div>
-
-                  <div v-for="(head,hIndex) in column.header" :key="hIndex" class="width-check">
-                    <el-checkbox :label="head.value" @change="handleColumnChange($event, item, head.value)">
-                      <span>{{ head.label }}</span>
-                    </el-checkbox>
-                  </div>
-                </li>
-
-                <li v-for="(c_item, c_index) in item.columns" :key="c_index" class="columns-item">
-                  <div class="width-txt">{{ c_item.title }}</div>
-                  <div v-for="(col,cIndex) in column.header" :key="cIndex" class="width-check">
-                    <el-checkbox v-model="c_item[col.value]" class="ci-checkout"></el-checkbox>
-                  </div>
-                </li>
-              </ul>
+            <!-- 字段权限 -->
+            <div class="pc-section">
+              <div class="pc-section-label">
+                <el-icon><List /></el-icon> 字段权限
+              </div>
+              <div class="pc-columns-table-wrap">
+                <table class="pc-columns-table">
+                  <thead>
+                    <tr>
+                      <th class="pc-col-field">字段</th>
+                      <th v-for="(head, hIndex) in column.header" :key="hIndex" class="pc-col-check">
+                        <el-checkbox :label="head.value" @change="(val: any) => handleColumnChange(val, item, head.value)">
+                          {{ head.label }}
+                        </el-checkbox>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(c_item, c_index) in item.columns" :key="c_index">
+                      <td class="pc-col-field">{{ c_item.title }}</td>
+                      <td v-for="(col, cIndex) in column.header" :key="cIndex" class="pc-col-check">
+                        <el-checkbox v-model="c_item[col.value]" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </el-collapse-item>
       </el-collapse>
 
-      <el-dialog v-model="dialogVisible" title="数据权限配置" width="400px" :close-on-click-modal="false"
-                 :before-close="handleDialogClose">
-        <div class="pc-dialog">
-          <el-select v-model="dataPermission" @change="handlePermissionRangeChange" class="dialog-select"
-                     placeholder="请选择">
-            <el-option v-for="item in dataPermissionRange" :key="item.value" :label="item.label" :value="item.value"/>
+      <!-- 数据权限 Dialog -->
+      <el-dialog
+        v-model="dialogVisible"
+        title="数据权限配置"
+        width="420px"
+        :close-on-click-modal="false"
+        :before-close="handleDialogClose"
+        class="opsflow-dialog"
+        append-to-body
+      >
+        <div class="pc-dialog-body">
+          <el-select v-model="dataPermission" @change="handlePermissionRangeChange" class="pc-dialog-select" placeholder="请选择数据范围">
+            <el-option v-for="item in dataPermissionRange" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
           <el-tree-select
-              v-show="dataPermission === 4"
-              node-key="id"
-              v-model="customDataPermission"
-              :props="defaultTreeProps"
-              :data="deptData"
-              multiple
-              check-strictly
-              :render-after-expand="false"
-              show-checkbox
-              class="dialog-tree"
+            v-if="dataPermission === 4"
+            v-model="customDataPermission"
+            :props="defaultTreeProps"
+            :data="deptData"
+            node-key="id"
+            multiple
+            check-strictly
+            :render-after-expand="false"
+            show-checkbox
+            class="pc-dialog-tree"
+            placeholder="选择自定义部门"
           />
         </div>
         <template #footer>
-          <div>
-            <el-button type="primary" @click="handleDialogConfirm"> 确定</el-button>
-            <el-button @click="handleDialogClose"> 取消</el-button>
-          </div>
+          <el-button @click="handleDialogClose">取消</el-button>
+          <el-button type="primary" round @click="handleDialogConfirm">确定</el-button>
         </template>
       </el-dialog>
     </div>
@@ -110,148 +151,119 @@
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted, defineProps, watch, computed, reactive} from 'vue';
+import { ref, onMounted, watch, reactive, computed } from 'vue';
+import { ElMessage } from 'element-plus';
+import { Setting, Plus, Operation, List } from '@element-plus/icons-vue';
 import XEUtils from 'xe-utils';
-import {errorNotification} from '/@/utils/message';
+import { errorNotification } from '/@/utils/message';
 import {
-  getDataPermissionRange,
-  getDataPermissionDept,
-  getRolePremission,
-  setRolePremission,
-  setBtnDatarange
+  getDataPermissionRange, getDataPermissionDept,
+  getRolePremission, setRolePremission,
 } from './api';
-import {MenuDataType, DataPermissionRangeType, CustomDataPermissionDeptType} from './types';
-import {ElMessage} from 'element-plus'
+import { MenuDataType, DataPermissionRangeType, CustomDataPermissionDeptType } from './types';
 
 const props = defineProps({
-  roleId: {
-    type: Number,
-    default: -1
-  },
-  roleName: {
-    type: String,
-    default: ''
-  },
-  drawerVisible: {
-    type: Boolean,
-    default: false
+  roleId: { type: Number, default: -1 },
+  roleName: { type: String, default: '' },
+  drawerVisible: { type: Boolean, default: false },
+});
+const emit = defineEmits(['update:drawerVisible']);
+
+const drawerVisible = ref(false);
+watch(() => props.drawerVisible, (val) => {
+  drawerVisible.value = val;
+  if (val) {
+    getMenuBtnPermission();
+    fetchData();
   }
-})
-const emit = defineEmits(['update:drawerVisible'])
+});
 
-const drawerVisible = ref(false)
-watch(
-    () => props.drawerVisible,
-    (val) => {
-      drawerVisible.value = val;
-      getMenuBtnPermission()
-      fetchData()
-    }
-);
-const handleDrawerClose = () => {
-  emit('update:drawerVisible', false);
-}
+const handleDrawerClose = () => emit('update:drawerVisible', false);
 
+const defaultTreeProps = { children: 'children', label: 'name', value: 'id' };
 
-const defaultTreeProps = {
-  children: 'children',
-  label: 'name',
-  value: 'id',
-};
+const loading = ref(false);
+const menuData = ref<MenuDataType[]>([]);
+const collapseCurrent = ref<string[]>([]);
+const menuCurrent = ref<Partial<MenuDataType>>({});
+const menuBtnCurrent = ref<number>(-1);
+const dialogVisible = ref(false);
+const dataPermissionRange = ref<DataPermissionRangeType[]>([]);
 
-let loading = ref(false);
-let menuData = ref<MenuDataType[]>([]);
-let collapseCurrent = ref(['1']);
-let menuCurrent = ref<Partial<MenuDataType>>({});
-let menuBtnCurrent = ref<number>(-1);
-let dialogVisible = ref(false);
-let dataPermissionRange = ref<DataPermissionRangeType[]>([]);
 const formatDataRange = computed(() => {
-  return function (datarange: number) {
-    const findItem = dataPermissionRange.value.find((i) => i.value === datarange);
-    return findItem?.label || ''
-  }
-})
-let deptData = ref<CustomDataPermissionDeptType[]>([]);
-let dataPermission = ref();
-let customDataPermission = ref([]);
-//获取菜单,按钮,权限
+  return (datarange: number) => {
+    const found = dataPermissionRange.value.find(i => i.value === datarange);
+    return found?.label || '';
+  };
+});
+
+const deptData = ref<CustomDataPermissionDeptType[]>([]);
+const dataPermission = ref<number | null>(null);
+const customDataPermission = ref<any[]>([]);
+
 const getMenuBtnPermission = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    const resMenu = await getRolePremission({role: props.roleId})
-    if (resMenu && resMenu.code === 2000) {
-      menuData.value = resMenu.data || []
+    const res = await getRolePremission({ role: props.roleId });
+    if (res?.code === 2000) {
+      menuData.value = res.data || [];
     } else {
-      console.warn('获取权限配置失败:', resMenu?.msg || '未知错误')
-      menuData.value = []
+      menuData.value = [];
     }
   } catch (e) {
-    console.error('获取权限配置异常:', e)
-    menuData.value = []
+    console.error('获取权限配置异常:', e);
+    menuData.value = [];
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const fetchData = async () => {
   try {
-    const resRange = await getDataPermissionRange();
-    if (resRange?.code === 2000) {
-      dataPermissionRange.value = resRange.data;
+    const res = await getDataPermissionRange();
+    if (res?.code === 2000) {
+      dataPermissionRange.value = res.data;
     }
-  } catch {
-    return;
-  }
+  } catch { /* noop */ }
 };
 
-const handleCollapseChange = (val: string) => {
-  collapseCurrent.value = [val];
+const handleCollapseChange = (val: string | string[]) => {
+  collapseCurrent.value = Array.isArray(val) ? val : [val];
 };
 
-/**
- * 设置按钮数据权限
- * @param record 当前菜单
- * @param btnType  按钮类型
- */
 const handleSettingClick = (record: MenuDataType, btnId: number) => {
   menuCurrent.value = record;
   menuBtnCurrent.value = btnId;
   dialogVisible.value = true;
 };
 
-const handleColumnChange = (val: boolean, record: MenuDataType, btnType: string) => {
-  for (const iterator of record.columns) {
-    iterator[btnType] = val;
+const handleColumnChange = (val: boolean, record: MenuDataType, field: string) => {
+  for (const col of record.columns) {
+    col[field] = val;
   }
 };
 
 const handlePermissionRangeChange = async (val: number) => {
   if (val === 4) {
     const res = await getDataPermissionDept();
-    const data = XEUtils.toArrayTree(res.data, {parentKey: 'parent', strict: false});
+    const data = XEUtils.toArrayTree(res.data, { parentKey: 'parent', strict: false });
     deptData.value = data;
   }
 };
 
-/**
- * 数据权限设置确认
- */
 const handleDialogConfirm = () => {
   if (dataPermission.value !== 0 && !dataPermission.value) {
-    errorNotification('请选择');
+    errorNotification('请选择数据范围');
     return;
   }
-
-  //if (dataPermission.value !== 4) {}
-  for (const iterator of menuData.value) {
-    if (iterator.id === menuCurrent.value.id) {
-      for (const btn of iterator.btns) {
+  for (const menu of menuData.value) {
+    if (menu.id === menuCurrent.value.id) {
+      for (const btn of menu.btns) {
         if (btn.id === menuBtnCurrent.value) {
-          const findItem = dataPermissionRange.value.find((i) => i.value === dataPermission.value);
-          btn.data_range = findItem?.value || 0;
+          const found = dataPermissionRange.value.find(i => i.value === dataPermission.value);
+          btn.data_range = found?.value || 0;
           if (btn.data_range === 4) {
-            btn.dept = customDataPermission.value
+            btn.dept = customDataPermission.value as any;
           }
         }
       }
@@ -259,158 +271,340 @@ const handleDialogConfirm = () => {
   }
   handleDialogClose();
 };
+
 const handleDialogClose = () => {
   dialogVisible.value = false;
   customDataPermission.value = [];
   dataPermission.value = null;
 };
 
-//保存权限
-const handleSavePermission = () => {
-  setRolePremission(props.roleId, menuData.value).then(res => {
-    ElMessage({
-      message: res.msg,
-      type: 'success',
-    })
-  })
-}
+const handleSavePermission = async () => {
+  try {
+    const res = await setRolePremission(props.roleId, menuData.value);
+    if (res?.code === 2000) {
+      ElMessage.success(res.msg || '权限保存成功');
+    } else {
+      ElMessage.error(res?.msg || '保存失败');
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.msg || '保存失败');
+  }
+};
 
 const column = reactive({
-  header: [{value: 'is_create', label: '新增可见'}, {value: 'is_update', label: '编辑可见'}, {
-    value: 'is_query',
-    label: '列表可见'
-  }]
-})
-
-onMounted(() => {
+  header: [
+    { value: 'is_create', label: '新增可见' },
+    { value: 'is_update', label: '编辑可见' },
+    { value: 'is_query', label: '列表可见' },
+  ],
 });
 </script>
 
-<style lang="scss" scoped>
-.permission-com {
-  margin: 15px;
-  box-sizing: border-box;
+<style scoped lang="scss">
+// Design tokens (inline to avoid dependency issues)
+$of-color-primary: #409eff;
+$of-bg-light-blue: #ecf5ff;
+$of-bg-card-hover: #f5f9ff;
+$of-bg-header: #f5f7fa;
+$of-bg-card: #f8f9fb;
+$of-text-primary: #303133;
+$of-text-secondary: #666;
+$of-text-muted: #909399;
+$of-border-light: #ebeef5;
+$of-border-card: #f0f0f0;
+$of-radius-sm: 8px;
+$of-radius-card: 10px;
+$of-shadow-card: 0 1px 4px rgba(0,0,0,.06);
+$of-transition-default: .2s;
 
-  .pc-save-btn {
-    margin-bottom: 15px;
+/* ===== Drawer ===== */
+.pc-drawer {
+  :deep(.el-drawer__header) {
+    margin-bottom: 0;
+    padding: 0;
+  }
+  :deep(.el-drawer__body) {
+    padding: 0;
+  }
+}
+
+.pc-drawer-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+  padding: 0 4px;
+}
+
+.pc-drawer-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $of-text-primary;
+}
+
+.pc-drawer-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #409eff, #337ecc);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pc-drawer-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: $of-text-muted;
+  margin-left: 4px;
+
+  .pc-role-label {
+    white-space: nowrap;
+  }
+}
+
+.pc-save-btn {
+  margin-left: auto;
+}
+
+/* ===== Body ===== */
+.pc-body {
+  padding: 16px 20px;
+  min-height: 200px;
+}
+
+/* ===== Collapse Item ===== */
+.pc-collapse-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 2px 0;
+}
+
+.pc-collapse-title {
+  .pc-menu-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: $of-text-primary;
+  }
+}
+
+.pc-collapse-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+
+  :deep(.el-checkbox) {
+    margin-right: 0;
+    .el-checkbox__label {
+      font-size: 12px;
+      color: $of-text-muted;
+    }
+  }
+}
+
+/* ===== Collapse Body Sections ===== */
+.pc-collapse-body {
+  padding: 6px 0;
+}
+
+.pc-section {
+  margin-bottom: 20px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.pc-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: $of-text-secondary;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid $of-border-card;
+
+  .el-icon {
+    font-size: 14px;
+    color: $of-color-primary;
+  }
+}
+
+/* ===== Button Permission Cards ===== */
+.pc-btn-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pc-btn-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid $of-border-card;
+  border-radius: $of-radius-sm;
+  background: #fafbfc;
+  transition: border-color $of-transition-default, background $of-transition-default;
+
+  &:hover {
+    border-color: $of-color-primary;
+    background: $of-bg-light-blue;
   }
 
-  .pc-collapse-title {
-    line-height: 32px;
+  &.is-checked {
+    border-color: $of-color-primary;
+    background: $of-bg-light-blue;
+  }
+
+  :deep(.el-checkbox) {
+    margin-right: 0;
+    height: auto;
+    .el-checkbox__label {
+      font-size: 13px;
+    }
+  }
+}
+
+.pc-btn-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pc-btn-name {
+  font-size: 13px;
+  color: $of-text-primary;
+  line-height: 1.4;
+}
+
+.pc-btn-range {
+  font-size: 11px;
+  color: $of-text-muted;
+  font-weight: 400;
+}
+
+.pc-btn-setting {
+  flex-shrink: 0;
+}
+
+/* ===== Columns Table ===== */
+.pc-columns-table-wrap {
+  overflow-x: auto;
+}
+
+.pc-columns-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead tr {
+    background: $of-bg-header;
+  }
+
+  th, td {
+    padding: 8px 12px;
+    border: 1px solid $of-border-light;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .pc-col-field {
+    width: 160px;
     text-align: left;
-
-    span {
-      font-size: 16px;
-    }
+    font-weight: 500;
+    color: $of-text-primary;
   }
 
-  .pc-collapse-main {
-    padding-top: 15px;
-    box-sizing: border-box;
-
-    .pccm-item {
-      margin-bottom: 10px;
-
-      .btn-item {
-        display: flex;
-        align-items: center;
-
-        span {
-          margin-left: 5px;
-        }
-      }
-
-      .columns-list {
-        .width-txt {
-          width: 200px;
-        }
-
-        .width-check {
-          width: 100px;
-        }
-
-        .width-icon {
-          cursor: pointer;
-        }
-
-        .columns-head {
-          display: flex;
-          align-items: center;
-          padding: 6px 0;
-          border-bottom: 1px solid #ebeef5;
-          box-sizing: border-box;
-
-          span {
-            font-weight: 900;
-          }
-        }
-
-        .columns-item {
-          display: flex;
-          align-items: center;
-          padding: 6px 0;
-          box-sizing: border-box;
-
-          .ci-checkout {
-            height: auto !important;
-          }
-        }
-      }
-    }
+  .pc-col-check {
+    width: 100px;
+    text-align: center;
   }
 
-  .pc-dialog {
-    .dialog-select {
-      width: 100%;
-    }
+  thead .pc-col-field {
+    font-weight: 600;
+  }
 
-    .dialog-tree {
-      width: 100%;
-      margin-top: 20px;
+  tbody tr {
+    transition: background $of-transition-default;
+    &:hover {
+      background: $of-bg-card-hover;
     }
   }
+}
+
+/* ===== Data Range Dialog ===== */
+.pc-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pc-dialog-select {
+  width: 100%;
+}
+
+.pc-dialog-tree {
+  width: 100%;
 }
 </style>
 
 <style lang="scss">
-.permission-com {
+/* Unscoped global overrides for el-collapse */
+$of-border-light: #ebeef5;
+$of-bg-card: #f8f9fb;
+$of-color-primary: #409eff;
+$of-radius-sm: 8px;
+
+.pc-body {
   .el-collapse {
     border-top: none;
     border-bottom: none;
   }
 
   .el-collapse-item {
-    margin-bottom: 15px;
+    margin-bottom: 12px;
+    border: 1px solid $of-border-light;
+    border-radius: $of-radius-sm;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+
+    &:hover {
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
   }
 
   .el-collapse-item__header {
     height: auto;
-    padding: 15px;
-    border-radius: 8px;
-    border-top: 1px solid #ebeef5;
-    border-left: 1px solid #ebeef5;
-    border-right: 1px solid #ebeef5;
-    box-sizing: border-box;
-    background-color: #fafafa;
+    padding: 12px 16px;
+    background: #fafbfc;
+    border-bottom: 1px solid $of-border-light;
+    font-weight: 500;
   }
 
   .el-collapse-item__header.is-active {
-    border-radius: 8px 8px 0 0;
-    background-color: #fafafa;
+    background: linear-gradient(135deg, #ecf5ff 0%, #f8f9fb 100%);
   }
 
   .el-collapse-item__wrap {
-    padding: 15px;
-    border-left: 1px solid #ebeef5;
-    border-right: 1px solid #ebeef5;
-    border-top: 1px solid #ebeef5;
-    border-radius: 0 0 8px 8px;
-    background-color: #fafafa;
-    box-sizing: border-box;
+    padding: 14px 16px;
+    background: #fff;
+  }
 
-    .el-collapse-item__content {
-      padding-bottom: 0;
-    }
+  .el-collapse-item__content {
+    padding-bottom: 0;
   }
 }
 </style>

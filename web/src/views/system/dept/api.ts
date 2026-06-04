@@ -1,90 +1,50 @@
 import { request } from '/@/utils/service';
-import { UserPageQuery, AddReq, EditReq, InfoReq, PageQuery } from '@fast-crud/fast-crud';
 
 export const apiPrefix = '/api/system/dept/';
 
-export function GetList(query: UserPageQuery) {
-	return request({
-		url: apiPrefix,
-		method: 'get',
-		params: query,
-	});
+export interface QueryParams {
+  page?: number;
+  limit?: number;
+  parent?: string | number;
+  [key: string]: any;
 }
 
-export function GetObj(id: InfoReq) {
-	return request({
-		url: apiPrefix + id,
-		method: 'get',
-	});
+export function GetList(query: QueryParams = {}) {
+  return request({ url: apiPrefix, method: 'get', params: query });
 }
 
-export function AddObj(obj: AddReq) {
-	return request({
-		url: apiPrefix,
-		method: 'post',
-		data: obj,
-	});
+export function GetObj(id: string | number) {
+  return request({ url: apiPrefix + id, method: 'get' });
 }
 
-export function UpdateObj(obj: EditReq) {
-	return request({
-		url: apiPrefix + obj.id + '/',
-		method: 'put',
-		data: obj,
-	});
+export function AddObj(obj: Record<string, any>) {
+  return request({ url: apiPrefix, method: 'post', data: obj });
 }
 
-export function DelObj(id: string) {
-	return request({
-		url: apiPrefix + id + '/',
-		method: 'delete'
-	});
+export function UpdateObj(obj: Record<string, any>) {
+  return request({ url: apiPrefix + obj.id + '/', method: 'put', data: obj });
 }
 
-export function lazyLoadDept(query: UserPageQuery) {
-	return request({
-		url: apiPrefix,
-		method: 'get',
-		params: query,
-	});
+export function DelObj(id: string | number) {
+  return request({ url: apiPrefix + id + '/', method: 'delete' });
 }
 
-/**
- * 上下移动
- */
-export function deptMoveUp(obj: AddReq) {
-	return request({
-		url: apiPrefix + 'move_up/',
-		method: 'post',
-		data: obj,
-	});
+export function lazyLoadDept(query: QueryParams) {
+  return request({ url: apiPrefix, method: 'get', params: query });
 }
 
-export function deptMoveDown(obj: AddReq) {
-	return request({
-		url: apiPrefix + 'move_down/',
-		method: 'post',
-		data: obj,
-	});
+export function deptMoveUp(obj: Record<string, any>) {
+  return request({ url: apiPrefix + 'move_up/', method: 'post', data: obj });
 }
 
-/**
- * 用户相关接口
- */
-export function getDeptUserList(query: PageQuery) {
-	return request({
-		url: "/api/system/user/",
-		method: 'get',
-		params: query,
-	});
+export function deptMoveDown(obj: Record<string, any>) {
+  return request({ url: apiPrefix + 'move_down/', method: 'post', data: obj });
 }
 
-/**
- * 获取所有部门列表
- */
+export function getDeptUserList(query: QueryParams) {
+  return request({ url: '/api/system/user/', method: 'get', params: query });
+}
+
 export function getAllDeptList() {
-	return request({
-		url: "/api/system/dept/all_dept/",
-		method: 'get',
-	});
+  return request({ url: apiPrefix + 'all_dept/', method: 'get' });
 }

@@ -1,41 +1,56 @@
 import { request } from '/@/utils/service';
-import { UserPageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
 
 export const apiPrefix = '/api/system/api_white_list/';
-export function GetList(query: UserPageQuery) {
-	return request({
-		url: apiPrefix,
-		method: 'get',
-		params: query,
-	});
-}
-export function GetObj(id: InfoReq) {
-	return request({
-		url: apiPrefix + id,
-		method: 'get',
-	});
+
+export interface WhiteListRecord {
+  id?: number;
+  method: number;
+  url: string;
+  enable_datasource: boolean;
 }
 
-export function AddObj(obj: AddReq) {
-	return request({
-		url: apiPrefix,
-		method: 'post',
-		data: obj,
-	});
+export interface WhiteListQuery {
+  page: number;
+  limit: number;
+  method?: number | string;
+  [key: string]: any;
 }
 
-export function UpdateObj(obj: EditReq) {
-	return request({
-		url: apiPrefix + obj.id + '/',
-		method: 'put',
-		data: obj,
-	});
+export function GetList(query: WhiteListQuery) {
+  return request({
+    url: apiPrefix,
+    method: 'get',
+    params: query,
+  });
 }
 
-export function DelObj(id: DelReq) {
-	return request({
-		url: apiPrefix + id + '/',
-		method: 'delete',
-		data: { id },
-	});
+export function GetObj(id: number) {
+  return request({
+    url: apiPrefix + id,
+    method: 'get',
+  });
+}
+
+export function AddObj(obj: Record<string, any>) {
+  return request({
+    url: apiPrefix,
+    method: 'post',
+    data: obj,
+  });
+}
+
+export function UpdateObj(obj: Record<string, any>) {
+  return request({
+    url: apiPrefix + obj.id + '/',
+    method: 'put',
+    data: obj,
+  });
+}
+
+export function DelObj(id: number) {
+  return request({
+    url: apiPrefix + id + '/',
+    method: 'delete',
+    data: { id },
+  });
 }

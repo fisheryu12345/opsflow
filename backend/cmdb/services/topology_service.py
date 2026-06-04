@@ -1,227 +1,206 @@
 # -*- coding: utf-8 -*-
-"""Topology query service for CMDB
+from __future__ import annotations
 
-拓扑查询 — 图遍历、影响分析、全局搜索
+"""TopologyService — 拓扑查询、影响分析、全局搜索（全 Cypher 驱动）
+
+利用 Neo4j 原生图遍历能力实现高效的拓扑查询。
 """
 
 import logging
 
+from .neo4j_client import graph_driver
+
 logger = logging.getLogger(__name__)
 
 
-def get_biz_topology(biz):
-    """获取业务的完整拓扑树"""
-    from ..models.node_types import Set, Module, Host, Process
+class TopologyService:
+    """拓扑查询服务"""
 
-    biz_node = {'id': biz.biz_id, 'label': biz.name, 'type': 'biz', 'attrs': {
-        'lifecycle': biz.lifecycle, 'operator': biz.operator, 'description': biz.description,
-    }}
-    nodes = [biz_node]
-    edges = []
-    process_ids = set()
+    def get_tree(self, root_id: str, rel_types: list[str] = None,
+                 max_depth: int = 5) -> dict:
+        """以 root_id 为根展开子树
 
-    for s in biz.sets.all():
-        nodes.append({'id': s.set_id, 'label': s.name, 'type': 'set', 'attrs': {
-            'env_type': s.env_type, 'description': s.description,
-        }})
-        edges.append({'from': biz.biz_id, 'to': s.set_id, 'type': 'contains'})
-        for m in s.modules.all():
-            nodes.append({'id': m.module_id, 'label': m.name, 'type': 'module', 'attrs': {
-                'service_type': m.service_type, 'description': m.description,
-            }})
-            edges.append({'from': s.set_id, 'to': m.module_id, 'type': 'contains'})
-            for h in m.hosts.all():
+        返回嵌套的树结构，适用于前端的树形展示。
+        """
+        type_filter = ''
+        if rel_types:
+            type_filter = ':' + '|'.join(rel_types)
+
+        cypher = (
+            "MATCH path = (root {instance_id: $root_id}) "
+            f"-[{type_filter}*0..{max_depth}]->(descendant) "
+            "RETURN descendant, "
+            "       [rel IN relationships(path) | type(rel)] as rel_chain, "
+            "       length(path) as depth "
+            "ORDER BY depth"
+        )
+
+        nodes = []
+        with graph_driver.session() as session:
+            result = session.run(cypher, root_id=root_id)
+            for record in result:
+                node = record['descendant']
                 nodes.append({
-                    'id': h.host_id, 'label': h.hostname or h.ip, 'type': 'host',
-                    'attrs': {
-                        'ip': h.ip, 'hostname': h.hostname, 'status': h.status,
-                        'os_type': h.os_type, 'cpu_cores': h.cpu_cores,
-                        'memory_mb': h.memory_mb, 'disk_gb': h.disk_gb,
-                        'agent_status': h.agent_status, 'region': h.region,
-                    },
+                    'instance_id': node.get('instance_id'),
+                    '__model_code': node.get('__model_code'),
+                    'name': node.get('name') or node.get('hostname') or node.get('ip', ''),
+                    'depth': record['depth'],
+                    'rel_chain': record['rel_chain'],
                 })
-                edges.append({'from': m.module_id, 'to': h.host_id, 'type': 'contains'})
-                for p in h.processes.all():
-                    pid = p.process_id
-                    process_ids.add(pid)
-                    nodes.append({
-                        'id': pid, 'label': f"{p.name}:{p.port}", 'type': 'process',
-                        'attrs': {
-                            'name': p.name, 'port': p.port, 'protocol': p.protocol,
-                            'status': p.status, 'version': p.version,
-                        },
-                    })
-                    edges.append({'from': h.host_id, 'to': pid, 'type': 'runs'})
 
-    # 补充 Process DEPENDS_ON 跨进程依赖关系
-    for p in Process.nodes.all():
-        if p.process_id in process_ids:
-            for dep in p.depends_on.all():
-                if dep.process_id in process_ids:
-                    edges.append({'from': p.process_id, 'to': dep.process_id, 'type': 'depends_on'})
+        return {'root_id': root_id, 'nodes': nodes, 'total': len(nodes)}
 
-    return {'nodes': nodes, 'edges': edges}
+    def get_impact(self, instance_id: str,
+                   direction: str = 'downstream',
+                   max_depth: int = 5) -> dict:
+        """影响分析 — 某节点故障时受影响的上/下游
 
+        Args:
+            instance_id: 节点 ID
+            direction: downstream(下游影响) / upstream(上游溯源)
+            max_depth: 分析深度
 
-def get_host_graph(host):
-    """获取以主机为中心的关联图"""
-    from ..models.node_types import Module
+        Returns:
+            {impacted: [{id, model_code, label, depth}], paths: [...]}
+        """
+        dir_sym = '->' if direction == 'downstream' else '<-'
 
-    nodes = []
-    edges = []
-    seen = set()
+        cypher = (
+            "MATCH (src {instance_id: $id}) "
+            f"MATCH path = (src)-[{dir_sym}*1..{max_depth}]->(affected) "
+            "RETURN affected, "
+            "       [rel IN relationships(path) | type(rel)] as rel_types, "
+            "       length(path) as depth "
+            "ORDER BY depth"
+        )
 
-    # 主机自身
-    host_key = f"host:{host.host_id}"
-    nodes.append({
-        'id': host_key, 'label': host.hostname or host.ip, 'type': 'host',
-        'attrs': {
-            'ip': host.ip, 'hostname': host.hostname, 'status': host.status,
-            'os_type': host.os_type, 'cpu_cores': host.cpu_cores,
-            'memory_mb': host.memory_mb, 'disk_gb': host.disk_gb,
-            'agent_status': host.agent_status, 'region': host.region,
-        },
-    })
-    seen.add(host_key)
+        impacted = []
+        paths = []
 
-    # 所属模块
-    for m in host.module.all():
-        mod_key = f"module:{m.module_id}"
-        if mod_key not in seen:
-            nodes.append({
-                'id': mod_key, 'label': m.name, 'type': 'module',
-                'attrs': {
-                    'service_type': m.service_type, 'description': m.description,
-                },
-            })
-            seen.add(mod_key)
-        edges.append({'from': mod_key, 'to': host_key, 'type': 'belongs_to'})
-
-        # 模块下其他主机
-        for other in m.hosts.all():
-            if other.host_id != host.host_id:
-                other_key = f"host:{other.host_id}"
-                if other_key not in seen:
-                    nodes.append({
-                        'id': other_key, 'label': other.hostname or other.ip, 'type': 'host',
-                        'attrs': {
-                            'ip': other.ip, 'hostname': other.hostname, 'status': other.status,
-                            'os_type': other.os_type, 'cpu_cores': other.cpu_cores,
-                            'memory_mb': other.memory_mb, 'disk_gb': other.disk_gb,
-                            'agent_status': other.agent_status, 'region': other.region,
-                        },
-                    })
-                    seen.add(other_key)
-                edges.append({'from': mod_key, 'to': other_key, 'type': 'contains'})
-
-    # 主机上运行的进程
-    for p in host.processes.all():
-        proc_key = f"process:{p.process_id}"
-        if proc_key not in seen:
-            nodes.append({
-                'id': proc_key, 'label': f"{p.name}:{p.port}", 'type': 'process',
-                'attrs': {
-                    'name': p.name, 'port': p.port, 'protocol': p.protocol,
-                    'status': p.status, 'version': p.version,
-                },
-            })
-            seen.add(proc_key)
-        edges.append({'from': host_key, 'to': proc_key, 'type': 'runs'})
-
-    # 进程 DEPENDS_ON 跨进程依赖
-    for p in host.processes.all():
-        proc_key = f"process:{p.process_id}"
-        for dep in p.depends_on.all():
-            dep_key = f"process:{dep.process_id}"
-            if dep_key in seen:
-                edges.append({'from': proc_key, 'to': dep_key, 'type': 'depends_on'})
-            elif dep_key not in seen:
-                # Also add the dependency node if not already in graph
-                nodes.append({
-                    'id': dep_key, 'label': f"{dep.name}:{dep.port}", 'type': 'process',
-                    'attrs': {
-                        'name': dep.name, 'port': dep.port, 'protocol': dep.protocol,
-                        'status': dep.status, 'version': dep.version,
-                    },
+        with graph_driver.session() as session:
+            result = session.run(cypher, id=instance_id)
+            for record in result:
+                node = record['affected']
+                nid = node.get('instance_id')
+                label = (node.get('name')
+                         or node.get('hostname')
+                         or node.get('ip')
+                         or nid)
+                impacted.append({
+                    'instance_id': nid,
+                    'model_code': node.get('__model_code'),
+                    'label': label,
+                    'depth': record['depth'],
                 })
-                seen.add(dep_key)
-                edges.append({'from': proc_key, 'to': dep_key, 'type': 'depends_on'})
+                paths.append({
+                    'from': instance_id,
+                    'to': nid,
+                    'rel_types': record['rel_types'],
+                    'depth': record['depth'],
+                })
 
-    return {'nodes': nodes, 'edges': edges}
+        return {
+            'impacted': impacted,
+            'paths': paths,
+            'total': len(impacted),
+        }
 
+    def full_topology(self) -> dict:
+        """全局力导向图数据 — 所有节点和关系"""
+        nodes_map = {}
+        edges = []
 
-def get_impact_analysis(node_id: str, node_type: str = 'host') -> dict:
-    """影响分析 — 给定节点挂了，哪些上下游受影响"""
-    from ..models.node_types import Biz, Set, Module, Host, Process
+        # 查询所有节点
+        with graph_driver.session() as session:
+            result = session.run("MATCH (n) RETURN n")
+            for record in result:
+                node = record['n']
+                nid = node.get('instance_id')
+                if nid:
+                    nodes_map[nid] = {
+                        'id': nid,
+                        'label': (node.get('name')
+                                  or node.get('hostname')
+                                  or node.get('ip')
+                                  or nid),
+                        'model_code': node.get('__model_code'),
+                    }
 
-    impacted = []
-    paths = []
+        # 查询所有关系
+        with graph_driver.session() as session:
+            result = session.run(
+                "MATCH (src)-[r]->(dst) "
+                "RETURN src.instance_id as src_id, "
+                "       dst.instance_id as dst_id, "
+                "       type(r) as rel_type, "
+                "       r.rel_id as rel_id"
+            )
+            for record in result:
+                edges.append({
+                    'id': record['rel_id'],
+                    'from': record['src_id'],
+                    'to': record['dst_id'],
+                    'type': record['rel_type'],
+                })
 
-    try:
-        if node_type == 'host':
-            host = Host.nodes.get(host_id=node_id)
-            impacted.append({'id': host.host_id, 'label': host.hostname or host.ip, 'type': 'host', 'impact': 'direct'})
+        return {
+            'nodes': list(nodes_map.values()),
+            'edges': edges,
+        }
 
-            # 受影响的上层: 模块 → 集群 → 业务
-            for m in host.module.all():
-                impacted.append({'id': m.module_id, 'label': m.name, 'type': 'module', 'impact': 'indirect'})
-                paths.append({'from': host.host_id, 'to': m.module_id, 'type': 'belongs_to'})
-                for s in m.set_.all():
-                    impacted.append({'id': s.set_id, 'label': s.name, 'type': 'set', 'impact': 'indirect'})
-                    paths.append({'from': m.module_id, 'to': s.set_id, 'type': 'belongs_to'})
-                    for b in s.biz.all():
-                        impacted.append({'id': b.biz_id, 'label': b.name, 'type': 'biz', 'impact': 'indirect'})
-                        paths.append({'from': s.set_id, 'to': b.biz_id, 'type': 'belongs_to'})
+    def global_search(self, query: str, model_codes: list[str] = None,
+                      limit: int = 50) -> list[dict]:
+        """全局搜索 — 跨所有模型类型
 
-            # 受影响的进程
-            for p in host.processes.all():
-                impacted.append({'id': p.process_id, 'label': f"{p.name}:{p.port}", 'type': 'process', 'impact': 'direct'})
-                paths.append({'from': host.host_id, 'to': p.process_id, 'type': 'runs'})
+        使用 CONTAINS 模糊搜索所有字符串属性。
+        如果安装了 Neo4j 全文索引，优先使用。
+        """
+        q = query.lower()
+        results = []
 
-        elif node_type == 'biz':
-            biz = Biz.nodes.get(biz_id=node_id)
-            impacted.append({'id': biz.biz_id, 'label': biz.name, 'type': 'biz', 'impact': 'direct'})
-            for s in biz.sets.all():
-                impacted.append({'id': s.set_id, 'label': s.name, 'type': 'set', 'impact': 'indirect'})
-                paths.append({'from': biz.biz_id, 'to': s.set_id, 'type': 'contains'})
-                for m in s.modules.all():
-                    impacted.append({'id': m.module_id, 'label': m.name, 'type': 'module', 'impact': 'indirect'})
-                    paths.append({'from': s.set_id, 'to': m.module_id, 'type': 'contains'})
-                    for h in m.hosts.all():
-                        impacted.append({'id': h.host_id, 'label': h.hostname or h.ip, 'type': 'host', 'impact': 'indirect'})
-                        paths.append({'from': m.module_id, 'to': h.host_id, 'type': 'contains'})
-    except Exception as e:
-        logger.error(f"影响分析失败: {e}")
-        return {'impacted': [], 'paths': [], 'error': str(e)}
+        # 先尝试全文索引
+        try:
+            fts_cypher = (
+                "CALL db.index.fulltext.queryNodes('cmdb_search_index', $q) "
+                "YIELD node, score "
+                "RETURN node, score "
+                "LIMIT $limit"
+            )
+            with graph_driver.session() as session:
+                result = session.run(fts_cypher, q=q, limit=limit)
+                for record in result:
+                    node = record['node']
+                    results.append(self._node_to_search_result(node))
+                if results:
+                    return results
+        except Exception:
+            # 全文索引不存在，降级为 CONTAINS 遍历
+            pass
 
-    return {'impacted': impacted, 'paths': paths, 'total': len(impacted)}
+        # 降级方案：根据 model_codes 遍历查询
+        label_filter = f":{'|'.join(model_codes)}" if model_codes else ""
+        cypher = (
+            f"MATCH (n{label_filter}) "
+            "WHERE ANY(key IN keys(n) WHERE "
+            "  toString(n[key]) CONTAINS $q "
+            ") "
+            "RETURN n LIMIT $limit"
+        )
+        with graph_driver.session() as session:
+            result = session.run(cypher, q=q, limit=limit)
+            for record in result:
+                node = record['n']
+                results.append(self._node_to_search_result(node))
 
+        return results
 
-def search_nodes(query: str) -> list:
-    """全局搜索 CMDB 节点"""
-    from ..models.node_types import Biz, Set, Module, Host, Process
-
-    results = []
-    q = query.lower()
-
-    # 搜索业务
-    for biz in Biz.nodes.all():
-        if q in biz.name.lower() or q in (biz.description or '').lower():
-            results.append({'id': biz.biz_id, 'label': biz.name, 'type': 'biz'})
-
-    # 搜索主机
-    for host in Host.nodes.all():
-        if q in (host.hostname or '').lower() or q in (host.ip or '') or q in (host.private_ip or ''):
-            results.append({'id': host.host_id, 'label': host.hostname or host.ip, 'type': 'host'})
-
-    # 搜索进程
-    for proc in Process.nodes.all():
-        if q in proc.name.lower():
-            results.append({'id': proc.process_id, 'label': f"{proc.name}:{proc.port}", 'type': 'process'})
-
-    # 搜索模块
-    for mod in Module.nodes.all():
-        if q in mod.name.lower():
-            results.append({'id': mod.module_id, 'label': mod.name, 'type': 'module'})
-
-    return results[:50]
+    def _node_to_search_result(self, node) -> dict:
+        nid = node.get('instance_id')
+        return {
+            'instance_id': nid,
+            'label': (node.get('name')
+                      or node.get('hostname')
+                      or node.get('ip')
+                      or nid),
+            'model_code': node.get('__model_code'),
+        }

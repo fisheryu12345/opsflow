@@ -44,6 +44,7 @@ urlpatterns = [
     path('system_config/get_association_table/', SystemConfigViewSet.as_view({'get': 'get_association_table'})),
     path('system_config/get_table_data/<int:pk>/', SystemConfigViewSet.as_view({'get': 'get_table_data'})),
     path('system_config/get_relation_info/', SystemConfigViewSet.as_view({'get': 'get_relation_info'})),
+    path('login_log/stats/', LoginLogViewSet.as_view({'get': 'stats'})),
     path('login_log/', LoginLogViewSet.as_view({'get': 'list'})),
     path('login_log/<int:pk>/', LoginLogViewSet.as_view({'get': 'retrieve'})),
     path('dept_lazy_tree/', DeptViewSet.as_view({'get': 'dept_lazy_tree'})),

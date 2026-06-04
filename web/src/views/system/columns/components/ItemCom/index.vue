@@ -1,7 +1,10 @@
 <template>
 	<div class="item-com">
-		<p class="item-com-title">{{ props.title }}</p>
-		<ul class="item-com-list" :style="{ height: showPagination ? 'calc(100% - 75px)' : 'calc(100% - 45px)' }">
+		<div class="item-com-header">
+			<div class="item-com-header-bar" />
+			<span class="item-com-title">{{ props.title }}</span>
+		</div>
+		<ul class="item-com-list">
 			<li
 				v-for="item in state.data"
 				:key="item[props.value]"
@@ -95,46 +98,75 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@use '../../../apps/opsflow/styles/opsflow-global' as *;
+
 .item-com {
 	width: 100%;
 	height: 100%;
-	position: relative;
-	overflow: hidden;
+	display: flex;
+	flex-direction: column;
 
-	.item-com-title {
-		font-size: 16px;
-		font-weight: 900;
+	.item-com-header {
+		display: flex;
+		align-items: center;
+		gap: 8px;
 		padding-bottom: 10px;
-		margin-bottom: 10px;
-		border-bottom: 1px solid #dcdfe6;
+		margin-bottom: 12px;
+		border-bottom: 1px solid $of-border-light;
+		flex-shrink: 0;
+
+		.item-com-header-bar {
+			width: 3px;
+			height: 16px;
+			border-radius: 2px;
+			background: $of-gradient-blue;
+			flex-shrink: 0;
+		}
+
+		.item-com-title {
+			font-size: 14px;
+			font-weight: 600;
+			color: $of-text-primary;
+		}
 	}
+
 	.item-com-list {
-		width: 100%;
-		white-space: nowrap;
+		flex: 1;
 		overflow: auto;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		white-space: nowrap;
+
 		.item-com-item {
 			width: fit-content;
 			min-width: 100%;
-			padding: 10px 16px;
-			border-radius: 8px;
+			padding: 9px 14px;
+			border-radius: $of-radius-sm;
 			cursor: pointer;
-			transition: all 500ms;
+			transition: all $of-transition-default;
+			color: $of-text-secondary;
+			font-size: 13px;
+			box-sizing: border-box;
 		}
-		.active {
-			color: var(--el-color-primary);
-			background-color: var(--el-color-primary-light-8);
-			transition: all 500ms;
-		}
+
 		.item-com-item:hover {
-			color: var(--el-color-primary);
-			transition: all 500ms;
+			background: $of-bg-card-hover;
+			color: $of-color-primary;
+		}
+
+		.active {
+			background: $of-bg-light-blue;
+			color: $of-color-primary;
+			font-weight: 600;
 		}
 	}
+
 	.item-com-pagination {
-		width: 100%;
-		height: 25px;
-		position: absolute;
-		bottom: 0;
+		flex-shrink: 0;
+		display: flex;
+		justify-content: center;
+		padding-top: 8px;
 	}
 }
 </style>

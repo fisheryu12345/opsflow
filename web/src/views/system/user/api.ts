@@ -1,47 +1,47 @@
-import { request,downloadFile } from '/@/utils/service';
-import { PageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
+import { request, downloadFile } from '/@/utils/service';
 
 export const apiPrefix = '/api/system/user/';
 
-export function GetDept(query: PageQuery) {
+export function GetDept(params?: Record<string, any>) {
     return request({
-        url: "/api/system/dept/dept_lazy_tree/",
+        url: '/api/system/dept/dept_lazy_tree/',
         method: 'get',
-        params: query,
+        params,
     });
 }
 
-export function GetList(query: PageQuery) {
+export function GetList(params?: Record<string, any>) {
     return request({
         url: apiPrefix,
         method: 'get',
-        params: query,
+        params,
     });
 }
-export function GetObj(id: InfoReq) {
+
+export function GetObj(id: number | string) {
     return request({
         url: apiPrefix + id,
         method: 'get',
     });
 }
 
-export function AddObj(obj: AddReq) {
+export function AddObj(data: Record<string, any>) {
     return request({
         url: apiPrefix,
         method: 'post',
-        data: obj,
+        data,
     });
 }
 
-export function UpdateObj(obj: EditReq) {
+export function UpdateObj(data: Record<string, any>) {
     return request({
-        url: apiPrefix + obj.id + '/',
+        url: apiPrefix + data.id + '/',
         method: 'put',
-        data: obj,
+        data,
     });
 }
 
-export function DelObj(id: DelReq) {
+export function DelObj(id: number | string) {
     return request({
         url: apiPrefix + id + '/',
         method: 'delete',
@@ -49,10 +49,18 @@ export function DelObj(id: DelReq) {
     });
 }
 
-export function exportData(params:any){
+export function exportData(params?: Record<string, any>) {
     return downloadFile({
         url: apiPrefix + 'export_data/',
-        params: params,
-        method: 'get'
-    })
+        params,
+        method: 'get',
+    });
+}
+
+export function resetPwd(id: number | string, data: { new_password: string; new_password2?: string }) {
+    return request({
+        url: `/api/system/user/${id}/reset_password/`,
+        method: 'put',
+        data,
+    });
 }

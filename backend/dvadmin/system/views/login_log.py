@@ -6,7 +6,11 @@
 @Created on: 2021/6/3 003 0:30
 @Remark: 按钮权限管理
 """
+from django.utils import timezone
+from rest_framework.decorators import action
+
 from dvadmin.system.models import LoginLog
+from dvadmin.utils.json_response import DetailResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
 
@@ -34,3 +38,17 @@ class LoginLogViewSet(CustomModelViewSet):
     queryset = LoginLog.objects.all()
     serializer_class = LoginLogSerializer
     extra_filter_class = []
+
+    @action(methods=['get'], detail=False)
+    def stats(self, request):
+        """获取登录日志统计信息"""
+        queryset = self.filter_queryset(self.get_queryset())
+        total = queryset.count()
+        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_count = queryset.filter(create_datetime__gte=today_start).count()
+        unique_ips = queryset.values('ip').distinct().count()
+        return DetailResponse(data={
+            'total': total,
+            'unique_ips': unique_ips,
+            'today_count': today_count,
+        })

@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
-"""AppConfig for cmdb app"""
+"""AppConfig for cmdb app
+
+在 ready() 中初始化 Neo4j 驱动连接池（纯 Cypher 模式），
+不再使用 neomodel。
+"""
 
 import logging
 
 from django.apps import AppConfig
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -15,16 +18,10 @@ class CmdbConfig(AppConfig):
     verbose_name = 'CMDB 配置管理'
 
     def ready(self):
-        """应用启动时初始化 neomodel Neo4j 连接"""
+        """应用启动时初始化 Neo4j 驱动"""
         try:
-            from neomodel import config as neomodel_config
-            protocol = getattr(settings, 'NEO4J_PROTOCOL', 'bolt')
-            host = getattr(settings, 'NEO4J_HOST', 'localhost')
-            port = getattr(settings, 'NEO4J_PORT', 7687)
-            user = getattr(settings, 'NEO4J_USER', 'neo4j')
-            password = getattr(settings, 'NEO4J_PASSWORD', 'password')
-
-            neomodel_config.DATABASE_URL = f"{protocol}://{user}:{password}@{host}:{port}"
-            logger.info(f"Neo4j 连接已配置: {protocol}://{user}@{host}:{port}")
+            from .services.neo4j_client import graph_driver
+            graph_driver.initialize()
+            logger.info("Neo4j 驱动连接池已初始化")
         except Exception as e:
-            logger.warning(f"Neo4j 未就绪，跳过连接初始化: {e}")
+            logger.warning(f"Neo4j 未就绪，跳过初始化: {e}")

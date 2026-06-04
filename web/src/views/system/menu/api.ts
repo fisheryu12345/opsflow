@@ -1,9 +1,8 @@
 import { request } from '/@/utils/service';
-import { UserPageQuery, AddReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
 
 export const apiPrefix = '/api/system/menu/';
 
-export function GetList(query: UserPageQuery) {
+export function GetList(query: Record<string, any>) {
   return request({
     url: apiPrefix,
     method: 'get',
@@ -11,14 +10,14 @@ export function GetList(query: UserPageQuery) {
   });
 }
 
-export function GetObj(id: InfoReq) {
+export function GetObj(id: number | string) {
   return request({
     url: apiPrefix + id + '/',
     method: 'get',
   });
 }
 
-export function AddObj(obj: AddReq) {
+export function AddObj(obj: Record<string, any>) {
   return request({
     url: apiPrefix,
     method: 'post',
@@ -26,7 +25,7 @@ export function AddObj(obj: AddReq) {
   });
 }
 
-export function UpdateObj(obj: EditReq) {
+export function UpdateObj(obj: Record<string, any>) {
   return request({
     url: apiPrefix + obj.id + '/',
     method: 'put',
@@ -41,7 +40,7 @@ export function DelObj(id: string | number) {
   });
 }
 
-export function GetAllMenu(query: UserPageQuery) {
+export function GetAllMenu(query: Record<string, any>) {
   return request({
     url: apiPrefix + 'get_all_menu/',
     method: 'get',
@@ -49,7 +48,7 @@ export function GetAllMenu(query: UserPageQuery) {
   });
 }
 
-export function lazyLoadMenu(query: UserPageQuery) {
+export function lazyLoadMenu(query: Record<string, any>) {
   return request({
     url: apiPrefix,
     method: 'get',
@@ -57,7 +56,7 @@ export function lazyLoadMenu(query: UserPageQuery) {
   });
 }
 
-export function dragMenu(obj: AddReq) {
+export function dragMenu(obj: Record<string, any>) {
   return request({
     url: apiPrefix + 'drag_menu/',
     method: 'post',
@@ -65,7 +64,7 @@ export function dragMenu(obj: AddReq) {
   });
 }
 
-export function menuMoveUp(obj: AddReq) {
+export function menuMoveUp(obj: Record<string, any>) {
   return request({
     url: apiPrefix + 'move_up/',
     method: 'post',
@@ -73,7 +72,7 @@ export function menuMoveUp(obj: AddReq) {
   });
 }
 
-export function menuMoveDown(obj: AddReq) {
+export function menuMoveDown(obj: Record<string, any>) {
   return request({
     url: apiPrefix + 'move_down/',
     method: 'post',

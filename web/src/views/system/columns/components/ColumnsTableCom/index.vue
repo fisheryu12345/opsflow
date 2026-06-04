@@ -1,19 +1,35 @@
 <template>
 	<div class="columns-table-com">
-		<p class="ctc-title">字段权限</p>
-
-		<div class="ctc-head">
-			<el-button type="primary" @click="handleUpdateColumn('create')">新增</el-button>
-			<el-button type="primary" @click="handleAutomatch">自动匹配</el-button>
+		<div class="ctc-header">
+			<div class="ctc-header-left">
+				<div class="ctc-header-bar" />
+				<span class="ctc-title">字段权限</span>
+			</div>
+			<div class="ctc-actions">
+				<el-button type="primary" size="small" @click="handleUpdateColumn('create')">
+					<el-icon><Plus /></el-icon> 新增
+				</el-button>
+				<el-button size="small" @click="handleAutomatch">
+					自动匹配
+				</el-button>
+			</div>
 		</div>
 
-		<el-table :data="state.data" border v-loading="state.loading" class="ctc-table">
-			<el-table-column prop="field_name" label="字段名" />
-			<el-table-column prop="title" label="列名" />
-			<el-table-column label="操作" width="180" align="center">
+		<el-table :data="state.data" stripe v-loading="state.loading" class="ctc-table" size="small">
+			<el-table-column prop="field_name" label="字段名" min-width="120" show-overflow-tooltip />
+			<el-table-column prop="title" label="列名" min-width="120" show-overflow-tooltip />
+			<el-table-column label="操作" width="200" align="center">
 				<template #default="scope">
-					<el-button type="primary" @click="handleUpdateColumn('update', scope.row)">编辑</el-button>
-					<el-button type="danger" @click="handleDelete(scope.row)">删除</el-button>
+					<el-button size="small" text type="primary" @click="handleUpdateColumn('update', scope.row)">
+						<el-icon><Edit /></el-icon> 编辑
+					</el-button>
+					<el-popconfirm title="确定删除该字段吗？" @confirm="handleDelete(scope.row)">
+						<template #reference>
+							<el-button size="small" text type="danger">
+								<el-icon><Delete /></el-icon> 删除
+							</el-button>
+						</template>
+					</el-popconfirm>
 				</template>
 			</el-table-column>
 		</el-table>
@@ -25,21 +41,24 @@
 				:page-sizes="[5, 10, 20, 50]"
 				:total="state.total"
 				background
+				small
 				layout="total, sizes, prev, pager, next, jumper"
 				@size-change="handleSizeChange"
 				@current-change="handleCurrentChange"
 			/>
 		</div>
 
-		<el-drawer v-model="drawerVisible" title="字段权限" direction="rtl" size="500px" :close-on-click-modal="false" :before-close="handleDrawerClose">
-			<ColumnsFormCom v-if="drawerVisible" :currentInfo="props.currentInfo" :initFormData="drawerFormData" @drawerClose="handleDrawerClose" />
+		<el-drawer v-model="drawerVisible" title="字段权限" direction="rtl" size="500px"
+			:close-on-click-modal="false" :before-close="handleDrawerClose" class="ctc-drawer">
+			<ColumnsFormCom v-if="drawerVisible" :currentInfo="props.currentInfo" :initFormData="drawerFormData"
+				@drawerClose="handleDrawerClose" />
 		</el-drawer>
 	</div>
 </template>
 
 <script lang="ts" setup>
 import { ref, reactive } from 'vue';
-import { ElMessageBox } from 'element-plus';
+import { Plus, Edit, Delete } from '@element-plus/icons-vue';
 import ColumnsFormCom from '../ColumnsFormCom/index.vue';
 import { getColumnsData, automatchColumnsData, deleteColumnsData, updateColumnsData } from './api';
 import { successNotification, warningNotification } from '/@/utils/message';
@@ -49,21 +68,21 @@ const props = defineProps({
 	currentInfo: {
 		type: Object as () => CurrentInfoType,
 		required: true,
-		default: () => {},
+		default: () => ({}),
 	},
 });
 
-let searchParams = reactive({
+const searchParams = reactive({
 	page: 1,
 	limit: 20,
 });
-let state = reactive({
+const state = reactive({
 	loading: false,
-	data: [],
+	data: [] as any[],
 	total: 0,
 });
-let drawerVisible = ref(false);
-let drawerFormData = ref<Partial<ColumnsFormDataType>>({});
+const drawerVisible = ref(false);
+const drawerFormData = ref<Partial<ColumnsFormDataType>>({});
 
 const fetchData = async (query: CurrentInfoType = props.currentInfo) => {
 	try {
@@ -106,6 +125,7 @@ const handleUpdateColumn = (type: string, record?: ColumnsFormDataType) => {
 	}
 	warningNotification('请选择角色和模型表！');
 };
+
 const handleDrawerClose = (type?: string) => {
 	if (type === 'submit') {
 		fetchData();
@@ -115,22 +135,14 @@ const handleDrawerClose = (type?: string) => {
 };
 
 /**
- * 删除 deleteColumnsData
+ * 删除
  */
-const handleDelete = ({ id }: { id: number }) => {
-	ElMessageBox.confirm('确定删除该字段吗？', '提示', {
-		type: 'error',
-		confirmButtonText: '确定',
-		cancelButtonText: '取消',
-	})
-		.then(async () => {
-			const res = await deleteColumnsData(id);
-			if (res?.code === 2000) {
-				successNotification('删除成功');
-				fetchData();
-			}
-		})
-		.catch(() => {});
+const handleDelete = async ({ id }: { id: number }) => {
+	const res = await deleteColumnsData(id);
+	if (res?.code === 2000) {
+		successNotification('删除成功');
+		fetchData();
+	}
 };
 
 const handleChange = (record: AddColumnsDataType) => {
@@ -155,25 +167,73 @@ defineExpose({ fetchData });
 </script>
 
 <style lang="scss" scoped>
+@use '../../../apps/opsflow/styles/opsflow-global' as *;
+
 .columns-table-com {
 	height: 100%;
-	.ctc-title {
-		font-size: 16px;
-		font-weight: 900;
+	display: flex;
+	flex-direction: column;
+
+	.ctc-header {
+		flex-shrink: 0;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
 		padding-bottom: 10px;
-		border-bottom: 1px solid #dcdfe6;
+		margin-bottom: 12px;
+		border-bottom: 1px solid $of-border-light;
+
+		.ctc-header-left {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+
+			.ctc-header-bar {
+				width: 3px;
+				height: 16px;
+				border-radius: 2px;
+				background: $of-gradient-blue;
+				flex-shrink: 0;
+			}
+
+			.ctc-title {
+				font-size: 14px;
+				font-weight: 600;
+				color: $of-text-primary;
+			}
+		}
+
+		.ctc-actions {
+			display: flex;
+			gap: 8px;
+		}
 	}
-	.ctc-head {
-		height: 35px;
-		margin-top: 10px;
-	}
+
 	.ctc-table {
+		flex: 1;
 		width: 100%;
-		height: calc(100% - 135px);
-		margin: 10px 0;
+		min-height: 0;
 	}
+	.ctc-table :deep(.el-table th.el-table__cell) {
+		background: $of-bg-header;
+		color: $of-text-secondary;
+		font-weight: 600;
+		font-size: 12px;
+	}
+	.ctc-table :deep(.el-table__body tr:hover td) {
+		background: $of-bg-card-hover;
+	}
+
 	.ctc-pagination {
-		height: 35px;
+		flex-shrink: 0;
+		display: flex;
+		justify-content: flex-end;
+		padding-top: 10px;
+	}
+
+	/* Drawer — OPSflow-style header */
+	.ctc-drawer :deep(.el-drawer__header) {
+		@include of-dialog-header;
 	}
 }
 </style>

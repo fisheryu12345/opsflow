@@ -1,14 +1,3 @@
-import { CrudOptions, CrudExpose } from '@fast-crud/fast-crud';
-
-export interface CreateCrudReturnTypes {
-  crudOptions: CrudOptions;
-}
-
-export interface CreateCrudOptionsTypes {
-  crudExpose: CrudExpose;
-  configPermission: Function;
-}
-
 export interface RoleItemType {
   id: string | number;
   modifier_name: string;

@@ -1,65 +1,64 @@
 import { request } from '/@/utils/service';
-import { UserPageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
-import XEUtils from "xe-utils";
-import {CurrentInfoType} from "/@/views/system/columns/types";
 
 export const apiPrefix = '/api/system/column/';
-export function GetList(query: UserPageQuery) {
-	return request({
-		url: apiPrefix,
-		method: 'get',
-		params: query,
-	});
-}
-export function GetObj(id: InfoReq) {
-	return request({
-		url: apiPrefix + id,
-		method: 'get',
-	});
+
+export function GetList(query: Record<string, any>) {
+  return request({
+    url: apiPrefix,
+    method: 'get',
+    params: query,
+  });
 }
 
-export function AddObj(obj: AddReq) {
-	return request({
-		url: apiPrefix,
-		method: 'post',
-		data: obj,
-	});
+export function GetObj(id: number | string) {
+  return request({
+    url: apiPrefix + id,
+    method: 'get',
+  });
 }
 
-export function UpdateObj(obj: EditReq) {
-	return request({
-		url: apiPrefix + obj.id + '/',
-		method: 'put',
-		data: obj,
-	});
+export function AddObj(obj: Record<string, any>) {
+  return request({
+    url: apiPrefix,
+    method: 'post',
+    data: obj,
+  });
 }
 
-export function DelObj(id: DelReq) {
-	return request({
-		url: apiPrefix + id + '/',
-		method: 'delete',
-		data: { id },
-	});
+export function UpdateObj(obj: Record<string, any>) {
+  return request({
+    url: apiPrefix + obj.id + '/',
+    method: 'put',
+    data: obj,
+  });
+}
+
+export function DelObj(id: number | string | undefined) {
+  return request({
+    url: apiPrefix + id + '/',
+    method: 'delete',
+    data: { id },
+  });
 }
 
 /**
- * 获取所有model
+ * Get all models for column matching / 获取所有model
  */
 export function getModelList() {
-	return request({
-		url: '/api/system/column/get_models/',
-		method: 'get',
-	});
+  return request({
+    url: '/api/system/column/get_models/',
+    method: 'get',
+  });
 }
 
 /**
- * 自动匹配field
- * @param data
+ * Auto-match fields from model / 自动匹配字段
+ * @param data - { menu, model, app }
  */
-export function automatchColumnsData(data: CurrentInfoType) {
-	return request({
-		url: '/api/system/column/auto_match_fields/',
-		method: 'post',
-		data,
-	});
+export function automatchColumnsData(data: Record<string, any>) {
+  return request({
+    url: '/api/system/column/auto_match_fields/',
+    method: 'post',
+    data,
+  });
 }

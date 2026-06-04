@@ -1,13 +1,8 @@
 <template>
 	<div class="login-container flex">
-		<div class="login-left">
+		<div class="login-left of-fade-in-up">
 			<div class="login-left-logo">
 				<img :src="logoMini" />
-<!--				<div class="login-left-logo-text">-->
-<!--          <span>HSBC China</span>-->
-<!--					<span>{{ getSystemConfig['login.site_title']||getThemeConfig.globalViceTitle }}</span>-->
-<!--					<span class="login-left-logo-text-msg">{{ getSystemConfig['login.site_name']||getThemeConfig.globalViceTitleMsg }}</span>-->
-<!--				</div>-->
 			</div>
 			<div class="login-left-img">
 				<img :src="loginMain" />
@@ -15,35 +10,23 @@
 			<img :src="loginBg" class="login-left-waves" />
 		</div>
 		<div class="login-right flex">
-			<div class="login-right-warp flex-margin">
+			<div class="login-right-warp flex-margin of-fade-in-up" style="animation-delay: 0.15s;">
 				<span class="login-right-warp-one"></span>
 				<span class="login-right-warp-two"></span>
 				<div class="login-right-warp-mian">
-<!--					<div class="login-right-warp-main-title">{{ getSystemConfig['login.site_title'] || getThemeConfig.globalTitle }} 欢迎您！</div>-->
-          <div class="login-right-warp-main-title">TRADE SYSTEM</div>
+					<div class="login-right-warp-main-title">TRADE SYSTEM</div>
 					<div class="login-right-warp-main-form">
 						<div v-if="!state.isScan">
 							<el-tabs v-model="state.tabsActiveName">
-<!--								<el-tab-pane :label="$t('message.label.one1')" name="account">-->
-									<Account />
-<!--								</el-tab-pane>-->
-								<!-- TODO 手机号码登录未接入，展示隐藏 -->
-								<!-- <el-tab-pane :label="$t('message.label.two2')" name="mobile">
-									<Mobile />
-								</el-tab-pane> -->
+								<Account />
 							</el-tabs>
 						</div>
-<!--						<Scan v-if="state.isScan" />-->
-<!--						<div class="login-content-main-sacn" @click="state.isScan = !state.isScan">-->
-<!--							<i class="iconfont" :class="state.isScan ? 'icon-diannao1' : 'icon-barcode-qr'"></i>-->
-<!--							<div class="login-content-main-sacn-delta"></div>-->
-<!--						</div>-->
 					</div>
 				</div>
 			</div>
 		</div>
 
-		<div class="login-authorization">
+		<div class="login-authorization of-fade-in-up" style="animation-delay: 0.3s;">
 			<p>
 				<a href="http://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
 					湘ICP备2026014297号
@@ -62,7 +45,6 @@ import logoMini from '/@/assets/hsbc.svg';
 import loginMain from '/@/assets/main2.svg';
 import loginBg from '/@/assets/login-bg.svg';
 import {SystemConfigStore} from '/@/stores/systemConfig'
-import {getBaseURL} from "/@/utils/baseUrl";
 // 引入组件
 const Account = defineAsyncComponent(() => import('/@/views/system/login/component/account.vue'));
 const Mobile = defineAsyncComponent(() => import('/@/views/system/login/component/mobile.vue'));
@@ -87,7 +69,6 @@ const getSystemConfig = computed(()=>{
   return systemConfig.value
 })
 
-
 // 页面加载时
 onMounted(() => {
 	NextLoading.done();
@@ -95,15 +76,17 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+@import '../../apps/opsflow/styles/opsflow-global';
+
 .login-container {
 	height: 100%;
-	background: var(--el-color-white);
+	background: $of-gradient-hero;
 
 	.login-left {
 		flex: 1;
 		position: relative;
-		background-color: rgba(211, 239, 255, 1);
-		margin-right: 100px;
+		background: $of-gradient-accent;
+		margin-right: 80px;
 
 		.login-left-logo {
 			display: flex;
@@ -112,27 +95,10 @@ onMounted(() => {
 			top: 5px;
 			left: 80px;
 			z-index: 1;
-			animation: logoAnimation 0.9s ease;
 
 			img {
 				width: 250px;
 				height: 250px;
-			}
-
-			.login-left-logo-text {
-				display: flex;
-				flex-direction: column;
-
-				span {
-					margin-left: 10px;
-					font-size: 16px;
-					color: var(--el-color-primary);
-				}
-
-				.login-left-logo-text-msg {
-					font-size: 12px;
-					color: var(--el-color-primary);
-				}
 			}
 		}
 
@@ -147,7 +113,6 @@ onMounted(() => {
 			img {
 				width: 100%;
 				height: 100%;
-				animation: error-num 0.6s ease;
 			}
 		}
 
@@ -162,13 +127,13 @@ onMounted(() => {
 		width: 700px;
 
 		.login-right-warp {
-			border: 1px solid var(--el-color-primary-light-3);
-			border-radius: 3px;
+			@extend .of-card;
 			width: 500px;
 			height: 500px;
 			position: relative;
 			overflow: hidden;
-			background-color: var(--el-color-white);
+			border: 1px solid $of-border-blue;
+			box-shadow: $of-shadow-primary;
 
 			.login-right-warp-one,
 			.login-right-warp-two {
@@ -192,7 +157,7 @@ onMounted(() => {
 					left: 0;
 					width: 100%;
 					height: 3px;
-					background: linear-gradient(90deg, transparent, var(--el-color-primary));
+					background: linear-gradient(90deg, transparent, $of-color-primary);
 					animation: loginLeft 3s linear infinite;
 				}
 
@@ -202,7 +167,7 @@ onMounted(() => {
 					right: 2px;
 					width: 3px;
 					height: 100%;
-					background: linear-gradient(180deg, transparent, var(--el-color-primary));
+					background: linear-gradient(180deg, transparent, $of-color-primary);
 					animation: loginTop 3s linear infinite;
 					animation-delay: 0.7s;
 				}
@@ -215,7 +180,7 @@ onMounted(() => {
 					right: -100%;
 					width: 100%;
 					height: 3px;
-					background: linear-gradient(270deg, transparent, var(--el-color-primary));
+					background: linear-gradient(270deg, transparent, $of-color-primary);
 					animation: loginRight 3s linear infinite;
 					animation-delay: 1.4s;
 				}
@@ -226,7 +191,7 @@ onMounted(() => {
 					left: 0px;
 					width: 3px;
 					height: 100%;
-					background: linear-gradient(360deg, transparent, var(--el-color-primary));
+					background: linear-gradient(360deg, transparent, $of-color-primary);
 					animation: loginBottom 3s linear infinite;
 					animation-delay: 2.1s;
 				}
@@ -243,53 +208,18 @@ onMounted(() => {
 					font-size: 36px;
 					text-align: center;
 					letter-spacing: 3px;
-					animation: logoAnimation 0.3s ease;
+					font-weight: 700;
+					animation: ofFadeInUp 0.5s ease both;
 					animation-delay: 0.3s;
-					color: var(--el-text-color-primary);
+					background: $of-gradient-accent;
+					-webkit-background-clip: text;
+					-webkit-text-fill-color: transparent;
+					background-clip: text;
 				}
 
 				.login-right-warp-main-form {
 					flex: 1;
 					padding: 0 50px 50px;
-
-					.login-content-main-sacn {
-						position: absolute;
-						top: 0;
-						right: 0;
-						width: 50px;
-						height: 50px;
-						overflow: hidden;
-						cursor: pointer;
-						transition: all ease 0.3s;
-						color: var(--el-color-primary);
-
-						&-delta {
-							position: absolute;
-							width: 35px;
-							height: 70px;
-							z-index: 2;
-							top: 2px;
-							right: 21px;
-							background: var(--el-color-white);
-							transform: rotate(-45deg);
-						}
-
-						&:hover {
-							opacity: 1;
-							transition: all ease 0.3s;
-							color: var(--el-color-primary) !important;
-						}
-
-						i {
-							width: 47px;
-							height: 50px;
-							display: inline-block;
-							font-size: 48px;
-							position: absolute;
-							right: 1px;
-							top: 0px;
-						}
-					}
 				}
 			}
 		}
@@ -304,11 +234,11 @@ onMounted(() => {
 
 		p {
 			font-size: 14px;
-			color: rgba(0, 0, 0, 0.5);
+			color: $of-text-muted;
 		}
 
 		a {
-			color: var(--el-color-primary);
+			color: $of-color-primary;
 			margin: 0 5px;
 		}
 	}

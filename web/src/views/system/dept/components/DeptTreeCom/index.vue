@@ -1,307 +1,220 @@
 <template>
-	<el-input v-model="filterVal" :prefix-icon="Search" placeholder="请输入部门名称" />
-	<div class="dept-tree-com">
-		<div class="tc-head">
-			<el-icon size="16" color="#606266" class="tc-head-icon">
-				<HomeFilled />
-			</el-icon>
-			<span class="tc-head-txt">部门架构</span>
-			<el-icon size="16" color="#606266" @click="() => (showTotalNum = !showTotalNum)" class="tc-head-icon">
-				<View v-show="!showTotalNum" />
-				<Hide v-show="showTotalNum" />
-			</el-icon>
-		</div>
+  <div class="dtc-wrap">
+    <div class="dtc-header">
+      <el-icon :size="16" color="#409eff"><OfficeBuilding /></el-icon>
+      <span class="dtc-title">部门架构</span>
+      <el-tooltip content="显示/隐藏人数" placement="bottom">
+        <el-icon :size="15" color="#909399" class="dtc-header-action" @click="showTotalNum = !showTotalNum">
+          <View v-if="!showTotalNum" /><Hide v-else />
+        </el-icon>
+      </el-tooltip>
+    </div>
 
-		<el-tree
-			ref="treeRef"
-			:data="treeData"
-			:props="defaultTreeProps"
-			:filter-node-method="handleFilterTreeNode"
-			:load="handleLoadNode"
-			lazy
-			:indent="38"
-			@node-click="handleNodeClick"
-			highlight-current
-		>
-			<template #default="{ node, data }">
-				<element-tree-line :node="node" :showLabelLine="false" :indent="32">
-					<span v-if="data.status" class="text-center font-black font-normal">
-						<SvgIcon name="iconfont icon-shouye" color="var(--el-color-primary)" />&nbsp;{{ node.label }}
-						<span v-show="showTotalNum">（{{ data.dept_user_count }}人）</span>
-					</span>
-					<span v-else color="var(--el-color-primary)"> <SvgIcon name="iconfont icon-shouye" />&nbsp;{{ node.label }} </span>
-				</element-tree-line>
-			</template>
-		</el-tree>
+    <el-input v-model="filterVal" :prefix-icon="Search" placeholder="搜索部门名称..." clearable size="small" style="margin-bottom:8px" />
 
-		<div class="tree-tags">
-			<el-tooltip effect="dark" content="新增">
-				<el-icon size="16" @click="handleUpdateMenu('create')" class="mlt-icon">
-					<Plus />
-				</el-icon>
-			</el-tooltip>
+    <div class="dtc-tree-area">
+      <el-tree
+        ref="treeRef"
+        :data="treeData"
+        :props="defaultTreeProps"
+        :filter-node-method="handleFilterTreeNode"
+        :load="handleLoadNode"
+        lazy
+        :indent="36"
+        @node-click="handleNodeClick"
+        highlight-current
+        node-key="id"
+        default-expand-all
+      >
+        <template #default="{ node, data }">
+          <element-tree-line :node="node" :showLabelLine="false" :indent="32">
+            <span class="dtc-node">
+              <SvgIcon name="iconfont icon-shouye" :color="data.status ? '#409eff' : '#c0c4cc'" />
+              <span :class="{ 'dtc-node-disabled': !data.status }">{{ node.label }}</span>
+              <span v-if="showTotalNum" class="dtc-node-count">（{{ data.dept_user_count }}人）</span>
+            </span>
+          </element-tree-line>
+        </template>
+      </el-tree>
+    </div>
 
-			<el-tooltip effect="dark" content="编辑">
-				<el-icon size="16" @click="handleUpdateMenu('update')" class="mlt-icon">
-					<Edit />
-				</el-icon>
-			</el-tooltip>
-
-			<el-tooltip effect="dark" content="上移">
-				<el-icon size="16" @click="handleSort('up')" class="mlt-icon">
-					<Top />
-				</el-icon>
-			</el-tooltip>
-
-			<el-tooltip effect="dark" content="下移">
-				<el-icon size="16" @click="handleSort('down')" class="mlt-icon">
-					<Bottom />
-				</el-icon>
-			</el-tooltip>
-
-			<el-tooltip effect="dark" content="删除">
-				<el-icon size="16" @click="handleDeleteDept" class="mlt-icon">
-					<Delete />
-				</el-icon>
-			</el-tooltip>
-		</div>
-	</div>
+    <div class="dtc-actions">
+      <el-tooltip content="新增" placement="top"><el-button text type="primary" :icon="Plus" circle size="small" @click="handleUpdateMenu('create')" /></el-tooltip>
+      <el-tooltip content="编辑" placement="top"><el-button text type="primary" :icon="Edit" circle size="small" @click="handleUpdateMenu('update')" /></el-tooltip>
+      <el-tooltip content="上移" placement="top"><el-button text type="primary" :icon="Top" circle size="small" @click="handleSort('up')" /></el-tooltip>
+      <el-tooltip content="下移" placement="top"><el-button text type="primary" :icon="Bottom" circle size="small" @click="handleSort('down')" /></el-tooltip>
+      <el-tooltip content="删除" placement="top"><el-button text type="danger" :icon="Delete" circle size="small" @click="handleDeleteDept" /></el-tooltip>
+    </div>
+  </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, watch, toRaw, h } from 'vue';
 import { ElTree } from 'element-plus';
 import { getElementLabelLine } from 'element-tree-line';
-import { Search } from '@element-plus/icons-vue';
+import { Search, OfficeBuilding, View, Hide, Plus, Edit, Top, Bottom, Delete } from '@element-plus/icons-vue';
 import { lazyLoadDept, deptMoveUp, deptMoveDown } from '../../api';
 import { warningNotification } from '/@/utils/message';
 import { TreeItemType, APIResponseData } from '../../types';
 import type Node from 'element-plus/es/components/tree/src/model/node';
 
-interface IProps {
-	treeData: TreeItemType[];
-}
-
 const ElementTreeLine = getElementLabelLine(h);
 
-const defaultTreeProps: any = {
-	children: 'children',
-	label: 'name',
-	isLeaf: (data: TreeItemType[], node: Node) => {
-		if (node.data.hasChild) {
-			return false;
-		} else {
-			return true;
-		}
-	},
-};
-
-withDefaults(defineProps<IProps>(), {
-	treeData: () => [],
-});
+interface IProps { treeData: TreeItemType[]; }
+const props = withDefaults(defineProps<IProps>(), { treeData: () => [] });
 const emit = defineEmits(['treeClick', 'deleteDept', 'updateDept']);
 
-let filterVal = ref('');
-let showTotalNum = ref(false);
-let sortDisable = ref(false);
-let treeSelectDept = ref<TreeItemType>({});
-let treeSelectNode = ref<Node | null>(null);
+const defaultTreeProps = {
+  children: 'children', label: 'name',
+  isLeaf: (data: TreeItemType) => !data.hasChild,
+};
+
+const filterVal = ref('');
+const showTotalNum = ref(false);
+const sortDisable = ref(false);
+const treeSelectDept = ref<TreeItemType>({});
+const treeSelectNode = ref<Node | null>(null);
 const treeRef = ref<InstanceType<typeof ElTree>>();
 
-watch(filterVal, (val) => {
-	treeRef.value!.filter(val);
-});
+watch(filterVal, (val) => treeRef.value!.filter(val));
 
-/**
- * 部门树的搜索事件
- */
-const handleFilterTreeNode = (value: string, data: TreeItemType) => {
-	if (!value) return true;
-	return toRaw(data).name?.indexOf(value) !== -1;
-};
+const handleFilterTreeNode = (value: string, data: TreeItemType) => !value || toRaw(data).name?.indexOf(value) !== -1;
 
-/**
- * 部门树的懒加载
- */
 const handleLoadNode = (node: Node, resolve: Function) => {
-	if (node.level !== 0) {
-		lazyLoadDept({ parent: node.data.id }).then((res: APIResponseData) => {
-			resolve(res.data);
-		});
-	}
+  if (node.level !== 0) lazyLoadDept({ parent: node.data.id }).then((res: APIResponseData) => resolve(res.data));
 };
 
-/**
- * 部门的点击事件
- */
-const handleNodeClick = (record: TreeItemType, node: Node) => {
-	treeSelectDept.value = record;
-	treeSelectNode.value = node;
-	emit('treeClick', record);
-};
+const handleNodeClick = (record: TreeItemType, node: Node) => { treeSelectDept.value = record; treeSelectNode.value = node; emit('treeClick', record); };
 
-/**
- * 新增 or 编辑 操作
- */
 const handleUpdateMenu = (type: string) => {
-	if (type === 'update') {
-		if (!treeSelectDept.value.id) {
-			warningNotification('请选择菜单！');
-			return;
-		}
-		emit('updateDept', type, treeSelectDept.value);
-	} else {
-		emit('updateDept', type);
-	}
+  if (type === 'update') {
+    if (!treeSelectDept.value.id) { warningNotification('请先选择部门！'); return; }
+    emit('updateDept', type, treeSelectDept.value);
+  } else { emit('updateDept', type); }
 };
 
-/**
- * 删除部门
- */
 const handleDeleteDept = () => {
-	if (!treeSelectDept.value.id) {
-		warningNotification('请选择菜单！');
-		return;
-	}
-	emit('deleteDept', treeSelectDept.value.id, () => {
-		treeSelectDept.value = {};
-	});
+  if (!treeSelectDept.value.id) { warningNotification('请先选择部门！'); return; }
+  emit('deleteDept', treeSelectDept.value.id, () => { treeSelectDept.value = {}; });
 };
 
-/**
- * 部门上下移动操作
- */
 const handleSort = async (type: string) => {
-	if (!treeSelectDept.value.id) {
-		warningNotification('请选择菜单！');
-		return;
-	}
-	if (sortDisable.value) return;
-
-	const parentList = treeSelectNode.value?.parent.childNodes || [];
-	const index = parentList.findIndex((i) => i.data.id === treeSelectDept.value.id);
-	const record = parentList.find((i) => i.data.id === treeSelectDept.value.id);
-
-	if (type === 'up') {
-		if (index === 0) return;
-		parentList.splice(index - 1, 0, record as any);
-		parentList.splice(index + 1, 1);
-		sortDisable.value = true;
-		await deptMoveUp({ dept_id: treeSelectDept.value.id });
-		sortDisable.value = false;
-	}
-	if (type === 'down') {
-		parentList.splice(index + 2, 0, record as any);
-		parentList.splice(index, 1);
-		sortDisable.value = true;
-		await deptMoveDown({ dept_id: treeSelectDept.value.id });
-		sortDisable.value = false;
-	}
+  if (!treeSelectDept.value.id) { warningNotification('请先选择部门！'); return; }
+  if (sortDisable.value) return;
+  const parentList = treeSelectNode.value?.parent.childNodes || [];
+  const index = parentList.findIndex(i => i.data.id === treeSelectDept.value.id);
+  const record = parentList.find(i => i.data.id === treeSelectDept.value.id);
+  if (type === 'up' && index !== 0) {
+    parentList.splice(index - 1, 0, record as any);
+    parentList.splice(index + 1, 1);
+    sortDisable.value = true;
+    await deptMoveUp({ dept_id: treeSelectDept.value.id });
+    sortDisable.value = false;
+  }
+  if (type === 'down' && index < parentList.length - 1) {
+    parentList.splice(index + 2, 0, record as any);
+    parentList.splice(index, 1);
+    sortDisable.value = true;
+    await deptMoveDown({ dept_id: treeSelectDept.value.id });
+    sortDisable.value = false;
+  }
 };
 
-defineExpose({
-	treeRef,
-});
+defineExpose({ treeRef });
 </script>
 
-<style lang="scss" scoped>
-.tc-head {
-	display: flex;
-	align-items: center;
-	margin-left: -8px;
-	color: #606266;
-	font-weight: 600;
+<style scoped lang="scss">
+$of-color-primary: #409eff;
+$of-bg-light-blue: #ecf5ff;
+$of-bg-card-hover: #f5f9ff;
+$of-text-primary: #303133;
+$of-text-secondary: #909399;
+$of-border-light: #ebeef5;
 
-	.tc-head-txt {
-		margin: 0 8px;
-	}
-
-	.tc-head-icon {
-		position: relative;
-		top: -1px;
-		cursor: pointer;
-	}
+.dtc-wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  box-sizing: border-box;
 }
 
-.tree-tags {
-	height: 40px;
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	padding: 0 20px;
-	display: flex;
-	align-items: center;
-	justify-content: space-around;
-	box-sizing: border-box;
+.dtc-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $of-text-primary;
 
-	.mlt-icon {
-		cursor: pointer;
-		color: var(--el-color-primary);
-	}
+  .dtc-header-action {
+    margin-left: auto;
+    cursor: pointer;
+    transition: color 0.2s;
+    &:hover { color: $of-color-primary; }
+  }
+}
+
+.dtc-tree-area {
+  flex: 1;
+  overflow-y: auto;
+
+  :deep(.el-tree-node__content) {
+    height: 30px;
+  }
+}
+
+.dtc-node {
+  .dtc-node-disabled {
+    color: #c0c4cc;
+    text-decoration: line-through;
+  }
+  .dtc-node-count {
+    font-size: 11px;
+    color: $of-text-secondary;
+    margin-left: 2px;
+  }
+}
+
+.dtc-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 10px 4px 0;
+  margin-top: 8px;
+  border-top: 1px solid $of-border-light;
+  flex-shrink: 0;
 }
 </style>
 
 <style lang="scss">
-.dept-tree-com {
-	height: calc(100% - 60px);
-	padding: 20px;
-	box-sizing: border-box;
-	overflow-y: auto;
-
-	.el-tree-node__content {
-		height: 32px !important;
-	}
-
-	.el-tree .el-tree-node__expand-icon svg {
-		display: none !important;
-		height: 0;
-		width: 0;
-	}
-
-	.el-tree-node__expand-icon {
-		font-size: 16px;
-	}
-
-	.el-tree-node__content > .el-tree-node__expand-icon {
-		padding: 0;
-		box-sizing: border-box;
-		margin-right: 5px;
-		margin-left: 20px;
-	}
-
-	.el-tree .el-tree-node__expand-icon.expanded {
-		-webkit-transform: rotate(0deg);
-		transform: rotate(0deg);
-	}
-
-	.el-tree .el-tree-node__expand-icon.is-leaf {
-		margin-left: 0;
-	}
-
-	.el-tree .el-tree-node__expand-icon:before {
-		background: url('../../../../../assets/img/menu-tree-show-icon.png') no-repeat center / 100%;
-		content: '';
-		display: block;
-		width: 24px;
-		height: 24px;
-	}
-
-	.el-tree .el-tree-node__expand-icon.expanded:before {
-		background: url('../../../../../assets/img/menu-tree-hidden-icon.png') no-repeat center / 100%;
-		content: '';
-		display: block;
-		width: 24px;
-		height: 24px;
-	}
-
-	.el-tree .is-leaf.el-tree-node__expand-icon::before {
-		display: block;
-		background: none !important;
-		content: '';
-		width: 18px;
-		height: 18px;
-		border: none;
-	}
+.dtc-tree-area {
+  .el-tree-node__expand-icon {
+    font-size: 14px;
+  }
+  .el-tree-node__content > .el-tree-node__expand-icon {
+    padding: 0;
+    margin-right: 4px;
+    margin-left: 16px;
+  }
+  .el-tree .el-tree-node__expand-icon.expanded {
+    transform: rotate(0deg);
+  }
+  .el-tree .el-tree-node__expand-icon:before {
+    background: url('../../../../../assets/img/menu-tree-show-icon.png') no-repeat center / 100%;
+    content: '';
+    display: block;
+    width: 22px;
+    height: 22px;
+  }
+  .el-tree .el-tree-node__expand-icon.expanded:before {
+    background: url('../../../../../assets/img/menu-tree-hidden-icon.png') no-repeat center / 100%;
+  }
+  .el-tree .is-leaf.el-tree-node__expand-icon::before {
+    background: none !important;
+    width: 18px;
+    height: 18px;
+  }
 }
 </style>
