@@ -1,0 +1,120 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.file_gateway.model.req.inner;
+
+import com.tencent.bk.job.common.annotation.CompatibleImplementation;
+import com.tencent.bk.job.common.constant.CompatibleType;
+import com.tencent.bk.job.common.util.json.SkipLogFields;
+import com.tencent.bk.job.file_gateway.model.req.common.FileWorkerConfig;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
+
+@Slf4j
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
+public class HeartBeatReq {
+    @Schema(description = "ID")
+    Long id;
+    @Schema(description = "名称")
+    String name;
+    @Schema(description = "标签列表")
+    List<String> tagList;
+    @Schema(description = "业务ID", required = true)
+    Long appId;
+    @SkipLogFields(value = "token")
+    @Schema(description = "密钥", required = true)
+    String token;
+    @Schema(description = "所在集群名称", required = true)
+    String clusterName;
+    @Schema(description = "访问worker使用的host", required = true)
+    String accessHost;
+    @Schema(description = "访问worker使用的port", required = true)
+    Integer accessPort;
+    @Schema(description = "worker所在云区域Id", required = true)
+    Long cloudAreaId;
+    @Schema(description = "worker的内网IP协议", required = true)
+    String innerIpProtocol;
+    @Schema(description = "worker的内网IP", required = true)
+    String innerIp;
+    @Schema(description = "能力标签列表")
+    List<String> abilityTagList;
+    @Schema(description = "CPU负载")
+    Float cpuOverload;
+    @Schema(description = "内存使用率")
+    Float memRate;
+    @Schema(description = "内存空闲空间")
+    Float memFreeSpace;
+    @Schema(description = "磁盘使用率")
+    Float diskRate;
+    @Schema(description = "磁盘剩余空间")
+    Float diskFreeSpace;
+    @Schema(description = "worker版本", required = true)
+    String version;
+    @Schema(description = "在线状态", required = true)
+    Byte onlineStatus;
+    @Schema(description = "FileWorker配置信息", required = true)
+    FileWorkerConfig fileWorkerConfig;
+
+    @CompatibleImplementation(
+        name = "multi_cluster_deploy",
+        deprecatedVersion = "3.12.x",
+        type = CompatibleType.DEPLOY,
+        explain = "兼容发布过程中老版本File-Worker调用，发布完成后可删除")
+    public String getClusterName() {
+        if (clusterName == null) {
+            log.warn("CompatibleImplementation: clusterName is null, use default");
+            return "default";
+        }
+        return clusterName;
+    }
+
+    @Override
+    public String toString() {
+        return "HeartBeatReq{" +
+            "id=" + id +
+            ", appId=" + appId +
+            ", clusterName='" + clusterName + '\'' +
+            ", accessHost='" + accessHost + '\'' +
+            ", accessPort=" + accessPort +
+            ", cloudAreaId=" + cloudAreaId +
+            ", innerIpProtocol='" + innerIpProtocol + '\'' +
+            ", innerIp='" + innerIp + '\'' +
+            ", abilityTagList=" + abilityTagList +
+            ", cpuOverload=" + cpuOverload +
+            ", memRate=" + memRate +
+            ", memFreeSpace=" + memFreeSpace +
+            ", diskRate=" + diskRate +
+            ", diskFreeSpace=" + diskFreeSpace +
+            ", version='" + version + '\'' +
+            ", onlineStatus=" + onlineStatus +
+            '}';
+    }
+}

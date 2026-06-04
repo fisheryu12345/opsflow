@@ -1,0 +1,49 @@
+{{- if and (.Values.frontendConfig.enabled) (.Values.frontendConfig.ingress.enabled) -}}
+apiVersion: {{ template "common.capabilities.ingress.apiVersion" . }}
+kind: Ingress
+metadata:
+  name: {{ include "common.names.fullname" . }}-frontend
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: job-frontend
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    {{- if .Values.frontendConfig.ingress.certManager }}
+    kubernetes.io/tls-acme: "true"
+    {{- end }}
+    {{- if eq "subpath" .Values.bkWebSiteAccess.mode }}
+    nginx.ingress.kubernetes.io/enable-rewrite-log: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    {{- end }}
+    {{- if .Values.frontendConfig.ingress.annotations }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.frontendConfig.ingress.annotations "context" $) | nindent 4 }}
+    {{- end }}
+    {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if and .Values.ingress.ingressClassName (include "common.ingress.supportsIngressClassname" .) }}
+  ingressClassName: {{ .Values.ingress.ingressClassName | quote }}
+  {{- end }}
+  rules:
+    - host: {{ include "job.web.domain" . }}
+      http:
+        paths:
+          {{- if eq "subpath" .Values.bkWebSiteAccess.mode }}
+          - path: {{ .Values.bkWebSiteAccess.subpath.rootPrefix }}()$
+            {{- if eq "true" (include "common.ingress.supportsPathType" .) }}
+            pathType: {{ .Values.frontendConfig.ingress.pathType }}
+            {{- end }}
+            backend: {{- include "common.ingress.backend" (dict "serviceName" "bk-job-frontend" "servicePort" .Values.frontendConfig.service.port "context" $)  | nindent 14 }}
+          {{- end }}
+          - path: {{ include "job.frontend.ingress.path" . }}
+            {{- if eq "true" (include "common.ingress.supportsPathType" .) }}
+            pathType: {{ .Values.frontendConfig.ingress.pathType }}
+            {{- end }}
+            backend: {{- include "common.ingress.backend" (dict "serviceName" "bk-job-frontend" "servicePort" .Values.frontendConfig.service.port "context" $)  | nindent 14 }}
+  {{- if .Values.job.ingress.https.enabled }}
+  {{- include "job.ingress.frontend.tls" . | nindent 2 }}
+  {{- end }}
+{{- end }}

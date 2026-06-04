@@ -1,0 +1,253 @@
+# spec_version 配置文件版本号，必填，固定值 1
+spec_version: 1
+
+# 定义发布内容，用于命令 `create_version_and_release_apigw`
+release:
+  # 发布版本号；
+  # 资源配置更新，需更新此版本号才会发布资源版本，此版本号和 sdk 版本号一致，错误设置会影响调用方使用
+  version: 3.14.8-beta1
+  # 版本标题
+  title: "3.14.8-beta1"
+  # 版本描述
+  comment: "3.14.8-beta1"
+
+# 定义网关基本信息，用于命令 `sync_apigw_config`
+apigateway:
+  description: "蓝鲸配置平台"
+  # 网关的英文描述，蓝鲸官方网关需提供英文描述，以支持国际化
+  description_en: "BlueKing Configuration Management DataBase"
+  # 是否公开；公开，则用户可查看资源文档、申请资源权限；不公开，则网关对用户隐藏
+  is_public: true
+  # 标记网关为官方网关，网关名需以 `bk-` 开头，可选；非官方网关，可去除此配置
+  api_type: 1
+  # 应用请求网关时，是否允许从请求参数 (querystring, body) 中获取蓝鲸认证信息，默认值为 true；
+  # 如果为 false，则只能从请求头 X-Bkapi-Authorization 获取蓝鲸认证信息；
+  # 新接入的网关，可以设置为 false，已接入的网关，待推动所有调用者将认证信息放到请求头后，可设置为 false
+  allow_auth_from_params: false
+  # 网关请求后端时，是否删除请求参数 (querystring, body) 中的蓝鲸认证敏感信息，比如 bk_token，为 true 表示允许删除；
+  # 待请求网关的所有调用者，将认证参数放到请求头 X-Bkapi-Authorization 时，可将此值设置为 false
+  allow_delete_sensitive_params: false
+  # 网关维护人员，仅维护人员有管理网关的权限
+  maintainers:
+    - {{ environ.BK_CMDB_MAINTAINER }}
+
+# 定义环境信息，用于命令 `sync_apigw_stage`
+stage:
+  name: {{ environ.BK_CMDB_STAGE_NAME }}
+  description: "正式环境"
+  # 环境的英文名，蓝鲸官方网关需提供，以支持国际化
+  description_en: "Production Environment"
+  # 环境变量；如未使用，可去除此配置
+  # vars:
+  #   key: "value"
+  # 代理配置
+  proxy_http:
+    timeout: 30
+    # 负载均衡类型 + Hosts
+    upstreams:
+      loadbalance: "roundrobin"
+      hosts:
+        # 网关调用后端服务的默认域名或IP，不包含Path，比如：http://api.example.com
+        - host: {{ environ.BK_CMDB_HOST }}
+          weight: 100
+    # Header转换；如未使用，可去除此配置
+    transform_headers:
+      # 设置Headers
+      set:
+        X-Bkcmdb-Supplier-Account: "0"
+
+# 主动授权，网关主动给应用，添加访问网关所有资源的权限；
+# 用于命令 `grant_apigw_permissions`
+grant_permissions:
+  - bk_app_code: "{{ settings.BK_APP_CODE }}"
+    # 授权维度，可选值：gateway，按网关授权，包括网关下所有资源，以及未来新创建的资源
+    grant_dimension: "gateway"
+  - bk_app_code: {{ environ.BK_JOB_APP_CODE }}
+    grant_dimension: "resource"
+    resource_names:
+      - list_kube_container_by_topo
+      - get_biz_kube_cache_topo
+      - list_kube_cluster
+      - list_kube_namespace
+      - list_kube_workload
+      - list_kube_node
+      - list_kube_pod
+      - list_kube_container
+      - list_cached_kube_pod_label_key
+      - list_cached_kube_pod_label_value
+      - search_biz_inst_topo
+      - get_biz_internal_module
+      - list_biz_hosts
+      - list_hosts_without_biz
+      - find_host_biz_relations
+      - list_biz_hosts_topo
+      - find_module_host_relation
+      - resource_watch
+      - search_business
+      - search_cloud_area
+      - search_object_attribute
+      - find_topo_node_paths
+      - search_dynamic_group
+      - execute_dynamic_group
+      - get_biz_brief_cache_topo
+      - list_business_set
+      - list_business_in_business_set
+  - bk_app_code: {{ environ.BK_NODEMAN_APP_CODE }}
+    grant_dimension: "resource"
+    resource_names:
+      - batch_update_host_all_properties
+  - bk_app_code: {{ environ.BK_NODEMGR_APP_CODE }}
+    grant_dimension: "resource"
+    resource_names:
+      - search_business
+      - search_cloud_area
+      - search_biz_inst_topo
+      - get_biz_internal_module
+      - find_topo_node_paths
+      - find_module_batch
+      - list_hosts_without_biz
+      - list_biz_hosts
+      - list_service_template
+      - list_service_instance
+      - list_process_instance
+      - list_proc_template
+      - find_set_batch
+      - search_set
+      - search_module
+      - search_object_attribute
+      - find_host_topo_relation
+      - find_host_biz_relations
+      - find_host_by_service_template
+      - find_host_by_set_template
+      - find_host_by_topo
+      - find_host_relations_with_topo
+      - resource_watch
+      - find_host_identifier_push_result
+      - list_service_instance_detail
+      - create_dynamic_group
+      - get_dynamic_group
+      - search_dynamic_group
+      - execute_dynamic_group
+      - get_mainline_object_topo
+      - list_biz_hosts_topo
+      - list_service_instance_by_host
+      - list_service_instance_by_set_template
+      - list_set_template
+      - batch_update_host
+      - bind_host_agent
+      - unbind_host_agent
+      - add_host_to_business_idle
+      - push_host_identifier
+      - update_dynamic_group
+      - delete_dynamic_group
+      - create_cloud_area
+      - update_cloud_area
+      - delete_cloud_area
+      - update_host_cloud_area_field
+  - bk_app_code: {{ environ.BK_BCS_APP_CODE }}
+    grant_dimension: "resource"
+    resource_names:
+      - list_hosts_without_biz
+      - list_biz_hosts
+  - bk_app_code: {{ environ.BK_BCS_SYNC_APP_CODE }}
+    grant_dimension: "resource"
+    resource_names:
+      - create_kube_cluster
+      - batch_update_kube_cluster
+      - update_kube_cluster_type
+      - batch_delete_kube_cluster
+      - list_kube_cluster
+      - batch_create_kube_node
+      - batch_update_kube_node
+      - batch_delete_kube_node
+      - list_kube_node
+      - batch_create_kube_pod
+      - batch_delete_kube_pod
+      - list_kube_pod
+      - list_kube_container
+      - batch_create_kube_namespace
+      - batch_update_kube_namespace
+      - batch_delete_kube_namespace
+      - list_kube_namespace
+      - batch_create_kube_workload
+      - batch_update_kube_workload
+      - batch_delete_kube_workload
+      - list_kube_workload
+      - list_biz_hosts
+  - bk_app_code: {{ environ.BK_HCM_APP_CODE }}
+    grant_dimension: "resource"
+    resource_names:
+      - search_business
+      - search_cloud_area
+      - add_cloud_host_to_biz
+      - delete_cloud_host_from_biz
+      - list_biz_hosts
+      - find_host_topo_relation
+      - search_module
+      - get_biz_brief_cache_topo
+      - list_hosts_without_biz
+      - find_host_biz_relations
+      - resource_watch
+  - bk_app_code: {{ environ.BK_MONITOR_APP_CODE }}
+    grant_dimension: "resource"
+    resource_names:
+      - search_set
+      - search_module
+      - get_biz_internal_module
+      - search_biz_inst_topo
+      - get_mainline_object_topo
+      - list_service_instance_detail
+      - list_service_instance_by_set_template
+      - search_object_attribute
+      - search_business
+      - list_service_category
+      - list_biz_hosts_topo
+      - list_biz_hosts
+      - find_host_topo_relation
+      - find_host_biz_relations
+      - search_cloud_area
+      - list_service_template
+      - list_set_template
+      - find_host_by_service_template
+      - find_host_by_set_template
+      - list_hosts_without_biz
+      - find_topo_node_paths
+      - search_dynamic_group
+      - execute_dynamic_group
+      - resource_watch
+  - bk_app_code: {{ environ.BK_OPS_APP_CODE }}
+    grant_dimension: "resource"
+    resource_names:
+      - list_kube_container_in_biz_set
+      - list_business_set
+      - list_business_in_business_set
+      - search_business
+      - list_biz_hosts
+      - list_kube_pod
+      - list_kube_container
+      - resource_watch
+
+# 应用申请指定网关所有资源的权限，待网关管理员审批后，应用才可访问网关资源；
+# 用于命令 `apply_apigw_permissions`
+# apply_permissions:
+#   - gateway_name: "{{ settings.BK_APIGW_NAME }}"
+#     # 权限维度，可选值：gateway，按网关授权，包括网关下所有资源，以及未来新创建的资源
+#     grant_dimension: "gateway"
+
+# 为网关添加关联应用，关联应用可以通过网关 bk-apigateway 的接口操作网关数据；每个网关最多可有 10 个关联应用；
+# 用于命令 `add_related_apps`
+related_apps:
+  - "{{ settings.BK_APP_CODE }}"
+
+# 定义资源文档路径，用于命令 `sync_resource_docs_by_archive`；
+# 资源文档的目录格式样例如下，en 为英文文档，zh 为中文文档，创建归档文件可使用指令 `tar czvf xxx.tgz en zh`：
+# ./
+# - en
+#   - get_user.md
+# - zh
+#   - get_user.md
+resource_docs:
+  # 资源文档的归档文件，可为 tar.gz，zip 格式文件
+  # archivefile: "{{ settings.BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE }}"
+  # 资源文档目录，basedir 与 archivefile 二者至少一个有效，若同时存在，则 archivefile 优先
+  basedir: "/data/apidocs/"

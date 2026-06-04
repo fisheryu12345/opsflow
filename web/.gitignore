@@ -1,3 +1,6 @@
 
 node_modules/
 dist/
+bk_job_manager/
+bk_cmdb_master/
+bk-itsm-develop/

@@ -1,0 +1,268 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.common.cc.sdk;
+
+import com.tencent.bk.job.common.cc.model.AppRoleDTO;
+import com.tencent.bk.job.common.cc.model.CcCloudAreaInfoDTO;
+import com.tencent.bk.job.common.cc.model.CcDynamicGroupDTO;
+import com.tencent.bk.job.common.cc.model.CcInstanceDTO;
+import com.tencent.bk.job.common.cc.model.CcObjAttributeDTO;
+import com.tencent.bk.job.common.cc.model.DynamicGroupHostPropDTO;
+import com.tencent.bk.job.common.cc.model.InstanceTopologyDTO;
+import com.tencent.bk.job.common.cc.model.container.ContainerDetailDTO;
+import com.tencent.bk.job.common.cc.model.container.KubeClusterDTO;
+import com.tencent.bk.job.common.cc.model.container.KubeNamespaceDTO;
+import com.tencent.bk.job.common.cc.model.container.KubeTopologyDTO;
+import com.tencent.bk.job.common.cc.model.container.KubeWorkloadDTO;
+import com.tencent.bk.job.common.cc.model.query.KubeClusterQuery;
+import com.tencent.bk.job.common.cc.model.query.NamespaceQuery;
+import com.tencent.bk.job.common.cc.model.query.WorkloadQuery;
+import com.tencent.bk.job.common.cc.model.req.GetTopoNodePathReq;
+import com.tencent.bk.job.common.cc.model.req.ListKubeContainerByTopoReq;
+import com.tencent.bk.job.common.cc.model.result.BizEventDetail;
+import com.tencent.bk.job.common.cc.model.result.HostBizRelationDTO;
+import com.tencent.bk.job.common.cc.model.result.HostEventDetail;
+import com.tencent.bk.job.common.cc.model.result.HostRelationEventDetail;
+import com.tencent.bk.job.common.cc.model.result.HostWithModules;
+import com.tencent.bk.job.common.cc.model.result.ResourceWatchResult;
+import com.tencent.bk.job.common.model.PageData;
+import com.tencent.bk.job.common.model.dto.ApplicationDTO;
+import com.tencent.bk.job.common.model.dto.ApplicationHostDTO;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * cmdb API Client - 业务相关
+ */
+public interface IBizCmdbClient {
+    /**
+     * 优先从缓存获取业务完整拓扑树（含空闲机/故障机模块）
+     *
+     * @param tenantId 租户ID
+     * @param bizId    cmdb业务ID
+     */
+    InstanceTopologyDTO getBizInstTopologyPreferCache(String tenantId, long bizId);
+
+    /**
+     * 从CMDB接口获取业务完整拓扑树（含空闲机/故障机模块）
+     *
+     * @param tenantId 租户ID
+     * @param bizId    cmdb业务ID
+     */
+    InstanceTopologyDTO getBizInstCompleteTopology(String tenantId, long bizId);
+
+    /**
+     * 查询业务内置模块（空闲机/故障机等）
+     *
+     * @param tenantId 租户ID
+     * @param bizId    cmdb业务ID
+     * @return 只有一个Set，根节点为Set的Topo树
+     */
+    InstanceTopologyDTO getBizInternalModule(String tenantId, long bizId);
+
+    /**
+     * 根据topo实例获取hosts
+     *
+     * @param tenantId   租户ID
+     * @param ccInstList topo节点列表
+     * @return 主机
+     */
+    List<ApplicationHostDTO> getHosts(String tenantId, long bizId, List<CcInstanceDTO> ccInstList);
+
+    /**
+     * 根据topo实例获取主机及主机关系
+     *
+     * @param tenantId   租户ID
+     * @param bizId      cmdb业务ID
+     * @param ccInstList topo节点列表
+     * @return 主机列表
+     */
+    List<HostWithModules> getHostRelationsByTopology(String tenantId, long bizId, List<CcInstanceDTO> ccInstList);
+
+    /**
+     * 根据module获取主机及主机关系
+     *
+     * @param tenantId     租户ID
+     * @param bizId        cmdb业务ID
+     * @param moduleIdList 模块ID列表
+     * @return 主机
+     */
+    List<HostWithModules> findHostRelationByModule(String tenantId, long bizId, List<Long> moduleIdList);
+
+    /**
+     * 从CC获取所有业务信息
+     *
+     * @return 业务
+     */
+    List<ApplicationDTO> getAllBizApps(String tenantId);
+
+    /**
+     * 查询业务列表
+     *
+     * @param tenantId 租户ID
+     * @param bizIds   cmdb业务ID
+     * @return 业务
+     */
+    List<ApplicationDTO> listBizAppByIds(String tenantId, List<Long> bizIds);
+
+    /**
+     * 查询业务下的动态分组
+     *
+     * @param tenantId 租户ID
+     * @param bizId    cmdb业务ID
+     * @return 动态分组
+     */
+    List<CcDynamicGroupDTO> getDynamicGroupList(String tenantId, long bizId);
+
+    /**
+     * 获取动态分组下面的主机
+     *
+     * @param tenantId 租户ID
+     * @param bizId    cmdb业务ID
+     * @param groupId  动态分组ID
+     * @return 动态分组下的主机
+     */
+    List<DynamicGroupHostPropDTO> getDynamicGroupIp(String tenantId, long bizId, String groupId);
+
+    /**
+     * 获取云区域
+     *
+     * @param tenantId 租户ID
+     * @return 云区域列表
+     */
+    List<CcCloudAreaInfoDTO> getCloudAreaList(String tenantId);
+
+    /**
+     * 根据IP批量获取主机
+     *
+     * @param tenantId 租户ID
+     * @param cloudIps 云区域+IP列表
+     * @return 主机列表
+     */
+    List<ApplicationHostDTO> listHostsByCloudIps(String tenantId, List<String> cloudIps);
+
+    /**
+     * 根据IPv6批量获取主机
+     *
+     * @param tenantId   租户ID
+     * @param cloudIpv6s 云区域+IPv6列表
+     * @return 主机列表
+     */
+    List<ApplicationHostDTO> listHostsByCloudIpv6s(String tenantId, List<String> cloudIpv6s);
+
+    /**
+     * 根据HostId批量获取主机
+     *
+     * @param tenantId 租户ID
+     * @param hostIds  主机ID列表
+     * @return 主机列表
+     */
+    List<ApplicationHostDTO> listHostsByHostIds(String tenantId, List<Long> hostIds);
+
+    List<HostBizRelationDTO> findHostBizRelations(String tenantId, List<Long> hostIdList);
+
+    /**
+     * 获取CMDB对象属性信息列表
+     *
+     * @param tenantId 租户ID
+     * @param objId    cmdb对象ID
+     * @return 对象属性列表
+     */
+    List<CcObjAttributeDTO> getObjAttributeList(String tenantId, String objId);
+
+    /**
+     * 根据cmdb业务角色获取人员
+     *
+     * @param tenantId 租户ID
+     * @param bizId    cmdb业务ID
+     * @param role     业务角色
+     */
+    Set<String> listUsersByRole(String tenantId, Long bizId, String role);
+
+    /**
+     * 获取CMDB业务角色列表
+     *
+     * @param tenantId 租户ID
+     * @return 业务角色列表
+     */
+    List<AppRoleDTO> listRoles(String tenantId);
+
+    /**
+     * 获取主机所属云厂商枚举值，key:id，value:名称
+     *
+     * @param tenantId 租户ID
+     */
+    Map<String, String> getCloudVendorIdNameMap(String tenantId);
+
+    /**
+     * 获取主机类型枚举值，key:id，value:名称
+     *
+     * @param tenantId 租户ID
+     */
+    Map<String, String> getOsTypeIdNameMap(String tenantId);
+
+    /**
+     * 批量获取topo节点层级
+     *
+     * @param getTopoNodePathReq 请求
+     * @return topo节点层级
+     */
+    List<InstanceTopologyDTO> getTopoInstancePath(GetTopoNodePathReq getTopoNodePathReq);
+
+
+    /**
+     * 监听CMDB主机事件
+     */
+    ResourceWatchResult<HostEventDetail> getHostEvents(String tenantId, Long startTime, String cursor);
+
+    /**
+     * 监听CMDB主机拓扑关系事件
+     */
+    ResourceWatchResult<HostRelationEventDetail> getHostRelationEvents(String tenantId, Long startTime, String cursor);
+
+    /**
+     * 监听CMDB业务事件
+     */
+    ResourceWatchResult<BizEventDetail> getBizEvents(String tenantId, Long startTime, String cursor);
+
+    List<ContainerDetailDTO> listKubeContainerByIds(long bizId, Collection<Long> containerIds);
+
+    List<ContainerDetailDTO> listKubeContainerByTopo(ListKubeContainerByTopoReq req);
+
+    List<KubeClusterDTO> listKubeClusters(KubeClusterQuery query);
+
+    List<KubeNamespaceDTO> listKubeNamespaces(NamespaceQuery query);
+
+    List<KubeWorkloadDTO> listKubeWorkloads(WorkloadQuery query);
+
+    KubeTopologyDTO getBizKubeCacheTopo(long bizId);
+
+    PageData<ContainerDetailDTO> listPageKubeContainerByTopo(ListKubeContainerByTopoReq req);
+
+    List<ContainerDetailDTO> listKubeContainerByUIds(long bizId, Collection<String> containerUIds);
+}

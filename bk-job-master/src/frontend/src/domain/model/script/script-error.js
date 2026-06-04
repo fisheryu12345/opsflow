@@ -1,0 +1,87 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+*/
+
+import I18n from '@/i18n';
+
+const ERROR_MAP = {
+  1: 'info',
+  2: 'warning',
+  3: 'error',
+};
+
+// 接口error type 对应monaco editor的err type
+const MONACO_ERROR_MAP = {
+  info: 2,
+  warning: 4,
+  error: 8,
+};
+
+const ACTION_SCAN = 1;
+// const ACTION_PREVENT = 2;
+export default class ScriptError {
+  constructor(payload) {
+    this.row = payload.line - 1;
+    this.level = payload.level;
+    this.type = ERROR_MAP[payload.level];
+    this.text = this.initText(payload);
+    this.action = payload.action;
+    this.startLineNumber =  payload.line;
+    this.severity = MONACO_ERROR_MAP[ERROR_MAP[payload.level]];
+    const [column, endColumn] = this.initColumn(payload);
+    this.startColumn = column;
+    this.endColumn = endColumn;
+    this.message = this.initText(payload);
+  }
+
+  /**
+     * @desc 是否是高危语句提示
+     * @returns { Boolean }
+     */
+  get isDangerous() {
+    return this.level === 3;
+  }
+
+  get isActionScan() {
+    return this.action === ACTION_SCAN;
+  }
+
+  initText(payload) {
+    let text = '';
+    if (this.level === 3) {
+      text = `${I18n.t('检测到代码存在高危语句：')}\n${payload.matchContent}\n\n${I18n.t('详细说明：')}\n`;
+    }
+    return `${text}${payload.description}`;
+  }
+
+  initColumn(payload) {
+    const { lineContent = '', matchContent = '' } = payload;
+    if (matchContent) {
+      const { length } = matchContent;
+      const start = lineContent.indexOf(matchContent) + 1;
+      return [start, start + length];
+    }
+    return [1];
+  }
+}

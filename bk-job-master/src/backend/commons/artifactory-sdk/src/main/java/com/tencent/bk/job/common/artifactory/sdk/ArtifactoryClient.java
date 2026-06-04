@@ -1,0 +1,801 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.common.artifactory.sdk;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.tencent.bk.job.common.artifactory.constants.ArtifactoryInterfaceConsts;
+import com.tencent.bk.job.common.artifactory.constants.MetricsConstants;
+import com.tencent.bk.job.common.artifactory.exception.ArtifactoryExceptionConverter;
+import com.tencent.bk.job.common.artifactory.model.dto.ArtifactoryResp;
+import com.tencent.bk.job.common.artifactory.model.dto.NodeDTO;
+import com.tencent.bk.job.common.artifactory.model.dto.PageData;
+import com.tencent.bk.job.common.artifactory.model.dto.ProjectDTO;
+import com.tencent.bk.job.common.artifactory.model.dto.RepoDTO;
+import com.tencent.bk.job.common.artifactory.model.dto.TempUrlInfo;
+import com.tencent.bk.job.common.artifactory.model.req.ArtifactoryReq;
+import com.tencent.bk.job.common.artifactory.model.req.CheckRepoExistReq;
+import com.tencent.bk.job.common.artifactory.model.req.CreateProjectReq;
+import com.tencent.bk.job.common.artifactory.model.req.CreateRepoReq;
+import com.tencent.bk.job.common.artifactory.model.req.CreateTempUrlReq;
+import com.tencent.bk.job.common.artifactory.model.req.CreateUserToProjectReq;
+import com.tencent.bk.job.common.artifactory.model.req.DeleteNodeReq;
+import com.tencent.bk.job.common.artifactory.model.req.DeleteRepoReq;
+import com.tencent.bk.job.common.artifactory.model.req.DownloadGenericFileReq;
+import com.tencent.bk.job.common.artifactory.model.req.ListNodePageReq;
+import com.tencent.bk.job.common.artifactory.model.req.ListProjectReq;
+import com.tencent.bk.job.common.artifactory.model.req.ListRepoPageReq;
+import com.tencent.bk.job.common.artifactory.model.req.PageLimit;
+import com.tencent.bk.job.common.artifactory.model.req.QueryNodeDetailReq;
+import com.tencent.bk.job.common.artifactory.model.req.Rule;
+import com.tencent.bk.job.common.artifactory.model.req.SearchNodePageReq;
+import com.tencent.bk.job.common.artifactory.model.req.Sort;
+import com.tencent.bk.job.common.artifactory.model.req.UploadGenericFileReq;
+import com.tencent.bk.job.common.constant.ErrorCode;
+import com.tencent.bk.job.common.constant.HttpMethodEnum;
+import com.tencent.bk.job.common.constant.JobCommonHeaders;
+import com.tencent.bk.job.common.exception.HttpStatusException;
+import com.tencent.bk.job.common.exception.InternalException;
+import com.tencent.bk.job.common.exception.NotImplementedException;
+import com.tencent.bk.job.common.exception.ServiceException;
+import com.tencent.bk.job.common.log.logger.DynamicLevelLogger;
+import com.tencent.bk.job.common.util.Base64Util;
+import com.tencent.bk.job.common.util.StringUtil;
+import com.tencent.bk.job.common.util.http.HttpHelper;
+import com.tencent.bk.job.common.util.http.HttpHelperFactory;
+import com.tencent.bk.job.common.util.http.HttpMetricUtil;
+import com.tencent.bk.job.common.util.http.HttpRequest;
+import com.tencent.bk.job.common.util.json.JsonUtils;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
+import lombok.Getter;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.entity.FileEntity;
+import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.message.BasicHeader;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
+import org.slf4j.helpers.MessageFormatter;
+import org.springframework.web.util.UriUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
+
+public class ArtifactoryClient {
+
+    private final DynamicLevelLogger log = new DynamicLevelLogger(LoggerFactory.getLogger(ArtifactoryClient.class));
+    public static final String URL_ACTUATOR_INFO = "/repository/actuator/info";
+    public static final String URL_LIST_PROJECT = "/repository/api/project/list";
+    public static final String URL_LIST_REPO_PAGE = "/repository/api/repo/page/{projectId}/{pageNumber}/{pageSize}";
+    public static final String URL_LIST_NODE_PAGE = "/repository/api/node/page/{projectId}/{repoName}/{fullPath}";
+    public static final String URL_NODE_SEARCH = "/repository/api/node/search";
+    public static final String URL_DELETE_REPO = "/repository/api/repo/delete/{projectId}/{repoName}";
+    public static final String URL_DELETE_NODE = "/repository/api/node/delete/{projectId}/{repoName}/{fullPath}";
+    public static final String URL_DOWNLOAD_GENERIC_FILE = "/generic/{project}/{repo}/{path}";
+    public static final String URL_UPLOAD_GENERIC_FILE = "/generic/{project}/{repo}/{path}";
+    public static final String URL_QUERY_NODE_DETAIL = "/repository/api/node/detail/{projectId}/{repoName}/{fullPath}";
+    public static final String URL_CREATE_TEMP_ACCESS_URL = "/generic/temporary/url/create";
+    public static final String URL_CREATE_USER_TO_PROJECT = "/auth/api/user/create/project";
+    public static final String URL_CREATE_PROJECT = "/repository/api/project/create";
+    public static final String URL_CREATE_REPO = "/repository/api/repo/create";
+    public static final String URL_CHECK_REPO_EXIST = "/repository/api/repo/exist/{projectId}/{repoName}";
+
+    @Getter
+    private final String baseUrl;
+    private final String username;
+    private final String password;
+    private final MeterRegistry meterRegistry;
+
+    private final HttpHelper httpHelper = HttpHelperFactory.getDefaultHttpHelper();
+    private final HttpHelper longHttpHelper = HttpHelperFactory.getLongRetryableHttpHelper();
+
+    public ArtifactoryClient(String baseUrl, String username, String password, MeterRegistry meterRegistry) {
+        this.baseUrl = StringUtil.removeSuffix(baseUrl, "/");
+        this.username = username;
+        this.password = password;
+        this.meterRegistry = meterRegistry;
+    }
+
+    private String getCompleteUrl(String url) {
+        if (url.startsWith(baseUrl)) return url;
+        String queryParamStr = "";
+        String path = url;
+        if (url.contains("?")) {
+            int i = url.indexOf("?");
+            queryParamStr = url.substring(i);
+            path = url.substring(0, i);
+        }
+        String[] pathArr = path.split("/");
+        for (int i = 0; i < pathArr.length; i++) {
+            pathArr[i] = UriUtils.encodePath(pathArr[i], "UTF-8");
+        }
+        path = String.join("/", pathArr);
+        return baseUrl + "/" + StringUtil.removePrefix(path, "/") + queryParamStr;
+    }
+
+    private List<Header> getBaseHeaderList() {
+        List<Header> headerList = new ArrayList<>();
+        headerList.add(new BasicHeader("accept", "*/*"));
+        headerList.add(new BasicHeader(ArtifactoryInterfaceConsts.AUTH_HEADER_KEY,
+            "Basic " + Base64Util.encodeContentToStr(username + ":" + password)));
+        return headerList;
+    }
+
+    private List<Header> getJsonHeaderList() {
+        List<Header> headerList = getBaseHeaderList();
+        headerList.add(new BasicHeader("Content-Type", "application/json"));
+        return headerList;
+    }
+
+    private List<Header> getUploadFileHeaderList() {
+        List<Header> headerList = getBaseHeaderList();
+        headerList.add(new BasicHeader("Content-Type", "application/octet-stream"));
+        headerList.add(new BasicHeader("X-BKREPO-OVERWRITE", "true"));
+        return headerList;
+    }
+
+    private Header[] buildFinalHeaders(List<Header> headerList) {
+        List<Header> finalHeaderList = getJsonHeaderList();
+        if (CollectionUtils.isNotEmpty(headerList)) {
+            finalHeaderList.addAll(headerList);
+        }
+        Header[] headers = new Header[finalHeaderList.size()];
+        return finalHeaderList.toArray(headers);
+    }
+
+    private Header[] getJsonHeaders() {
+        List<Header> headerList = getJsonHeaderList();
+        Header[] headers = new Header[headerList.size()];
+        return headerList.toArray(headers);
+    }
+
+    private Header[] getUploadFileHeaders() {
+        List<Header> headerList = getUploadFileHeaderList();
+        Header[] headers = new Header[headerList.size()];
+        return headerList.toArray(headers);
+    }
+
+    private String doHttpGet(String url, ArtifactoryReq reqBody, HttpHelper httpHelper) {
+        return doHttpGet(url, null, reqBody, httpHelper);
+    }
+
+    private String doHttpGet(String url, List<Header> headerList, ArtifactoryReq reqBody, HttpHelper httpHelper) {
+        return httpHelper.requestForSuccessResp(
+                HttpRequest.builder(HttpMethodEnum.GET, reqBody == null ? url : url + reqBody.toUrlParams())
+                    .setHeaders(buildFinalHeaders(headerList))
+                    .build())
+            .getEntity();
+    }
+
+    private String doHttpPost(String url, ArtifactoryReq reqBody, HttpHelper httpHelper) {
+        return doHttpPost(url, null, reqBody, httpHelper);
+    }
+
+    private String doHttpPost(String url, List<Header> headerList, ArtifactoryReq reqBody, HttpHelper httpHelper) {
+        return httpHelper.requestForSuccessResp(
+                HttpRequest.builder(HttpMethodEnum.POST, url)
+                    .setStringEntity(reqBody == null ? "{}" : JsonUtils.toJson(reqBody))
+                    .setHeaders(buildFinalHeaders(headerList))
+                    .build())
+            .getEntity();
+    }
+
+    private String doHttpDelete(String url, ArtifactoryReq reqBody, HttpHelper httpHelper) {
+        return doHttpDelete(url, null, reqBody, httpHelper);
+    }
+
+    private String doHttpDelete(String url, List<Header> headerList, ArtifactoryReq reqBody, HttpHelper httpHelper) {
+        return httpHelper.requestForSuccessResp(
+                HttpRequest.builder(HttpMethodEnum.DELETE, reqBody == null ? url : url + reqBody.toUrlParams())
+                    .setStringEntity(reqBody == null ? "{}" : JsonUtils.toJson(reqBody))
+                    .setHeaders(buildFinalHeaders(headerList))
+                    .build())
+            .getEntity();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <R> void checkResult(
+        R result,
+        String method,
+        String url,
+        String reqStr,
+        String respStr
+    ) {
+        if (result == null) {
+            log.error(
+                "fail:artifactoryResp is null after parse|method={}|url={}|reqStr={}|respStr={}",
+                method,
+                url,
+                getSimplifiedStrForLog(reqStr),
+                getSimplifiedStrForLog(respStr)
+            );
+            throw new InternalException("artifactoryResp is null after parse", ErrorCode.ARTIFACTORY_API_DATA_ERROR);
+        }
+        if (result instanceof ArtifactoryResp) {
+            ArtifactoryResp<R> artifactoryResp = (ArtifactoryResp<R>) result;
+            if (artifactoryResp.getCode() == ArtifactoryInterfaceConsts.RESULT_CODE_OK
+                && artifactoryResp.getData() == null) {
+                log.warn(
+                    "warn:artifactoryResp.getData() == null|artifactoryResp.requestId={}|artifactoryResp" +
+                        ".code={}|artifactoryResp.message={}|method={}|url={}|reqStr={}|respStr={}",
+                    artifactoryResp.getTraceId(),
+                    artifactoryResp.getCode(),
+                    artifactoryResp.getMessage(),
+                    method,
+                    url,
+                    getSimplifiedStrForLog(reqStr),
+                    getSimplifiedStrForLog(respStr)
+                );
+            }
+        }
+    }
+
+    private <R> R getArtifactoryRespByReq(
+        String method,
+        String urlTemplate,
+        ArtifactoryReq reqBody,
+        TypeReference<R> typeReference,
+        HttpHelper httpHelper
+    ) throws ServiceException {
+        return getArtifactoryRespByReq(
+            null,
+            method,
+            urlTemplate,
+            reqBody,
+            typeReference,
+            httpHelper
+        );
+    }
+
+    private <R> R getArtifactoryRespByReq(
+        String tenantId,
+        String method,
+        String urlTemplate,
+        ArtifactoryReq reqBody,
+        TypeReference<R> typeReference,
+        HttpHelper httpHelper
+    ) throws ServiceException {
+        return getArtifactoryRespByReq(
+            Level.ERROR,
+            tenantId,
+            method,
+            urlTemplate,
+            reqBody,
+            typeReference,
+            httpHelper
+        );
+    }
+
+    private <R> R getArtifactoryRespByReq(
+        Level errorLogLevel,
+        String tenantId,
+        String method,
+        String urlTemplate,
+        ArtifactoryReq reqBody,
+        TypeReference<R> typeReference,
+        HttpHelper httpHelper
+    ) throws ServiceException {
+        // URL模板变量替换
+        String url = StringUtil.replacePathVariables(urlTemplate, reqBody);
+        url = getCompleteUrl(url);
+        String reqStr = "{}";
+        if (reqBody != null) {
+            reqStr = JsonUtils.toJson(reqBody);
+        }
+        String respStr;
+        long start = System.nanoTime();
+        AtomicReference<String> statusRef = new AtomicReference<>(MetricsConstants.TAG_VALUE_NONE);
+        try {
+            HttpMetricUtil.setHttpMetricName(MetricsConstants.METRICS_NAME_BKREPO_API_HTTP);
+            HttpMetricUtil.addTagForCurrentMetric(Tag.of(MetricsConstants.TAG_KEY_API_NAME, urlTemplate));
+            List<Header> headerList = buildHeaderList(tenantId);
+            switch (method) {
+                case HttpGet.METHOD_NAME:
+                    respStr = doHttpGet(url, headerList, reqBody, httpHelper);
+                    break;
+                case HttpPost.METHOD_NAME:
+                    respStr = doHttpPost(url, headerList, reqBody, httpHelper);
+                    break;
+                case HttpDelete.METHOD_NAME:
+                    respStr = doHttpDelete(url, headerList, reqBody, httpHelper);
+                    break;
+                default:
+                    throw new InternalException(ErrorCode.NOT_SUPPORT_FEATURE);
+            }
+            if (StringUtils.isBlank(respStr)) {
+                log.log(errorLogLevel, "fail:response is blank|method={}|url={}|reqStr={}", method, url, reqStr);
+                throw new InternalException("response is blank", ErrorCode.ARTIFACTORY_API_DATA_ERROR);
+            } else {
+                log.info(
+                    "success|method={}|url={}|reqStr={}|respStr={}",
+                    method,
+                    url,
+                    getSimplifiedStrForLog(reqStr),
+                    getSimplifiedStrForLog(respStr)
+                );
+            }
+            R result = JsonUtils.fromJson(respStr, typeReference);
+            checkResult(result, method, url, reqStr, respStr);
+            statusRef.set(MetricsConstants.TAG_VALUE_OK);
+            return result;
+        } catch (Exception e) {
+            String msg = MessageFormatter.arrayFormat(
+                "Fail to request ARTIFACTORY data|method={}|url={}|reqStr={}",
+                new String[]{
+                    method,
+                    url,
+                    reqStr
+                }
+            ).getMessage();
+            log.log(errorLogLevel, msg, e);
+            statusRef.set(MetricsConstants.TAG_VALUE_ERROR);
+            return ArtifactoryExceptionConverter.convertException(e);
+        } finally {
+            HttpMetricUtil.clearHttpMetric();
+            long end = System.nanoTime();
+            if (null != meterRegistry) {
+                meterRegistry.timer(
+                        MetricsConstants.METRICS_NAME_BKREPO_API,
+                        MetricsConstants.TAG_KEY_API_NAME, urlTemplate,
+                        MetricsConstants.TAG_KEY_STATUS, statusRef.get()
+                    )
+                    .record(end - start, TimeUnit.NANOSECONDS);
+            }
+        }
+    }
+
+    private List<Header> buildHeaderList(String tenantId) {
+        List<Header> headerList = new ArrayList<>();
+        if (StringUtils.isNotBlank(tenantId)) {
+            headerList.add(new BasicHeader(JobCommonHeaders.BK_TENANT_ID, tenantId));
+        }
+        return headerList;
+    }
+
+    public boolean isAvailable() {
+        try {
+            getArtifactoryRespByReq(
+                Level.INFO,
+                null,
+                HttpGet.METHOD_NAME,
+                URL_ACTUATOR_INFO,
+                new ArtifactoryReq(),
+                new TypeReference<Map<Object, Object>>() {
+                },
+                httpHelper
+            );
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public List<ProjectDTO> listProject(List<String> projectNameList) {
+        ListProjectReq req = new ListProjectReq();
+        if (projectNameList != null) {
+            if (projectNameList.isEmpty()) {
+                return new ArrayList<>();
+            }
+            req.setNames(projectNameList.stream().map(String::trim).collect(Collectors.joining(",")));
+        }
+        ArtifactoryResp<List<ProjectDTO>> resp = getArtifactoryRespByReq(
+            HttpGet.METHOD_NAME,
+            URL_LIST_PROJECT,
+            req,
+            new TypeReference<ArtifactoryResp<List<ProjectDTO>>>() {
+            },
+            httpHelper
+        );
+        return resp.getData();
+    }
+
+    public PageData<RepoDTO> listRepo(String projectId, String name, int pageNumber, int pageSize) {
+        ListRepoPageReq req = new ListRepoPageReq();
+        req.setProjectId(projectId);
+        req.setName(name);
+        req.setPageNumber(pageNumber);
+        req.setPageSize(pageSize);
+        ArtifactoryResp<PageData<RepoDTO>> resp = getArtifactoryRespByReq(HttpGet.METHOD_NAME, URL_LIST_REPO_PAGE,
+            req, new TypeReference<ArtifactoryResp<PageData<RepoDTO>>>() {
+            }, httpHelper);
+        return resp.getData();
+    }
+
+    public PageData<NodeDTO> listNode(String projectId,
+                                      String repoName,
+                                      String fullPath,
+                                      int pageNumber,
+                                      int pageSize) {
+        return listNode(projectId, repoName, fullPath, pageNumber, pageSize, null);
+    }
+
+    public PageData<NodeDTO> listNode(String projectId,
+                                      String repoName,
+                                      String fullPath,
+                                      int pageNumber,
+                                      int pageSize,
+                                      Boolean includeTotalRecords) {
+        ListNodePageReq req = new ListNodePageReq();
+        req.setProjectId(projectId);
+        req.setRepoName(repoName);
+        req.setFullPath(fullPath);
+        req.setPageNumber(pageNumber);
+        req.setPageSize(pageSize);
+        req.setIncludeTotalRecords(includeTotalRecords);
+        ArtifactoryResp<PageData<NodeDTO>> resp = getArtifactoryRespByReq(HttpGet.METHOD_NAME, URL_LIST_NODE_PAGE,
+            req, new TypeReference<>() {
+            }, httpHelper);
+        return resp.getData();
+    }
+
+    private SearchNodePageReq buildSearchNodePageReq(String projectId,
+                                                     String repoName,
+                                                     String fullPath,
+                                                     String nameKey,
+                                                     int pageNumber,
+                                                     int pageSize) {
+        SearchNodePageReq req = new SearchNodePageReq();
+        req.setPage(new PageLimit(pageNumber, pageSize));
+        req.setSort(new Sort());
+        List<Rule> innerRules = new ArrayList<>();
+        // 项目ID
+        Rule projectIdRule = new Rule();
+        projectIdRule.setField("projectId");
+        projectIdRule.setOperation(Rule.RULE_OPERATION_EQ);
+        projectIdRule.setValue(projectId);
+        innerRules.add(projectIdRule);
+        // 仓库名称
+        Rule repoNameRule = new Rule();
+        repoNameRule.setField("repoName");
+        repoNameRule.setOperation(Rule.RULE_OPERATION_EQ);
+        repoNameRule.setValue(repoName);
+        innerRules.add(repoNameRule);
+        // 节点路径
+        if (fullPath != null) {
+            Rule fullPathRule = new Rule();
+            fullPathRule.setField("fullPath");
+            fullPathRule.setOperation(Rule.RULE_OPERATION_PREFIX);
+            if (fullPath.endsWith("/")) {
+                fullPathRule.setValue(fullPath);
+            } else {
+                fullPathRule.setValue(fullPath + "/");
+            }
+            innerRules.add(fullPathRule);
+        }
+        // 文件名称
+        if (nameKey != null) {
+            Rule nameRule = new Rule();
+            nameRule.setField("name");
+            nameRule.setOperation(Rule.RULE_OPERATION_MATCH);
+            nameRule.setValue("*" + nameKey + "*");
+            innerRules.add(nameRule);
+        }
+        // 外层条件
+        Rule outerRule = new Rule();
+        outerRule.setRelation(Rule.RULE_RELATION_AND);
+        outerRule.setRules(innerRules);
+        req.setRule(outerRule);
+        return req;
+    }
+
+    public PageData<NodeDTO> searchNode(String projectId,
+                                        String repoName,
+                                        String fullPath,
+                                        String nameKey,
+                                        int pageNumber,
+                                        int pageSize) {
+        SearchNodePageReq req = buildSearchNodePageReq(projectId, repoName, fullPath, nameKey, pageNumber, pageSize);
+        ArtifactoryResp<PageData<NodeDTO>> resp = getArtifactoryRespByReq(HttpPost.METHOD_NAME, URL_NODE_SEARCH,
+            req, new TypeReference<ArtifactoryResp<PageData<NodeDTO>>>() {
+            }, httpHelper);
+        return resp.getData();
+    }
+
+    public NodeDTO queryNodeDetail(String projectId, String repoName, String fullPath) {
+        QueryNodeDetailReq req = new QueryNodeDetailReq();
+        req.setProjectId(projectId);
+        req.setRepoName(repoName);
+        req.setFullPath(fullPath);
+        ArtifactoryResp<NodeDTO> resp = getArtifactoryRespByReq(HttpGet.METHOD_NAME, URL_QUERY_NODE_DETAIL, req,
+            new TypeReference<ArtifactoryResp<NodeDTO>>() {
+            }, httpHelper);
+        if (resp.getCode() == ArtifactoryInterfaceConsts.RESULT_CODE_NODE_NOT_FOUND) {
+            return null;
+        }
+        return resp.getData();
+    }
+
+    public boolean deleteProject(String projectId) {
+        log.info("deleteProject:{}", projectId);
+        throw new NotImplementedException("Not support feature", ErrorCode.NOT_SUPPORT_FEATURE);
+    }
+
+    public boolean deleteRepo(String projectId, String repoName, Boolean forced) {
+        DeleteRepoReq req = new DeleteRepoReq();
+        req.setProjectId(projectId);
+        req.setRepoName(repoName);
+        req.setForced(forced);
+        ArtifactoryResp<Object> resp = getArtifactoryRespByReq(HttpDelete.METHOD_NAME, URL_DELETE_REPO, req,
+            new TypeReference<ArtifactoryResp<Object>>() {
+            }, httpHelper);
+        return resp.getCode() == 0;
+    }
+
+    public boolean deleteNode(String projectId, String repoName, String fullPath) {
+        DeleteNodeReq req = new DeleteNodeReq();
+        req.setProjectId(projectId);
+        req.setRepoName(repoName);
+        req.setFullPath(fullPath);
+        ArtifactoryResp<Object> resp = getArtifactoryRespByReq(HttpDelete.METHOD_NAME, URL_DELETE_NODE, req,
+            new TypeReference<ArtifactoryResp<Object>>() {
+            }, httpHelper);
+        return resp.getCode() == 0;
+    }
+
+    private List<String> parsePath(String filePath) {
+        // 解析projectId,repoName,fullPath
+        filePath = StringUtil.removePrefixAndSuffix(filePath, "/");
+        String[] pathArr = filePath.split("/");
+        if (pathArr.length < 2) {
+            throw new InternalException("path must contain projectId and repoName",
+                ErrorCode.ARTIFACTORY_API_DATA_ERROR);
+        }
+        String projectId = pathArr[0];
+        String repoName = pathArr[1];
+        String fullPath = filePath.substring(projectId.length() + repoName.length() + 1);
+        List<String> pathList = new ArrayList<>();
+        pathList.add(projectId);
+        pathList.add(repoName);
+        pathList.add(fullPath);
+        return pathList;
+    }
+
+    public NodeDTO getFileNode(String filePath) {
+        List<String> pathList = parsePath(filePath);
+        NodeDTO nodeDTO = queryNodeDetail(pathList.get(0), pathList.get(1), pathList.get(2));
+
+        if (null == nodeDTO) {
+            throw new InternalException(
+                "can not find node by filePath",
+                ErrorCode.CAN_NOT_FIND_NODE_IN_ARTIFACTORY,
+                new Object[]{filePath}
+            );
+        }
+        return nodeDTO;
+    }
+
+    public Pair<InputStream, HttpRequestBase> getFileInputStream(String filePath) throws ServiceException {
+        List<String> pathList = parsePath(filePath);
+        return getFileInputStream(pathList.get(0), pathList.get(1), pathList.get(2));
+    }
+
+    public Pair<InputStream, HttpRequestBase> getFileInputStream(String projectId, String repoName,
+                                                                 String filePath) throws ServiceException {
+        DownloadGenericFileReq req = new DownloadGenericFileReq();
+        req.setProject(projectId);
+        req.setRepo(repoName);
+        req.setPath(filePath);
+        String url = StringUtil.replacePathVariables(URL_DOWNLOAD_GENERIC_FILE, req);
+        url = getCompleteUrl(url);
+        CloseableHttpResponse resp;
+        try {
+            HttpMetricUtil.setHttpMetricName(MetricsConstants.METRICS_NAME_BKREPO_API_HTTP);
+            HttpMetricUtil.addTagForCurrentMetric(Tag.of("api_name", "download:" + URL_DOWNLOAD_GENERIC_FILE));
+            Pair<HttpRequestBase, CloseableHttpResponse> pair = longHttpHelper.getRawResp(false, url, getJsonHeaders());
+            resp = pair.getRight();
+            if (resp.getStatusLine() != null && resp.getStatusLine().getStatusCode() == 200) {
+                return Pair.of(resp.getEntity().getContent(), pair.getLeft());
+            } else {
+                log.info("resp.statusLine={},resp.entity={}", resp.getStatusLine(), resp.getEntity());
+                resp.close();
+                throw new InternalException(ErrorCode.FAIL_TO_REQUEST_THIRD_FILE_SOURCE_DOWNLOAD_GENERIC_FILE);
+            }
+        } catch (IOException e) {
+            log.error("Fail to getFileInputStream", e);
+            throw new InternalException(ErrorCode.FAIL_TO_REQUEST_THIRD_FILE_SOURCE_DOWNLOAD_GENERIC_FILE);
+        } finally {
+            HttpMetricUtil.clearHttpMetric();
+        }
+    }
+
+    public NodeDTO uploadGenericFileWithStream(
+        String projectId,
+        String repoName,
+        String filePath,
+        InputStream ins,
+        long fileSize
+    ) {
+        HttpEntity reqEntity = new InputStreamEntity(ins, fileSize);
+        return uploadGenericFileWithEntity(projectId, repoName, filePath, reqEntity);
+    }
+
+    public NodeDTO uploadGenericFile(String projectId, String repoName, String filePath, File file) {
+        HttpEntity reqEntity = new FileEntity(file);
+        return uploadGenericFileWithEntity(projectId, repoName, filePath, reqEntity);
+    }
+
+    private NodeDTO uploadGenericFileWithEntity(
+        String projectId,
+        String repoName,
+        String filePath,
+        HttpEntity reqEntity
+    ) {
+        UploadGenericFileReq req = new UploadGenericFileReq();
+        req.setProject(projectId);
+        req.setRepo(repoName);
+        req.setPath(filePath);
+        String url = StringUtil.replacePathVariables(URL_UPLOAD_GENERIC_FILE, req);
+        url = getCompleteUrl(url);
+        String respStr;
+        try {
+            HttpMetricUtil.setHttpMetricName(MetricsConstants.METRICS_NAME_BKREPO_API_HTTP);
+            HttpMetricUtil.addTagForCurrentMetric(Tag.of("api_name", "upload:" + URL_UPLOAD_GENERIC_FILE));
+
+            respStr = longHttpHelper.requestForSuccessResp(
+                    HttpRequest.builder(HttpMethodEnum.PUT, url)
+                        .setHttpEntity(reqEntity)
+                        .setHeaders(getUploadFileHeaders())
+                        .build())
+                .getEntity();
+            if (log.isDebugEnabled()) {
+                log.debug("respStr={}", getSimplifiedStrForLog(respStr));
+            }
+            ArtifactoryResp<NodeDTO> resp = JsonUtils.fromJson(
+                respStr, new TypeReference<ArtifactoryResp<NodeDTO>>() {
+                }
+            );
+            if (resp.getCode() == ArtifactoryInterfaceConsts.RESULT_CODE_OK) {
+                return resp.getData();
+            } else {
+                throw new InternalException(ErrorCode.FAIL_TO_REQUEST_THIRD_FILE_SOURCE_DOWNLOAD_GENERIC_FILE,
+                    new String[]{resp.getCode() + ":" + resp.getMessage()});
+            }
+        } catch (Throwable e) {
+            log.error("Fail to uploadGenericFile", e);
+            throw new InternalException(ErrorCode.FAIL_TO_REQUEST_THIRD_FILE_SOURCE_DOWNLOAD_GENERIC_FILE,
+                new String[]{e.getMessage()});
+        } finally {
+            HttpMetricUtil.clearHttpMetric();
+        }
+    }
+
+    public List<TempUrlInfo> createTempUrls(String projectId, String repoName, List<String> filePathList) {
+        CreateTempUrlReq req = new CreateTempUrlReq();
+        req.setProjectId(projectId);
+        req.setRepoName(repoName);
+        req.setExpireSeconds(30 * 60L);
+        req.setPermits(1);
+        req.setType("UPLOAD");
+        req.setFullPathSet(filePathList);
+        ArtifactoryResp<List<TempUrlInfo>> resp = getArtifactoryRespByReq(
+            HttpPost.METHOD_NAME,
+            URL_CREATE_TEMP_ACCESS_URL,
+            req,
+            new TypeReference<ArtifactoryResp<List<TempUrlInfo>>>() {
+            },
+            httpHelper
+        );
+        return resp.getData();
+    }
+
+    public String createProject(String tenantId, CreateProjectReq req) {
+        // 该接口正常创建情况下resp.data字段返回创建好的项目ID
+        ArtifactoryResp<String> resp =
+            getArtifactoryRespByReq(
+                tenantId,
+                HttpPost.METHOD_NAME,
+                URL_CREATE_PROJECT,
+                req,
+                new TypeReference<ArtifactoryResp<String>>() {
+                },
+                httpHelper
+            );
+        return resp.getData();
+    }
+
+    public boolean checkRepoExist(CheckRepoExistReq req) {
+        ArtifactoryResp<Boolean> resp = getArtifactoryRespByReq(
+            HttpGet.METHOD_NAME,
+            URL_CHECK_REPO_EXIST,
+            req,
+            new TypeReference<ArtifactoryResp<Boolean>>() {
+            },
+            httpHelper
+        );
+        return resp.getData();
+    }
+
+    public boolean createRepo(CreateRepoReq req) {
+        ArtifactoryResp<Object> resp = getArtifactoryRespByReq(
+            HttpPost.METHOD_NAME,
+            URL_CREATE_REPO,
+            req,
+            new TypeReference<ArtifactoryResp<Object>>() {
+            },
+            httpHelper
+        );
+        // 该接口正常创建情况下data字段返回仓库详情，用code判断
+        return resp.getCode() == ArtifactoryInterfaceConsts.RESULT_CODE_OK;
+    }
+
+    public boolean createUserToProject(CreateUserToProjectReq req) {
+        ArtifactoryResp<Boolean> resp = getArtifactoryRespByReq(
+            HttpPost.METHOD_NAME,
+            URL_CREATE_USER_TO_PROJECT,
+            req,
+            new TypeReference<ArtifactoryResp<Boolean>>() {
+            },
+            httpHelper
+        );
+        return resp.getData();
+    }
+
+    public void shutdown() {
+    }
+
+    private String getSimplifiedStrForLog(String rawStr) {
+        return StringUtil.substring(rawStr, 20000);
+    }
+
+    private <R> R convertException(AtomicReference<String> statusRef, Exception e) {
+        if (e instanceof HttpStatusException) {
+            String httpStatusExceptionRespStr = ((HttpStatusException) e).getRespBodyStr();
+            ArtifactoryResp<Object> artifactoryResp = JsonUtils.fromJson(httpStatusExceptionRespStr,
+                new TypeReference<ArtifactoryResp<Object>>() {
+                });
+            if (artifactoryResp != null
+                && artifactoryResp.getCode() == ArtifactoryInterfaceConsts.RESULT_CODE_NODE_NOT_FOUND) {
+                statusRef.set(MetricsConstants.TAG_VALUE_CLIENT_ERROR_NODE_NOT_FOUND);
+                throw new InternalException(
+                    artifactoryResp.getMessage(),
+                    ErrorCode.CAN_NOT_FIND_NODE_IN_ARTIFACTORY
+                );
+            } else {
+                throw new InternalException(
+                    "Fail to request ARTIFACTORY data",
+                    ErrorCode.ARTIFACTORY_API_DATA_ERROR
+                );
+            }
+        } else {
+            throw new InternalException("Fail to request ARTIFACTORY data", ErrorCode.ARTIFACTORY_API_DATA_ERROR);
+        }
+    }
+}

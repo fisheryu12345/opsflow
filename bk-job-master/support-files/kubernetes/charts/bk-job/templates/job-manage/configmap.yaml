@@ -1,0 +1,136 @@
+{{- if and .Values.manageConfig.enabled (eq .Values.deploy.mode "standard") }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "common.names.fullname" . }}-manage
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: "job-manage"
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+data:
+  application.yaml: |-
+    spring:
+      cloud:
+        stream:
+          defaultBinder: jobCommon
+          binders:
+            jobCommon:
+              type: rabbit
+              environment:
+                spring:
+                  rabbitmq:
+                    host: {{ include "job.rabbitmq.host" . }}
+                    port: {{ include "job.rabbitmq.port" . }}
+                    username: {{ include "job.rabbitmq.username" . }}
+                    {{ if .Values.externalRabbitMQ.existingPasswordSecret }}
+                    password: {{ .Values.externalRabbitMQ.existingPasswordKey | default "rabbitmq-password" | printf "${%s}" }}
+                    {{- else -}}
+                    password: ${rabbitmq-password}
+                    {{- end }}
+                    virtual-host: {{ include "job.rabbitmq.vhost" . }}
+            jobManage:
+              type: rabbit
+              environment:
+                spring:
+                  rabbitmq:
+                    host: {{ include "job.rabbitmq.host" . }}
+                    port: {{ include "job.rabbitmq.port" . }}
+                    username: {{ include "job.rabbitmq.username" . }}
+                    {{ if .Values.externalRabbitMQ.existingPasswordSecret }}
+                    password: {{ .Values.externalRabbitMQ.existingPasswordKey | default "rabbitmq-password" | printf "${%s}" }}
+                    {{- else -}}
+                    password: ${rabbitmq-password}
+                    {{- end }}
+                    virtual-host: {{ include "job.rabbitmq.vhost" . }}
+          outputBindings: sendBackGroundTask
+          bindings:
+            handleBackGroundTask-in-0:
+              destination: backGroundTask
+              group: service.job.manage
+              binder: jobManage
+              consumer:
+                concurrency: 1
+            sendBackGroundTask-out-0:
+              destination: backGroundTask
+              group: service.job.manage
+              binder: jobManage
+              consumer:
+                concurrency: 1
+          rabbit:
+            bindings:
+              handleBackGroundTask-in-0:
+                consumer:
+                  maxConcurrency: 1
+        function:
+          definition: handleBackGroundTask
+      datasource:
+        job-manage:
+          driver-class-name: {{ include "job.jdbcMysqlDriverClass" . }}
+          type: com.zaxxer.hikari.HikariDataSource
+          jdbc-url: {{ include "job.jdbcMysqlScheme" . }}://{{- include "job.mariadb.host" . }}:{{- include "job.mariadb.port" . }}/job_manage{{ include "job.mariadb.connection.properties" . }}
+          username: {{ include "job.mariadb.username" . }}
+          {{ if .Values.externalMariaDB.existingPasswordSecret }}
+          password: {{ .Values.externalMariaDB.existingPasswordKey | default "mariadb-password" | printf "${%s}" }}
+          {{- else -}}
+          password: ${mariadb-password}
+          {{- end }}
+          maximum-pool-size: 100
+          minimum-idle: 20
+          idle-timeout: 600000
+          poolName: "job-manage"
+          validationTimeout: 5000
+      data:
+        redis:
+          {{- include "job.redis.config" . | indent 10 }}
+          database: 0
+          lettuce:
+            pool:
+              min-idle: 5
+              max-idle: 10
+              max-active: 8
+              max-wait: 1ms
+            shutdown-timeout: 100ms
+      servlet:
+        multipart:
+          max-file-size: 5GB
+          max-request-size: 5GB
+    feign:
+      client:
+        config:
+          default:
+            connectTimeout: 5000
+            readTimeout: 20000
+    bk:
+      doc:
+        root: {{ .Values.bkDocsCenterUrl }}
+      feedback:
+        root: {{ .Values.bkFeedBackUrl }}
+      sharedResUrl: {{ .Values.bkSharedResUrl }}
+      sharedBaseJsPath: {{ .Values.bkSharedBaseJsPath }}
+    job:
+      manage:
+        sync:
+          {{- toYaml .Values.manageConfig.sync | nindent 10 }}
+        background-task:
+          {{- toYaml .Values.manageConfig.backGroundTask | nindent 10 }}
+        notify:
+          default:
+            channels:
+              available: mail,weixin,rtx
+        scope-panel:
+          showNoPermissionScopes: {{ .Values.manageConfig.scopePanel.showNoPermissionScopes }}
+        default-account:
+          accounts:
+            {{- toYaml .Values.manageConfig.defaultAccount.accounts | nindent 12 }}
+    mysql:
+      {{- toYaml .Values.manageConfig.mysql | nindent 6 }}
+    server:
+      port: {{ .Values.manageConfig.containerPort }}
+    tls:
+      # 连接Redis使用的TLS配置
+      redis:
+        {{- include "job.redis.tls" . | nindent 8 }}
+{{- end }}

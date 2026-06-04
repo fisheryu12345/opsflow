@@ -1,0 +1,25 @@
+{{- if and .Values.manageConfig.enabled (eq .Values.deploy.mode "standard") }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: job-manage
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: "job-manage"
+    {{ include "job.labelKeys.jobScope" . }}: {{ include "job.labelValues.jobScope.backend" . }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.manageConfig.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.manageConfig.service.port }}
+      targetPort: {{ .Values.manageConfig.containerPort }}
+      protocol: TCP
+  selector: {{- include "common.labels.matchLabels" . | nindent 4 }}
+    app.kubernetes.io/component: "job-manage"
+{{- end }}

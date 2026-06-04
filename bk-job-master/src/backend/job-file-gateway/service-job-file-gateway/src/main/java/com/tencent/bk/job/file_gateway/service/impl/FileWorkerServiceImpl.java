@@ -1,0 +1,271 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.file_gateway.service.impl;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.tencent.bk.job.common.config.ClusterProperties;
+import com.tencent.bk.job.common.mysql.JobTransactional;
+import com.tencent.bk.job.common.util.json.JsonUtils;
+import com.tencent.bk.job.file_gateway.config.FileGatewayConfig;
+import com.tencent.bk.job.file_gateway.consts.WorkerSelectScopeEnum;
+import com.tencent.bk.job.file_gateway.dao.filesource.FileSourceTypeDAO;
+import com.tencent.bk.job.file_gateway.dao.filesource.FileWorkerDAO;
+import com.tencent.bk.job.file_gateway.dao.filesource.FileWorkerTagDAO;
+import com.tencent.bk.job.file_gateway.model.dto.FileSourceTypeDTO;
+import com.tencent.bk.job.file_gateway.model.dto.FileWorkerDTO;
+import com.tencent.bk.job.file_gateway.model.req.common.FileSourceMetaData;
+import com.tencent.bk.job.file_gateway.model.req.common.FileWorkerConfig;
+import com.tencent.bk.job.file_gateway.service.FileWorkerService;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+@Slf4j
+@Service
+public class FileWorkerServiceImpl implements FileWorkerService {
+
+    private final FileWorkerDAO fileWorkerDAO;
+    private final FileSourceTypeDAO fileSourceTypeDAO;
+    private final FileWorkerTagDAO fileWorkerTagDAO;
+    private final ClusterProperties clusterProperties;
+    private final FileGatewayConfig fileGatewayConfig;
+
+    @Autowired
+    public FileWorkerServiceImpl(FileWorkerDAO fileWorkerDAO,
+                                 FileSourceTypeDAO fileSourceTypeDAO,
+                                 FileWorkerTagDAO fileWorkerTagDAO,
+                                 ClusterProperties clusterProperties,
+                                 FileGatewayConfig fileGatewayConfig) {
+        this.fileWorkerDAO = fileWorkerDAO;
+        this.fileSourceTypeDAO = fileSourceTypeDAO;
+        this.fileWorkerTagDAO = fileWorkerTagDAO;
+        this.clusterProperties = clusterProperties;
+        this.fileGatewayConfig = fileGatewayConfig;
+    }
+
+    @Override
+    @JobTransactional(transactionManager = "jobFileGatewayTransactionManager")
+    public Long heartBeat(FileWorkerDTO fileWorkerDTO) {
+        Long id;
+        String configStr = fileWorkerDTO.getConfigStr();
+        FileWorkerConfig fileWorkerConfig = null;
+        if (StringUtils.isNotBlank(configStr)) {
+            fileWorkerConfig = JsonUtils.fromJson(configStr, new TypeReference<FileWorkerConfig>() {
+            });
+            if (fileWorkerConfig == null) {
+                log.warn("cannot parse fileWorkerConfig, configStr={}", configStr);
+            }
+        }
+        if (!fileWorkerDAO.existsFileWorker(
+            fileWorkerDTO.getClusterName(),
+            fileWorkerDTO.getAccessHost(),
+            fileWorkerDTO.getAccessPort())
+        ) {
+            id = saveFileWorker(fileWorkerDTO);
+        } else {
+            id = updateFileWorker(fileWorkerDTO);
+        }
+        log.debug("file worker id={}", id);
+        if (fileWorkerConfig != null) {
+            List<FileSourceMetaData> fileSourceMetaDataList = fileWorkerConfig.getFileSourceMetaDataList();
+            List<FileSourceTypeDTO> fileSourceTypeDTOList = new ArrayList<>();
+            for (FileSourceMetaData fileSourceMetaData : fileSourceMetaDataList) {
+                FileSourceTypeDTO fileSourceTypeDTO = new FileSourceTypeDTO();
+                fileSourceTypeDTO.setWorkerId(id);
+                fileSourceTypeDTO.setCode(fileSourceMetaData.getFileSourceTypeCode());
+                fileSourceTypeDTO.setName(fileSourceMetaData.getName());
+                fileSourceTypeDTO.setEnabled(fileSourceMetaData.getEnabled());
+                fileSourceTypeDTO.setIcon(fileSourceMetaData.getIconBase64());
+                fileSourceTypeDTO.setStorageType(fileSourceMetaData.getStorageTypeCode());
+                fileSourceTypeDTO.setLastModifier("Worker_" + id);
+                fileSourceTypeDTOList.add(fileSourceTypeDTO);
+            }
+            updateWorkerFileSourceType(id, fileSourceTypeDTOList);
+        }
+        return id;
+    }
+
+    private void updateWorkerFileSourceType(Long workerId, List<FileSourceTypeDTO> newFileSourceTypeList) {
+        List<FileSourceTypeDTO> currentFileSourceTypeList = fileSourceTypeDAO.listByWorkerId(workerId);
+        Map<String, FileSourceTypeDTO> codeTypeMap = new HashMap<>();
+        for (FileSourceTypeDTO fileSourceTypeDTO : currentFileSourceTypeList) {
+            if (!codeTypeMap.containsKey(fileSourceTypeDTO.getCode())) {
+                codeTypeMap.put(fileSourceTypeDTO.getCode(), fileSourceTypeDTO);
+            }
+        }
+        Set<String> newFileSourceCodes = new HashSet<>();
+        List<FileSourceTypeDTO> updateList = new ArrayList<>();
+        List<FileSourceTypeDTO> insertList = new ArrayList<>();
+        for (FileSourceTypeDTO fileSourceTypeDTO : newFileSourceTypeList) {
+            String code = fileSourceTypeDTO.getCode();
+            newFileSourceCodes.add(code);
+            if (codeTypeMap.containsKey(code)) {
+                fileSourceTypeDTO.setId(codeTypeMap.get(code).getId());
+                updateList.add(fileSourceTypeDTO);
+            } else {
+                insertList.add(fileSourceTypeDTO);
+            }
+        }
+        Set<String> currentFileSourceCodes = new HashSet<>();
+        List<Integer> deleteIdList = new ArrayList<>();
+        for (FileSourceTypeDTO fileSourceTypeDTO : currentFileSourceTypeList) {
+            String code = fileSourceTypeDTO.getCode();
+            if (!newFileSourceCodes.contains(code) || currentFileSourceCodes.contains(code)) {
+                deleteIdList.add(fileSourceTypeDTO.getId());
+            }
+            currentFileSourceCodes.add(code);
+        }
+        applyDataChanges(insertList, updateList, deleteIdList);
+    }
+
+    private void applyDataChanges(List<FileSourceTypeDTO> insertList,
+                                  List<FileSourceTypeDTO> updateList,
+                                  List<Integer> deleteIdList) {
+        if (!deleteIdList.isEmpty()) {
+            int deletedRowNum = fileSourceTypeDAO.batchDeleteByIds(deleteIdList);
+            log.info("{} fileSourceType deleted, deleteIdList={}", deletedRowNum, deleteIdList);
+        }
+        if (!insertList.isEmpty()) {
+            int insertedRowNum = fileSourceTypeDAO.batchInsert(insertList);
+            log.info("{} fileSourceType inserted", insertedRowNum);
+        }
+        if (!updateList.isEmpty()) {
+            int updatedRowNum = fileSourceTypeDAO.batchUpdate(updateList);
+            log.debug("{} fileSourceType updated", updatedRowNum);
+        }
+    }
+
+    private Long saveFileWorker(FileWorkerDTO fileWorkerDTO) {
+        return fileWorkerDAO.insertFileWorker(fileWorkerDTO);
+    }
+
+    private Long updateFileWorker(FileWorkerDTO fileWorkerDTO) {
+        FileWorkerDTO oldFileWorkerDTO = fileWorkerDAO.getFileWorker(
+            fileWorkerDTO.getClusterName(),
+            fileWorkerDTO.getAccessHost(),
+            fileWorkerDTO.getAccessPort()
+        );
+        Long workerId = oldFileWorkerDTO.getId();
+        fileWorkerDTO.setId(workerId);
+        fileWorkerDAO.updateFileWorker(fileWorkerDTO);
+        return workerId;
+    }
+
+    @Override
+    public int offLine(Long workerId) {
+        FileWorkerDTO fileWorkerDTO = fileWorkerDAO.getFileWorkerById(workerId);
+        fileWorkerDTO.setOnlineStatus((byte) 0);
+        return fileWorkerDAO.updateFileWorker(fileWorkerDTO);
+    }
+
+    private Integer getLatency(FileWorkerDTO fileWorkerDTO) {
+        //TODO:计算延迟
+        return 200;
+    }
+
+    @Override
+    public List<FileWorkerDTO> listFileWorker(String username, Long appId, WorkerSelectScopeEnum workerSelectScope) {
+        WorkerIdsCondition workerIdsCondition = getIncludedAndExcludedWorkerIds();
+        List<FileWorkerDTO> fileWorkerDTOList = new ArrayList<>();
+        if (workerSelectScope == WorkerSelectScopeEnum.PUBLIC) {
+            // 公共接入点
+            fileWorkerDTOList = fileWorkerDAO.listPublicFileWorkers(
+                workerIdsCondition.getIncludedWorkerIds(),
+                workerIdsCondition.getExcludedWorkerIds()
+            );
+        } else if (workerSelectScope == WorkerSelectScopeEnum.APP) {
+            // 业务私有接入点
+            fileWorkerDTOList = fileWorkerDAO.listFileWorkers(
+                appId,
+                workerIdsCondition.getIncludedWorkerIds(),
+                workerIdsCondition.getExcludedWorkerIds()
+            );
+        } else {
+            // 所有接入点：合并公共接入点和业务私有接入点
+            List<FileWorkerDTO> publicFileWorkerDTOList = fileWorkerDAO.listPublicFileWorkers(
+                workerIdsCondition.getIncludedWorkerIds(),
+                workerIdsCondition.getExcludedWorkerIds()
+            );
+            List<FileWorkerDTO> appFileWorkerDTOList = fileWorkerDAO.listFileWorkers(
+                appId,
+                workerIdsCondition.getIncludedWorkerIds(),
+                workerIdsCondition.getExcludedWorkerIds()
+            );
+            for (FileWorkerDTO fileWorkerDTO : publicFileWorkerDTOList) {
+                if (!fileWorkerDTOList.contains(fileWorkerDTO)) {
+                    fileWorkerDTOList.add(fileWorkerDTO);
+                }
+            }
+            for (FileWorkerDTO fileWorkerDTO : appFileWorkerDTOList) {
+                if (!fileWorkerDTOList.contains(fileWorkerDTO)) {
+                    fileWorkerDTOList.add(fileWorkerDTO);
+                }
+            }
+        }
+        fileWorkerDTOList.forEach(fileWorkerDTO -> fileWorkerDTO.setLatency(getLatency(fileWorkerDTO)));
+        return fileWorkerDTOList;
+    }
+
+    @Override
+    public FileWorkerDTO getFileWorker(String clusterName, String accessHost, Integer accessPort) {
+        return fileWorkerDAO.getFileWorker(clusterName, accessHost, accessPort);
+    }
+
+    /**
+     * 获取当前File-Gateway调度File-Worker时需要考虑的workerId范围和排除条件
+     * 调度规则：
+     * 1.File-Gateway实例只能调度相同集群内的File-Worker;
+     * 2.如果File-Gateway上配置了白名单标签，则只能调度配置了至少任意一个白名单标签的File-Worker;
+     * 3.如果File-Gateway上配置了黑名单标签，则不能调度配置了任意黑名单标签的File-Worker。
+     *
+     * @return workerId范围和排除条件，null表示不作为过滤条件
+     */
+    @Override
+    public WorkerIdsCondition getIncludedAndExcludedWorkerIds() {
+        List<Long> includedWorkerIds;
+        List<Long> excludedWorkerIds = null;
+        String clusterName = clusterProperties.getName();
+        List<String> whiteTags = fileGatewayConfig.getWorkerTagWhiteList();
+        List<String> blackTags = fileGatewayConfig.getWorkerTagBlackList();
+        if (CollectionUtils.isNotEmpty(whiteTags)) {
+            includedWorkerIds = fileWorkerTagDAO.listWorkerIdByClusterNameAndTag(clusterName, whiteTags);
+        } else {
+            includedWorkerIds = fileWorkerDAO.listWorkerIdByClusterName(clusterName);
+        }
+        if (CollectionUtils.isNotEmpty(blackTags)) {
+            excludedWorkerIds = fileWorkerTagDAO.listWorkerIdByTag(blackTags);
+        }
+        return new WorkerIdsCondition(includedWorkerIds, excludedWorkerIds);
+    }
+}

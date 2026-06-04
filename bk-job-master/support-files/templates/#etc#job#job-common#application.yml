@@ -1,0 +1,162 @@
+spring:
+  cloud:
+    consul:
+      discovery:
+        query-passing: true
+  security:
+    user:
+      name: __BK_JOB_SECURITY_USERNAME__
+      password: __BK_JOB_SECURITY_PASSWORD__
+      roles: ADMIN
+job:
+  tracing:
+    exporter:
+      # 是否上报trace数据至蓝鲸监控APM
+      enabled: false
+    bk-data-token: __BK_JOB_TRACE_REPORT_SECURE_KEY__
+management:
+  tracing:
+    sampling:
+      # trace数据上报比率，取值范围为0~1，根据作业平台与监控平台负载适当调节该比率
+      probability: 0.1
+  otlp:
+    tracing:
+      endpoint: __BK_JOB_TRACE_REPORT_PUSH_URL__
+bk:
+  # 蓝鲸根域名。指蓝鲸产品公共 cookies 写入的目录，同时也是各个系统的公共域名部分
+  bkDomain: __BK_DOMAIN__
+app:
+  code: __BK_JOB_APP_CODE__
+  secret: __BK_JOB_APP_SECRET__
+esb:
+  service:
+    url: __BK_PAAS_PRIVATE_URL__
+    publicUrl: __BK_PAAS_PUBLIC_URL__
+# 蓝鲸Api Gateway 配置    
+bkApiGateway:
+  gse:
+    # 蓝鲸 GSE API Gateway url。格式:{网关访问地址}/{网关环境}，网关访问地址、网关环境的取值见bk-gse网关API文档。
+    url: __BK_API_GATEWAY_GSE_URL__
+  bkNotice:
+    # 蓝鲸消息通知中心 API Gateway url。格式:{网关访问地址}/{网关环境}，网关访问地址、网关环境的取值见bk-notice网关API文档。
+    url: __BK_API_GATEWAY_BK_NOTICE_URL__
+  cmdb: 
+    # 蓝鲸 CMDB API Gateway url
+    url: __BK_API_GATEWAY_CMDB_URL__
+gse:
+  query:
+    threads:
+      num: 5
+      maxNum: 20
+    batchSize: 5000
+  script:
+    rootPath: "/tmp/bkjob"   
+gseV2:
+  # 是否初始化 GSE2.0 Client
+  enabled: true 
+iam:
+  web-url: __BK_IAM_PUBLIC_URL__
+  base-url: __BK_IAM_PRIVATE_URL__
+  system-id: bk_job
+audit:
+  enabled: true
+  system-id: bk_job
+paas:
+  server:
+    url: __BK_PAAS_PUBLIC_URL__
+  login:
+    url: __BK_PAAS_PUBLIC_URL__/login/
+bkNotice:
+  # 是否对接消息通知中心
+  enabled: true
+job:
+  security:
+    service:
+      private-key-base64: __BK_JOB_SECURITY_PRIVATE_KEY_BASE64__
+      public-key-base64: __BK_JOB_SECURITY_PUBLIC_KEY_BASE64__
+  {% if job_edition == "ee" -%}
+  edition: ee
+  {% endif -%}
+  {% if job_edition == "ce" -%}
+  edition: ce
+  {% endif -%}
+  encrypt:
+    type: __BK_CRYPTO_TYPE__
+    password: __BK_JOB_ENCRYPT_PASSWORD__
+  web:
+    url: __BK_JOB_PUBLIC_URL__
+  features:
+    # 是否开启文件管理特性
+    fileManage:
+      enabled: false
+    # 是否兼容ESB API 的 bk_biz_id 参数
+    bkBizIdCompatible:
+      enabled: true
+    # 是否对接GSE2.0。 如果需要对接GSE1.0，设置job.features.gseV2.enabled=false
+    gseV2:
+      enabled: true
+    # 是否支持执行对象。如果 Job 需要支持容器内作业的执行，需要开启该特性
+    executeObject:
+      enabled: true
+  # 存储临时文件的根目录
+  storage:
+    root-path: __BK_HOME__/public/job
+
+# 制品库相关配置
+artifactory:
+  base-url: __BK_REPO_PUBLIC_URL__
+  admin:
+    username: __BK_REPO_ADMIN_USERNAME__
+    password: __BK_REPO_ADMIN_PASSWORD__
+  job:
+    username: __BK_REPO_JOB_USERNAME__
+    password: __BK_REPO_JOB_PASSWORD__
+    # Job使用的项目名
+    project: __BK_REPO_JOB_PROJECT__
+
+# 本地文件上传相关配置
+local-file:
+  # 存储后端：
+  # local表示存储于本地，需要部署Job的多台机器间使用NFS共享job.storage.root-path
+  # artifactory表示存储于蓝鲸制品库，需要环境中部署有蓝鲸制品库
+  storage-backend: local
+  # 存储后端为蓝鲸制品库时的配置
+  # storage-backend: artifactory
+  # artifactory:
+  #   download:
+  #    # 用于从蓝鲸制品库下载用户上传的本地文件的并发线程数
+  #     concurrency: 10
+  #   # 存储用户上传的本地文件的仓库名称
+  #   repo: localupload
+
+# cmdb 配置
+cmdb:
+  app:
+    index:
+      path: /#/business/{appId}/index
+  interface:
+    briefCacheTopo:
+      enabled: false
+    findHostRelation:
+      longTerm:
+        concurrency: 10
+    retry:
+      enabled: true
+  query:
+    threads:
+      num: 50
+  server:
+    url: __BK_CMDB_PUBLIC_URL__
+
+swagger:
+  url: swagger.job.com
+
+log:
+  # 服务后台日志保留的小时数，默认168小时（7天）
+  keep-hours: 168
+  # 根据磁盘占用量自动清理后台日志相关配置
+  clear-by-volume-usage:
+    # 是否开启自动清理任务，默认开启
+    enabled: true
+    # 服务后台日志可使用的最大磁盘空间（超出后将清理最旧的日志文件，但每类日志文件至少保留一个），单位支持B、KB、MB、GB、TB、PB，默认200GB
+    max-volume: 200GB

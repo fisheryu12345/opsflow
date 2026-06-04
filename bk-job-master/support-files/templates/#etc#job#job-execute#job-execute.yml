@@ -1,0 +1,216 @@
+spring:
+  application:
+    name: job-execute
+  cloud:
+    stream:
+      defaultBinder: jobCommon
+      binders:
+        jobCommon:
+          type: rabbit
+          environment:
+            spring:
+              rabbitmq:
+                host: __BK_JOB_RABBITMQ_HOST__
+                port: __BK_JOB_RABBITMQ_PORT__
+                username: __BK_JOB_RABBITMQ_USERNAME__
+                password: __BK_JOB_RABBITMQ_PASSWORD__
+                virtual-host: __BK_JOB_RABBITMQ_VHOST__
+        jobExecute:
+          type: rabbit
+          environment:
+            spring:
+              rabbitmq:
+                host: __BK_JOB_RABBITMQ_HOST__
+                port: __BK_JOB_RABBITMQ_PORT__
+                username: __BK_JOB_RABBITMQ_USERNAME__
+                password: __BK_JOB_RABBITMQ_PASSWORD__
+                virtual-host: __BK_JOB_RABBITMQ_VHOST__
+      source: task;step;gseTask;resultHandleResume;notifyMsg;callback      
+      bindings:
+        handleJobEvent-in-0:
+          destination: task
+          group: service.job.execute
+          binder: jobExecute
+          consumer:
+            concurrency: 5
+        task-out-0:
+          destination: task
+          group: service.job.execute
+          binder: jobExecute
+          consumer:
+            concurrency: 5
+        handleStepEvent-in-0:
+          destination: step
+          group: service.job.execute
+          binder: jobExecute
+          consumer:
+            concurrency: 5
+        step-out-0:
+          destination: step
+          group: service.job.execute
+          binder: jobExecute
+          consumer:
+            concurrency: 5
+        handleGseTaskEvent-in-0:
+          destination: gse.task
+          group: service.job.execute
+          binder: jobExecute
+          consumer:
+            concurrency: 10
+        gseTask-out-0:
+          destination: gse.task
+          group: service.job.execute
+          binder: jobExecute
+          consumer:
+            concurrency: 10
+        handleResultHandleResumeEvent-in-0:
+          destination: result.handle.task.resume
+          group: service.job.execute
+          binder: jobExecute
+          consumer:
+            concurrency: 5
+        resultHandleTaskResume-out-0:
+          destination: result.handle.task.resume
+          group: service.job.execute
+          binder: jobExecute
+          consumer:
+            concurrency: 5
+        handleNotifyMsg-in-0:
+          destination: notify.msg
+          group: service.job.execute
+          binder: jobExecute
+          consumer:
+            concurrency: 5
+        notifyMsg-out-0:
+          destination: notify.msg
+          group: service.job.execute
+          binder: jobExecute
+          consumer:
+            concurrency: 5
+        handleCallbackMsg-in-0:
+          destination: task.callback
+          group: service.job.execute
+          binder: jobExecute
+          consumer:
+            concurrency: 5
+        callback-out-0:
+          destination: task.callback
+          group: service.job.execute
+          binder: jobExecute
+          consumer:
+            concurrency: 5
+      rabbit:
+        bindings:
+          handleJobEvent-in-0:
+            consumer:
+              maxConcurrency: 10
+          task-out-0:
+            consumer:
+              maxConcurrency: 10
+          handleStepEvent-in-0:
+            consumer:
+              maxConcurrency: 10
+          step-out-0:
+            consumer:
+              maxConcurrency: 10
+          handleGseTaskEvent-in-0:
+            consumer:
+              maxConcurrency: 20
+          gseTask-out-0:
+            consumer:
+              maxConcurrency: 20
+          handleResultHandleResumeEvent-in-0:
+            consumer:
+              maxConcurrency: 10
+          taskResultHandleResume-out-0:
+            consumer:
+              maxConcurrency: 10
+          handleNotifyMsg-in-0:
+            consumer:
+              maxConcurrency: 10
+          notifyMsg-out-0:
+            consumer:
+              maxConcurrency: 10
+          handleCallbackMsg-in-0:
+            consumer:
+              maxConcurrency: 10
+          callback-out-0:
+            consumer:
+              maxConcurrency: 10
+    function:
+      definition: handleJobEvent;handleStepEvent;handleGseTaskEvent;handleResultHandleResumeEvent;handleNotifyMsg;handleCallbackMsg;busConsumer
+  datasource:
+    job-execute:
+      driver-class-name: io.opentelemetry.instrumentation.jdbc.OpenTelemetryDriver
+      type: com.zaxxer.hikari.HikariDataSource
+      jdbc-url: jdbc:otel:mysql://__BK_JOB_EXECUTE_MYSQL_HOST__:__BK_JOB_EXECUTE_MYSQL_PORT__/job_execute?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
+      username: __BK_JOB_EXECUTE_MYSQL_USERNAME__
+      password: __BK_JOB_EXECUTE_MYSQL_PASSWORD__
+      maximum-pool-size: 100
+      minimum-idle: 20
+      idle-timeout: 600000
+      poolName: "job-execute"
+      validationTimeout: 5000
+  redis:
+    {# 社区版默认配置 -#}
+    {% if job_edition != "ee" -%}
+    # 使用单机Redis时的配置项
+    host: __BK_JOB_EXECUTE_REDIS_HOST__
+    port: __BK_JOB_EXECUTE_REDIS_PORT__
+    # 使用Redis Sentinel时的配置项
+    #sentinel:
+      #password: __BK_JOB_EXECUTE_REDIS_SENTINEL_PASSWORD__
+      #master: __BK_JOB_EXECUTE_REDIS_SENTINEL_MASTER__
+      #nodes: __BK_JOB_EXECUTE_REDIS_SENTINEL_NODES__
+    {% endif -%}
+    {# 企业版默认配置 -#}
+    {% if job_edition == "ee" -%}
+    # 使用单机Redis时的配置项
+    #host: __BK_JOB_EXECUTE_REDIS_HOST__
+    #port: __BK_JOB_EXECUTE_REDIS_PORT__
+    # 使用Redis Sentinel时的配置项
+    sentinel:
+      password: __BK_JOB_EXECUTE_REDIS_SENTINEL_PASSWORD__
+      master: __BK_JOB_EXECUTE_REDIS_SENTINEL_MASTER__
+      nodes: __BK_JOB_EXECUTE_REDIS_SENTINEL_NODES__
+    {% endif -%}
+    password: __BK_JOB_EXECUTE_REDIS_PASSWORD__
+    database: 0
+    lettuce:
+      pool:
+        min-idle: 5
+        max-idle: 10
+        max-active: 8
+        max-wait: 1ms
+      shutdown-timeout: 100ms
+
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+      sync:
+        connectTimeout: 5000
+        readTimeout: 30000
+      log:
+        connectTimeout: 5000
+        readTimeout: 30000
+job:
+  execute:
+    # 执行日志导出产生的临时文件相关配置
+    log-export:
+      # 存储后端：
+      # local表示存储于本地NFS
+      # artifactory表示存储于蓝鲸制品库，需要环境中部署有蓝鲸制品库
+      storage-backend: local
+      # 存储后端为蓝鲸制品库时的配置
+      # storage-backend: artifactory
+      # artifactory:
+      #   # 存储执行日志导出临时文件的仓库名称
+      #   repo: filedata
+    file:
+      # 存储要分发的文件的根目录，二进制环境下与存储临时文件的根目录一致
+      distribute:
+        root-path: __BK_HOME__/public/job

@@ -1,0 +1,12 @@
+node_modules/
+
+.DS_Store
+.cache
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+dist/
+package-lock.json
