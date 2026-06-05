@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-"""ImportService — 批量导入（CSV / JSON）
+"""ImportService — 批量导入/导出（CSV / JSON / Excel）
 
 利用 Neo4j UNWIND + MERGE 实现高效的批量写入。
 支持增量更新和批量关系创建。
+支持 Excel (.xlsx) 格式的导入导出。
 """
 
 import csv
@@ -27,8 +28,16 @@ def _now_iso() -> str:
     return datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
 
+try:
+    import openpyxl
+    HAS_OPENPYXL = True
+except ImportError:
+    HAS_OPENPYXL = False
+    logger.warning("openpyxl 未安装，Excel 导入导出功能不可用。安装: pip install openpyxl")
+
+
 class ImportService:
-    """批量导入服务"""
+    """批量导入/导出服务"""
 
     def import_instances(self, model_code: str,
                          records: list[dict],
@@ -138,3 +147,130 @@ class ImportService:
         if isinstance(data, dict) and 'records' in data:
             return data['records']
         raise ValidationError("JSON 格式无效：应为数组或 {records: [...]}")
+
+    def export_to_excel(self, model_code: str, filters: dict = None) -> io.BytesIO:
+        """导出实例到 Excel (.xlsx)
+
+        Args:
+            model_code: 模型编码
+            filters: 过滤条件
+
+        Returns:
+            BytesIO 包含 Excel 文件内容
+
+        Raises:
+            ImportError: openpyxl 未安装
+        """
+        if not HAS_OPENPYXL:
+            raise ImportError("openpyxl 未安装，请执行: pip install openpyxl")
+
+        model_def = ModelDefinition.objects.get(code=model_code)
+
+        # 查询实例数据
+        from .node_service import NodeService
+        svc = NodeService(model_code)
+        result = svc.list(filters or {}, page=1, page_size=999999)
+        items = result.get('items', [])
+
+        # 获取字段定义（排除系统字段）
+        fields = list(model_def.fields.all().order_by('sort_order', 'name'))
+        system_fields = {'instance_id', '__model_code', '__created_at', '__updated_at', 'rel_id'}
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = model_def.name or model_code
+
+        # 写表头
+        headers = [f.label or f.name for f in fields if f.name not in system_fields]
+        headers.insert(0, 'instance_id')  # 第一列是主键
+        ws.append(headers)
+
+        # 写数据行
+        for item in items:
+            row = [item.get('instance_id', '')]
+            for f in fields:
+                if f.name in system_fields:
+                    continue
+                val = item.get(f.name)
+                # 处理不同类型
+                if val is None:
+                    row.append('')
+                elif isinstance(val, (list, dict)):
+                    row.append(json.dumps(val, ensure_ascii=False))
+                else:
+                    row.append(val)
+            ws.append(row)
+
+        # 自动调整列宽
+        for col_idx, header in enumerate(headers, 1):
+            max_len = len(str(header))
+            # 粗略估算数据列宽
+            for row in ws.iter_rows(min_col=col_idx, max_col=col_idx,
+                                    min_row=2, max_row=min(len(items) + 1, 50)):
+                for cell in row:
+                    if cell.value:
+                        max_len = max(max_len, min(len(str(cell.value)), 60))
+            ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = max_len + 4
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        return output
+
+    def import_from_excel(self, model_code: str, file_content: bytes) -> dict:
+        """从 Excel 文件导入实例
+
+        Args:
+            model_code: 模型编码
+            file_content: Excel 文件二进制内容
+
+        Returns:
+            {total: N, created: N, updated: N, errors: [...]}
+        """
+        if not HAS_OPENPYXL:
+            raise ImportError("openpyxl 未安装，请执行: pip install openpyxl")
+
+        model_def = ModelDefinition.objects.get(code=model_code)
+        fields = list(model_def.fields.all().order_by('sort_order', 'name'))
+        field_map = {f.name: f for f in fields}
+
+        wb = openpyxl.load_workbook(io.BytesIO(file_content))
+        ws = wb.active
+
+        # 解析表头（第一行）
+        header_row = [cell.value for cell in ws[1]]
+        if not header_row or not header_row[0]:
+            raise ValidationError("Excel 文件为空或表头无效")
+
+        # 将中文表头映射回字段名
+        col_mapping = {}
+        for h in header_row:
+            if h == 'instance_id':
+                col_mapping[h] = 'instance_id'
+            else:
+                matched = False
+                for f in fields:
+                    if f.label == h or f.name == h:
+                        col_mapping[h] = f.name
+                        matched = True
+                        break
+                if not matched:
+                    col_mapping[h] = h  # 保持原样，后续验证会处理
+
+        # 逐行解析
+        records = []
+        errors = []
+        for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+            # 跳过全空行
+            if all(cell is None or str(cell).strip() == '' for cell in row):
+                continue
+
+            record = {}
+            for col_idx, header in enumerate(header_row):
+                if col_idx < len(row) and row[col_idx] is not None:
+                    field_name = col_mapping.get(header, header)
+                    record[field_name] = row[col_idx]
+            records.append(record)
+
+        # 使用已有的 import_instances 逻辑
+        return self.import_instances(model_code, records, strategy='create_or_update')

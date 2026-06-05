@@ -85,3 +85,36 @@ export function getImpact(nodeId: string, params?: { direction?: string; depth?:
 export function globalSearch(q: string, params?: { model_codes?: string[]; limit?: number }) {
   return request({ url: `${prefix}/topology/search/`, method: 'get', params: { q, ...params } })
 }
+
+// ─── 变更历史 API ───
+export function getChangeHistory(modelCode: string, instanceId: string, params?: {
+  action?: string; start_date?: string; end_date?: string;
+  operator?: string; page?: number; page_size?: number;
+}) {
+  return request({
+    url: `${prefix}/instances/${modelCode}/${instanceId}/change_history/`,
+    method: 'get', params,
+  })
+}
+
+// ─── 导入导出 API ───
+export function exportInstances(modelCode: string, filters?: any) {
+  return request({
+    url: `${prefix}/instances/${modelCode}/export/`,
+    method: 'post', data: { filters },
+    responseType: 'blob',
+  })
+}
+
+export function importInstances(modelCode: string, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: `${prefix}/instances/${modelCode}/import/`,
+    method: 'post', data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+// ─── 事件订阅 API ───
+export const eventSubscriptionsApi = createCrudApi('event-subscriptions')

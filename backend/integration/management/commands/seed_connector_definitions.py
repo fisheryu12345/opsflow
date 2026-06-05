@@ -95,7 +95,7 @@ DEFAULT_CONNECTORS = [
             },
             'required': ['webhook_url'],
         },
-        'provider_class': '',
+        'provider_class': 'integration.adapters.notification.wecom.WeComBotConnector',
         'sort_order': 110,
     },
     {
@@ -108,10 +108,11 @@ DEFAULT_CONNECTORS = [
             'type': 'object',
             'properties': {
                 'webhook_url': {'type': 'string', 'title': 'Webhook 地址', 'format': 'uri'},
+                'secret': {'type': 'string', 'title': '加签密钥(可选)'},
             },
             'required': ['webhook_url'],
         },
-        'provider_class': '',
+        'provider_class': 'integration.adapters.notification.dingtalk.DingtalkBotConnector',
         'sort_order': 120,
     },
     {
@@ -130,7 +131,7 @@ DEFAULT_CONNECTORS = [
             },
             'required': ['host', 'from_address'],
         },
-        'provider_class': '',
+        'provider_class': 'integration.adapters.notification.email_adapter.EmailSmtpConnector',
         'sort_order': 130,
     },
     # -- Auth Sources --

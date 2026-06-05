@@ -2,6 +2,7 @@
 """ITSM Workflow views — 流程模板管理、节点、连线、字段、AI 生成"""
 
 from rest_framework.decorators import action
+from rest_framework.views import APIView
 
 from dvadmin.utils.viewset import CustomModelViewSet
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse
@@ -113,33 +114,26 @@ class FieldViewSet(CustomModelViewSet):
         return qs
 
 
-class AIGenerateViewSet(CustomModelViewSet):
-    """AI 生成工作流"""
-    queryset = Workflow.objects.none()
+class AIGenerateView(APIView):
+    """AI 生成工作流 (APIView)"""
 
-    @action(methods=['POST'], detail=False)
-    def generate_workflow(self, request):
-        """自然语言 → 工作流定义"""
+    def post(self, request):
         description = request.data.get('description', '')
         itsm_type = request.data.get('itsm_type', 'change')
+
         if not description:
             return ErrorResponse(msg='请输入审批流程描述')
-        try:
-            generator = AIGenerator()
-            result = generator.generate_workflow(description, itsm_type)
-            return DetailResponse(data=result, msg='生成成功')
-        except Exception as e:
-            return ErrorResponse(msg=f'生成失败: {str(e)}')
 
-    @action(methods=['POST'], detail=False)
-    def generate_fields(self, request):
-        """节点描述 → 字段定义"""
-        state_description = request.data.get('description', '')
-        if not state_description:
-            return ErrorResponse(msg='请输入节点描述')
+        # Determine action from URL path
+        is_fields = 'generate-fields' in request.path
+
         try:
             generator = AIGenerator()
-            fields = generator.generate_fields(state_description)
-            return DetailResponse(data=fields, msg='生成成功')
+            if is_fields:
+                fields = generator.generate_fields(description)
+                return DetailResponse(data=fields, msg='生成成功')
+            else:
+                result = generator.generate_workflow(description, itsm_type)
+                return DetailResponse(data=result, msg='生成成功')
         except Exception as e:
             return ErrorResponse(msg=f'生成失败: {str(e)}')

@@ -1,132 +1,210 @@
 # -*- coding: utf-8 -*-
-"""Monitor and alerting model definitions
+"""Alert models — AlertEvent(原始事件), Alert(聚合告警), AlertLog(流水日志)
 
-告警规则、事件、通知策略、监控目标 — CoreModel 基类
+Event 与 Alert 分离设计，原始事件用于审计回溯，Alert 是收敛后可操作的告警实体。
 """
 
-import logging
+import hashlib
+import json
+from datetime import datetime
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
-
-logger = logging.getLogger(__name__)
+from dvadmin.utils.models import table_prefix
 
 
-class AlertRule(CoreModel):
-    """告警规则定义"""
-    severity_choices = (
-        ('critical', '严重'),
-        ('warning', '警告'),
-        ('info', '信息'),
+# ═══════════════════════════════════════════════════════════════════════
+# 原始告警事件 (AlertEvent)
+# ═══════════════════════════════════════════════════════════════════════
+class AlertEvent(models.Model):
+    """
+    原始告警事件 (Event)
+    来自数据源 (Prometheus/Grafana/自建采集) 的原始告警记录。
+    每条 event 对应一次检测触发，经策略匹配后可能创建/更新 Alert。
+    """
+
+    STATUS_CHOICES = (
+        ("pending", "待处理"),
+        ("abnormal", "异常"),
+        ("recovered", "已恢复"),
+        ("closed", "已关闭"),
     )
-    status_choices = (
-        ('enabled', '启用'),
-        ('disabled', '禁用'),
+
+    SEVERITY_CHOICES = (
+        (1, "致命"),
+        (2, "预警"),
+        (3, "提醒"),
     )
 
-    name = models.CharField(max_length=255, verbose_name="规则名称")
+    # ── 标识 ──
+    id = models.BigAutoField(primary_key=True)
+    event_id = models.CharField(max_length=128, unique=True, verbose_name="事件ID",
+                                 help_text="由数据源提供的唯一事件标识")
+    strategy = models.ForeignKey(
+        "MonitorStrategy", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="events",
+        verbose_name="关联策略",
+    )
+    item = models.ForeignKey(
+        "MonitorItem", on_delete=models.SET_NULL,
+        null=True, blank=True, verbose_name="关联监控项",
+    )
+
+    # ── 内容 ──
+    alert_name = models.CharField(max_length=255, verbose_name="告警名称")
     description = models.TextField(null=True, blank=True, verbose_name="描述")
-    severity = models.CharField(max_length=32, choices=severity_choices, default='warning', verbose_name="严重级别")
-    status = models.CharField(max_length=32, choices=status_choices, default='enabled', verbose_name="状态")
-    condition_expr = models.TextField(verbose_name="告警条件表达式",
-                                       help_text="如 cpu_usage > 90 持续 5 分钟")
-    duration_seconds = models.IntegerField(default=300, verbose_name="持续时长(秒)")
-    silence_seconds = models.IntegerField(default=3600, verbose_name="静默时长(秒)")
-    auto_resolve_seconds = models.IntegerField(default=0, verbose_name="自动恢复时长(秒)", help_text="0 表示不自动恢复")
-    notify_channels = models.JSONField(default=list, verbose_name="通知通道",
-                                        help_text="通过集成中心的通知通道编码列表")
-    notify_groups = models.JSONField(default=list, verbose_name="通知组",
-                                      help_text="通知组 ID 列表")
-    is_template = models.BooleanField(default=False, verbose_name="是否模板")
-    source = models.CharField(max_length=64, default='prometheus', verbose_name="数据源类型",
-                               help_text="prometheus / influxdb / grafana / manual")
+    severity = models.IntegerField(choices=SEVERITY_CHOICES, default=3, verbose_name="级别")
+    status = models.CharField(max_length=32, choices=STATUS_CHOICES,
+                              default="pending", verbose_name="状态", db_index=True)
 
-    class Meta:
-        db_table = table_prefix + "monitor_alert_rule"
-        verbose_name = "告警规则"
-        verbose_name_plural = verbose_name
-        ordering = ['-create_datetime']
-
-    def __str__(self):
-        return self.name
-
-
-class AlertEvent(CoreModel):
-    """告警事件 (Alert Event)"""
-    status_choices = (
-        ('firing', '触发中'),
-        ('acknowledged', '已确认'),
-        ('resolved', '已恢复'),
-        ('silenced', '已静默'),
-        ('closed', '已关闭'),
-    )
-    severity_choices = (
-        ('critical', '严重'),
-        ('warning', '警告'),
-        ('info', '信息'),
-    )
-
-    alert_id = models.CharField(max_length=128, unique=True, verbose_name="告警 ID",
-                                 help_text="Grafana/Prometheus 告警 ID")
-    rule = models.ForeignKey(AlertRule, on_delete=models.SET_NULL, null=True, blank=True,
-                              related_name='events', verbose_name="关联规则")
-    title = models.CharField(max_length=255, verbose_name="标题")
-    description = models.TextField(null=True, blank=True, verbose_name="描述")
-    status = models.CharField(max_length=32, choices=status_choices, default='firing', verbose_name="状态")
-    severity = models.CharField(max_length=32, choices=severity_choices, default='warning', verbose_name="严重级别")
+    # ── 指标 ──
+    target_type = models.CharField(max_length=64, default="host", verbose_name="目标类型",
+                                   help_text="host / service / instance")
+    target = models.CharField(max_length=512, verbose_name="目标标识",
+                              help_text="如 IP / 服务名 / 实例ID")
+    metric = models.CharField(max_length=128, blank=True, default="", verbose_name="指标名")
     metric_value = models.FloatField(null=True, blank=True, verbose_name="指标值")
-    metric_unit = models.CharField(max_length=64, null=True, blank=True, verbose_name="指标单位")
-    labels = models.JSONField(default=dict, verbose_name="标签")
-    annotations = models.JSONField(default=dict, verbose_name="注解")
-    fired_at = models.DateTimeField(verbose_name="触发时间")
-    resolved_at = models.DateTimeField(null=True, blank=True, verbose_name="恢复时间")
-    acknowledged_at = models.DateTimeField(null=True, blank=True, verbose_name="确认时间")
-    acknowledged_by = models.CharField(max_length=128, null=True, blank=True, verbose_name="确认人")
+    tags = models.JSONField(default=dict, verbose_name="标签")
 
-    # CMDB 关联
-    cmdb_host_id = models.CharField(max_length=64, null=True, blank=True, verbose_name="关联主机 ID")
-    cmdb_biz_id = models.CharField(max_length=64, null=True, blank=True, verbose_name="关联业务 ID")
+    # ── 去重 ──
+    dedupe_keys = models.JSONField(default=list, verbose_name="去重键列表")
+    dedupe_md5 = models.CharField(max_length=64, verbose_name="去重指纹", db_index=True)
 
-    # ITSM 关联
-    incident = models.ForeignKey('itsm.Incident', on_delete=models.SET_NULL, null=True, blank=True,
-                                  related_name='alerts', verbose_name="关联事件工单")
+    # ── 时间 ──
+    time = models.DateTimeField(verbose_name="事件时间")
+    anomaly_time = models.DateTimeField(null=True, blank=True, verbose_name="异常时间")
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name="记录时间")
+
+    # ── CMDB 关联 ──
+    bk_biz_id = models.IntegerField(default=0, verbose_name="业务ID", db_index=True)
+    cmdb_host_id = models.CharField(max_length=64, null=True, blank=True, verbose_name="主机ID")
+    cmdb_biz_id = models.CharField(max_length=64, null=True, blank=True, verbose_name="业务ID")
+
+    # ── 扩展 ──
+    extra_info = models.JSONField(default=dict, verbose_name="扩展信息",
+                                  help_text="数据源原始告警信息")
 
     class Meta:
         db_table = table_prefix + "monitor_alert_event"
-        verbose_name = "告警事件"
+        verbose_name = "原始告警事件"
         verbose_name_plural = verbose_name
-        ordering = ['-fired_at']
+        ordering = ["-time"]
+        index_together = [("strategy", "status", "time")]
 
     def __str__(self):
-        return f"[{self.severity}] {self.title}"
+        return f"[{self.get_severity_display()}] {self.alert_name}"
 
 
-class MonitorTarget(CoreModel):
-    """监控目标 (Target)"""
-    target_type_choices = (
-        ('host', '主机'),
-        ('service', '服务'),
-        ('network', '网络设备'),
-        ('middleware', '中间件'),
-        ('custom', '自定义'),
+# ═══════════════════════════════════════════════════════════════════════
+# 聚合告警 (Alert)
+# ═══════════════════════════════════════════════════════════════════════
+class Alert(models.Model):
+    """
+    聚合告警 (Alert)
+    经过策略匹配、收敛后的可操作告警实体。
+    一条 Alert 可关联 N 条原始 Event。
+    """
+
+    STATUS_CHOICES = (
+        ("firing", "触发中"),
+        ("acknowledged", "已确认"),
+        ("resolved", "已恢复"),
+        ("silenced", "已静默"),
+        ("closed", "已关闭"),
+    )
+    SEVERITY_CHOICES = AlertEvent.SEVERITY_CHOICES
+
+    id = models.BigAutoField(primary_key=True)
+    alert_id = models.CharField(max_length=64, unique=True, verbose_name="告警ID",
+                                 help_text="系统生成的唯一告警标识")
+    strategy = models.ForeignKey(
+        "MonitorStrategy", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="alerts",
+        verbose_name="关联策略",
     )
 
-    name = models.CharField(max_length=255, verbose_name="目标名称")
-    target_type = models.CharField(max_length=64, choices=target_type_choices, default='host', verbose_name="目标类型")
-    endpoint = models.CharField(max_length=512, verbose_name="采集端点",
-                                 help_text="如 http://192.168.1.1:9090/metrics")
-    source = models.CharField(max_length=64, default='prometheus', verbose_name="数据源",
-                               help_text="prometheus / influxdb / telegraf")
-    is_active = models.BooleanField(default=True, verbose_name="是否启用")
-    cmdb_host_id = models.CharField(max_length=64, null=True, blank=True, verbose_name="关联 CMDB 主机 ID")
+    # ── 内容 ──
+    severity = models.IntegerField(choices=SEVERITY_CHOICES, verbose_name="级别", db_index=True)
+    status = models.CharField(max_length=32, choices=STATUS_CHOICES,
+                              default="firing", verbose_name="状态", db_index=True)
+    title = models.CharField(max_length=255, verbose_name="告警标题")
+    description = models.TextField(null=True, blank=True, verbose_name="描述")
+    current_value = models.FloatField(null=True, blank=True, verbose_name="当前指标值")
+    metric_unit = models.CharField(max_length=64, null=True, blank=True, verbose_name="指标单位")
     labels = models.JSONField(default=dict, verbose_name="标签")
-    extra_config = models.JSONField(default=dict, verbose_name="额外配置")
+    annotations = models.JSONField(default=dict, verbose_name="注解")
+
+    # ── 时间 ──
+    fired_at = models.DateTimeField(verbose_name="首次触发时间", db_index=True)
+    resolved_at = models.DateTimeField(null=True, blank=True, verbose_name="恢复时间")
+    acknowledged_at = models.DateTimeField(null=True, blank=True, verbose_name="确认时间")
+    acknowledged_by = models.CharField(max_length=128, null=True, blank=True, verbose_name="确认人")
+    duration = models.IntegerField(default=0, verbose_name="持续时长(秒)")
+
+    # ── 统计 ──
+    event_count = models.IntegerField(default=1, verbose_name="累计事件数")
+
+    # ── CMDB 关联 ──
+    cmdb_host_id = models.CharField(max_length=64, null=True, blank=True, verbose_name="主机ID")
+    cmdb_biz_id = models.CharField(max_length=64, null=True, blank=True, verbose_name="业务ID")
+
+    # ── 分派与动作 ──
+    assignee = models.CharField(max_length=128, null=True, blank=True, verbose_name="当前负责人")
+    incident_id = models.CharField(max_length=64, null=True, blank=True, verbose_name="关联工单ID")
+
+    # ── 升级 ──
+    escalation_count = models.IntegerField(default=0, verbose_name="升级次数")
+    next_escalate_at = models.DateTimeField(null=True, blank=True, verbose_name="下次升级时间")
 
     class Meta:
-        db_table = table_prefix + "monitor_target"
-        verbose_name = "监控目标"
+        db_table = table_prefix + "monitor_alert"
+        verbose_name = "聚合告警"
         verbose_name_plural = verbose_name
-        ordering = ['name']
+        ordering = ["-fired_at"]
 
     def __str__(self):
-        return f"{self.name} ({self.source})"
+        return f"[{self.get_severity_display()}] {self.title}"
+
+    def generate_alert_id(self):
+        """生成唯一告警ID"""
+        raw = f"{self.strategy_id or ''}-{self.cmdb_host_id or ''}-{self.title}-{self.fired_at}"
+        return hashlib.md5(raw.encode()).hexdigest()[:16]
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 告警流水日志 (AlertLog)
+# ═══════════════════════════════════════════════════════════════════════
+class AlertLog(models.Model):
+    """告警流水日志 — 记录告警生命周期中的所有状态变更和操作"""
+
+    OPERATE_CHOICES = (
+        ("created", "创建"),
+        ("acknowledged", "确认"),
+        ("resolved", "恢复"),
+        ("closed", "关闭"),
+        ("escalated", "升级"),
+        ("silenced", "静默"),
+        ("assigned", "分派"),
+        ("notified", "通知"),
+        ("action_executed", "动作执行"),
+        ("incident_created", "创建工单"),
+        ("updated", "更新"),
+    )
+
+    alert = models.ForeignKey(
+        Alert, on_delete=models.CASCADE,
+        related_name="logs", verbose_name="关联告警",
+    )
+    operate = models.CharField(max_length=32, choices=OPERATE_CHOICES, verbose_name="操作类型")
+    operator = models.CharField(max_length=128, verbose_name="操作人/系统")
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name="操作时间")
+    description = models.TextField(verbose_name="操作描述")
+    extra = models.JSONField(default=dict, verbose_name="变更详情")
+
+    class Meta:
+        db_table = table_prefix + "monitor_alert_log"
+        verbose_name = "告警流水日志"
+        verbose_name_plural = verbose_name
+        ordering = ["-create_time"]
+
+    def __str__(self):
+        return f"{self.operate} @ {self.create_time}"

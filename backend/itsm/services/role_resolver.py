@@ -21,7 +21,10 @@ UserModel = get_user_model()
 
 
 def resolve_processors(processors_type: str, processors: str, ticket=None) -> list:
-    """解析处理人配置，返回用户名列表"""
+    """解析处理人配置，返回用户名列表
+
+    如果处理人有活跃的审批委托，则返回被委托人用户名。
+    """
     if not processors_type:
         return []
 
@@ -35,10 +38,51 @@ def resolve_processors(processors_type: str, processors: str, ticket=None) -> li
     }
     resolver = mapping.get(processors_type, _resolve_person)
     try:
-        return resolver(processors, ticket)
+        resolved = resolver(processors, ticket)
+        # Apply delegation: replace any username that has an active delegate
+        resolved = _apply_delegation(resolved, ticket)
+        return resolved
     except Exception as e:
         logger.error(f'Failed to resolve processors: {e}')
         return []
+
+
+def _apply_delegation(resolved_names: list, ticket=None) -> list:
+    """检查处理人是否有活跃的审批委托，有则替换为被委托人"""
+    import datetime
+    from django.utils import timezone
+    from itsm.models.delegation import ApprovalDelegate
+
+    if not resolved_names:
+        return []
+
+    now = timezone.now()
+    # Build filter: active + within date range + matching ticket_type (or empty=all)
+    ticket_type = ticket.itsm_type if ticket else ''
+    delegates = ApprovalDelegate.objects.filter(
+        is_active=True,
+        date_from__lte=now,
+        date_to__gte=now,
+    ).filter(
+        # Match by ticket_type: either empty (all types) or matching
+    )
+
+    # Build a lookup: user -> delegate_to username
+    delegate_map = {}
+    for d in delegates:
+        if d.ticket_type and ticket_type and d.ticket_type != ticket_type:
+            continue  # ticket_type filter mismatch
+        delegate_map.setdefault(d.user.username, d.delegate_to.username)
+
+    # Replace where delegations exist
+    result = []
+    for name in resolved_names:
+        if name in delegate_map:
+            result.append(delegate_map[name])
+            logger.info(f'[Delegate] {name} delegated to {delegate_map[name]}')
+        else:
+            result.append(name)
+    return result
 
 
 def _resolve_person(processors: str, ticket=None) -> list:

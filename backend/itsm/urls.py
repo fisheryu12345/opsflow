@@ -15,9 +15,11 @@ from .views.views import (
 from .views.workflow_views import (
     WorkflowViewSet, WorkflowVersionViewSet,
     StateViewSet, TransitionViewSet,
-    FieldViewSet, AIGenerateViewSet,
+    FieldViewSet, AIGenerateView,
 )
 from .views.ticket_views import TicketViewSet
+from .views.dashboard import DashboardViewSet
+from .views.delegation import DelegationViewSet
 
 router = routers.SimpleRouter()
 # Existing ITSM routes
@@ -36,9 +38,15 @@ router.register(r'transitions', TransitionViewSet)
 router.register(r'fields', FieldViewSet)
 router.register(r'tickets', TicketViewSet)
 
-# AI generation
-router.register(r'ai', AIGenerateViewSet, basename='ai-generate')
+# Dashboard (read-only 看板)
+router.register(r'dashboard', DashboardViewSet, basename='dashboard')
+
+# Delegation (审批委托)
+router.register(r'delegations', DelegationViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    # AI generation (APIView, not ModelViewSet)
+    path('ai/generate-workflow/', AIGenerateView.as_view(), name='ai-generate-workflow'),
+    path('ai/generate-fields/', AIGenerateView.as_view(), name='ai-generate-fields'),
 ]

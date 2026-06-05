@@ -12,6 +12,7 @@ from ..models.attribute_group import AttributeGroup
 from ..models.association import AssociationType, ModelAssociation
 from ..models.object_unique import ObjectUnique
 from ..models.mainline_topo import MainlineTopo
+from ..models.event_subscription import EventSubscription
 
 
 # ─── Classification ───
@@ -100,5 +101,14 @@ class ObjectUniqueSerializer(CustomModelSerializer):
 class MainlineTopoSerializer(CustomModelSerializer):
     class Meta:
         model = MainlineTopo
+        fields = '__all__'
+        read_only_fields = ['id']
+
+
+# ─── EventSubscription ───
+
+class EventSubscriptionSerializer(CustomModelSerializer):
+    class Meta:
+        model = EventSubscription
         fields = '__all__'
         read_only_fields = ['id']

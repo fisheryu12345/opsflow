@@ -1,3 +1,5 @@
+import json
+
 from django.db import models
 
 
@@ -29,3 +31,20 @@ class OpsKnowledge(models.Model):
 
     def __str__(self):
         return self.title
+
+    def get_embedding_vector(self):
+        """Get embedding vector as list of floats (returns None if not indexed)"""
+        if self.embedding is None:
+            return None
+        if isinstance(self.embedding, list):
+            return self.embedding
+        if isinstance(self.embedding, str):
+            try:
+                return json.loads(self.embedding)
+            except (json.JSONDecodeError, TypeError):
+                return None
+        return None
+
+    def set_embedding_vector(self, vector):
+        """Store embedding vector as JSON array"""
+        self.embedding = vector

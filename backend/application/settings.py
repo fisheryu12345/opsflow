@@ -151,11 +151,23 @@ DATABASES = {
         'OPTIONS': {
             'ssl': {'ssl-mode': 'DISABLED'},
         },
+        'TEST': {
+            'CHARSET': 'utf8mb4',
+            'COLLATION': 'utf8mb4_unicode_ci',
+        },
         # 'OPTIONS': {
         #     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         # },
     }
 }
+
+# ── Test mode: use SQLite (MySQL test DB not available) ──
+import sys
+if 'test' in sys.argv or 'test_coverage' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
 
 # ──────────────────────────────────────────────
 #  Neo4j 图数据库 (CMDB 拓扑存储)
@@ -509,3 +521,67 @@ ENABLE_PIPELINE_EVENT_SIGNALS = True        # 启用 30+ 生命周期信号 (pip
 PIPELINE_ENABLE_ROLLBACK = True             # 启用流程回滚 API
 ROLLBACK_QUEUE = "default"                  # 回滚任务队列
 PIPELINE_ENABLE_AUTO_EXECUTE_WHEN_ROLL_BACKED = False  # 回滚后不自动执行
+
+# ------------------------------------------------------------------ #
+#  Monitor: SPI 适配器注册表                                           #
+#  各类适配器通过类路径注册，运行时反射加载                              #
+# ------------------------------------------------------------------ #
+# ================================================= #
+# ******************** OAuth2/SSO 配置 ************** #
+# ================================================= #
+OAUTH_PROVIDERS = {
+    'oidc': {
+        'client_id': '',
+        'client_secret': '',
+        'authorize_url': '',
+        'token_url': '',
+        'userinfo_url': '',
+        'scopes': ['openid', 'profile', 'email'],
+        'redirect_uri': '',
+    },
+    'wecom': {
+        'client_id': '',
+        'client_secret': '',
+        'authorize_url': 'https://open.weixin.qq.com/connect/oauth2/authorize',
+        'token_url': 'https://qyapi.weixin.qq.com/cgi-bin/gettoken',
+        'userinfo_url': 'https://qyapi.weixin.qq.com/cgi-bin/user/getuserinfo',
+        'scopes': ['snsapi_base'],
+        'redirect_uri': '',
+    },
+    'dingtalk': {
+        'client_id': '',
+        'client_secret': '',
+        'authorize_url': 'https://login.dingtalk.com/oauth2/auth',
+        'token_url': 'https://api.dingtalk.com/v1.0/oauth2/userAccessToken',
+        'userinfo_url': 'https://api.dingtalk.com/v1.0/contact/users/me',
+        'scopes': ['openid', 'profile'],
+        'redirect_uri': '',
+    },
+}
+
+# ================================================= #
+# ******************* Monitor 适配器 *************** #
+# ================================================= #
+MONITOR_ADAPTERS = {
+    'datasource': {
+        'prometheus': 'monitor.adapters.datasource.prometheus.PrometheusDataSource',
+        'influxdb': 'monitor.adapters.datasource.influxdb.InfluxdbDataSource',
+        'custom': 'monitor.adapters.datasource.custom.CustomDataSource',
+    },
+    'notify': {
+        'integration_hub': 'monitor.adapters.notify.integration_hub.IntegrationHubNotify',
+        'wecom': 'monitor.adapters.notify.wecom.WeComNotify',
+        'dingtalk': 'monitor.adapters.notify.dingtalk.DingTalkNotify',
+        'email': 'monitor.adapters.notify.email.EmailNotify',
+        'sms': 'monitor.adapters.notify.sms.SmsNotify',
+    },
+    'action': {
+        'opsflow': 'monitor.adapters.action.opsflow.OpsflowAction',
+        'awx': 'monitor.adapters.action.awx.AwxAction',
+        'itsm': 'monitor.adapters.action.itsm.ItsmAction',
+    },
+    'target_resolver': {
+        'cmdb': 'monitor.adapters.target.cmdb.CmdbTargetResolver',
+        'static': 'monitor.adapters.target.static.StaticTargetResolver',
+    },
+}

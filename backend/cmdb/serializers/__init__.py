@@ -13,6 +13,7 @@ from .schema_serializers import (
     ModelAssociationSerializer,
     ObjectUniqueSerializer,
     MainlineTopoSerializer,
+    EventSubscriptionSerializer,
 )
 from .instance_serializers import (
     DynamicInstanceSerializer,
@@ -31,6 +32,7 @@ __all__ = [
     'ModelAssociationSerializer',
     'ObjectUniqueSerializer',
     'MainlineTopoSerializer',
+    'EventSubscriptionSerializer',
     'DynamicInstanceSerializer',
     'InstanceRelationSerializer',
 ]

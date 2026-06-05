@@ -1,2 +1,2 @@
 # -*- coding: utf-8 -*-
-"""Services package for monitor app"""
+"""Monitor services — pipeline engine, algorithm engine, scheduler, adapter loader"""

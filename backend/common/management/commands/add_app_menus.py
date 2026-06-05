@@ -65,23 +65,59 @@ class Command(BaseCommand):
         # ════════════════════════════════════════════
         #  Group 3: Phase 1 — 核心运维模块
         # ════════════════════════════════════════════
-        self._add_menu('运维门户',        '/portal',        'apps/portal/index',       'portal',       'iconfont icon-home',       40, catalog)
-        self._add_menu('配置管理(CMDB)',  '/cmdb',          'apps/cmdb/index',         'cmdb',         'iconfont icon-server',     41, catalog)
-        self._add_menu('服务管理(ITSM)',  '/itsm',          'apps/itsm/index',         'itsm',         'iconfont icon-file-text',  42, catalog)
-        self._add_menu('监控告警',        '/monitor',       'apps/monitor/index',      'monitor',      'iconfont icon-alert',      43, catalog)
-        self._add_menu('作业平台',        '/job-platform',  'apps/job-platform/index', 'job-platform', 'iconfont icon-play',       44, catalog)
-        self._add_menu('集成中心',        '/integration',   'apps/integration/index',  'integration',  'iconfont icon-connection',  45, catalog)
-        self._add_menu('开放 API',        '/open-api',      'apps/open-api/index',     'open-api',     'iconfont icon-key',        46, catalog)
+        portal_menu = self._add_menu('运维门户',        '/portal',        'apps/portal/index',       'portal',       'iconfont icon-home',       40, catalog)
+        cmdb_menu   = self._add_menu('配置管理(CMDB)',  '/cmdb',          'apps/cmdb/index',         'cmdb',         'iconfont icon-server',     41, catalog, is_catalog=True)
+        itsm_menu   = self._add_menu('服务管理(ITSM)',  '/itsm',          'apps/itsm/index',         'itsm',         'iconfont icon-file-text',  42, catalog, is_catalog=True)
+        monitor_menu = self._add_menu('监控告警',       '/monitor',       'apps/monitor/index',      'monitor',      'iconfont icon-alert',      43, catalog, is_catalog=True)
+        job_menu    = self._add_menu('作业平台',        '/job-platform',  'apps/job-platform/index', 'job-platform', 'iconfont icon-play',       44, catalog, is_catalog=True)
+        intg_menu   = self._add_menu('集成中心',        '/integration',   'apps/integration/index',  'integration',  'iconfont icon-connection',  45, catalog, is_catalog=True)
+        openapi_menu = self._add_menu('开放 API',       '/open-api',      'apps/open-api/index',     'open-api',     'iconfont icon-key',        46, catalog, is_catalog=True)
+
+        # ─── Group 3a: CMDB sub-menus ───
+        self._add_menu('模型管理',  '/cmdb/model',     'apps/cmdb/index',     'cmdbModel',     'iconfont icon-server',   411, cmdb_menu)
+        self._add_menu('实例管理',  '/cmdb/instance',  'apps/cmdb/index',     'cmdbInstance',  'iconfont icon-server',   412, cmdb_menu)
+        self._add_menu('拓扑视图',  '/cmdb/topology',  'apps/cmdb/index',     'cmdbTopology',  'iconfont icon-server',   413, cmdb_menu)
+
+        # ─── Group 3b: ITSM sub-menus ───
+        self._add_menu('工单管理',  '/itsm/tickets',    'apps/itsm/index',     'itsmTickets',   'iconfont icon-file-text', 421, itsm_menu)
+        self._add_menu('工作流',    '/itsm/workflows',  'apps/itsm/index',     'itsmWorkflows', 'iconfont icon-file-text', 422, itsm_menu)
+        self._add_menu('SLA 策略',  '/itsm/sla',        'apps/itsm/index',     'itsmSla',       'iconfont icon-file-text', 423, itsm_menu)
+
+        # ─── Group 3c: Monitor sub-menus ───
+        self._add_menu('告警仪表盘', '/monitor/dashboard', 'apps/monitor/index', 'monitorDashboard', 'iconfont icon-alert', 431, monitor_menu)
+        self._add_menu('告警事件',   '/monitor/alerts',    'apps/monitor/index', 'monitorAlerts',    'iconfont icon-alert', 432, monitor_menu)
+        self._add_menu('告警规则',   '/monitor/rules',     'apps/monitor/index', 'monitorRules',     'iconfont icon-alert', 433, monitor_menu)
+
+        # ─── Group 3d: Job Platform sub-menus ───
+        self._add_menu('脚本管理',   '/job-platform/scripts',    'apps/job-platform/index', 'jobScripts',    'iconfont icon-play', 441, job_menu)
+        self._add_menu('作业模板',   '/job-platform/templates',  'apps/job-platform/index', 'jobTemplates',  'iconfont icon-play', 442, job_menu)
+        self._add_menu('执行记录',   '/job-platform/executions', 'apps/job-platform/index', 'jobExecutions', 'iconfont icon-play', 443, job_menu)
+        self._add_menu('定时作业',   '/job-platform/cron',       'apps/job-platform/index', 'jobCron',       'iconfont icon-play', 444, job_menu)
+
+        # ─── Group 3e: Integration sub-menus ───
+        self._add_menu('连接器定义', '/integration/definitions',  'apps/integration/index', 'intgDefinitions', 'iconfont icon-connection', 451, intg_menu)
+        self._add_menu('连接器实例', '/integration/instances',    'apps/integration/index', 'intgInstances',   'iconfont icon-connection', 452, intg_menu)
+        self._add_menu('调用日志',   '/integration/logs',         'apps/integration/index', 'intgLogs',        'iconfont icon-connection', 453, intg_menu)
+
+        # ─── Group 3f: OpenAPI sub-menus ───
+        self._add_menu('应用管理',   '/open-api/apps',     'apps/open-api/index', 'openapiApps',     'iconfont icon-key', 461, openapi_menu)
+        self._add_menu('Webhook',    '/open-api/webhooks', 'apps/open-api/index', 'openapiWebhooks', 'iconfont icon-key', 462, openapi_menu)
 
         self.stdout.write(self.style.SUCCESS(
             '\nAll platform menus registered successfully.\n'
             '  Group 1: OpsAgent (sort 10-11)\n'
             '  Group 2: OpsFlow Engine (sort 20-29)\n'
-            '  Group 3: Phase 1 Core Modules (sort 40-46)'
+            '  Group 3: Phase 1 Core Modules (sort 40-46)\n'
+            '    - CMDB sub-menus (41x)\n'
+            '    - ITSM sub-menus (42x)\n'
+            '    - Monitor sub-menus (43x)\n'
+            '    - Job Platform sub-menus (44x)\n'
+            '    - Integration sub-menus (45x)\n'
+            '    - OpenAPI sub-menus (46x)'
         ))
 
-    def _add_menu(self, name, web_path, component, component_name, icon, sort, parent):
-        menu, created = Menu.objects.get_or_create(
+    def _add_menu(self, name, web_path, component, component_name, icon, sort, parent, is_catalog=False):
+        menu, created = Menu.objects.update_or_create(
             name=name,
             web_path=web_path,
             component=component,
@@ -90,7 +126,7 @@ class Command(BaseCommand):
                 'icon': icon,
                 'sort': sort,
                 'is_link': False,
-                'is_catalog': False,
+                'is_catalog': is_catalog,
                 'status': True,
                 'cache': True,
                 'visible': True,
@@ -100,5 +136,5 @@ class Command(BaseCommand):
             },
         )
         self.stdout.write(self.style.SUCCESS(
-            f'  {"Created" if created else "Found"} menu: {menu.name} (sort={sort}, id={menu.id})'
+            f'  {"Created" if created else "Updated"} menu: {menu.name} (sort={sort}, id={menu.id})'
         ))

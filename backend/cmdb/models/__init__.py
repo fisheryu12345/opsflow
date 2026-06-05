@@ -7,6 +7,8 @@ from .attribute_group import AttributeGroup
 from .association import AssociationType, ModelAssociation
 from .object_unique import ObjectUnique
 from .mainline_topo import MainlineTopo
+from .change_log import ChangeLog
+from .event_subscription import EventSubscription
 
 __all__ = [
     'Classification',
@@ -17,4 +19,6 @@ __all__ = [
     'ModelAssociation',
     'ObjectUnique',
     'MainlineTopo',
+    'ChangeLog',
+    'EventSubscription',
 ]

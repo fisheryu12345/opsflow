@@ -19,3 +19,7 @@ export function getUserInfo() {
         method: 'get',
     });
 }
+/** OAuth2/SSO 登录跳转 */
+export function getOAuthLoginUrl(provider: string) {
+    return `/api/system/oauth/login/${provider}/`;
+}

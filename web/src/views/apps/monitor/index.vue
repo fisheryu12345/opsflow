@@ -1,280 +1,385 @@
 <template>
   <div class="monitor-page">
-    <!-- ===== Hero Section ===== -->
-    <div class="monitor-hero">
-      <div class="monitor-hero-bg" />
-      <div class="monitor-hero-inner">
-        <div class="monitor-hero-left">
-          <h1 class="monitor-hero-title">监控中心</h1>
-          <p class="monitor-hero-subtitle">Monitoring & alerting — 全方位系统监控与告警管理</p>
-        </div>
-        <div class="monitor-hero-center">
-          <el-select v-model="severityFilter" placeholder="严重级别" clearable size="default" style="width:130px;margin-right:8px;">
-            <el-option label="严重" value="critical" />
-            <el-option label="警告" value="warning" />
-            <el-option label="信息" value="info" />
-          </el-select>
-          <el-select v-model="statusFilter" placeholder="状态" clearable size="default" style="width:130px;">
-            <el-option label="触发中" value="firing" />
-            <el-option label="已确认" value="acknowledged" />
-            <el-option label="已恢复" value="resolved" />
-          </el-select>
-        </div>
-        <div class="monitor-hero-stats">
-          <div class="monitor-stat-item"><span class="monitor-stat-value">{{ firingCount }}</span><span class="monitor-stat-label">Firing</span></div>
-          <div class="monitor-stat-divider" />
-          <div class="monitor-stat-item"><span class="monitor-stat-value">{{ alertRules.length }}</span><span class="monitor-stat-label">Rules</span></div>
-          <div class="monitor-stat-divider" />
-          <div class="monitor-stat-item"><span class="monitor-stat-value">{{ targets.length }}</span><span class="monitor-stat-label">Targets</span></div>
-        </div>
+    <!-- Header -->
+    <div class="monitor-header">
+      <div class="monitor-header-left">
+        <h1 class="monitor-title">监控告警中心</h1>
+        <span class="monitor-subtitle">Monitoring & Alerting Platform</span>
       </div>
-      <!-- Hero tabs -->
-      <div class="monitor-hero-tabs">
-        <div class="monitor-hero-tab" :class="{ active: activeTab === 'alerts' }" @click="activeTab = 'alerts'">
-          <el-icon><WarningFilled /></el-icon> 告警事件
+      <div class="monitor-header-center">
+        <el-select v-model="filterBiz" placeholder="业务" clearable size="default" style="width:130px;margin-right:8px;">
+          <el-option label="全部业务" value="" />
+        </el-select>
+        <el-select v-model="activeTab" size="default" style="width:160px;">
+          <el-option label="🔥 告警事件" value="alerts" />
+          <el-option label="📋 告警规则" value="strategies" />
+          <el-option label="👥 通知组" value="notify-groups" />
+          <el-option label="📊 看板" value="dashboard" />
+          <el-option label="📅 值班日历" value="duty" />
+          <el-option label="📋 分派规则" value="assign" />
+          <el-option label="🔇 屏蔽计划" value="shields" />
+          <el-option label="🔌 动作插件" value="actions" />
+          <el-option label="📡 采集器" value="collectors" />
+          <el-option label="🗄️ 数据源" value="datasources" />
+        </el-select>
+      </div>
+      <div class="monitor-header-stats">
+        <div class="stat-item"><span class="stat-val firing">{{ firingCount }}</span><span class="stat-lbl">Firing</span></div>
+        <el-divider direction="vertical" />
+        <div class="stat-item"><span class="stat-val">{{ strategyCount }}</span><span class="stat-lbl">Rules</span></div>
+      </div>
+    </div>
+
+    <!-- ════════════ tab: alerts ════════════ -->
+    <div v-show="activeTab==='alerts'" class="monitor-body">
+      <div class="section-card">
+        <div class="section-header">
+          <span class="section-title">告警事件中心</span>
+          <div class="section-actions">
+            <el-select v-model="alertFilter.severity" placeholder="级别" clearable size="small" style="width:100px;margin-right:8px;">
+              <el-option label="致命" :value="1" /><el-option label="预警" :value="2" /><el-option label="提醒" :value="3" />
+            </el-select>
+            <el-select v-model="alertFilter.status" placeholder="状态" clearable size="small" style="width:120px;margin-right:8px;">
+              <el-option label="触发中" value="firing" />
+              <el-option label="已确认" value="acknowledged" />
+              <el-option label="已恢复" value="resolved" />
+              <el-option label="已静默" value="silenced" />
+              <el-option label="已关闭" value="closed" />
+            </el-select>
+            <el-button :icon="Refresh" size="small" @click="loadAlerts" :loading="loading">刷新</el-button>
+            <el-button v-if="selectedAlerts.length" size="small" type="warning" @click="batchAck">批量确认</el-button>
+            <el-button v-if="selectedAlerts.length" size="small" type="danger" @click="batchClose">批量关闭</el-button>
+          </div>
         </div>
-        <div class="monitor-hero-tab" :class="{ active: activeTab === 'rules' }" @click="activeTab = 'rules'">
-          <el-icon><List /></el-icon> 告警规则
-        </div>
-        <div class="monitor-hero-tab" :class="{ active: activeTab === 'targets' }" @click="activeTab = 'targets'">
-          <el-icon><Monitor /></el-icon> 监控目标
+        <el-table :data="alerts" v-loading="loading" stripe style="width:100%" size="small"
+          @selection-change="(rows:any)=>selectedAlerts=rows.map((r:any)=>r.id)"
+          empty-text="暂无告警事件">
+          <el-table-column type="selection" width="40" />
+          <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
+          <el-table-column label="级别" width="80">
+            <template #default="{row}">
+              <el-tag :type="sevType(row.severity)" size="small">{{ {1:'致命',2:'预警',3:'提醒'}[row.severity] }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="100">
+            <template #default="{row}">
+              <span :class="'status-'+row.status">{{ statusLabel(row.status) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="current_value" label="值" width="90" />
+          <el-table-column prop="event_count" label="次数" width="60" />
+          <el-table-column prop="fired_at" label="触发时间" width="160" />
+          <el-table-column label="操作" width="210" fixed="right">
+            <template #default="{row}">
+              <el-button v-if="row.status==='firing'" size="small" text type="warning" @click="ackAlert(row)">确认</el-button>
+              <el-button v-if="row.status==='firing'||row.status==='acknowledged'" size="small" text type="success" @click="resolveAlert(row)">恢复</el-button>
+              <el-button v-if="row.status!=='closed'" size="small" text type="info" @click="closeAlert(row)">关闭</el-button>
+              <el-button v-if="!row.incident_id" size="small" text type="primary" @click="createIncident(row)">建单</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="pagination-wrap">
+          <el-pagination v-model:page-size="alertPageSize" v-model:current-page="alertPage"
+            :total="alertTotal" small layout="total,prev,pager,next" />
         </div>
       </div>
     </div>
 
-    <!-- ===== Body ===== -->
-    <div class="monitor-body">
-
-      <!-- ── Alert Events ── -->
-      <div v-show="activeTab === 'alerts'" class="monitor-section of-fade-in-up">
-        <div class="monitor-table-card">
-          <div class="monitor-table-header">
-            <span class="monitor-table-title">告警事件中心</span>
-            <el-button :icon="Refresh" text size="small" @click="loadAlerts" :loading="loading">刷新</el-button>
+    <!-- ════════════ tab: strategies ════════════ -->
+    <div v-show="activeTab==='strategies'" class="monitor-body">
+      <div class="section-card">
+        <div class="section-header">
+          <span class="section-title">告警规则</span>
+          <div class="section-actions">
+            <el-input v-model="strategySearch" placeholder="搜索规则" clearable size="small" style="width:200px;margin-right:8px;" />
+            <el-button type="primary" size="small" @click="showStrategyWizard = true">+ 创建策略</el-button>
+            <el-button :icon="Refresh" size="small" @click="loadStrategies" :loading="loading">刷新</el-button>
           </div>
-          <el-table :data="alertEvents" v-loading="loading" stripe style="width:100%" size="small"
-            :empty-text="loading ? '加载中...' : '暂无告警事件'">
-            <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="severity" label="级别" width="90">
-              <template #default="{ row }">
-                <span class="monitor-severity-badge" :class="'monitor-severity-' + row.severity">
-                  <span class="monitor-severity-dot" />{{ row.severity }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="100">
-              <template #default="{ row }">
-                <span class="monitor-status-badge" :class="'monitor-status-' + row.status">
-                  <span class="monitor-status-dot" />{{ row.status === 'firing' ? '触发中' : row.status === 'acknowledged' ? '已确认' : row.status === 'resolved' ? '已恢复' : row.status }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="metric_value" label="指标值" width="100" />
-            <el-table-column prop="fired_at" label="触发时间" width="170" />
-            <el-table-column label="操作" width="200" fixed="right">
-              <template #default="{ row }">
-                <el-button v-if="row.status==='firing'" size="small" text type="warning" @click="ackAlert(row)">
-                  <el-icon><Select /></el-icon> 确认
-                </el-button>
-                <el-button v-if="!row.incident" size="small" text type="primary" @click="createIncident(row)">
-                  <el-icon><Plus /></el-icon> 建工单
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
         </div>
-      </div>
-
-      <!-- ── Alert Rules ── -->
-      <div v-show="activeTab === 'rules'" class="monitor-section of-fade-in-up">
-        <div class="monitor-table-card">
-          <div class="monitor-table-header">
-            <span class="monitor-table-title">告警规则</span>
-          </div>
-          <el-table :data="alertRules" v-loading="loading" stripe style="width:100%" size="small"
-            :empty-text="loading ? '加载中...' : '暂无告警规则'">
-            <el-table-column prop="name" label="规则名称" min-width="180" show-overflow-tooltip />
-            <el-table-column prop="severity" label="级别" width="80">
-              <template #default="{ row }">
-                <span class="monitor-severity-badge" :class="'monitor-severity-' + row.severity">
-                  <span class="monitor-severity-dot" />{{ row.severity }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="condition_expr" label="条件" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="status" label="启用" width="80" align="center">
-              <template #default="{ row }">
-                <el-switch :model-value="row.status==='enabled'" size="small" @click="toggleRule(row)" />
-              </template>
-            </el-table-column>
-            <el-table-column prop="source" label="数据源" width="100" />
-          </el-table>
-        </div>
-      </div>
-
-      <!-- ── Monitor Targets ── -->
-      <div v-show="activeTab === 'targets'" class="monitor-section of-fade-in-up">
-        <div class="monitor-table-card">
-          <div class="monitor-table-header">
-            <span class="monitor-table-title">监控目标</span>
-          </div>
-          <el-table :data="targets" v-loading="loading" stripe style="width:100%" size="small"
-            :empty-text="loading ? '加载中...' : '暂无监控目标'">
-            <el-table-column prop="name" label="目标名称" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="endpoint" label="端点" min-width="240" show-overflow-tooltip />
-            <el-table-column prop="source" label="数据源" width="100" />
-            <el-table-column prop="is_active" label="启用" width="80" align="center">
-              <template #default="{ row }"><el-switch :model-value="row.is_active" size="small" @click="toggleTarget(row)" /></template>
-            </el-table-column>
-          </el-table>
-        </div>
+        <el-table :data="strategies" v-loading="loading" stripe style="width:100%" size="small" empty-text="暂无告警规则">
+          <el-table-column prop="name" label="规则名称" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="scenario" label="场景" width="100" />
+          <el-table-column label="级别" width="80">
+            <template #default="{row}">
+              <el-tag :type="sevType(row.severity)" size="small">{{ {1:'致命',2:'预警',3:'提醒'}[row.severity] || '-' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="启用" width="80" align="center">
+            <template #default="{row}">
+              <el-switch :model-value="row.is_enabled" size="small" @click="toggleStrategy(row)" />
+            </template>
+          </el-table-column>
+          <el-table-column prop="item_count" label="监控项数" width="90" />
+          <el-table-column prop="create_time" label="创建时间" width="160" />
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #default="{row}">
+              <el-button size="small" text @click="cloneStrategy(row)">克隆</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
     </div>
+
+    <!-- ════════════ tab: notify-groups ════════════ -->
+    <div v-show="activeTab==='notify-groups'" class="monitor-body">
+      <div class="section-card">
+        <div class="section-header">
+          <span class="section-title">通知组</span>
+          <div class="section-actions">
+            <el-button :icon="Refresh" size="small" @click="loadNotifyGroups" :loading="loading">刷新</el-button>
+          </div>
+        </div>
+        <el-table :data="notifyGroups" v-loading="loading" stripe style="width:100%" size="small" empty-text="暂无通知组">
+          <el-table-column prop="name" label="组名称" min-width="160" />
+          <el-table-column prop="member_count" label="成员数" width="80" />
+          <el-table-column label="启用" width="80" align="center">
+            <template #default="{row}">
+              <el-switch :model-value="row.is_enabled" size="small" />
+            </template>
+          </el-table-column>
+          <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+        </el-table>
+      </div>
+    </div>
+
+    <!-- ════════════ tab: dashboard ════════════ -->
+    <div v-show="activeTab==='dashboard'" class="monitor-body">
+      <div class="dashboard-grid">
+        <div class="dash-card" v-for="s in summaryStats" :key="s.label">
+          <div class="dash-val" :style="{color:s.color}">{{ s.value }}</div>
+          <div class="dash-lbl">{{ s.label }}</div>
+        </div>
+      </div>
+      <div class="section-card" style="margin-top:16px;">
+        <div class="section-header"><span class="section-title">30天告警趋势</span></div>
+        <div style="height:280px;padding:16px 0;" ref="trendChartRef"></div>
+      </div>
+    </div>
+
+    <!-- ════════════ tab: duty calendar ════════════ -->
+    <div v-show="activeTab==='duty'" class="monitor-body">
+      <DutyCalendar />
+    </div>
+
+    <!-- ════════════ tab: assign rules ════════════ -->
+    <div v-show="activeTab==='assign'" class="monitor-body">
+      <AssignRules />
+    </div>
+
+    <!-- ════════════ tab: shield plans ════════════ -->
+    <div v-show="activeTab==='shields'" class="monitor-body">
+      <ShieldPlans />
+    </div>
+
+    <!-- ════════════ tab: action plugins ════════════ -->
+    <div v-show="activeTab==='actions'" class="monitor-body">
+      <ActionPlugins />
+    </div>
+
+    <!-- ════════════ tab: collectors ════════════ -->
+    <div v-show="activeTab==='collectors'" class="monitor-body">
+      <CollectConfigs />
+    </div>
+
+    <!-- ════════════ tab: datasources ════════════ -->
+    <div v-show="activeTab==='datasources'" class="monitor-body">
+      <DataSources />
+    </div>
+
+    <!-- Strategy Wizard Dialog -->
+    <StrategyWizard :visible="showStrategyWizard" @close="showStrategyWizard = false" @created="onStrategyCreated" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { alertEventApi, alertRuleApi, targetApi, ToggleAlertRule, AcknowledgeAlert, CreateIncidentFromAlert, ToggleTarget } from '/@/api/monitor/index'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import {
+  alertApi, strategyApi, notifyGroupApi, dashboardApi,
+} from '/@/api/monitor/index'
 import { ElMessage } from 'element-plus'
-import { WarningFilled, List, Monitor, Select, Plus, Refresh } from '@element-plus/icons-vue'
+import { Refresh } from '@element-plus/icons-vue'
+import * as echarts from 'echarts'
 
+import DutyCalendar from './DutyCalendar.vue'
+import AssignRules from './AssignRules.vue'
+import ShieldPlans from './ShieldPlans.vue'
+import ActionPlugins from './ActionPlugins.vue'
+import CollectConfigs from './CollectConfigs.vue'
+import DataSources from './DataSources.vue'
+import StrategyWizard from './StrategyWizard.vue'
+
+// ── state ──
 const activeTab = ref('alerts')
 const loading = ref(false)
-const alertEvents = ref<any[]>([])
-const alertRules = ref<any[]>([])
-const targets = ref<any[]>([])
-const severityFilter = ref('')
-const statusFilter = ref('')
+const filterBiz = ref('')
+const strategySearch = ref('')
+const selectedAlerts = ref<number[]>([])
+const showStrategyWizard = ref(false)
 
-const firingCount = computed(() => alertEvents.value.filter(e => e.status === 'firing').length)
+// alerts
+const alerts = ref<any[]>([])
+const alertPage = ref(1)
+const alertPageSize = ref(20)
+const alertTotal = ref(0)
+const alertFilter = reactive({ severity: undefined as number|undefined, status: '' })
 
+// strategies
+const strategies = ref<any[]>([])
+const strategyCount = ref(0)
+
+// notify groups
+const notifyGroups = ref<any[]>([])
+
+// dashboard
+const summaryStats = ref<{label:string;value:number;color:string}[]>([])
+const trendChartRef = ref<HTMLElement|null>(null)
+let trendChart: echarts.ECharts|null = null
+
+// ── computed ──
+const firingCount = computed(() => alerts.value.filter((e:any) => e.status === 'firing').length)
+
+// ── helpers ──
+function sevType(s: number) { return { 1:'danger', 2:'warning', 3:'info' }[s] || 'info' }
+function statusLabel(s: string) { return { firing:'触发中', acknowledged:'已确认', resolved:'已恢复', silenced:'已静默', closed:'已关闭' }[s] || s }
+
+// ── loaders ──
 async function loadAlerts() {
   loading.value = true
   try {
-    const params: any = {}
-    if (severityFilter.value) params.severity = severityFilter.value
-    if (statusFilter.value) params.status = statusFilter.value
-    const [ev, ru, ta] = await Promise.all([
-      alertEventApi.list(params),
-      alertRuleApi.list(),
-      targetApi.list(),
-    ])
-    alertEvents.value = ev.data || []
-    alertRules.value = ru.data || []
-    targets.value = ta.data || []
+    const params: any = { page: alertPage.value, limit: alertPageSize.value }
+    if (alertFilter.severity) params.severity = alertFilter.severity
+    if (alertFilter.status) params.status = alertFilter.status
+    const r = await alertApi.list(params)
+    alerts.value = r.data || []
+    alertTotal.value = r.total || 0
   } finally { loading.value = false }
 }
 
-async function ackAlert(row: any) { await AcknowledgeAlert(row.id); ElMessage.success('已确认'); await loadAlerts() }
-async function createIncident(row: any) { const r = await CreateIncidentFromAlert(row.id); ElMessage.success(`工单已创建: ${r.data.incident_id}`); await loadAlerts() }
-async function toggleRule(row: any) { await ToggleAlertRule(row.id); ElMessage.success('操作成功'); await loadAlerts() }
-async function toggleTarget(row: any) { await ToggleTarget(row.id); ElMessage.success('操作成功'); await loadAlerts() }
+async function loadStrategies() {
+  loading.value = true
+  try {
+    const params: any = {}
+    if (strategySearch.value) params.search = strategySearch.value
+    const r = await strategyApi.list(params)
+    strategies.value = r.data || []
+    strategyCount.value = strategies.value.length
+  } finally { loading.value = false }
+}
 
-watch([severityFilter, statusFilter], () => loadAlerts())
+async function loadNotifyGroups() {
+  loading.value = true
+  try {
+    const r = await notifyGroupApi.list()
+    notifyGroups.value = r.data || []
+  } finally { loading.value = false }
+}
 
-onMounted(async () => {
-  await loadAlerts()
+async function loadDashboard() {
+  try {
+    const [s, trend] = await Promise.all([
+      dashboardApi.summary(),
+      dashboardApi.trend(30),
+    ])
+    summaryStats.value = [
+      { label: '触发中', value: s.data?.firing || 0, color: '#F56C6C' },
+      { label: '已确认', value: s.data?.acknowledged || 0, color: '#E6A23C' },
+      { label: '已恢复', value: s.data?.resolved || 0, color: '#67C23A' },
+      { label: '总告警', value: s.data?.total_alerts || 0, color: '#409EFF' },
+      { label: '策略数', value: s.data?.total_strategies || 0, color: '#909399' },
+    ]
+    renderTrendChart(trend.data || [])
+  } catch { /* ignore */ }
+}
 
-  const key = 'opsflow_tour_monitor'
-  if (!localStorage.getItem(key)) {
-    ElMessage.info({ message: '📊 监控中心 — 集中管理告警事件、告警规则与监控目标，支持联动 ITSM 建单', duration: 6000 })
-    localStorage.setItem(key, 'true')
-  }
+function renderTrendChart(data: any[]) {
+  nextTick(() => {
+    if (!trendChartRef.value) return
+    if (!trendChart) trendChart = echarts.init(trendChartRef.value)
+    trendChart.setOption({
+      tooltip: { trigger: 'axis' },
+      grid: { left: 50, right: 20, bottom: 30, top: 10 },
+      xAxis: { type: 'category', data: data.map((d:any) => d.date), axisLabel: { fontSize: 11 } },
+      yAxis: { type: 'value', minInterval: 1 },
+      series: [{ type: 'line', data: data.map((d:any) => d.count), smooth: true, lineStyle: { color: '#409EFF' }, areaStyle: { color: 'rgba(64,158,255,0.1)' } }],
+    })
+  })
+}
+
+// ── actions ──
+async function ackAlert(row: any) { await alertApi.acknowledge(row.id); ElMessage.success('已确认'); loadAlerts() }
+async function resolveAlert(row: any) { await alertApi.resolve(row.id); ElMessage.success('已恢复'); loadAlerts() }
+async function closeAlert(row: any) { await alertApi.close(row.id); ElMessage.success('已关闭'); loadAlerts() }
+async function createIncident(row: any) {
+  const r = await alertApi.createIncident(row.id)
+  ElMessage.success(`工单: ${r.data?.incident_id}`)
+  loadAlerts()
+}
+async function batchAck() { await alertApi.batchAck(selectedAlerts.value); ElMessage.success('批量确认成功'); loadAlerts() }
+async function batchClose() { await alertApi.batchClose(selectedAlerts.value); ElMessage.success('批量关闭成功'); loadAlerts() }
+async function toggleStrategy(row: any) { await strategyApi.toggle(row.id); ElMessage.success('操作成功'); loadStrategies() }
+async function cloneStrategy(row: any) { await strategyApi.clone(row.id); ElMessage.success('克隆成功'); loadStrategies() }
+function onStrategyCreated() { showStrategyWizard.value = false; loadStrategies() }
+
+// ── watch ──
+watch(() => alertFilter, () => { alertPage.value = 1; loadAlerts() }, { deep: true })
+watch(alertPage, () => loadAlerts())
+watch(strategySearch, () => loadStrategies())
+watch(activeTab, (tab) => {
+  if (tab === 'alerts') loadAlerts()
+  else if (tab === 'strategies') loadStrategies()
+  else if (tab === 'notify-groups') loadNotifyGroups()
+  else if (tab === 'dashboard') loadDashboard()
 })
+
+onMounted(() => loadAlerts())
 </script>
 
 <style lang="scss" scoped>
-@use '../opsflow/styles/opsflow-global' as *;
-
 .monitor-page {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  display: flex; flex-direction: column;
-  background: #f5f6fa; overflow: hidden;
+  position:absolute; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column;
+  background:#f5f6fa; overflow:hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
+.monitor-header {
+  flex-shrink:0; display:flex; align-items:center; padding:12px 24px;
+  background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  gap:16px;
+}
+.monitor-header-left { flex:0 0 auto; }
+.monitor-title { margin:0; font-size:20px; font-weight:700; color:#fff; }
+.monitor-subtitle { font-size:11px; color:rgba(255,255,255,0.4); }
+.monitor-header-center { flex:1; display:flex; justify-content:center; }
+.monitor-header-center :deep(.el-select .el-input__wrapper) {
+  background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.12); box-shadow:none; border-radius:8px;
+}
+.monitor-header-center :deep(.el-select .el-input__inner) { color:#fff; }
+.monitor-header-center :deep(.el-select .el-input__inner::placeholder) { color:rgba(255,255,255,0.4); }
+.monitor-header-stats { flex:0 0 auto; display:flex; align-items:center; gap:12px; }
+.stat-item { text-align:center; }
+.stat-val { display:block; font-size:18px; font-weight:700; color:#fff; line-height:1.2; }
+.stat-val.firing { color:#F56C6C; }
+.stat-lbl { font-size:10px; color:rgba(255,255,255,0.45); text-transform:uppercase; letter-spacing:0.5px; }
 
-/* ===== Hero ===== */
-.monitor-hero {
-  position: relative; flex-shrink: 0; overflow: hidden;
-  background: linear-gradient(135deg, #2d1a1a 0%, #3e1616 50%, #4a1a1a 100%);
+.monitor-body { flex:1; overflow-y:auto; padding:16px 20px; }
+.section-card { background:#fff; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,0.06); overflow:hidden; }
+.section-header {
+  display:flex; justify-content:space-between; align-items:center; padding:14px 20px;
+  border-bottom:1px solid #f0f0f0;
 }
-.monitor-hero-bg {
-  position: absolute; inset: 0; opacity: 0.06;
-  background-image: radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-.monitor-hero-inner {
-  position: relative; z-index: 1; padding: 14px 24px;
-  display: flex; flex-direction: row; align-items: center; gap: 16px;
-}
-.monitor-hero-left { flex: 0 0 auto; }
-.monitor-hero-title { margin: 0; font-size: 22px; font-weight: 800; color: #fff; white-space: nowrap; }
-.monitor-hero-subtitle { margin: 0; font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap; }
-.monitor-hero-center { flex: 1 1 auto; min-width: 0; display: flex; justify-content: center; }
-.monitor-hero-center :deep(.el-select .el-input__wrapper) {
-  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: none; border-radius: 10px; padding: 2px 12px;
-}
-.monitor-hero-center :deep(.el-select .el-input__inner) { color: #fff; }
-.monitor-hero-center :deep(.el-select .el-input__inner::placeholder) { color: rgba(255,255,255,0.4); }
-.monitor-hero-center :deep(.el-select .el-input__prefix-inner) { color: rgba(255,255,255,0.4); }
-.monitor-hero-center :deep(.el-select .el-input__suffix-inner) { color: rgba(255,255,255,0.4); }
-.monitor-hero-stats { flex: 0 0 auto; display: flex; align-items: center; }
-.monitor-stat-item { text-align: center; padding: 0 14px; }
-.monitor-stat-value { display: block; font-size: 18px; font-weight: 700; color: #fff; line-height: 1.2; }
-.monitor-stat-label { font-size: 10px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; }
-.monitor-stat-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
+.section-title { font-size:15px; font-weight:600; color:#303133; }
+.section-actions { display:flex; align-items:center; }
+.pagination-wrap { padding:12px 20px; display:flex; justify-content:flex-end; }
 
-.monitor-hero-tabs {
-  position: relative; z-index: 1; display: flex; gap: 0; padding: 0 24px; margin-top: -4px;
-}
-.monitor-hero-tab {
-  display: flex; align-items: center; gap: 6px; padding: 10px 20px;
-  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.6);
-  cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; user-select: none;
-  .el-icon { font-size: 16px; }
-}
-.monitor-hero-tab:hover { color: rgba(255,255,255,0.9); }
-.monitor-hero-tab.active { color: #fff; border-bottom-color: #F56C6C; }
+.status-firing { color:#F56C6C; font-weight:500; }
+.status-acknowledged { color:#E6A23C; }
+.status-resolved { color:#67C23A; }
+.status-silenced { color:#909399; }
+.status-closed { color:#C0C4CC; }
 
-/* ===== Body ===== */
-.monitor-body { flex: 1; overflow-y: auto; padding: 0 20px 24px; }
-.monitor-section { padding-top: 16px; }
-
-/* ===== Table Card ===== */
-.monitor-table-card {
-  background: #fff; border-radius: 14px; box-shadow: $of-shadow-card; overflow: hidden;
+.dashboard-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+.dash-card {
+  background:#fff; border-radius:12px; padding:20px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,0.06);
 }
-.monitor-table-card :deep(.el-table th.el-table__cell) { background: #fafafa; color: #606266; font-weight: 600; font-size: 12px; }
-.monitor-table-card :deep(.el-table__body tr:hover td) { background: #f5f7fa; }
-.monitor-table-header {
-  display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 0;
-}
-.monitor-table-title { font-size: 15px; font-weight: 600; color: $of-text-primary; }
-
-/* ===== Severity Badge ===== */
-.monitor-severity-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 10px;
-}
-.monitor-severity-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-.monitor-severity-critical .monitor-severity-dot { background: #F56C6C; }
-.monitor-severity-critical { background: #fef0f0; color: #F56C6C; }
-.monitor-severity-warning .monitor-severity-dot { background: #E6A23C; }
-.monitor-severity-warning { background: #fdf6ec; color: #E6A23C; }
-.monitor-severity-info .monitor-severity-dot { background: #909399; }
-.monitor-severity-info { background: #f5f7fa; color: #909399; }
-
-/* ===== Status Badge ===== */
-.monitor-status-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 10px;
-}
-.monitor-status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-.monitor-status-firing .monitor-status-dot { background: #F56C6C; }
-.monitor-status-firing { background: #fef0f0; color: #F56C6C; }
-.monitor-status-acknowledged .monitor-status-dot { background: #E6A23C; }
-.monitor-status-acknowledged { background: #fdf6ec; color: #E6A23C; }
-.monitor-status-resolved .monitor-status-dot { background: #67C23A; }
-.monitor-status-resolved { background: #f0f9eb; color: #67C23A; }
+.dash-val { font-size:32px; font-weight:700; }
+.dash-lbl { font-size:13px; color:#909399; margin-top:4px; }
 </style>

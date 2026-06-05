@@ -8,19 +8,20 @@ Usage:
 
 Creates a realistic CMDB topology:
   Biz  ->  Set  ->  Module  ->  Host  ->  Process
-  plus cross-process DEPENDS_ON relationships.
+plus cross-process DEPENDS_ON relationships.
 
-Requires Neo4j to be running and neomodel configured (CMDB app).
+Uses the current Cypher-based CMDB service layer (NodeService + graph_driver).
 """
 
 import logging
 import random
+import uuid
+from datetime import datetime
 
 from django.core.management.base import BaseCommand, CommandError
 
 logger = logging.getLogger(__name__)
 
-# Scale configuration: (num_biz, sets_per_biz, modules_per_set, hosts_per_module, procs_per_host)
 SCALES = {
     "small":  (2, 2, 2, 2, 2),
     "medium": (3, 3, 3, 3, 2),
@@ -49,7 +50,6 @@ MODULE_TEMPLATES = [
     {"name_tpl": "{biz}-定时任务", "svc": "other"},
 ]
 
-# Process definitions: name -> (port, protocol, depends_on)
 PROCESS_DEFS = [
     {"name": "nginx",    "port": 80,   "protocol": "http", "deps": []},
     {"name": "app-server", "port": 8080, "protocol": "http", "deps": ["redis", "mysql"]},
@@ -63,8 +63,6 @@ PROCESS_DEFS = [
     {"name": "kibana",   "port": 5601, "protocol": "http", "deps": ["elasticsearch"]},
     {"name": "zookeeper","port": 2181, "protocol": "tcp",  "deps": []},
     {"name": "kafka",    "port": 9092, "protocol": "tcp",  "deps": ["zookeeper"]},
-    {"name": "minio",    "port": 9000, "protocol": "http", "deps": []},
-    {"name": "etcd",     "port": 2379, "protocol": "tcp",  "deps": []},
 ]
 
 OS_TYPES = ["linux", "linux", "linux", "linux", "windows"]
@@ -81,29 +79,19 @@ class Command(BaseCommand):
                             help='Scale of mock data (default: medium)')
 
     def handle(self, *args, **options):
+        from cmdb.services.neo4j_client import graph_driver
+        from django.conf import settings
+
         self.scale_key = options['scale']
         clear = options.get('clear', False)
 
         if self.scale_key not in SCALES:
-            raise CommandError(f"Invalid scale: {self.scale_key}. Choose from: {', '.join(SCALES.keys())}")
+            raise CommandError(f"Invalid scale: {self.scale_key}")
 
-        num_biz, sets_per_biz, mods_per_set, hosts_per_mod, procs_per_host = SCALES[self.scale_key]
-
-        # Ensure neomodel is connected
+        # Verify Neo4j connection
         try:
-            from neomodel import config as neomodel_config
-            from django.conf import settings
-
-            protocol = getattr(settings, 'NEO4J_PROTOCOL', 'bolt')
-            host = getattr(settings, 'NEO4J_HOST', 'localhost')
-            port = getattr(settings, 'NEO4J_PORT', 7687)
-            user = getattr(settings, 'NEO4J_USER', 'neo4j')
-            password = getattr(settings, 'NEO4J_PASSWORD', 'password')
-
-            neomodel_config.DATABASE_URL = f"{protocol}://{user}:{password}@{host}:{port}"
-
-            from neomodel import db as neomodel_db
-            results, _ = neomodel_db.cypher_query("RETURN 1 AS n")
+            with graph_driver.session() as s:
+                s.run("RETURN 1").single()
             self.stdout.write(f"  Neo4j connected (scale={self.scale_key})")
         except Exception as e:
             raise CommandError(f"Neo4j connection failed: {e}")
@@ -111,182 +99,185 @@ class Command(BaseCommand):
         if clear:
             self._clear_all()
 
+        num_biz, sets_per_biz, mods_per_set, hosts_per_mod, procs_per_host = SCALES[self.scale_key]
+
         self.stdout.write("=" * 60)
         self.stdout.write(f"CMDB Mock Data Generator — scale={self.scale_key}")
         self.stdout.write("=" * 60)
 
-        self._create_topology(num_biz, sets_per_biz, mods_per_set, hosts_per_mod, procs_per_host)
+        self._create_topology(graph_driver, num_biz, sets_per_biz, mods_per_set, hosts_per_mod, procs_per_host)
 
+        total_hosts = num_biz * sets_per_biz * mods_per_set * hosts_per_mod
+        total_procs = total_hosts * procs_per_host
         self.stdout.write(self.style.SUCCESS(
             f"\nNeo4j mock data created! "
             f"Biz={num_biz}, Set={num_biz*sets_per_biz}, "
             f"Module={num_biz*sets_per_biz*mods_per_set}, "
-            f"Host={num_biz*sets_per_biz*mods_per_set*hosts_per_mod}, "
-            f"Process={num_biz*sets_per_biz*mods_per_set*hosts_per_mod*procs_per_host}"
+            f"Host={total_hosts}, Process={total_procs}"
         ))
 
-    # ──────────────────────────────────────────────
-    #  Clear
-    # ──────────────────────────────────────────────
+    # ── Clear ─────────────────────────────────────
 
     def _clear_all(self):
-        """Delete all CMDB nodes and relationships."""
         self.stdout.write("\n>>> Clearing existing CMDB nodes ...")
-        from neomodel import db as neomodel_db
-        # Delete in dependency order (children first) to avoid constraint issues
-        neomodel_db.cypher_query("MATCH (n:Process) DETACH DELETE n")
-        neomodel_db.cypher_query("MATCH (n:Host) DETACH DELETE n")
-        neomodel_db.cypher_query("MATCH (n:Module) DETACH DELETE n")
-        neomodel_db.cypher_query("MATCH (n:Set) DETACH DELETE n")
-        neomodel_db.cypher_query("MATCH (n:Biz) DETACH DELETE n")
+        from cmdb.services.neo4j_client import graph_driver
+        with graph_driver.session() as s:
+            s.run("MATCH (n) DETACH DELETE n")
         self.stdout.write(self.style.SUCCESS("  All CMDB nodes deleted."))
 
-    # ──────────────────────────────────────────────
-    #  Topology creation
-    # ──────────────────────────────────────────────
+    # ── Topology ───────────────────────────────────
 
-    def _create_topology(self, num_biz, sets_per_biz, mods_per_set, hosts_per_mod, procs_per_host):
-        from cmdb.models.node_types import Biz, Set, Module, Host, Process
-
+    def _create_topology(self, gd, num_biz, spb, mps, hpm, pph):
         biz_names = BIZ_NAMES[:num_biz]
         ip_base = 1
+        now = datetime.utcnow().isoformat()
 
         for bi, biz_name in enumerate(biz_names):
-            biz = Biz(
-                name=biz_name,
-                lifecycle="生产" if bi < 3 else random.choice(["生产", "测试", "开发"]),
-                operator="admin",
-                description=f"{biz_name} — 核心业务系统",
-                labels={"tier": "core" if bi < 3 else "normal", "management_ip": f"10.0.{bi}.10"},
-            ).save()
+            biz_id = str(uuid.uuid4())
+            with gd.session() as s:
+                s.run(
+                    "CREATE (n:Biz {instance_id: $id, __model_code: 'Biz', __created_at: $now, "
+                    "name: $name, lifecycle: $lifecycle, operator: $op, description: $desc})",
+                    id=biz_id, now=now, name=biz_name,
+                    lifecycle="生产" if bi < 3 else random.choice(["生产", "测试", "开发"]),
+                    op="admin", desc=f"{biz_name} — 核心业务系统"
+                )
             self.stdout.write(f"\n[Biz] {biz_name}")
 
-            for si in range(sets_per_biz):
+            for si in range(spb):
                 st = SET_TEMPLATES[si % len(SET_TEMPLATES)]
                 set_name = st["name_tpl"].format(biz=biz_name)
-                cluster = Set(
-                    name=set_name,
-                    env_type=st["env"],
-                    description=f"{biz_name} {st['env']}环境集群",
-                    labels={"region": REGIONS[si % len(REGIONS)]},
-                ).save()
-                biz.sets.connect(cluster)
+                set_id = str(uuid.uuid4())
+                with gd.session() as s:
+                    s.run(
+                        "CREATE (n:Set {instance_id: $id, __model_code: 'Set', __created_at: $now, "
+                        "name: $name, env_type: $env, description: $desc})",
+                        id=set_id, now=now, name=set_name, env=st["env"],
+                        desc=f"{biz_name} {st['env']}环境集群"
+                    )
+                    s.run(
+                        "MATCH (b:Biz {instance_id: $bid}) MATCH (s:Set {instance_id: $sid}) "
+                        "CREATE (b)-[:CONTAINS {rel_id: $rid, __asst_type: 'CONTAINS', __created_at: $now}]->(s)",
+                        bid=biz_id, sid=set_id, rid=str(uuid.uuid4()), now=now
+                    )
                 self.stdout.write(f"  ├─[Set] {set_name}")
 
-                for mi in range(mods_per_set):
+                for mi in range(mps):
                     mt = MODULE_TEMPLATES[mi % len(MODULE_TEMPLATES)]
                     mod_name = mt["name_tpl"].format(biz=biz_name)
-                    module = Module(
-                        name=mod_name,
-                        service_type=mt["svc"],
-                        description=f"{biz_name} {mt['svc']} 模块",
-                        labels={"language": random.choice(["java", "go", "python", "nodejs"])},
-                    ).save()
-                    cluster.modules.connect(module)
-                    # Also connect biz directly to module for quick lookup
-                    try:
-                        biz.sets.connect(module)
-                    except Exception:
-                        pass  # already connected via cluster chain
-
+                    mod_id = str(uuid.uuid4())
+                    with gd.session() as s:
+                        s.run(
+                            "CREATE (n:Module {instance_id: $id, __model_code: 'Module', __created_at: $now, "
+                            "name: $name, service_type: $svc, description: $desc})",
+                            id=mod_id, now=now, name=mod_name, svc=mt["svc"],
+                            desc=f"{biz_name} {mt['svc']} 模块"
+                        )
+                        s.run(
+                            "MATCH (s:Set {instance_id: $sid}) MATCH (m:Module {instance_id: $mid}) "
+                            "CREATE (s)-[:CONTAINS {rel_id: $rid, __asst_type: 'CONTAINS', __created_at: $now}]->(m)",
+                            sid=set_id, mid=mod_id, rid=str(uuid.uuid4()), now=now
+                        )
                     self.stdout.write(f"    ├─[Module] {mod_name}")
 
-                    for hi in range(hosts_per_mod):
+                    for hi in range(hpm):
                         host_ip = f"10.0.{bi}.{ip_base}"
                         hostname = f"node-{biz_name.lower()}-{mod_name.lower()}-{hi+1}"
                         ip_base += 1
-
-                        host = Host(
-                            ip=host_ip,
-                            hostname=hostname,
-                            os_type=random.choice(OS_TYPES),
-                            os_version=random.choice(OS_VERSIONS),
-                            cpu_cores=random.choice([4, 8, 16, 32, 64]),
-                            memory_mb=random.choice([8192, 16384, 32768, 65536]),
-                            disk_gb=random.choice([100, 200, 500, 1000]),
-                            status=random.choices(
-                                ["normal", "normal", "normal", "alarm", "offline", "maintenance"],
-                                weights=[70, 15, 5, 5, 3, 2]
-                            )[0],
-                            agent_status=random.choices(
-                                ["online", "online", "online", "offline", "unknown"],
-                                weights=[75, 15, 5, 3, 2]
-                            )[0],
-                            agent_version=f"2.{random.randint(0,9)}.{random.randint(0,5)}",
-                            region=REGIONS[si % len(REGIONS)],
-                            private_ip=host_ip,
-                            public_ip=f"{random.randint(100,223)}.{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,254)}" if random.random() > 0.5 else "",
-                            labels={"monitored": True},
-                        ).save()
-                        module.hosts.connect(host)
+                        host_id = str(uuid.uuid4())
+                        with gd.session() as s:
+                            s.run(
+                                "CREATE (n:Host {instance_id: $id, __model_code: 'Host', __created_at: $now, "
+                                "ip: $ip, hostname: $hostname, os_type: $os, os_version: $osv, "
+                                "cpu_cores: $cpu, memory_mb: $mem, disk_gb: $disk, "
+                                "status: $status, agent_status: $agent, region: $region})",
+                                id=host_id, now=now, ip=host_ip, hostname=hostname,
+                                os=random.choice(OS_TYPES), osv=random.choice(OS_VERSIONS),
+                                cpu=random.choice([4, 8, 16, 32, 64]),
+                                mem=random.choice([8192, 16384, 32768, 65536]),
+                                disk=random.choice([100, 200, 500, 1000]),
+                                status=random.choices(
+                                    ["normal", "normal", "normal", "alarm", "offline", "maintenance"],
+                                    weights=[70, 15, 5, 5, 3, 2]
+                                )[0],
+                                agent=random.choices(["online", "online", "online", "offline", "unknown"],
+                                                     weights=[75, 15, 5, 3, 2])[0],
+                                region=REGIONS[si % len(REGIONS)],
+                            )
+                            s.run(
+                                "MATCH (m:Module {instance_id: $mid}) MATCH (h:Host {instance_id: $hid}) "
+                                "CREATE (m)-[:CONTAINS {rel_id: $rid, __asst_type: 'CONTAINS', __created_at: $now}]->(h)",
+                                mid=mod_id, hid=host_id, rid=str(uuid.uuid4()), now=now
+                            )
                         self.stdout.write(f"      ├─[Host] {hostname} ({host_ip})")
 
-                        # Create processes on this host
-                        procs_for_host = random.sample(PROCESS_DEFS, min(procs_per_host, len(PROCESS_DEFS)))
-                        process_nodes = []
-                        for pd in procs_for_host:
-                            proc = Process(
-                                name=pd["name"],
-                                port=pd["port"] + random.randint(0, 2),  # slight port variation
-                                protocol=pd["protocol"],
-                                status=random.choices(
-                                    ["running", "running", "running", "stopped", "error"],
-                                    weights=[80, 10, 5, 3, 2]
-                                )[0],
-                                version=f"{random.randint(1,3)}.{random.randint(0,9)}.{random.randint(0,9)}",
-                                pid_file=f"/var/run/{pd['name']}.pid",
-                                startup_command=f"systemctl start {pd['name']}",
-                                labels={"auto_restart": True},
-                            ).save()
-                            host.processes.connect(proc)
-                            process_nodes.append(proc)
+                        # Processes on this host
+                        procs = random.sample(PROCESS_DEFS, min(pph, len(PROCESS_DEFS)))
+                        proc_ids = {}
+                        for pd in procs:
+                            proc_id = str(uuid.uuid4())
+                            proc_ids[pd["name"]] = proc_id
+                            with gd.session() as s:
+                                s.run(
+                                    "CREATE (n:Process {instance_id: $id, __model_code: 'Process', __created_at: $now, "
+                                    "name: $name, port: $port, protocol: $proto, "
+                                    "status: $status, version: $ver})",
+                                    id=proc_id, now=now, name=pd["name"],
+                                    port=pd["port"] + random.randint(0, 2),
+                                    proto=pd["protocol"],
+                                    status=random.choices(
+                                        ["running", "running", "running", "stopped", "error"],
+                                        weights=[80, 10, 5, 3, 2]
+                                    )[0],
+                                    ver=f"{random.randint(1,3)}.{random.randint(0,9)}.{random.randint(0,9)}",
+                                )
+                                s.run(
+                                    "MATCH (h:Host {instance_id: $hid}) MATCH (p:Process {instance_id: $pid}) "
+                                    "CREATE (h)-[:RUNS {rel_id: $rid, __asst_type: 'RUNS', __created_at: $now}]->(p)",
+                                    hid=host_id, pid=proc_id, rid=str(uuid.uuid4()), now=now
+                                )
                             self.stdout.write(f"        ├─[Process] {pd['name']}:{pd['port']}")
 
-                        # Add DEPENDS_ON relationships between processes on this host
-                        for proc_node in process_nodes:
-                            pd = next((p for p in PROCESS_DEFS if p["name"] == proc_node.name), None)
-                            if pd and pd["deps"]:
-                                for dep_name in pd["deps"]:
-                                    dep_node = next((pn for pn in process_nodes if pn.name == dep_name), None)
-                                    if dep_node:
-                                        try:
-                                            proc_node.depends_on.connect(dep_node)
-                                        except Exception:
-                                            pass
+                        # Intra-host DEPENDS_ON
+                        for pd in procs:
+                            for dep in pd.get("deps", []):
+                                if dep in proc_ids:
+                                    with gd.session() as s:
+                                        s.run(
+                                            "MATCH (a:Process {instance_id: $aid}) "
+                                            "MATCH (b:Process {instance_id: $bid}) "
+                                            "CREATE (a)-[:DEPENDS_ON {rel_id: $rid, __asst_type: 'DEPENDS_ON', __created_at: $now}]->(b)",
+                                            aid=proc_ids[pd["name"]], bid=proc_ids[dep],
+                                            rid=str(uuid.uuid4()), now=now
+                                        )
 
-        self.stdout.write("\n>>> Creating cross-service dependency links ...")
-        self._add_cross_host_dependencies()
+        # Cross-host dependencies
+        self._add_cross_host_deps(gd)
+        self.stdout.write("\n>>> Cross-service dependency links added.")
 
-    def _add_cross_host_dependencies(self):
-        """Add extra DEPENDS_ON links between processes on different hosts for richer graph."""
-        from neomodel import db as neomodel_db
-        # Link some app-server processes to redis/mysql on other hosts
-        neomodel_db.cypher_query("""
-            MATCH (app:Process {name: 'app-server'})
-            MATCH (redis:Process {name: 'redis'})
-            WHERE app <> redis
-            WITH app, redis LIMIT 20
-            MERGE (app)-[:DEPENDS_ON]->(redis)
-        """)
-        neomodel_db.cypher_query("""
-            MATCH (app:Process {name: 'app-server'})
-            MATCH (mysql:Process {name: 'mysql'})
-            WHERE app <> mysql
-            WITH app, mysql LIMIT 20
-            MERGE (app)-[:DEPENDS_ON]->(mysql)
-        """)
-        neomodel_db.cypher_query("""
-            MATCH (tomcat:Process {name: 'tomcat'})
-            MATCH (redis:Process {name: 'redis'})
-            WHERE tomcat <> redis
-            WITH tomcat, redis LIMIT 15
-            MERGE (tomcat)-[:DEPENDS_ON]->(redis)
-        """)
-        neomodel_db.cypher_query("""
-            MATCH (kafka:Process {name: 'kafka'})
-            MATCH (zk:Process {name: 'zookeeper'})
-            WHERE kafka <> zk
-            WITH kafka, zk LIMIT 15
-            MERGE (kafka)-[:DEPENDS_ON]->(zk)
-        """)
-        self.stdout.write(self.style.SUCCESS("  Cross-host dependencies added."))
+    def _add_cross_host_deps(self, gd):
+        with gd.session() as s:
+            s.run("""
+                MATCH (app:Process {name: 'app-server'})
+                MATCH (redis:Process {name: 'redis'})
+                WHERE app <> redis
+                WITH app, redis LIMIT 20
+                MERGE (app)-[:DEPENDS_ON {rel_id: randomUUID(), __asst_type: 'DEPENDS_ON',
+                       __created_at: toString(datetime())}]->(redis)
+            """)
+            s.run("""
+                MATCH (app:Process {name: 'app-server'})
+                MATCH (mysql:Process {name: 'mysql'})
+                WHERE app <> mysql
+                WITH app, mysql LIMIT 20
+                MERGE (app)-[:DEPENDS_ON {rel_id: randomUUID(), __asst_type: 'DEPENDS_ON',
+                       __created_at: toString(datetime())}]->(mysql)
+            """)
+            s.run("""
+                MATCH (kafka:Process {name: 'kafka'})
+                MATCH (zk:Process {name: 'zookeeper'})
+                WHERE kafka <> zk
+                WITH kafka, zk LIMIT 15
+                MERGE (kafka)-[:DEPENDS_ON {rel_id: randomUUID(), __asst_type: 'DEPENDS_ON',
+                       __created_at: toString(datetime())}]->(zk)
+            """)

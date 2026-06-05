@@ -44,6 +44,21 @@
 				<span>{{ $t('message.account.accountBtnText') }}</span>
 			</el-button>
 		</el-form-item>
+		<!-- SSO/OAuth2 login buttons -->
+		<el-form-item class="login-animation4">
+			<el-divider><span style="font-size:12px;color:#909399;">第三方登录</span></el-divider>
+			<div style="display:flex;gap:12px;width:100%;justify-content:center;">
+				<el-button size="small" round @click="oauthLogin('oidc')" title="OIDC">
+					<el-icon><ele-Promotion /></el-icon> OIDC
+				</el-button>
+				<el-button size="small" round @click="oauthLogin('wecom')" title="企业微信">
+					<el-icon><ele-Message /></el-icon> 企业微信
+				</el-button>
+				<el-button size="small" round @click="oauthLogin('dingtalk')" title="钉钉">
+					<el-icon><ele-Bell /></el-icon> 钉钉
+				</el-button>
+			</div>
+		</el-form-item>
 	</el-form>
 </template>
 
@@ -126,7 +141,7 @@ export default defineComponent({
 			});
 		};
 		const refreshCaptcha = async () => {
-      state.ruleForm.captcha=''
+			state.ruleForm.captcha=''
 			loginApi.getCaptcha().then((ret: any) => {
 				state.ruleForm.captchaImgBase = ret.data.image_base;
 				state.ruleForm.captchaKey = ret.data.key;
@@ -146,16 +161,13 @@ export default defineComponent({
 								loginSuccess();
 							} else {
 								// 模拟后端控制路由，isRequestRoutes 为 true，则开启后端控制路由
-								// 添加完动态路由，再进行 router 跳转，否则可能报错 No match found for location with path "/"
 								initBackEndControlRoutes();
-								// 执行完 initBackEndControlRoutes，再执行 signInSuccess
 								loginSuccess();
 							}
 						}
 					}).catch((err: any) => {
-            // 登录错误之后，刷新验证码
-            refreshCaptcha();
-          });
+						refreshCaptcha();
+					});
 				} else {
 					errorMessage("请填写登录信息")
 				}
@@ -166,6 +178,10 @@ export default defineComponent({
 			useUserInfo().setUserInfos();
 		};
 
+		// OAuth2/SSO login redirect
+		const oauthLogin = (provider: string) => {
+			window.location.href = loginApi.getOAuthLoginUrl(provider);
+		};
 
 		// 登录成功后的跳转
 		const loginSuccess = async () => {
@@ -177,7 +193,6 @@ export default defineComponent({
 			// 初始化登录成功时间问候语
 			let currentTimeInfo = currentTime.value;
 			// 登录成功，跳到转首页
-			// 如果是复制粘贴的路径，非首页/登录页，那么登录成功后重定向到对应的路径中
 			if (route.query?.redirect) {
 				router.push({
 					path: <string>route.query?.redirect,
@@ -187,7 +202,6 @@ export default defineComponent({
 				router.push('/');
 			}
 			// 登录成功提示
-			// 关闭 loading
 			state.loading.signIn = true;
 			const signInText = t('message.signInText');
 			ElMessage.success(`${currentTimeInfo}，${signInText}`);
@@ -205,6 +219,7 @@ export default defineComponent({
 			refreshCaptcha,
 			loginClick,
 			loginSuccess,
+			oauthLogin,
 			isShowCaptcha,
 			state,
 			formRef,

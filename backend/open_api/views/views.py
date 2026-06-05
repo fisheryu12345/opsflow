@@ -53,6 +53,24 @@ class OpenApiTokenViewSet(CustomModelViewSet):
         instance.save(update_fields=['status'])
         return DetailResponse(msg='凭证已吊销')
 
+    @action(methods=['POST'], detail=True)
+    def regenerate(self, request, pk=None):
+        """重新生成凭证（吊销旧凭证并创建新凭证）"""
+        instance = self.get_object()
+        # 吊销旧凭证
+        instance.status = 'revoked'
+        instance.save(update_fields=['status'])
+        # 创建新凭证
+        raw = uuid.uuid4().hex
+        new_token = OpenApiToken.objects.create(
+            app=instance.app,
+            access_key=raw[:16].upper(),
+            secret_key=hashlib.sha256((raw + settings.SECRET_KEY).encode()).hexdigest()[:32],
+            description=request.data.get('description', instance.description or ''),
+            expire_at=request.data.get('expire_at', instance.expire_at),
+        )
+        return DetailResponse(data=OpenApiTokenSerializer(new_token).data, msg='凭证已重新生成')
+
     def perform_create(self, serializer):
         """自动生成 access_key / secret_key"""
         raw = uuid.uuid4().hex

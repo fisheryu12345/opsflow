@@ -42,7 +42,7 @@ class Ticket(CoreModel):
     title = models.CharField(max_length=255, verbose_name="工单标题")
     workflow_version = models.ForeignKey('itsm.WorkflowVersion', on_delete=models.CASCADE,
                                          related_name='tickets', verbose_name="流程版本")
-    itsm_type = models.CharField(max_length=32, choices=ITSM_TYPE_CHOICES, verbose_name="服务类型")
+    itsm_type = models.CharField(max_length=32, choices=ITSM_TYPE_CHOICES, default='change', verbose_name="服务类型")
     priority = models.CharField(max_length=16, choices=PRIORITY_CHOICES, default='P3',
                                  verbose_name="优先级")
     urgency = models.CharField(max_length=16, blank=True, default='', verbose_name="紧急程度")

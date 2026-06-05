@@ -1,5 +1,5 @@
 /**
- * ITSM API — 事件/变更 + 工作流引擎 + AI 生成
+ * ITSM API — 事件/变更 + 工作流引擎 + AI 生成 + 看板 + 委托
  */
 import { request } from '/@/utils/service'
 
@@ -81,4 +81,22 @@ export function AIGenerateWorkflow(description: string, itsmType?: string) {
 }
 export function AIGenerateFields(description: string) {
   return request({ url: `${prefix}/ai/generate-fields/`, method: 'post', data: { description } })
+}
+
+// ===== Dashboard (看板) =====
+export const dashboardApi = {
+  summary: () => request({ url: `${prefix}/dashboard/summary/`, method: 'get' }),
+  myTasks: () => request({ url: `${prefix}/dashboard/my_tasks/`, method: 'get' }),
+  trend: () => request({ url: `${prefix}/dashboard/trend/`, method: 'get' }),
+  statusDist: () => request({ url: `${prefix}/dashboard/status_dist/`, method: 'get' }),
+  overdue: () => request({ url: `${prefix}/dashboard/overdue/`, method: 'get' }),
+}
+
+// ===== Delegation (审批委托) =====
+export const delegationApi = createCrudApi('delegations')
+export function ToggleDelegation(id: string) {
+  return request({ url: `${prefix}/delegations/${id}/toggle_active/`, method: 'post' })
+}
+export function GetMyDelegations() {
+  return request({ url: `${prefix}/delegations/my_delegations/`, method: 'get' })
 }

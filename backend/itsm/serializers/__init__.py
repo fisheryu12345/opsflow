@@ -17,6 +17,10 @@ from .ticket_serializers import (
     TicketSerializer, TicketCreateSerializer, TicketSubmitSerializer,
     TicketApproveSerializer, TicketStatusSerializer, SignTaskSerializer,
 )
+from .delegation import (
+    DelegationSerializer,
+    DelegationCreateUpdateSerializer,
+)
 
 __all__ = [
     'ServiceCategorySerializer', 'ServiceCategoryCreateUpdateSerializer',
@@ -29,4 +33,5 @@ __all__ = [
     'StateSerializer', 'TransitionSerializer', 'FieldSerializer',
     'TicketSerializer', 'TicketCreateSerializer', 'TicketSubmitSerializer',
     'TicketApproveSerializer', 'TicketStatusSerializer', 'SignTaskSerializer',
+    'DelegationSerializer', 'DelegationCreateUpdateSerializer',
 ]

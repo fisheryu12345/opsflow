@@ -1,5 +1,8 @@
 <template>
-  <div class="itsm-page">
+  <!-- Designer view -->
+  <Designer v-if="designerMode" :workflow-id="designerWorkflowId" @back="onCloseDesigner" @saved="onCloseDesigner" />
+  <!-- List view -->
+  <div v-else class="itsm-page">
     <!-- ===== Hero Section ===== -->
     <div class="itsm-hero">
       <div class="itsm-hero-bg" />
@@ -19,6 +22,9 @@
       </div>
       <!-- Hero tabs -->
       <div class="itsm-hero-tabs">
+        <div class="itsm-hero-tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">
+          <el-icon><DataAnalysis /></el-icon> 看板
+        </div>
         <div class="itsm-hero-tab" :class="{ active: activeTab === 'tickets' }" @click="activeTab = 'tickets'">
           <el-icon><List /></el-icon> 我的工单
         </div>
@@ -34,11 +40,19 @@
         <div class="itsm-hero-tab" :class="{ active: activeTab === 'sla' }" @click="activeTab = 'sla'">
           <el-icon><Clock /></el-icon> SLA
         </div>
+        <div class="itsm-hero-tab" :class="{ active: activeTab === 'delegation' }" @click="activeTab = 'delegation'">
+          <el-icon><User /></el-icon> 委托
+        </div>
       </div>
     </div>
 
     <!-- ===== Body ===== -->
     <div class="itsm-body">
+
+      <!-- ==================== TAB: 看板 ==================== -->
+      <div v-show="activeTab === 'dashboard'" class="itsm-section of-fade-in-up">
+        <Dashboard :tickets="tickets" @view-ticket="onViewTicket" @switch-tab="activeTab = $event" />
+      </div>
 
       <!-- ==================== TAB: 我的工单 ==================== -->
       <div v-show="activeTab === 'tickets'" class="itsm-section of-fade-in-up">
@@ -152,8 +166,8 @@
                 <el-button v-if="wf.is_draft" size="small" text type="success" @click="onDeployWorkflow(wf)">
                   部署
                 </el-button>
-                <el-button size="small" text type="primary" @click="showWfDetail(wf)">
-                  查看
+                <el-button size="small" text type="primary" @click="onOpenDesigner(wf.id)">
+                  <el-icon><Setting /></el-icon> 设计
                 </el-button>
               </div>
             </div>
@@ -268,6 +282,11 @@
           </el-table>
         </div>
       </div>
+
+      <!-- ==================== TAB: 审批委托 ==================== -->
+      <div v-show="activeTab === 'delegation'" class="itsm-section of-fade-in-up">
+        <Delegation />
+      </div>
     </div>
 
     <!-- ===== AI 创建流程 ===== -->
@@ -373,12 +392,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, shallowRef } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import Designer from './template/designer.vue'
+import Dashboard from './Dashboard.vue'
+import Delegation from './Delegation.vue'
 import {
   WarningFilled, Edit, Message, QuestionFilled, Clock,
   Plus, Refresh, User, Finished, CircleClose, Select, Close,
-  List, Setting, MagicStick, ArrowRight, Check,
+  List, Setting, MagicStick, ArrowRight, Check, Collection, DataAnalysis,
 } from '@element-plus/icons-vue'
 import {
   incidentApi, changeApi, slaPolicyApi,
@@ -392,6 +414,17 @@ import {
 
 // ===== Tab state =====
 const activeTab = ref('tickets')
+const designerMode = ref(false)
+const designerWorkflowId = ref(0)
+
+function onOpenDesigner(wfId?: number) {
+  designerWorkflowId.value = wfId || 0
+  designerMode.value = true
+}
+function onCloseDesigner() {
+  designerMode.value = false
+  loadWorkflows()
+}
 
 // ===== Tickets (pipeline-driven) =====
 const loadingTickets = ref(false)

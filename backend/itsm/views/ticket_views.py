@@ -12,6 +12,7 @@ from itsm.serializers import (
     TicketStatusSerializer, SignTaskSerializer,
 )
 from itsm.services.pipeline_wrapper import PipelineWrapper
+from itsm.services.opsflow_trigger import OpsflowTriggerService
 
 
 class TicketViewSet(CustomModelViewSet):
@@ -143,6 +144,17 @@ class TicketViewSet(CustomModelViewSet):
                 }
             )
             action_name = '通过' if result == 'true' else '拒绝'
+
+            # P0: ITSM 审批通过后自动触发 OpsFlow 自愈流程
+            if result == 'true':
+                trigger_result = OpsflowTriggerService.on_ticket_approved(instance)
+                if trigger_result.get('triggered'):
+                    logger = __import__('logging').getLogger(__name__)
+                    logger.info(
+                        'Ticket %s approved, triggered OpsFlow execution: %s',
+                        instance.sn, trigger_result.get('execution_id'),
+                    )
+
             return DetailResponse(msg=f'审批{action_name}成功')
         except Exception as e:
             return ErrorResponse(msg=f'审批失败: {str(e)}')

@@ -150,12 +150,14 @@ class PipelineWrapper:
         from pipeline.eri.runtime import BambooDjangoRuntime
 
         tree, _ = self.build_tree(ticket_id)
+        # Pipeline tree is a dict with an 'id' field
+        pipeline_id = tree.get('id', '')
         runtime = BambooDjangoRuntime()
         result = api.run_pipeline(runtime, tree)
         if not result.result:
             logger.error(f'Pipeline run failed: {result.message}')
             raise RuntimeError(f'Pipeline run failed: {result.message}')
-        return result.pipeline_id, tree
+        return pipeline_id, tree
 
     @staticmethod
     def resume_pipeline(pipeline_id):

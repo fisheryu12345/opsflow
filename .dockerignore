@@ -1,0 +1,51 @@
+# ============================================================
+# Docker build context ignore
+# ============================================================
+
+# Git
+.git
+.gitignore
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.pytest_cache
+*.egg-info
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (frontend not built in backend image)
+node_modules/
+web/node_modules/
+web/dist/
+
+# Django
+**/migrations/*.pyc
+db.sqlite3
+
+# Reference projects (not needed at runtime)
+bk-cmdb-master/
+bk-itsm-develop/
+bk-job-master/
+bk_sops/
+gcloud/
+md/
+bamboo-engine-master/.*
+!bamboo-engine-master/pipeline/
+
+# Docs
+docs/
+
+# Logs
+*.log

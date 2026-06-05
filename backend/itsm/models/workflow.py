@@ -18,7 +18,7 @@ class Workflow(CoreModel):
         ('problem', '问题管理'),
     )
     name = models.CharField(max_length=128, verbose_name="流程名称")
-    itsm_type = models.CharField(max_length=32, choices=itsm_type_choices, verbose_name="服务类型")
+    itsm_type = models.CharField(max_length=32, choices=itsm_type_choices, default='change', verbose_name="服务类型")
     is_enabled = models.BooleanField(default=False, verbose_name="是否启用")
     is_draft = models.BooleanField(default=True, verbose_name="草稿状态")
     is_revocable = models.BooleanField(default=True, verbose_name="是否可撤销")

@@ -313,6 +313,48 @@ class JobExecutionViewSet(CustomModelViewSet):
             'total_time': instance.total_time,
         })
 
+    @action(methods=['POST'], detail=True)
+    def execute(self, request, pk=None):
+        """触发执行 — 支持 Plan 和快速执行"""
+        instance = self.get_object()
+        if instance.status not in ('pending', 'failed'):
+            return ErrorResponse(msg=f'状态({instance.status})不允许执行')
+
+        # 更新状态为 running
+        instance.status = 'running'
+        instance.start_time = timezone.now()
+        instance.save(update_fields=['status', 'start_time'])
+
+        # 异步执行
+        from ..services.executor import async_execute
+        async_execute(instance.id)
+
+        return DetailResponse(
+            data={'execution_id': instance.id, 'status': 'running'},
+            msg='作业已提交执行'
+        )
+
+    @action(methods=['GET'], detail=True)
+    def status(self, request, pk=None):
+        """查询执行状态 — 含步骤摘要"""
+        instance = self.get_object()
+        step_execs = StepExecution.objects.filter(execution=instance).values(
+            'id', 'step_name', 'step_type', 'status', 'exit_code',
+            'started_at', 'finished_at', 'result_summary',
+        )
+        return DetailResponse(data={
+            'execution_id': instance.id,
+            'status': instance.status,
+            'start_time': instance.start_time,
+            'end_time': instance.end_time,
+            'total_time': instance.total_time,
+            'current_step_index': instance.current_step_index,
+            'result_summary': instance.result_summary,
+            'error_message': instance.error_message,
+            'exit_code': instance.exit_code,
+            'steps': list(step_execs),
+        })
+
 class StepExecutionViewSet(CustomModelViewSet):
     model = StepExecution
     queryset = StepExecution.objects.all()

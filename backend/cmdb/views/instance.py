@@ -3,15 +3,25 @@
 
 所有模型类型的实例操作通过统一接口：
   /api/cmdb/instances/{model_code}/
+
+集成变更历史追踪：
+  - perform_create → track_create
+  - perform_update / partial_update → track_update
+  - perform_destroy → track_delete
+
+提供 change_history action 查询实例变更记录。
 """
 
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 
 from ..models.model_definition import ModelDefinition
+from ..models.change_log import ChangeLog
 from ..serializers.instance_serializers import DynamicInstanceSerializer
 from ..services.node_service import NodeService
+from ..services.change_tracker import track_create, track_update, track_delete
 
 
 class DynamicInstanceViewSet(viewsets.GenericViewSet):
@@ -27,6 +37,7 @@ class DynamicInstanceViewSet(viewsets.GenericViewSet):
     update: 全量更新实例
     partial_update: 部分更新实例
     destroy: 删除实例
+    change_history: 查询实例变更历史
     """
     serializer_class = DynamicInstanceSerializer
 
@@ -51,6 +62,12 @@ class DynamicInstanceViewSet(viewsets.GenericViewSet):
         kwargs['field_defs'] = self.get_field_defs()
         return super().get_serializer(*args, **kwargs)
 
+    def get_operator(self, request):
+        """从 request 获取当前操作人"""
+        if request.user and request.user.username:
+            return request.user.username
+        return 'system'
+
     def create(self, request, **kwargs):
         """创建实例"""
         serializer = self.get_serializer(data=request.data)
@@ -58,6 +75,9 @@ class DynamicInstanceViewSet(viewsets.GenericViewSet):
 
         try:
             instance = self.get_service().create(serializer.validated_data)
+            # 记录变更
+            track_create(instance, self.get_model_code(),
+                         operator=self.get_operator(request))
             out_serializer = self.get_serializer(instance=instance)
             return DetailResponse(data=out_serializer.data, msg='创建成功',
                                   status=status.HTTP_201_CREATED)
@@ -110,9 +130,19 @@ class DynamicInstanceViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
 
         try:
+            # 更新前获取旧数据
+            old_instance = self.get_service().retrieve(pk)
+            if not old_instance:
+                return ErrorResponse(msg='实例不存在', code=4000, status=404)
+
             instance = self.get_service().update(pk, serializer.validated_data)
             if not instance:
                 return ErrorResponse(msg='实例不存在', code=4000, status=404)
+
+            # 记录变更
+            track_update(old_instance, instance, self.get_model_code(),
+                         operator=self.get_operator(request))
+
             out_serializer = self.get_serializer(instance=instance)
             return DetailResponse(data=out_serializer.data, msg='更新成功')
         except Exception as e:
@@ -121,9 +151,19 @@ class DynamicInstanceViewSet(viewsets.GenericViewSet):
     def partial_update(self, request, pk=None, **kwargs):
         """部分更新实例"""
         try:
+            # 更新前获取旧数据
+            old_instance = self.get_service().retrieve(pk)
+            if not old_instance:
+                return ErrorResponse(msg='实例不存在', code=4000, status=404)
+
             instance = self.get_service().update(pk, request.data)
             if not instance:
                 return ErrorResponse(msg='实例不存在', code=4000, status=404)
+
+            # 记录变更
+            track_update(old_instance, instance, self.get_model_code(),
+                         operator=self.get_operator(request))
+
             serializer = self.get_serializer(instance=instance)
             return DetailResponse(data=serializer.data, msg='更新成功')
         except Exception as e:
@@ -132,9 +172,70 @@ class DynamicInstanceViewSet(viewsets.GenericViewSet):
     def destroy(self, request, pk=None, **kwargs):
         """删除实例"""
         try:
+            # 删除前获取快照用于记录
+            old_instance = self.get_service().retrieve(pk)
+
             deleted = self.get_service().delete(pk)
             if deleted:
+                # 记录变更
+                track_delete(pk, self.get_model_code(),
+                             operator=self.get_operator(request),
+                             instance_snapshot=old_instance)
                 return DetailResponse(msg='删除成功')
             return ErrorResponse(msg='实例不存在', code=4000, status=404)
         except Exception as e:
             return ErrorResponse(msg=f'删除失败: {str(e)}')
+
+    @action(detail=True, methods=['get'])
+    def change_history(self, request, pk=None, **kwargs):
+        """查询实例变更历史
+
+        GET /api/cmdb/instances/{model_code}/{pk}/change_history/
+        Query params:
+          - action: create/update/delete
+          - start_date: 开始日期 (YYYY-MM-DD)
+          - end_date: 结束日期 (YYYY-MM-DD)
+          - operator: 操作人（模糊匹配）
+          - page: 页码 (default 1)
+          - page_size: 每页条数 (default 20)
+        """
+        model_code = self.get_model_code()
+
+        queryset = ChangeLog.objects.filter(
+            model_code=model_code,
+            instance_id=pk,
+        )
+
+        # 过滤条件
+        q_action = request.query_params.get('action')
+        if q_action:
+            queryset = queryset.filter(action=q_action)
+
+        start_date = request.query_params.get('start_date')
+        if start_date:
+            queryset = queryset.filter(create_datetime__gte=start_date)
+
+        end_date = request.query_params.get('end_date')
+        if end_date:
+            queryset = queryset.filter(create_datetime__lte=end_date + 'T23:59:59')
+
+        q_operator = request.query_params.get('operator')
+        if q_operator:
+            queryset = queryset.filter(operator__icontains=q_operator)
+
+        # 分页
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 20))
+        total = queryset.count()
+
+        offset = (page - 1) * page_size
+        items = list(queryset[offset:offset + page_size].values(
+            'id', 'action', 'changes', 'operator', 'create_datetime'
+        ))
+
+        return DetailResponse(data={
+            'items': items,
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+        })

@@ -33,6 +33,10 @@
           @click="store.setActiveView('sync')">
           <el-icon><Upload /></el-icon> 数据同步
         </div>
+        <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'events' }"
+          @click="store.setActiveView('events')">
+          <el-icon><Bell /></el-icon> 事件订阅
+        </div>
       </div>
     </div>
 
@@ -243,6 +247,50 @@
           </div>
         </div>
       </div>
+
+      <!-- ─── Tab 5: 事件订阅 ─── -->
+      <div v-show="store.activeView === 'events'" class="cmdb-section of-fade-in-up">
+        <div class="cmdb-table-card">
+          <div class="cmdb-table-header">
+            <span class="cmdb-table-title">事件订阅管理</span>
+            <el-button size="small" type="primary" @click="showAddSubscription = true">
+              <el-icon><Plus /></el-icon> 新建订阅
+            </el-button>
+          </div>
+          <el-table :data="subscriptions" v-loading="subLoading" size="small" stripe style="width:100%"
+            empty-text="暂无事件订阅">
+            <el-table-column prop="name" label="名称" min-width="140" />
+            <el-table-column prop="model_code" label="模型编码" width="120">
+              <template #default="{ row }">
+                <el-tag size="small">{{ row.model_code || '*' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="event_type" label="事件类型" width="140">
+              <template #default="{ row }">
+                <el-tag size="small" type="warning">{{ row.event_type }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="endpoint" label="回调地址" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="is_active" label="启用" width="70" align="center">
+              <template #default="{ row }">
+                <el-switch :model-value="row.is_active" size="small" @change="toggleSubscription(row)" />
+              </template>
+            </el-table-column>
+            <el-table-column prop="description" label="描述" min-width="140" show-overflow-tooltip />
+            <el-table-column label="操作" width="80" fixed="right">
+              <template #default="{ row }">
+                <el-popconfirm title="确认删除?" @confirm="deleteSubscription(row)">
+                  <template #reference>
+                    <el-button size="small" text type="danger">
+                      <el-icon><Delete /></el-icon>
+                    </el-button>
+                  </template>
+                </el-popconfirm>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
     </div>
 
     <!-- ── Add Model Dialog ── -->
@@ -340,13 +388,44 @@
         </el-descriptions-item>
       </el-descriptions>
     </el-dialog>
+
+    <!-- ── Event Subscription Dialog ── -->
+    <el-dialog v-model="showAddSubscription" title="新建事件订阅" width="550px" destroy-on-close>
+      <el-form :model="subForm" label-width="100" size="small">
+        <el-form-item label="名称" required>
+          <el-input v-model="subForm.name" placeholder="如 通知工单系统" />
+        </el-form-item>
+        <el-form-item label="模型编码">
+          <el-select v-model="subForm.model_code" placeholder="留空=所有模型" style="width:100%;" clearable>
+            <el-option v-for="m in store.modelDefinitions" :key="m.code" :label="m.name + ' (' + m.code + ')'" :value="m.code" />
+          </el-select>
+          <div style="font-size:11px;color:#909399;margin-top:4px;">留空表示订阅所有模型的事件</div>
+        </el-form-item>
+        <el-form-item label="事件类型" required>
+          <el-select v-model="subForm.event_type" style="width:100%;">
+            <el-option label="实例创建" value="instance.create" />
+            <el-option label="实例更新" value="instance.update" />
+            <el-option label="实例删除" value="instance.delete" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="回调地址" required>
+          <el-input v-model="subForm.endpoint" placeholder="https://example.com/webhook/cmdb" />
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input v-model="subForm.description" type="textarea" :rows="2" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showAddSubscription = false">取消</el-button>
+        <el-button type="primary" :loading="subSaving" @click="doCreateSubscription">创建</el-button>
+      </template>
+    </el-dialog>
   </div>
-</template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
-  Search, Monitor, Loading, Plus, Edit, Delete, Upload,
+  Search, Monitor, Loading, Plus, Edit, Delete, Upload, Bell,
   Folder, Connection, Grid, Warning, Star, View, Cloudy,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -357,6 +436,7 @@ import {
   getInstances, createInstance, globalSearch,
   modelDefinitionsApi, modelFieldsApi, classificationsApi,
   getTopology, getTopologyTree, getImpact,
+  eventSubscriptionsApi,
 } from '/@/api/cmdb/index'
 
 const store = useCmdbStore()
@@ -539,6 +619,60 @@ async function doImport() {
   ElMessage.info('导入功能已就绪 — 后端 API 实现后即可使用')
 }
 
+// ─── Event Subscriptions ───
+const subscriptions = ref<any[]>([])
+const subLoading = ref(false)
+const showAddSubscription = ref(false)
+const subSaving = ref(false)
+const subForm = ref({
+  name: '',
+  model_code: '',
+  event_type: 'instance.update',
+  endpoint: '',
+  description: '',
+})
+
+async function fetchSubscriptions() {
+  subLoading.value = true
+  try {
+    const res = await eventSubscriptionsApi.list()
+    subscriptions.value = res.data || []
+  } catch { /* ignore */ }
+  finally { subLoading.value = false }
+}
+
+async function doCreateSubscription() {
+  subSaving.value = true
+  try {
+    const data: any = { ...subForm.value }
+    if (!data.model_code) data.model_code = '*'
+    await eventSubscriptionsApi.create(data)
+    ElMessage.success('订阅创建成功')
+    showAddSubscription.value = false
+    subForm.value = { name: '', model_code: '', event_type: 'instance.update', endpoint: '', description: '' }
+    await fetchSubscriptions()
+  } catch (e: any) {
+    ElMessage.error(e?.msg || '创建失败')
+  } finally { subSaving.value = false }
+}
+
+async function deleteSubscription(row: any) {
+  try {
+    await eventSubscriptionsApi.delete(row.id)
+    ElMessage.success('订阅已删除')
+    await fetchSubscriptions()
+  } catch (e: any) {
+    ElMessage.error('删除失败')
+  }
+}
+
+async function toggleSubscription(row: any) {
+  try {
+    await eventSubscriptionsApi.update(row.id, { is_active: !row.is_active })
+    row.is_active = !row.is_active
+  } catch { /* ignore */ }
+}
+
 async function doGlobalSearch() {
   if (!store.searchQuery) return
   await store.doSearch(store.searchQuery)
@@ -577,6 +711,9 @@ onMounted(async () => {
   if (!store.topology.nodes?.length) {
     store.fetchTopology()
   }
+
+  // Load event subscriptions
+  fetchSubscriptions()
 })
 </script>
 
