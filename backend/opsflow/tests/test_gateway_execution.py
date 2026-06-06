@@ -90,30 +90,27 @@ class TestExclusiveGatewayPipelineBuild:
     def test_build_pipeline_structure(self):
         """验证构建出的 bamboo pipeline 结构完整"""
         tpl = _make_atom_pipeline(EXCLUSIVE_PIPELINE["nodes"], EXCLUSIVE_PIPELINE["edges"])
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
 
         assert result is not None
         # 检查 gateways
         assert "gateways" in result
         assert len(result["gateways"]) >= 1
-        gw_key = [k for k in result["gateways"] if id_map.get(k) == "gw1"]
-        assert len(gw_key) == 1
-        gw = result["gateways"][gw_key[0]]
+        assert "gw1" in result["gateways"], "ExclusiveGateway 应使用原始 ID"
+        gw = result["gateways"]["gw1"]
         assert gw["type"] == "ExclusiveGateway"
         # 每个出边应有 condition
         assert "conditions" in gw
         assert len(gw["conditions"]) == 2
 
     def test_build_pipeline_activities(self):
-        """所有原子节点应为 activities"""
+        """所有原子节点应为 activities — 直接使用原始 X6 ID"""
         tpl = _make_atom_pipeline(EXCLUSIVE_PIPELINE["nodes"], EXCLUSIVE_PIPELINE["edges"])
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
 
-        # n1, n2, n3 应都在 activities 中
-        activity_ids = set(id_map.keys())
-        mapped = {v: k for k, v in id_map.items()}
+        # n1, n2, n3 应都在 activities 中（原始 X6 ID 直接作为 bamboo activity key）
         for nid in ["n1", "n2", "n3"]:
-            assert nid in mapped, f"{nid} 应在 id_map 中"
+            assert nid in result["activities"], f"{nid} 应作为 activity key，实际 keys={list(result['activities'].keys())}"
 
     def test_build_gateway_with_conditions_set_on_edges(self):
         """排他网关出边上设置了条件 → 构建成功且 conditions 正确"""
@@ -128,7 +125,7 @@ class TestExclusiveGatewayPipelineBuild:
              "condition": "${_result == True}"},
         ]
         tpl = _make_atom_pipeline(nodes, edges)
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
         assert result is not None
 
     def test_validation_passes_for_valid_pipeline(self):

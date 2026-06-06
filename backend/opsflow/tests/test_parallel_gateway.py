@@ -110,19 +110,17 @@ class TestParallelGatewayBuild:
             PARALLEL_3_BRANCH_PIPELINE["nodes"],
             PARALLEL_3_BRANCH_PIPELINE["edges"],
         )
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
 
         assert result is not None
         assert "gateways" in result
-        # 找到 ParallelGateway
-        pg_keys = [k for k in result["gateways"] if id_map.get(k) == "pg1"]
-        assert len(pg_keys) == 1
-        pg = result["gateways"][pg_keys[0]]
+        # 找到 ParallelGateway（原始 X6 ID 直接作为 key）
+        assert "pg1" in result["gateways"], "ParallelGateway 应使用原始 ID"
+        pg = result["gateways"]["pg1"]
         assert pg["type"] == "ParallelGateway"
         # 找到 ConvergeGateway
-        cg_keys = [k for k in result["gateways"] if id_map.get(k) == "cg1"]
-        assert len(cg_keys) == 1
-        assert result["gateways"][cg_keys[0]]["type"] == "ConvergeGateway"
+        assert "cg1" in result["gateways"], "ConvergeGateway 应使用原始 ID"
+        assert result["gateways"]["cg1"]["type"] == "ConvergeGateway"
         # 3 个原子节点
         assert len(result["activities"]) == 3
 
@@ -132,10 +130,10 @@ class TestParallelGatewayBuild:
             PARALLEL_2_BRANCH_PIPELINE["nodes"],
             PARALLEL_2_BRANCH_PIPELINE["edges"],
         )
-        result, id_map = build_bamboo_pipeline(tpl)
-        pg_key = [k for k in result["gateways"] if id_map.get(k) == "pg1"][0]
+        result, _ = build_bamboo_pipeline(tpl)
+        pg = result["gateways"]["pg1"]
         # 并行网关不应该有 conditions
-        assert "conditions" not in result["gateways"][pg_key]
+        assert "conditions" not in pg
 
     def test_parallel_incoming_count(self):
         """converge 网关的入度应等于并行分支数"""
@@ -143,9 +141,8 @@ class TestParallelGatewayBuild:
             PARALLEL_3_BRANCH_PIPELINE["nodes"],
             PARALLEL_3_BRANCH_PIPELINE["edges"],
         )
-        result, id_map = build_bamboo_pipeline(tpl)
-        cg_key = [k for k in result["gateways"] if id_map.get(k) == "cg1"][0]
-        cg = result["gateways"][cg_key]
+        result, _ = build_bamboo_pipeline(tpl)
+        cg = result["gateways"]["cg1"]
         # converge 的 incoming 应该收到 3 条分支
         assert "incoming" in cg
         # bamboo-engine 的 incoming 格式可能是 list 或单个值

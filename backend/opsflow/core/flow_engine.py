@@ -168,7 +168,7 @@ class FlowEngine:
                     logger.error("[FlowEngine] pipeline validation failed before run: %s", errors)
                     self._fail_execution(errors)
                     return
-            pipeline, id_map = build_bamboo_pipeline(
+            pipeline, _ = build_bamboo_pipeline(
                 self.template,
                 pipeline_tree=frozen_tree,
                 target_hosts=frozen.get('target_hosts'),
@@ -214,7 +214,6 @@ class FlowEngine:
 
             self.execution.context["bamboo_pipeline_id"] = bamboo_pipeline_id
             self.execution.context["bamboo_pipeline"] = pipeline
-            self.execution.context["node_id_map"] = id_map
             self.execution.save(update_fields=["context"])
 
             # 清理重试时可能残留的 pipeline data（Data/State/ExecutionData 的 node_id 唯一约束）

@@ -57,9 +57,6 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
     if node_id == root_id:
         _handle_root_state_change(execution, to_state)
     else:
-        id_map = (execution.context or {}).get('node_id_map', {})
-        mapped_node_id = id_map.get(node_id, node_id)
-
         if to_state == states.FAILED:
             from opsflow.core.auto_retry import dispatch_auto_retry
             if dispatch_auto_retry(execution, node_id):
@@ -76,7 +73,7 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
 
         if to_state == states.RUNNING:
             try:
-                execution.current_node = mapped_node_id if mapped_node_id != node_id else node_id
+                execution.current_node = node_id
                 execution.save(update_fields=["current_node"])
             except Exception:
                 logger.warning("[Signal] current_node save failed (non-critical) exec=%s node=%s", execution.id, node_id)

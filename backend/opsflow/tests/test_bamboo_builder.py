@@ -226,7 +226,7 @@ class TestBuildBambooPipeline:
 
     def test_empty_nodes_returns_empty_pipeline(self):
         tpl = self._make_template()
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
         assert result is not None
         assert "activities" in result or "end_event" in result
 
@@ -235,11 +235,11 @@ class TestBuildBambooPipeline:
                   "label": "Ping Test", "params": {"target_ip": "10.0.0.1"}}]
         edges = []
         tpl = self._make_template(nodes, edges)
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
         assert result is not None
         assert "activities" in result
-        # id_map 应该包含 n1
-        assert id_map.get(list(result['activities'].keys())[0]) == 'n1'
+        # 原始 X6 ID 直接作为 bamboo activity ID
+        assert "n1" in result['activities'], f"n1 应作为 activity key，实际 keys={list(result['activities'].keys())}"
 
     def test_start_end_only_passes_gracefully(self):
         """只有 start/end 视觉节点 → 空 pipeline"""
@@ -249,7 +249,7 @@ class TestBuildBambooPipeline:
         ]
         edges = [{"from": "s1", "to": "e1"}]
         tpl = self._make_template(nodes, edges)
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
         assert result is not None
 
     def test_multi_root_creates_parallel_gateway(self):
@@ -260,7 +260,7 @@ class TestBuildBambooPipeline:
         ]
         edges = []
         tpl = self._make_template(nodes, edges)
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
         assert result is not None
 
     def test_with_edge_conditions(self):
@@ -276,7 +276,7 @@ class TestBuildBambooPipeline:
              "condition": "${_result == True}"},
         ]
         tpl = self._make_template(nodes, edges)
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
         assert result is not None
 
     def test_implicit_success_failure_gateway(self):
@@ -292,7 +292,7 @@ class TestBuildBambooPipeline:
             {"from": "n1", "to": "n3", "label": "success"},
         ]
         tpl = self._make_template(nodes, edges)
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
         assert result is not None
 
         # 验证 data.inputs 中包含 ${_result_n1} 的 NodeOutput 声明
@@ -327,7 +327,7 @@ class TestBuildBambooPipeline:
         ]
         edges = []
         tpl = self._make_template(nodes, edges)
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
         assert result is not None
 
     def test_custom_global_vars(self):
@@ -349,7 +349,7 @@ class TestBuildBambooPipeline:
             {"from": "gw1", "to": "n2", "condition": "${_result == False}"},
         ]
         tpl = self._make_template(nodes, edges)
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
         assert result is not None
 
 
@@ -543,14 +543,13 @@ class TestExclusiveGatewayBuild:
         tpl.project_id = None  # 避免 resolve_project_variables DB 查询
         tpl.id = None
 
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
 
         assert result is not None
         # 验证 gateways 部分存在
         assert "gateways" in result
-        gw_key = [k for k in result["gateways"] if id_map.get(k) == "gw1"]
-        assert len(gw_key) == 1, "gateway 应在 gateways 部分"
-        gw_data = result["gateways"][gw_key[0]]
+        assert "gw1" in result["gateways"], "ExclusiveGateway 应使用原始 ID 作为 key"
+        gw_data = result["gateways"]["gw1"]
         assert gw_data["type"] == "ExclusiveGateway"
         # 验证 conditions 存在
         assert "conditions" in gw_data
@@ -612,18 +611,16 @@ class TestParallelGatewayBuild:
         tpl.project_id = None
         tpl.id = None
 
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
 
         assert result is not None
         # 验证 gateways 包含 ParallelGateway
         assert "gateways" in result
-        pg_keys = [k for k in result["gateways"] if id_map.get(k) == "pg1"]
-        assert len(pg_keys) == 1, "ParallelGateway 应在 gateways 中"
-        assert result["gateways"][pg_keys[0]]["type"] == "ParallelGateway"
+        assert "pg1" in result["gateways"], "ParallelGateway 应使用原始 ID"
+        assert result["gateways"]["pg1"]["type"] == "ParallelGateway"
         # 验证 converge gateway 也在 gateways 中
-        cg_keys = [k for k in result["gateways"] if id_map.get(k) == "cg1"]
-        assert len(cg_keys) == 1, "ConvergeGateway 应在 gateways 中"
-        assert result["gateways"][cg_keys[0]]["type"] == "ConvergeGateway"
+        assert "cg1" in result["gateways"], "ConvergeGateway 应使用原始 ID"
+        assert result["gateways"]["cg1"]["type"] == "ConvergeGateway"
         # 验证所有 3 个 task 都在 activities 中
         assert len(result["activities"]) == 3
         # 验证 flows (pg→t1,t2,t3 + t1,t2,t3→cg + start→pg) 至少 7 条
@@ -650,7 +647,7 @@ class TestParallelGatewayBuild:
         tpl.project_id = None
         tpl.id = None
 
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
         assert result is not None
         # 应该成功构建（不会崩溃）
         assert "gateways" in result
@@ -670,7 +667,7 @@ class TestParallelGatewayBuild:
         tpl.project_id = None
         tpl.id = None
 
-        result, id_map = build_bamboo_pipeline(tpl)
+        result, _ = build_bamboo_pipeline(tpl)
         assert result is not None
         # 应至少有一个 gateway（自动插入的 ParallelGateway）
         assert len(result.get("gateways", {})) >= 1

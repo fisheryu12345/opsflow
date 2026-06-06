@@ -1,7 +1,7 @@
 """排他网关信号处理测试 — 节点状态更新 + 状态树增量
 
 验证 on_post_set_state 信号处理器对排他网关节点的处理正确性：
-- gateway 节点状态更新写入 node_status
+- 节点状态写入 node_status（原始 X6 ID 直接作为 key）
 - 状态树增量更新
 - 分支节点状态正常流转
 """
@@ -21,37 +21,35 @@ class TestExclusiveGatewaySignalStateUpdate:
     def _make_execution(self, context=None, node_status=None, state_tree=None):
         exec_mock = Mock()
         exec_mock.id = 1
-        exec_mock.context = context or {
-            "node_id_map": {"bamboo_uuid_gw1": "gw1", "bamboo_uuid_n1": "n1"},
-        }
+        exec_mock.context = context or {"bamboo_pipeline_id": "root_1"}
         exec_mock.node_status = node_status or {}
         exec_mock.state_tree = state_tree or {}
         return exec_mock
 
     def test_gateway_finished_updates_node_status(self):
-        """排他网关 FINISHED → node_status[gw] == 'completed'"""
+        """排他网关 FINISHED → node_status[原始ID] == 'completed'（不再经过 id_map）"""
         execution = self._make_execution()
         _update_execution_node_status(execution, "bamboo_uuid_gw1", states.FINISHED)
-        assert execution.node_status.get("gw1") == "completed"
+        assert execution.node_status.get("bamboo_uuid_gw1") == "completed"
         execution.save.assert_called_with(update_fields=["node_status"])
 
     def test_gateway_running_updates_node_status(self):
-        """排他网关 RUNNING → node_status[gw] == 'running'"""
+        """排他网关 RUNNING → node_status[原始ID] == 'running'"""
         execution = self._make_execution()
         _update_execution_node_status(execution, "bamboo_uuid_gw1", states.RUNNING)
-        assert execution.node_status.get("gw1") == "running"
+        assert execution.node_status.get("bamboo_uuid_gw1") == "running"
 
     def test_branch_node_finished_after_gateway(self):
         """网关选定分支上的节点 FINISHED 后正确记录"""
         execution = self._make_execution(
-            node_status={"gw1": "completed"}
+            node_status={"bamboo_uuid_gw1": "completed"}
         )
         _update_execution_node_status(execution, "bamboo_uuid_n1", states.FINISHED)
-        assert execution.node_status.get("n1") == "completed"
-        assert execution.node_status.get("gw1") == "completed"  # 保留原值
+        assert execution.node_status.get("bamboo_uuid_n1") == "completed"
+        assert execution.node_status.get("bamboo_uuid_gw1") == "completed"  # 保留原值
 
     def test_state_tree_contains_gateway(self):
-        """state_tree 增量更新包含网关节点"""
+        """state_tree 增量更新包含网关节点（使用原始 node_id）"""
         execution = self._make_execution()
         _update_state_tree(execution, "bamboo_uuid_gw1", states.RUNNING)
         assert "bamboo_uuid_gw1" in execution.state_tree
@@ -68,8 +66,8 @@ class TestExclusiveGatewaySignalStateUpdate:
         assert entry["exited_at"] is not None
         assert "duration_ms" in entry
 
-    def test_id_map_fallback_when_not_found(self):
-        """node_id_map 中没有该节点时直接使用 bamboo UUID"""
+    def test_node_id_directly_used_as_key(self):
+        """node_id 直接作为 node_status key（无 id_map 映射）"""
         execution = self._make_execution(context={})
         _update_execution_node_status(execution, "unknown_uuid", states.FINISHED)
         assert execution.node_status.get("unknown_uuid") == "completed"
@@ -94,7 +92,7 @@ class TestExclusiveGatewaySignalHandler:
         """排他网关 FINISHED 时所有子 handler 被调用"""
         execution = Mock()
         execution.id = 1
-        execution.context = {"node_id_map": {"bu_gw1": "gw1"}}
+        execution.context = {"bamboo_pipeline_id": "root_1"}
         execution.node_status = {}
         execution.state_tree = {}
 
@@ -106,7 +104,6 @@ class TestExclusiveGatewaySignalHandler:
             patch("opsflow.signals.handlers._update_node_timeout"),
             patch("opsflow.signals.handlers._log_node_result"),
             patch("opsflow.signals.handlers._write_node_trace_log"),
-            patch("opsflow.signals.handlers._notify_node_status"),
         ]
         mocks = [p.start() for p in patches]
         mock_flow_exec = mocks[0]
@@ -126,10 +123,10 @@ class TestExclusiveGatewaySignalHandler:
         mock_timeout.assert_called_once_with(execution, "bu_gw1", states.FINISHED)
 
     def test_gateway_running_updates_current_node(self):
-        """排他网关变为 RUNNING 时更新 current_node"""
+        """排他网关变为 RUNNING 时 current_node 使用原始 node_id（无 id_map 映射）"""
         execution = Mock()
         execution.id = 1
-        execution.context = {"node_id_map": {"bu_gw1": "gw1"}}
+        execution.context = {"bamboo_pipeline_id": "root_1"}
         execution.node_status = {}
         execution.state_tree = {}
         execution.current_node = None
@@ -152,16 +149,18 @@ class TestExclusiveGatewaySignalHandler:
             for p in patches:
                 p.stop()
 
-        assert execution.current_node == "gw1"
+        # 不再经过 id_map 映射，bu_gw1 直接作为原始 ID
+        assert execution.current_node == "bu_gw1"
         execution.save.assert_any_call(update_fields=["current_node"])
 
-    def test_gateway_running_sends_ws_notification(self):
-        """排他网关 RUNNING 时发送 WS 通知"""
+    def test_gateway_running_processes_handler_without_error(self):
+        """排他网关 RUNNING 时 handler 正常执行（不依赖已移除的 _notify_node_status）"""
         execution = Mock()
         execution.id = 1
-        execution.context = {"node_id_map": {"bu_gw1": "gw1"}}
+        execution.context = {"bamboo_pipeline_id": "root_1"}
         execution.node_status = {}
         execution.state_tree = {}
+        execution.current_node = None
 
         patches = [
             patch("opsflow.models.FlowExecution"),
@@ -169,12 +168,10 @@ class TestExclusiveGatewaySignalHandler:
             patch("opsflow.signals.handlers._update_state_tree"),
             patch("opsflow.signals.handlers._record_node_trace"),
             patch("opsflow.signals.handlers._update_node_timeout"),
-            patch("opsflow.signals.handlers._notify_node_status"),
         ]
         mocks = [p.start() for p in patches]
         mock_flow_exec = mocks[0]
         mock_flow_exec.objects.get.return_value = execution
-        mock_notify = mocks[-1]
 
         try:
             on_post_set_state(**self._make_on_post_set_state_args(
@@ -183,4 +180,5 @@ class TestExclusiveGatewaySignalHandler:
             for p in patches:
                 p.stop()
 
-        mock_notify.assert_called_once_with(execution, "gw1", "running")
+        assert execution.current_node == "bu_gw1"
+        execution.save.assert_any_call(update_fields=["current_node"])

@@ -80,13 +80,19 @@ def _create_all_elements(effective_nodes, out_edges, edge_conditions):
 
 def _topological_connect(start, end_elem, elem_map, out_edges, in_edges, effective_nodes, edge_conditions):
     """按拓扑序连接所有节点，处理单出边/多出边/网关逻辑"""
+    _synth_counter = [0]  # synthetic gateway ID 计数器
+
+    def _auto_id():
+        _synth_counter[0] += 1
+        return _synth_counter[0]
+
     in_deg = {nid: len(in_edges.get(nid, [])) for nid in elem_map}
     queue = [nid for nid in elem_map if in_deg[nid] == 0]
 
     if len(queue) == 1:
         start.extend(elem_map[queue[0]])
     elif len(queue) > 1:
-        pg = ParallelGateway()
+        pg = ParallelGateway(id=f'_auto_root_pg_{_auto_id()}')
         start.extend(pg)
         for rid in queue:
             pg.connect(elem_map[rid])
@@ -113,7 +119,7 @@ def _topological_connect(start, end_elem, elem_map, out_edges, in_edges, effecti
             else:
                 labels = {s.get('label', '') for s in successors}
                 if labels == {'success', 'failure'}:
-                    gw = ExclusiveGateway()
+                    gw = ExclusiveGateway(id=f'_auto_gw_{nid}_{_auto_id()}')
                     for i, s in enumerate(successors):
                         cond = _get_condition(edge_conditions, nid, s['to'], s.get('label', ''))
                         gw.add_condition(i, cond)
@@ -121,7 +127,7 @@ def _topological_connect(start, end_elem, elem_map, out_edges, in_edges, effecti
                     for s in successors:
                         gw.connect(elem_map[s['to']])
                 else:
-                    pg = ParallelGateway()
+                    pg = ParallelGateway(id=f'_auto_split_pg_{nid}_{_auto_id()}')
                     elem.extend(pg)
                     for s in successors:
                         pg.connect(elem_map[s['to']])
@@ -223,23 +229,6 @@ def _apply_timeout_configs(tree, effective_nodes):
             pass
 
 
-def _build_id_map(tree, visual_start_id, visual_end_id):
-    """构建 bamboo UUID → 前端原始节点 ID 映射"""
-    id_map = {}
-    for act_id, act_data in tree.get('activities', {}).items():
-        if act_data.get('name'):
-            id_map[act_id] = act_data['name']
-    for gw_id, gw_data in tree.get('gateways', {}).items():
-        if gw_data.get('name'):
-            id_map[gw_id] = gw_data['name']
-    start_event = tree.get('start_event', {})
-    if start_event.get('id') and visual_start_id:
-        id_map[start_event['id']] = visual_start_id
-    end_event = tree.get('end_event', {})
-    if end_event.get('id') and visual_end_id:
-        id_map[end_event['id']] = visual_end_id
-    return id_map
-
 
 def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
                           global_vars=None, execution_id=None, excluded_nodes=None):
@@ -252,8 +241,8 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
 
     if not effective_nodes:
         data = _build_data_inputs(flow_template, target_hosts, global_vars, execution_id)
-        start = EmptyStartEvent()
-        end = EmptyEndEvent()
+        start = EmptyStartEvent(id=visual_start_id) if visual_start_id else EmptyStartEvent()
+        end = EmptyEndEvent(id=visual_end_id) if visual_end_id else EmptyEndEvent()
         start.extend(end)
         return build_tree(start, data=data), {}
 
@@ -264,9 +253,9 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
     out_edges, in_edges = _build_adjacency_lists(effective_nodes, effective_edges)
     elem_map = _create_all_elements(effective_nodes, out_edges, edge_conditions)
 
-    # 创建 start / end
-    start = EmptyStartEvent()
-    end_elem = EmptyEndEvent()
+    # 创建 start / end — 使用 X6 原始 ID 避免 UUID 映射
+    start = EmptyStartEvent(id=visual_start_id) if visual_start_id else EmptyStartEvent()
+    end_elem = EmptyEndEvent(id=visual_end_id) if visual_end_id else EmptyEndEvent()
 
     # Step 5: 拓扑连接
     _topological_connect(start, end_elem, elem_map, out_edges, in_edges, effective_nodes, edge_conditions)
@@ -279,6 +268,5 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
     pipeline = build_tree(start, data=data)
 
     _apply_timeout_configs(pipeline, effective_nodes)
-    id_map = _build_id_map(pipeline, visual_start_id, visual_end_id)
 
-    return pipeline, id_map
+    return pipeline, {}
