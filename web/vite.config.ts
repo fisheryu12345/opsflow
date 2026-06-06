@@ -41,10 +41,6 @@ const viteConfig = defineConfig((mode: ConfigEnv) => {
 					ws: true,
 					changeOrigin: true,
 				},
-				'/api/opsflow/cmdb': {
-					target: 'http://localhost:8000',
-					changeOrigin: true,
-				},
 			},
 		},
 		build: {
