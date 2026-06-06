@@ -382,7 +382,7 @@ async function loadPipeline(full = true) {
 async function fetchLogs() {
   logsLoading.value = true
   try {
-    const res = await GetLogs({ execution: props.execution.id })
+    const res = await GetLogs({ execution: props.execution.id, page_size: 200 })
     logs.value = res.data?.results || res.data || res.results || []
     scrollLogBottom()
   } catch { /* ignore */ }

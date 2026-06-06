@@ -79,7 +79,7 @@ const {
 const {
   connected: wsConnected, nodeStatuses, executionStatus,
   connect, disconnect, getNodeColor,
-  onNodeStatus,
+  onNodeStatus, onExecutionCompleted,
 } = useMonitor()
 
 // Live node stats
@@ -234,8 +234,7 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
     graph.value.centerContent()
     graph.value.zoomToFit({ padding: 24, maxZoom: 1 })
 
-    // 应用节点颜色：直接遍历画布节点，从 nodeStatuses 查状态
-    // 避免 getCellById 在 resetCells 后找不到节点的问题
+    // 应用节点颜色：直接遍历，不包裹 batchUpdate（否则后续 WS 单节点 setAttrs 会被 batch 的锁覆盖）
     const statuses = nodeStatuses.value
     graph.value.getNodes().forEach((cell: any) => {
       const nid = cell.id
@@ -293,16 +292,29 @@ function applyNodeColor(nodeId: string, status: string) {
 onMounted(() => {
   let _edgeActivated = false
   onNodeStatus((nid, status) => {
-    // 第一个 running 节点激活动画
     if (!_edgeActivated && status === 'running') {
       _edgeActivated = true
       setEdgeAnimation(true)
     }
-    // 着色
     console.log('[WS-Monitor] node_status', nid, status, 'WS->apply at', Date.now())
     if (!graph.value) return
     const cell = graph.value.getCellById(nid)
     if (cell?.isNode()) applyNodeColor(nid, status)
+  })
+
+  // 流程完成时本地清扫残留 running 节点
+  onExecutionCompleted((_status) => {
+    console.log('[WS-Monitor] execution_completed, sweeping local nodeStatuses', Date.now())
+    const ns = { ...nodeStatuses.value }
+    for (const [k, v] of Object.entries(ns)) {
+      if (v === 'running') {
+        ns[k] = 'completed'
+        const cell = graph.value?.getCellById(k)
+        if (cell?.isNode()) applyNodeColor(k, 'completed')
+      }
+    }
+    nodeStatuses.value = ns
+    setEdgeAnimation(false)
   })
 })
 

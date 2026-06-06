@@ -1,6 +1,5 @@
 import asyncio
 import concurrent.futures
-import json
 import logging
 
 from celery import shared_task
@@ -59,29 +58,28 @@ def execute_pipeline_task(self, execution_id):
         raise self.retry(exc=exc)
 
 
-def _ws_notify(execution_id, node_id, status, message=""):
-    """推送节点状态到 WebSocket（通过 channel_layer.group_send）
+def _ws_notify(execution_id, node_id, status, message="", msg_type="node_status"):
+    """推送节点状态到 WebSocket（async_to_sync，不阻塞）
 
-    使用 channels_redis 标准 group_send API（与 notify_execution_completed 一致），
-    避免直接操作 Redis 内部 key 格式导致的兼容性问题。
-    注意：从信号处理器中调用时需确认 run_async 能正常工作。
+    使用 asgiref.sync.async_to_sync 适配同步上下文，它在 Django/
+    Celery worker 中利用线程池执行异步代码，不会阻塞 gevent 协程
+    也不会创建临时事件循环。
     """
+    from asgiref.sync import async_to_sync
     from channels.layers import get_channel_layer
     channel_layer = get_channel_layer()
-    run_async(
-        channel_layer.group_send(
-            f"execution_{execution_id}",
-            {
-                "type": "node_status",
-                "node_id": node_id,
-                "status": status,
-                "message": message,
-            },
-        )
+    async_to_sync(channel_layer.group_send)(
+        f"execution_{execution_id}",
+        {
+            "type": msg_type,
+            "node_id": node_id,
+            "status": status,
+            "message": message,
+        },
     )
 
 
-@shared_task(queue='er_execute')
+@shared_task(queue='er_ws')
 def notify_node_status(execution_id, node_id, status, message=''):
     """Celery 任务 — 推送节点状态到 WebSocket（通过同步 Redis pub/sub）
 
@@ -91,7 +89,7 @@ def notify_node_status(execution_id, node_id, status, message=''):
     _ws_notify(execution_id, node_id, status, message)
 
 
-@shared_task(queue='er_execute')
+@shared_task(queue='er_ws')
 def notify_execution_completed(execution_id, execution_status):
     """Celery 任务 — 推送执行完成通知到 WebSocket
 

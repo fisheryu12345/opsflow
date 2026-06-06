@@ -520,9 +520,16 @@ async function loadCrList() {
   crLoading.value = true
   try {
     const res = await GetServicenowChangeRequests()
-    crList.value = res?.data || []
-  } catch {
+    console.log('res', res)
+    // axios response → res.data = { code: 2000, data: [...], msg: "success" }
+    // 所以需要 res.data.data 拿到实际的数组
+    
+    const body = res?.data
+    console.log('body', body)
+    crList.value = body?.data || body || []
+  } catch (err: any) {
     crList.value = []
+    console.error('[CR] loadCrList error:', err?.message || err, 'url:', err?.config?.url || err?.response?.config?.url || '?')
     ElMessage.error('Failed to load change requests')
   } finally {
     crLoading.value = false

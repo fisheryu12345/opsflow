@@ -47,6 +47,7 @@ export function useMonitor() {
           //（Celery 通知 vs 前端 execution_completed 的时序竞争）
           // 用户离开页面时 onBeforeUnmount → disconnect() 会清理连接
         } else if (msg.type === 'init_state') {
+          console.log('[WS-Init] init_state received, status=' + msg.data?.status + ' node_count=' + Object.keys(msg.data?.node_status || {}).length + ' at', Date.now())
           if (msg.data.node_status) {
             nodeStatuses.value = { ...msg.data.node_status }
           }

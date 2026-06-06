@@ -512,6 +512,7 @@ CELERY_TASK_QUEUES = [
     Queue('default', routing_key='default'),
     Queue('er_execute', routing_key='er_execute'),
     Queue('er_schedule', routing_key='er_schedule'),
+    Queue('er_ws', routing_key='er_ws'),
 ]
 
 # ------------------------------------------------------------------ #
