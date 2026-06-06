@@ -359,10 +359,8 @@ async function loadPipeline(full = true) {
     const ex = detail.data?.data || detail.data || detail
     execDetail.value = ex
     monitorRef.value.setExecutionStatus?.(ex.status)
-    if (ex.node_status) {
-      monitorRef.value.loadNodeStatuses?.(ex.node_status)
-    }
-    // 首次加载时绘制拓扑图；轮询时只更新节点状态（避免 resetCells + centerContent 闪烁）
+
+    // 首次加载：先画图，后着色 — 确保 graph 有节点后再 coloring
     if (full && !graphInitialized) {
       const tree = ex.pipeline_tree || ex.context?.pipeline_tree || ex.template_snapshot?.pipeline_tree
       if (tree) {
@@ -373,6 +371,11 @@ async function loadPipeline(full = true) {
         if (tpl?.pipeline_tree) monitorRef.value.loadGraphData(toGraphData(tpl.pipeline_tree))
       }
       graphInitialized = true
+    }
+
+    // 画布有节点后再着色（首次加载时刚画完，轮询时已有节点）
+    if (ex.node_status) {
+      monitorRef.value.loadNodeStatuses?.(ex.node_status)
     }
   } catch (e) {
     console.error('[ExecutionDetail] loadPipeline error:', e)

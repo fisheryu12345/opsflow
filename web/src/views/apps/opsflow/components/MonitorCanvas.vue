@@ -280,9 +280,12 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
 function loadNodeStatuses(statusMap: Record<string, string>) {
   nodeStatuses.value = { ...statusMap }
   if (!graph.value) return
-  graph.value.getNodes().forEach((cell: any) => {
-    const st = statusMap[cell.id]
-    if (st) applyNodeColor(cell.id, st)
+  // batchUpdate 合并全部颜色变更为一次 X6 渲染，避免 26 次独立 SVG 重绘
+  graph.value.batchUpdate('poll-color', () => {
+    graph.value.getNodes().forEach((cell: any) => {
+      const st = statusMap[cell.id]
+      if (st) applyNodeColor(cell.id, st)
+    })
   })
 }
 
