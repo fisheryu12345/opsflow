@@ -36,12 +36,6 @@
           <el-button size="small" text :icon="ZoomOut" @click="zoomOut" />
           <el-button size="small" text :icon="FullScreen" @click="fitCanvas" />
         </div>
-        <span v-if="wsConnected" class="ws-status ws-connected">
-          <span class="ws-dot" /> Connected
-        </span>
-        <span v-else class="ws-status ws-disconnected">
-          <span class="ws-dot" /> Disconnected
-        </span>
       </div>
     </div>
     <div id="monitor-canvas-container" ref="canvasRef" class="x6-canvas" />
@@ -59,9 +53,14 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * MonitorCanvas — 执行监控画布
+ *
+ * 完全基于 API 轮询驱动，父组件（ExecutionDetail）周期性调用 GetExecutionDetail
+ * 并将 node_status 传递给本组件。
+ */
 import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { Monitor, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
-import { useMonitor } from '../composables/useMonitor'
 import { useGraphCanvas, layoutNodes } from '../composables/useGraphCanvas'
 import { resolveNodeShape, updateAtomNode, CARD_WIDTH, CARD_HEIGHT } from '../utils/shapes'
 
@@ -76,15 +75,13 @@ const {
   enableResize, enableVisibilityRefresh,
 } = useGraphCanvas('monitor-canvas-container', { mode: 'monitor' })
 
-const {
-  connected: wsConnected, nodeStatuses, executionStatus,
-  connect, disconnect, getNodeColor,
-  onNodeStatus, onExecutionCompleted,
-} = useMonitor()
+// 本地状态 — 由父组件通过 loadNodeStatuses / setExecutionStatus 驱动
+const nodeStatuses = ref<Record<string, string>>({})
+const executionStatus = ref<string>('')
 
 // Live node stats
 const statusStats = computed(() => {
-  const vals = Object.values(nodeStatuses.value) as string[]
+  const vals = Object.values(nodeStatuses.value)
   let completed = 0, running = 0, failed = 0
   for (const s of vals) {
     if (s === 'completed') completed++
@@ -93,7 +90,6 @@ const statusStats = computed(() => {
   }
   return { completed, running, failed }
 })
-/** Total 使用画布节点数而非 nodeStatuses 长度，避免 Total 从 0 开始跳变 */
 const statusTotal = computed(() => graphNodeCount.value || 1)
 const progressPct = computed(() => {
   const total = statusTotal.value
@@ -120,7 +116,7 @@ const durationText = computed(() => {
   return `${Math.floor(sec / 60)}m ${sec % 60}s`
 })
 
-// ── 运行态节点颜色映射（ops-atom 卡片风格） ──
+// ── 节点颜色映射 ──
 
 interface MonitorAttrs {
   body?: Record<string, any>
@@ -182,14 +178,53 @@ function atomMonitorAttrs(status: string, _label: string): MonitorAttrs {
   return override
 }
 
+const runningNodeIds = new Set<string>()
+
+function applyNodeColor(nodeId: string, status: string) {
+  if (!graph.value) return
+  const cell = graph.value.getCellById(nodeId)
+  if (!cell || !cell.isNode()) return
+
+  const wasRunning = runningNodeIds.has(nodeId)
+  const isRunning = status === 'running'
+
+  if (cell.shape === 'ops-atom') {
+    const label = cell.getData()?.label || ''
+    const attrs = atomMonitorAttrs(status, label)
+    cell.setAttrs(attrs)
+  } else {
+    const color = getColor(status)
+    cell.setAttrByPath('body/stroke', color)
+    if (isRunning) {
+      cell.setAttrByPath('body/fill', '#fdf6ec')
+      cell.setAttrByPath('body/class', 'op-node-running')
+    } else {
+      if (wasRunning) cell.setAttrByPath('body/class', '')
+      if (status === 'completed') cell.setAttrByPath('body/fill', '#f0f9eb')
+      else if (status === 'failed') cell.setAttrByPath('body/fill', '#fef0f0')
+      else if (status === 'skipped') cell.setAttrByPath('body/fill', '#f5f7fa')
+    }
+  }
+
+  if (isRunning) runningNodeIds.add(nodeId)
+  else runningNodeIds.delete(nodeId)
+}
+
+function getColor(status: string): string {
+  switch (status) {
+    case 'completed': return '#67C23A'
+    case 'running': return '#E6A23C'
+    case 'failed': return '#F56C6C'
+    default: return '#909399'
+  }
+}
+
 // ── 画布加载 ──
 
 function loadGraphData(data: { nodes: any[]; edges: any[] }) {
   if (!graph.value) { console.warn('[MonitorCanvas] graph not ready'); return }
   try {
     const cells: any[] = []
-
-    // 缺少坐标时计算后备布局
     const needLayout = (data.nodes || []).some(n => n.x == null)
     const fallbackPos = needLayout
       ? layoutNodes(data.nodes || [], (data.edges || []).map(e => ({ from: e.from || e.source, to: e.to || e.target })))
@@ -203,16 +238,11 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
         if (p) { x = p.x; y = p.y }
       }
       const x6Node = graph.value.createNode({
-        id: node.id,
-        shape: shapeName,
-        x: x ?? 0, y: y ?? 0,
-        data: node,
+        id: node.id, shape: shapeName, x: x ?? 0, y: y ?? 0, data: node,
       })
-      // 对 ops-atom 应用卡片样式（设计态默认）
       if (x6Node.shape === 'ops-atom') {
         updateAtomNode(x6Node)
         x6Node.resize(CARD_WIDTH, CARD_HEIGHT)
-        // 原子卡片视觉重心偏下，上移 2px
         x6Node.setPosition(x6Node.getPosition().x, x6Node.getPosition().y - 4)
       }
       cells.push(x6Node)
@@ -234,99 +264,37 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
     graph.value.centerContent()
     graph.value.zoomToFit({ padding: 24, maxZoom: 1 })
 
-    // 应用节点颜色：直接遍历，不包裹 batchUpdate（否则后续 WS 单节点 setAttrs 会被 batch 的锁覆盖）
+    // 应用节点颜色
     const statuses = nodeStatuses.value
     graph.value.getNodes().forEach((cell: any) => {
       const nid = cell.id
-      if (nid && statuses[nid]) {
-        applyNodeColor(nid, statuses[nid])
-      }
+      if (nid && statuses[nid]) applyNodeColor(nid, statuses[nid])
     })
-
-    // 边加载完成后触发动画（解决 setExecutionStatus 早于 loadGraphData 的时序问题）
   } catch (e) {
     console.error('[MonitorCanvas] loadGraphData error:', e)
   }
 }
 
-// ── 节点着色（适配 ops-atom 卡片 markup + 传统节点） ──
+// ── 公开方法：父组件调用 ──
 
-const runningNodeIds = new Set<string>()
-
-function applyNodeColor(nodeId: string, status: string) {
+function loadNodeStatuses(statusMap: Record<string, string>) {
+  nodeStatuses.value = { ...statusMap }
   if (!graph.value) return
-  const cell = graph.value.getCellById(nodeId)
-  if (!cell || !cell.isNode()) return
-
-  const wasRunning = runningNodeIds.has(nodeId)
-  const isRunning = status === 'running'
-
-  if (cell.shape === 'ops-atom') {
-    const label = cell.getData()?.label || ''
-    const attrs = atomMonitorAttrs(status, label)
-    cell.setAttrs(attrs)
-  } else {
-    // 传统节点（start/end/gateway/approval/subprocess）
-    const color = getNodeColor(status)
-    cell.setAttrByPath('body/stroke', color)
-    if (isRunning) {
-      cell.setAttrByPath('body/fill', '#fdf6ec')
-      cell.setAttrByPath('body/class', 'op-node-running')
-    } else {
-      if (wasRunning) cell.setAttrByPath('body/class', '')
-      if (status === 'completed') cell.setAttrByPath('body/fill', '#f0f9eb')
-      else if (status === 'failed') cell.setAttrByPath('body/fill', '#fef0f0')
-      else if (status === 'skipped') cell.setAttrByPath('body/fill', '#f5f7fa')
-    }
-  }
-
-  if (isRunning) runningNodeIds.add(nodeId)
-  else runningNodeIds.delete(nodeId)
-}
-
-/**
- * 节点着色 + 边动画激活：仅通过 WebSocket 推送更新。
- * WS 逐条消息 → onNodeStatus 回调 → 单节点 applyNodeColor。
- * 第一个 `running` 节点到达时自动激活动画。
- */
-onMounted(() => {
-  let _edgeActivated = false
-  onNodeStatus((nid, status) => {
-    if (!_edgeActivated && status === 'running') {
-      _edgeActivated = true
-      setEdgeAnimation(true)
-    }
-    console.log('[WS-Monitor] node_status', nid, status, 'WS->apply at', Date.now())
-    if (!graph.value) return
-    const cell = graph.value.getCellById(nid)
-    if (cell?.isNode()) applyNodeColor(nid, status)
+  graph.value.getNodes().forEach((cell: any) => {
+    const st = statusMap[cell.id]
+    if (st) applyNodeColor(cell.id, st)
   })
-
-  // 流程完成时本地清扫残留 running 节点
-  onExecutionCompleted((_status) => {
-    console.log('[WS-Monitor] execution_completed, sweeping local nodeStatuses', Date.now())
-    const ns = { ...nodeStatuses.value }
-    for (const [k, v] of Object.entries(ns)) {
-      if (v === 'running') {
-        ns[k] = 'completed'
-        const cell = graph.value?.getCellById(k)
-        if (cell?.isNode()) applyNodeColor(k, 'completed')
-      }
-    }
-    nodeStatuses.value = ns
-    setEdgeAnimation(false)
-  })
-})
-
-function refreshCanvas() {
-  if (graph.value) graph.value.resize()
 }
 
 function setExecutionStatus(status: string) {
   executionStatus.value = status
 }
 
-// ── 边流动动画（X6 transition，仅在 executionStatus === running 时激活） ──
+function refreshCanvas() {
+  if (graph.value) graph.value.resize()
+}
+
+// ── 边动画 ──
 
 let edgeAnimationActive = false
 
@@ -343,9 +311,7 @@ function setEdgeAnimation(active: boolean) {
         edge.setAttrByPath('line/strokeDashoffset', 0)
         const tick = () => {
           if (!edgeAnimationActive) return
-          edge.transition('attrs/line/strokeDashoffset', -12, {
-            timing: 'linear', duration: 350,
-          })
+          edge.transition('attrs/line/strokeDashoffset', -12, { timing: 'linear', duration: 350 })
           edge.once('transition:complete', () => {
             edge.setAttrByPath('line/strokeDashoffset', 0)
             tick()
@@ -376,14 +342,13 @@ onMounted(() => {
   initGraph()
   enableResize()
   enableVisibilityRefresh()
-  connect(props.executionId)
 })
 
 onActivated(() => {
   if (graph.value) graph.value.resize()
 })
 
-defineExpose({ loadGraphData, refreshCanvas, setExecutionStatus })
+defineExpose({ loadGraphData, loadNodeStatuses, setExecutionStatus, refreshCanvas })
 </script>
 
 <style lang="scss" scoped>
@@ -399,32 +364,6 @@ defineExpose({ loadGraphData, refreshCanvas, setExecutionStatus })
 .monitor-header-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .zoom-controls { display: flex; align-items: center; gap: 2px; background: #f5f7fa; border-radius: 6px; padding: 2px; }
 .zoom-level { font-size: 11px; color: #909399; min-width: 36px; text-align: center; font-family: monospace; }
-.ws-status { font-size: 12px; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; }
-.ws-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-.ws-connected { background: #f0f9eb; color: #67c23a; }
-.ws-connected .ws-dot { background: #67c23a; animation: pulse 2s infinite; }
-.ws-disconnected { background: #fef0f0; color: #f56c6c; }
-.ws-disconnected .ws-dot { background: #f56c6c; }
-
-/* 运行态节点闪烁动画 */
-:deep(.op-node-running) {
-  animation: op-pulse 1.5s ease-in-out infinite !important;
-}
-@keyframes op-pulse {
-  0%, 100% { stroke-opacity: 1; stroke-width: 2.5; fill-opacity: 1; }
-  50% { stroke-opacity: 0.3; fill-opacity: 0.5; }
-}
-
-/* 状态圆点脉动动画 */
-:deep(.op-dot-pulse) {
-  animation: op-dot-breathe 1.5s ease-in-out infinite;
-}
-@keyframes op-dot-breathe {
-  0%, 100% { opacity: 1; r: 4; }
-  50% { opacity: 0.3; r: 6; }
-}
-
-
 .header-stats { display: flex; align-items: center; gap: 10px; }
 .hstat-item { display: flex; align-items: center; gap: 3px; }
 .hstat-value { font-size: 14px; font-weight: 700; color: #303133; line-height: 1; }
@@ -434,7 +373,6 @@ defineExpose({ loadGraphData, refreshCanvas, setExecutionStatus })
 .hstat-value.hstat-duration { font-size: 13px; font-weight: 600; color: #606266; }
 .hstat-label { font-size: 11px; color: #909399; margin-left: 1px; }
 .header-progress { flex: 1; min-width: 120px; }
-
 .x6-canvas { flex: 1; min-height: 400px; }
 .monitor-legend {
   display: flex; align-items: center; gap: 12px; padding: 6px 16px;
@@ -443,4 +381,9 @@ defineExpose({ loadGraphData, refreshCanvas, setExecutionStatus })
 .legend-item { display: flex; align-items: center; gap: 4px; }
 .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .legend-divider { width: 1px; height: 14px; background: #e4e7ed; margin: 0 4px; }
+:deep(.op-node-running) { animation: op-pulse 1.5s ease-in-out infinite !important; }
+@keyframes op-pulse {
+  0%, 100% { stroke-opacity: 1; stroke-width: 2.5; fill-opacity: 1; }
+  50% { stroke-opacity: 0.3; fill-opacity: 0.5; }
+}
 </style>

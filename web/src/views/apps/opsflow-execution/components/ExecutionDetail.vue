@@ -462,7 +462,7 @@ async function onCancel() {
 
 // Auto-refresh while execution is active (pending/running/paused)
 let autoTimer: ReturnType<typeof setInterval> | null = null
-function startAutoRefresh() { if (!autoTimer) autoTimer = setInterval(() => refresh(), 3000) }
+function startAutoRefresh() { if (!autoTimer) autoTimer = setInterval(() => refresh(), 10000) }
 function stopAutoRefresh() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null } }
 
 watch(isRunning, (v) => { if (v) startAutoRefresh(); else stopAutoRefresh() }, { immediate: true })

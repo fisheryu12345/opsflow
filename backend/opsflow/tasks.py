@@ -19,8 +19,6 @@ def run_async(coro):
     处理策略：
     - 有运行中循环 → run_coroutine_threadsafe + timeout 防止死锁
     - 无运行中循环 → 创建临时事件循环执行并关闭
-
-    WS 推送是 best-effort 通知，避免阻塞 worker。
     """
     import uuid
     _req_id = uuid.uuid4().hex[:8]
@@ -30,7 +28,7 @@ def run_async(coro):
         return future.result(timeout=_NOTIFY_TIMEOUT)
     except concurrent.futures.TimeoutError:
         logger.warning(
-            "[req=%s] run_async timed-out after %ss (WS message lost, pipeline continues)",
+            "[req=%s] run_async timed-out after %ss",
             _req_id, _NOTIFY_TIMEOUT,
         )
         return None
@@ -58,62 +56,9 @@ def execute_pipeline_task(self, execution_id):
         raise self.retry(exc=exc)
 
 
-def _ws_notify(execution_id, node_id, status, message="", msg_type="node_status"):
-    """推送节点状态到 WebSocket（async_to_sync，不阻塞）
-
-    使用 asgiref.sync.async_to_sync 适配同步上下文，它在 Django/
-    Celery worker 中利用线程池执行异步代码，不会阻塞 gevent 协程
-    也不会创建临时事件循环。
-    """
-    from asgiref.sync import async_to_sync
-    from channels.layers import get_channel_layer
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f"execution_{execution_id}",
-        {
-            "type": msg_type,
-            "node_id": node_id,
-            "status": status,
-            "message": message,
-        },
-    )
-
-
-@shared_task(queue='er_ws')
-def notify_node_status(execution_id, node_id, status, message=''):
-    """Celery 任务 — 推送节点状态到 WebSocket（通过同步 Redis pub/sub）
-
-    避免使用 channels_redis 的 async API，改用同步 Redis 直连写入
-    channel layer 的 pub/sub 通道。
-    """
-    _ws_notify(execution_id, node_id, status, message)
-
-
-@shared_task(queue='er_ws')
-def notify_execution_completed(execution_id, execution_status):
-    """Celery 任务 — 推送执行完成通知到 WebSocket
-
-    使用与 notify_node_status 相同的队列（er_execute），确保消息有序：
-    notify_node_status 先入队 → notify_execution_completed 后入队，
-    Celery 按 FIFO 顺序投递，避免 execution_completed 先于节点状态
-    到达前端的时序竞争。
-    """
-    from channels.layers import get_channel_layer
-    channel_layer = get_channel_layer()
-    run_async(
-        channel_layer.group_send(
-            f"execution_{execution_id}",
-            {"type": "execution.completed", "status": execution_status},
-        )
-    )
-
-
 @shared_task(bind=True, max_retries=0)
 def auto_retry_node_task(self, execution_id, node_id):
-    """Celery 任务 — 自动重试失败节点（由 auto_retry dispatch 触发）
-
-    参考 bk_sops auto_retry_node Celery 任务
-    """
+    """Celery 任务 — 自动重试失败节点（由 auto_retry dispatch 触发）"""
     from opsflow.models import FlowExecution, AutoRetryStrategy
     from opsflow.core.flow_engine import FlowEngine
 
@@ -122,20 +67,12 @@ def auto_retry_node_task(self, execution_id, node_id):
         strategy = AutoRetryStrategy.objects.get(
             execution=execution, node_id=node_id,
         )
-
-        # 自增重试计数器
         strategy.retry_times += 1
         strategy.save(update_fields=['retry_times'])
-
-        # 执行重试
         engine = FlowEngine(execution)
         engine.retry(node_id)
-
-        logger.info(
-            "[AutoRetry] Node %s auto-retried (%d/%d)",
-            node_id, strategy.retry_times, strategy.max_retry_times,
-        )
-
+        logger.info("[AutoRetry] Node %s auto-retried (%d/%d)",
+                    node_id, strategy.retry_times, strategy.max_retry_times)
     except FlowExecution.DoesNotExist:
         logger.error("[AutoRetry] Execution %s not found", execution_id)
     except AutoRetryStrategy.DoesNotExist:
@@ -146,10 +83,7 @@ def auto_retry_node_task(self, execution_id, node_id):
 
 @shared_task(queue='er_execute')
 def execute_node_timeout_strategy(execution_id, node_id, action):
-    """Celery 任务 — 执行节点超时策略
-
-    在 dispatch_timeout_nodes 发现到期节点后调用。
-    """
+    """Celery 任务 — 执行节点超时策略"""
     from opsflow.models import FlowExecution, NodeTimeoutConfig
     from opsflow.core.node_timeout_strategy import NODE_TIMEOUT_HANDLER
 
@@ -177,13 +111,7 @@ def webhook_send(self, webhook_id, execution_id, event):
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)
 def retry_schedule_execution(self, plan_id, plan_max_retries=None):
-    """Celery 任务 — 重试调度计划执行
-
-    Args:
-        plan_id: SchedulePlan ID
-        plan_max_retries: 来自 plan.max_retries，覆盖 task 默认值
-    """
-    # 用 plan.max_retries 覆盖任务的默认 max_retries
+    """Celery 任务 — 重试调度计划执行"""
     if plan_max_retries is not None and plan_max_retries > 0:
         self.max_retries = plan_max_retries
     from opsflow.core.scheduler_service import opsflow_scheduler

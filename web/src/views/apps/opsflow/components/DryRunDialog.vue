@@ -67,7 +67,7 @@ watch(visible, (v) => {
 
 function startPolling() {
   stopPolling()
-  pollTimer = setInterval(fetchStatus, 2000)
+  pollTimer = setInterval(fetchStatus, 10000)
   setTimeout(() => fetchStatus(), 500)
 }
 
