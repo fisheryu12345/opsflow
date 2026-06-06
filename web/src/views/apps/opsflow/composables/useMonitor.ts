@@ -26,15 +26,17 @@ export function useMonitor() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const host = window.location.host
     const url = `${protocol}//${host}/ws/opsflow/execution/${executionId}/`
+    console.log('[WS-Connect] connecting to', url, 'executionId:', executionId, 'at', Date.now())
 
     const socket = new WebSocket(url)
-    socket.onopen = () => { connected.value = true }
-    socket.onclose = () => { connected.value = false }
-    socket.onerror = () => { connected.value = false }
+    socket.onopen = () => { console.log('[WS-Connect] opened', url); connected.value = true }
+    socket.onclose = (e) => { console.log('[WS-Connect] closed', url, 'code:', e.code, 'reason:', e.reason); connected.value = false }
+    socket.onerror = (e) => { console.warn('[WS-Connect] error', url, e); connected.value = false }
     socket.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data)
         if (msg.type === 'node_status') {
+          console.log('[WS-Raw] node_status', msg.node_id, msg.status, 'received at', Date.now())
           const old = nodeStatuses.value[msg.node_id]
           nodeStatuses.value[msg.node_id] = msg.status
           _onNodeStatus?.(msg.node_id, msg.status, old)

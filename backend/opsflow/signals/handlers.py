@@ -160,12 +160,19 @@ def _sweep_node_status(execution, terminal_status):
 
     流程已完成但个别节点的信号因时序竞争或并发原因未更新到终态时，
     批量补全确保前端计数准确。
+    同时推送 WS 通知，避免前端等待 API 轮询才看到节点变色。
     """
+    from opsflow.signals.notify import _notify_node_status
+
     ns = dict(execution.node_status or {})
     changed = False
     for k, v in ns.items():
         if v in ("running", "finished"):
             ns[k] = terminal_status
             changed = True
+            try:
+                _notify_node_status(execution, k, terminal_status)
+            except Exception:
+                logger.exception("[Signal] _notify_node_status error during sweep for node %s", k)
     if changed:
         execution.node_status = ns

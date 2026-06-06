@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, onActivated, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { Monitor, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
 import { useMonitor } from '../composables/useMonitor'
 import { useGraphCanvas, layoutNodes } from '../composables/useGraphCanvas'
@@ -79,7 +79,7 @@ const {
 const {
   connected: wsConnected, nodeStatuses, executionStatus,
   connect, disconnect, getNodeColor,
-  onNodeStatus, onExecutionCompleted, onInitState,
+  onNodeStatus,
 } = useMonitor()
 
 // Live node stats
@@ -123,69 +123,61 @@ const durationText = computed(() => {
 // ── 运行态节点颜色映射（ops-atom 卡片风格） ──
 
 interface MonitorAttrs {
-  'accent-bar'?: Record<string, any>
   body?: Record<string, any>
   label?: Record<string, any>
-  subtitle?: Record<string, any>
+  desc?: Record<string, any>
   'icon-bg'?: Record<string, any>
   icon?: Record<string, any>
   'status-dot'?: Record<string, any>
 }
 
-/** 根据状态生成 ops-atom 的全部 attrs 覆盖 */
 function atomMonitorAttrs(status: string, _label: string): MonitorAttrs {
   const override: MonitorAttrs = {}
   switch (status) {
     case 'running':
-      override['accent-bar'] = { fill: '#E6A23C' }
-      override.body = { fill: '#FFFBF0', stroke: '#E6A23C', class: 'op-node-running' }
+      override.body = { fill: '#FFFBF0', stroke: '#E6A23C' }
       override.label = { fill: '#E6A23C' }
-      override.subtitle = { fill: '#E6A23C', text: '执行中' }
+      override.desc = { fill: '#E6A23C', text: '执行中' }
       override['icon-bg'] = { stroke: '#E6A23C', strokeDasharray: '60 28' }
-      override['status-dot'] = { fill: '#E6A23C', class: 'op-dot-pulse' }
+      override['status-dot'] = { fill: '#E6A23C' }
       break
     case 'completed':
-      override['accent-bar'] = { fill: '#67C23A' }
-      override.body = { fill: '#F0F9EB', stroke: '#67C23A', class: '' }
+      override.body = { fill: '#F0F9EB', stroke: '#67C23A' }
       override.label = { fill: '#67C23A' }
-      override.subtitle = { fill: '#67C23A', text: '已完成' }
+      override.desc = { fill: '#67C23A', text: '已完成' }
       override['icon-bg'] = { fill: '#E1F3D8', stroke: '#67C23A', strokeDasharray: '' }
       override.icon = { text: '✓', fill: '#67C23A', fontSize: 14 }
-      override['status-dot'] = { fill: '#67C23A', class: '' }
+      override['status-dot'] = { fill: '#67C23A' }
       break
     case 'failed':
-      override['accent-bar'] = { fill: '#F56C6C' }
-      override.body = { fill: '#FEF0F0', stroke: '#F56C6C', class: '' }
+      override.body = { fill: '#FEF0F0', stroke: '#F56C6C' }
       override.label = { fill: '#F56C6C' }
-      override.subtitle = { fill: '#F56C6C', text: '失败' }
+      override.desc = { fill: '#F56C6C', text: '失败' }
       override['icon-bg'] = { fill: '#FDE2E2', stroke: '#F56C6C', strokeDasharray: '' }
       override.icon = { text: '✕', fill: '#F56C6C', fontSize: 14 }
-      override['status-dot'] = { fill: '#F56C6C', class: '' }
+      override['status-dot'] = { fill: '#F56C6C' }
       break
     case 'skipped':
-      override['accent-bar'] = { fill: '#C0C4CC' }
-      override.body = { fill: '#F5F7FA', stroke: '#C0C4CC', class: '' }
+      override.body = { fill: '#F5F7FA', stroke: '#C0C4CC' }
       override.label = { fill: '#C0C4CC' }
-      override.subtitle = { fill: '#C0C4CC', text: '已跳过' }
+      override.desc = { fill: '#C0C4CC', text: '已跳过' }
       override['icon-bg'] = { fill: '#EBEEF5', stroke: '#C0C4CC', strokeDasharray: '' }
-      override['status-dot'] = { fill: '#C0C4CC', class: '' }
+      override['status-dot'] = { fill: '#C0C4CC' }
       break
     case 'pending_approval':
-      override['accent-bar'] = { fill: '#9B59B6' }
-      override.body = { fill: '#F3E8FF', stroke: '#9B59B6', class: '' }
+      override.body = { fill: '#F3E8FF', stroke: '#9B59B6' }
       override.label = { fill: '#9B59B6' }
-      override.subtitle = { fill: '#9B59B6', text: '等待审批' }
+      override.desc = { fill: '#9B59B6', text: '等待审批' }
       override['icon-bg'] = { fill: '#EDDDFF', stroke: '#9B59B6', strokeDasharray: '' }
       override.icon = { text: '🔐', fontSize: 14 }
-      override['status-dot'] = { fill: '#9B59B6', class: '' }
+      override['status-dot'] = { fill: '#9B59B6' }
       break
-    default: // pending / undefined
-      override['accent-bar'] = { fill: '#909399' }
-      override.body = { fill: '#FFF', stroke: '#DCDFE6', class: '' }
+    default:
+      override.body = { fill: '#FFF', stroke: '#DCDFE6' }
       override.label = { fill: '#C0C4CC' }
-      override.subtitle = { fill: '#C0C4CC', text: '等待执行' }
+      override.desc = { fill: '#C0C4CC', text: '等待执行' }
       override['icon-bg'] = { fill: '#F5F7FA', stroke: '#DCDFE6', strokeDasharray: '' }
-      override['status-dot'] = { fill: 'transparent', class: '' }
+      override['status-dot'] = { fill: 'transparent' }
   }
   return override
 }
@@ -253,9 +245,6 @@ function loadGraphData(data: { nodes: any[]; edges: any[] }) {
     })
 
     // 边加载完成后触发动画（解决 setExecutionStatus 早于 loadGraphData 的时序问题）
-    if (executionStatus.value === 'running') {
-      setEdgeAnimation(true)
-    }
   } catch (e) {
     console.error('[MonitorCanvas] loadGraphData error:', e)
   }
@@ -297,59 +286,25 @@ function applyNodeColor(nodeId: string, status: string) {
 }
 
 /**
- * WS 消息 → 精准单节点更新（避免 watch 全量遍历的 O(n²) 开销）
- *
- * 为什么不用 watch(nodeStatuses, { deep: true })？
- * watch 是 Vue 异步队列，每次 nodeStatuses 属性变更都会触发一次
- * 微任务级别的全量遍历（26 节点 × 52 消息 = 1352 次 applyNodeColor）。
- * 当多个 WS 消息连续到达时，watch 的微任务排队阻塞，造成视觉延迟。
- *
- * 策略：
- *   - WS 消息：直接用 onNodeStatus 回调单节点着色，不做全量遍历
- *   - API 轮询：仅对增量部分着色，见 loadNodeStatuses → watch
- *   - 无 RAF：completed/failed 直接着色，不需要 running→completed 的过渡帧
- *     （浏览器 microtask 已经保证了微任务内所有着色在同一帧生效）
+ * 节点着色 + 边动画激活：仅通过 WebSocket 推送更新。
+ * WS 逐条消息 → onNodeStatus 回调 → 单节点 applyNodeColor。
+ * 第一个 `running` 节点到达时自动激活动画。
  */
 onMounted(() => {
-  // API 轮询场景（loadNodeStatuses 整体替换时触发）
-  // 不设 deep：WS 消息走 onNodeStatus 单节点更新，不需要 watch 再全量遍历
-  const stopWatch = watch(nodeStatuses, (statuses) => {
-    if (!graph.value) return
-    for (const [nid, st] of Object.entries(statuses)) {
-      const cell = graph.value.getCellById(nid)
-      if (cell?.isNode()) applyNodeColor(nid, st)
+  let _edgeActivated = false
+  onNodeStatus((nid, status) => {
+    // 第一个 running 节点激活动画
+    if (!_edgeActivated && status === 'running') {
+      _edgeActivated = true
+      setEdgeAnimation(true)
     }
-  })
-
-  // WS 逐条消息着色 — 单节点精准更新，不做全量遍历
-  onNodeStatus((nid, status, _oldStatus) => {
+    // 着色
+    console.log('[WS-Monitor] node_status', nid, status, 'WS->apply at', Date.now())
     if (!graph.value) return
     const cell = graph.value.getCellById(nid)
     if (cell?.isNode()) applyNodeColor(nid, status)
   })
-
-  onExecutionCompleted((_status) => {
-    stopWatch?.()
-  })
 })
-
-/** TERMINAL_STATES — 终态列表，API 轮询返回的非终态值不覆盖 WS 已收到的终态 */
-const TERMINAL_STATES = new Set(['completed', 'failed', 'cancelled', 'skipped'])
-
-function loadNodeStatuses(statusMap: Record<string, string>) {
-  // 合并而非替换 — API 响应可能比 WebSocket 慢一步，全量替换会
-  // 重置已通过 WS 收到的终态节点为 running/pending，导致进度条倒退、
-  // 节点颜色来回跳变。
-  //
-  // 规则：对已在终态的节点，不覆盖为非终态。
-  const merged = { ...nodeStatuses.value }
-  for (const [nid, s] of Object.entries(statusMap)) {
-    const existing = merged[nid]
-    if (existing && TERMINAL_STATES.has(existing)) continue  // 不覆盖终态
-    merged[nid] = s
-  }
-  nodeStatuses.value = merged
-}
 
 function refreshCanvas() {
   if (graph.value) graph.value.resize()
@@ -359,41 +314,39 @@ function setExecutionStatus(status: string) {
   executionStatus.value = status
 }
 
-// ── X6 transition 驱动边流动动画 ──
+// ── 边流动动画（X6 transition，仅在 executionStatus === running 时激活） ──
 
 let edgeAnimationActive = false
 
 function setEdgeAnimation(active: boolean) {
   edgeAnimationActive = active
   if (!graph.value) return
-  graph.value.getEdges().forEach(edge => {
-    edge.stopTransition('attrs/line/strokeDashoffset')
-    if (active) {
-      edge.setAttrByPath('line/class', '')
-      edge.setAttrByPath('line/strokeDasharray', '8 4')
-      edge.setAttrByPath('line/stroke', '#E6A23C')
-      edge.setAttrByPath('line/strokeWidth', 2)
-      edge.setAttrByPath('line/strokeDashoffset', 0)
-      const tick = () => {
-        if (!edgeAnimationActive) return
-        edge.transition('attrs/line/strokeDashoffset', -12, {
-          timing: 'linear',
-          duration: 350,
-        })
-        edge.once('transition:complete', () => {
-          // -12 和 0 在 8+4 模式下视觉相同，快照重置无跳变
-          edge.setAttrByPath('line/strokeDashoffset', 0)
-          tick()
-        })
+  graph.value.batchUpdate('edge-animation', () => {
+    graph.value.getEdges().forEach(edge => {
+      edge.stopTransition('attrs/line/strokeDashoffset')
+      if (active) {
+        edge.setAttrByPath('line/strokeDasharray', '8 4')
+        edge.setAttrByPath('line/stroke', '#E6A23C')
+        edge.setAttrByPath('line/strokeWidth', 2)
+        edge.setAttrByPath('line/strokeDashoffset', 0)
+        const tick = () => {
+          if (!edgeAnimationActive) return
+          edge.transition('attrs/line/strokeDashoffset', -12, {
+            timing: 'linear', duration: 350,
+          })
+          edge.once('transition:complete', () => {
+            edge.setAttrByPath('line/strokeDashoffset', 0)
+            tick()
+          })
+        }
+        tick()
+      } else {
+        edge.setAttrByPath('line/strokeDashoffset', 0)
+        edge.setAttrByPath('line/strokeDasharray', '')
+        edge.setAttrByPath('line/stroke', '#DCDFE6')
+        edge.setAttrByPath('line/strokeWidth', 1.5)
       }
-      tick()
-    } else {
-      edge.setAttrByPath('line/class', '')
-      edge.setAttrByPath('line/strokeDashoffset', 0)
-      edge.setAttrByPath('line/strokeDasharray', '')
-      edge.setAttrByPath('line/stroke', '#DCDFE6')
-      edge.setAttrByPath('line/strokeWidth', 1.5)
-    }
+    })
   })
 }
 
@@ -418,7 +371,7 @@ onActivated(() => {
   if (graph.value) graph.value.resize()
 })
 
-defineExpose({ loadGraphData, loadNodeStatuses, refreshCanvas, setExecutionStatus })
+defineExpose({ loadGraphData, refreshCanvas, setExecutionStatus })
 </script>
 
 <style lang="scss" scoped>

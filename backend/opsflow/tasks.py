@@ -59,45 +59,26 @@ def execute_pipeline_task(self, execution_id):
         raise self.retry(exc=exc)
 
 
-_CHANNEL_REDIS_PREFIX = "asgi"
-
-
 def _ws_notify(execution_id, node_id, status, message=""):
-    """同步推送节点状态到 WebSocket，通过 Redis pub/sub 直接写入 channel layer。
+    """推送节点状态到 WebSocket（通过 channel_layer.group_send）
 
-    不使用 channels_redis 的 async API（在 Celery worker 中跨临时事件循环时
-    Redis 异步连接会过期），改用同步 Redis 直连 + channels_redis 内部 key 格式。
+    使用 channels_redis 标准 group_send API（与 notify_execution_completed 一致），
+    避免直接操作 Redis 内部 key 格式导致的兼容性问题。
+    注意：从信号处理器中调用时需确认 run_async 能正常工作。
     """
-    import redis
-
-    host = "127.0.0.1"
-    port = 6379
-    db = 0
-
-    try:
-        r = redis.Redis(host=host, port=port, db=db, socket_connect_timeout=3)
-        group = f"execution_{execution_id}"
-        payload = json.dumps(
+    from channels.layers import get_channel_layer
+    channel_layer = get_channel_layer()
+    run_async(
+        channel_layer.group_send(
+            f"execution_{execution_id}",
             {
                 "type": "node_status",
                 "node_id": node_id,
                 "status": status,
                 "message": message,
-            }
+            },
         )
-        group_key = f"{_CHANNEL_REDIS_PREFIX}:g:{group}"
-        channel_names = r.zrange(group_key, 0, -1)
-        for ch in channel_names:
-            if isinstance(ch, bytes):
-                ch = ch.decode()
-            r.publish(f"{_CHANNEL_REDIS_PREFIX}:{ch}", payload)
-    except Exception as e:
-        logger.warning(
-            "WS notify best-effort failed for execution %s: %s "
-            "(pipeline continues, UI may miss real-time update)",
-            execution_id,
-            e,
-        )
+    )
 
 
 @shared_task(queue='er_execute')
