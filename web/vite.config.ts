@@ -66,7 +66,7 @@ const viteConfig = defineConfig((mode: ConfigEnv) => {
 		css: {
 			preprocessorOptions: {
 				scss: {
-					api: 'modern-compiler',
+					silenceDeprecations: ['legacy-js-api'],
 					charset: false,
 				},
 			},
