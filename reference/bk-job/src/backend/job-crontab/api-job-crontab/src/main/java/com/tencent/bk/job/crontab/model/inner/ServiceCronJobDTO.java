@@ -1,0 +1,90 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.crontab.model.inner;
+
+import com.tencent.bk.job.common.model.dto.notify.CustomNotifyDTO;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
+@Schema(description = "定时任务信息")
+public class ServiceCronJobDTO {
+
+    @Schema(description = "任务 ID")
+    private Long id;
+
+    @Schema(description = "业务 ID")
+    private Long appId;
+
+    @Schema(description = "任务名称")
+    private String name;
+
+    @Schema(description = "创建人")
+    private String creator;
+
+    @Schema(description = "关联的执行方案 ID")
+    private Long taskPlanId;
+
+    @Schema(description = "关联的脚本 ID")
+    private String scriptId;
+
+    @Schema(description = "关联的脚本版本")
+    private Long scriptVersionId;
+
+    @Schema(description = "循环执行的定时表达式")
+    private String cronExpression;
+
+    @Schema(description = "单次执行的指定执行时间戳")
+    private Long executeTime;
+
+    @Schema(description = "上次执行结果 0 - 未执行 1 - 成功 2 - 失败")
+    private Integer lastExecuteStatus;
+
+    @Schema(description = "是否启用")
+    private Boolean enable;
+
+    @Schema(description = "最后修改人")
+    private String lastModifyUser;
+
+    @Schema(description = "最后修改时间戳")
+    private Long lastModifyTime;
+
+    /**
+     * 通知方式（1-继承业务, 2-自定义）
+     * @see com.tencent.bk.job.common.constant.CronJobNotifyType
+     */
+    @Schema(description = "通知方式（1-继承业务, 2-自定义）")
+    private Integer notifyType = 1;
+
+    /**
+     * 自定义通知配置
+     */
+    @Schema(description = "自定义通知配置")
+    private CustomNotifyDTO customCronJobNotifyDTO = new CustomNotifyDTO();
+}

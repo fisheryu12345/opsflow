@@ -1,0 +1,134 @@
+{{- if and .Values.executeConfig.enabled (eq .Values.deploy.mode "standard") }}
+apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}-execute
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: "job-execute"
+    {{ include "job.labelKeys.jobScope" . }}: {{ include "job.labelValues.jobScope.backend" . }}
+    {{ include "job.labelKeys.imageTag" . }}: {{ .Values.executeConfig.image.tag | quote }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  annotations:
+  {{- if .Values.commonAnnotations }}
+  {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.executeConfig.autoscaling.enabled }}
+  replicas: {{ .Values.executeConfig.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels: 
+      {{- include "common.labels.matchLabels" . | nindent 6 }}
+      app.kubernetes.io/component: job-execute
+  template:
+    metadata:
+      labels:
+        {{- include "common.labels.matchLabels" . | nindent 8 }}
+        app.kubernetes.io/component: "job-execute"
+        {{ include "job.labelKeys.jobScope" . }}: {{ include "job.labelValues.jobScope.backend" . }}
+        {{ include "job.labelKeys.imageTag" . }}: {{ .Values.executeConfig.image.tag | quote }}
+      annotations:
+        {{ include "annotations.sha256sum.configmap" ( dict "service" "job-execute" "context" . ) | nindent 8 }}
+    spec:
+      {{- include "job.imagePullSecrets" . | nindent 6 }}
+      hostAliases: {{- include "common.tplvalues.render" (dict "value" .Values.hostAliases "context" $) | nindent 8 }}
+      {{- if .Values.executeConfig.affinity }}
+      affinity: {{- include "common.tplvalues.render" ( dict "value" .Values.executeConfig.affinity "context" $) | nindent 8 }}
+      {{- else }}
+      affinity:
+        podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.executeConfig.podAffinityPreset "component" "job-execute" "context" $) | nindent 10 }}
+        podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.executeConfig.podAntiAffinityPreset "component" "job-execute" "context" $) | nindent 10 }}
+        nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.executeConfig.nodeAffinityPreset.type "key" .Values.executeConfig.nodeAffinityPreset.key "values" .Values.executeConfig.nodeAffinityPreset.values) | nindent 10 }}
+      {{- end }}
+      {{- if .Values.executeConfig.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.executeConfig.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.executeConfig.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.executeConfig.tolerations "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.executeConfig.priorityClassName }}
+      priorityClassName: {{ .Values.executeConfig.priorityClassName | quote }}
+      {{- end }}
+      serviceAccountName: {{ include "job.serviceAccountName" . | quote }}
+      {{- if .Values.executeConfig.podSecurityContext.enabled }}
+      securityContext: {{- omit .Values.executeConfig.podSecurityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      initContainers:
+      {{- include "job.initContainer.waitForMigration" . | nindent 8 }}
+      {{- include "job.initContainer.waitForDependServices"   ( dict "currentServiceName" "job-execute" "context" $) | nindent 8 }}
+      containers:
+        - name: "job-execute"
+          {{- if .Values.executeConfig.containerSecurityContext.enabled }}
+          securityContext: {{- omit .Values.executeConfig.containerSecurityContext "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          image: {{ include "job-execute.image" . }}
+          imagePullPolicy: {{ .Values.executeConfig.image.pullPolicy }}
+          env:
+            {{- include "job.common.env" . | nindent 12 }}
+            {{- if .Values.executeConfig.extraEnv }}
+            {{- include "job.service.extra.env" .Values.executeConfig.extraEnv | nindent 12 }}
+            {{- end }}
+            - name: BK_JOB_APP_NAME
+              value: "job-execute"
+            - name: BK_JOB_JVM_OPTION
+              value: {{ .Values.executeConfig.jvmOptions | quote }}
+            - name: BK_JOB_JAR
+              value: job-execute.jar
+            - name: BK_JOB_NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: JOB_APPLICATION_CONFIGMAP_NAME
+              value: {{ include "common.names.fullname" . }}-execute
+            - name: JOB_COMMON_REFRESHABLE_CONFIGMAP_NAME
+              value: {{ include "common.names.fullname" . }}-common-refreshable
+          ports:
+            - name: http
+              containerPort: {{ .Values.executeConfig.containerPort }}
+              protocol: TCP
+          {{- include "job.service.probes" ( dict "port" "http" "context" . ) | nindent 10 }}
+          resources:
+            {{- toYaml .Values.executeConfig.resources | nindent 12 }}
+          volumeMounts:
+            - name: distribute-volume
+              mountPath: {{ .Values.fileDistribute.hostPath }}
+            - name: job-storage
+              mountPath: {{ .Values.persistence.localStorage.path }}
+            - name: mariadb
+              mountPath: /etc/secrets/mariadb
+              readOnly: true
+            - name: rabbitmq
+              mountPath: /etc/secrets/rabbitmq
+              readOnly: true
+            - name: redis
+              mountPath: /etc/secrets/redis
+              readOnly: true
+            {{- include "job.mariadb.certsVolumeMount" . | nindent 12 }}
+            {{- include "job.rabbitmq.certsVolumeMount" . | nindent 12 }}
+            {{- include "job.redis.certsVolumeMount" . | nindent 12 }}
+            {{- include "job.volumeExtension.volumeMounts" (dict "module" .Values.executeConfig "global" .Values.volumeExtension) | nindent 12 }}
+      terminationGracePeriodSeconds: 120
+      volumes:
+        - name: distribute-volume
+          {{- include "job.distribute.volume.name" . |nindent 10 }}
+        - name: job-storage
+          persistentVolumeClaim:
+            claimName: {{ include "job.storage.pvc.name" . }}
+        - name: mariadb
+          secret:
+            secretName: {{ include "job.mariadb.secretName" . }}
+        - name: rabbitmq
+          secret:
+            secretName: {{ include "job.rabbitmq.secretName" . }}
+        - name: redis
+          secret:
+            secretName: {{ include "job.redis.secretName" . }}
+        {{- include "job.mariadb.certsVolume" . | nindent 8 }}
+        {{- include "job.rabbitmq.certsVolume" . | nindent 8 }}
+        {{- include "job.redis.certsVolume" . | nindent 8 }}
+        {{- include "job.volumeExtension.volumes" (dict "module" .Values.executeConfig "global" .Values.volumeExtension) | nindent 8 }}
+{{- end }}

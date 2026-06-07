@@ -1,0 +1,320 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.manage.dao.plan.impl;
+
+import com.tencent.bk.job.common.constant.Bool;
+import com.tencent.bk.job.common.constant.ErrorCode;
+import com.tencent.bk.job.common.constant.TaskVariableTypeEnum;
+import com.tencent.bk.job.common.crypto.scenario.CipherVariableCryptoService;
+import com.tencent.bk.job.common.exception.InternalException;
+import com.tencent.bk.job.common.mysql.JobTransactional;
+import com.tencent.bk.job.manage.dao.TaskVariableDAO;
+import com.tencent.bk.job.manage.model.dto.task.TaskVariableDTO;
+import com.tencent.bk.job.manage.model.tables.TaskPlanVariable;
+import com.tencent.bk.job.manage.model.tables.records.TaskPlanVariableRecord;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.InsertValuesStep9;
+import org.jooq.Record;
+import org.jooq.Result;
+import org.jooq.TableField;
+import org.jooq.UpdateSetMoreStep;
+import org.jooq.types.UByte;
+import org.jooq.types.ULong;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Repository;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
+
+@Slf4j
+@Repository("TaskPlanVariableDAOImpl")
+public class TaskPlanVariableDAOImpl implements TaskVariableDAO {
+
+    private static final TaskPlanVariable TABLE = TaskPlanVariable.TASK_PLAN_VARIABLE;
+
+    private static final TableField<?, ?>[] ALL_FIELDS = {TABLE.TEMPLATE_VARIABLE_ID, TABLE.PLAN_ID,
+        TABLE.NAME, TABLE.TYPE, TABLE.DEFAULT_VALUE, TABLE.DESCRIPTION, TABLE.IS_CHANGEABLE, TABLE.IS_REQUIRED,
+        TABLE.IS_FOLLOW_TEMPLATE};
+
+    private final DSLContext context;
+    private final CipherVariableCryptoService cipherVariableCryptoService;
+
+    @Autowired
+    public TaskPlanVariableDAOImpl(@Qualifier("job-manage-dsl-context") DSLContext context,
+                                   CipherVariableCryptoService cipherVariableCryptoService) {
+        this.context = context;
+        this.cipherVariableCryptoService = cipherVariableCryptoService;
+    }
+
+    @Override
+    public List<TaskVariableDTO> listVariablesByParentId(long parentId) {
+
+        List<Condition> conditions = new ArrayList<>();
+        conditions.add(TABLE.PLAN_ID.eq(ULong.valueOf(parentId)));
+
+        Result<Record> result = context.select(ALL_FIELDS).from(TABLE).where(conditions).fetch();
+        return result.map(this::extract);
+    }
+
+    @Override
+    public List<TaskVariableDTO> listFollowVarsByPlanId(long planId) {
+        List<Condition> conditions = new ArrayList<>();
+        conditions.add(TABLE.PLAN_ID.eq(ULong.valueOf(planId)));
+        conditions.add(TABLE.IS_FOLLOW_TEMPLATE.eq(UByte.valueOf(1)));
+        Result<Record> result = context.select(ALL_FIELDS).from(TABLE).where(conditions).fetch();
+        return result.map(this::extract);
+    }
+
+    private TaskVariableDTO extract(Record record) {
+        if (record == null) {
+            return null;
+        }
+        TaskVariableDTO taskVariable = new TaskVariableDTO();
+        taskVariable.setId(record.get(TABLE.TEMPLATE_VARIABLE_ID).longValue());
+        taskVariable.setPlanId(record.get(TABLE.PLAN_ID).longValue());
+        taskVariable.setName(record.get(TABLE.NAME));
+        taskVariable.setType(TaskVariableTypeEnum.valOf(record.get(TABLE.TYPE).intValue()));
+        String encryptedDefaultValue = record.get(TABLE.DEFAULT_VALUE);
+        // 密文变量解密
+        String defaultValue = cipherVariableCryptoService.decryptTaskVariableIfNeeded(
+            taskVariable.getType(),
+            encryptedDefaultValue
+        );
+        taskVariable.setDefaultValue(defaultValue);
+        taskVariable.setDescription(record.get(TABLE.DESCRIPTION));
+        taskVariable.setChangeable(Bool.isTrue(record.get(TABLE.IS_CHANGEABLE).byteValue()));
+        taskVariable.setRequired(Bool.isTrue(record.get(TABLE.IS_REQUIRED).byteValue()));
+        UByte isFollowTemplate = record.get(TABLE.IS_FOLLOW_TEMPLATE);
+        taskVariable.setFollowTemplate(isFollowTemplate == null ? false : Bool.isTrue(isFollowTemplate.byteValue()));
+        return taskVariable;
+    }
+
+    @Override
+    public TaskVariableDTO getVariableById(long parentId, long id) {
+        List<Condition> conditions = new ArrayList<>(2);
+        conditions.add(TABLE.TEMPLATE_VARIABLE_ID.eq(ULong.valueOf(id)));
+        conditions.add(TABLE.PLAN_ID.eq(ULong.valueOf(parentId)));
+
+        Record record = context.select(ALL_FIELDS).from(TABLE).where(conditions).fetchOne();
+        return extract(record);
+    }
+
+    @Override
+    public TaskVariableDTO getVariableByName(long parentId, String varName) {
+        List<Condition> conditions = new ArrayList<>(2);
+        conditions.add(TABLE.NAME.eq(varName));
+        conditions.add(TABLE.PLAN_ID.eq(ULong.valueOf(parentId)));
+        Record record = context.select(ALL_FIELDS).from(TABLE).where(conditions).fetchOne();
+        return extract(record);
+    }
+
+    @Override
+    public long insertVariable(TaskVariableDTO variable) {
+        TaskPlanVariableRecord record = context.insertInto(TABLE)
+            .columns(
+                TABLE.TEMPLATE_VARIABLE_ID,
+                TABLE.PLAN_ID,
+                TABLE.NAME,
+                TABLE.TYPE,
+                TABLE.DEFAULT_VALUE,
+                TABLE.DESCRIPTION,
+                TABLE.IS_CHANGEABLE,
+                TABLE.IS_REQUIRED,
+                TABLE.IS_FOLLOW_TEMPLATE
+            ).values(
+                ULong.valueOf(variable.getId()),
+                ULong.valueOf(variable.getPlanId()),
+                variable.getName(),
+                UByte.valueOf(variable.getType().getType()),
+                cipherVariableCryptoService.encryptTaskVariableIfNeeded(variable.getType(), variable.getDefaultValue()),
+                variable.getDescription(),
+                getChangeable(variable.getChangeable()),
+                getRequired(variable.getRequired()),
+                getFollowTemplate(variable.getFollowTemplate())
+            ).returning(TABLE.TEMPLATE_VARIABLE_ID).fetchOne();
+        assert record != null;
+        return record.getTemplateVariableId().longValue();
+    }
+
+    @Override
+    public List<Long> batchInsertVariables(List<TaskVariableDTO> variableList) {
+        if (CollectionUtils.isEmpty(variableList)) {
+            return Collections.emptyList();
+        }
+        InsertValuesStep9<TaskPlanVariableRecord, ULong, ULong, String, UByte, String, String, UByte,
+            UByte, UByte> insertStep = context.insertInto(TABLE)
+            .columns(
+                TABLE.TEMPLATE_VARIABLE_ID,
+                TABLE.PLAN_ID,
+                TABLE.NAME,
+                TABLE.TYPE,
+                TABLE.DEFAULT_VALUE,
+                TABLE.DESCRIPTION,
+                TABLE.IS_CHANGEABLE,
+                TABLE.IS_REQUIRED,
+                TABLE.IS_FOLLOW_TEMPLATE
+            );
+
+        variableList.forEach(variable ->
+            insertStep.values(
+                ULong.valueOf(variable.getId()),
+                ULong.valueOf(variable.getPlanId()),
+                variable.getName(),
+                UByte.valueOf(variable.getType().getType()),
+                cipherVariableCryptoService.encryptTaskVariableIfNeeded(variable.getType(), variable.getDefaultValue()),
+                variable.getDescription(),
+                getChangeable(variable.getChangeable()),
+                getRequired(variable.getRequired()),
+                getFollowTemplate(variable.getFollowTemplate())
+            ));
+
+        Result<TaskPlanVariableRecord> result = insertStep.returning(TABLE.TEMPLATE_VARIABLE_ID).fetch();
+        List<Long> variableIdList = new ArrayList<>(variableList.size());
+        result.forEach(record -> variableIdList.add(record.getTemplateVariableId().longValue()));
+
+        try {
+            Iterator<TaskVariableDTO> variableIterator = variableList.iterator();
+            Iterator<Long> variableIdIterator = variableIdList.iterator();
+            while (variableIterator.hasNext()) {
+                TaskVariableDTO taskVariableInfo = variableIterator.next();
+                taskVariableInfo.setId(variableIdIterator.next());
+            }
+        } catch (Exception e) {
+            throw new InternalException(ErrorCode.BATCH_INSERT_FAILED);
+        }
+
+        return variableIdList;
+    }
+
+    @Override
+    public boolean updateVarByParentResourceIdAndTplVarId(TaskVariableDTO variable) {
+        List<Condition> conditions = new ArrayList<>();
+        conditions.add(TABLE.TEMPLATE_VARIABLE_ID.eq(ULong.valueOf(variable.getId())));
+        conditions.add(TABLE.PLAN_ID.eq(ULong.valueOf(variable.getPlanId())));
+        UpdateSetMoreStep<TaskPlanVariableRecord> updateStep;
+        if (variable.cipherNotChange()) {
+            updateStep = context.update(TABLE).set(TABLE.DEFAULT_VALUE, TABLE.DEFAULT_VALUE);
+        } else {
+            updateStep = context.update(TABLE)
+                .set(TABLE.DEFAULT_VALUE,
+                    cipherVariableCryptoService.encryptTaskVariableIfNeeded(
+                        variable.getType(),
+                        variable.getDefaultValue()
+                    )
+                );
+        }
+        if (StringUtils.isNotBlank(variable.getName())) {
+            updateStep.set(TABLE.NAME, variable.getName());
+        }
+        if (StringUtils.isNotBlank(variable.getDescription())) {
+            updateStep.set(TABLE.DESCRIPTION, variable.getDescription());
+        }
+        if (variable.getChangeable() != null) {
+            updateStep.set(TABLE.IS_CHANGEABLE, getChangeable(variable.getChangeable()));
+        }
+        if (variable.getRequired() != null) {
+            updateStep.set(TABLE.IS_REQUIRED, getRequired(variable.getRequired()));
+        }
+        if (variable.getFollowTemplate() != null) {
+            updateStep.set(TABLE.IS_FOLLOW_TEMPLATE, getFollowTemplate(variable.getFollowTemplate()));
+        }
+        return 1 == updateStep.where(conditions).limit(1).execute();
+    }
+
+    @Override
+    public boolean deleteVariableById(long parentId, long id) {
+        List<Condition> conditions = new ArrayList<>();
+        conditions.add(TABLE.TEMPLATE_VARIABLE_ID.eq(ULong.valueOf(id)));
+        conditions.add(TABLE.PLAN_ID.eq(ULong.valueOf(parentId)));
+        return 1 == context.deleteFrom(TABLE).where(conditions).limit(1).execute();
+    }
+
+    @Override
+    public int deleteVariableByParentId(long parentId) {
+        List<Condition> conditions = new ArrayList<>();
+        conditions.add(TABLE.PLAN_ID.eq(ULong.valueOf(parentId)));
+        return context.deleteFrom(TABLE).where(conditions).execute();
+    }
+
+    @Override
+    public boolean batchInsertVariableWithId(List<TaskVariableDTO> variableList) {
+        return false;
+    }
+
+    @Override
+    @JobTransactional(transactionManager = "jobManageTransactionManager")
+    public boolean updateVariableByName(TaskVariableDTO variable) {
+        List<Condition> conditions = new ArrayList<>();
+        conditions.add(TABLE.PLAN_ID.equal(ULong.valueOf(variable.getPlanId())));
+        conditions.add(TABLE.NAME.equal(variable.getName()));
+        conditions.add(TABLE.IS_FOLLOW_TEMPLATE.notEqual(UByte.valueOf(1)));
+        return 1 ==
+            context.update(TABLE)
+                .set(TABLE.DEFAULT_VALUE,
+                    cipherVariableCryptoService.encryptTaskVariableIfNeeded(variable.getType(), variable.getDefaultValue()))
+                .where(conditions).limit(1)
+                .execute();
+    }
+
+    @Override
+    public List<TaskVariableDTO> listVariablesByTemplateVarId(List<Long> templateVarIds) {
+        List<Condition> conditions = new ArrayList<>();
+        conditions.add(TABLE.TEMPLATE_VARIABLE_ID.in(templateVarIds));
+        Result<Record> result = context.select(ALL_FIELDS).from(TABLE).where(conditions).fetch();
+        return result.map(this::extract);
+    }
+
+    private UByte getChangeable(Boolean changeable) {
+        UByte isChangeable = UByte.valueOf(0);
+        if (changeable != null && changeable) {
+            isChangeable = UByte.valueOf(1);
+        }
+        return isChangeable;
+    }
+
+    private UByte getRequired(Boolean required) {
+        UByte isRequired = UByte.valueOf(0);
+        if (required != null && required) {
+            isRequired = UByte.valueOf(1);
+        }
+        return isRequired;
+    }
+
+    private UByte getFollowTemplate(Boolean followTemplate) {
+        UByte isFollowTemplate = UByte.valueOf(0);
+        if (followTemplate != null && followTemplate) {
+            isFollowTemplate = UByte.valueOf(1);
+        }
+        return isFollowTemplate;
+    }
+}

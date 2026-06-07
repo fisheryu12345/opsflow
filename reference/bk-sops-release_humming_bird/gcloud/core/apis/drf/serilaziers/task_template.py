@@ -1,0 +1,144 @@
+# -*- coding: utf-8 -*-
+"""
+Tencent is pleased to support the open source community by making 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community
+Edition) available.
+Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+http://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+import json
+
+from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+
+from gcloud.common_template.models import CommonTemplate
+from gcloud.constants import DATETIME_FORMAT, TASK_CATEGORY
+from gcloud.core.apis.drf.serilaziers.project import ProjectSerializer
+from gcloud.core.apis.drf.serilaziers.template import BaseTemplateSerializer
+from gcloud.core.models import Project
+from gcloud.tasktmpl3.models import TaskTemplate
+
+
+class BaseTaskTemplateSerializer(BaseTemplateSerializer):
+    project = ProjectSerializer()
+
+
+class TaskTemplateListSerializer(BaseTaskTemplateSerializer):
+    name = serializers.CharField(read_only=True, help_text="模板名称")
+    category_name = serializers.CharField(read_only=True, help_text="分类名称")
+    creator_name = serializers.CharField(read_only=True, help_text="创建者名称")
+    editor_name = serializers.CharField(read_only=True, help_text="编辑者名称")
+    create_time = serializers.DateTimeField(help_text="创建时间", format=DATETIME_FORMAT)
+    edit_time = serializers.DateTimeField(help_text="编辑时间", format=DATETIME_FORMAT)
+    template_id = serializers.CharField(read_only=True, help_text="模板id")
+    version = serializers.CharField(read_only=True, help_text="版本")
+    subprocess_info = serializers.DictField(read_only=True, help_text="子流程信息")
+    subprocess_has_update = serializers.BooleanField(read_only=True, help_text="子流程是否更新")
+    has_subprocess = serializers.BooleanField(read_only=True, help_text="是否有子流程")
+    description = serializers.CharField(read_only=True, help_text="流程描述", source="pipeline_template.description")
+
+    class Meta:
+        model = TaskTemplate
+        fields = "__all__"
+
+
+class TaskTemplateSerializer(TaskTemplateListSerializer):
+    pipeline_tree = serializers.SerializerMethodField(read_only=True, help_text="pipeline_tree")
+
+    def get_pipeline_tree(self, obj):
+        return json.dumps(obj.pipeline_tree)
+
+
+class TopCollectionTaskTemplateSerializer(TaskTemplateSerializer):
+    is_collected = serializers.BooleanField(read_only=True, help_text="是否收藏")
+    collection_id = serializers.IntegerField(read_only=True, help_text="收藏ID")
+
+
+class CreateTaskTemplateSerializer(BaseTaskTemplateSerializer):
+
+    name = serializers.CharField(help_text="流程模板名称")
+    category = serializers.ChoiceField(choices=TASK_CATEGORY, help_text="模板分类")
+    time_out = serializers.IntegerField(help_text="超时时间", required=False)
+    description = serializers.CharField(help_text="流程模板描述", allow_blank=True, required=False)
+    executor_proxy = serializers.CharField(help_text="执行代理", allow_blank=True, required=False)
+    template_labels = serializers.ListField(help_text="模板label", required=False)
+    default_flow_type = serializers.CharField(help_text="默认流程类型")
+    pipeline_tree = serializers.CharField()
+    project = serializers.IntegerField(write_only=True)
+    template_id = serializers.CharField(help_text="模板ID", source="id", read_only=True)
+    webhook_configs = serializers.JSONField(help_text="webhook配置", required=False)
+    enable_webhook = serializers.BooleanField(help_text="是否启用webhook", required=False)
+
+    def validate_project(self, value):
+        try:
+            return Project.objects.get(id=value)
+        except Project.DoesNotExist:
+            raise serializers.ValidationError(_("project不存在"))
+
+    def validate_executor_proxy(self, value):
+        user = getattr(self.context.get("request"), "user", None)
+        if not user:
+            raise serializers.ValidationError("user can not be empty.")
+        if user.username != value and value:
+            raise serializers.ValidationError(_("代理人仅可设置为本人"))
+        return value
+
+    def validate(self, attrs):
+        pipeline_tree = json.loads(attrs["pipeline_tree"])
+        project_id = attrs["project"].id
+
+        for activity in pipeline_tree.get("activities").values():
+            if activity.get("type") != "SubProcess" or activity.get("template_source") != "common":
+                continue
+            common_template_id = activity.get("template_id")
+            result = CommonTemplate.objects.check_template_project_scope(str(project_id), common_template_id)
+            if not result["result"]:
+                raise serializers.ValidationError(f"保存流程失败，{result['message']}")
+        return attrs
+
+    class Meta:
+        model = TaskTemplate
+        fields = [
+            "name",
+            "category",
+            "time_out",
+            "description",
+            "executor_proxy",
+            "template_labels",
+            "default_flow_type",
+            "notify_type",
+            "notify_receivers",
+            "ai_notify_type",
+            "ai_notify_group",
+            "pipeline_tree",
+            "project",
+            "template_id",
+            "webhook_configs",
+            "enable_webhook",
+        ]
+
+
+class ProjectInfoQuerySerializer(serializers.Serializer):
+    project_id = serializers.IntegerField(help_text="项目ID")
+
+
+class ProjectFilterQuerySerializer(serializers.Serializer):
+    project__id = serializers.IntegerField(help_text="项目ID")
+
+
+class TemplateLabelQuerySerializer(serializers.Serializer):
+    label_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=True, required=True, help_text="标签ID列表"
+    )
+
+
+class WebhookConfigQuerySerializer(serializers.Serializer):
+    project_id = serializers.IntegerField(help_text=_("project id"), required=True)
+    method = serializers.CharField(help_text=_("webhook method"), max_length=255, required=True)
+    endpoint = serializers.URLField(help_text=_("webhook endpoint"), max_length=255, required=True)
+    headers = serializers.JSONField(help_text=_("webhook headers"), required=False)
+    authorization = serializers.JSONField(help_text=_("webhook authorization"), required=False)

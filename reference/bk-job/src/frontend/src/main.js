@@ -1,0 +1,352 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ *
+ * ---------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+*/
+
+// eslint-disable-next-line
+import '../static/webpack_public_path';
+
+import Cookie from 'js-cookie';
+
+import _ from 'lodash';
+import Vue from 'vue';
+
+import createRouter from '@router';
+
+import AppManageService from '@service/app-manage';
+import QueryGlobalSettingService from '@service/query-global-setting';
+import TaskExecuteService from '@service/task-execute';
+import TaskPlanService from '@service/task-plan';
+import UserService from '@service/user';
+
+import { getURLSearchParams } from '@utils/assist';
+import { scopeCache } from '@utils/cache-helper';
+import EntryTask from '@utils/entry-task';
+
+import BkUserDisplayName from '@blueking/bk-user-display-name';
+import { subEnv } from '@blueking/sub-saas';
+
+import App from '@/App';
+import i18n from '@/i18n';
+import IframeApp from '@/iframe-app';
+import store from '@/store';
+
+import '@/common/bkmagic';
+import '@/css/reset.css';
+import '@/css/app.css';
+import '@bk-icon/style.css';
+import '@bk-icon/iconcool.js';
+import  '@blueking/notice-component-vue2/dist/style.css';
+
+
+/**
+ * @desc 启动打印当前系统信息
+ */
+console.log(
+  process.env.JOB_WELCOME,
+  'font-weight: 900; color: #3a84ff',
+  'font-weight: 900; color: #2DCB8D;',
+);
+
+/**
+ * @desc 页面数据的编辑状态
+ */
+window.changeFlag = false;
+
+/**
+ * @desc 因为 IP 有白名单功能，生效范围需要更新场景区分
+ * - '' 所有
+ * - SCRIPT_EXECUTE 生效范围脚本执行
+ * - FILE_DISTRIBUTION 生效范围文件分发
+ */
+window.IPInputScope = '';
+
+/**
+ * @desc 开启路由回溯
+ */
+window.routerFlashBack = false;
+
+/**
+ * fix: 兼容业务集功能上线前的任务执行详情 URL
+ *
+ * 老版 URL 格式： /${APP_ID}/execute/step/${TASK_ID}，
+ * 解析 TASK_ID 拼接 api_execute/TASK_ID 跳转
+ */
+const oldExecute = window.location.pathname.match(new RegExp(`^${window.PROJECT_CONFIG.BK_SITE_PATH}\\d+/execute/step/(\\d+)`));
+if (oldExecute) {
+  window.location.href = `${window.PROJECT_CONFIG.BK_SITE_PATH}api_execute/${oldExecute[1]}`;
+}
+
+/**
+ * @desc 浏览器框口关闭提醒
+ */
+window.addEventListener('beforeunload', (event) => {
+  // 需要做 Boolean 类型的值判断
+  if (window.changeFlag !== true) {
+    return null;
+  }
+  const e = event || window.event;
+  if (e) {
+    e.returnValue = window.BKApp.$t('离开将会导致未保存信息丢失');
+  }
+  return window.BKApp.$t('离开将会导致未保存信息丢失');
+});
+
+const entryTask = new EntryTask();
+
+/**
+ * @desc 根据环境动态判断使用那个入口
+ *
+ * 通过浏览器直接访问：App
+ * 通过 iframe 访问任务详情：IframeApp
+ */
+let EntryApp = subEnv ? IframeApp : App;
+
+/**
+ * @desc 解析路由 scopeType、scopeId
+ */
+entryTask.add((context) => {
+  const pathRoot = window.location.pathname.match(new RegExp(`^${window.PROJECT_CONFIG.BK_SITE_PATH}((?!api_)[^/]+)/(\\d+)/?`));
+  if (pathRoot) {
+    // 路由指定了业务id
+    [,
+      context.scopeType,
+      context.scopeId,
+    ] = pathRoot;
+  } else {
+    // 本地缓存
+    const {
+      scopeType,
+      scopeId,
+    } = scopeCache.getItem();
+    if (scopeType && scopeId) {
+      context.scopeType = scopeType;
+      context.scopeId = scopeId;
+    }
+  }
+});
+/**
+ * @desc 完整的业务列表
+ */
+entryTask.add(context => AppManageService.fetchWholeAppList().then((data) => {
+  context.appList = data.data;
+  if (!context.scopeType || !context.scopeId) {
+    // 没有指定业务，默认选择第一个有权限的业务
+    const firstHasPermissionApp = _.find([...context.appList], item => item.hasPermission);
+    if (firstHasPermissionApp) {
+      const  {
+        scopeType,
+        scopeId,
+      } = firstHasPermissionApp;
+      context.scopeType = scopeType;
+      context.scopeId = scopeId;
+    }
+  }
+  // 内置全业务的 scopeId
+  const allBiz = _.find(data.data, item => item.allBizSet && item.builtIn);
+  if (allBiz) {
+    window.PROJECT_CONFIG.ALL_BIZ_SET_SCOPE_ID = allBiz.scopeId;
+  }
+}));
+
+/**
+ * @desc 是否是admin用户
+ */
+entryTask.add(context => QueryGlobalSettingService.fetchAdminIdentity().then((data) => {
+  // eslint-disable-next-line no-param-reassign
+  context.isAdmin = data;
+}));
+
+/**
+ * @desc 关联系统链接
+ */
+entryTask.add(() => QueryGlobalSettingService.fetchRelatedSystemUrls().then((data) => {
+  window.PROJECT_CONFIG.BK_USER_WEB_API_ROOT_URL = data.BK_USER_WEB_API_ROOT_URL;
+}));
+
+
+/**
+ * @desc 通过第三方系统查看任务执行详情
+ */
+const apiExecute = window.location.href.match(new RegExp(`${window.PROJECT_CONFIG.BK_SITE_PATH}api_execute/([^/]+)/?`));
+if (apiExecute) {
+  // 通过 iframe 访问任务详情入口为 IframeApp
+  if (window.frames.length !== parent.frames.length) {
+    EntryApp = IframeApp;
+  }
+  entryTask.add(
+    context => TaskExecuteService.fetchTaskInstanceFromAllApp({
+      taskInstanceId: apiExecute[1],
+    }).then((data) => {
+      context.taskData = data;
+      context.scopeType = data.scopeType;
+      context.scopeId = data.scopeId;
+    }),
+    (context) => {
+      const { taskData } = context;
+      if (taskData.isTask) {
+        window.BKApp.$router.replace({
+          name: 'historyTask',
+          params: {
+            id: taskData.id,
+          },
+        });
+      } else {
+        window.BKApp.$router.replace({
+          name: 'quickLaunchStep',
+          params: {
+            taskInstanceId: taskData.id,
+          },
+          query: {
+            ...getURLSearchParams(window.location.search),
+          },
+        });
+      }
+    },
+  );
+}
+
+/**
+ * @desc 通过第三方系统查看作业任务步骤执行详情
+ */
+const apiExecuteStep = window.location.href.match(new RegExp(`${window.PROJECT_CONFIG.BK_SITE_PATH}api_execute_step/([^/]+)/([^/]+)/?`));
+if (apiExecuteStep) {
+  // 通过 iframe 访问任务详情入口为 IframeApp
+  if (window.frames.length !== parent.frames.length) {
+    EntryApp = IframeApp;
+  }
+  const [, taskInstanceId, stepInstanceId] = apiExecuteStep;
+  entryTask.add(
+    context => TaskExecuteService.fetchTaskInstanceFromAllApp({
+      taskInstanceId,
+    }).then((data) => {
+      context.taskData = data;
+      context.scopeType = data.scopeType;
+      context.scopeId = data.scopeId;
+    }),
+    () => {
+      window.BKApp.$router.replace({
+        name: 'historyStep',
+        params: {
+          taskInstanceId,
+        },
+        query: {
+          ...getURLSearchParams(window.location.search),
+          stepInstanceId,
+        },
+      });
+    },
+  );
+}
+
+/**
+ * @desc 通过第三方系统查看执行方案详情
+ */
+const apiPlan = window.location.href.match(new RegExp(`${window.PROJECT_CONFIG.BK_SITE_PATH}api_plan/([^/]+)/?`));
+if (apiPlan) {
+  entryTask.add(
+    context => TaskPlanService.fetchPlanData({
+      id: apiPlan[1],
+    }).then((data) => {
+      context.planData = data;
+      context.scopeType = data.scopeType;
+      context.scopeId = data.scopeId;
+    }),
+    (context) => {
+      const { planData } = context;
+      window.BKApp.$router.replace({
+        name: 'viewPlan',
+        params: {
+          templateId: planData.templateId,
+        },
+        query: {
+          viewPlanId: planData.id,
+        },
+      });
+    },
+  );
+}
+
+/**
+ * @desc 渲染页面
+ */
+entryTask.add('', (context) => {
+  // 判断是在浏览器访问还是iframe访问，走不同的入口
+  const {
+    appList,
+    isAdmin,
+    scopeType,
+    scopeId,
+  } = context;
+  window.PROJECT_CONFIG.SCOPE_TYPE = scopeType;
+  window.PROJECT_CONFIG.SCOPE_ID = scopeId;
+  scopeCache.setItem({
+    scopeType,
+    scopeId,
+  });
+
+  BkUserDisplayName.configure({
+    // 必填，租户 ID
+    tenantId: window.PROJECT_CONFIG.TENANT_ID,
+    // 必填，网关地址
+    apiBaseUrl: window.PROJECT_CONFIG.BK_USER_WEB_API_ROOT_URL,
+    // 可选，缓存时间，单位为毫秒, 默认 5 分钟
+    cacheDuration: 1000 * 60 * 5,
+    // 可选，当输入为空时，显示的文本，默认为 '--'
+    emptyText: '--',
+  });
+
+  window.BKApp = new Vue({
+    el: '#app',
+    router: createRouter({
+      appList,
+      isAdmin,
+      scopeType,
+      scopeId,
+    }),
+    store,
+    i18n,
+    render: h => h(EntryApp),
+  });
+});
+
+UserService.fetchUserInfo()
+  .then((data) => {
+    window.PROJECT_CONFIG.TENANT_ID = data.tenantId;
+    const latestTenantId = Cookie.get('tenant_id');
+    if (latestTenantId !== data.tenantId) {
+      scopeCache.clearItem();
+    }
+    Cookie.set('tenant_id', data.tenantId, {
+      expires: 365,
+    });
+    entryTask.start();
+  });
+
+QueryGlobalSettingService.fetchConfigTimeZone().then((data) => {
+  // 设置默认时区和运营时区
+  const { display = '', operation = '' } = data;
+  window.PROJECT_CONFIG.DEFAULT_DISPLAY_TIME_ZONE = display;
+  window.PROJECT_CONFIG.OPERATION_TIME_ZONE = operation;
+});
+

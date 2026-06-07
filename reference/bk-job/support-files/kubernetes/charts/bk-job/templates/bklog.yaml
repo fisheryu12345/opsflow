@@ -1,0 +1,127 @@
+{{- if and (.Values.bkLogConfig.enabled) (.Values.bkLogConfig.file.serviceLog.dataId) }}
+# Container Log
+apiVersion: bk.tencent.com/v1alpha1
+kind: BkLogConfig
+metadata:
+  name: {{ include "common.names.fullname" . }}-service-container-log
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- if and .Values.bkLogConfig.customLabels .Values.bkLogConfig.customLabels.enabled .Values.bkLogConfig.customLabels.labels }}
+    {{- toYaml .Values.bkLogConfig.customLabels.labels | nindent 4 }}
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations:
+    {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  dataId: {{ .Values.bkLogConfig.file.serviceLog.dataId }}
+  logConfigType: container_log_config
+  namespace: {{ .Release.Namespace }}
+  labelSelector:
+    matchLabels:
+      {{- include "common.labels.matchLabels" . | nindent 6 }}
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+      {{ include "job.labelKeys.jobScope" . }}: {{ include "job.labelValues.jobScope.backend" . }}
+  path:
+    - /data/logs/job-*/*.log
+  encoding: 'utf-8'
+  multiline:
+    pattern: '^\[(?P<log_time>.*?)\]\s+?'
+    maxLines: 100
+    timeout: '5s'
+  extMeta:
+    logSourceType: "file"
+    {{- if and .Values.bkLogConfig.customMetadata .Values.bkLogConfig.customMetadata.enabled .Values.bkLogConfig.customMetadata.metadata }}
+    {{- toYaml .Values.bkLogConfig.customMetadata.metadata | nindent 4 }}
+    {{- end }}
+{{- end }}
+{{- if and (.Values.bkLogConfig.enabled) (.Values.bkLogConfig.file.accessLog.dataId) }}
+---
+# Container Log
+apiVersion: bk.tencent.com/v1alpha1
+kind: BkLogConfig
+metadata:
+  name: {{ include "common.names.fullname" . }}-access-container-log
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- if and .Values.bkLogConfig.customLabels .Values.bkLogConfig.customLabels.enabled .Values.bkLogConfig.customLabels.labels }}
+    {{- toYaml .Values.bkLogConfig.customLabels.labels | nindent 4 }}
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations:
+    {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  dataId: {{ .Values.bkLogConfig.file.accessLog.dataId }}
+  logConfigType: container_log_config
+  namespace: {{ .Release.Namespace }}
+  labelSelector:
+    matchLabels:
+      {{- include "common.labels.matchLabels" . | nindent 6 }}
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+      app.kubernetes.io/component: "job-gateway"
+      {{ include "job.labelKeys.jobScope" . }}: {{ include "job.labelValues.jobScope.backend" . }}
+  path:
+    - /data/logs/job-gateway/access.log
+  encoding: 'utf-8'
+  multiline:
+    {{- if .Values.gatewayConfig.customAccessLog.enabled }}
+    pattern: '^accessType=(?P<access_type>[^|]+)\|startTime=(?P<start_time>[^|]+)\|traceId=(?P<trace_id>[^|]+)\|spanId=(?P<span_id>[^|]+)\|userName=(?P<user_name>[^|]+)\|method=(?P<method>[^|]+)\|uri=(?P<uri>[^|]+)\|protocol=(?P<protocol>[^|]+)\|clientIp=(?P<client_ip>[^|]+)\|userAgent=(?P<user_agent>[^|]+)\|upstream=(?P<upstream>[^|]+)\|endTime=(?P<end_time>[^|]+)\|status=(?P<status>[^|]+)\|responseSize=(?P<response_size>[^|]+)\|durationMS=(?P<duration_ms>\d+|-)(?:ms)?$'
+    {{- else }}
+    pattern: '^\[(.*?)|(.*?)\](?P<src_ip>.*?):(?P<src_port>.*?)\s+?'
+    {{- end }}
+    maxLines: 100
+    timeout: '5s'
+  extMeta:
+    logSourceType: "file"
+    {{- if and .Values.bkLogConfig.customMetadata .Values.bkLogConfig.customMetadata.enabled .Values.bkLogConfig.customMetadata.metadata }}
+    {{- toYaml .Values.bkLogConfig.customMetadata.metadata | nindent 4 }}
+    {{- end }}
+{{- end }}
+{{- if and (.Values.bkLogConfig.enabled) (.Values.bkLogConfig.std.dataId) }}
+---
+# Stdout
+apiVersion: bk.tencent.com/v1alpha1
+kind: BkLogConfig
+metadata:
+  name: {{ include "common.names.fullname" . }}-stdout-log
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- if and .Values.bkLogConfig.customLabels .Values.bkLogConfig.customLabels.enabled .Values.bkLogConfig.customLabels.labels }}
+    {{- toYaml .Values.bkLogConfig.customLabels.labels | nindent 4 }}
+    {{- end }}
+  {{- if .Values.commonAnnotations }}
+  annotations:
+    {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  dataId: {{ .Values.bkLogConfig.std.dataId }}
+
+  logConfigType: std_log_config
+  namespace: {{ .Release.Namespace }}
+  labelSelector:
+    matchLabels:
+      {{- include "common.labels.matchLabels" . | nindent 6 }}
+      app.kubernetes.io/name: {{ include "common.names.fullname" . }}
+      {{ include "job.labelKeys.jobScope" . }}: {{ include "job.labelValues.jobScope.backend" . }}
+  extMeta:
+    logSourceType: "std"
+    {{- if and .Values.bkLogConfig.customMetadata .Values.bkLogConfig.customMetadata.enabled .Values.bkLogConfig.customMetadata.metadata }}
+    {{- toYaml .Values.bkLogConfig.customMetadata.metadata | nindent 4 }}
+    {{- end }}
+{{- end }}

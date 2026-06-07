@@ -2,6 +2,64 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `53363292`
+
+> 提交日期: 2026-06-07 | 提交信息: refactor: complete project restructure cleanup
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/doc/*` (已删除) | 文档 | 旧文档已迁移到 `docs/architecture/`，清理残留 |
+| `tools` (git 索引条目) | 杂项 | 移除残留的 `tools` 空条目（`backend/scripts/` → `backend/tools/` 重命名产生的） |
+| 10 个 `.vue` 文件 | 前端 | 更新 import 路径以匹配组件子目录拆分 |
+| `.vite/` | 缓存 | 删除 Vite 缓存目录 |
+
+### 解决
+
+- 完成项目结构重构的收尾清理，消除所有残留文件和索引异常
+
+### 验证
+
+- 改动类型: refactor
+- 清理乱码: 有（`tools` 索引条目 + `.vite/` 缓存）
+- 工作区状态: 干净 ✅
+
+---
+
+## `592db305` — `3030afef` — `70199fa7` — `99432840` — `de01d17c`
+
+> 提交日期: 2026-06-07 | 项目全面代码结构重构
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `reference/` | 目录 | bk-cmdb, bk-itsm, bk-job, bk-sops, bamboo-engine 移入（.gitignore 排除） |
+| `deploy/` | 目录 | docker-compose.yml, Dockerfile, nginx.conf 集中管理 |
+| `backend/tools/` | 目录 | 原 `backend/scripts/` 重命名，避免与根目录 `scripts/` 冲突 |
+| `docs/` | 目录 | 合并 5 处分散文档（`architecture/`、`design/`、`knowledge/`） |
+| `.claude/skills/` | 配置 | 47 个技能从用户级迁移到项目级 |
+| `.claude/.gitignore` | 配置 | 仅 `skills/` 可推送，`plans/`、`worktrees/`、`settings.local.json` 排除 |
+| `CLAUDE.md` | 文档 | 路径更新（reference/、docs/、deploy/） |
+| `OPSFLOW.md` | 文档 | 新增完整项目结构规范（目录职责、后端模板、前端拆分） |
+| `opsflow/components/` | 前端 | 21 个组件拆入 8 个子目录（canvas/、dialogs/、panels/ 等） |
+| 13 个 `.vue` / `.ts` 文件 | 前端 | 更新组件 import 路径 |
+
+### 解决
+
+- **问题：** 根目录杂乱（蓝鲸源码、部署配置混在一起）；文档分散；技能在用户级，其他开发者用不了；组件平铺 21 个文件
+- **办法：** 5 阶段全量规范化，`git mv` 保持历史，分步提交逐步验证
+
+### 验证
+
+- 改动类型: refactor
+- 后端测试: 264 passed ✅
+- TypeScript: 无类型错误 ✅
+- Vite: 241ms 启动，零 Sass 警告 ✅
+
+---
+
 ## `a8a0805a`
 
 > 提交日期: 2026-06-07 | 提交信息: fix: silence Sass legacy-js-api deprecation warning on Vite 8

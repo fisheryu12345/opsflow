@@ -1,0 +1,235 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.analysis.dao.impl;
+
+import com.tencent.bk.job.analysis.dao.AnalysisTaskDAO;
+import com.tencent.bk.job.analysis.model.dto.AnalysisTaskDTO;
+import com.tencent.bk.job.analysis.model.tables.AnalysisTask;
+import com.tencent.bk.job.common.util.StringUtil;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.Result;
+import org.jooq.TableField;
+import org.jooq.conf.ParamType;
+import org.jooq.types.ULong;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Repository;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+@Repository
+@Slf4j
+public class AnalysisTaskDAOImpl implements AnalysisTaskDAO {
+
+    private static final AnalysisTask defaultTable = AnalysisTask.ANALYSIS_TASK;
+
+    private final DSLContext dslContext;
+    private static final TableField<?, ?>[] ALL_FIELDS = {
+        defaultTable.ID,
+        defaultTable.CODE,
+        defaultTable.APP_IDS,
+        defaultTable.RESULT_DESCRIPTION_TEMPLATE,
+        defaultTable.RESULT_DESCRIPTION_TEMPLATE_EN,
+        defaultTable.RESULT_ITEM_TEMPLATE,
+        defaultTable.RESULT_ITEM_TEMPLATE_EN,
+        defaultTable.PRIORITY,
+        defaultTable.ACTIVE,
+        defaultTable.PERIOD_SECONDS,
+        defaultTable.CREATOR,
+        defaultTable.CREATE_TIME,
+        defaultTable.LAST_MODIFY_USER,
+        defaultTable.LAST_MODIFY_TIME
+    };
+
+    @Autowired
+    public AnalysisTaskDAOImpl(@Qualifier("job-analysis-dsl-context") DSLContext dslContext) {
+        this.dslContext = dslContext;
+    }
+
+    @Override
+    public Long insertAnalysisTask(AnalysisTaskDTO analysisTaskDTO) {
+        String appIdsStr = StringUtil.concatCollection(analysisTaskDTO.getAppIdList(), ",");
+        val query = dslContext.insertInto(defaultTable,
+            defaultTable.ID,
+            defaultTable.CODE,
+            defaultTable.APP_IDS,
+            defaultTable.RESULT_DESCRIPTION_TEMPLATE,
+            defaultTable.RESULT_DESCRIPTION_TEMPLATE_EN,
+            defaultTable.RESULT_ITEM_TEMPLATE,
+            defaultTable.RESULT_ITEM_TEMPLATE_EN,
+            defaultTable.PRIORITY,
+            defaultTable.ACTIVE,
+            defaultTable.PERIOD_SECONDS,
+            defaultTable.CREATOR,
+            defaultTable.CREATE_TIME,
+            defaultTable.LAST_MODIFY_USER,
+            defaultTable.LAST_MODIFY_TIME
+        ).values(
+            null,
+            analysisTaskDTO.getCode(),
+            appIdsStr,
+            analysisTaskDTO.getResultDescriptionTemplate(),
+            analysisTaskDTO.getResultDescriptionTemplateEn(),
+            analysisTaskDTO.getResultItemTemplate(),
+            analysisTaskDTO.getResultItemTemplateEn(),
+            analysisTaskDTO.getPriority(),
+            analysisTaskDTO.isActive(),
+            analysisTaskDTO.getPeriodSeconds(),
+            analysisTaskDTO.getCreator(),
+            ULong.valueOf(analysisTaskDTO.getCreateTime()),
+            analysisTaskDTO.getLastModifier(),
+            ULong.valueOf(analysisTaskDTO.getLastModifyTime())
+        ).returning(defaultTable.ID);
+        val sql = query.getSQL(ParamType.INLINED);
+        try {
+            val record = query.fetchOne();
+            assert record != null;
+            return record.getId();
+        } catch (Exception e) {
+            log.error(sql);
+            throw e;
+        }
+    }
+
+    @Override
+    public int updateAnalysisTaskById(AnalysisTaskDTO analysisTaskDTO) {
+        val query = dslContext.update(defaultTable)
+            .set(defaultTable.CODE, analysisTaskDTO.getCode())
+            .set(defaultTable.APP_IDS, StringUtil.concatCollection(analysisTaskDTO.getAppIdList(), ","))
+            .set(defaultTable.RESULT_DESCRIPTION_TEMPLATE, analysisTaskDTO.getResultDescriptionTemplate())
+            .set(defaultTable.RESULT_DESCRIPTION_TEMPLATE_EN, analysisTaskDTO.getResultDescriptionTemplateEn())
+            .set(defaultTable.RESULT_ITEM_TEMPLATE, analysisTaskDTO.getResultItemTemplate())
+            .set(defaultTable.RESULT_ITEM_TEMPLATE_EN, analysisTaskDTO.getResultItemTemplateEn())
+            .set(defaultTable.PRIORITY, analysisTaskDTO.getPriority())
+            .set(defaultTable.ACTIVE, analysisTaskDTO.isActive())
+            .set(defaultTable.PERIOD_SECONDS, analysisTaskDTO.getPeriodSeconds())
+            .set(defaultTable.LAST_MODIFY_USER, analysisTaskDTO.getLastModifier())
+            .set(defaultTable.LAST_MODIFY_TIME, ULong.valueOf(analysisTaskDTO.getLastModifyTime()))
+            .where(defaultTable.ID.eq(analysisTaskDTO.getId()));
+        val sql = query.getSQL(ParamType.INLINED);
+        try {
+            return query.execute();
+        } catch (Exception e) {
+            log.error(sql);
+            throw e;
+        }
+    }
+
+    @Override
+    public int deleteAnalysisTaskById(Long id) {
+        return dslContext.deleteFrom(defaultTable).where(
+            defaultTable.ID.eq(id)
+        ).execute();
+    }
+
+    @Override
+    public AnalysisTaskDTO getAnalysisTaskById(Long id) {
+        val record = dslContext
+            .select(ALL_FIELDS)
+            .from(defaultTable).where(
+                defaultTable.ID.eq(id)
+            ).fetchOne();
+        if (record == null) {
+            return null;
+        } else {
+            return convert(record);
+        }
+    }
+
+    @Override
+    public AnalysisTaskDTO getAnalysisTaskByCode(String code) {
+        val record = dslContext
+            .select(ALL_FIELDS)
+            .from(defaultTable).where(
+                defaultTable.CODE.eq(code)
+            ).fetchOne();
+        if (record == null) {
+            return null;
+        } else {
+            return convert(record);
+        }
+    }
+
+    @Override
+    public List<AnalysisTaskDTO> listAllAnalysisTask() {
+        return listAnalysisTaskWithConditions(Collections.emptyList());
+    }
+
+    @Override
+    public List<AnalysisTaskDTO> listActiveAnalysisTask() {
+        List<Condition> conditions = new ArrayList<>();
+        conditions.add(defaultTable.ACTIVE.eq(true));
+        return listAnalysisTaskWithConditions(conditions);
+    }
+
+    private List<AnalysisTaskDTO> listAnalysisTaskWithConditions(Collection<Condition> conditions) {
+        var query = dslContext
+            .select(ALL_FIELDS)
+            .from(defaultTable)
+            .where(conditions)
+            //默认按照优先级排序
+            .orderBy(defaultTable.PRIORITY);
+        Result<Record> records;
+        val sql = query.getSQL(ParamType.INLINED);
+        try {
+            records = query.fetch();
+        } catch (Exception e) {
+            log.error(sql);
+            throw e;
+        }
+        if (records.isEmpty()) {
+            return Collections.emptyList();
+        } else {
+            return records.map(this::convert);
+        }
+    }
+
+    private AnalysisTaskDTO convert(Record record) {
+        return new AnalysisTaskDTO(
+            record.get(defaultTable.ID),
+            record.get(defaultTable.CODE),
+            StringUtil.strToList(record.get(defaultTable.APP_IDS), Long.class, ","),
+            record.get(defaultTable.RESULT_DESCRIPTION_TEMPLATE),
+            record.get(defaultTable.RESULT_DESCRIPTION_TEMPLATE_EN),
+            record.get(defaultTable.RESULT_ITEM_TEMPLATE),
+            record.get(defaultTable.RESULT_ITEM_TEMPLATE_EN),
+            record.get(defaultTable.PRIORITY),
+            record.get(defaultTable.ACTIVE),
+            record.get(defaultTable.PERIOD_SECONDS),
+            record.get(defaultTable.CREATOR),
+            record.get(defaultTable.CREATE_TIME).longValue(),
+            record.get(defaultTable.LAST_MODIFY_USER),
+            record.get(defaultTable.LAST_MODIFY_TIME).longValue()
+        );
+    }
+
+}

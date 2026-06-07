@@ -1,0 +1,342 @@
+# -*- coding: utf-8 -*-
+"""
+Tencent is pleased to support the open source community by making 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community
+Edition) available.
+Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+http://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+
+import copy
+
+import ujson as json
+
+from gcloud.common_template.models import CommonTemplate
+from gcloud.tasktmpl3.models import TaskTemplate
+from gcloud.tests.mock import *  # noqa
+from gcloud.tests.mock_settings import *  # noqa
+from gcloud.utils.dates import format_datetime
+
+from .utils import APITest
+
+TEST_PROJECT_ID = "123"
+TEST_PROJECT_NAME = "biz name"
+TEST_BIZ_CC_ID = "123"
+TEST_TEMPLATE_ID = "1"
+
+
+class GetTemplateInfoAPITest(APITest):
+    def url(self):
+        return "/apigw/get_template_info/{template_id}/{project_id}/"
+
+    @mock.patch(
+        PROJECT_GET,
+        MagicMock(
+            return_value=MockProject(
+                project_id=TEST_PROJECT_ID,
+                name=TEST_PROJECT_NAME,
+                bk_biz_id=TEST_BIZ_CC_ID,
+                from_cmdb=True,
+            )
+        ),
+    )
+    def test_get_template_info__for_project_template(self):
+        pt1 = MockPipelineTemplate(id=1, name="pt1")
+
+        tmpl = MockTaskTemplate(id=1, pipeline_template=pt1)
+
+        with mock.patch(
+            TASKTEMPLATE_SELECT_RELATE,
+            MagicMock(return_value=MockQuerySet(get_result=tmpl)),
+        ):
+            pipeline_tree = copy.deepcopy(tmpl.pipeline_tree)
+            pipeline_tree.pop("line")
+            pipeline_tree.pop("location")
+            assert_data = {
+                "id": tmpl.id,
+                "name": tmpl.pipeline_template.name,
+                "creator": tmpl.pipeline_template.creator,
+                "create_time": format_datetime(tmpl.pipeline_template.create_time),
+                "editor": tmpl.pipeline_template.editor,
+                "edit_time": format_datetime(tmpl.pipeline_template.edit_time),
+                "category": tmpl.category,
+                "project_id": TEST_PROJECT_ID,
+                "project_name": TEST_PROJECT_NAME,
+                "bk_biz_id": TEST_BIZ_CC_ID,
+                "bk_biz_name": TEST_PROJECT_NAME,
+                "pipeline_tree": pipeline_tree,
+                "description": tmpl.pipeline_template.description,
+            }
+
+            response = self.client.get(path=self.url().format(template_id=TEST_TEMPLATE_ID, project_id=TEST_PROJECT_ID))
+
+            data = json.loads(response.content)
+
+            self.assertTrue(data["result"], msg=data)
+            self.assertEqual(assert_data, data["data"])
+
+    @mock.patch(
+        TASKTEMPLATE_SELECT_RELATE,
+        MagicMock(return_value=MockQuerySet(get_raise=TaskTemplate.DoesNotExist())),
+    )
+    @mock.patch(
+        PROJECT_GET,
+        MagicMock(
+            return_value=MockProject(
+                project_id=TEST_PROJECT_ID,
+                name=TEST_PROJECT_NAME,
+                bk_biz_id=TEST_BIZ_CC_ID,
+                from_cmdb=True,
+            )
+        ),
+    )
+    def test_get_template_info__for_project_template_does_not_exists(self):
+        response = self.client.get(path=self.url().format(template_id=TEST_TEMPLATE_ID, project_id=TEST_PROJECT_ID))
+
+        data = json.loads(response.content)
+
+        self.assertFalse(data["result"])
+        self.assertTrue("message" in data)
+
+    @mock.patch(
+        PROJECT_GET,
+        MagicMock(
+            return_value=MockProject(
+                project_id=TEST_PROJECT_ID,
+                name=TEST_PROJECT_NAME,
+                bk_biz_id=TEST_BIZ_CC_ID,
+                from_cmdb=True,
+            )
+        ),
+    )
+    def test_get_template_info__for_common_template(self):
+        pt1 = MockPipelineTemplate(id=1, name="pt1")
+
+        tmpl = MockCommonTemplate(id=1, pipeline_template=pt1)
+
+        with mock.patch(
+            COMMONTEMPLATE_SELECT_RELATE,
+            MagicMock(return_value=MockQuerySet(get_result=tmpl)),
+        ):
+            pipeline_tree = copy.deepcopy(tmpl.pipeline_tree)
+            pipeline_tree.pop("line")
+            pipeline_tree.pop("location")
+            assert_data = {
+                "id": tmpl.id,
+                "name": tmpl.pipeline_template.name,
+                "creator": tmpl.pipeline_template.creator,
+                "create_time": format_datetime(tmpl.pipeline_template.create_time),
+                "editor": tmpl.pipeline_template.editor,
+                "edit_time": format_datetime(tmpl.pipeline_template.edit_time),
+                "category": tmpl.category,
+                "project_id": TEST_PROJECT_ID,
+                "project_name": TEST_PROJECT_NAME,
+                "bk_biz_id": TEST_BIZ_CC_ID,
+                "bk_biz_name": TEST_PROJECT_NAME,
+                "pipeline_tree": pipeline_tree,
+                "description": tmpl.pipeline_template.description,
+            }
+
+            response = self.client.get(
+                path=self.url().format(template_id=TEST_TEMPLATE_ID, project_id=TEST_PROJECT_ID),
+                data={"template_source": "common"},
+            )
+
+            data = json.loads(response.content)
+
+            self.assertTrue(data["result"], msg=data)
+            self.assertEqual(assert_data, data["data"])
+
+    @mock.patch(
+        COMMONTEMPLATE_SELECT_RELATE,
+        MagicMock(return_value=MockQuerySet(get_raise=CommonTemplate.DoesNotExist())),
+    )
+    @mock.patch(
+        PROJECT_GET,
+        MagicMock(
+            return_value=MockProject(
+                project_id=TEST_PROJECT_ID,
+                name=TEST_PROJECT_NAME,
+                bk_biz_id=TEST_BIZ_CC_ID,
+                from_cmdb=True,
+            )
+        ),
+    )
+    def test_get_template_info__for_common_template_does_not_exists(self):
+        response = self.client.get(
+            path=self.url().format(template_id=TEST_TEMPLATE_ID, project_id=TEST_PROJECT_ID),
+            data={"template_source": "common"},
+        )
+
+        data = json.loads(response.content)
+
+        self.assertFalse(data["result"])
+        self.assertTrue("message" in data)
+
+    @mock.patch(
+        PROJECT_GET,
+        MagicMock(
+            return_value=MockProject(
+                project_id=TEST_PROJECT_ID,
+                name=TEST_PROJECT_NAME,
+                bk_biz_id=TEST_BIZ_CC_ID,
+                from_cmdb=True,
+            )
+        ),
+    )
+    def test_get_template_info__unfold_subprocess_true(self):
+        """unfold_subprocess=true 时调用 unfold 并返回正常结果"""
+        pt1 = MockPipelineTemplate(id=1, name="pt1")
+        tmpl = MockTaskTemplate(id=1, pipeline_template=pt1)
+
+        with mock.patch(TASKTEMPLATE_SELECT_RELATE, MagicMock(return_value=MockQuerySet(get_result=tmpl))), mock.patch(
+            "pipeline_web.wrapper.PipelineTemplateWebWrapper.unfold_subprocess"
+        ) as mock_unfold, mock.patch("gcloud.apigw.views.utils.replace_template_id"), mock.patch(
+            "gcloud.apigw.views.utils.replace_template_id_recursive"
+        ):
+            response = self.client.get(
+                path=self.url().format(template_id=TEST_TEMPLATE_ID, project_id=TEST_PROJECT_ID),
+                data={"unfold_subprocess": "true"},
+            )
+            data = json.loads(response.content)
+            self.assertTrue(data["result"], msg=data)
+            mock_unfold.assert_called_once()
+
+    @mock.patch(
+        PROJECT_GET,
+        MagicMock(
+            return_value=MockProject(
+                project_id=TEST_PROJECT_ID,
+                name=TEST_PROJECT_NAME,
+                bk_biz_id=TEST_BIZ_CC_ID,
+                from_cmdb=True,
+            )
+        ),
+    )
+    def test_get_template_info__unfold_subprocess_exception(self):
+        """unfold_subprocess 内部异常时返回 result=False"""
+        from pipeline.exceptions import PipelineException
+
+        pt1 = MockPipelineTemplate(id=1, name="pt1")
+        tmpl = MockTaskTemplate(id=1, pipeline_template=pt1)
+
+        with mock.patch(TASKTEMPLATE_SELECT_RELATE, MagicMock(return_value=MockQuerySet(get_result=tmpl))), mock.patch(
+            "gcloud.apigw.views.utils.replace_template_id"
+        ), mock.patch(
+            "pipeline_web.wrapper.PipelineTemplateWebWrapper.unfold_subprocess",
+            side_effect=PipelineException("recursion limit"),
+        ):
+            response = self.client.get(
+                path=self.url().format(template_id=TEST_TEMPLATE_ID, project_id=TEST_PROJECT_ID),
+                data={"unfold_subprocess": "true"},
+            )
+            data = json.loads(response.content)
+            self.assertFalse(data["result"])
+            self.assertIn("format_template_data", data["message"])
+            self.assertIn("code", data)
+
+    @mock.patch(
+        PROJECT_GET,
+        MagicMock(
+            return_value=MockProject(
+                project_id=TEST_PROJECT_ID,
+                name=TEST_PROJECT_NAME,
+                bk_biz_id=TEST_BIZ_CC_ID,
+                from_cmdb=True,
+            )
+        ),
+    )
+    def test_get_template_info__format_yaml_success(self):
+        """format=yaml 时 pipeline_tree 应为 YAML schema 字符串"""
+        pt1 = MockPipelineTemplate(id=1, name="pt1")
+        tmpl = MockTaskTemplate(id=1, pipeline_template=pt1)
+
+        mock_yaml_docs = [{"schema_version": "v1", "meta": {"name": "pt1"}, "spec": {"nodes": []}}]
+        mock_convert_result = {"result": True, "data": mock_yaml_docs}
+
+        with mock.patch(TASKTEMPLATE_SELECT_RELATE, MagicMock(return_value=MockQuerySet(get_result=tmpl)),), mock.patch(
+            "gcloud.tasktmpl3.models.TaskTemplate.objects.export_templates",
+            return_value={"template_data": "mock"},
+        ), mock.patch("gcloud.apigw.views.get_template_info.YamlSchemaConverterHandler") as mock_handler_cls:
+            mock_handler = MagicMock()
+            mock_handler.convert.return_value = mock_convert_result
+            mock_handler_cls.return_value = mock_handler
+
+            response = self.client.get(
+                path=self.url().format(template_id=TEST_TEMPLATE_ID, project_id=TEST_PROJECT_ID),
+                data={"format": "yaml"},
+            )
+            data = json.loads(response.content)
+            self.assertTrue(data["result"], msg=data)
+            self.assertIsInstance(data["data"]["pipeline_tree"], str)
+            self.assertIn("schema_version", data["data"]["pipeline_tree"])
+            self.assertEqual(data["data"]["id"], tmpl.id)
+            self.assertEqual(data["data"]["name"], tmpl.pipeline_template.name)
+
+    @mock.patch(
+        PROJECT_GET,
+        MagicMock(
+            return_value=MockProject(
+                project_id=TEST_PROJECT_ID,
+                name=TEST_PROJECT_NAME,
+                bk_biz_id=TEST_BIZ_CC_ID,
+                from_cmdb=True,
+            )
+        ),
+    )
+    def test_get_template_info__format_yaml_convert_fail(self):
+        """format=yaml 转换失败时返回 result=False"""
+        pt1 = MockPipelineTemplate(id=1, name="pt1")
+        tmpl = MockTaskTemplate(id=1, pipeline_template=pt1)
+
+        mock_convert_result = {"result": False, "message": "unsupported node type", "data": None}
+
+        with mock.patch(TASKTEMPLATE_SELECT_RELATE, MagicMock(return_value=MockQuerySet(get_result=tmpl)),), mock.patch(
+            "gcloud.tasktmpl3.models.TaskTemplate.objects.export_templates",
+            return_value={"template_data": "mock"},
+        ), mock.patch("gcloud.apigw.views.get_template_info.YamlSchemaConverterHandler") as mock_handler_cls:
+            mock_handler = MagicMock()
+            mock_handler.convert.return_value = mock_convert_result
+            mock_handler_cls.return_value = mock_handler
+
+            response = self.client.get(
+                path=self.url().format(template_id=TEST_TEMPLATE_ID, project_id=TEST_PROJECT_ID),
+                data={"format": "yaml"},
+            )
+            data = json.loads(response.content)
+            self.assertFalse(data["result"])
+            self.assertIn("convert yaml failed", data["message"])
+
+    @mock.patch(
+        PROJECT_GET,
+        MagicMock(
+            return_value=MockProject(
+                project_id=TEST_PROJECT_ID,
+                name=TEST_PROJECT_NAME,
+                bk_biz_id=TEST_BIZ_CC_ID,
+                from_cmdb=True,
+            )
+        ),
+    )
+    def test_get_template_info__format_yaml_export_exception(self):
+        """format=yaml export_templates 抛异常时返回 result=False"""
+        from gcloud.exceptions import FlowExportError
+
+        pt1 = MockPipelineTemplate(id=1, name="pt1")
+        tmpl = MockTaskTemplate(id=1, pipeline_template=pt1)
+
+        with mock.patch(TASKTEMPLATE_SELECT_RELATE, MagicMock(return_value=MockQuerySet(get_result=tmpl)),), mock.patch(
+            "gcloud.tasktmpl3.models.TaskTemplate.objects.export_templates",
+            side_effect=FlowExportError("export error"),
+        ):
+            response = self.client.get(
+                path=self.url().format(template_id=TEST_TEMPLATE_ID, project_id=TEST_PROJECT_ID),
+                data={"format": "yaml"},
+            )
+            data = json.loads(response.content)
+            self.assertFalse(data["result"])
+            self.assertIn("export yaml failed", data["message"])

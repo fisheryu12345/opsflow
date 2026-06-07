@@ -1,0 +1,25 @@
+name: Engine python package
+on:
+  push:
+    tags:
+      - "bamboo-engine-v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.7"
+
+      - name: Install Poetry
+        run: python -m pip install "poetry==1.5.1"
+
+      - name: Build and publish to pypi
+        run: |
+          poetry build -vvv
+          poetry config pypi-token.pypi ${{ secrets.ENGINE_PYPI_TOKEN }}
+          poetry publish

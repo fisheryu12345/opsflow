@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [ "$RUN_VER" == "open" ]
+then
+  exit 0
+fi
+
+echo "clean other version's files"
+rm -rf blueapps
+rm -rf blueking
+
+echo "update requirements.txt"
+# cat requirements_ieodbeta.txt >> requirements.txt
+cat requirements_ieod.txt >> requirements.txt

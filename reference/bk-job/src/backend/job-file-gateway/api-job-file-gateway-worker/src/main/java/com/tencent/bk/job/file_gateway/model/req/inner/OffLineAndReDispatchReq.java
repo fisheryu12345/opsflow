@@ -1,0 +1,73 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.file_gateway.model.req.inner;
+
+import com.tencent.bk.job.common.annotation.CompatibleImplementation;
+import com.tencent.bk.job.common.constant.CompatibleType;
+import com.tencent.bk.job.common.util.json.SkipLogFields;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
+
+@Slf4j
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
+public class OffLineAndReDispatchReq {
+    @Schema(description = "worker所在的集群", required = true)
+    String clusterName;
+    @Schema(description = "访问worker使用的host", required = true)
+    String accessHost;
+    @Schema(description = "访问worker使用的port", required = true)
+    Integer accessPort;
+    @Schema(description = "业务ID", required = true)
+    Long appId;
+    @SkipLogFields
+    @Schema(description = "密钥", required = true)
+    String token;
+    @Schema(description = "需要重调度的任务Id列表", required = true)
+    List<String> taskIdList;
+    @Schema(description = "重调度初始延迟时间/ms，默认为0")
+    Long initDelayMills = 0L;
+    @Schema(description = "重调度间隔时间/ms，默认3000ms")
+    Long intervalMills = 3000L;
+
+    @CompatibleImplementation(
+        name = "multi_cluster_deploy",
+        deprecatedVersion = "3.12.x",
+        type = CompatibleType.DEPLOY,
+        explain = "兼容发布过程中老版本File-Worker调用，发布完成后可删除")
+    public String getClusterName() {
+        if (clusterName == null) {
+            log.warn("CompatibleImplementation: clusterName is null, use default");
+            return "default";
+        }
+        return clusterName;
+    }
+}

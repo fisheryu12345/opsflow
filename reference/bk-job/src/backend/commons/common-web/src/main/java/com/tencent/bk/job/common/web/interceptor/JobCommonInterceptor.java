@@ -1,0 +1,306 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.common.web.interceptor;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.tencent.bk.job.common.annotation.JobInterceptor;
+import com.tencent.bk.job.common.constant.ErrorCode;
+import com.tencent.bk.job.common.constant.HttpRequestSourceEnum;
+import com.tencent.bk.job.common.constant.InterceptorOrder;
+import com.tencent.bk.job.common.constant.JobCommonHeaders;
+import com.tencent.bk.job.common.exception.InvalidParamException;
+import com.tencent.bk.job.common.i18n.locale.LocaleUtils;
+import com.tencent.bk.job.common.i18n.zone.InvalidTimeZoneException;
+import com.tencent.bk.job.common.i18n.zone.TimeZoneConstants;
+import com.tencent.bk.job.common.i18n.zone.TimeZoneUtils;
+import com.tencent.bk.job.common.model.User;
+import com.tencent.bk.job.common.paas.user.UserLocalCache;
+import com.tencent.bk.job.common.util.JobContextUtil;
+import com.tencent.bk.job.common.util.RequestUtil;
+import com.tencent.bk.job.common.util.json.JsonUtils;
+import com.tencent.bk.job.common.web.model.RepeatableReadWriteHttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpStatus;
+import org.slf4j.helpers.MessageFormatter;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
+import org.springframework.http.HttpMethod;
+import org.springframework.lang.NonNull;
+import org.springframework.web.servlet.AsyncHandlerInterceptor;
+import org.springframework.web.servlet.ModelAndView;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.time.ZoneId;
+
+/**
+ * Job通用拦截器
+ */
+@Slf4j
+@JobInterceptor(order = InterceptorOrder.Init.HIGHEST, pathPatterns = "/**")
+public class JobCommonInterceptor implements AsyncHandlerInterceptor {
+
+    private final Tracer tracer;
+    private final UserLocalCache userLocalCache;
+    private Tracer.SpanInScope spanInScope = null;
+
+    public JobCommonInterceptor(Tracer tracer, UserLocalCache userLocalCache) {
+        this.tracer = tracer;
+        this.userLocalCache = userLocalCache;
+    }
+
+    @Override
+    public boolean preHandle(@NonNull HttpServletRequest request,
+                             @NonNull HttpServletResponse response,
+                             @NonNull Object handler) {
+        JobContextUtil.setStartTime();
+        JobContextUtil.setRequest(request);
+        JobContextUtil.setResponse(response);
+
+        initSpanAndAddRequestId();
+
+        if (!shouldFilter(request)) {
+            return true;
+        }
+
+        addUser(request);
+        addLang(request);
+        addTimeZone(request);
+
+        return true;
+    }
+
+    private boolean shouldFilter(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        // 只拦截web/service/esb的API请求
+        return uri.startsWith("/web/") || uri.startsWith("/service/") || uri.startsWith("/esb/");
+    }
+
+    private void initSpanAndAddRequestId() {
+        Span currentSpan = tracer.currentSpan();
+        if (currentSpan == null) {
+            currentSpan = tracer.nextSpan().start();
+        }
+        spanInScope = tracer.withSpan(currentSpan);
+        String traceId = currentSpan.context().traceId();
+        JobContextUtil.setRequestId(traceId);
+    }
+
+    private void addUser(HttpServletRequest request) {
+        HttpRequestSourceEnum requestSource = RequestUtil.parseHttpRequestSource(request);
+        if (requestSource == HttpRequestSourceEnum.UNKNOWN || requestSource == HttpRequestSourceEnum.INTERNAL) {
+            return;
+        }
+
+        String tenantId = extractTenantId(request);
+
+        String username = null;
+        switch (requestSource) {
+            case WEB:
+                username = request.getHeader("username");
+                break;
+            case ESB:
+                // 网关从ESB JWT中解析出的Username最高优先级
+                username = request.getHeader(JobCommonHeaders.USERNAME);
+                log.debug("username from gateway:{}", username);
+                // QueryString/Body中的Username次优先
+                if (StringUtils.isBlank(username)) {
+                    username = parseUsernameFromQueryStringOrBody(request);
+                    log.debug("username from query/body:{}", username);
+                }
+                break;
+        }
+        String displayName = tryToGetDisplayName(tenantId, username);
+        JobContextUtil.setUser(new User(tenantId, username, displayName));
+    }
+
+    private String tryToGetDisplayName(String tenantId, String username) {
+        if (StringUtils.isBlank(username)) {
+            return username;
+        }
+        try {
+            User user = userLocalCache.getUser(tenantId, username);
+            return user.getDisplayName();
+        } catch (Throwable t) {
+            String message = MessageFormatter.format(
+                "FailToGetUserDisplayName: tenantId={}, username={}, use username directly",
+                tenantId,
+                username
+            ).getMessage();
+            log.warn(message, t);
+            return username;
+        }
+    }
+
+    private String extractTenantId(HttpServletRequest request) {
+        // 使用 job-gateway 设置的租户 Header
+        String tenantId = request.getHeader(JobCommonHeaders.BK_TENANT_ID);
+        if (StringUtils.isEmpty(tenantId)) {
+            log.warn("Invalid request, tenant is not set");
+            return null;
+        }
+        return tenantId;
+    }
+
+    private void addLang(HttpServletRequest request) {
+        String userLang = request.getHeader(LocaleUtils.COMMON_LANG_HEADER);
+
+        if (StringUtils.isNotBlank(userLang)) {
+            JobContextUtil.setUserLang(userLang);
+        } else {
+            JobContextUtil.setUserLang(LocaleUtils.LANG_ZH_CN);
+        }
+    }
+
+    /**
+     * 从 HTTP Header 中获取用户时区（由job-gateway添加）并设置到 JobContext
+     * 如果 Header 中没有时区信息，则使用默认时区（Asia/Shanghai）
+     * 
+     * @throws InvalidParamException 当时区参数无效时抛出
+     */
+    private void addTimeZone(HttpServletRequest request) {
+        String userTimeZone = request.getHeader(JobCommonHeaders.BK_USER_TIMEZONE);
+        
+        ZoneId zoneId;
+        if (StringUtils.isNotBlank(userTimeZone)) {
+            try {
+                zoneId = TimeZoneUtils.checkTimeZoneValid(userTimeZone);
+                log.debug("Set user timezone from header: {}", userTimeZone);
+            } catch (InvalidTimeZoneException e) {
+                log.warn("Invalid user timezone, user: {}, user's timezone: {}",
+                    JobContextUtil.getUser(), userTimeZone);
+                throw new InvalidParamException(
+                    ErrorCode.INVALID_USER_TIMEZONE,
+                    new Object[]{userTimeZone}
+                );
+            }
+        } else {
+            zoneId = TimeZoneConstants.DEFAULT_ZONE_ID_CN;
+            log.debug("No user timezone in header, use default timezone: {}", zoneId);
+        }
+        
+        JobContextUtil.setTimeZone(zoneId);
+    }
+
+    private String parseUsernameFromQueryStringOrBody(HttpServletRequest request) {
+        return parseValueFromQueryStringOrBody(request, "bk_username");
+    }
+
+    private String parseValueFromQueryStringOrBody(HttpServletRequest request, String key) {
+        try {
+            if (request.getMethod().equals(HttpMethod.POST.name())
+                || request.getMethod().equals(HttpMethod.PUT.name())) {
+                if (!(request instanceof RepeatableReadWriteHttpServletRequest)) {
+                    return null;
+                }
+                RepeatableReadWriteHttpServletRequest wrapperRequest =
+                    (RepeatableReadWriteHttpServletRequest) request;
+                if (StringUtils.isNotBlank(wrapperRequest.getBody())) {
+                    ObjectNode jsonBody = (ObjectNode) JsonUtils.toJsonNode(wrapperRequest.getBody());
+                    if (jsonBody == null) {
+                        return null;
+                    }
+                    JsonNode valueNode = jsonBody.get(key);
+                    String value = (valueNode == null || valueNode.isNull()) ? null : jsonBody.get(key).asText();
+                    log.debug("Parsed from POST/PUT: {}={}", key, value);
+                    return value;
+                }
+            } else if (request.getMethod().equals(HttpMethod.GET.name())) {
+                String value = request.getParameter(key);
+                log.debug("Parsed from GET: {}={}", key, value);
+                return value;
+            }
+        } catch (Exception e) {
+            String msg = MessageFormatter.format(
+                "Fail to parse {} from request",
+                key
+            ).getMessage();
+            log.warn(msg, e);
+        }
+        return null;
+    }
+
+    @Override
+    public void postHandle(@NonNull HttpServletRequest request,
+                           @NonNull HttpServletResponse response,
+                           @NonNull Object handler,
+                           ModelAndView modelAndView) {
+        if (log.isDebugEnabled()) {
+            log.debug(
+                "Post handler|{}|{}|{}|{}|{}",
+                JobContextUtil.getRequestId(),
+                JobContextUtil.getApp(),
+                JobContextUtil.getUsername(),
+                JobContextUtil.calcTimeMillisFromStart(),
+                request.getRequestURI()
+            );
+        }
+    }
+
+    @Override
+    public void afterCompletion(@NonNull HttpServletRequest request,
+                                @NonNull HttpServletResponse response,
+                                @NonNull Object handler,
+                                Exception ex) {
+        try {
+            if (isClientOrServerError(response)) {
+                log.warn("status {} given by {}", response.getStatus(), handler);
+            }
+            if (ex != null) {
+                log.error(
+                    "After completion|{}|{}|{}|{}|{}|{}",
+                    JobContextUtil.getRequestId(),
+                    response.getStatus(),
+                    JobContextUtil.getUsername(),
+                    JobContextUtil.calcTimeMillisFromStart(),
+                    request.getRequestURI(),
+                    ex.getMessage()
+                );
+            } else {
+                log.debug(
+                    "After completion|{}|{}|{}|{}|{}",
+                    JobContextUtil.getRequestId(),
+                    response.getStatus(),
+                    JobContextUtil.getUsername(),
+                    JobContextUtil.calcTimeMillisFromStart(),
+                    request.getRequestURI()
+                );
+            }
+        } finally {
+            if (spanInScope != null) {
+                spanInScope.close();
+            }
+            JobContextUtil.unsetContext();
+        }
+    }
+
+    private boolean isClientOrServerError(HttpServletResponse response) {
+        return response.getStatus() >= HttpStatus.SC_BAD_REQUEST;
+    }
+
+
+}

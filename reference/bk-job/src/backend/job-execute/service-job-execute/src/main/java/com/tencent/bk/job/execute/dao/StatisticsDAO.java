@@ -1,0 +1,70 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.execute.dao;
+
+import com.tencent.bk.job.analysis.api.dto.StatisticsDTO;
+import com.tencent.bk.job.execute.statistics.StatisticsKey;
+
+import java.util.List;
+
+public interface StatisticsDAO {
+
+    int deleteStatisticsByDate(String date);
+
+    int deleteOneDayStatistics(Long appId, String date);
+
+    StatisticsDTO getStatistics(Long appId, String resource, String dimension, String dimensionValue, String date);
+
+    /**
+     * 根据条件获取一段时间范围内的统计数据
+     *
+     * @param appId          Job业务ID
+     * @param resource       资源
+     * @param dimension      维度
+     * @param dimensionValue 维度取值
+     * @param startDate      开始日期（含）
+     * @param endDate        结束日期（含）
+     * @return 统计数据列表
+     */
+    List<StatisticsDTO> getStatisticsListBetweenDate(Long appId,
+                                                     String resource,
+                                                     String dimension,
+                                                     String dimensionValue,
+                                                     String startDate,
+                                                     String endDate);
+
+    List<StatisticsDTO> getStatisticsList(List<Long> inAppIdList, List<Long> notInAppIdList, String resource,
+                                          String dimension, String dimensionValue, String date);
+
+    /**
+     * 增加统计指标的值
+     *
+     * @param date           日期
+     * @param statisticsKey  统计 key
+     * @param incrementValue 增长值
+     * @return affectRows 更新的行数
+     */
+    int increaseStatisticValue(String date, StatisticsKey statisticsKey, Integer incrementValue);
+}

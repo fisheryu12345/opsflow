@@ -1,0 +1,263 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.file_gateway.api.web;
+
+import com.tencent.bk.job.common.annotation.WebAPI;
+import com.tencent.bk.job.common.model.PageData;
+import com.tencent.bk.job.common.model.Response;
+import com.tencent.bk.job.common.model.dto.AppResourceScope;
+import com.tencent.bk.job.file_gateway.model.req.common.FileSourceStaticParam;
+import com.tencent.bk.job.file_gateway.model.req.web.FileSourceCreateUpdateReq;
+import com.tencent.bk.job.file_gateway.model.resp.web.FileSourceVO;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Hidden;
+
+import java.util.List;
+
+@Tag(name = "job-file-gateway:web:FileSource")
+@RequestMapping("/web/fileSource/scope/{scopeType}/{scopeId}")
+@RestController
+@WebAPI
+public interface WebFileSourceResource {
+
+    @Operation(summary = "检查文件源别名是否已存在（可用返回true）")
+    @GetMapping("/checkAlias")
+    Response<Boolean> checkAlias(
+        @Parameter(description = "用户名，网关自动传入")
+        @RequestHeader("username")
+            String username,
+        @Parameter(hidden = true)
+        @RequestAttribute(value = "appResourceScope")
+            AppResourceScope appResourceScope,
+        @Parameter(description = "资源范围类型", required = true)
+        @PathVariable(value = "scopeType")
+            String scopeType,
+        @Parameter(description = "资源范围ID", required = true)
+        @PathVariable(value = "scopeId")
+            String scopeId,
+        @Parameter(description = "文件源别名")
+        @RequestParam String alias,
+        @Parameter(description = "文件源 ID")
+        @RequestParam(value = "fileSourceId", required = false)
+            Integer fileSourceId
+    );
+
+    @Operation(summary = "新增文件源")
+    @PostMapping("")
+    Response<FileSourceVO> saveFileSource(
+        @Parameter(description = "用户名，网关自动传入")
+        @RequestHeader("username")
+            String username,
+        @Parameter(hidden = true)
+        @RequestAttribute(value = "appResourceScope")
+            AppResourceScope appResourceScope,
+        @Parameter(description = "资源范围类型", required = true)
+        @PathVariable(value = "scopeType")
+            String scopeType,
+        @Parameter(description = "资源范围ID", required = true)
+        @PathVariable(value = "scopeId")
+            String scopeId,
+        @Parameter(description = "创建文件源请求")
+        @Validated
+        @RequestBody
+            FileSourceCreateUpdateReq fileSourceCreateUpdateReq
+    );
+
+    @Operation(summary = "更新文件源")
+    @PutMapping("/{id}")
+    Response<FileSourceVO> updateFileSource(
+        @Parameter(description = "用户名，网关自动传入")
+        @RequestHeader("username")
+            String username,
+        @Parameter(hidden = true)
+        @RequestAttribute(value = "appResourceScope")
+            AppResourceScope appResourceScope,
+        @Parameter(description = "资源范围类型", required = true)
+        @PathVariable(value = "scopeType")
+            String scopeType,
+        @Parameter(description = "资源范围ID", required = true)
+        @PathVariable(value = "scopeId")
+            String scopeId,
+        @Parameter(description = "文件源 ID", required = true)
+        @PathVariable("id")
+            Integer id,
+        @Parameter(description = "更新文件源请求")
+        @Validated
+        @RequestBody
+            FileSourceCreateUpdateReq fileSourceCreateUpdateReq
+    );
+
+    @Operation(summary = "删除文件源")
+    @DeleteMapping("/ids/{id}")
+    Response<Integer> deleteFileSource(
+        @Parameter(description = "用户名，网关自动传入")
+        @RequestHeader("username")
+            String username,
+        @Parameter(hidden = true)
+        @RequestAttribute(value = "appResourceScope")
+            AppResourceScope appResourceScope,
+        @Parameter(description = "资源范围类型", required = true)
+        @PathVariable(value = "scopeType")
+            String scopeType,
+        @Parameter(description = "资源范围ID", required = true)
+        @PathVariable(value = "scopeId")
+            String scopeId,
+        @Parameter(description = "文件源 ID", required = true)
+        @PathVariable("id")
+            Integer id);
+
+    @Operation(summary = "启用/禁用文件源")
+    @PutMapping("/ids/{id}/enable")
+    Response<Boolean> enableFileSource(
+        @Parameter(description = "用户名，网关自动传入")
+        @RequestHeader("username")
+            String username,
+        @Parameter(hidden = true)
+        @RequestAttribute(value = "appResourceScope")
+            AppResourceScope appResourceScope,
+        @Parameter(description = "资源范围类型", required = true)
+        @PathVariable(value = "scopeType")
+            String scopeType,
+        @Parameter(description = "资源范围ID", required = true)
+        @PathVariable(value = "scopeId")
+            String scopeId,
+        @Parameter(description = "文件源 ID", required = true)
+        @PathVariable("id")
+            Integer id,
+        @Parameter(description = "是否开启", required = true)
+        @RequestParam("flag")
+            Boolean enableFlag
+    );
+
+    @Operation(summary = "获取文件源详情")
+    @GetMapping("/ids/{id}")
+    Response<FileSourceVO> getFileSourceDetail(
+        @Parameter(description = "用户名，网关自动传入")
+        @RequestHeader("username")
+            String username,
+        @Parameter(hidden = true)
+        @RequestAttribute(value = "appResourceScope")
+            AppResourceScope appResourceScope,
+        @Parameter(description = "资源范围类型", required = true)
+        @PathVariable(value = "scopeType")
+            String scopeType,
+        @Parameter(description = "资源范围ID", required = true)
+        @PathVariable(value = "scopeId")
+            String scopeId,
+        @Parameter(description = "文件源 ID", required = true)
+        @PathVariable("id")
+            Integer id);
+
+    @Operation(summary = "获取可使用的文件源列表")
+    @GetMapping("/available/list")
+    Response<PageData<FileSourceVO>> listAvailableFileSource(
+        @Parameter(description = "用户名，网关自动传入")
+        @RequestHeader("username")
+            String username,
+        @Parameter(hidden = true)
+        @RequestAttribute(value = "appResourceScope")
+            AppResourceScope appResourceScope,
+        @Parameter(description = "资源范围类型", required = true)
+        @PathVariable(value = "scopeType")
+            String scopeType,
+        @Parameter(description = "资源范围ID", required = true)
+        @PathVariable(value = "scopeId")
+            String scopeId,
+        @Parameter(description = "凭证ID")
+        @RequestParam(value = "credentialId", required = false)
+            String credentialId,
+        @Parameter(description = "别名")
+        @RequestParam(value = "alias", required = false)
+            String alias,
+        @Parameter(description = "分页-开始")
+        @RequestParam(value = "start", required = false)
+            Integer start,
+        @Parameter(description = "分页-每页大小")
+        @RequestParam(value = "pageSize", required = false)
+            Integer pageSize);
+
+    @Operation(summary = "获取可管理的工作台文件源列表")
+    @GetMapping("/workTable/list")
+    Response<PageData<FileSourceVO>> listWorkTableFileSource(
+        @Parameter(description = "用户名，网关自动传入")
+        @RequestHeader("username")
+            String username,
+        @Parameter(hidden = true)
+        @RequestAttribute(value = "appResourceScope")
+            AppResourceScope appResourceScope,
+        @Parameter(description = "资源范围类型", required = true)
+        @PathVariable(value = "scopeType")
+            String scopeType,
+        @Parameter(description = "资源范围ID", required = true)
+        @PathVariable(value = "scopeId")
+            String scopeId,
+        @Parameter(description = "凭证ID")
+        @RequestParam(value = "credentialId", required = false)
+            String credentialId,
+        @Parameter(description = "别名")
+        @RequestParam(value = "alias", required = false)
+            String alias,
+        @Parameter(description = "分页-开始")
+        @RequestParam(value = "start", required = false)
+            Integer start,
+        @Parameter(description = "分页-每页大小")
+        @RequestParam(value = "pageSize", required = false)
+            Integer pageSize
+    );
+
+    @Operation(summary = "获取文件源类型的静态参数")
+    @GetMapping("/fileSourceParams")
+    Response<List<FileSourceStaticParam>> getFileSourceParams(
+        @Parameter(description = "用户名，网关自动传入")
+        @RequestHeader("username")
+            String username,
+        @Parameter(hidden = true)
+        @RequestAttribute(value = "appResourceScope")
+            AppResourceScope appResourceScope,
+        @Parameter(description = "资源范围类型", required = true)
+        @PathVariable(value = "scopeType")
+            String scopeType,
+        @Parameter(description = "资源范围ID", required = true)
+        @PathVariable(value = "scopeId")
+            String scopeId,
+        @Parameter(description = "文件源类型Code，来源于fileSourceType的list接口返回中的code字段", required = true)
+        @RequestParam(value = "fileSourceTypeCode")
+            String fileSourceTypeCode
+    );
+}

@@ -1,0 +1,97 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.gateway;
+
+import com.tencent.bk.job.common.service.boot.JobBootApplication;
+import com.tencent.bk.job.gateway.config.CsrfCheckProperties;
+import com.tencent.bk.job.gateway.config.UserMapProperties;
+import com.tencent.bk.job.gateway.web.server.GatewayWebServerFactoryCustomizer;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.availability.ApplicationAvailabilityAutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.web.embedded.netty.NettyReactiveWebServerFactory;
+import org.springframework.boot.web.server.WebServer;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.http.server.reactive.HttpHandler;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+
+/**
+ * Job Gateway Spring Boot Application
+ */
+@JobBootApplication(scanBasePackages = "com.tencent.bk.job.gateway",
+    exclude = {ApplicationAvailabilityAutoConfiguration.class},
+    excludeName = {"org.springframework.cloud.kubernetes.client.discovery.KubernetesDiscoveryClientAutoConfiguration"})
+@Slf4j
+@EnableFeignClients
+@EnableConfigurationProperties({UserMapProperties.class, CsrfCheckProperties.class})
+public class JobGatewayBootApplication {
+    private final HttpHandler httpHandler;
+
+    private WebServer httpWebServer;
+
+    private final GatewayWebServerFactoryCustomizer gatewayWebServerFactoryCustomizer;
+
+    @Value("${server.http.enabled}")
+    private Boolean httpEnabled;
+
+    @Value("${server.http.port:}")
+    private Integer httpPort;
+
+    public JobGatewayBootApplication(@Autowired
+                                         HttpHandler httpHandler,
+                                     @Autowired(required = false)
+                                     GatewayWebServerFactoryCustomizer gatewayWebServerFactoryCustomizer) {
+        this.httpHandler = httpHandler;
+        this.gatewayWebServerFactoryCustomizer = gatewayWebServerFactoryCustomizer;
+    }
+
+    public static void main(String[] args) {
+        SpringApplication.run(JobGatewayBootApplication.class, args);
+    }
+
+    @PostConstruct
+    public void startHttpWebServer() {
+        if (httpEnabled && httpPort != null) {
+            NettyReactiveWebServerFactory factory = new NettyReactiveWebServerFactory(httpPort);
+            if (gatewayWebServerFactoryCustomizer != null) {
+                gatewayWebServerFactoryCustomizer.customize(factory);
+            }
+            this.httpWebServer = factory.getWebServer(this.httpHandler);
+            this.httpWebServer.start();
+        }
+    }
+
+    @PreDestroy
+    public void stopHttpWebServer() {
+        if (httpEnabled && httpPort != null) {
+            this.httpWebServer.stop();
+        }
+    }
+}

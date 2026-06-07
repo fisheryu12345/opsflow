@@ -1,0 +1,352 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.common.util;
+
+import com.tencent.bk.job.common.context.JobContext;
+import com.tencent.bk.job.common.context.JobContextThreadLocal;
+import com.tencent.bk.job.common.i18n.locale.LocaleUtils;
+import com.tencent.bk.job.common.model.BasicApp;
+import com.tencent.bk.job.common.model.User;
+import io.micrometer.core.instrument.Tag;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Job http 请求上下文工具类
+ */
+@Slf4j
+public class JobContextUtil {
+
+    public static JobContext getContext() {
+        return JobContextThreadLocal.get();
+    }
+
+    public static void setContext(JobContext jobContext) {
+        JobContextThreadLocal.set(jobContext);
+    }
+
+    public static void unsetContext() {
+        JobContextThreadLocal.unset();
+    }
+
+    public static Long getStartTime() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        Long startTime;
+        if (jobContext != null) {
+            startTime = jobContext.getStartTime();
+        } else {
+            return 0L;
+        }
+
+        return startTime;
+    }
+
+    public static void setStartTime() {
+        JobContext jobContext = getOrInitContext();
+        jobContext.setStartTime(System.currentTimeMillis());
+    }
+
+    /**
+     * 计算从请求开始到现在过去了多长时间，单位：毫秒
+     *
+     * @return 已过去的时间
+     */
+    public static Long calcTimeMillisFromStart() {
+        Long startTime = getStartTime();
+        if (startTime == null) {
+            log.warn("startTimeNotSet, return null");
+            return null;
+        }
+        return System.currentTimeMillis() - startTime;
+    }
+
+    public static String getUsername() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        String staffName = null;
+        if (jobContext != null) {
+            staffName = jobContext.getUsername();
+        }
+        return staffName;
+    }
+
+    public static void setUser(User user) {
+        JobContext jobContext = getOrInitContext();
+        jobContext.setUser(user);
+    }
+
+    public static BasicApp getApp() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        BasicApp app = null;
+        if (jobContext != null) {
+            app = jobContext.getApp();
+        }
+
+        return app;
+    }
+
+    public static void setApp(BasicApp app) {
+        JobContext jobContext = getOrInitContext();
+        jobContext.setApp(app);
+    }
+
+    public static String getRequestId() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        String requestId = null;
+        if (jobContext != null) {
+            requestId = jobContext.getRequestId();
+        }
+
+        return requestId;
+    }
+
+    public static void setRequestId(String requestId) {
+        JobContext jobContext = getOrInitContext();
+        jobContext.setRequestId(requestId);
+    }
+
+    public static String getUserLang() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        String userLang = null;
+        if (jobContext != null) {
+            userLang = jobContext.getUserLang();
+        }
+
+        return userLang;
+    }
+
+    public static void setUserLang(String userLang) {
+        JobContext jobContext = getOrInitContext();
+        jobContext.setUserLang(userLang);
+    }
+
+    public static boolean isEnglishLocale() {
+        String normalLang = LocaleUtils.getNormalLang(getUserLang());
+        return normalLang.equals(LocaleUtils.LANG_EN) || normalLang.equals(LocaleUtils.LANG_EN_US);
+    }
+
+    public static List<String> getDebugMessage() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        List<String> debugMessage = null;
+        if (jobContext != null) {
+            debugMessage = jobContext.getDebugMessage();
+        }
+        if (debugMessage == null) {
+            debugMessage = new ArrayList<>();
+        }
+        return debugMessage;
+    }
+
+    public static void addDebugMessage(String message) {
+        JobContext jobContext = getOrInitContext();
+        if (jobContext.getDebugMessage() == null) {
+            jobContext.setDebugMessage(new ArrayList<>());
+        }
+
+        jobContext.getDebugMessage().add(message);
+    }
+
+    public static HttpServletRequest getRequest() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        HttpServletRequest request = null;
+        if (jobContext != null) {
+            request = jobContext.getRequest();
+        }
+        return request;
+    }
+
+    public static void setRequest(HttpServletRequest request) {
+        JobContext jobContext = getOrInitContext();
+        jobContext.setRequest(request);
+    }
+
+    public static HttpServletResponse getResponse() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        HttpServletResponse response = null;
+        if (jobContext != null) {
+            response = jobContext.getResponse();
+        }
+        return response;
+    }
+
+    public static void setResponse(HttpServletResponse response) {
+        JobContext jobContext = getOrInitContext();
+        jobContext.setResponse(response);
+    }
+
+    public static ZoneId getTimeZone() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        ZoneId timeZone = null;
+        if (jobContext != null) {
+            timeZone = jobContext.getTimeZone();
+        }
+
+        if (timeZone == null) {
+            timeZone = ZoneOffset.ofHours(8);
+            if (jobContext != null) {
+                jobContext.setTimeZone(timeZone);
+            }
+        }
+        return timeZone;
+    }
+
+    public static void setTimeZone(int hours) {
+        JobContext jobContext = getOrInitContext();
+        jobContext.setTimeZone(ZoneOffset.ofHours(hours));
+    }
+
+    public static void setTimeZone(ZoneId timeZone) {
+        JobContext jobContext = getOrInitContext();
+        jobContext.setTimeZone(timeZone);
+    }
+
+    public static void setAllowMigration(Boolean allowMigration) {
+        JobContext jobContext = getOrInitContext();
+        jobContext.setAllowMigration(allowMigration);
+    }
+
+    public static Boolean isAllowMigration() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        if (jobContext != null) {
+            return jobContext.getAllowMigration();
+        }
+        return false;
+    }
+
+    private static JobContext getOrInitContext() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        if (jobContext == null) {
+            log.debug("jobContext is null, init");
+            jobContext = new JobContext();
+            setContext(jobContext);
+        }
+        return jobContext;
+    }
+
+    /**
+     * 把当前线程的 JobContext 替换为一份隔离副本，使其与原始(通常是父线程)
+     * JobContext 不再共享内部可变集合(如 metricTagsMap)。
+     *
+     * <p>调用场景：在通过 {@link io.micrometer.context.ContextSnapshot} 把父线程
+     * JobContext 传播到工作线程后，应立即调用本方法，避免多个工作线程并发读写
+     * 父线程 JobContext 的可变字段引发 {@link ArrayIndexOutOfBoundsException} 等问题。
+     * 若当前线程尚未持有 JobContext，本方法不做任何处理。</p>
+     */
+    public static void isolateContextForChildThread() {
+        JobContext current = JobContextThreadLocal.get();
+        if (current == null) {
+            return;
+        }
+        JobContextThreadLocal.set(current.copyForChildThread());
+    }
+
+    public static Map<String, Pair<String, AbstractList<Tag>>> getOrInitMetricTagsMap() {
+        JobContext jobContext = getOrInitContext();
+        Map<String, Pair<String, AbstractList<Tag>>> metricTagsMap = jobContext.getMetricTagsMap();
+        if (metricTagsMap == null) {
+            log.debug("metricTagsMap is null, init");
+            metricTagsMap = new HashMap<>();
+            jobContext.setMetricTagsMap(metricTagsMap);
+        }
+        return metricTagsMap;
+    }
+
+    public static String getRequestFrom() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        String requestFrom = null;
+        if (jobContext != null) {
+            requestFrom = jobContext.getRequestFrom();
+        }
+        return requestFrom;
+    }
+
+    public static void setRequestFrom(String requestFrom) {
+        JobContext jobContext = getOrInitContext();
+        jobContext.setRequestFrom(requestFrom);
+    }
+
+    /**
+     * 获取控制器类名
+     *
+     * @return 控制器类名
+     */
+    public static String getControllerClassName() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        String controllerClassName = null;
+        if (jobContext != null) {
+            controllerClassName = jobContext.getControllerClassName();
+        }
+        return controllerClassName;
+    }
+
+    /**
+     * 设置控制器类名
+     *
+     * @param controllerClassName 控制器类名
+     */
+    public static void setControllerClassName(String controllerClassName) {
+        JobContext jobContext = getOrInitContext();
+        jobContext.setControllerClassName(controllerClassName);
+    }
+
+    public static String getTenantId() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        String tenantId = jobContext == null ? null : jobContext.getTenantId();
+        if (tenantId == null) {
+            log.warn("tenantId is null in JobContext: {}", StackTraceUtil.getCurrentStackTrace());
+        }
+        return tenantId;
+    }
+
+    public static User getUser() {
+        JobContext jobContext = JobContextThreadLocal.get();
+        if (jobContext == null || jobContext.getUser() == null) {
+            throw new IllegalStateException("User not set in JobContext");
+        }
+        return jobContext.getUser();
+    }
+
+    /**
+     * 获取用户展示名
+     *
+     * @return 用户展示名
+     */
+    public static String getUserDisplayName() {
+        User user = getUser();
+        if (user == null) {
+            return null;
+        }
+        return user.getDisplayName();
+    }
+}

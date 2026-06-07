@@ -1,0 +1,345 @@
+# -*- coding: utf-8 -*-
+"""
+Tencent is pleased to support the open source community by making 蓝鲸智云PaaS平台社区版 (BlueKing PaaS Community
+Edition) available.
+Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+http://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+
+from enum import Enum
+from typing import Dict, List, Optional
+
+from bamboo_engine.utils.object import Representable
+
+
+class NodeType(Enum):
+    """
+    节点类型枚举
+    """
+
+    ServiceActivity = "ServiceActivity"
+    SubProcess = "SubProcess"
+    ExclusiveGateway = "ExclusiveGateway"
+    ParallelGateway = "ParallelGateway"
+    ConditionalParallelGateway = "ConditionalParallelGateway"
+    ConvergeGateway = "ConvergeGateway"
+    EmptyStartEvent = "EmptyStartEvent"
+    EmptyEndEvent = "EmptyEndEvent"
+    ExecutableEndEvent = "ExecutableEndEvent"
+
+
+class LoopControlConfig(Representable):
+    DEFAULT_OUTPUTS_KEY = "outputs"
+
+    def __init__(
+        self,
+        loop_times: Optional[int] = None,
+        fail_skip: bool = False,
+        retryable: bool = False,
+        skippable: bool = False,
+        outputs_key: str = DEFAULT_OUTPUTS_KEY,
+    ):
+        """
+        :param loop_times: 循环次数上限
+        :param fail_skip: 循环失败是否自动跳过到下一节点
+        :param retryable: 是否允许循环重试
+        :param skippable: 是否允许循环跳过
+        :param outputs_key: 循环聚合输出在上下文中的 key
+        """
+        self.loop_times = loop_times
+        self.fail_skip = fail_skip
+        self.retryable = retryable
+        self.skippable = skippable
+        self.outputs_key = outputs_key
+
+    def should_continue_loop(self, inner_loop: int) -> bool:
+        """是否还需要继续循环（仅基于循环配置自身）"""
+        return self.loop_times is not None and inner_loop < self.loop_times
+
+
+class Node(Representable):
+    """
+    节点信息描述类
+    """
+
+    def __init__(
+        self,
+        id: str,
+        type: NodeType,
+        target_flows: List[str],
+        target_nodes: List[str],
+        targets: Dict[str, str],
+        root_pipeline_id: str,
+        parent_pipeline_id: str,
+        can_skip: bool = True,
+        can_retry: bool = True,
+        name: str = None,
+        reserve_rollback: bool = False,
+        loop_config: Optional[LoopControlConfig] = None,
+    ):
+        """
+        :param id: 节点 ID
+        :type id: str
+        :param type: 节点类型
+        :type type: NodeType
+        :param target_flows: 节点目标流 ID 列表
+        :type target_flows: List[str]
+        :param target_nodes: 目标节点 ID 列表
+        :type target_nodes: List[str]
+        :param targets: 节点目标流，目标节点 ID 映射
+        :type targets: Dict[str, str]
+        :param root_pipeline_id: 根流程 ID
+        :type root_pipeline_id: str
+        :param parent_pipeline_id: 父流程  ID
+        :type parent_pipeline_id: str
+        :param can_skip: 节点是否能够跳过
+        :type can_skip: bool
+        :param can_retry: 节点是否能够重试
+        :type can_retry: bool
+        :param loop_config: 循环控制配置（不开启循环时为 ``None``）
+        :type loop_config: Optional[LoopControlConfig]
+        """
+        self.id = id
+        self.type = type
+        self.targets = targets
+        self.target_flows = target_flows
+        self.target_nodes = target_nodes
+        self.root_pipeline_id = root_pipeline_id
+        self.parent_pipeline_id = parent_pipeline_id
+        self.can_skip = can_skip
+        self.can_retry = can_retry
+        self.name = name
+        self.reserve_rollback = reserve_rollback
+        self.loop_config = loop_config
+
+    @property
+    def loop_enabled(self) -> bool:
+        """是否开启了循环（loop_config 实例存在即代表开启）。"""
+        return self.loop_config is not None
+
+    @property
+    def loop_times(self) -> Optional[int]:
+        return self.loop_config.loop_times if self.loop_config else None
+
+    @property
+    def loop_fail_skip(self) -> bool:
+        return bool(self.loop_config) and self.loop_config.fail_skip
+
+    @property
+    def can_loop_retryable(self) -> bool:
+        return bool(self.loop_config) and self.loop_config.retryable
+
+    @property
+    def can_loop_skippable(self) -> bool:
+        return bool(self.loop_config) and self.loop_config.skippable
+
+    @property
+    def loop_outputs_key(self) -> Optional[str]:
+        return self.loop_config.outputs_key if self.loop_config else None
+
+    def should_continue_loop(self, inner_loop: int) -> bool:
+        """
+        判断当前节点是否还需要继续循环（仅基于节点自身的循环配置）
+
+        :param inner_loop: 当前内层循环次数
+        :type inner_loop: int
+        :return: 开启了循环策略且未达到循环次数上限时返回 True
+        :rtype: bool
+        """
+        if not self.loop_config:
+            return False
+        return self.loop_config.should_continue_loop(inner_loop)
+
+    def next_node_id_in_loop(self, inner_loop: int) -> str:
+        """
+        循环场景下的下一节点 ID：未达到循环上限时回到自身，否则跳到下一节点
+
+        :param inner_loop: 当前内层循环次数
+        :type inner_loop: int
+        :return: 下一节点 ID
+        :rtype: str
+        """
+        return self.id if self.should_continue_loop(inner_loop) else self.target_nodes[0]
+
+
+class EmptyStartEvent(Node):
+    pass
+
+
+class ConvergeGateway(Node):
+    pass
+
+
+class EmptyEndEvent(Node):
+    pass
+
+
+class Condition(Representable):
+    """
+    分支条件
+    """
+
+    def __init__(self, name: str, evaluation: str, target_id: str, flow_id: str):
+        """
+
+        :param name: 条件名
+        :type name: str
+        :param evaluation: 条件表达式
+        :type evaluation: str
+        :param target_id: 目标节点 ID
+        :type target_id: str
+        :param flow_id: 目标流 ID
+        :type flow_id: str
+        """
+        self.name = name
+        self.evaluation = evaluation
+        self.target_id = target_id
+        self.flow_id = flow_id
+
+
+class DefaultCondition(Representable):
+    """
+    默认分支条件
+    """
+
+    def __init__(self, name: str, target_id: str, flow_id: str):
+        """
+
+        :param name: 条件名
+        :type name: str
+        :param target_id: 目标节点 ID
+        :type target_id: str
+        :param flow_id: 目标流 ID
+        :type flow_id: str
+        """
+        self.name = name
+        self.target_id = target_id
+        self.flow_id = flow_id
+
+
+class ParallelGateway(Node):
+    """
+    并行网关
+    """
+
+    def __init__(self, converge_gateway_id: str, *args, **kwargs):
+        """
+
+        :param converge_gateway_id: 汇聚网关 ID
+        :type converge_gateway_id: str
+        """
+        super().__init__(*args, **kwargs)
+        self.converge_gateway_id = converge_gateway_id
+
+
+class ConditionalParallelGateway(Node):
+    """
+    条件并行网关
+    """
+
+    def __init__(
+        self,
+        conditions: List[Condition],
+        converge_gateway_id: str,
+        default_condition: DefaultCondition = None,
+        extra_info: dict = None,
+        *args,
+        **kwargs
+    ):
+        """
+
+        :param conditions: 分支条件
+        :type conditions: List[Condition]
+        :param converge_gateway_id: 汇聚网关 ID
+        :type converge_gateway_id: str
+        """
+        super().__init__(*args, **kwargs)
+        self.conditions = conditions
+        self.default_condition = default_condition
+        self.converge_gateway_id = converge_gateway_id
+        self.extra_info = extra_info or {}
+
+
+class ExclusiveGateway(Node):
+    """
+    分支网关
+    """
+
+    def __init__(
+        self,
+        conditions: List[Condition],
+        default_condition: DefaultCondition = None,
+        extra_info: dict = None,
+        *args,
+        **kwargs
+    ):
+        """
+
+        :param conditions: 分支条件
+        :type conditions: List[Condition]
+        :param default_condition: 默认分支条件
+        :type default_condition: DefaultCondition
+        """
+        super().__init__(*args, **kwargs)
+        self.conditions = conditions
+        self.default_condition = default_condition
+        self.extra_info = extra_info or {}
+
+
+class ServiceActivity(Node):
+    """
+    服务节点
+    """
+
+    def __init__(self, code: str, version: str, error_ignorable: bool, *args, **kwargs):
+        """
+
+        :param code: Service Code
+        :type code: str
+        :param version: 版本
+        :type version: str
+        :param timeout: 超时限制
+        :type timeout: Optional[int]
+        :param error_ignorable: 是否忽略错误
+        :type error_ignorable: bool
+        """
+
+        super().__init__(*args, **kwargs)
+        self.code = code
+        self.version = version
+        self.error_ignorable = error_ignorable
+
+
+class SubProcess(Node):
+    """
+    子流程
+    """
+
+    def __init__(self, start_event_id: str, *args, **kwargs):
+        """
+
+        :param start_event_id: 子流程开始节点 ID
+        :type start_event_id: str
+        """
+        super().__init__(*args, **kwargs)
+        self.start_event_id = start_event_id
+
+
+class ExecutableEndEvent(Node):
+    """
+    可执行结束节点
+    """
+
+    def __init__(self, code: str, *args, **kwargs):
+        """
+
+        :param code: 可执行结束节点 ID
+        :type code: str
+        """
+        super().__init__(*args, **kwargs)
+        self.code = code

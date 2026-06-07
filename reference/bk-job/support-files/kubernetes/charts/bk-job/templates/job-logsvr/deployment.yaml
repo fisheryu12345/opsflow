@@ -1,0 +1,114 @@
+{{- if and .Values.logsvrConfig.enabled (eq .Values.deploy.mode "standard") }}
+apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}-logsvr
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: "job-logsvr"
+    {{ include "job.labelKeys.jobScope" . }}: {{ include "job.labelValues.jobScope.backend" . }}
+    {{ include "job.labelKeys.imageTag" . }}: {{ .Values.logsvrConfig.image.tag | quote }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  annotations:
+  {{- if .Values.commonAnnotations }}
+  {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.logsvrConfig.autoscaling.enabled }}
+  replicas: {{ .Values.logsvrConfig.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels: 
+      {{- include "common.labels.matchLabels" . | nindent 6 }}
+      app.kubernetes.io/component: job-logsvr
+  template:
+    metadata:
+      labels:
+        {{- include "common.labels.matchLabels" . | nindent 8 }}
+        app.kubernetes.io/component: "job-logsvr"
+        {{ include "job.labelKeys.jobScope" . }}: {{ include "job.labelValues.jobScope.backend" . }}
+        {{ include "job.labelKeys.imageTag" . }}: {{ .Values.logsvrConfig.image.tag | quote }}
+      annotations:
+        {{ include "annotations.sha256sum.configmap" ( dict "service" "job-logsvr" "context" . ) | nindent 8 }}
+    spec:
+      {{- include "job.podTerminationGracePeriodSeconds" . | nindent 6 }}
+      {{- include "job.imagePullSecrets" . | nindent 6 }}
+      hostAliases: {{- include "common.tplvalues.render" (dict "value" .Values.hostAliases "context" $) | nindent 8 }}
+      {{- if .Values.logsvrConfig.affinity }}
+      affinity: {{- include "common.tplvalues.render" ( dict "value" .Values.logsvrConfig.affinity "context" $) | nindent 8 }}
+      {{- else }}
+      affinity:
+        podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.logsvrConfig.podAffinityPreset "component" "job-logsvr" "context" $) | nindent 10 }}
+        podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.logsvrConfig.podAntiAffinityPreset "component" "job-logsvr" "context" $) | nindent 10 }}
+        nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.logsvrConfig.nodeAffinityPreset.type "key" .Values.logsvrConfig.nodeAffinityPreset.key "values" .Values.logsvrConfig.nodeAffinityPreset.values) | nindent 10 }}
+      {{- end }}
+      {{- if .Values.logsvrConfig.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.logsvrConfig.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.logsvrConfig.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.logsvrConfig.tolerations "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.logsvrConfig.priorityClassName }}
+      priorityClassName: {{ .Values.logsvrConfig.priorityClassName | quote }}
+      {{- end }}
+      serviceAccountName: {{ include "job.serviceAccountName" . | quote }}
+      {{- if .Values.logsvrConfig.podSecurityContext.enabled }}
+      securityContext: {{- omit .Values.logsvrConfig.podSecurityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      initContainers:
+      {{- include "job.initContainer.waitForDependServices"   ( dict "currentServiceName" "job-logsvr" "context" $) | nindent 8 }}
+      containers:
+        - name: "job-logsvr"
+          {{- if .Values.logsvrConfig.containerSecurityContext.enabled }}
+          securityContext: {{- omit .Values.logsvrConfig.containerSecurityContext "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          image: {{ include "job-logsvr.image" . }}
+          imagePullPolicy: {{ .Values.logsvrConfig.image.pullPolicy }}
+          env:
+            {{- include "job.common.env" . | nindent 12 }}
+            - name: BK_JOB_APP_NAME
+              value: "job-logsvr"
+            - name: BK_JOB_JVM_OPTION
+              value: {{ .Values.logsvrConfig.jvmOptions | quote }}
+            - name: BK_JOB_JAR
+              value: job-logsvr.jar
+            - name: JOB_APPLICATION_CONFIGMAP_NAME
+              value: {{ include "common.names.fullname" . }}-logsvr
+            - name: JOB_COMMON_REFRESHABLE_CONFIGMAP_NAME
+              value: {{ include "common.names.fullname" . }}-common-refreshable
+          ports:
+            - name: http
+              containerPort: {{ .Values.logsvrConfig.containerPort }}
+              protocol: TCP
+          {{- include "job.service.probes" ( dict "port" "http" "context" . ) | nindent 10 }}
+          resources:
+            {{- toYaml .Values.logsvrConfig.resources | nindent 12 }}
+          volumeMounts:
+            - name: job-storage
+              mountPath: {{ .Values.persistence.localStorage.path }}
+            - name: mongodb
+              mountPath: /etc/secrets/mongodb
+              readOnly: true
+            - name: rabbitmq
+              mountPath: /etc/secrets/rabbitmq
+              readOnly: true
+            {{- include "job.mongodb.certsVolumeMount" . | nindent 12 }}
+            {{- include "job.rabbitmq.certsVolumeMount" . | nindent 12 }}
+            {{- include "job.volumeExtension.volumeMounts" (dict "module" .Values.logsvrConfig "global" .Values.volumeExtension) | nindent 12 }}
+      volumes:
+        - name: job-storage
+          persistentVolumeClaim:
+            claimName: {{ include "job.storage.pvc.name" . }}
+        - name: mongodb
+          secret:
+            secretName: {{ include "job.mongodb.secretName" . }}
+        - name: rabbitmq
+          secret:
+            secretName: {{ include "job.rabbitmq.secretName" . }}
+        {{- include "job.mongodb.certsVolume" . | nindent 8 }}
+        {{- include "job.rabbitmq.certsVolume" . | nindent 8 }}
+        {{- include "job.volumeExtension.volumes" (dict "module" .Values.logsvrConfig "global" .Values.volumeExtension) | nindent 8 }}
+{{- end }}

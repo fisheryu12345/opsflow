@@ -1,0 +1,105 @@
+/*
+ * Tencent is pleased to support the open source community by making BK-JOB蓝鲸智云作业平台 available.
+ *
+ * Copyright (C) 2021 Tencent.  All rights reserved.
+ *
+ * BK-JOB蓝鲸智云作业平台 is licensed under the MIT License.
+ *
+ * License for BK-JOB蓝鲸智云作业平台:
+ * --------------------------------------------------------------------
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+ * to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+package com.tencent.bk.job.execute.model;
+
+import com.tencent.bk.job.execute.common.constants.RunStatusEnum;
+import com.tencent.bk.job.execute.common.constants.TaskStartupModeEnum;
+import com.tencent.bk.job.execute.common.constants.TaskTypeEnum;
+import lombok.Data;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * 作业实例查询条件
+ */
+@Data
+public class TaskInstanceQuery {
+    private Long appId;
+    private String operator;
+    private String taskName;
+    private Long taskInstanceId;
+    private Long cronTaskId;
+    private RunStatusEnum status;
+    private List<TaskStartupModeEnum> startupModes;
+    private TaskTypeEnum taskType;
+    private Long startTime;
+    private Long endTime;
+    private Long minTotalTimeMills;
+    private Long maxTotalTimeMills;
+    private String ip;
+    private String ipv6;
+
+    public List<Integer> getStartupModeValues() {
+        if (CollectionUtils.isNotEmpty(startupModes)) {
+            return startupModes.stream().map(TaskStartupModeEnum::getValue).collect(Collectors.toList());
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 判断当前查询是否为复杂查询
+     * 判断依据：
+     * 1. 含有tasKName条件的模糊查询；
+     * 2. 含有>=2个appId、taskInstanceId及时间范围以外的其他条件（无法使用覆盖索引）。
+     *
+     * @return 布尔值
+     */
+    public boolean isComplexQuery() {
+        if (StringUtils.isNotEmpty(taskName)) {
+            return true;
+        }
+        int conditionNum = 0;
+        if (StringUtils.isNotEmpty(operator)) {
+            conditionNum++;
+        }
+        if (cronTaskId != null) {
+            conditionNum++;
+        }
+        if (status != null) {
+            conditionNum++;
+        }
+        if (CollectionUtils.isNotEmpty(startupModes)) {
+            conditionNum++;
+        }
+        if (taskType != null) {
+            conditionNum++;
+        }
+        if (minTotalTimeMills != null || maxTotalTimeMills != null) {
+            conditionNum++;
+        }
+        if (StringUtils.isNotEmpty(ip)) {
+            conditionNum++;
+        }
+        if (StringUtils.isNotEmpty(ipv6)) {
+            conditionNum++;
+        }
+        return conditionNum >= 2;
+    }
+}

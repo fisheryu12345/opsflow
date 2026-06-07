@@ -1,0 +1,30 @@
+spring:
+  data:
+    mongodb:
+      uri: ${job.logsvr.mongodb.uri}
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  cloud:
+    config:
+      enabled: false
+    kubernetes:
+      discovery:
+        enabled: false
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 4.0.28
+bk-api-gateway:
+  gse:
+    url: gse.apigw.com
+  cmdb:
+    url: cmdb.apigw.com
+  bkIam:
+    url: iam.apigw.com
+  cmsi:
+    url: cmsi.apigw.com
+esb:
+  service:
+    url: esb.service
