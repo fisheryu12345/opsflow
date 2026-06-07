@@ -325,7 +325,7 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@import '../../../../apps/opsflow/styles/opsflow-global';
+@use '../../../../apps/opsflow/styles/opsflow-global' as *;
 
 .menu-form-com {
   padding: 4px 0;

@@ -3,7 +3,8 @@
 // Import via: @use '../styles/opsflow-global' as *;
 // ============================================================
 
-@import './opsflow-variables';
+@forward './opsflow-variables';
+@use './opsflow-variables' as *;
 
 // ===== Card =====
 .of-card {

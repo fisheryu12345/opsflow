@@ -1,4 +1,4 @@
-@import './trading-variables.scss';
+@use './trading-variables.scss' as *;
 
 // === Page Layout ===
 .trading-page {

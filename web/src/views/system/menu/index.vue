@@ -189,7 +189,7 @@ onMounted(() => { getData(); });
 </script>
 
 <style scoped lang="scss">
-@import '../../apps/opsflow/styles/opsflow-global';
+@use '../../apps/opsflow/styles/opsflow-global' as *;
 
 .sys-page { height: 100%; background: $of-bg-page; display: flex; flex-direction: column; overflow: hidden; }
 

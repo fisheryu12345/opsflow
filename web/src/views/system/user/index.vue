@@ -371,7 +371,7 @@ onMounted(async () => { await Promise.all([getDeptTree(), fetchRoleOptions(), fe
 </script>
 
 <style scoped lang="scss">
-@import '../../apps/opsflow/styles/opsflow-global';
+@use '../../apps/opsflow/styles/opsflow-global' as *;
 
 .user-page { width: 100%; height: 100%; }
 .sys-page { height: 100%; background: $of-bg-page; display: flex; flex-direction: column; overflow: hidden; }

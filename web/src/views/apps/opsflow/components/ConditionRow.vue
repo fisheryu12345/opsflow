@@ -119,7 +119,7 @@ function emitChange() {
 </script>
 
 <style lang="scss" scoped>
-@import '../styles/opsflow-global';
+@use '../styles/opsflow-global' as *;
 
 .condition-row {
   background: $of-bg-header;

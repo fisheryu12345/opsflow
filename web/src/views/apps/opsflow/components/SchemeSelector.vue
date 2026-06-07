@@ -36,7 +36,7 @@ watch(selectedSchemeId, (val) => emit('select', val))
 </script>
 
 <style lang="scss" scoped>
-@import '../styles/opsflow-global';
+@use '../styles/opsflow-global' as *;
 
 .scheme-selector { width: 100%; }
 .scheme-desc { color: #909399; font-size: 12px; }

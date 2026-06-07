@@ -106,7 +106,7 @@ onBeforeUnmount(() => stopPolling())
 </script>
 
 <style lang="scss" scoped>
-@import '../styles/opsflow-global';
+@use '../styles/opsflow-global' as *;
 
 .opsflow-dialog :deep(.el-dialog__header) { @include of-dialog-header; }
 .opsflow-dialog :deep(.el-dialog__body) { padding: 0 !important; min-height: 0; }

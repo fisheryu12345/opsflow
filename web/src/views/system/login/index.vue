@@ -76,7 +76,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@import '../../apps/opsflow/styles/opsflow-global';
+@use '../../apps/opsflow/styles/opsflow-global' as *;
 
 .login-container {
 	height: 100%;

@@ -363,7 +363,7 @@ defineExpose({ loadGraphData, loadNodeStatuses, setExecutionStatus, refreshCanva
 </script>
 
 <style lang="scss" scoped>
-@import '../styles/opsflow-global';
+@use '../styles/opsflow-global' as *;
 
 .monitor-canvas-wrapper { display: flex; flex-direction: column; height: 100%; }
 .monitor-header {

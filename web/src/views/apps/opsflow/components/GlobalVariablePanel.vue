@@ -212,7 +212,7 @@ watch(() => props.templateId, fetchVars, { immediate: true })
 </script>
 
 <style lang="scss" scoped>
-@import '../styles/opsflow-global';
+@use '../styles/opsflow-global' as *;
 /* ---------- Layout ---------- */
 .gv-panel {
   width: 300px; min-width: 300px;

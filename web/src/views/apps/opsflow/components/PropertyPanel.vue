@@ -570,7 +570,7 @@ loadTemplates()
 </script>
 
 <style lang="scss" scoped>
-@import '../styles/opsflow-global';
+@use '../styles/opsflow-global' as *;
 
 .property-panel {
   width: 280px;
