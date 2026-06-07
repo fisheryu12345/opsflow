@@ -14,7 +14,7 @@
 | **Schedule** | 已完成 | `core/scheduler_service.py` — 基于 APScheduler 的 Cron 调度，支持自动重试、过期策略 |
 | **Webhook** | 已完成 | `core/webhook_service.py` — 流程生命周期事件回调、Node 状态变更回调 |
 | **Knowledge** | 已完成 | 知识库 CRUD，模板 - 知识库关联 |
-| **API Gateway** | 已完成 | `core/apigw/` — 外部触发执行、查询执行状态、列出模板 |
+| **Open API (独立 app)** | 已完成 | `backend/open_api/` — 已从 `opsflow/core/apigw/` 迁移为独立应用，统一管理外部接口 |
 | **Auto Retry** | 已完成 | 节点失败自动重试，可配置最大次数/间隔 |
 | **Timeout** | 已完成 | 节点超时检测 + 强制失败 / 失败并跳过策略 |
 | **Safety Guard** | 已完成 | `core/safety_guard.py` — AI 生成的 pipeline 安全性校验（高危命令检查、权限边界） |

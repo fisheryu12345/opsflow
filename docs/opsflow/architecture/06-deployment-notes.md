@@ -50,7 +50,6 @@ OpsFlow 注册的 API 端点：
 | `api/opsflow/projects/` | OpsProjectViewSet | 项目管理 + 成员管理 |
 | `api/opsflow/template-categories/` | TemplateCategoryViewSet | 模板分类 |
 | `api/opsflow/dashboard/*/` | （函数视图） | 12 个统计端点 |
-| `api/opsflow/apigw/v1/*/` | （函数视图） | 外部 API 网关 |
 | `api/opsflow/cmdb/*/` | （函数视图） | CMDB 模拟数据 |
 
 嵌套路由：
@@ -95,6 +94,19 @@ application = ProtocolTypeRouter({
 | `django-redis` | （内置） | Redis 缓存后端 |
 | `openai` | 2.31.0 | AI 生成/精炼/分析 |
 | `uvicorn` | 0.23.2 | ASGI 服务器 |
+
+### Open API 独立应用（`backend/open_api/`）
+
+外部 API 网关已从 `opsflow/core/apigw/` 迁移到独立应用 `backend/open_api/`，详见 `docs/opsflow_target.md §3.3`。
+
+路由注册（`application/urls.py`）：
+
+```python
+path("api/open-api/", include("open_api.urls")),  # 管理后台
+path("api/v2/open/", include("open_api.external_urls")),  # 第三方外部端点
+```
+
+外部端点前缀：`/api/v2/open/`
 
 ### Celery 配置（`application/settings.py`）
 

@@ -1,5 +1,8 @@
 # OpsFlow — 运维编排平台
 
+> **顶层设计参考:** [docs/opsflow_target.md](../opsflow_target.md) — 平台最终目标架构
+> **开发路线图:** [docs/TODO.md](../TODO.md) / [docs/TODO.html](../TODO.html) — 统一 TODO 看板
+>
 > 基于 Django-Vue3-Admin 框架的可视化 Pipeline 编排与执行平台，集成 bamboo-engine 作为流程执行引擎，DeepSeek 作为 AI 生成引擎。适配自 bk_sops 设计理念，面向 AI-First 的运维自动化场景。
 
 ## 系统架构
