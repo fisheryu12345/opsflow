@@ -47,7 +47,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { Delete } from '@element-plus/icons-vue'
-import VariablePicker from './VariablePicker.vue'
+import VariablePicker from '../panels/VariablePicker.vue'
 import { opsForType } from '../../composables/useGraphCanvas'
 import type { VariableOption, ConditionRule } from '../../utils/shapes'
 

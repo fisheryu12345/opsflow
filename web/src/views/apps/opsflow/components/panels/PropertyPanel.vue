@@ -263,7 +263,7 @@ import TagVariableMapping from '/@/components/RenderForm/tags/TagVariableMapping
 import { GetPluginGroups, GetPluginDetail } from '../../api/plugins'
 import { GetTemplates } from '../../api/templates'
 import { useOpsflowStore } from '../../stores/opsflowStore'
-import ConditionDialog from './ConditionDialog.vue'
+import ConditionDialog from '../gates/ConditionDialog.vue'
 import { generateConditionExpr, extractAvailableVariables as getAvailableVars } from '../../composables/useGraphCanvas'
 import type { ConditionStruct } from '../../utils/shapes'
 
