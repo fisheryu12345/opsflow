@@ -17,7 +17,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { Coin } from '@element-plus/icons-vue'
-import VariableBrowser from '/@/views/apps/opsflow/components/VariableBrowser.vue'
+import VariableBrowser from '/@/views/apps/opsflow/components/panels/VariableBrowser.vue'
 
 const props = withDefaults(defineProps<{
   modelValue?: any

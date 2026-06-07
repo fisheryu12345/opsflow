@@ -32,10 +32,13 @@ cd web && npm install && npm run dev  # localhost:8080
 ## Architecture
 
 - **Backend:** Django apps under `dvadmin/` (RBAC), `opsflow/` (ops), `opsagent/`,
-  `plugins/` — config in `conf/env.py`, settings in `application/settings.py`
+  `plugins/` — config in `conf/env.py`, settings in `application/settings.py`.
+  Reference sources in `reference/` (bk-sops, bk-cmdb, bk-itsm, bk-job, bamboo-engine).
 - **Frontend:** `web/src/views/apps/` (OpsFlow app pages), `views/system/` (RBAC),
   `api/` (axios clients), `stores/` (Pinia), `router/`, `utils/`
 - **API:** `api/system/*` (RBAC), `api/opsflow/*`, `api/ops/*` (opsagent)
+- **Docs:** `docs/architecture/` (架构), `docs/design/` (设计), `docs/knowledge/` (知识库)
+- **Deploy:** `deploy/docker/`, `deploy/nginx/`
 
 ## API Response Convention
 
