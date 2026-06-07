@@ -1,64 +1,71 @@
-# 提交记录分析
+# Commit Analysis Log
+
+<!-- 每次提交在最前面插入新条目，时间倒序排列 -->
+
+## `a8a0805a`
+
+> 提交日期: 2026-06-07 | 提交信息: fix: silence Sass legacy-js-api deprecation warning on Vite 8
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/vite.config.ts` | 配置 | `api: 'modern-compiler'` → `silenceDeprecations: ['legacy-js-api']` |
+
+### 解决
+
+- **问题/背景：** `api: 'modern-compiler'` 选项在 Vite 8 中被忽略，Sass legacy-js-api 警告依然出现。
+- **办法：** 改用 sass 原生 `silenceDeprecations` 选项，兼容所有 Vite 版本的 Sass 警告静默。
+
+### 验证
+
+- 改动类型: fix
+- 清理乱码: 有（`提交日期` 空文件 + `.vite/` 缓存目录）
+- 工作区状态: 干净 ✅
+- Vite 启动零 Sass 警告 ✅
+
+---
+
+## `8c2c3fa7`
+
+> 提交日期: 2026-06-07 | 提交信息: refactor: migrate from Sass @import to @use — 消除全部 Sass 弃用警告
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/vite.config.ts` | 配置 | 添加 `scss.api: 'modern-compiler'` 消除 legacy-js-api 警告 |
+| `web/src/**/*.scss` (18 文件) | 样式 | `@import` → `@use ... as *` 迁移 |
+| `web/src/**/*.vue` (31 文件) | 样式 | `@import` → `@use ... as *` 迁移 |
+| `opsflow-global.scss` | 样式 | 添加 `@forward` 确保变量穿透到 .vue `<style>` |
+
+### 解决
+
+- **问题/背景：** Dart Sass 2.0.0 将移除 `@import`，3.0.0 将移除 legacy JS API。开发服务器启动时产生约 50 行弃用警告，干扰正常日志查看。
+- **办法：** 全局批量替换 `@import` → `@use ... as *`，同时配置 Vite 使用 `modern-compiler` API。
+
+### 验证
+
+- 改动类型: refactor
+- 清理乱码: 无
+- 工作区状态: 干净 ✅
+- Vite 启动零 Sass 警告 ✅
+
+---
+
+## `f74f9ed8` — `deee0667` — `7277bf0b`
 
 > 提交日期: 2026-06-07
-> 提交 1: `f74f9ed8` — X6 v3 upgrade + real-time node coloring via WebSocket
-> 提交 2: `deee0667` — remove outdated debug doc
 
----
+### 改动
 
-## 解决的问题
-
-### 1. X6 版本废弃 (v2.19.1 → v3.1.7)
-
-**背景：** `@antv/x6 v2.19.1` 已标记为 deprecation（官方废弃），并且 7 个 `@antv/x6-plugin-*` 插件包需要与核心包版本匹配。维护两个版本系统成本高，且社区只维护 v3。
-
-**解决方案：**
-- 将所有插件包（Stencil、Snapline、Clipboard、Selection、MiniMap、Keyboard、Dnd）合并到核心 `@antv/x6: ^3.1.7` 中
-- 移除手动 CSS 导入（`@antv/x6/dist/index.css` 等），v3 自动注入
-- 边动画从 `transition()` + 递归 tick 重写为 `animate()` + `iterations: Infinity`
-
-### 2. 流程编辑器画布无法拖拽
-
-**背景：** X6 v3 升级后，画布拖拽（panning）和节点框选（rubberband）都监听拖拽事件，两者冲突导致画布无法平移。
-
-**解决方案：** 将 `Selection` 插件配置改为 `{ rubberband: true, modifiers: 'shift' }`，按 Shift 拖拽才触发框选，普通拖拽正常平移画布。
-
-### 3. 节点着色滞后于执行速度
-
-**背景：** 早期节点着色完全依赖前端 10s 轮询 `GetExecutionDetail`。快速节点（如 ping_test < 1s）在轮询周期内已完成，颜色更新明显滞后。
-
-**解决方案：** 增加 WebSocket 实时推送路径：
-
-```
-信号触发 → DB 持久化 → Channels WS 推送 → websocket.ts 分发
-→ mittBus → ExecutionDetail.vue → MonitorCanvas.updateNodeStatus()
-→ applyNodeColor() → X6 节点即时着色（<500ms）
-```
-
-10s 轮询作为回退机制保留，用于同步 Traces 表格和 Logs。
-
-### 4. Running 节点无视觉反馈
-
-**背景：** 执行中（running）的节点只变色没有动效，用户无法直观判断哪些节点正在执行。
-
-**解决方案：** 添加 0.6s 快速闪烁 CSS 动画（`ops-blink`），running 状态自动激活，其他状态自动清除 CSS class。
-
-### 5. 冗余 ID 映射层
-
-**背景：** 架构中包含 `_build_id_map()` 函数生成 `node_id_map`，在信号处理中做 `id_map.get(node_id, node_id)` 的恒等映射。由于 `elements.py` 已直接将 X6 原始 ID 传给 bamboo-engine `Element(id=nid)`，整个映射层是无意义的。
-
-**解决方案：** 移除 `_build_id_map()`、`node_id_map` context 字段、以及信号处理器中的所有 id_map 查找。X6 ID 直接穿透到 bamboo-engine。
-
----
-
-## 涉及的文件
-
-| 文件 | 类型 | 改动说明 |
-|------|------|----------|
+| 文件 | 类型 | 说明 |
+|------|------|------|
 | `backend/opsflow/signals/handlers.py` | 后端 | 新增 `_push_node_status_via_ws()` 函数；信号中调用 WS 推送 |
 | `backend/opsflow/signals/state.py` | 后端 | 移除 `id_map` 查找，直接使用 `node_id` |
 | `backend/opsflow/core/pipeline_builder/__init__.py` | 后端 | 删除 `_build_id_map()`；Start/End 事件传入 X6 ID；合成网关使用可识别 ID |
 | `backend/opsflow/core/flow_engine.py` | 后端 | 移除 `node_id_map` context 字段 |
+| `backend/opsflow/core/layout/layout_adapter.py` | 后端 | 移除残留的 `node_id_map` 死代码 |
 | `backend/opsflow/tests/test_gateway_signal.py` | 后端 | 新增 `TestWsNodeStatusPush` 测试类 |
 | `backend/opsflow/tests/test_bamboo_builder.py` | 后端 | 更新测试，直接断言原始 ID |
 | `backend/opsflow/tests/test_gateway_execution.py` | 后端 | 更新测试 |
@@ -72,11 +79,17 @@
 | `web/src/views/apps/opsflow/components/DesignCanvas.vue` | 前端 | 移除 3 行 CSS 导入 |
 | `web/src/types/mitt.d.ts` | 前端 | 新增 `nodeStatusChange` 事件类型 |
 
----
+### 解决
 
-## 验证
+- **X6 版本废弃 (v2.19.1 → v3.1.7):** 合并 7 个插件包到核心包；移除外部 CSS 导入（v3 自动注入）；边动画改用 `animate()` + `iterations: Infinity`
+- **画布无法拖拽:** `Selection` 配置加 `modifiers: 'shift'`，解冲突
+- **节点着色滞后:** 新增 WebSocket 实时推送 `NODE_STATUS` 消息；websocket.ts 自动分发到 mittBus；10s 轮询保留为回退
+- **Running 无反馈:** 0.6s CSS 快速闪烁动画（`ops-blink`）
+- **冗余 ID 映射:** 删除 `_build_id_map()` 和 `node_id_map`；X6 ID 直接穿透
+- **`layout_adapter.py` 残留:** 移除未使用的 `node_id_map` 局部变量
 
-- 后端 111 个测试全部通过
-- 前端 TypeScript 类型检查无错误（仅 TS 配置弃用警告）
-- Vite 开发服务器正常启动（<500ms）
-- 所有修改文件不包含密钥、凭据或 .env 文件
+### 验证
+
+- 后端 111 个测试全部通过 ✅
+- 前端 TypeScript 类型检查无错误 ✅
+- Vite 开发服务器正常启动 ✅
