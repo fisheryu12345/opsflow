@@ -23,8 +23,8 @@ All OPSflow Vue components should follow these conventions for visual consistenc
 ### 设计文档管理规则
 所有通过 Superpowers 或其他 AI 工具生成的设计文档（架构设计、功能设计、详细设计等），**必须**遵守以下规则：
 
-1. **保存路径**：统一保存到 `docs/design/plans/` 目录下
-2. **文档格式**：必须同时生成 `.md`（Markdown）和 `.pdf` 两种格式
+1. **保存路径**：统一保存到 `docs/opsflow/plans/` 目录下
+2. **文档格式**：`.md`（Markdown）格式
 3. **文件命名**：`YYYY-MM-DD-<简短英文描述>.md`（如 `2026-06-03-gateway-condition-editor-design.md`）
 4. **适用范围**：包括但不限于 Superpowers、SPARC 流程、Claude Code、以及其他 AI Agent 产出的设计文档
 
@@ -82,3 +82,29 @@ opsflow/
 - 运行脚本放在 `scripts/`，后端内部脚本放在 `backend/tools/`
 - 参考源码放在 `refrence/` 目录，内容通过 `.gitignore` 忽略
 - 任何生成运行时目录（`logs/`，`media/`，`static/`）在 `.gitignore` 中声明
+
+### Docs 目录规范
+
+每个 `docs/<app>/` 目录使用统一模板：
+
+```
+docs/<app-name>/
+├── README.md              # App 概述（必须）
+├── architecture/          # 架构设计文档
+├── api/                   # API 端点文档
+├── models/                # 数据模型说明
+├── guides/                # 使用指南/操作手册
+├── plans/                 # 设计规划/提案
+├── debug/                 # 调试排障笔记
+└── reference/             # 外部参考资料
+```
+
+**文件命名规则：**
+
+| 文件类型 | 命名 | 示例 |
+|----------|------|------|
+| 总览文档 | `README.md` | `README.md` |
+| 编号文档 | `NN-<英文标题>.md` | `01-architecture.md` |
+| 设计规划 | `YYYY-MM-DD-<描述>.md` | `2026-06-07-docs-standard.md` |
+
+**不允许在 `docs/<app>/` 根目录下创建新的 `.md` 文件**（仅允许 `README.md`），所有文档必须归入对应子目录。
