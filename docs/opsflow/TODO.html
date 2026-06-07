@@ -49,7 +49,7 @@ tr:hover td { background: #ecf5ff; }
 
 <div class="header">
   <h1>OpsFlow 项目看板</h1>
-  <div class="date">更新于：2026-06-03 | 基于兼职开发节奏，每周投入 8-12 小时</div>
+  <div class="date">更新于：2026-06-07 | 文档同步更新完成</div>
   <div class="legend">
     <span><span class="legend-icon done"></span> 已完成</span>
     <span><span class="legend-icon pending"></span> 待实现</span>
@@ -91,7 +91,7 @@ tr:hover td { background: #ecf5ff; }
     <tr><td>Sugiyama 布局引擎（bk_sops 适配，18 文件，纯 Python）</td><td class="status-done">✅ 已完成</td></tr>
     <tr><td>X6 节点 UI 定型（统一尺寸/配色/图标/阴影）</td><td class="status-done">✅ 已完成</td></tr>
     <tr><td>画布右键菜单（删除、编辑属性、复制粘贴）</td><td class="status-done">✅ 已完成</td></tr>
-    <tr><td>连线条件输入框（从网关连线时弹出编辑框）</td><td class="status-pending">❌ 待实现</td></tr>
+    <tr><td>连线条件输入框（从网关连线时弹出编辑框，ConditionDialog + ConditionRow）</td><td class="status-done">✅ 已完成</td></tr>
     <tr><td>X6 连线重叠修复（Manhattan 路由 + 增大垂直间距）</td><td class="status-done">✅ 已完成</td></tr>
     <tr><td>useGraphCanvas / useGraphValidator / useAutoSave composables</td><td class="status-done">✅ 已完成</td></tr>
   </table>
@@ -163,8 +163,8 @@ tr:hover td { background: #ecf5ff; }
     <tr><td>子流程 Embedded + Independent 双模式 + 版本追踪</td><td class="status-done">✅ 已完成</td></tr>
     <tr><td>Mako 模板变量替换引擎（mako_resolver.py）</td><td class="status-done">✅ 已完成</td></tr>
     <tr><td>表达式 DSL 增强（&&/|| 组合条件支持）</td><td class="status-pending">❌ 待实现</td></tr>
-    <tr><td>前端变量选择器（输入框右侧变量按钮）</td><td class="status-pending">❌ 待实现</td></tr>
-    <tr><td>前端网关条件编辑 UI</td><td class="status-pending">❌ 待实现</td></tr>
+    <tr><td>前端变量选择器（输入框右侧变量按钮，VariablePicker.vue）</td><td class="status-done">✅ 已完成</td></tr>
+    <tr><td>前端网关条件编辑 UI（ConditionDialog + ConditionRow）</td><td class="status-done">✅ 已完成</td></tr>
     <tr><td>执行分支高亮</td><td class="status-pending">❌ 待实现</td></tr>
   </table>
 </div>
@@ -332,10 +332,10 @@ tr:hover td { background: #ecf5ff; }
       <td style="width:42%"><strong>完成率</strong></td>
     </tr>
     <tr><td>Phase 0：环境骨架</td><td>7</td><td>7</td><td>0</td><td>0</td><td>100% <span class="bar bg-done" style="width:100%"></span></td></tr>
-    <tr><td>Phase 1：画布+布局</td><td>10</td><td>8</td><td>2</td><td>0</td><td>80% <span class="bar bg-done" style="width:80%"></span></td></tr>
+    <tr><td>Phase 1：画布+布局</td><td>10</td><td>9</td><td>1</td><td>0</td><td>90% <span class="bar bg-done" style="width:80%"></span></td></tr>
     <tr><td>Phase 2：插件+表单</td><td>14</td><td>8</td><td>2</td><td>4</td><td>57% <span class="bar bg-done" style="width:57%"></span></td></tr>
     <tr><td>Phase 3：执行引擎</td><td>15</td><td>14</td><td>1</td><td>0</td><td>93% <span class="bar bg-done" style="width:93%"></span></td></tr>
-    <tr><td>Phase 4：变量+网关</td><td>10</td><td>6</td><td>4</td><td>0</td><td>60% <span class="bar bg-done" style="width:60%"></span></td></tr>
+    <tr><td>Phase 4：变量+网关</td><td>10</td><td>8</td><td>2</td><td>0</td><td>80% <span class="bar bg-done" style="width:60%"></span></td></tr>
     <tr><td>Phase 5：AI+Dashboard</td><td>12</td><td>12</td><td>0</td><td>0</td><td>100% <span class="bar bg-done" style="width:100%"></span></td></tr>
     <tr><td>Phase 6：版本+可观测</td><td>14</td><td>12</td><td>2</td><td>0</td><td>86% <span class="bar bg-done" style="width:86%"></span></td></tr>
     <tr><td>Phase 7：生产部署</td><td>9</td><td>0</td><td>9</td><td>0</td><td>0% <span class="bar bg-pending" style="width:0%"></span></td></tr>
@@ -347,10 +347,10 @@ tr:hover td { background: #ecf5ff; }
     <tr style="font-weight:600; background:#f0f9eb;">
       <td><strong>Total</strong></td>
       <td><strong>143</strong></td>
-      <td><strong>101</strong></td>
-      <td><strong>34</strong></td>
+      <td><strong>104</strong></td>
+      <td><strong>31</strong></td>
       <td><strong>8</strong></td>
-      <td><strong>71%</strong> <span class="bar bg-done" style="width:71%"></span></td>
+      <td><strong>73%</strong> <span class="bar bg-done" style="width:73%"></span></td>
     </tr>
   </table>
 </div>

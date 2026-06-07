@@ -168,7 +168,8 @@
 
 ## OpsFlow Doc Updater Skill
 
-已创建 `.claude/skills/opsflow-doc-updater/SKILL.md`，通过 `/opsflow-doc-updater` 命令触发，自动扫描代码并同步 doc/ 文档。
+已创建 `.claude/skills/opsflow-doc-updater/SKILL.md`，通过 `/opsflow-doc-updater` 命令触发，自动扫描代码并同步 docs/opsflow/ 文档。
+- [x] 2026-06-07 技能重构：移除 PDF 生成、适配 docs/ 多 App 子目录结构、新增第 6 步全量对比分析（opsflow vs bk_sops / opsflow cmdb vs bk_cmdb）
 
 ---
 

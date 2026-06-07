@@ -8,7 +8,7 @@
 | **Flow Engine** | 已完成 | `core/flow_engine.py` — 基于 BambooPipeline 的流程引擎，支持节点分发、上下文传递、子流程调度 |
 | **Pipeline Builder** | 已完成 | `core/pipeline_builder/` — 从前端 pipeline_tree JSON 构建 BambooPipeline 活动树 |
 | **Signals** | 已完成 | `signals/` — post_set_state 监听器，路由到 state（节点状态持久化）、trace（轨迹记录）、notify（WS推送）、timeout（超时追踪） |
-| **Plugins** | 已完成 | 自动发现扫描 + 10 个分组：ansible / common / esxi / http / monitor / netapp / pmax / redfish / servicenow / verify |
+| **Plugins** | 已完成 | 自动发现扫描 + 12 个分组：ansible / cmdb / common / esxi / http / itsm / monitor / netapp / pmax / redfish / servicenow / verify |
 | **Views** | 已完成 | Template CRUD + AI 生成/精炼、Execution CRUD + 启动/暂停/取消/重试、SchedulePlan CRUD + 启用/禁用、Plugin CRUD + 表单查询、Log/Knowledge/Project/Webhook/Audit CRUD |
 | **Dashboard** | 已完成 | 12 个统计端点：stats / trend / schedule-stats / top-templates / user-activity / status-distribution / node-type-distribution / duration-distribution / node-duration-top / success-rate-trend / template-stats |
 | **Schedule** | 已完成 | `core/scheduler_service.py` — 基于 APScheduler 的 Cron 调度，支持自动重试、过期策略 |

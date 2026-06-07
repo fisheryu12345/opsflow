@@ -47,8 +47,9 @@
 │  ┌───────────────────────▼──────────────────────────┐  │ │
 │  │  Plugin Layer                                    │  │ │
 │  │  Plugin Registry (auto-discover) → BasePlugin    │  │◄┤ │
-│  │  Groups: ansible / common / esxi / http / monitor│  │ │ │
-│  │          netapp / pmax / redfish / servicenow    │  │ │ │
+│  │  Groups: ansible / cmdb / common / esxi / http   │  │ │ │
+│  │          itsm / monitor / netapp / pmax / redfish│  │ │ │
+│  │          servicenow / verify                     │  │ │ │
 │  └───────────────────────┬──────────────────────────┘  │ │
 │                          │                              │ │
 │  ┌───────────────────────▼──────────────────────────┐  │ │
@@ -122,14 +123,17 @@ opsflow/plugins/
 ├── base.py              # BasePlugin 基类
 ├── registry.py          # 自动扫描注册器 (PLUGIN_REGISTRY)
 ├── ansible/             # shell, file_copy, java_deploy, docker_deploy...
+├── cmdb/                # query, resource_selector
 ├── common/              # send_alert, test_print_time
 ├── esxi/                # create_vm, power_on/off, destroy_vm...
 ├── http/                # api_call
+├── itsm/                # create_ticket, update_ticket
 ├── monitor/             # disk_check, health_check, ping_test
 ├── netapp/              # volume/snapshot operations
 ├── pmax/                # storage_group, snapshot, performance
 ├── redfish/             # firmware_inventory, system_info, power_cycle
-└── servicenow/          # ITSM integration
+├── servicenow/          # ITSM integration (incident/change/cmdb)
+└── verify/              # ip_ops_verify
 ```
 
 每个插件继承 `BasePlugin`，实现 `execute()`, `get_form_config()`, 可选实现 `schedule()`, `rollback()`。

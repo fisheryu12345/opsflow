@@ -43,23 +43,35 @@ opsflow/
 │   ├── bamboo_validator.py               # bamboo-engine 兼容性校验
 │   ├── auto_retry.py                     # 自动重试策略创建 + 派发
 │   ├── node_timeout_strategy.py          # Redis 分布式超时追踪 + 策略执行
+│   ├── ansible_trigger.py                # Ansible Tower/AWX 触发执行器
 │   ├── llm_service.py                    # AI 流程生成 (DeepSeek API + RAG)
 │   ├── mako_resolver.py                  # Mako 模板引擎变量解析
 │   ├── variable_resolver.py              # 变量 ${key} 替换 + 清理
 │   ├── variable_registry.py              # 系统变量注册 (pipeline_start/pipeline_end 等)
 │   ├── variables/                        # 变量类型实现
 │   │   ├── __init__.py                   # lazy_resolver 延迟计算
-│   │   └── common.py                     # 公共变量 (target_host, loop 等)
+│   │   ├── common.py                     # 公共变量 (target_host, loop 等)
+│   │   └── cmdb_variables.py             # CMDB 变量
 │   ├── node_sync.py                      # 节点持久化同步 (TemplateNode/ExecutionNode)
 │   ├── trace_logger.py                   # 节点轨迹日志写入器 (JSON Lines)
 │   ├── webhook_service.py                # Webhook 回调服务 (HMAC + 重试)
 │   ├── subprocess_dispatcher.py          # 独立子流程调度器
 │   ├── scheduler_service.py              # APScheduler 定时调度服务
-│   ├── tower_service.py                  # Ansible Tower/AWX 集成
+│   ├── tower/                            # Ansible Tower/AWX 集成包
+│   │   ├── __init__.py
+│   │   ├── base.py                       # TowerService 基类
+│   │   ├── client.py                     # Tower REST API 客户端
+│   │   ├── job.py                        # 作业管理 (launch/poll/cancel)
+│   │   └── polling.py                    # 自适应轮询策略
+│   ├── tower_service.py                  # Ansible Tower/AWX 集成 (旧版单文件)
 │   ├── conflict_checker.py               # 并发冲突检测
 │   ├── audit_logger.py                   # 审计日志
 │   ├── error_codes.py                    # 错误码定义 + api_success/api_error
 │   ├── plugin_deprecation.py             # 插件弃用检查
+│   ├── apigw/                            # BK API Gateway 适配
+│   │   ├── __init__.py
+│   │   ├── auth.py                       # JWT/BK 认证
+│   │   └── views.py                      # 网关视图
 │   └── layout/                           # Sugiyama 分层布局引擎
 │       ├── __init__.py
 │       ├── constants.py                  # NodeType, POSITION, CANVAS_WIDTH
@@ -85,31 +97,45 @@ opsflow/
 ├── plugins/                              # 标准插件集合
 │   ├── base.py                           # BasePlugin 基类
 │   ├── registry.py                       # 插件注册中心 (PLUGIN_REGISTRY)
-│   ├── ansible/                          # Ansible 执行插件
+│   ├── ansible/                          # Ansible 执行插件 (9原子)
 │   │   ├── shell.py, script_exec.py, file_copy.py
 │   │   ├── upload_file.py, backup_file.py
 │   │   ├── java_deploy.py, docker_deploy.py
 │   │   ├── nginx_reload.py, service_control.py
+│   ├── cmdb/                             # CMDB 插件
+│   │   ├── query.py                      # CMDB 查询
+│   │   └── resource_selector.py          # 资源选择器
 │   ├── common/                           # 通用插件
 │   │   ├── send_alert.py, test_print_time.py
-│   ├── esxi/                             # VMware ESXi 插件
+│   ├── esxi/                             # VMware ESXi 插件 (5原子)
 │   │   ├── create_vm.py, destroy_vm.py, get_state.py
 │   │   ├── power_on.py, power_off.py
 │   ├── http/                             # HTTP API 调用插件
 │   │   └── api_call.py
-│   ├── monitor/                          # 监控插件
+│   ├── itsm/                             # ITSM 插件
+│   │   ├── create_ticket.py              # 创建工单
+│   │   └── update_ticket.py              # 更新工单
+│   ├── monitor/                          # 监控插件 (3原子)
 │   │   ├── disk_check.py, health_check.py, ping_test.py
-│   ├── netapp/                           # NetApp 存储插件
+│   ├── netapp/                           # NetApp 存储插件 (5原子)
 │   │   ├── netapp_create_snapshot.py, netapp_create_volume.py
 │   │   ├── netapp_delete_volume.py, netapp_get_volume.py
 │   │   ├── netapp_modify_volume.py
-│   ├── pmax/                             # Dell PowerMax 插件
+│   ├── pmax/                             # Dell PowerMax 插件 (3原子)
 │   │   ├── performance.py, snapshot.py, storage_group.py
-│   ├── redfish/                          # Redfish BMC 插件
+│   ├── redfish/                          # Redfish BMC 插件 (7原子)
 │   │   ├── redfish_firmware_inventory.py, redfish_get_system_info.py
 │   │   ├── redfish_list_storage.py, redfish_power_cycle.py
-│   ├── servicenow/                       # ServiceNow ITSM 插件
+│   │   ├── redfish_power_off.py, redfish_power_on.py
+│   │   └── redfish_set_boot_device.py
+│   ├── servicenow/                       # ServiceNow ITSM 插件 (5原子)
+│   │   ├── servicenow_create_change_request.py
+│   │   ├── servicenow_create_incident.py
+│   │   ├── servicenow_get_cmdb_ci.py
+│   │   ├── servicenow_get_incident.py
+│   │   └── servicenow_update_incident.py
 │   └── verify/                           # 验证测试插件
+│       └── ip_ops_verify.py              # 运维验证
 │
 ├── signals/                              # 信号处理模块
 │   ├── __init__.py
@@ -150,44 +176,44 @@ opsflow/
 │       ├── trends.py                     # 趋势统计
 │       └── analytics.py                  # 深度分析 (Top模板/用户活跃/分布)
 │
-├── apigw/                                # BK API Gateway 适配
-│   ├── auth.py                           # JWT/BK 认证
-│   └── views.py                          # 网关视图
-│
 ├── management/commands/                  # Django 管理命令
 │   ├── start_opsflow_scheduler.py        # 启动 APScheduler
 │   ├── seed_sample_template.py           # 种子模板数据
-│   ├── add_opsflow_menu.py              # 添加菜单
 │   ├── seed_template_categories.py       # 种子分类数据
-│   ├── seed_knowledge.py                # 种子知识库数据
-│   ├── clean_node_trace_logs.py         # 清理日志
+│   ├── seed_knowledge.py                 # 种子知识库数据
+│   ├── index_knowledge.py               # 知识库索引
+│   ├── clean_node_trace_logs.py          # 清理轨迹日志
 │   ├── clean_opsflow_data.py            # 清理数据
 │   ├── fix_node_status_double_encode.py # 修复双编码
 │   └── opsflow_migrate_projects.py      # 项目迁移
 │
-├── migrations/                           # 数据库迁移 (0001-0008)
+├── migrations/                           # 数据库迁移
 │
-└── doc/                                  # 文档
-    ├── README.md
-    ├── TODO.md / TODO.html
-    ├── quick-start.md
-    ├── link_rules.md
-    ├── generate_pdf.py                   # MD → PDF 生成工具
-    ├── 注意事项.md
-    └── design_plan/                      # 设计文档
-```
-
-## 2. 前端目录树 (web/src/views/apps/opsflow/)
+└── tests/                                # 单元测试
+    ├── test_flow_engine.py
+    ├── test_bamboo_builder.py
+    ├── test_layout.py
+    ├── test_states.py
+    └── ...
 
 ```
-web/src/views/apps/opsflow/
+
+## 2. 前端目录树
+
+前端页面按功能独立目录存放于 `web/src/views/apps/` 下，共享代码在 `opsflow/` 主目录：
+
+### 核心共享目录 (web/src/views/apps/opsflow/)
+
+```
+opsflow/                                    # 核心共享代码
 ├── index.vue                              # 主入口 (路由: /opsflow)
 ├── stores/
 │   └── opsflowStore.ts                    # Pinia 状态管理
 ├── types/
 │   └── index.ts                           # TypeScript 类型定义
 ├── utils/
-│   └── shapes.ts                          # X6 自定义图形 (Node/Edge 样式)
+│   ├── shapes.ts                          # X6 自定义图形 (Node/Edge 样式)
+│   └── nodes.ts                           # X6 节点定义辅助
 ├── composables/
 │   ├── useDesignCanvas.ts                 # 设计器画布交互
 │   ├── useMonitor.ts                      # 监控画布交互
@@ -195,51 +221,75 @@ web/src/views/apps/opsflow/
 │   ├── useGraphValidator.ts               # 画布图结构校验
 │   └── useAutoSave.ts                     # 模板自动保存 (debounce)
 ├── components/
-│   ├── DesignCanvas.vue                   # 流程设计器 (X6)
-│   ├── MonitorCanvas.vue                  # 执行监控画布 (X6)
-│   ├── PropertyPanel.vue                  # 节点属性面板 (右侧)
-│   ├── GlobalVariablePanel.vue            # 全局变量编辑
-│   ├── CreateTemplateWizard.vue           # 创建模板向导
-│   ├── SubmitWizardDialog.vue             # 提交执行向导
-│   ├── PluginPickerDialog.vue             # 插件选择弹窗
-│   ├── PluginVisibilityDialog.vue         # 插件可见性配置
-│   ├── SchemeManager.vue                  # 执行方案管理
-│   ├── SchemeSelector.vue                 # 执行方案选择
-│   ├── ConditionDialog.vue                # 条件编辑弹窗
-│   ├── ConditionRow.vue                   # 条件行 (AND/OR)
-│   ├── VariableBrowser.vue                # 变量浏览器
-│   ├── VariablePicker.vue                 # 变量选择器
-│   ├── DiffModal.vue                      # 版本 Diff 弹窗
-│   ├── DryRunDialog.vue                   # Dry Run 弹窗
-│   ├── ProjectSwitcher.vue                # 项目切换器
-│   ├── ProjectEnvVarPanel.vue             # 项目环境变量
-│   ├── SubprocessStatusBadge.vue          # 子流程状态徽标
-│   ├── HelpDrawer.vue                     # 帮助抽屉
-│   └── MonitorPanel.vue                   # 监控面板
-├── api/                                   # API 请求封装
-│   ├── request.ts                         # axios 实例 (拦截器)
-│   ├── templates.ts                       # 模板相关 API
-│   ├── executions.ts                      # 执行相关 API
-│   ├── plugins.ts                         # 插件相关 API
-│   ├── projects.ts                        # 项目相关 API
-│   ├── dashboard.ts                       # 仪表盘 API
-│   ├── schedule-plans.ts                  # 定时计划 API
-│   ├── webhooks.ts                        # Webhook API
-│   ├── audit.ts                           # 审计 API
-│   ├── logs.ts                            # 日志 API
-│   ├── knowledge.ts                       # 知识库 API
-│   ├── servicenow.ts                      # ServiceNow API
-│   └── template-categories.ts             # 分类 API
-│
+│   ├── canvas/
+│   │   ├── DesignCanvas.vue               # 流程设计器 (X6)
+│   │   └── MonitorCanvas.vue              # 执行监控画布 (X6)
+│   ├── panels/
+│   │   ├── PropertyPanel.vue              # 节点属性面板 (右侧)
+│   │   ├── GlobalVariablePanel.vue        # 全局变量编辑
+│   │   └── MonitorPanel.vue               # 监控面板
+│   ├── dialogs/
+│   │   ├── CreateTemplateWizard.vue       # 创建模板向导
+│   │   ├── SubmitWizardDialog.vue         # 提交执行向导
+│   │   ├── PluginPickerDialog.vue         # 插件选择弹窗
+│   │   ├── PluginVisibilityDialog.vue     # 插件可见性配置
+│   │   ├── DiffModal.vue                  # 版本 Diff 弹窗
+│   │   ├── DryRunDialog.vue               # Dry Run 弹窗
+│   │   └── ConditionDialog.vue            # 条件编辑弹窗
+│   ├── gates/
+│   │   └── ConditionRow.vue               # 条件行 (AND/OR)
+│   ├── pickers/
+│   │   ├── VariableBrowser.vue            # 变量浏览器
+│   │   └── VariablePicker.vue             # 变量选择器
+│   ├── badges/
+│   │   └── SubprocessStatusBadge.vue      # 子流程状态徽标
+│   ├── schemes/
+│   │   ├── SchemeManager.vue              # 执行方案管理
+│   │   └── SchemeSelector.vue             # 执行方案选择
+│   └── common/
+│       ├── ProjectSwitcher.vue            # 项目切换器
+│       ├── ProjectEnvVarPanel.vue         # 项目环境变量
+│       └── HelpDrawer.vue                 # 帮助抽屉
+└── api/                                   # API 请求封装
+    ├── request.ts                         # axios 实例 (拦截器)
+    ├── templates.ts                       # 模板相关 API
+    ├── executions.ts                      # 执行相关 API
+    ├── plugins.ts                         # 插件相关 API
+    ├── projects.ts                        # 项目相关 API
+    ├── dashboard.ts                       # 仪表盘 API
+    ├── schedule-plans.ts                  # 定时计划 API
+    ├── webhooks.ts                        # Webhook API
+    ├── audit.ts                           # 审计 API
+    ├── logs.ts                            # 日志 API
+    ├── knowledge.ts                       # 知识库 API
+    ├── servicenow.ts                      # ServiceNow API
+    └── template-categories.ts             # 分类 API
+```
+
+### 子页面目录 (web/src/views/apps/ 同级)
+
+```
 ├── opsflow-approval/
 │   └── index.vue                          # 审批页面
 ├── opsflow-dashboard/
 │   └── index.vue                          # 仪表盘页面
-└── opsflow-execution/
-    ├── index.vue                          # 执行列表页
-    └── components/
-        ├── ExecutionList.vue              # 执行列表
-        └── ExecutionDetail.vue            # 执行详情
+├── opsflow-execution/
+│   ├── index.vue                          # 执行列表页
+│   └── components/
+│       ├── ExecutionList.vue              # 执行列表
+│       └── ExecutionDetail.vue            # 执行详情
+├── opsflow-knowledge/
+│   └── index.vue                          # 知识库管理
+├── opsflow-log/
+│   └── index.vue                          # 操作日志
+├── opsflow-project/
+│   └── index.vue                          # 项目管理
+├── opsflow-stats/
+│   └── index.vue                          # 统计报表
+├── opsflow-template/
+│   └── index.vue                          # 模板管理列表
+└── opsflow-webhook/
+    └── index.vue                          # Webhook 配置
 ```
 
 ## 3. 模型关系图

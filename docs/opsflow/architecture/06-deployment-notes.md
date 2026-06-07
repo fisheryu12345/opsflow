@@ -152,15 +152,15 @@ uvicorn --host 0.0.0.0 --port 8000 application.asgi:application
 
 | 包 | 版本 | 用途 |
 |---|---|---|
-| `@antv/x6` | 2.19.1 | 流程图画布核心 |
-| `@antv/x6-plugin-clipboard` | 2.1.5 | 复制粘贴 |
-| `@antv/x6-plugin-dnd` | 2.1.1 | 拖放创建节点 |
-| `@antv/x6-plugin-history` | 2.2.4 | 撤销/重做 |
-| `@antv/x6-plugin-keyboard` | 2.2.3 | 键盘快捷键 |
-| `@antv/x6-plugin-minimap` | 2.0.7 | 缩略图导航 |
-| `@antv/x6-plugin-selection` | 2.2.2 | 多选 |
-| `@antv/x6-plugin-snapline` | 2.1.7 | 对齐线 |
-| `@antv/x6-plugin-stencil` | 2.1.5 | 调色板 |
+| `@antv/x6` | 3.1.7 | 流程图画布核心 |
+| `@antv/x6-plugin-clipboard` | ^2.x | 复制粘贴 |
+| `@antv/x6-plugin-dnd` | ^2.x | 拖放创建节点 |
+| `@antv/x6-plugin-history` | ^2.x | 撤销/重做 |
+| `@antv/x6-plugin-keyboard` | ^2.x | 键盘快捷键 |
+| `@antv/x6-plugin-minimap` | ^2.x | 缩略图导航 |
+| `@antv/x6-plugin-selection` | ^2.x | 多选 |
+| `@antv/x6-plugin-snapline` | ^2.x | 对齐线 |
+| `@antv/x6-plugin-stencil` | ^2.x | 调色板 |
 
 ### 路由配置
 

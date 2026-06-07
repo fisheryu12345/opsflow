@@ -69,7 +69,9 @@ Stencil 面板从后端插件系统动态加载，按 `group` 字段分组：
 |---|---|---|---|
 | 通用工具 | ⚙ | #409EFF | `plugins/common/` |
 | HTTP | ↔ | #67C23A | `plugins/http/` |
+| CMDB | ◈ | #19BE6B | `plugins/cmdb/` |
 | Ansible | ▶ | #E6A23C | `plugins/ansible/` |
+| ITSM | ☷ | #5CADFF | `plugins/itsm/` |
 | Monitor | ◉ | #F56C6C | `plugins/monitor/` |
 | ESXi | ☰ | #9B59B6 | `plugins/esxi/` |
 | Redfish | ≈ | #00BCD4 | `plugins/redfish/` |
