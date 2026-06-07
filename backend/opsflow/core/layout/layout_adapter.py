@@ -34,8 +34,6 @@ def opsflow_to_pipeline(nodes, edges):
     end_event = None
     activities = {}
     gateways = {}
-    node_id_map = {}  # OPSflow id -> internal id (we reuse the same id)
-
     for node in nodes:
         nid = node["id"]
         node_type = OPSFLOW_NODE_TYPE_MAP.get(
@@ -63,8 +61,6 @@ def opsflow_to_pipeline(nodes, edges):
         else:
             activities[nid] = entry
 
-        node_id_map[nid] = nid
-
     # Auto-synthesize start/end if missing
     if start_event is None and activities:
         sid = _node_id()
@@ -75,7 +71,6 @@ def opsflow_to_pipeline(nodes, edges):
             PK.incoming: "",
             PK.outgoing: "",
         }
-        node_id_map[sid] = sid
 
     if end_event is None and activities:
         eid = _node_id()
@@ -86,7 +81,6 @@ def opsflow_to_pipeline(nodes, edges):
             PK.incoming: "",
             PK.outgoing: "",
         }
-        node_id_map[eid] = eid
 
     # Build a unified lookup of all nodes (including start/end) for edge processing
     all_node_dict = {}
