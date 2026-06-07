@@ -283,7 +283,7 @@ import { useUserInfo } from '/@/stores/userInfo'
 import ScheduleManager from './components/ScheduleManager.vue'
 import VersionDialog from './components/VersionDialog.vue'
 
-import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
+import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const router = useRouter()
 const opsflowStore = useOpsflowStore()
 const userInfo = useUserInfo()

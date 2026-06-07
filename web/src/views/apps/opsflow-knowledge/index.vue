@@ -170,7 +170,7 @@ import { Refresh, Plus, Search, Edit, Delete, Clock, Notification, Document } fr
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { GetKnowledgeList, CreateKnowledge, UpdateKnowledge, DeleteKnowledge } from '../opsflow/api/knowledge'
 
-import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
+import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const loading = ref(false)
 const saving = ref(false)
 const list = ref<any[]>([])

@@ -117,7 +117,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { GetLogs } from '../opsflow/api/logs'
 
-import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
+import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const loading = ref(false)
 const list = ref<any[]>([])
 const page = ref(1)

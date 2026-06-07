@@ -99,7 +99,7 @@ import {
 import ScheduleTable from './components/ScheduleTable.vue'
 import ScheduleForm from './components/ScheduleForm.vue'
 
-import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
+import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const list = ref<any[]>([])
 const loading = ref(false)
 const searchQuery = ref('')

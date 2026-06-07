@@ -198,8 +198,8 @@ import { Search, Refresh, Plus, Edit, Delete, Setting } from '@element-plus/icon
 import { request } from '/@/utils/service'
 import { GetProjects, CreateProject, UpdateProject, DeleteProject, GetProjectDetail,
          GetProjectMembers, AddProjectMember, RemoveProjectMember } from '../opsflow/api/projects'
-import PluginVisibilityDialog from '/@/views/apps/opsflow/components/PluginVisibilityDialog.vue'
-import ProjectEnvVarPanel from '/@/views/apps/opsflow/components/ProjectEnvVarPanel.vue'
+import PluginVisibilityDialog from '/@/views/apps/opsflow/components/pickers/PluginVisibilityDialog.vue'
+import ProjectEnvVarPanel from '/@/views/apps/opsflow/components/common/ProjectEnvVarPanel.vue'
 
 const loading = ref(false)
 const saving = ref(false)

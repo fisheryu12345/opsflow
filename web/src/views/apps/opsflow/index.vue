@@ -174,12 +174,12 @@ import {
 } from '@element-plus/icons-vue'
 import { useOpsflowStore } from './stores/opsflowStore'
 import { GetTemplates, GetTemplateDetail, CreateFromAi, CreateTemplate, GetDiff, AnalyzePipeline, RefinePipeline, AiLayout, UpdateTemplate } from './api/templates'
-import DesignCanvas from './components/DesignCanvas.vue'
-import DiffModal from './components/DiffModal.vue'
-import PluginPickerDialog from './components/PluginPickerDialog.vue'
-import CreateTemplateWizard from './components/CreateTemplateWizard.vue'
-import DryRunDialog from './components/DryRunDialog.vue'
-import HelpDrawer from './components/HelpDrawer.vue'
+import DesignCanvas from './components/canvas/DesignCanvas.vue'
+import DiffModal from './components/dialogs/DiffModal.vue'
+import PluginPickerDialog from './components/pickers/PluginPickerDialog.vue'
+import CreateTemplateWizard from './components/dialogs/CreateTemplateWizard.vue'
+import DryRunDialog from './components/dialogs/DryRunDialog.vue'
+import HelpDrawer from './components/common/HelpDrawer.vue'
 
 const store = useOpsflowStore()
 

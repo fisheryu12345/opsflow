@@ -198,7 +198,7 @@ import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, Re
 import { GetTemplateDetail } from '../../opsflow/api/templates'
 import { GetLogs } from '../../opsflow/api/logs'
 import mittBus from '/@/utils/mitt'
-import MonitorCanvas from '/@/views/apps/opsflow/components/MonitorCanvas.vue'
+import MonitorCanvas from '/@/views/apps/opsflow/components/canvas/MonitorCanvas.vue'
 
 const props = defineProps<{ execution: any }>()
 const emit = defineEmits<{ back: []; executionUpdate: [exec: any] }>()

@@ -198,7 +198,7 @@ import {
   GetWebhooks, CreateWebhook, UpdateWebhook, DeleteWebhook, GetWebhookLogs,
 } from '../opsflow/api/webhooks'
 
-import ProjectSwitcher from '/@/views/apps/opsflow/components/ProjectSwitcher.vue'
+import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const loading = ref(false)
 const saving = ref(false)
 const webhooks = ref<any[]>([])
