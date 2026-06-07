@@ -91,8 +91,8 @@
 import { ref, computed, watch } from 'vue'
 import { Plus, ArrowDown, CircleCheck, CloseBold, WarningFilled } from '@element-plus/icons-vue'
 import ConditionRow from './ConditionRow.vue'
-import { generateConditionExpr } from '../composables/useGraphCanvas'
-import type { VariableOption, ConditionRule, ConditionStruct } from '../utils/shapes'
+import { generateConditionExpr } from '../../composables/useGraphCanvas'
+import type { VariableOption, ConditionRule, ConditionStruct } from '../../utils/shapes'
 
 const props = withDefaults(defineProps<{
   visible: boolean
@@ -234,7 +234,7 @@ function onClosed() {
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .condition-dialog-body {
   min-height: 200px;

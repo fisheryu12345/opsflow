@@ -61,8 +61,8 @@
  */
 import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { Monitor, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
-import { useGraphCanvas, layoutNodes } from '../composables/useGraphCanvas'
-import { resolveNodeShape, updateAtomNode, CARD_WIDTH, CARD_HEIGHT } from '../utils/shapes'
+import { useGraphCanvas, layoutNodes } from '../../composables/useGraphCanvas'
+import { resolveNodeShape, updateAtomNode, CARD_WIDTH, CARD_HEIGHT } from '../../utils/shapes'
 
 const props = defineProps<{ executionId: number; startedAt?: string; endedAt?: string }>()
 
@@ -363,7 +363,7 @@ defineExpose({ loadGraphData, loadNodeStatuses, setExecutionStatus, refreshCanva
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .monitor-canvas-wrapper { display: flex; flex-direction: column; height: 100%; }
 .monitor-header {

@@ -109,7 +109,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Coin, Delete, Link, Edit } from '@element-plus/icons-vue'
-import { GetGlobalVariables, UpdateGlobalVariables, PatchGlobalVariables, UnhookVariable } from '../api/templates'
+import { GetGlobalVariables, UpdateGlobalVariables, PatchGlobalVariables, UnhookVariable } from '../../api/templates'
 
 const props = defineProps<{ templateId: number | null }>()
 const emit = defineEmits<{ update: [] }>()
@@ -212,7 +212,7 @@ watch(() => props.templateId, fetchVars, { immediate: true })
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 /* ---------- Layout ---------- */
 .gv-panel {
   width: 300px; min-width: 300px;

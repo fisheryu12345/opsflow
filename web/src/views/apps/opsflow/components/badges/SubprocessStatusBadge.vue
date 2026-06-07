@@ -41,7 +41,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
-import { GetSubprocessStatus, UpdateSubprocessRefs } from '../api/templates'
+import { GetSubprocessStatus, UpdateSubprocessRefs } from '../../api/templates'
 
 const props = defineProps<{ templateId: number | null }>()
 const emit = defineEmits<{ updated: [] }>()
@@ -82,7 +82,7 @@ onMounted(fetchStatus)
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .subprocess-status-badge {
   position: absolute;

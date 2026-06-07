@@ -48,8 +48,8 @@
 import { ref, computed, watch } from 'vue'
 import { Delete } from '@element-plus/icons-vue'
 import VariablePicker from './VariablePicker.vue'
-import { opsForType } from '../composables/useGraphCanvas'
-import type { VariableOption, ConditionRule } from '../utils/shapes'
+import { opsForType } from '../../composables/useGraphCanvas'
+import type { VariableOption, ConditionRule } from '../../utils/shapes'
 
 const props = withDefaults(defineProps<{
   rule: ConditionRule
@@ -119,7 +119,7 @@ function emitChange() {
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .condition-row {
   background: $of-bg-header;

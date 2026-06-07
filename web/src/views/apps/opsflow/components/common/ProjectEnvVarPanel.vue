@@ -77,7 +77,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Edit, Delete, View, Hide } from '@element-plus/icons-vue'
-import { GetProjectEnvVars, SetProjectEnvVars, PatchProjectEnvVars } from '../api/projects'
+import { GetProjectEnvVars, SetProjectEnvVars, PatchProjectEnvVars } from '../../api/projects'
 
 interface EnvVarItem {
   id?: number
@@ -165,7 +165,7 @@ watch(() => props.projectId, (v) => { if (v) load() }, { immediate: true })
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 .env-panel { display: flex; flex-direction: column; gap: 12px; }
 .env-header { display: flex; align-items: center; justify-content: space-between; }
 .env-title { font-size: 14px; font-weight: 600; color: #303133; }

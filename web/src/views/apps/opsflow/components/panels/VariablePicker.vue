@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { VariableOption } from '../utils/shapes'
+import type { VariableOption } from '../../utils/shapes'
 
 const props = withDefaults(defineProps<{
   options: VariableOption[]
@@ -102,7 +102,7 @@ function onSelect(value: string) {
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .variable-option {
   display: flex;

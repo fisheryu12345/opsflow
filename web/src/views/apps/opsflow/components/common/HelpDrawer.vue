@@ -235,7 +235,7 @@ const visible = computed({
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .help-drawer :deep(.el-drawer__header) {
   margin-bottom: 0;

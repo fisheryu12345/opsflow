@@ -187,9 +187,9 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { CircleCheck, ChatDotSquare, CopyDocument } from '@element-plus/icons-vue'
-import { CreateTemplate, CreateFromAi, ExportTemplate, ImportTemplate, GetTemplates, UpdateTemplate } from '../api/templates'
-import { GetTemplateCategories } from '../api/template-categories'
-import { useOpsflowStore } from '../stores/opsflowStore'
+import { CreateTemplate, CreateFromAi, ExportTemplate, ImportTemplate, GetTemplates, UpdateTemplate } from '../../api/templates'
+import { GetTemplateCategories } from '../../api/template-categories'
+import { useOpsflowStore } from '../../stores/opsflowStore'
 
 const store = useOpsflowStore()
 
@@ -319,7 +319,7 @@ watch(() => props.modelValue, async (val) => {
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 $accent: #409EFF;
 $accent-dark: #337ecc;

@@ -74,7 +74,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { Link, Search, ArrowDown } from '@element-plus/icons-vue'
-import { GetVariableBrowser } from '../api/templates'
+import { GetVariableBrowser } from '../../api/templates'
 
 const props = defineProps<{
   modelValue: boolean
@@ -125,7 +125,7 @@ watch(() => props.modelValue, (v) => { if (v) fetchData() })
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .var-browser-dialog :deep(.el-dialog__body) { padding-top: 8px; }
 .tab-empty { padding: 20px 0; }

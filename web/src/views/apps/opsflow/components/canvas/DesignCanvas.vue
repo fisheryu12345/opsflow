@@ -133,15 +133,15 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, Coin, VideoPlay, CircleCheck, Monitor } from '@element-plus/icons-vue'
 // X6 CSS — v3 auto-injects CSS via JS, no need for separate CSS imports
-import { useDesignCanvas } from '../composables/useDesignCanvas'
+import { useDesignCanvas } from '../../composables/useDesignCanvas'
 import PropertyPanel from './PropertyPanel.vue'
 import GlobalVariablePanel from './GlobalVariablePanel.vue'
 import SubprocessStatusBadge from './SubprocessStatusBadge.vue'
 import ProjectSwitcher from './ProjectSwitcher.vue'
 import SubmitWizardDialog from './SubmitWizardDialog.vue'
-import { ConfirmDraft } from '../api/templates'
-import { DryRunExecution } from '../api/executions'
-import { useGraphValidator } from '../composables/useGraphValidator'
+import { ConfirmDraft } from '../../api/templates'
+import { DryRunExecution } from '../../api/executions'
+import { useGraphValidator } from '../../composables/useGraphValidator'
 
 const props = defineProps<{
   templates?: any[]
@@ -422,7 +422,7 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, z
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .design-canvas-wrapper {
   height: 100%;

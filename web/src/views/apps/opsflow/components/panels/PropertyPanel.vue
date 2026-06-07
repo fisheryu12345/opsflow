@@ -260,12 +260,12 @@ import { ref, watch, computed } from 'vue'
 import { Setting, Pointer, WarnTriangleFilled, CircleCheckFilled, InfoFilled, Aim, Connection, Switch, EditPen } from '@element-plus/icons-vue'
 import RenderForm from '/@/components/RenderForm/RenderForm.vue'
 import TagVariableMapping from '/@/components/RenderForm/tags/TagVariableMapping.vue'
-import { GetPluginGroups, GetPluginDetail } from '../api/plugins'
-import { GetTemplates } from '../api/templates'
-import { useOpsflowStore } from '../stores/opsflowStore'
+import { GetPluginGroups, GetPluginDetail } from '../../api/plugins'
+import { GetTemplates } from '../../api/templates'
+import { useOpsflowStore } from '../../stores/opsflowStore'
 import ConditionDialog from './ConditionDialog.vue'
-import { generateConditionExpr, extractAvailableVariables as getAvailableVars } from '../composables/useGraphCanvas'
-import type { ConditionStruct } from '../utils/shapes'
+import { generateConditionExpr, extractAvailableVariables as getAvailableVars } from '../../composables/useGraphCanvas'
+import type { ConditionStruct } from '../../utils/shapes'
 
 const props = defineProps<{
   nodeData?: any
@@ -570,7 +570,7 @@ loadTemplates()
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .property-panel {
   width: 280px;

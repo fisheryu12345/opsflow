@@ -46,7 +46,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ChatDotSquare, EditPen, Check } from '@element-plus/icons-vue'
-import { ConfirmDraft } from '../api/templates'
+import { ConfirmDraft } from '../../api/templates'
 
 const props = defineProps<{
   templateId: number
@@ -128,7 +128,7 @@ defineExpose({ show })
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .diff-dialog :deep(.el-dialog__header) { @include of-dialog-header; }
 .diff-dialog :deep(.el-dialog__body) { padding: 0; }

@@ -53,7 +53,7 @@
 import { ref, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { GetSchemes, CreateScheme, UpdateScheme, DeleteScheme } from '../api/templates'
+import { GetSchemes, CreateScheme, UpdateScheme, DeleteScheme } from '../../api/templates'
 
 const props = defineProps<{ templateId: number | null; visible: boolean }>()
 const emit = defineEmits(['update:visible', 'updated'])
@@ -113,7 +113,7 @@ watch(() => props.visible, (v) => { if (v) loadSchemes() })
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .scheme-manager { min-height: 200px; }
 .scheme-header { margin-bottom: 12px; }

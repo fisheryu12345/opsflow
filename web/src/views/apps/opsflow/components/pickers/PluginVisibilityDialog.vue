@@ -51,8 +51,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { GetPluginsVisibilityList, BatchSetPluginsVisibility } from '../api/plugins'
-import { GetProjects } from '../api/projects'
+import { GetPluginsVisibilityList, BatchSetPluginsVisibility } from '../../api/plugins'
+import { GetProjects } from '../../api/projects'
 
 interface PluginItem {
   code: string
@@ -213,7 +213,7 @@ watch(() => props.visible, (v) => { if (v) { loadData(); searchQuery.value = '' 
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .pv-dialog :deep(.el-dialog__body) { padding: 0; }
 .pv-body { max-height: 65vh; overflow-y: auto; padding: 18px 20px; }

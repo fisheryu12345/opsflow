@@ -440,10 +440,10 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Aim, CircleCheck, InfoFilled, WarningFilled, Calendar } from '@element-plus/icons-vue'
-import { GetGlobalVariables, AnalyzePipeline } from '../api/templates'
-import { CreateExecution } from '../api/executions'
-import { CreateSchedulePlan } from '../api/schedule-plans'
-import { GetServicenowChangeRequests } from '../api/servicenow'
+import { GetGlobalVariables, AnalyzePipeline } from '../../api/templates'
+import { CreateExecution } from '../../api/executions'
+import { CreateSchedulePlan } from '../../api/schedule-plans'
+import { GetServicenowChangeRequests } from '../../api/servicenow'
 
 const props = defineProps<{
   modelValue: boolean
@@ -782,7 +782,7 @@ watch(() => props.modelValue, (val) => {
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 $accent: #409EFF;
 $accent-dark: #337ecc;

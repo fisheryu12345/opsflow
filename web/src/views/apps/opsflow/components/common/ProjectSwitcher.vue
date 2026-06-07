@@ -24,7 +24,7 @@
 <script setup lang="ts">
 import { computed, withDefaults } from 'vue'
 import { Collection, FolderOpened } from '@element-plus/icons-vue'
-import { useOpsflowStore } from '../stores/opsflowStore'
+import { useOpsflowStore } from '../../stores/opsflowStore'
 
 interface Props {
   dark?: boolean
@@ -46,7 +46,7 @@ function onSwitch(id: number) {
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .project-switcher {
   flex: 0 0 auto;

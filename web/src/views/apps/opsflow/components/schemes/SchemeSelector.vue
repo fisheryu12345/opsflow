@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { GetSchemes } from '../api/templates'
+import { GetSchemes } from '../../api/templates'
 
 const props = defineProps<{ templateId: number | null }>()
 const emit = defineEmits<{ select: [schemeId: number | null] }>()
@@ -36,7 +36,7 @@ watch(selectedSchemeId, (val) => emit('select', val))
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/opsflow-global' as *;
+@use '../../styles/opsflow-global' as *;
 
 .scheme-selector { width: 100%; }
 .scheme-desc { color: #909399; font-size: 12px; }
