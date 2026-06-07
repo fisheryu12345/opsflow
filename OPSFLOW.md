@@ -37,7 +37,7 @@ All OPSflow Vue components should follow these conventions for visual consistenc
 | `backend/` | Django 后端（dvaadmin，application，opsflow，cmdb，itsm 等所有 Django app） |
 | `web/` | Vue 3 前端 |
 | `refrence/` | 第三方蓝鲸参考源码（只读，不修改） |
-| `docs/` | 统一文档（架构/设计/知识库） |
+| `docs/` | 统一文档，按 Django app 分子目录（opsflow/、cmdb/、itsm/ 等） |
 | `deploy/` | 部署配置（docker compose、nginx、Dockerfile） |
 | `scripts/` | 全局脚本（数据库维护、CI/CD、环境初始化） |
 | `.claude/skills/` | 项目级 Claude 技能 |
