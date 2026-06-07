@@ -1,12 +1,6 @@
 import { ref, shallowRef } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Graph } from '@antv/x6'
-import { Stencil } from '@antv/x6-plugin-stencil'
-import { Snapline } from '@antv/x6-plugin-snapline'
-import { Clipboard } from '@antv/x6-plugin-clipboard'
-import { Selection } from '@antv/x6-plugin-selection'
-import { MiniMap } from '@antv/x6-plugin-minimap'
-import { Keyboard } from '@antv/x6-plugin-keyboard'
+import { Graph, Stencil, Snapline, Clipboard, Selection, MiniMap, Keyboard } from '@antv/x6'
 import { AiLayout } from '../api/templates'
 import { useGraphCanvas, layoutNodes, defaultNodeLabel } from './useGraphCanvas'
 import { resolveNodeShape, updateAtomNode, refreshPortStates, showNodePorts, PORT_DOT_RADIUS, CARD_WIDTH, CARD_HEIGHT } from '../utils/shapes'
@@ -51,7 +45,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     // 设计模式额外插件
     g.use(new Snapline({}))
     g.use(new Clipboard({}))
-    g.use(new Selection({ rubberband: true, showNodeSelectionBox: true }))
+    g.use(new Selection({ rubberband: true, showNodeSelectionBox: true, modifiers: 'shift' }))
     if (minimapContainer) {
       g.use(new MiniMap({ container: minimapContainer, width: 200, height: 140 }))
     }

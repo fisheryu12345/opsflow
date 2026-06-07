@@ -197,6 +197,7 @@ import { ArrowLeft, Refresh, Monitor, Document, Close, DArrowLeft, DArrowRight, 
 import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode, CancelExecution, GetExecutionTraces, GetNodeTraceLog, ApproveNode, RejectNode, GetEngineStates } from '../../opsflow/api/executions'
 import { GetTemplateDetail } from '../../opsflow/api/templates'
 import { GetLogs } from '../../opsflow/api/logs'
+import mittBus from '/@/utils/mitt'
 import MonitorCanvas from '/@/views/apps/opsflow/components/MonitorCanvas.vue'
 
 const props = defineProps<{ execution: any }>()
@@ -471,9 +472,24 @@ function stopAutoRefresh() { if (autoTimer) { clearInterval(autoTimer); autoTime
 watch(isRunning, (v) => { if (v) startAutoRefresh(); else stopAutoRefresh() }, { immediate: true })
 watch(() => props.execution.id, (newId) => { if (newId) { graphInitialized = false; loadPipeline(true); fetchLogs(); fetchTraces() } })
 
-onMounted(() => { loadPipeline(); fetchLogs(); fetchTraces() })
+// WebSocket real-time node status update handler
+function handleNodeStatusChange(payload: any) {
+  if (payload.execution_id === props.execution.id) {
+    monitorRef.value?.updateNodeStatus?.(payload.node_id, payload.status)
+  }
+}
+
+onMounted(() => {
+  loadPipeline()
+  fetchLogs()
+  fetchTraces()
+  mittBus.on('nodeStatusChange', handleNodeStatusChange)
+})
 onActivated(() => { nextTick(() => { monitorRef.value?.refreshCanvas() }) })
-onBeforeUnmount(() => stopAutoRefresh())
+onBeforeUnmount(() => {
+  stopAutoRefresh()
+  mittBus.off('nodeStatusChange', handleNodeStatusChange)
+})
 </script>
 
 <style scoped>

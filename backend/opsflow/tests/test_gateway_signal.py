@@ -12,7 +12,7 @@ import pytest
 
 from bamboo_engine import states
 from opsflow.signals.state import _update_execution_node_status, _update_state_tree
-from opsflow.signals.handlers import on_post_set_state
+from opsflow.signals.handlers import on_post_set_state, _push_node_status_via_ws
 
 
 class TestExclusiveGatewaySignalStateUpdate:
@@ -182,3 +182,49 @@ class TestExclusiveGatewaySignalHandler:
 
         assert execution.current_node == "bu_gw1"
         execution.save.assert_any_call(update_fields=["current_node"])
+
+
+class TestWsNodeStatusPush:
+    """_push_node_status_via_ws WebSocket 推送测试"""
+
+    def test_skip_when_no_created_by(self):
+        """没有 created_by_id 时跳过推送"""
+        execution = Mock()
+        execution.created_by_id = None
+        execution.node_status = {}
+        _push_node_status_via_ws(execution, "n1")
+
+    def test_skip_when_no_status(self):
+        """node_id 不在 node_status 中时跳过推送"""
+        execution = Mock()
+        execution.created_by_id = 1
+        execution.node_status = {}
+        _push_node_status_via_ws(execution, "n1")
+
+    @patch("channels.layers.get_channel_layer")
+    def test_push_called_with_correct_args(self, mock_get_cl):
+        """正常推送时 channel_layer.group_send 被正确调用"""
+        mock_cl = Mock()
+        mock_get_cl.return_value = mock_cl
+
+        execution = Mock()
+        execution.id = 42
+        execution.created_by_id = 7
+        execution.node_status = {"n1": "completed"}
+
+        _push_node_status_via_ws(execution, "n1")
+
+        mock_cl.group_send.assert_called_once_with(
+            "user_7",
+            {
+                "type": "push.message",
+                "json": {
+                    "contentType": "NODE_STATUS",
+                    "content": {
+                        "execution_id": 42,
+                        "node_id": "n1",
+                        "status": "completed",
+                    },
+                },
+            }
+        )

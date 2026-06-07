@@ -132,10 +132,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, Coin, VideoPlay, CircleCheck, Monitor } from '@element-plus/icons-vue'
-// X6 CSS — required for Stencil, Minimap plugin containers / 必须导入否则 Stencil、Minimap 等插件容器不显示
-import '@antv/x6/dist/index.css'
-import '@antv/x6-plugin-stencil/dist/index.css'
-import '@antv/x6-plugin-minimap/dist/index.css'
+// X6 CSS — v3 auto-injects CSS via JS, no need for separate CSS imports
 import { useDesignCanvas } from '../composables/useDesignCanvas'
 import PropertyPanel from './PropertyPanel.vue'
 import GlobalVariablePanel from './GlobalVariablePanel.vue'

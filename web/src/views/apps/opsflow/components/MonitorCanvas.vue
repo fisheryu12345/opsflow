@@ -192,6 +192,12 @@ function applyNodeColor(nodeId: string, status: string) {
     const label = cell.getData()?.label || ''
     const attrs = atomMonitorAttrs(status, label)
     cell.setAttrs(attrs)
+    // 闪烁：通过 CSS class 控制快速脉冲动画
+    if (isRunning) {
+      cell.setAttrByPath('body/class', 'ops-node-running')
+    } else if (wasRunning) {
+      cell.setAttrByPath('body/class', '')
+    }
   } else {
     const color = getColor(status)
     cell.setAttrByPath('body/stroke', color)
@@ -297,7 +303,13 @@ function refreshCanvas() {
   if (graph.value) graph.value.resize()
 }
 
-// ── 边动画 ──
+function updateNodeStatus(nodeId: string, status: string) {
+  if (!graph.value) return
+  nodeStatuses.value[nodeId] = status
+  applyNodeColor(nodeId, status)
+}
+
+// ── 边动画（X6 v3 animate API，替代 v2 transition）──
 
 let edgeAnimationActive = false
 
@@ -305,22 +317,18 @@ function setEdgeAnimation(active: boolean) {
   edgeAnimationActive = active
   if (!graph.value) return
   graph.value.batchUpdate('edge-animation', () => {
-    graph.value.getEdges().forEach(edge => {
-      edge.stopTransition('attrs/line/strokeDashoffset')
+    graph.value.getEdges().forEach((edge: any) => {
+      // 取消所有已有动画
+      edge.getAnimations()?.forEach((a: any) => a.cancel())
       if (active) {
         edge.setAttrByPath('line/strokeDasharray', '8 4')
         edge.setAttrByPath('line/stroke', '#E6A23C')
         edge.setAttrByPath('line/strokeWidth', 2)
-        edge.setAttrByPath('line/strokeDashoffset', 0)
-        const tick = () => {
-          if (!edgeAnimationActive) return
-          edge.transition('attrs/line/strokeDashoffset', -12, { timing: 'linear', duration: 350 })
-          edge.once('transition:complete', () => {
-            edge.setAttrByPath('line/strokeDashoffset', 0)
-            tick()
-          })
-        }
-        tick()
+        // 使用 Web Animations API 标准 animate — iterations: Infinity 自动循环
+        edge.animate([
+          { 'attrs/line/strokeDashoffset': 0 },
+          { 'attrs/line/strokeDashoffset': -12 },
+        ], { duration: 350, easing: 'linear', iterations: Infinity })
       } else {
         edge.setAttrByPath('line/strokeDashoffset', 0)
         edge.setAttrByPath('line/strokeDasharray', '')
@@ -351,7 +359,7 @@ onActivated(() => {
   if (graph.value) graph.value.resize()
 })
 
-defineExpose({ loadGraphData, loadNodeStatuses, setExecutionStatus, refreshCanvas })
+defineExpose({ loadGraphData, loadNodeStatuses, setExecutionStatus, refreshCanvas, updateNodeStatus })
 </script>
 
 <style lang="scss" scoped>
@@ -388,5 +396,10 @@ defineExpose({ loadGraphData, loadNodeStatuses, setExecutionStatus, refreshCanva
 @keyframes op-pulse {
   0%, 100% { stroke-opacity: 1; stroke-width: 2.5; fill-opacity: 1; }
   50% { stroke-opacity: 0.3; fill-opacity: 0.5; }
+}
+:deep(.ops-node-running) { animation: ops-blink 0.6s ease-in-out infinite !important; }
+@keyframes ops-blink {
+  0%, 100% { stroke-opacity: 1; stroke-width: 2.5; }
+  50% { stroke-opacity: 0.2; stroke-width: 3.5; }
 }
 </style>

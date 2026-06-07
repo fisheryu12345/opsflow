@@ -4,6 +4,7 @@ import {getWsBaseURL} from "/@/utils/baseUrl";
 // @ts-ignore
 import socket from '@/types/api/socket'
 import {useUserInfo} from "/@/stores/userInfo";
+import mittBus from '/@/utils/mitt';
 const websocket: socket = {
     websocket: null,
     connectURL: getWsBaseURL(),
@@ -36,6 +37,13 @@ const websocket: socket = {
         const wsUrl = `${getWsBaseURL()}ws/${token}/`
         websocket.websocket = new WebSocket(wsUrl)
         websocket.websocket.onmessage = (e: any) => {
+            // opsflow: auto-dispatch NODE_STATUS to mittBus
+            try {
+                const d = JSON.parse(e.data);
+                if (d.contentType === 'NODE_STATUS') {
+                    mittBus.emit('nodeStatusChange', d.content);
+                }
+            } catch {}
             if (receiveMessage) {
                 receiveMessage(e)
             }

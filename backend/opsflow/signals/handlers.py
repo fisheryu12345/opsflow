@@ -1,8 +1,8 @@
 """Signal handlers — on_post_set_state 接收器和根节点状态管理器
 
 作为信号分发的入口点，将节点状态变更路由到各子模块处理。
-节点着色已改为纯 API 轮询驱动（通过 node_status / trace_summary），
-信号处理器不再推送 WebSocket 消息。
+节点着色通过 WebSocket 实时推送 NODE_STATUS 消息驱动，
+回退方案为 API 轮询（通过 node_status / trace_summary）。
 """
 
 import datetime
@@ -27,6 +27,41 @@ def _safe_signal_handler(func, execution, node_id, to_state):
         func(execution, node_id, to_state)
     except Exception:
         logger.exception("[Signal] %s error exec=%s node=%s", func.__name__, execution.id, node_id)
+
+
+def _push_node_status_via_ws(execution, node_id):
+    """通过 WebSocket 实时推送节点状态到前端
+
+    在 DB 持久化完成后调用，使用 Channels user_{id} 组推送，
+    前端 wsReceive 收到 NODE_STATUS 后通过 mittBus 分发给
+    对应的 ExecutionDetail 页面，即时更新 X6 节点颜色。
+    """
+    if not execution.created_by_id:
+        return
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        status = (execution.node_status or {}).get(node_id, '')
+        if not status:
+            return
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                f"user_{execution.created_by_id}",
+                {
+                    "type": "push.message",
+                    "json": {
+                        "contentType": "NODE_STATUS",
+                        "content": {
+                            "execution_id": execution.id,
+                            "node_id": node_id,
+                            "status": status,
+                        },
+                    },
+                }
+            )
+    except Exception:
+        logger.exception("[Signal] WS push failed for node %s", node_id)
 
 
 def _try_webhook(execution, event: str):
@@ -70,6 +105,9 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
         ]
         for step_func in signal_steps:
             _safe_signal_handler(step_func, execution, node_id, to_state)
+
+        # 实时推送节点状态到前端 WebSocket — 不阻塞后续处理
+        _push_node_status_via_ws(execution, node_id)
 
         if to_state == states.RUNNING:
             try:
