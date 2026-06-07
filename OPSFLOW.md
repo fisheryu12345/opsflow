@@ -28,6 +28,14 @@ All OPSflow Vue components should follow these conventions for visual consistenc
 3. **文件命名**：`YYYY-MM-DD-<简短英文描述>.md`（如 `2026-06-03-gateway-condition-editor-design.md`）
 4. **适用范围**：包括但不限于 Superpowers、SPARC 流程、Claude Code、以及其他 AI Agent 产出的设计文档
 
+### 顶层设计约束
+
+所有设计文档（功能设计、详细设计等）和开发工作，**必须**遵守以下约束：
+
+1. **顶层设计优先** — `docs/opsflow_target.md` 定义了 OPSflow 平台的最终目标架构、子产品定位和组件交互规范。任何功能设计或开发必须以此为准绳。
+2. **冲突解决流程** — 若开发过程中发现与 `docs/opsflow_target.md` 的顶层设计存在冲突或疑问，**必须先进行头脑风暴讨论明确定案，方可改动**。不得在不经讨论的情况下偏离顶层设计。
+3. **设计文档引用** — 所有 `docs/opsflow/plans/` 下的设计文档必须引用本文件作为架构依据，并在设计评审时对照 `docs/opsflow_target.md` 校验一致性。
+
 ### 项目结构规范
 
 #### 目录职责
