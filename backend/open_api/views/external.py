@@ -154,3 +154,99 @@ def trigger_execution(request):
     async_execute_plan(execution.id)
 
     return DetailResponse(data={'execution_id': execution.id}, msg='执行已触发')
+
+
+# ──────────────────────────────────────────────
+# OpsFlow Pipeline 端点（从 opsflow/core/apigw/ 迁移）
+# ──────────────────────────────────────────────
+
+
+@api_view(['POST'])
+@authentication_classes(AUTH_CLASSES)
+@throttle_classes(THROTTLE_CLASSES)
+def trigger_pipeline(request):
+    """触发 OpsFlow Pipeline 执行 — 提供 template_id 或完整 pipeline_tree"""
+    template_id = request.data.get('template_id')
+    scheme_id = request.data.get('scheme_id')
+    params = request.data.get('params', {})
+    pipeline_tree = request.data.get('pipeline_tree')
+
+    if not template_id and not pipeline_tree:
+        return ErrorResponse(msg='请提供 template_id 或 pipeline_tree', code=4000)
+
+    from opsflow.models import FlowTemplate, FlowExecution
+
+    if template_id:
+        try:
+            template = FlowTemplate.objects.get(id=template_id)
+        except FlowTemplate.DoesNotExist:
+            return ErrorResponse(msg='Template not found', code=4000)
+
+        execution = FlowExecution.objects.create(
+            template=template,
+            created_by=getattr(request.auth.app, 'created_by', None) if hasattr(request, 'auth') and request.auth else None,
+            context={'trigger': 'open_api', 'params': params},
+        )
+        # 应用执行方案
+        if scheme_id:
+            from opsflow.models import ExecutionScheme
+            try:
+                scheme = ExecutionScheme.objects.get(id=scheme_id, template=template)
+                if scheme.excluded_nodes:
+                    execution.excluded_nodes = scheme.excluded_nodes
+                    execution.save(update_fields=['excluded_nodes'])
+            except ExecutionScheme.DoesNotExist:
+                pass
+    else:
+        # 直接提供 pipeline_tree
+        execution = FlowExecution.objects.create(
+            template=None,
+            created_by=None,
+            context={
+                'trigger': 'open_api',
+                'params': params,
+                'pipeline_tree': pipeline_tree,
+            },
+        )
+
+    from opsflow.core.flow_engine import FlowEngine
+    engine = FlowEngine(execution)
+    engine.start(sync=False)
+
+    return DetailResponse(data={
+        'execution_id': execution.id,
+        'status': execution.status,
+    }, msg='Pipeline 已触发执行')
+
+
+@api_view(['GET'])
+@authentication_classes(AUTH_CLASSES)
+@throttle_classes(THROTTLE_CLASSES)
+def query_execution(request, execution_id):
+    """查询 Pipeline 执行状态"""
+    from opsflow.models import FlowExecution
+    try:
+        execution = FlowExecution.objects.get(id=execution_id)
+    except FlowExecution.DoesNotExist:
+        return ErrorResponse(msg='Execution not found', code=4000)
+
+    return DetailResponse(data={
+        'execution_id': execution.id,
+        'status': execution.status,
+        'started_at': execution.started_at,
+        'ended_at': execution.ended_at,
+        'current_node': execution.current_node,
+        'node_status': execution.node_status,
+    })
+
+
+@api_view(['GET'])
+@authentication_classes(AUTH_CLASSES)
+@throttle_classes(THROTTLE_CLASSES)
+def list_pipeline_templates(request):
+    """列出已发布 Pipeline 模板"""
+    from opsflow.models import FlowTemplate
+    templates = FlowTemplate.objects.filter(is_draft=False).values(
+        'id', 'name', 'category', 'description', 'version',
+    )
+    return DetailResponse(data=list(templates))

@@ -19,7 +19,6 @@ from .views.node_views import TemplateNodeViewSet, ExecutionNodeViewSet
 from .views.scheme_views import ExecutionSchemeViewSet
 from .views.audit_views import OperationRecordViewSet
 from .views.project_views import OpsProjectViewSet
-from .core.apigw.views import trigger_execution, get_execution_status, list_templates
 
 router = DefaultRouter()
 router.register(r'templates', FlowTemplateViewSet, basename='opsflow-template')
@@ -70,7 +69,4 @@ urlpatterns = [
     path('dashboard/node-duration-top/', dashboard_node_duration_top, name='opsflow-dashboard-node-duration-top'),
     path('dashboard/success-rate-trend/', dashboard_success_rate_trend, name='opsflow-dashboard-success-rate-trend'),
     path('dashboard/template-stats/', dashboard_template_stats, name='opsflow-dashboard-template-stats'),
-    path('apigw/v1/executions/', trigger_execution, name='opsflow-apigw-trigger'),
-    path('apigw/v1/executions/<int:execution_id>/', get_execution_status, name='opsflow-apigw-status'),
-    path('apigw/v1/templates/', list_templates, name='opsflow-apigw-templates'),
 ] + router.urls
