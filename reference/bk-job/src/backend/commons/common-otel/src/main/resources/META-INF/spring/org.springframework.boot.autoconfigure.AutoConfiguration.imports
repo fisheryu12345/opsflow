@@ -1,2 +1,0 @@
-com.tencent.bk.job.common.tracing.JobOtelAutoConfiguration
-com.tencent.bk.job.common.tracing.contextpropagation.ContextPropagationAutoConfiguration

@@ -1,9 +1,0 @@
-FROM mirrors.tencent.com/tencentos/tencentos3-minimal
-ENV container docker
-COPY cmdb_toposerver /data/cmdb/cmdb_toposerver
-RUN mkdir /data/cmdb/cmdb_toposerver/logs
-RUN chmod +x /data/cmdb/cmdb_toposerver/cmdb_toposerver
-#time zone setting
-ENV TimeZone=Asia/Shanghai
-RUN ln -snf /usr/share/zoneinfo/$TimeZone /etc/localtime && echo $TimeZone > /etc/timezone
-

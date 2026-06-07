@@ -1,2 +1,0 @@
-com.tencent.bk.job.common.sharding.mysql.config.LeafAutoConfiguration
-com.tencent.bk.job.common.sharding.mysql.config.ShardingDatasourceAutoConfiguration

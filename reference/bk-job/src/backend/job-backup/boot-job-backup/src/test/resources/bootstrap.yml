@@ -1,6 +1,0 @@
-spring:
-  application:
-    name: job-backup
-  cloud:
-    kubernetes:
-      enabled: false

@@ -1,9 +1,0 @@
-spring:
-  application:
-    name: job-logsvr
-  cloud:
-    kubernetes:
-      enabled: false
-
-server:
-  port: 19806

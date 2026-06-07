@@ -1,6 +1,0 @@
-spring:
-  application:
-    name: job-execute
-  cloud:
-    kubernetes:
-      enabled: false

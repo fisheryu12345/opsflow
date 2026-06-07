@@ -1,2 +1,0 @@
-FROM mirrors.tencent.com/tencentos/tencentos3-minimal
-RUN yum -y install jq
