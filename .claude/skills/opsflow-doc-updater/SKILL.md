@@ -2,7 +2,7 @@
 name: opsflow-doc-updater
 description: |
   更新 OpsFlow 项目文档。当用户说"更新opsflow文档"、"同步文档"、"刷新文档"、"更新doc"、"sync opsflow docs"、"update opsflow documentation" 时触发。
-  这个技能会扫描后端 Python 代码和前端 Vue/TypeScript 代码，分析当前代码状态，然后自动更新 docs/ 下各 App 子目录的文档和 TODO.md。
+  这个技能会扫描后端 Python 代码和前端 Vue/TypeScript 代码，分析当前代码状态，然后基于 `docs/opsflow_target.md` 顶层设计自动更新 docs/ 下的各文档，并生成统一的 TODO 看板（MD + HTML）。
   即使变更只涉及一个模块（如只改了 flow_engine.py），也要触发完整文档更新以确保所有文件保持一致。
 ---
 
@@ -349,4 +349,4 @@ OpsFlow、CMDB、ITSM 等都不是完全独立的 Django app — 它们对项目
 - 不要在文档中添加 emoji
 - 文档是对当前代码状态的**快照**，不是设计文档 — 基于实际代码内容编写，不要写尚未实现的功能
 - 如果发现代码和现有文档有明显不一致，以代码为准更新文档
-- TODO.html 与各 TODO.md 的数据必须保持一致，两者同步更新
+- TODO.md 与 TODO.html 的数据必须保持一致，两者同步更新
