@@ -1,0 +1,63 @@
+{
+  "skill_name": "opsflow-commit",
+  "evals": [
+    {
+      "id": 1,
+      "name": "clean-modified-files",
+      "prompt": "提交代码，顺便清理一下乱码文件",
+      "expected_output": "Git 提交完成，COMMIT_ANALYSIS.md 已生成，描述了所有改动内容，乱码文件已被清理。",
+      "files": [],
+      "assertions": [
+        {
+          "name": "garbled_files_cleaned",
+          "text": "乱码文件（32, ({, 0), apply, n.x）应被删除，不再存在于工作区中",
+          "expected": true
+        },
+        {
+          "name": "commit_made",
+          "text": "在 initial commit 之后应有一个新的提交",
+          "expected": true
+        },
+        {
+          "name": "analysis_doc_created",
+          "text": "COMMIT_ANALYSIS.md 应在项目根目录被创建",
+          "expected": true
+        },
+        {
+          "name": "legitimate_changes_committed",
+          "text": "合法的改动文件（src/main.py, src/utils.py）应被包含在提交中",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "commit-garbled-files",
+      "prompt": "把今天的改动整理并提交，项目目录下有些垃圾文件帮我清理掉",
+      "expected_output": "乱码文件被删除，改动文件被提交，commit message 准确描述了每个文件的变化，COMMIT_ANALYSIS.md 已在项目根目录生成。",
+      "files": [],
+      "assertions": [
+        {
+          "name": "garbled_files_cleaned",
+          "text": "乱码文件（1212, 400), 2）应被删除",
+          "expected": true
+        },
+        {
+          "name": "commit_made_with_changes",
+          "text": "新提交应包含 app/config.py 和 requirements.txt（新文件）以及 app/server.py 的修改",
+          "expected": true
+        },
+        {
+          "name": "analysis_doc_created",
+          "text": "COMMIT_ANALYSIS.md 应在项目根目录被创建",
+          "expected": true
+        },
+        {
+          "name": "commit_message_accurate",
+          "text": "commit message 应提到具体改动，如 health endpoint、config 文件、requirements 等",
+          "expected": true
+        }
+      ]
+    }
+  ]
+}

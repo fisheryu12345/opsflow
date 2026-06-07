@@ -1,0 +1,23 @@
+{
+  "skill_name": "parameter-scanner",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我扫描下 GAP_ATR_LIMIT 参数，对比 1.5、2.0、2.5 三个阈值下的 trend_factor 分布差异，分析各品种均匀性和止损影响，生成 HTML 报告。账户用 510976。",
+      "expected_output": "HTML report comparing 3 GAP_ATR_LIMIT values with distribution, uniformity, and stop-loss analysis",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我想看看 ATR 周期参数改成 14 和 26 跟现在的 20 有什么区别，分析 trend_factor 分布变化和品种间均匀性。帮我生成对比报告。",
+      "expected_output": "HTML report comparing ATR periods 14, 20, 26 with distribution and uniformity analysis",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "止损倍数 position_risk_multiplier 现在用的是 2，我想试下 1.5、2.0、2.5、3.0 对止损距离的影响。用 510976 账户的数据做参数扫描，分析分布变化，出个 HTML 报告。",
+      "expected_output": "HTML report scanning position_risk_multiplier values 1.5, 2.0, 2.5, 3.0 and analyzing stop-loss distance impact",
+      "files": []
+    }
+  ]
+}

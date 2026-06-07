@@ -1,0 +1,31 @@
+{
+  "skill_name": "update-strategy-docs",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "帮我更新策略文档中的止损系统说明，读取 backend/stock/core/stop_loss.py 和 backend/stock/infrastructure/stop_loss_executor.py 里的实际代码逻辑，同步到 md/知识库/未命名/04-策略设计文档/策略说明-止损系统.md 里。重点更新动态止损公式、保本兜底的触发条件和参数值。",
+      "expected_output": "Updated 策略说明-止损系统.md with accurate formulas and parameters from the actual code",
+      "files": ["backend/stock/core/stop_loss.py", "backend/stock/infrastructure/stop_loss_executor.py"],
+      "expectations": [
+        "The updated 策略说明-止损系统.md file exists and was saved to the outputs directory",
+        "The document contains the dynamic stop-loss formula (highest_close - 2*(1+factor)*ATR or equivalent)",
+        "The document mentions 保本兜底 (break-even protection) or protect_cost_enabled",
+        "The document references actual parameter names like POSITION_RISK_BASE_AMOUNT or TIMEOUT_SECONDS",
+        "The document references at least one of the source code files (stop_loss.py or stop_loss_executor.py)"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "帮我生成一份完整的策略分析 HTML 报告。先去读取 backend/stock/ 下的代码更新所有策略设计文档，然后从数据库读取实盘绩效数据，填入 backend/templates/策略分析报告-完整数理分析.html 模板，覆盖全部 16 个章节。",
+      "expected_output": "Updated MD documents in 04-策略设计文档/ AND a regenerated HTML report with real DB data",
+      "files": [],
+      "expectations": [
+        "Updated MD strategy documents exist in the outputs (at least 2 strategy docs updated)",
+        "HTML report file exists in the outputs",
+        "The HTML report contains at least 12 of the 16 sections (s1-s16)",
+        "The HTML report's cover date is updated to today's date (2026-05-13) instead of the original 2026-05-10",
+        "At least one section of the HTML contains data queried from the database (not the original hardcoded example values)"
+      ]
+    }
+  ]
+}
