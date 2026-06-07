@@ -1,6 +1,8 @@
 # OpsFlow IT 智能管控平台 — 项目状态
 
-> 最后更新: 2026-06-05
+> **顶层设计参考:** [docs/opsflow_target.md](../../opsflow_target.md) — 平台最终目标架构
+> **开发路线图:** [docs/TODO.md](../../TODO.md) / [docs/TODO.html](../../TODO.html) — 统一 TODO 看板
+> 最后更新: 2026-06-07
 > 覆盖: 后端 12 个 Django App, 前端 20+ 功能模块
 
 ---

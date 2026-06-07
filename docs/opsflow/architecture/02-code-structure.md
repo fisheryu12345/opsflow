@@ -68,10 +68,7 @@ opsflow/
 │   ├── audit_logger.py                   # 审计日志
 │   ├── error_codes.py                    # 错误码定义 + api_success/api_error
 │   ├── plugin_deprecation.py             # 插件弃用检查
-│   ├── apigw/                            # BK API Gateway 适配
-│   │   ├── __init__.py
-│   │   ├── auth.py                       # JWT/BK 认证
-│   │   └── views.py                      # 网关视图
+│   ├── apigw/ (已迁移)                   # 功能已迁移到 backend/open_api/
 │   └── layout/                           # Sugiyama 分层布局引擎
 │       ├── __init__.py
 │       ├── constants.py                  # NodeType, POSITION, CANVAS_WIDTH
@@ -476,6 +473,8 @@ opsflow/                                    # 核心共享代码
 | **Knowledge** | CRUD | `/api/opsflow/knowledge/` | 知识库 |
 | **TemplateCategory** | CRUD | `/api/opsflow/template-categories/` | 模板分类 |
 | **WebSocket** | WS | `/ws/opsflow/execution/{id}/` | 执行状态推送 |
+
+> **注：** 外部 API 网关已从 `opsflow/core/apigw/` 迁移到独立 `backend/open_api/` 应用。外部端点路径为 `/api/v2/open/pipelines/trigger/`（触发 Pipeline）、`/api/v2/open/pipelines/{id}/`（查询状态）、`/api/v2/open/pipelines/templates/`（列出模板）。详见 [docs/opsflow_target.md](../opsflow_target.md)。
 
 ## 5. 核心模块依赖图
 

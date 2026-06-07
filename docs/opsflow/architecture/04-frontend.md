@@ -155,5 +155,5 @@ Stencil 面板从后端插件系统动态加载，按 `group` 字段分组：
 - Dialog：必须加 `class="opsflow-dialog"`
 - 空状态：`<el-empty :image-size="40" />`
 - 加载：`v-loading` + `element-loading-text`
-- SCSS 导入：每个组件内 `@import '../styles/opsflow-global';`
+- SCSS 导入：每个组件内 `@use '../styles/opsflow-global' as *;`
 - 命名：CSS 类使用组件前缀 + 语义名，避免全局冲突
