@@ -44,11 +44,12 @@ class TestPrintTimePlugin(BasePlugin):
 
         now = datetime.now()
         timestamp = now.isoformat()
+        test1 = random.randint(1, 10)
 
         if fail:
             return {
                 "success": False,
-                "data": {"timestamp": timestamp, "message": message, "sleep_seconds": round(sleep_time, 2)},
+                "data": {"timestamp": timestamp, "message": message, "sleep_seconds": round(sleep_time, 2), "test1": test1},
                 "error": "模拟失败（测试条件分支）",
             }
 
@@ -58,5 +59,12 @@ class TestPrintTimePlugin(BasePlugin):
                 "timestamp": timestamp,
                 "message": message,
                 "sleep_seconds": round(sleep_time, 2),
+                "test1": test1,
             },
         }
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "test1", "type": "integer", "description": "随机数值 1-10"},
+        ]

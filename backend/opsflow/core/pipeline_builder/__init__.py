@@ -68,12 +68,12 @@ def _build_adjacency_lists(effective_nodes, effective_edges):
     return out_edges, in_edges
 
 
-def _create_all_elements(effective_nodes, out_edges, edge_conditions):
+def _create_all_elements(effective_nodes, out_edges, edge_conditions, execution_id=None):
     """创建所有 bamboo-engine 元素"""
     elem_map: dict[str, object] = {}
     for node in effective_nodes:
         nid = node['id']
-        elem = _create_element(node, out_edges.get(nid, []), edge_conditions)
+        elem = _create_element(node, out_edges.get(nid, []), edge_conditions, execution_id)
         elem_map[nid] = elem
     return elem_map
 
@@ -201,8 +201,7 @@ def _build_data_inputs(flow_template, target_hosts=None, global_vars=None, execu
 
     # 自动变量注入（如 _result_n1 用于排他网关条件评估）
     for var_name, spec in (auto_vars or {}).items():
-        wrapped_name = f"${{{var_name}}}"
-        data.inputs[wrapped_name] = NodeOutput(
+        data.inputs[var_name] = NodeOutput(
             type=Var.SPLICE,
             source_act=spec['source_act'],
             source_key=spec['source_key'],
@@ -251,7 +250,7 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
 
     # Step 4: 构建邻接表 + 创建元素
     out_edges, in_edges = _build_adjacency_lists(effective_nodes, effective_edges)
-    elem_map = _create_all_elements(effective_nodes, out_edges, edge_conditions)
+    elem_map = _create_all_elements(effective_nodes, out_edges, edge_conditions, execution_id)
 
     # 创建 start / end — 使用 X6 原始 ID 避免 UUID 映射
     start = EmptyStartEvent(id=visual_start_id) if visual_start_id else EmptyStartEvent()
@@ -269,4 +268,4 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
 
     _apply_timeout_configs(pipeline, effective_nodes)
 
-    return pipeline, {}
+    return pipeline, auto_vars

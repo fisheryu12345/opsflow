@@ -9,7 +9,7 @@ from opsflow.core.pipeline_builder.conditions import _get_condition
 from opsflow.core.pipeline_builder.validation import _detect_circular_ref
 
 
-def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = None) -> object:
+def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = None, execution_id: int = None) -> object:
     """根据 node_type 创建对应的 builder 元素"""
     nid = node['id']
     node_type = node.get('node_type', '')
@@ -141,6 +141,8 @@ def _create_element(node: dict, outgoing_edges: list, edge_conditions: dict = No
     act.component.inputs['_plugin_version'] = Var(type=Var.PLAIN, value=plugin_version)
     act.component.inputs['_max_retries'] = Var(type=Var.PLAIN, value=node_max_retries)
     act.component.inputs['_retry_delay'] = Var(type=Var.PLAIN, value=node_retry_delay)
+    if execution_id:
+        act.component.inputs['_execution_id'] = Var(type=Var.PLAIN, value=execution_id)
     for k, v in node.get('params', {}).items():
         act.component.inputs[k] = Var(type=Var.PLAIN, value=v)
     return act

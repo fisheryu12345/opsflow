@@ -128,10 +128,11 @@ class FlowExecutionDetailSerializer(FlowExecutionSerializer):
         fields = '__all__'
 
     def get_trace_summary(self, obj):
-        """Return trace summary without full outputs"""
+        """Return trace summary with outputs"""
         traces = NodeExecutionTrace.objects.filter(execution=obj).values(
             'node_id', 'node_label', 'status', 'retry_count',
             'duration_ms', 'entered_at', 'exited_at', 'error',
+            'outputs',
         ).order_by('entered_at')
         return list(traces)
 

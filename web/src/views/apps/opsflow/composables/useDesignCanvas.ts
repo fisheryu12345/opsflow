@@ -76,7 +76,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
         id: edge.id,
         from: typeof source === 'object' ? source.cell : source,
         to: typeof target === 'object' ? target.cell : target,
-        label: edge.getLabels?.()?.[0]?.attrs?.text?.text || '',
+        label: edgeData.label || edge.getLabels?.()?.[0]?.attrs?.text?.text || '',
         condition: edgeData.condition || '',
       }
       selectedNode.value = null

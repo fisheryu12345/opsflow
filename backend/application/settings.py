@@ -337,6 +337,11 @@ LOGGING = {
             'propagate': False,
             'level': "INFO"
         },
+        'apscheduler.executors.default': {
+            'handlers': ["console", "error", "file"],
+            'propagate': False,
+            'level': "WARNING"
+        },
         "uvicorn.error": {
             "level": "INFO",
             "handlers": ["console", "error", "file"],

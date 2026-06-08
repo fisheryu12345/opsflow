@@ -133,13 +133,14 @@ class NodeCommandDispatcher:
     # -- Queries -------------------------------------------------------------
 
     def get_trace(self, node_id: str) -> dict:
-        """查询节点完整轨迹（含所有重试历史）"""
+        """查询节点完整轨迹（含所有重试历史和 outputs）"""
         traces = NodeExecutionTrace.objects.filter(
             execution=self.execution, node_id=node_id
         ).order_by("retry_count").values(
             "node_id", "node_label", "status", "retry_count",
             "duration_ms", "entered_at", "exited_at", "error",
             "status_history", "log_file_path",
+            "outputs",
         )
         return {"result": True, "data": list(traces)}
 

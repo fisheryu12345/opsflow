@@ -93,12 +93,14 @@
         data-tour="property-panel"
         :node-data="selectedNode"
         :template-id="templateId"
+        :get-graph-data="getGraphData"
         @update="onNodeUpdate"
       />
       <PropertyPanel
         v-else-if="selectedEdge"
         data-tour="property-panel"
         :edge-data="selectedEdge"
+        :get-graph-data="getGraphData"
         @update="onEdgeUpdate"
       />
       <!-- Global Variable Panel toggle -->
@@ -367,11 +369,10 @@ function onEdgeUpdate(newData: any) {
       // success/failure labels need no condition expression / success/failure 不需要 condition
       const condition = label === 'custom' ? (newData.condition || prev.condition || '') : ''
       const conditionStruct = label === 'custom' ? (newData.conditionStruct || prev.conditionStruct || null) : null
-      edge.setData({ ...prev, condition, conditionStruct })
+      edge.setData({ ...prev, condition, conditionStruct, label })
       // Display label on the edge line / 标签显示在连线上
-      if (label === 'custom' && condition) {
-        const displayText = condition.length > 20 ? condition.substring(0, 17) + '...' : condition
-        edge.setLabels([{ attrs: { text: { text: displayText } } }])
+      if (label === 'custom') {
+        edge.setLabels([{ attrs: { text: { text: 'custom' } } }])
       } else if (label) {
         edge.setLabels([{ attrs: { text: { text: label } } }])
       } else {

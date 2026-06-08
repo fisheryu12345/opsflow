@@ -559,7 +559,7 @@ onBeforeUnmount(() => {
 .trace-log-viewer { border-top: 1px solid #e4e7ed; flex-shrink: 0; max-height: 200px; display: flex; flex-direction: column; }
 .trace-log-header { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; background: #f5f7fa; font-size: 12px; font-weight: 500; color: #606266; }
 .trace-log-title { font-family: monospace; }
-.trace-log-body { margin: 0; padding: 8px; overflow-y: auto; font-size: 11px; line-height: 1.5; background: #1e1e1e; color: #d4d4d4; flex: 1; white-space: pre-wrap; word-break: break-all; }
+.trace-log-body { margin: 0; padding: 8px; overflow-y: auto; font-size: 11px; line-height: 1.5; background: #f8f9fa; color: #303133; border: 1px solid #ebeef5; border-radius: 4px; flex: 1; white-space: pre-wrap; word-break: break-all; }
 
 /* Tabs styling */
 .trace-tabs { height: 100%; display: flex; flex-direction: column; }
@@ -614,8 +614,8 @@ onBeforeUnmount(() => {
 }
 .data-empty { font-size: 12px; color: #C0C4CC; padding: 4px 0; }
 .data-stdout {
-  margin: 0; padding: 8px; background: #1e1e1e; color: #d4d4d4;
-  border-radius: 6px; font-size: 11px; line-height: 1.5; max-height: 200px;
+  margin: 0; padding: 8px; background: #f8f9fa; color: #303133;
+  border: 1px solid #ebeef5; border-radius: 6px; font-size: 11px; line-height: 1.5; max-height: 200px;
   overflow-y: auto; white-space: pre-wrap; word-break: break-all;
 }
 .data-stderr {

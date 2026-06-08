@@ -198,7 +198,7 @@
         </div>
         <div class="prop-row">
           <span class="prop-label">Label</span>
-          <el-select v-model="edgeForm.label" size="small" style="width:100%" @change="onEdgeLabelChange">
+          <el-select v-model="edgeForm.label" size="small" style="width:100%" @change="onEdgeLabelChange" clearable placeholder="Select...">
             <el-option label="success（成功路径）" value="success" />
             <el-option label="failure（失败路径）" value="failure" />
             <el-option label="custom（自定义条件）" value="custom" />
@@ -272,6 +272,7 @@ const props = defineProps<{
   edgeData?: any
   templateId?: number | null
   subprocessVersion?: any | null
+  getGraphData?: () => { nodes: any[]; edges: any[] }
 }>()
 
 const emit = defineEmits<{
@@ -522,8 +523,10 @@ function emitUpdate() {
 
 /** 打开条件编辑器弹窗，同时刷新可用变量列表 */
 function openConditionDialog() {
-  // extractAvailableVariables(nodes, store) — PropertyPanel 无 graph 引用时传空数组
-  availableVars.value = getAvailableVars([], opsflowStore) || []
+  // 实时从画布获取节点列表
+  const graphData = typeof props.getGraphData === 'function' ? props.getGraphData() : null
+  const nodes = graphData?.nodes || []
+  availableVars.value = getAvailableVars(nodes, opsflowStore) || []
   conditionDialogVisible.value = true
 }
 
@@ -537,10 +540,11 @@ function onConditionSave(struct: ConditionStruct) {
 }
 
 function onEdgeLabelChange(label: string) {
-  edgeForm.value.label = label
-  if (label === 'success') edgeForm.value.condition = ''
-  else if (label === 'failure') edgeForm.value.condition = ''
-  conditionStruct.value = null
+  edgeForm.value.label = label || ''
+  if (!label || label === 'success' || label === 'failure') {
+    edgeForm.value.condition = ''
+    conditionStruct.value = null
+  }
   emitEdgeUpdate()
 }
 

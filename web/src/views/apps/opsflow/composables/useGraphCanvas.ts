@@ -192,6 +192,15 @@ export function extractNodeOutputFields(
       description: f.description || '',
     }))
   }
+  // 按原子类型返回（插件定义的 output_schema 未同步到前端时的兜底）
+  const atomDefaults: Record<string, OutputField[]> = {
+    test_print_time: [
+      { key: 'test1', label: 'test1', type: 'number', description: '随机数值 1-10' },
+    ],
+  }
+  if (nodeData.atom_type && atomDefaults[nodeData.atom_type]) {
+    return atomDefaults[nodeData.atom_type]
+  }
   const defaults = DEFAULT_OUTPUT_FIELDS[nodeType]
   if (defaults && defaults.length > 0) return defaults
   return [{ key: '_result', label: '_result', type: 'boolean', description: '执行结果' }]
@@ -220,7 +229,7 @@ export function extractAvailableVariables(
         sourceLabel: `${n.id} (${label})`,
         sourceType: 'node',
         field: f.key,
-        fieldLabel: `${f.key} (${f.type})`,
+        fieldLabel: `${n.id}.${f.key} (${f.type})`,
         fieldType: f.type,
       })
     }

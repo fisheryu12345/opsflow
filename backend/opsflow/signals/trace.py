@@ -73,17 +73,18 @@ def _record_node_trace(execution, node_id, to_state):
 
 
 def _capture_node_outputs(execution, node_id) -> dict:
-    """通过 bamboo_engine API 读取节点输出"""
+    """读取节点输出
+
+    bamboo-engine 的信号触发在 set_execution_data 之前，
+    所以 get_execution_data_outputs 调用时数据尚未持久化。
+    从 execution.context['_node_outputs'] 读取（由 _promote_results 写入）。
+    """
     try:
-        runtime = BambooDjangoRuntime()
-        result = pipeline_api.get_execution_data_outputs(runtime, node_id)
-        if result.result and result.data:
-            raw = result.data
-            if isinstance(raw, dict) and "outputs" in raw:
-                return raw["outputs"]
-            return raw if isinstance(raw, dict) else {}
+        ctx = execution.context or {}
+        node_outputs = ctx.get('_node_outputs', {}) or {}
+        return node_outputs.get(node_id, {})
     except Exception:
-        logger.exception("[Signal] get_execution_data_outputs failed for node %s", node_id)
+        logger.exception("[Signal] _capture_node_outputs failed")
     return {}
 
 
@@ -108,22 +109,10 @@ def _write_node_trace_log(execution, node_id, is_failed=False):
 
 
 def _log_node_result(execution, node_id, is_failed):
-    """通过 bamboo_engine.api.get_execution_data_outputs 读取节点输出并记录 OpsLog"""
+    """读取节点输出并记录 OpsLog"""
     from opsflow.models import OpsLog
 
-    outputs = {}
-    try:
-        runtime = BambooDjangoRuntime()
-        result = pipeline_api.get_execution_data_outputs(runtime, node_id)
-        if result.result and result.data:
-            # result.data 格式: {"outputs": {"key": value, ...}}
-            raw = result.data
-            if isinstance(raw, dict) and "outputs" in raw:
-                outputs = raw["outputs"]
-            else:
-                outputs = raw
-    except Exception:
-        logger.exception("[Signal] get_execution_data_outputs failed for node %s", node_id)
+    outputs = _capture_node_outputs(execution, node_id)
 
     stderr = outputs.get("stderr", outputs.get("_stderr", ""))
     error = outputs.get("_error", "")

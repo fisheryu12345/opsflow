@@ -7,6 +7,7 @@
 并利用 variable_resolver 在节点参数中完成 ${key} 替换。
 """
 
+import json
 import logging
 
 from pipeline.core.flow.activity import Service
@@ -28,17 +29,16 @@ def _extract_params(data):
     return atom_type, plugin_version, max_retries, params
 
 
-def _promote_result(result_value: bool, parent_data) -> None:
-    """将节点 _result 立即提升到 pipeline 上下文，供排他网关条件评估
+def _promote_results(result_value: bool, output_fields: dict, execution_id: int = None, node_id: str = None) -> None:
+    """将节点执行结果提升到 pipeline 上下文，供排他网关条件评估和 trace output 展示
 
-    在 PluginService.execute 中调用，确保网关在条件评估前就能读到 _result。
+    1. ContextValue 表 — 排他网关条件评估
+    2. execution.context['_node_outputs'] — trace output 展示
     """
     try:
         from pipeline.eri.runtime import BambooDjangoRuntime
         from bamboo_engine.eri import ContextValue, ContextValueType
 
-        pd = dict(parent_data.inputs) if parent_data else {}
-        execution_id = pd.get('_execution_id')
         if not execution_id:
             return
 
@@ -48,13 +48,34 @@ def _promote_result(result_value: bool, parent_data) -> None:
         if not bamboo_pipeline_id:
             return
 
+        auto_vars = execution.context.get("auto_vars", {}) or {}
+
+        # 1. 写入 ContextValue（供排他网关条件评估）
         runtime = BambooDjangoRuntime()
-        runtime.upsert_plain_context_values(bamboo_pipeline_id, {
-            "_result": ContextValue(key="_result", type=ContextValueType.PLAIN, value=result_value),
-        })
-        logger.info("_promote_result: _result=%s promoted to pipeline %s", result_value, bamboo_pipeline_id)
+        cv_map = {}
+        # _gwcond_* 别名（带 ${}）
+        for var_name, spec in auto_vars.items():
+            source_key = spec.get('source_key', '')
+            if spec.get('source_act') == node_id and source_key in output_fields:
+                ref_key = "${%s}" % var_name
+                cv_map[ref_key] = ContextValue(key=ref_key, type=ContextValueType.PLAIN, value=output_fields[source_key])
+
+        if cv_map:
+            runtime.upsert_plain_context_values(bamboo_pipeline_id, cv_map)
+
+        # 2. 写入 execution.context['_node_outputs'][node_id]（供 trace output 展示）
+        _nid = node_id or 'unknown'
+        ctx = dict(execution.context or {})
+        node_outputs = dict(ctx.get('_node_outputs', {}) or {})
+        node_outputs[_nid] = dict(output_fields)
+        node_outputs[_nid]['_result'] = result_value
+        ctx['_node_outputs'] = node_outputs
+        execution.context = ctx
+        execution.save(update_fields=['context'])
+
+        logger.info("_promote_results: node %s, %d fields promoted", node_id, len(cv_map) + len(output_fields) + 1)
     except Exception:
-        logger.exception("_promote_result failed")
+        logger.exception("_promote_results failed")
 
 
 class PluginService(Service):
@@ -69,10 +90,15 @@ class PluginService(Service):
     def execute(self, data, parent_data):
         """执行插件 — 从 data.inputs 中提取 _atom_type 和参数"""
         atom_type, plugin_version, max_retries, params = _extract_params(data)
+        # 从节点 inputs 中获取执行 ID（由 pipeline builder 注入）
+        inputs_dict = dict(data.inputs) if hasattr(data, 'inputs') else {}
+        _execution_id = inputs_dict.get('_execution_id', None)
+        if hasattr(_execution_id, 'value'):
+            _execution_id = _execution_id.value
 
         # ├─ Independent Subprocess (Phase 5) ────────────────────────────
         if atom_type == 'subprocess_independent':
-            return self._execute_independent_subprocess(data, parent_data, params)
+            return self._execute_independent_subprocess(data, parent_data, params, _execution_id)
 
         plugin_cls = get_plugin(atom_type, version=plugin_version)
         if not plugin_cls:
@@ -104,19 +130,25 @@ class PluginService(Service):
                 'stderr': result.get('data', {}).get('stderr', ''),
                 'executor_output': result.get('data', {}),
             })
+            # 将 executor_output 中的字段提升到 data.outputs 顶层
+            # 使条件表达式 ${node_id.field_name} 能直接引用
+            executor_data = result.get('data', {})
+            for k, v in executor_data.items():
+                if k not in ('stdout', 'stderr'):
+                    data.outputs[k] = v
             if not success:
                 data.outputs['_error'] = result.get('error', '执行失败')
-            # 立即将 _result 提升到 pipeline 上下文（供排他网关条件评估）
-            _promote_result(success, parent_data)
+            # 立即将执行结果提升到 pipeline 上下文（供排他网关条件评估 + trace output）
+            _promote_results(success, executor_data, _execution_id, node_id=getattr(self, 'id', '') or '')
             return success
         except Exception as e:
             logger.exception("插件 %s 执行异常", atom_type)
             data.outputs['_result'] = False
             data.outputs['_error'] = str(e)
-            _promote_result(False, parent_data)
+            _promote_results(False, {}, _execution_id, node_id=getattr(self, 'id', '') or '')
             return False
 
-    def _execute_independent_subprocess(self, data, parent_data, inputs):
+    def _execute_independent_subprocess(self, data, parent_data, inputs, _execution_id=None):
         """执行独立子流程调度"""
         target_template_id = inputs.get('_target_template_id')
         variable_mapping = inputs.get('_variable_mapping', [])
@@ -127,9 +159,7 @@ class PluginService(Service):
             data.outputs['_error'] = '独立子流程缺少 target_template_id'
             return False
 
-        # 从 parent_data 获取 execution_id
-        pd = dict(parent_data.inputs) if parent_data else {}
-        execution_id = pd.get('_execution_id')
+        execution_id = _execution_id
 
         try:
             from opsflow.models import FlowExecution
