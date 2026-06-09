@@ -13,10 +13,10 @@ def _get_llm_client():
     return OpenAI(api_key=api_key, base_url=base_url), model
 
 
-def generate_pipeline(nl_input: str, target_hosts: list = None) -> dict:
+def generate_pipeline(nl_input: str, target_hosts: list = None, language: str = 'zh-hans') -> dict:
     """Convert natural language to Pipeline Tree JSON"""
     client, model = _get_llm_client()
-    system_prompt = _build_system_prompt(target_hosts or [])
+    system_prompt = _build_system_prompt(target_hosts or [], language)
 
     # RAG context injection
     rag_context = rag_search(nl_input)
@@ -39,10 +39,10 @@ def generate_pipeline(nl_input: str, target_hosts: list = None) -> dict:
     return result
 
 
-def refine_pipeline(nl_input: str, nodes: list, edges: list, target_hosts: list = None, chat_history: list = None) -> dict:
+def refine_pipeline(nl_input: str, nodes: list, edges: list, target_hosts: list = None, chat_history: list = None, language: str = 'zh-hans') -> dict:
     """Multi-turn: modify existing Pipeline Tree based on new instruction"""
     client, model = _get_llm_client()
-    system_prompt = _build_system_prompt(target_hosts or [])
+    system_prompt = _build_system_prompt(target_hosts or [], language)
 
     existing = json.dumps({'nodes': nodes, 'edges': edges}, ensure_ascii=False, indent=2)
     system_prompt += f'\n\n===== Current Pipeline Tree (result of previous iterations) =====\n{existing}\n\n'
@@ -98,24 +98,29 @@ def rag_search(query: str, top_k: int = 5) -> list:
     return [{'title': r.title, 'content': r.content[:500]} for r in results]
 
 
-def analyze_pipeline(nodes: list, edges: list) -> dict:
+def analyze_pipeline(nodes: list, edges: list, language: str = "zh-hans") -> dict:
     """Analyze Pipeline Tree: describe purpose, steps, and potential risks"""
     client, model = _get_llm_client()
 
     pipeline_str = json.dumps({'nodes': nodes, 'edges': edges}, ensure_ascii=False, indent=2)
 
-    prompt = f"""You are an ops pipeline analysis expert. Analyze the following Pipeline Tree and return JSON in English:
+    lang_instruction = "CRITICAL: Respond in Chinese. All text fields (summary, steps, risk descriptions, suggestions) MUST be in Chinese." if language.startswith("zh") else "CRITICAL: Respond in English. All text fields (summary, steps, risk descriptions, suggestions) MUST be in English."
+    prompt = f"""You are an ops pipeline analysis expert. Analyze the following Pipeline Tree and return JSON in the language specified below.
 
-{{"summary": "Brief pipeline overview (one sentence)", "steps": ["Step description", ...], "risks": [{{"level": "high|medium|low", "text": "Risk description"}}, ...], "suggestions": ["Suggestion", ...]}}
+The JSON schema is:
+{{"summary": "...", "steps": [...], "risks": [{{"level": "high|medium|low", "text": "..."}}], "suggestions": [...]}}
 
 Pipeline Tree:
 {pipeline_str}
 
+{lang_instruction}
+
 Requirements:
+- summary: one sentence overview
 - steps: list each node's operation in execution order
-- risks: array of risk objects, each with a "level" (high/medium/low) and "text" (description). Analyze potential risks (e.g., missing backup, no rollback path, single point of failure, data loss, service disruption)
-- suggestions: provide optimization recommendations
-Return empty array for risks if none found. Return only JSON."""
+- risks: array of risk objects, each with "level" (high/medium/low) and "text"
+- suggestions: optimization recommendations
+Return empty array if none found. Return only JSON."""
 
     response = client.chat.completions.create(
         model=model,
@@ -128,7 +133,7 @@ Return empty array for risks if none found. Return only JSON."""
     return json.loads(text)
 
 
-def _build_system_prompt(target_hosts: list) -> str:
+def _build_system_prompt(target_hosts: list, language: str = "zh-hans") -> str:
     hosts_str = ', '.join(target_hosts) if target_hosts else 'target hosts (specified by user)'
 
     # Dynamically generate atom list from plugin registry (multi-version format)
@@ -423,5 +428,7 @@ BEFORE returning your JSON, verify ALL of these:
 | 10 | converge_gateway连到parallel_gateway | 汇聚后接并行分叉 | converge应在并行完成后 |
 
 Target hosts: {hosts_str}
+
+Language: Respond in {"Chinese" if language.startswith("zh") else "English"}. All labels, descriptions and user-facing text should be in the specified language.
 
 Return only JSON object, no explanations."""

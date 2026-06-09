@@ -30,8 +30,8 @@
       <!-- Scope Tabs: Project vs Public -->
       <div class="tpl-scope-tabs">
         <el-tabs v-model="activeTab" @tab-change="onTabChange">
-          <el-tab-pane label="📁 项目模板" name="project" />
-          <el-tab-pane label="🌐 公共模板" name="public" />
+          <el-tab-pane :label="'📁 ' + t('message.template.projectTemplates')" name="project" />
+          <el-tab-pane :label="'🌐 ' + t('message.template.publicTemplates')" name="public" />
         </el-tabs>
       </div>
       <!-- Filter bar -->
@@ -51,7 +51,7 @@
           <el-select v-model="filterCategory" placeholder="Category" clearable filterable size="small" style="width:140px" @change="onFilter">
             <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
           </el-select>
-          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">Refresh</el-button>
+          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">{{ $t('message.common.refresh') }}</el-button>
           <div class="tpl-view-toggle" :class="viewMode" @click="viewMode = viewMode === 'table' ? 'cards' : 'table'">
             <div class="tpl-toggle-btn"><el-icon :size="13"><component :is="viewMode === 'table' ? 'Grid' : 'List'" /></el-icon></div>
           </div>
@@ -68,8 +68,8 @@
         <div class="tpl-table-card">
           <el-table :data="displayList" v-loading="loading" stripe highlight-current-row
             style="width:100%" :empty-text="emptyText" @row-click="openView" size="small">
-            <el-table-column prop="name" label="Name" width="160" show-overflow-tooltip />
-            <el-table-column label="Status" width="120" align="center">
+            <el-table-column prop="name" :label="$t('message.common.name')" width="160" show-overflow-tooltip />
+            <el-table-column :label="$t('message.execution.status')" width="120" align="center">
               <template #default="{ row }">
                 <span class="tpl-status-badge" :class="row.is_draft ? 'st-draft' : 'st-published'">{{ row.is_draft ? 'Draft' : 'Published' }}</span>
               </template>
@@ -127,7 +127,7 @@
                   </el-tooltip>
                   <el-popconfirm v-if="!row.is_public || isSuperuser" title="Delete this template?" @confirm.stop="handleDelete(row)">
                     <template #reference>
-                      <el-tooltip content="Delete" placement="top">
+                      <el-tooltip :content="$t('message.common.delete')" placement="top">
                         <el-button size="small" text type="danger" @click.stop><el-icon><Delete /></el-icon></el-button>
                       </el-tooltip>
                     </template>
@@ -197,7 +197,7 @@
     <!-- Edit dialog -->
     <el-dialog v-model="formVisible" title="Edit Template" width="480px" top="15vh" destroy-on-close>
       <el-form label-width="90px" size="small">
-        <el-form-item label="Name" required>
+        <el-form-item :label="$t('message.common.name')" required>
           <el-input v-model="form.name" placeholder="Template name" maxlength="200" />
         </el-form-item>
         <el-form-item label="Category">
@@ -208,7 +208,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="formVisible = false" size="small">Cancel</el-button>
+        <el-button @click="formVisible = false" size="small">{{ $t('message.common.cancel') }}</el-button>
         <el-button type="primary" @click="handleSave" size="small">Update</el-button>
       </template>
     </el-dialog>
@@ -244,7 +244,7 @@
           </div>
         </div>
         <div class="tpl-view-actions">
-          <el-button size="small" :icon="Edit" @click="goEditTemplate(viewRow); viewVisible = false">Edit</el-button>
+          <el-button size="small" :icon="Edit" @click="goEditTemplate(viewRow); viewVisible = false">{{ $t('message.common.edit') }}</el-button>
           <el-button size="small" :icon="Upload" @click="handlePublish(viewRow)">Publish</el-button>
         </div>
       </template>
@@ -265,8 +265,8 @@
         <template #tip><div class="el-upload__tip">Exported template JSON (.json)</div></template>
       </el-upload>
       <template #footer>
-        <el-button @click="importVisible = false" size="small">Cancel</el-button>
-        <el-button type="primary" :loading="importing" :disabled="!importData" @click="handleImport" size="small">Import</el-button>
+        <el-button @click="importVisible = false" size="small">{{ $t('message.common.cancel') }}</el-button>
+        <el-button type="primary" :loading="importing" :disabled="!importData" @click="handleImport" size="small">{{ $t('message.common.import') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -274,6 +274,7 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { Refresh, Upload, Edit, Delete, Search, List, Grid, Connection, Share, Timer, Setting, Clock, Download, UploadFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -286,6 +287,7 @@ import VersionDialog from './components/VersionDialog.vue'
 import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const router = useRouter()
 const opsflowStore = useOpsflowStore()
+const { t } = useI18n()
 const userInfo = useUserInfo()
 
 const isSuperuser = computed(() => userInfo.userInfos?.roles?.includes('admin') || false)
@@ -495,7 +497,7 @@ onMounted(async () => {
 
   const key = 'opsflow_tour_template'
   if (!localStorage.getItem(key)) {
-    ElMessage.info({ message: '📁 模板管理 — 可管理版本（发布/回滚）、设置定时计划、管理执行方案', duration: 6000 })
+    ElMessage.info({ message: t('message.template.tourMsg'), duration: 6000 })
     localStorage.setItem(key, 'true')
   }
 })

@@ -5,14 +5,14 @@
       <div class="kb-hero-bg" />
       <div class="kb-hero-inner">
         <div class="kb-hero-left">
-          <h1 class="kb-hero-title">Knowledge Base</h1>
-          <p class="kb-hero-subtitle">Runbooks, incidents &amp; engineering docs</p>
+          <h1 class="kb-hero-title">{{ $t('message.opsflowPage.knowledgeTitle') }}</h1>
+          <p class="kb-hero-subtitle">{{ $t('message.opsflowPage.knowledgeSubtitle') }}</p>
         </div>
         <ProjectSwitcher :dark="true" />
         <div class="kb-hero-center">
           <el-input
             v-model="searchQuery"
-            placeholder="Search..."
+            :placeholder="$t('message.common.search')"
             clearable
             size="default"
             class="kb-search-input"
@@ -27,22 +27,22 @@
         <div class="kb-hero-stats">
           <div class="kb-stat-item">
             <span class="kb-stat-value">{{ total }}</span>
-            <span class="kb-stat-label">Total</span>
+            <span class="kb-stat-label">{{ $t('message.opsflowPage.knowledgeStatTotal') }}</span>
           </div>
           <div class="kb-stat-divider" />
           <div class="kb-stat-item">
             <span class="kb-stat-value">{{ runbookCount }}</span>
-            <span class="kb-stat-label">RB</span>
+            <span class="kb-stat-label">{{ $t('message.opsflowPage.knowledgeStatRB') }}</span>
           </div>
           <div class="kb-stat-divider" />
           <div class="kb-stat-item">
             <span class="kb-stat-value">{{ incidentCount }}</span>
-            <span class="kb-stat-label">IC</span>
+            <span class="kb-stat-label">{{ $t('message.opsflowPage.knowledgeStatIC') }}</span>
           </div>
           <div class="kb-stat-divider" />
           <div class="kb-stat-item">
             <span class="kb-stat-value">{{ docCount }}</span>
-            <span class="kb-stat-label">Doc</span>
+            <span class="kb-stat-label">{{ $t('message.opsflowPage.knowledgeStatDoc') }}</span>
           </div>
         </div>
       </div>
@@ -55,24 +55,24 @@
         <div class="kb-source-tabs">
           <div class="kb-tab" :class="{ active: filterSource === '' }" @click="filterSource = ''; onSearch()">
             <span class="tab-dot" style="background:#409EFF" />
-            All
+            {{ $t('message.opsflowPage.knowledgeFilterAll') }}
           </div>
           <div class="kb-tab" :class="{ active: filterSource === 'runbook' }" @click="filterSource = 'runbook'; onSearch()">
             <span class="tab-dot" style="background:#67C23A" />
-            Runbooks
+            {{ $t('message.opsflowPage.knowledgeFilterRunbooks') }}
           </div>
           <div class="kb-tab" :class="{ active: filterSource === 'incident' }" @click="filterSource = 'incident'; onSearch()">
             <span class="tab-dot" style="background:#F56C6C" />
-            Incidents
+            {{ $t('message.opsflowPage.knowledgeFilterIncidents') }}
           </div>
           <div class="kb-tab" :class="{ active: filterSource === 'doc' }" @click="filterSource = 'doc'; onSearch()">
             <span class="tab-dot" style="background:#409EFF" />
-            Docs
+            {{ $t('message.opsflowPage.knowledgeFilterDocs') }}
           </div>
         </div>
         <div class="kb-filter-actions">
-          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">Refresh</el-button>
-          <el-button type="primary" :icon="Plus" @click="openCreate" size="small">New Entry</el-button>
+          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">{{ $t('message.common.refresh') }}</el-button>
+          <el-button type="primary" :icon="Plus" @click="openCreate" size="small">{{ $t('message.opsflowPage.knowledgeNewEntry') }}</el-button>
         </div>
       </div>
 
@@ -101,7 +101,7 @@
             </div>
             <div class="kb-card-meta">
               <span class="kb-card-time">{{ item.created_at?.substring(0, 10) }}</span>
-              <span class="kb-card-words">{{ readingTime(item.content) }} min read</span>
+              <span class="kb-card-words">{{ readingTime(item.content) }} {{ $t('message.opsflowPage.knowledgeMinRead') }}</span>
             </div>
           </div>
         </div>
@@ -109,33 +109,33 @@
     </div>
 
     <!-- Create / Edit -->
-    <el-dialog v-model="formVisible" :title="isEditing ? 'Edit Entry' : 'New Entry'" width="640px" top="5vh" destroy-on-close>
+    <el-dialog v-model="formVisible" :title="isEditing ? $t('message.opsflowPage.knowledgeEditEntry') : $t('message.opsflowPage.knowledgeNewEntry')" width="640px" top="5vh" destroy-on-close>
       <el-form label-width="80px">
-        <el-form-item label="Title" required>
-          <el-input v-model="form.title" placeholder="Entry title" />
+        <el-form-item :label="$t('message.opsflowPage.knowledgeFormTitle')" required>
+          <el-input v-model="form.title" :placeholder="$t('message.opsflowPage.knowledgeTitlePlaceholder')" />
         </el-form-item>
-        <el-form-item label="Content" required>
-          <el-input v-model="form.content" type="textarea" :rows="10" placeholder="Write your knowledge content..." />
+        <el-form-item :label="$t('message.opsflowPage.knowledgeFormContent')" required>
+          <el-input v-model="form.content" type="textarea" :rows="10" :placeholder="$t('message.opsflowPage.knowledgeContentPlaceholder')" />
         </el-form-item>
-        <el-form-item label="Tags">
+        <el-form-item :label="$t('message.opsflowPage.knowledgeFormTags')">
           <el-select v-model="form.tags" multiple filterable allow-create default-first-option
-                     placeholder="Add tags..." style="width: 100%">
+                     :placeholder="$t('message.opsflowPage.knowledgeTagsPlaceholder')" style="width: 100%">
             <el-option v-for="t in ['ansible', 'network', 'security', 'backup', 'deploy', 'monitor', 'docker', 'k8s', 'linux', 'database', 'nginx']"
                        :key="t" :label="t" :value="t" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Source">
-          <el-select v-model="form.source" placeholder="Source">
-            <el-option label="Runbook" value="runbook" />
-            <el-option label="Incident" value="incident" />
-            <el-option label="Documentation" value="doc" />
+        <el-form-item :label="$t('message.opsflowPage.knowledgeFormSource')">
+          <el-select v-model="form.source" :placeholder="$t('message.opsflowPage.knowledgeFormSource')">
+            <el-option :label="$t('message.opsflowPage.knowledgeFilterRunbooks')" value="runbook" />
+            <el-option :label="$t('message.opsflowPage.knowledgeFilterIncidents')" value="incident" />
+            <el-option :label="$t('message.opsflowPage.knowledgeFilterDocs')" value="doc" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="formVisible = false">Cancel</el-button>
+        <el-button @click="formVisible = false">{{ $t('message.common.cancel') }}</el-button>
         <el-button type="primary" :loading="saving" @click="handleSave">
-          {{ isEditing ? 'Update' : 'Create' }}
+          {{ isEditing ? $t('message.opsflowPage.knowledgeUpdate') : $t('message.opsflowPage.knowledgeCreate') }}
         </el-button>
       </template>
     </el-dialog>
@@ -149,15 +149,15 @@
             {{ sourceLabel(viewRow.source) }}
           </span>
           <span class="kb-detail-date">{{ viewRow.created_at?.substring(0, 10) }}</span>
-          <span class="kb-detail-words">{{ readingTime(viewRow.content) }} min read</span>
+          <span class="kb-detail-words">{{ readingTime(viewRow.content) }} {{ $t('message.opsflowPage.knowledgeMinRead') }}</span>
         </div>
         <div class="kb-detail-tags" v-if="viewRow.tags?.length">
           <span v-for="t in viewRow.tags" :key="t" class="kb-tag">{{ t }}</span>
         </div>
         <div class="kb-detail-content">{{ viewRow.content }}</div>
         <div class="kb-detail-actions">
-          <el-button size="small" :icon="Edit" @click="openEdit(viewRow); viewVisible = false">Edit</el-button>
-          <el-button size="small" type="danger" :icon="Delete" @click="handleDelete(viewRow); viewVisible = false">Delete</el-button>
+          <el-button size="small" :icon="Edit" @click="openEdit(viewRow); viewVisible = false">{{ $t('message.common.edit') }}</el-button>
+          <el-button size="small" type="danger" :icon="Delete" @click="handleDelete(viewRow); viewVisible = false">{{ $t('message.common.delete') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -165,6 +165,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, reactive } from 'vue'
 import { Refresh, Plus, Search, Edit, Delete, Clock, Notification, Document } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -183,11 +184,13 @@ const formVisible = ref(false)
 const isEditing = ref(false)
 const editingId = ref<number | null>(null)
 const form = reactive({ title: '', content: '', tags: [] as string[], source: 'doc' })
+const { t } = useI18n()
+
 
 const viewVisible = ref(false)
 const viewRow = ref<any>(null)
 
-const emptyText = computed(() => useMock.value ? 'No data' : 'No entries yet. Create one to get started.')
+const emptyText = computed(() => useMock.value ? t('message.common.noData') : t('message.opsflowPage.knowledgeEmptyText'))
 
 const runbookCount = computed(() => list.value.filter(i => i.source === 'runbook').length)
 const incidentCount = computed(() => list.value.filter(i => i.source === 'incident').length)
@@ -199,7 +202,7 @@ function sourceIcon(src: string) {
 }
 
 function sourceLabel(src: string) {
-  const map: Record<string, string> = { runbook: 'Runbook', incident: 'Incident', doc: 'Doc' }
+  const map: Record<string, string> = { runbook: t('message.opsflowPage.knowledgeFilterRunbooks'), incident: t('message.opsflowPage.knowledgeFilterIncidents'), doc: t('message.opsflowPage.knowledgeFilterDocs') }
   return map[src] || src
 }
 
@@ -273,30 +276,30 @@ function openEdit(row: any) {
 
 async function handleSave() {
   if (!form.title.trim() || !form.content.trim()) {
-    ElMessage.warning('Title and content are required'); return
+    ElMessage.warning(t('message.opsflowPage.knowledgeRequiredWarning')); return
   }
   saving.value = true
   try {
     const data = { title: form.title, content: form.content, tags: form.tags, source: form.source }
     if (isEditing.value && editingId.value) {
       await UpdateKnowledge(editingId.value, data)
-      ElMessage.success('Updated')
+      ElMessage.success(t('message.opsflowPage.knowledgeUpdated'))
     } else {
       await CreateKnowledge(data)
-      ElMessage.success('Created')
+      ElMessage.success(t('message.opsflowPage.knowledgeCreated'))
     }
     formVisible.value = false; await fetchData()
   } catch (e: any) {
-    ElMessage.error(e?.msg || e?.message || 'Operation failed')
+    ElMessage.error(e?.msg || e?.message || t('message.opsflowPage.knowledgeOperationFailed'))
   }
   saving.value = false
 }
 
 async function handleDelete(row: any) {
   try {
-    await ElMessageBox.confirm('Delete this entry?', 'Confirm', { type: 'warning' })
+    await ElMessageBox.confirm(t('message.opsflowPage.knowledgeDeleteConfirm'), t('message.common.confirm'), { type: 'warning' })
     useMock.value ? fallbackMock() : await DeleteKnowledge(row.id)
-    ElMessage.success('Deleted'); await fetchData()
+    ElMessage.success(t('message.opsflowPage.knowledgeDeleted')); await fetchData()
   } catch { /* cancelled */ }
 }
 
@@ -310,7 +313,7 @@ onMounted(async () => {
 
   const key = 'opsflow_tour_knowledge'
   if (!localStorage.getItem(key)) {
-    ElMessage.info({ message: '📚 知识库 — 运维操作文档，与流程关联，故障处理参考', duration: 6000 })
+    ElMessage.info({ message: t('message.opsflowPage.knowledgeTourMsg'), duration: 6000 })
     localStorage.setItem(key, 'true')
   }
 })

@@ -15,6 +15,20 @@ from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 
 logger = logging.getLogger(__name__)
 
+
+def _get_request_language(request):
+    """Extract language preference from request data, header, or session."""
+    # Check request body first (sent by frontend)
+    lang = request.data.get('language', '')
+    if lang in ('zh-hans', 'en'):
+        return lang
+    # Fall back to Accept-Language header
+    from django.utils.translation import get_language
+    lang = get_language() or request.META.get('HTTP_ACCEPT_LANGUAGE', 'zh-hans')
+    if lang.startswith('en'):
+        return 'en'
+    return 'zh-hans'
+
 # Module-level Chinese message constants (used in AI validation responses)
 MSG_UNSUPPORTED_OPERATION = '好的，我理解您想要这个功能，但目前系统暂不支持，建议换个方式实现'
 MSG_UNSUPPORTED_ATOM = '好的，我理解您的意思，但目前系统还不支持这个操作，咱先试试其他功能吧'
@@ -108,7 +122,7 @@ class TemplateAIMixin:
         if not nl_input:
             return ErrorResponse(msg='input is required', code=4000)
         try:
-            pipeline = generate_pipeline(nl_input, target_hosts)
+            pipeline = generate_pipeline(nl_input, target_hosts, language=_get_request_language(request))
 
             # Validate the AI-generated pipeline
             result = self._validate_ai_pipeline(pipeline, nl_input)
@@ -146,7 +160,7 @@ class TemplateAIMixin:
         if not nodes:
             return ErrorResponse(msg='nodes is required', code=4000)
         try:
-            result = analyze_pipeline(nodes, edges)
+            result = analyze_pipeline(nodes, edges, language=_get_request_language(request))
             return DetailResponse(data=result)
         except Exception as e:
             return ErrorResponse(msg=str(e), code=4000, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -163,7 +177,7 @@ class TemplateAIMixin:
         if not nl_input:
             return ErrorResponse(msg='input is required', code=4000)
         try:
-            pipeline = refine_pipeline(nl_input, nodes, edges, target_hosts, chat_history)
+            pipeline = refine_pipeline(nl_input, nodes, edges, target_hosts, chat_history, language=_get_request_language(request))
 
             # Extract AI answer (non-modification scenarios: user question/analysis)
             ai_answer = pipeline.pop('_answer', None)

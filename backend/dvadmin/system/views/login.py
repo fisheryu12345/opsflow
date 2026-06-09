@@ -65,14 +65,14 @@ class LoginSerializer(TokenObtainPairSerializer):
         captcha = self.initial_data.get("captcha", None)
         if dispatch.get_system_config_values("base.captcha_state"):
             if captcha is None:
-                raise CustomValidationError("验证码不能为空")
+                raise CustomValidationError(_("验证码不能为空"))
             self.image_code = CaptchaStore.objects.filter(
                 id=self.initial_data["captchaKey"]
             ).first()
             five_minute_ago = timezone.now() - timedelta(hours=0, minutes=5, seconds=0)
             if self.image_code and five_minute_ago > self.image_code.expiration:
                 self.image_code and self.image_code.delete()
-                raise CustomValidationError("验证码过期")
+                raise CustomValidationError(_("验证码过期"))
             else:
                 if self.image_code and (
                     self.image_code.response == captcha
@@ -81,11 +81,11 @@ class LoginSerializer(TokenObtainPairSerializer):
                     self.image_code and self.image_code.delete()
                 else:
                     self.image_code and self.image_code.delete()
-                    raise CustomValidationError("图片验证码错误")
+                    raise CustomValidationError(_("图片验证码错误"))
 
         user = Users.objects.get(username=attrs['username'])
         if not user.is_active:
-            raise CustomValidationError("账号被锁定")
+            raise CustomValidationError(_("账号被锁定"))
 
         data = super().validate(attrs)
         data["name"] = self.user.name

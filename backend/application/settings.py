@@ -96,6 +96,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",  # i18n 语言检测
     "corsheaders.middleware.CorsMiddleware",  # 跨域中间件
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -207,6 +208,15 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
 LANGUAGE_CODE = "zh-hans"
+
+# 支持的语言列表
+LANGUAGES = [
+    ('zh-hans', '简体中文'),
+    ('en', 'English'),
+]
+
+# 翻译文件路径
+LOCALE_PATHS = [os.path.join(BASE_DIR, 'locale')]
 
 TIME_ZONE = "Asia/Shanghai"
 

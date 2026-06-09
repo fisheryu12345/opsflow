@@ -2,6 +2,67 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `99c70038`
+
+> 提交日期: 2026-06-09 | 提交信息: chore: remove deprecated USE_L10N setting — 移除 Django 5.0 已废弃的 USE_L10N
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/application/settings.py` | 配置 | 删除 USE_L10N = True 死代码（Django 5.0 已移除） |
+
+### 解决
+
+- **问题/背景：** USE_L10N 在 Django 5.0 已被移除，当前 Django 5.2.15 中该设置不再生效，是死代码
+- **办法：** 直接删除该行
+
+### 验证
+
+- 改动类型: chore
+- 清理乱码: 无
+- 工作区状态: 干净 ✅
+
+---
+
+## `1094e415`
+
+> 提交日期: 2026-06-09 | 提交信息: feat: enable USE_TZ=True and refactor opsflow SCSS imports — 激活时区支持及样式文件迁移
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/application/settings.py` | 配置 | USE_TZ = False → True，激活 Django 时区感知 |
+| `backend/opsflow/core/scheduler_service.py` | 后端 | 删除 _naive() 时区剥离函数，4 处调用直接使用 aware datetime |
+| `backend/opsflow/core/flow_engine.py` | 后端 | started_at/ended_at 赋值改用 timezone.now()（3 处） |
+| `backend/opsflow/signals/handlers.py` | 后端 | ended_at 赋值改用 timezone.now()（3 处） |
+| `backend/opsflow/signals/timeout.py` | 后端 | 超时 deadline 计算改用 timezone.now() + timedelta |
+| `backend/opsflow/core/node_timeout_strategy.py` | 后端 | 超时 deadline 计算改用 timezone.now() + timedelta |
+| `backend/opsflow/views/dashboard_views/stats.py` | 后端 | 删除 now_naive 兼容代码，直接使用 timezone.now() |
+| `backend/opsagent/views/run.py` | 后端 | session_id/ended_at 改用 timezone.now()（3 处） |
+| `backend/iam/views.py` | 后端 | reviewed_at 赋值改用 timezone.now()（2 处） |
+| `backend/dvadmin/system/views/login.py` | 后端 | 验证码过期比较改用 timezone.now() |
+| `backend/common/management/commands/add_mock_neo4j.py` | 后端 | datetime.utcnow() → timezone.now() |
+| `backend/opsflow/management/commands/fix_timezone_data.py` | 后端 | **新文件** — 数据迁移命令，对现有 naive 数据减 8h 转换 |
+| `web/scripts/migrate_opsflow_styles.py` | 脚本 | **新文件** — SCSS 样式迁移助手 |
+| `web/src/styles/opsflow-global.scss` | 样式 | **迁移** — 从 opsflow/styles/ 移至全局 styles/ |
+| `web/src/styles/opsflow-variables.scss` | 样式 | **迁移** — 从 opsflow/styles/ 移至全局 styles/ |
+| `web/` (44 个 .vue 文件) | 前端 | @use 导入路径更新为 `../../../styles/` 等匹配新路径 |
+
+### 解决
+
+- **问题/背景：** 项目 USE_TZ=False 导致所有 datetime 为 naive 值，Django 5.2 对 naive datetime 将触发 RuntimeWarning；多处存在 _naive() 补偿代码。同时 opsflow SCSS 文件位于 views/apps/opsflow/styles/ 下，跨组件引用路径混乱
+- **办法：** 分两阶段：(1) 时区：settings.py 切换 + 删除 _naive() + 10 个文件中所有 datetime.now() 替换为 timezone.now() + 创建 fix_timezone_data.py 数据迁移命令；(2) 样式：将 SCSS 文件迁移到 web/src/styles/，全部 44 个 Vue 组件 @use 路径重写
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 有（`self.image_code.expiration` 0 字节 + `web/resolves` 0 字节）
+- 工作区状态: 干净 ✅
+
+---
+
 ## `a16dfd3c`
 
 > 提交日期: 2026-06-09 | 提交信息: chore: clean up unused dependencies from requirements — 移除 tqsdk、influxdb、sqlalchemy
