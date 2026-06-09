@@ -5,22 +5,22 @@
       <div class="log-hero-bg" />
       <div class="log-hero-inner">
         <div class="log-hero-left">
-          <h1 class="log-hero-title">Audit Log</h1>
-          <p class="log-hero-subtitle">Pipeline execution audit trail</p>
+          <h1 class="log-hero-title">{{ $t('message.opsflowPage.auditLogTitle') }}</h1>
+          <p class="log-hero-subtitle">{{ $t('message.opsflowPage.auditLogSubtitle') }}</p>
         </div>
         <ProjectSwitcher :dark="true" />
         <div class="log-hero-center">
-          <el-input v-model="searchQuery" placeholder="Search step or command..." clearable size="default"
+          <el-input v-model="searchQuery" :placeholder="$t('message.opsflowPage.auditSearchPlaceholder')" clearable size="default"
             class="log-search-input" @keyup.enter="onSearch" @clear="onSearch">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
         </div>
         <div class="log-hero-stats">
-          <div class="log-stat-item"><span class="log-stat-value">{{ total }}</span><span class="log-stat-label">Total</span></div>
+          <div class="log-stat-item"><span class="log-stat-value">{{ total }}</span><span class="log-stat-label">{{ $t('message.opsflowPage.auditStatTotal') }}</span></div>
           <div class="log-stat-divider" />
-          <div class="log-stat-item"><span class="log-stat-value">{{ errCount }}</span><span class="log-stat-label">Errors</span></div>
+          <div class="log-stat-item"><span class="log-stat-value">{{ errCount }}</span><span class="log-stat-label">{{ $t('message.opsflowPage.auditStatErrors') }}</span></div>
           <div class="log-stat-divider" />
-          <div class="log-stat-item"><span class="log-stat-value">{{ highRiskCount }}</span><span class="log-stat-label">High Risk</span></div>
+          <div class="log-stat-item"><span class="log-stat-value">{{ highRiskCount }}</span><span class="log-stat-label">{{ $t('message.opsflowPage.auditStatHighRisk') }}</span></div>
         </div>
       </div>
     </div>
@@ -31,50 +31,50 @@
       <div class="log-filter-bar">
         <div class="log-filter-tabs">
           <div class="log-tab" :class="{ active: filterRisk === '' }" @click="filterRisk = ''; onSearch()">
-            <span class="log-tab-dot" style="background:#409EFF" />All
+            <span class="log-tab-dot" style="background:#409EFF" />{{ $t('message.opsflowPage.auditFilterAll') }}
           </div>
           <div class="log-tab" :class="{ active: filterRisk === 'low' }" @click="filterRisk = 'low'; onSearch()">
-            <span class="log-tab-dot" style="background:#67C23A" />Low
+            <span class="log-tab-dot" style="background:#67C23A" />{{ $t('message.opsflowPage.auditFilterLow') }}
           </div>
           <div class="log-tab" :class="{ active: filterRisk === 'medium' }" @click="filterRisk = 'medium'; onSearch()">
-            <span class="log-tab-dot" style="background:#E6A23C" />Medium
+            <span class="log-tab-dot" style="background:#E6A23C" />{{ $t('message.opsflowPage.auditFilterMedium') }}
           </div>
           <div class="log-tab" :class="{ active: filterRisk === 'high' }" @click="filterRisk = 'high'; onSearch()">
-            <span class="log-tab-dot" style="background:#F56C6C" />High
+            <span class="log-tab-dot" style="background:#F56C6C" />{{ $t('message.opsflowPage.auditFilterHigh') }}
           </div>
           <div class="log-tab" :class="{ active: filterRisk === 'critical' }" @click="filterRisk = 'critical'; onSearch()">
-            <span class="log-tab-dot" style="background:#F56C6C" />Critical
+            <span class="log-tab-dot" style="background:#F56C6C" />{{ $t('message.opsflowPage.auditFilterCritical') }}
           </div>
         </div>
         <div class="log-filter-actions">
-          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">Refresh</el-button>
+          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">{{ $t('message.common.refresh') }}</el-button>
         </div>
       </div>
 
       <!-- Table card -->
       <div class="log-table-card">
         <el-table :data="list" v-loading="loading" stripe style="width:100%" :empty-text="emptyText" size="small">
-          <el-table-column label="Risk" width="90" align="center">
+          <el-table-column :label="$t('message.opsflowPage.auditColRisk')" width="90" align="center">
             <template #default="{ row }">
               <span class="log-risk-badge" :class="'risk-' + row.risk_level">{{ row.risk_level }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="step" label="Step" min-width="150" show-overflow-tooltip />
-          <el-table-column label="Command" min-width="220" show-overflow-tooltip>
+          <el-table-column prop="step" :label="$t('message.opsflowPage.auditColStep')" min-width="150" show-overflow-tooltip />
+          <el-table-column :label="$t('message.opsflowPage.auditColCommand')" min-width="220" show-overflow-tooltip>
             <template #default="{ row }"><code class="log-cmd">{{ row.command || '-' }}</code></template>
           </el-table-column>
-          <el-table-column label="Return" width="70" align="center">
+          <el-table-column :label="$t('message.opsflowPage.auditColReturn')" width="70" align="center">
             <template #default="{ row }">
               <span class="log-return" :class="row.returncode === 0 ? 'ok' : 'err'">{{ row.returncode ?? '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="Execution" width="90" align="center">
+          <el-table-column :label="$t('message.opsflowPage.auditColExecution')" width="90" align="center">
             <template #default="{ row }">#{{ row.execution }}</template>
           </el-table-column>
-          <el-table-column prop="created_at" label="Time" width="160" />
-          <el-table-column label="Actions" width="70" fixed="right">
+          <el-table-column prop="created_at" :label="$t('message.opsflowPage.auditColTime')" width="160" />
+          <el-table-column :label="$t('message.execution.colActions')" width="70" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" text type="primary" @click="showDetail(row)">View</el-button>
+              <el-button size="small" text type="primary" @click="showDetail(row)">{{ $t('message.opsflowPage.auditView') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -86,24 +86,24 @@
     </div>
 
     <!-- Detail dialog -->
-    <el-dialog v-model="detailVisible" title="Log Detail" width="740px" top="5vh" destroy-on-close class="log-detail-dialog">
+    <el-dialog v-model="detailVisible" :title="$t('message.opsflowPage.auditDetailTitle')" width="740px" top="5vh" destroy-on-close class="log-detail-dialog">
       <template v-if="detailRow">
         <div class="log-detail-meta">
           <span class="log-risk-badge" :class="'risk-' + detailRow.risk_level">{{ detailRow.risk_level }}</span>
-          <span class="log-detail-info">Step: <b>{{ detailRow.step }}</b></span>
-          <span class="log-detail-info">Return: <b :class="detailRow.returncode === 0 ? 'text-green' : 'text-red'">{{ detailRow.returncode ?? '-' }}</b></span>
+          <span class="log-detail-info">{{ $t('message.opsflowPage.auditDetailStep') }}: <b>{{ detailRow.step }}</b></span>
+          <span class="log-detail-info">{{ $t('message.opsflowPage.auditDetailReturn') }}: <b :class="detailRow.returncode === 0 ? 'text-green' : 'text-red'">{{ detailRow.returncode ?? '-' }}</b></span>
           <span class="log-detail-info">{{ detailRow.created_at }}</span>
         </div>
         <div class="log-detail-section" v-if="detailRow.command">
-          <div class="log-detail-label">Command</div>
+          <div class="log-detail-label">{{ $t('message.opsflowPage.auditColCommand') }}</div>
           <pre class="log-detail-code">{{ detailRow.command }}</pre>
         </div>
         <div class="log-detail-section" v-if="detailRow.stdout">
-          <div class="log-detail-label">Stdout</div>
+          <div class="log-detail-label">{{ $t('message.opsflowPage.auditStdout') }}</div>
           <pre class="log-detail-code">{{ detailRow.stdout }}</pre>
         </div>
         <div class="log-detail-section" v-if="detailRow.stderr">
-          <div class="log-detail-label">Stderr</div>
+          <div class="log-detail-label">{{ $t('message.opsflowPage.auditStderr') }}</div>
           <pre class="log-detail-code log-stderr">{{ detailRow.stderr }}</pre>
         </div>
       </template>
@@ -112,12 +112,14 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { ref, computed, onMounted } from 'vue'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { GetLogs } from '../opsflow/api/logs'
 
 import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
+const { t } = useI18n()
 const loading = ref(false)
 const list = ref<any[]>([])
 const page = ref(1)
@@ -130,7 +132,7 @@ const detailRow = ref<any>(null)
 
 const errCount = computed(() => list.value.filter(l => l.returncode !== 0 && l.returncode != null).length)
 const highRiskCount = computed(() => list.value.filter(l => l.risk_level === 'high' || l.risk_level === 'critical').length)
-const emptyText = computed(() => loading.value ? 'Loading...' : 'No audit logs yet')
+const emptyText = computed(() => loading.value ? t('message.common.loading') : t('message.opsflowPage.auditNoLogs'))
 
 async function fetchData() {
   loading.value = true
@@ -157,7 +159,7 @@ onMounted(async () => {
 
   const key = 'opsflow_tour_log'
   if (!localStorage.getItem(key)) {
-    ElMessage.info({ message: '📝 操作日志 — 节点级执行日志，用于问题排查和审计追溯', duration: 6000 })
+    ElMessage.info({ message: t('message.opsflowPage.auditTourMsg'), duration: 6000 })
     localStorage.setItem(key, 'true')
   }
 })
