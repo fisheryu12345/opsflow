@@ -5,14 +5,14 @@
       <div class="sc-hero-bg" />
       <div class="sc-hero-inner">
         <div class="sc-hero-left">
-          <h1 class="sc-hero-title">Schedule Management</h1>
-          <p class="sc-hero-subtitle">Manage recurring and one-time pipeline executions</p>
+          <h1 class="sc-hero-title">{{ $t('message.schedule.title') }}</h1>
+          <p class="sc-hero-subtitle">{{ $t('message.schedule.schSubtitle') }}</p>
         </div>
         <ProjectSwitcher :dark="true" />
         <div class="sc-hero-center">
           <el-input
             v-model="searchQuery"
-            placeholder="Search schedules..."
+            :placeholder="$t('message.schedule.schSearchPlaceholder')"
             clearable
             size="default"
             class="sc-search-input"
@@ -23,13 +23,13 @@
           </el-input>
         </div>
         <div class="sc-hero-stats">
-          <div class="sc-stat-item"><span class="sc-stat-value">{{ total }}</span><span class="sc-stat-label">Total</span></div>
+          <div class="sc-stat-item"><span class="sc-stat-value">{{ total }}</span><span class="sc-stat-label">{{ $t('message.schedule.schStatTotal') }}</span></div>
           <div class="sc-stat-divider" />
-          <div class="sc-stat-item"><span class="sc-stat-value">{{ activeCount }}</span><span class="sc-stat-label">Active</span></div>
+          <div class="sc-stat-item"><span class="sc-stat-value">{{ activeCount }}</span><span class="sc-stat-label">{{ $t('message.schedule.schStatActive') }}</span></div>
           <div class="sc-stat-divider" />
-          <div class="sc-stat-item"><span class="sc-stat-value">{{ totalRuns }}</span><span class="sc-stat-label">Runs</span></div>
+          <div class="sc-stat-item"><span class="sc-stat-value">{{ totalRuns }}</span><span class="sc-stat-label">{{ $t('message.schedule.schStatRuns') }}</span></div>
           <div class="sc-stat-divider" />
-          <div class="sc-stat-item"><span class="sc-stat-value">{{ pausedCount }}</span><span class="sc-stat-label">Paused</span></div>
+          <div class="sc-stat-item"><span class="sc-stat-value">{{ pausedCount }}</span><span class="sc-stat-label">{{ $t('message.schedule.schStatPaused') }}</span></div>
         </div>
       </div>
     </div>
@@ -40,23 +40,23 @@
       <div class="sc-filter-bar">
         <div class="sc-filter-tabs">
           <div class="sc-tab" :class="{ active: filterType === '' }" @click="filterType = ''; onSearch()">
-            <span class="sc-tab-dot" style="background:#409EFF" />All
+            <span class="sc-tab-dot" style="background:#409EFF" />{{ $t('message.schedule.schFilterAll') }}
           </div>
           <div class="sc-tab" :class="{ active: filterType === 'active' }" @click="filterType = 'active'; onSearch()">
-            <span class="sc-tab-dot" style="background:#67C23A" />Active
+            <span class="sc-tab-dot" style="background:#67C23A" />{{ $t('message.schedule.enabled') }}
           </div>
           <div class="sc-tab" :class="{ active: filterType === 'paused' }" @click="filterType = 'paused'; onSearch()">
-            <span class="sc-tab-dot" style="background:#E6A23C" />Paused
+            <span class="sc-tab-dot" style="background:#E6A23C" />{{ $t('message.schedule.disabled') }}
           </div>
           <div class="sc-tab" :class="{ active: filterType === 'one_time' }" @click="filterType = 'one_time'; onSearch()">
-            <span class="sc-tab-dot" style="background:#9B59B6" />One-Time
+            <span class="sc-tab-dot" style="background:#9B59B6" />{{ $t('message.schedule.onceTrigger') }}
           </div>
           <div class="sc-tab" :class="{ active: filterType === 'cron' }" @click="filterType = 'cron'; onSearch()">
-            <span class="sc-tab-dot" style="background:#409EFF" />Recurring
+            <span class="sc-tab-dot" style="background:#409EFF" />{{ $t('message.schedule.cronTrigger') }}
           </div>
         </div>
         <div class="sc-filter-actions">
-          <el-button :icon="Refresh" @click="fetchList" :loading="loading" text size="small">Refresh</el-button>
+          <el-button :icon="Refresh" @click="fetchList" :loading="loading" text size="small">{{ $t('message.common.refresh') }}</el-button>
         </div>
       </div>
 
@@ -87,6 +87,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import {
@@ -100,6 +101,7 @@ import ScheduleTable from './components/ScheduleTable.vue'
 import ScheduleForm from './components/ScheduleForm.vue'
 
 import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
+const { t } = useI18n()
 const list = ref<any[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
@@ -125,7 +127,7 @@ const filteredList = computed(() => {
   return items
 })
 
-const emptyText = computed(() => 'No schedules yet. Create one to automate your pipeline executions.')
+const emptyText = computed(() => t('message.schedule.noSchedules'))
 
 async function fetchList() {
   loading.value = true
@@ -145,24 +147,24 @@ function openEdit(row: any) {
 }
 
 async function handlePause(row: any) {
-  try { await PauseSchedulePlan(row.id); ElMessage.success('Schedule paused'); fetchList()
-  } catch (e: any) { ElMessage.error(e?.msg || 'Operation failed') }
+  try { await PauseSchedulePlan(row.id); ElMessage.success(t('message.schedule.schPaused')); fetchList()
+  } catch (e: any) { ElMessage.error(e?.msg || t('message.schedule.schOperationFailed')) }
 }
 
 async function handleResume(row: any) {
-  try { await ResumeSchedulePlan(row.id); ElMessage.success('Schedule resumed'); fetchList()
-  } catch (e: any) { ElMessage.error(e?.msg || 'Operation failed') }
+  try { await ResumeSchedulePlan(row.id); ElMessage.success(t('message.schedule.schResumed')); fetchList()
+  } catch (e: any) { ElMessage.error(e?.msg || t('message.schedule.schOperationFailed')) }
 }
 
 async function handleTrigger(row: any) {
-  try { await TriggerSchedulePlan(row.id); ElMessage.success('Manual trigger submitted'); fetchList()
-  } catch (e: any) { ElMessage.error(e?.msg || 'Operation failed') }
+  try { await TriggerSchedulePlan(row.id); ElMessage.success(t('message.schedule.schTriggered')); fetchList()
+  } catch (e: any) { ElMessage.error(e?.msg || t('message.schedule.schOperationFailed')) }
 }
 
 async function handleDelete(row: any) {
   try {
-    await ElMessageBox.confirm(`Delete schedule "${row.name}"?`, 'Confirm', { type: 'warning' })
-    await DeleteSchedulePlan(row.id); ElMessage.success('Schedule deleted'); fetchList()
+    await ElMessageBox.confirm(t('message.schedule.schDeleteConfirm', { name: row.name }), t('message.common.confirm'), { type: 'warning' })
+    await DeleteSchedulePlan(row.id); ElMessage.success(t('message.schedule.deleteSuccess')); fetchList()
   } catch { /* cancelled */ }
 }
 

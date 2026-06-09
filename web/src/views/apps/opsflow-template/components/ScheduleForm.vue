@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    :title="plan ? 'Edit Schedule' : 'New Schedule'"
+    :title="plan ? $t('message.schedule.editSchedule') : $t('message.schedule.newSchedule')"
     v-model="visible"
     width="640px"
     top="6vh"
@@ -12,15 +12,15 @@
     <el-form ref="formRef" :model="form" :rules="rules" label-width="110px" class="sc-form" size="default">
       <!-- Basic Info Section -->
       <div class="sc-form-section">
-        <div class="sc-form-section-title">Basic Information</div>
-        <el-form-item label="Name" prop="name">
-          <el-input v-model="form.name" placeholder="Enter schedule name" maxlength="128" clearable />
+        <div class="sc-form-section-title">{{ $t("message.schedule.basicInfo") }}</div>
+        <el-form-item :label="$t('message.common.name')" prop="name">
+          <el-input v-model="form.name" :placeholder="$t('message.schedule.scheduleNamePlaceholder')" maxlength="128" clearable />
         </el-form-item>
-        <el-form-item label="Desc" prop="description">
-          <el-input v-model="form.description" placeholder="Optional description" maxlength="255" :rows="2" type="textarea" />
+        <el-form-item :label="$t('message.template.descLabel')" prop="description">
+          <el-input v-model="form.description" :placeholder="$t('message.schedule.descPlaceholder')" maxlength="255" :rows="2" type="textarea" />
         </el-form-item>
-        <el-form-item v-if="!templateId" label="Template" prop="template">
-          <el-select v-model="form.template" placeholder="Select template" filterable style="width: 100%">
+        <el-form-item v-if="!templateId" :label="$t('message.execution.colTemplate')" prop="template">
+          <el-select v-model="form.template" :placeholder="$t('message.template.selectClone')" filterable style="width: 100%">
             <el-option v-for="t in templateOptions" :key="t.id" :label="t.name" :value="t.id" />
           </el-select>
         </el-form-item>
@@ -28,24 +28,24 @@
 
       <!-- Schedule Section -->
       <div class="sc-form-section">
-        <div class="sc-form-section-title">Schedule Configuration</div>
-        <el-form-item label="Type" prop="schedule_type">
+        <div class="sc-form-section-title">{{ $t("message.schedule.scheduleConfig") }}</div>
+        <el-form-item :label="$t('message.schedule.triggerType')" prop="schedule_type">
           <el-radio-group v-model="form.schedule_type" class="sc-radio-group">
             <el-radio-button label="one_time">
-              <el-icon style="vertical-align: middle; margin-right: 4px"><Clock /></el-icon>One-time
+              <el-icon style="vertical-align: middle; margin-right: 4px"><Clock /></el-icon>{{ $t('message.schedule.onceTrigger') }}
             </el-radio-button>
             <el-radio-button label="cron">
-              <el-icon style="vertical-align: middle; margin-right: 4px"><Refresh /></el-icon>Recurring
+              <el-icon style="vertical-align: middle; margin-right: 4px"><Refresh /></el-icon>{{ $t('message.schedule.cronTrigger') }}
             </el-radio-button>
           </el-radio-group>
         </el-form-item>
 
         <template v-if="form.schedule_type === 'one_time'">
-          <el-form-item label="Run At" prop="scheduled_at">
+          <el-form-item :label="$t('message.schedule.runAt')" prop="scheduled_at">
             <el-date-picker
               v-model="form.scheduled_at"
               type="datetime"
-              placeholder="Select execution time"
+              :placeholder="$t('message.schedule.selectExecTime')"
               :disabled-date="disabledPastDate"
               value-format="YYYY-MM-DDTHH:mm:ss"
               style="width: 100%"
@@ -54,16 +54,16 @@
         </template>
 
         <template v-if="form.schedule_type === 'cron'">
-          <el-form-item label="Preset" prop="cron_preset">
-            <el-select v-model="cronPreset" placeholder="Select frequency" style="width: 100%" @change="onCronPresetChange">
-              <el-option label="Daily" value="daily" />
-              <el-option label="Weekdays (Mon-Fri)" value="weekdays" />
-              <el-option label="Every Monday" value="monday" />
-              <el-option label="Monthly (1st)" value="monthly" />
-              <el-option label="Custom Cron" value="custom" />
+          <el-form-item :label="$t('message.schedule.preset')" prop="cron_preset">
+            <el-select v-model="cronPreset" :placeholder="$t('message.schedule.selectFrequency')" style="width: 100%" @change="onCronPresetChange">
+              <el-option label="{{ $t('message.schedule.daily') }}" value="daily" />
+              <el-option label="{{ $t('message.schedule.weekdays') }}" value="weekdays" />
+              <el-option label="{{ $t('message.schedule.everyMonday') }}" value="monday" />
+              <el-option label="{{ $t('message.schedule.monthly') }}" value="monthly" />
+              <el-option label="{{ $t('message.schedule.customCron') }}" value="custom" />
             </el-select>
           </el-form-item>
-          <el-form-item label="Time" prop="cron_time" v-if="cronPreset && cronPreset !== 'custom'">
+          <el-form-item :label="$t('message.wizard.time')" prop="cron_time" v-if="cronPreset && cronPreset !== 'custom'">
             <el-time-picker
               v-model="cronTime"
               placeholder="Select time"
@@ -72,10 +72,10 @@
               style="width: 100%"
             />
           </el-form-item>
-          <el-form-item label="Cron Expression" prop="cron_expr" v-if="cronPreset === 'custom'">
-            <el-input v-model="form.cron_expr" placeholder="e.g. 0 9 * * 1-5" />
+          <el-form-item :label="$t('message.schedule.cronExpr')" prop="cron_expr" v-if="cronPreset === 'custom'">
+            <el-input v-model="form.cron_expr" :placeholder="$t('message.schedule.cronPlaceholder')" />
           </el-form-item>
-          <el-form-item label="Cron Preview" v-if="form.cron_description">
+          <el-form-item :label="$t('message.schedule.cronPreview')" v-if="form.cron_description">
             <el-tag type="info" effect="plain" size="default" style="width: 100%; text-align: left; white-space: normal; line-height: 1.6;">
               <el-icon style="vertical-align: middle; margin-right: 4px"><InfoFilled /></el-icon>{{ form.cron_description }}
             </el-tag>
@@ -86,19 +86,19 @@
       <!-- Retry Section -->
       <div class="sc-form-section">
         <div class="sc-form-section-title">
-          Retry Policy
-          <el-tag size="small" type="info" effect="plain" style="margin-left: 8px;">Optional</el-tag>
+          {{ $t("message.schedule.retryPolicy") }}
+          <el-tag size="small" type="info" effect="plain" style="margin-left: 8px;">{{ $t('message.properties.optional') }}</el-tag>
         </div>
-        <el-form-item label="Max Retries" prop="max_retries">
+        <el-form-item :label="$t('message.properties.maxRetries')" prop="max_retries">
           <div class="sc-inline-group">
             <el-input-number v-model="form.max_retries" :min="0" :max="10" controls-position="right" />
-            <span class="sc-inline-label">times</span>
+            <span class="sc-inline-label">{{ $t('message.schedule.times') }}</span>
           </div>
         </el-form-item>
-        <el-form-item label="Retry Delay" prop="retry_delay" v-if="form.max_retries > 0">
+        <el-form-item :label="$t('message.properties.retryDelay')" prop="retry_delay" v-if="form.max_retries > 0">
           <div class="sc-inline-group">
             <el-input-number v-model="form.retry_delay" :min="60" :max="86400" :step="60" controls-position="right" style="width: 180px" />
-            <span class="sc-inline-label">seconds (~{{ Math.round(form.retry_delay / 60) }} min)</span>
+            <span class="sc-inline-label">{{ $t('message.schedule.seconds') }} (~{{ Math.round(form.retry_delay / 60) }} {{ $t('message.wizard.time') }})</span>
           </div>
         </el-form-item>
       </div>
@@ -106,10 +106,10 @@
 
     <template #footer>
       <div class="sc-dialog-footer">
-        <el-button plain @click="visible = false" size="default">Cancel</el-button>
+        <el-button plain @click="visible = false" size="default">{{ $t('message.common.cancel') }}</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit" size="default">
           <el-icon style="vertical-align: middle; margin-right: 4px"><CircleCheck /></el-icon>
-          {{ plan ? 'Update Schedule' : 'Create Schedule' }}
+          {{ plan ? $t('message.schedule.updateSchedule') : $t('message.schedule.newSchedule') }}
         </el-button>
       </div>
     </template>
@@ -207,7 +207,7 @@ function updateCronFromPreset(preset: string, time: string) {
   switch (preset) {
     case 'daily':
       form.cron_expr = `${minute} ${hour} * * *`
-      form.cron_description = `Daily ${time}`
+      form.cron_description = `{{ $t('message.schedule.daily') }} ${time}`
       break
     case 'weekdays':
       form.cron_expr = `${minute} ${hour} * * 1-5`
@@ -258,10 +258,10 @@ async function handleSubmit() {
 
     if (props.plan?.id) {
       await UpdateSchedulePlan(props.plan.id, data)
-      ElMessage.success('Schedule updated')
+      ElMessage.success(t('message.schedule.scheduleUpdated'))
     } else {
       await CreateSchedulePlan(data)
-      ElMessage.success('Schedule created')
+      ElMessage.success(t('message.schedule.scheduleCreated'))
     }
     emit('saved')
     visible.value = false

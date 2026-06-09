@@ -1,7 +1,7 @@
 <template>
-  <el-table :data="list" v-loading="loading" empty-text="No data" stripe style="width: 100%" size="small" :header-cell-style="{background:'#fafafa', color:'#606266', fontWeight:600, fontSize:'12px'}">
-    <el-table-column v-if="showTemplate" prop="template_name" label="Template" min-width="140" show-overflow-tooltip />
-    <el-table-column prop="name" label="Name" min-width="150" show-overflow-tooltip>
+  <el-table :data="list" v-loading="loading" :empty-text="$t('message.common.noData')" stripe style="width: 100%" size="small" :header-cell-style="{background:'#fafafa', color:'#606266', fontWeight:600, fontSize:'12px'}">
+    <el-table-column v-if="showTemplate" prop="template_name" :label="$t('message.execution.colTemplate')" min-width="140" show-overflow-tooltip />
+    <el-table-column prop="name" :label="$t('message.common.name')" min-width="150" show-overflow-tooltip>
       <template #default="{ row }">
         <div class="cell-name">
           <span class="name-text">{{ row.name }}</span>
@@ -9,17 +9,17 @@
         </div>
       </template>
     </el-table-column>
-    <el-table-column label="Type" width="100">
+    <el-table-column :label="$t('message.schedule.triggerType')" width="100">
       <template #default="{ row }">
         <el-tag v-if="row.schedule_type === 'one_time'" type="warning" size="small" effect="plain" class="type-tag">
-          <el-icon size="12" style="margin-right:3px"><Clock /></el-icon> One-time
+          <el-icon size="12" style="margin-right:3px"><Clock /></el-icon> {{ $t('message.schedule.onceTrigger') }}
         </el-tag>
         <el-tag v-else type="primary" size="small" effect="plain" class="type-tag">
-          <el-icon size="12" style="margin-right:3px"><Refresh /></el-icon> Recurring
+          <el-icon size="12" style="margin-right:3px"><Refresh /></el-icon> {{ $t('message.schedule.cronTrigger') }}
         </el-tag>
       </template>
     </el-table-column>
-    <el-table-column label="Trigger" min-width="180">
+    <el-table-column :label="$t('message.schedule.triggerType')" min-width="180">
       <template #default="{ row }">
         <template v-if="row.schedule_type === 'one_time'">
           <div class="trigger-cell">
@@ -35,7 +35,7 @@
         </template>
       </template>
     </el-table-column>
-    <el-table-column label="Status" width="100">
+    <el-table-column :label="$t('message.execution.status')" width="100">
       <template #default="{ row }">
         <div class="status-badge" :class="row.status">
           <span class="status-dot" />
@@ -43,39 +43,39 @@
         </div>
       </template>
     </el-table-column>
-    <el-table-column label="Last Run" width="155">
+    <el-table-column :label="$t('message.schedule.lastRun')" width="155">
       <template #default="{ row }">
         <span class="time-cell">{{ row.last_run_at ? formatTime(row.last_run_at) : '-' }}</span>
       </template>
     </el-table-column>
-    <el-table-column label="Next Run" width="155">
+    <el-table-column :label="$t('message.schedule.nextRun')" width="155">
       <template #default="{ row }">
         <span class="time-cell">{{ row.next_run_at ? formatTime(row.next_run_at) : '-' }}</span>
       </template>
     </el-table-column>
-    <el-table-column prop="total_run_count" label="Runs" width="70" align="center">
+    <el-table-column prop="total_run_count" :label="$t('message.schedule.runCount')" width="70" align="center">
       <template #default="{ row }">
         <el-tag :type="row.total_run_count > 0 ? 'primary' : 'info'" size="small" effect="plain" class="runs-tag">
           {{ row.total_run_count || 0 }}
         </el-tag>
       </template>
     </el-table-column>
-    <el-table-column label="Actions" width="240" fixed="right">
+    <el-table-column :label="$t('message.execution.colActions')" width="240" fixed="right">
       <template #default="{ row }">
         <div class="action-btns">
-          <el-tooltip content="Edit" placement="top">
+          <el-tooltip :content="$t('message.common.edit')" placement="top">
             <el-button size="small" text type="primary" @click="emit('edit', row)" :icon="Edit" />
           </el-tooltip>
-          <el-tooltip v-if="row.status === 'active'" content="Pause" placement="top">
+          <el-tooltip v-if="row.status === 'active'" :content="$t('message.execution.pause')" placement="top">
             <el-button size="small" text type="warning" @click="emit('pause', row)" :icon="VideoPause" />
           </el-tooltip>
-          <el-tooltip v-if="row.status === 'paused'" content="Resume" placement="top">
+          <el-tooltip v-if="row.status === 'paused'" :content="$t('message.execution.resume')" placement="top">
             <el-button size="small" text type="success" @click="emit('resume', row)" :icon="VideoPlay" />
           </el-tooltip>
-          <el-tooltip content="Trigger Now" placement="top">
+          <el-tooltip :content="$t('message.schedule.schTriggerNow')" placement="top">
             <el-button size="small" text type="primary" @click="emit('trigger', row)" :icon="Lightning" />
           </el-tooltip>
-          <el-tooltip content="Delete" placement="top">
+          <el-tooltip :content="$t('message.common.delete')" placement="top">
             <el-button size="small" text type="danger" @click="emit('delete', row)" :icon="Delete" />
           </el-tooltip>
         </div>
@@ -85,7 +85,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { Clock, Refresh, Edit, VideoPause, VideoPlay, Lightning, Delete } from '@element-plus/icons-vue'
+
+const { t } = useI18n()
 
 defineProps<{
   list: any[]
@@ -108,10 +111,10 @@ function formatTime(dt: string) {
 
 function statusLabel(status: string) {
   switch (status) {
-    case 'active': return 'Active'
-    case 'paused': return 'Paused'
-    case 'completed': return 'Completed'
-    case 'expired': return 'Expired'
+    case 'active': return t('message.schedule.enabled')
+    case 'paused': return t('message.schedule.disabled')
+    case 'completed': return t('message.execution.statCompleted')
+    case 'expired': return t('message.schedule.schExpired')
     default: return status
   }
 }
