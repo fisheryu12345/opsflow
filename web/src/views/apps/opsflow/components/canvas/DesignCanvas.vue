@@ -16,6 +16,7 @@
               size="small"
               style="width: 200px"
               @change="(val: any) => emit('changeTemplate', val)"
+              @clear="emit('changeTemplate', null)"
             >
               <el-option-group v-if="projectTemplates.length" label="📁 Project Templates">
                 <el-option v-for="t in projectTemplates" :key="t.id" :label="t.name" :value="t.id" />

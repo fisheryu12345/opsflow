@@ -148,7 +148,7 @@ const formRules = { method: [{ required: true, message: '必填项', trigger: 'c
 let swaggerUrls: string[] = [];
 async function ensureSwaggerLoaded() {
   if (swaggerUrls.length > 0) return;
-  try { const res: any = await request('/swagger.json'); swaggerUrls = Object.keys(res.paths || {}); }
+  try { const res: any = await request('/api/schema/'); swaggerUrls = Object.keys(res.paths || {}); }
   catch { swaggerUrls = []; }
 }
 function queryUrlSuggestions(queryString: string, callback: (results: { value: string }[]) => void) {

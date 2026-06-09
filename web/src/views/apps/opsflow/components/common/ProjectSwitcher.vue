@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, withDefaults } from 'vue'
+import { computed } from 'vue'
 import { Collection, FolderOpened } from '@element-plus/icons-vue'
 import { useOpsflowStore } from '../../stores/opsflowStore'
 

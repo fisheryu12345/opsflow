@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="Submit Execution Wizard"
+    :title="$t('message.wizard.title')"
     width="960px"
     top="3vh"
     :close-on-click-modal="false"
@@ -39,23 +39,23 @@
         <div class="panel-hero">
           <div class="panel-hero-icon">🔍</div>
           <div class="panel-hero-text">
-            <h3>Pipeline Validation</h3>
-            <p>Validate topology, node configuration, and engine compatibility</p>
+            <h3>{{ $t("message.wizard.validation") }}</h3>
+            <p>{{ $t("message.wizard.validationDesc") }}</p>
           </div>
         </div>
 
         <div class="metric-row">
           <div class="metric-card">
             <div class="metric-value">{{ pipelineNodes.length }}</div>
-            <div class="metric-label">Nodes</div>
+            <div class="metric-label">{{ $t("message.wizard.nodes") }}</div>
           </div>
           <div class="metric-card">
             <div class="metric-value">{{ pipelineEdges.length }}</div>
-            <div class="metric-label">Edges</div>
+            <div class="metric-label">{{ $t("message.wizard.edges") }}</div>
           </div>
           <div class="metric-card">
             <div class="metric-value">{{ atomTypesCount }}</div>
-            <div class="metric-label">Atom Types</div>
+            <div class="metric-label">{{ $t("message.wizard.atomTypes") }}</div>
           </div>
         </div>
 
@@ -68,9 +68,9 @@
             :icon="Search"
             class="wiz-action-btn"
           >
-            Run Validation
+            {{ $t("message.wizard.runValidation") }}
           </el-button>
-          <span class="wiz-action-hint">AI analyzes pipeline structure for compliance</span>
+          <span class="wiz-action-hint">{{ $t("message.wizard.validationHint") }}</span>
         </div>
 
         <transition name="panel-fade">
@@ -78,15 +78,15 @@
             <div v-if="!validationResult.hasErrors" class="result-hero result-hero-pass">
               <div class="result-hero-icon">✓</div>
               <div class="result-hero-text">
-                <div class="result-hero-title">Validation Passed</div>
-                <div class="result-hero-desc">Topology is complete, no orphan nodes, gateway paths correct, Bamboo engine compatible</div>
+                <div class="result-hero-title">{{ $t("message.wizard.validationPassed") }}</div>
+                <div class="result-hero-desc">{{ $t("message.wizard.validationPassedDesc") }}</div>
               </div>
             </div>
 
             <div v-for="(w, i) in validationResult.warnings" :key="'w'+i" class="result-item result-item-warn">
               <span class="result-item-icon">⚠</span>
               <div class="result-item-body">
-                <span class="result-item-title">Warning</span>
+                <span class="result-item-title">{{ $t("message.wizard.warning") }}</span>
                 <span class="result-item-desc">{{ w }}</span>
               </div>
             </div>
@@ -94,13 +94,13 @@
             <div v-for="(e, i) in validationResult.errors" :key="'e'+i" class="result-item result-item-error">
               <span class="result-item-icon">✕</span>
               <div class="result-item-body">
-                <span class="result-item-title">Error</span>
+                <span class="result-item-title">{{ $t("message.wizard.error") }}</span>
                 <span class="result-item-desc">{{ e }}</span>
               </div>
             </div>
 
             <div v-if="validationResult.suggestions?.length" class="suggest-block">
-              <div class="suggest-header">💡 Suggestions</div>
+              <div class="suggest-header">{{ $t("message.wizard.suggestions") }}</div>
               <ul class="suggest-list">
                 <li v-for="(s, i) in validationResult.suggestions" :key="i">{{ s }}</li>
               </ul>
@@ -114,15 +114,15 @@
         <div class="panel-hero">
           <div class="panel-hero-icon">📋</div>
           <div class="panel-hero-text">
-            <h3>Link Change Request</h3>
-            <p>Select the change request associated with this pipeline</p>
+            <h3>{{ $t("message.wizard.linkChange") }}</h3>
+            <p>{{ $t("message.wizard.linkChangeDesc") }}</p>
           </div>
         </div>
 
         <div class="cr-selector" v-loading="crLoading">
           <el-select
             v-model="selectedCr"
-            placeholder="Search change requests..."
+            :placeholder="$t('message.wizard.searchCr')"
             filterable
             value-key="cr_number"
             style="width:100%"
@@ -143,7 +143,7 @@
                     size="small"
                     effect="plain"
                   >
-                    {{ cr.status === 'approved' ? 'Approved' : 'Pending' }}
+                    {{ cr.status === 'approved' ? $t('message.wizard.approved') : $t('message.wizard.pending') }}
                   </el-tag>
                 </div>
                 <div class="cr-opt-title">{{ cr.title }}</div>
@@ -158,37 +158,37 @@
 
         <transition name="panel-fade">
           <div v-if="selectedCr" class="info-card">
-            <div class="info-card-header">Change Request Details</div>
+            <div class="info-card-header">{{ $t("message.wizard.crDetails") }}</div>
             <div class="info-card-grid">
               <div class="info-field">
-                <span class="info-label">CR Number</span>
+                <span class="info-label">{{ $t("message.wizard.crNumber") }}</span>
                 <span class="info-value mono">{{ selectedCr.cr_number }}</span>
               </div>
               <div class="info-field">
-                <span class="info-label">Title</span>
+                <span class="info-label">{{ $t("message.wizard.crTitle") }}</span>
                 <span class="info-value">{{ selectedCr.title }}</span>
               </div>
               <div class="info-field">
-                <span class="info-label">Status</span>
+                <span class="info-label">{{ $t("message.wizard.status") }}</span>
                 <span class="info-value">
                   <el-tag
                     :type="selectedCr.status === 'approved' ? 'success' : 'warning'"
                     size="small"
                   >
-                    {{ selectedCr.status === 'approved' ? 'Approved' : 'Pending' }}
+                    {{ selectedCr.status === 'approved' ? $t('message.wizard.approved') : $t('message.wizard.pending') }}
                   </el-tag>
                 </span>
               </div>
               <div class="info-field">
-                <span class="info-label">Change Window</span>
+                <span class="info-label">{{ $t("message.wizard.changeWindow") }}</span>
                 <span class="info-value">{{ selectedCr.change_window_start }} ~ {{ selectedCr.change_window_end }}</span>
               </div>
               <div class="info-field">
-                <span class="info-label">Requester</span>
+                <span class="info-label">{{ $t("message.wizard.requester") }}</span>
                 <span class="info-value">{{ selectedCr.requester }}</span>
               </div>
               <div class="info-field info-field-full">
-                <div class="info-desc-label">Description</div>
+                <div class="info-desc-label">{{ $t("message.wizard.description") }}</div>
                 <div class="info-desc-value">{{ selectedCr.description }}</div>
               </div>
             </div>
@@ -201,13 +201,13 @@
         <div class="panel-hero">
           <div class="panel-hero-icon">⚙️</div>
           <div class="panel-hero-text">
-            <h3>Parameters &amp; Variables</h3>
-            <p>Override template variable defaults for this execution</p>
+            <h3>{{ $t("message.wizard.paramsVars") }}</h3>
+            <p>{{ $t("message.wizard.paramsVarsDesc") }}</p>
           </div>
         </div>
 
         <div v-if="templateVarsKeys.length === 0" class="wiz-empty">
-          <el-empty description="No parameters defined in this template" :image-size="40" />
+          <el-empty :description="$t('message.wizard.noParams')" :image-size="40" />
         </div>
         <div v-else class="var-list">
           <div v-for="key in templateVarsKeys" :key="key" class="var-item">
@@ -234,8 +234,8 @@
         <div class="panel-hero">
           <div class="panel-hero-icon">🛡️</div>
           <div class="panel-hero-text">
-            <h3>AI Risk Analysis &amp; Confirmation</h3>
-            <p>Review change impact and acknowledge each risk item</p>
+            <h3>{{ $t("message.wizard.riskAnalysis") }}</h3>
+            <p>{{ $t("message.wizard.riskAnalysisDesc") }}</p>
           </div>
         </div>
 
@@ -248,22 +248,22 @@
             :icon="Aim"
             class="wiz-action-btn"
           >
-            Execute Risk Analysis
+            {{ $t("message.wizard.executeRisk") }}
           </el-button>
-          <span class="wiz-action-hint">AI analyzes change impact and identifies risks</span>
+          <span class="wiz-action-hint">{{ $t("message.wizard.riskHint") }}</span>
         </div>
 
         <transition name="panel-fade">
           <div v-if="riskResult" class="risk-block">
             <div class="risk-section">
               <div class="risk-section-icon">📋</div>
-              <div class="risk-section-title">Change Summary</div>
+              <div class="risk-section-title">{{ $t("message.wizard.changeSummary") }}</div>
               <p class="risk-section-body">{{ riskResult.summary }}</p>
             </div>
 
             <div v-if="riskResult.risks?.length" class="risk-section">
               <div class="risk-section-icon">⚠️</div>
-              <div class="risk-section-title">Risk Items — acknowledge each to proceed</div>
+              <div class="risk-section-title">{{ $t("message.wizard.riskItems") }}</div>
               <div
                 v-for="(risk, i) in riskResult.risks"
                 :key="i"
@@ -273,7 +273,7 @@
                 <el-checkbox v-model="riskChecked[i]" @change="onRiskCheckChange">
                   <div class="risk-card-content">
                     <span class="risk-card-badge" :class="'badge-' + (risk.level || 'low')">
-                      {{ risk.level === 'high' ? 'High' : risk.level === 'medium' ? 'Medium' : 'Low' }}
+                      {{ risk.level === 'high' ? $t('message.wizard.high') : risk.level === 'medium' ? $t('message.wizard.medium') : $t('message.wizard.low') }}
                     </span>
                     <span class="risk-card-text">{{ risk.text }}</span>
                   </div>
@@ -283,7 +283,7 @@
 
             <div v-if="riskResult.suggestions?.length" class="risk-section risk-section-suggest">
               <div class="risk-section-icon">💡</div>
-              <div class="risk-section-title">Suggestions</div>
+              <div class="risk-section-title">{{ $t("message.wizard.suggestions") }}</div>
               <ul class="suggest-list">
                 <li v-for="(s, i) in riskResult.suggestions" :key="i">{{ s }}</li>
               </ul>
@@ -292,7 +292,7 @@
             <div class="risk-confirm">
               <el-checkbox v-model="riskConfirmed">
                 <span class="risk-confirm-text">
-                  <strong>I acknowledge all risks above</strong> and confirm this execution. I assume responsibility for any unlisted risks.
+                  {{ $t("message.wizard.acknowledgeAll") }}
                 </span>
               </el-checkbox>
             </div>
@@ -309,8 +309,8 @@
         <div class="panel-hero">
           <div class="panel-hero-icon">⏰</div>
           <div class="panel-hero-text">
-            <h3>Schedule Strategy</h3>
-            <p>Set execution timing after approval</p>
+            <h3>{{ $t("message.wizard.scheduleStrategy") }}</h3>
+            <p>{{ $t("message.wizard.scheduleStrategyDesc") }}</p>
           </div>
         </div>
 
@@ -322,8 +322,8 @@
           >
             <div class="mode-card-icon">⏱️</div>
             <div class="mode-card-content">
-              <div class="mode-card-title">Scheduled Execution</div>
-              <div class="mode-card-desc">Auto-execute at a specified time after approval</div>
+              <div class="mode-card-title">{{ $t("message.wizard.scheduledExecution") }}</div>
+              <div class="mode-card-desc">{{ $t("message.wizard.scheduledDesc") }}</div>
             </div>
             <div class="mode-card-radio" :class="{ checked: scheduleType === 'timed' }" />
           </div>
@@ -334,8 +334,8 @@
           >
             <div class="mode-card-icon">👆</div>
             <div class="mode-card-content">
-              <div class="mode-card-title">Manual Trigger</div>
-              <div class="mode-card-desc">Manually start after ServiceNow approval completes</div>
+              <div class="mode-card-title">{{ $t("message.wizard.manualTrigger") }}</div>
+              <div class="mode-card-desc">{{ $t("message.wizard.manualDesc") }}</div>
             </div>
             <div class="mode-card-radio" :class="{ checked: scheduleType === 'manual' }" />
           </div>
@@ -345,7 +345,7 @@
           <div v-if="scheduleType === 'timed'" class="schedule-card">
             <div class="schedule-card-header">
               <el-icon size="16" color="#409EFF"><Calendar /></el-icon>
-              <span>Pick Execution Time</span>
+              <span>{{ $t("message.wizard.pickTime") }}</span>
             </div>
             <div class="schedule-pickers">
               <div class="schedule-field">
@@ -375,12 +375,12 @@
 
             <div v-if="selectedCr" class="schedule-info schedule-info-blue">
               <el-icon><InfoFilled /></el-icon>
-              <span>Change window: <strong>{{ selectedCr.change_window_start }}</strong> ~ <strong>{{ selectedCr.change_window_end }}</strong> · Available: <strong>{{ windowStart }}</strong> ~ <strong>{{ windowEndExclusive }}</strong></span>
+              <span>{{ $t("message.wizard.changeWindowRange", { start: selectedCr.change_window_start, end: selectedCr.change_window_end, availStart: windowStart, availEnd: windowEndExclusive }) }}</span>
             </div>
 
             <div class="schedule-info schedule-info-red">
               <el-icon><WarningFilled /></el-icon>
-              <span>If not approved <strong>30 minutes</strong> before the scheduled time, this plan <strong>auto-cancels</strong>. Ensure timely approval.</span>
+              <span>{{ $t("message.wizard.autoCancelWarning") }}</span>
             </div>
           </div>
 
@@ -388,9 +388,9 @@
             <div class="manual-card-body">
               <el-icon size="22" color="#409EFF"><InfoFilled /></el-icon>
               <div class="manual-card-text">
-                <div class="manual-card-title">Manual Execution</div>
+                <div class="manual-card-title">{{ $t("message.wizard.manualExecution") }}</div>
                 <div class="manual-card-desc">
-                  Creates an Execution with status <code>pending_approval</code>. After ServiceNow approves the change, you can manually start it from the Executions page.
+                  {{ $t("message.wizard.manualExecutionDesc") }}
                 </div>
               </div>
             </div>
@@ -404,11 +404,11 @@
       <div class="wiz-footer">
         <div class="wiz-footer-left">
           <el-button v-if="activeStep > 0" text size="default" @click="prevStep">
-            ← Back
+            ← {{ $t("message.wizard.back") }}
           </el-button>
         </div>
         <div class="wiz-footer-right">
-          <el-button plain size="default" @click="visible = false">Cancel</el-button>
+          <el-button plain size="default" @click="visible = false">{{ $t("message.wizard.cancel") }}</el-button>
           <el-button
             v-if="activeStep < 4"
             type="primary"
@@ -417,7 +417,7 @@
             @click="nextStep"
             class="wiz-next-btn"
           >
-            Continue →
+            {{ $t("message.wizard.continue") }} →
           </el-button>
           <el-button
             v-else
@@ -438,6 +438,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Search, Aim, CircleCheck, InfoFilled, WarningFilled, Calendar } from '@element-plus/icons-vue'
 import { GetGlobalVariables, AnalyzePipeline } from '../../api/templates'
@@ -457,13 +458,14 @@ const emit = defineEmits<{
   'update:modelValue': [v: boolean]
   'execution-created': [execId: number]
 }>()
+const { t } = useI18n()
 
 const steps = [
-  { title: 'Validation', desc: 'Pipeline Check' },
-  { title: 'Change', desc: 'Link Change Request' },
-  { title: 'Params', desc: 'Variables' },
-  { title: 'Risk', desc: 'AI Analysis & Confirm' },
-  { title: 'Schedule', desc: 'Timing Strategy' },
+  { title: t('message.wizard.step1Title'), desc: t('message.wizard.step1Desc') },
+  { title: t('message.wizard.step2Title'), desc: t('message.wizard.step2Desc') },
+  { title: t('message.wizard.step3Title'), desc: t('message.wizard.step3Desc') },
+  { title: t('message.wizard.step4Title'), desc: t('message.wizard.step4Desc') },
+  { title: t('message.wizard.step5Title'), desc: t('message.wizard.step5Desc') },
 ]
 
 // ---------- Dialog State ----------
@@ -497,7 +499,7 @@ async function runValidation() {
     const res = await AnalyzePipeline({ nodes: props.pipelineNodes, edges: props.pipelineEdges || [] })
     validationResult.value = res.data?.data || res.data
   } catch (e: any) {
-    stepError.value = e?.msg || e?.message || 'Validation failed'
+    stepError.value = e?.msg || e?.message || t('message.wizard.validationFailed')
   } finally {
     stepLoading.value = false
   }
@@ -560,7 +562,7 @@ function inputType(t?: string) {
 function defaultPlaceholder(info: any) {
   const val = info?.value
   if (val !== undefined && val !== null && val !== '') return String(val)
-  return 'Enter value...'
+  return t('message.wizard.enterValue')
 }
 
 async function loadVars() {
@@ -604,7 +606,7 @@ async function runRiskAnalysis() {
     riskChecked.value = (raw?.risks || []).map(() => false)
     riskConfirmed.value = false
   } catch (e: any) {
-    stepError.value = e?.msg || e?.message || 'Risk analysis failed'
+    stepError.value = e?.msg || e?.message || t('message.wizard.riskAnalysisFailed')
   } finally {
     riskLoading.value = false
   }
@@ -731,15 +733,15 @@ async function handleSubmit() {
     if (scheduleType.value === 'timed') {
       ElMessage.success({
         message: execStatus === 'pending'
-          ? `Execution #${execId} created. Scheduled at ${scheduledDate.value} ${scheduledTime.value}.`
-          : `Execution #${execId} created. Schedule set for ${scheduledDate.value} ${scheduledTime.value}. Auto-cancels if not approved 30min before.`,
+          ? t('message.wizard.execScheduled', { id: execId, date: scheduledDate.value, time: scheduledTime.value })
+          : t('message.wizard.execScheduledPending', { id: execId, date: scheduledDate.value, time: scheduledTime.value }),
         duration: 6000,
       })
     } else {
       ElMessage.success({
         message: execStatus === 'pending'
-          ? `Execution #${execId} created (ready to start).`
-          : `Execution #${execId} created (pending_approval). Start it manually after ServiceNow approval.`,
+          ? t('message.wizard.execCreated', { id: execId })
+          : t('message.wizard.execCreatedPending', { id: execId }),
         duration: 6000,
       })
     }
@@ -747,7 +749,7 @@ async function handleSubmit() {
     visible.value = false
     emit('execution-created', execId)
   } catch (e: any) {
-    const errMsg = e?.response?.data?.msg || e?.msg || e?.message || 'Submission failed'
+    const errMsg = e?.response?.data?.msg || e?.msg || e?.message || t('message.wizard.submissionFailed')
     ElMessage.error(errMsg)
   } finally {
     submitting.value = false
