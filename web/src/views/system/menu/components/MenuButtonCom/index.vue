@@ -213,7 +213,7 @@ const fetchData = async () => {
  */
 const fetchApiPaths = async () => {
   try {
-    const res = await request({ url: '/swagger.json' });
+    const res = await request({ url: '/api/schema/' });
     if (res?.paths) {
       apiPaths.value = Object.keys(res.paths);
     }
