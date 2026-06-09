@@ -144,7 +144,7 @@ function riskTagType(risk: string): string {
 </script>
 
 <style lang="scss" scoped>
-@use '../../styles/opsflow-global' as *;
+@use '../../../../../styles/opsflow-global' as *;
 
 .plugin-picker { display: flex; flex-direction: column; gap: 12px; min-height: 400px; }
 .picker-search { flex-shrink: 0; }

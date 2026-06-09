@@ -5,8 +5,9 @@
 回退方案为 API 轮询（通过 node_status / trace_summary）。
 """
 
-import datetime
 import logging
+
+from django.utils import timezone
 
 from django.dispatch import receiver
 
@@ -134,7 +135,7 @@ def _handle_root_state_change(execution, to_state):
 
     if target == PipelineState.COMPLETED:
         execution.status = PipelineState.COMPLETED
-        execution.ended_at = datetime.datetime.now()
+        execution.ended_at = timezone.now()
         _sweep_node_status(execution, "completed")
         execution.save(update_fields=["status", "ended_at", "node_status"])
         _try_webhook(execution, 'completed')
@@ -142,7 +143,7 @@ def _handle_root_state_change(execution, to_state):
 
     elif target == PipelineState.FAILED:
         execution.status = PipelineState.FAILED
-        execution.ended_at = datetime.datetime.now()
+        execution.ended_at = timezone.now()
         _sweep_node_status(execution, "failed")
         execution.save(update_fields=["status", "ended_at", "node_status"])
         try:
@@ -156,7 +157,7 @@ def _handle_root_state_change(execution, to_state):
 
     elif target == PipelineState.CANCELLED:
         execution.status = PipelineState.CANCELLED
-        execution.ended_at = datetime.datetime.now()
+        execution.ended_at = timezone.now()
         _sweep_node_status(execution, "cancelled")
         execution.save(update_fields=["status", "ended_at", "node_status"])
 

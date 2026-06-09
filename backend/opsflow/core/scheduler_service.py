@@ -15,33 +15,26 @@ def _job_id(plan_id: int) -> str:
     return f'{JOB_ID_PREFIX}{plan_id}'
 
 
-def _naive(dt):
-    """Ensure datetime is naive (strip timezone), compatible with USE_TZ=False + MySQL"""
-    if dt is not None and hasattr(dt, 'tzinfo') and dt.tzinfo is not None:
-        return dt.replace(tzinfo=None)
-    return dt
-
-
 def _sync_next_run(plan):
     """Sync next_run_time from APScheduler to plan"""
     if opsflow_scheduler._started:
         job = opsflow_scheduler.scheduler.get_job(_job_id(plan.id))
         if job and job.next_run_time:
-            plan.next_run_at = _naive(job.next_run_time)
+            plan.next_run_at = job.next_run_time
             plan.save(update_fields=['next_run_at'])
             return
 
     # Manually calculate next_run_at when scheduler is not started
     if plan.schedule_type == 'one_time' and plan.scheduled_at:
-        plan.next_run_at = _naive(plan.scheduled_at)
+        plan.next_run_at = plan.scheduled_at
     elif plan.schedule_type == 'cron' and plan.cron_expr:
         from apscheduler.triggers.cron import CronTrigger
         from django.utils import timezone
         try:
             trigger = CronTrigger.from_crontab(plan.cron_expr, timezone=plan.timezone)
-            plan.next_run_at = _naive(trigger.get_next_fire_time(
+            plan.next_run_at = trigger.get_next_fire_time(
                 prev_fire_time=None, now=timezone.localtime()
-            ))
+            )
         except Exception:
             plan.next_run_at = None
     plan.save(update_fields=['next_run_at'])

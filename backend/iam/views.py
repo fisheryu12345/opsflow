@@ -1,5 +1,4 @@
-import datetime
-
+from django.utils import timezone
 from django.db import transaction
 from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
@@ -56,7 +55,7 @@ class PermissionRequestViewSet(mixins.CreateModelMixin,
                 permission_request.status = 'approved'
                 permission_request.reviewer = request.user
                 permission_request.review_comment = ser.validated_data.get('review_comment', '')
-                permission_request.reviewed_at = datetime.datetime.now()
+                permission_request.reviewed_at = timezone.now()
                 permission_request.save()
 
                 if permission_request.request_type == 'role' and permission_request.target_role:
@@ -88,7 +87,7 @@ class PermissionRequestViewSet(mixins.CreateModelMixin,
             permission_request.status = 'rejected'
             permission_request.reviewer = request.user
             permission_request.review_comment = ser.validated_data.get('review_comment', '')
-            permission_request.reviewed_at = datetime.datetime.now()
+            permission_request.reviewed_at = timezone.now()
             permission_request.save()
             result = PermissionRequestSerializer(permission_request).data
             return SuccessResponse(data=result, msg='已驳回')

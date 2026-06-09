@@ -449,7 +449,7 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@use '../opsflow/styles/opsflow-global' as *;
+@use '../../../styles/opsflow-global' as *;
 
 // ===== Page Layout =====
 .int-page {

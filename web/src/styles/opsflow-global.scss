@@ -1,10 +1,10 @@
 // ============================================================
 // OPSflow Reusable Classes & Mixins
-// Import via: @use '../styles/opsflow-global' as *;
+// Import via: @use 'opsflow-global' as *;
 // ============================================================
 
-@forward './opsflow-variables';
-@use './opsflow-variables' as *;
+@forward 'opsflow-variables';
+@use 'opsflow-variables' as *;
 
 // ===== Card =====
 .of-card {

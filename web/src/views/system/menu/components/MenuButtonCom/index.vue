@@ -316,7 +316,7 @@ defineExpose({ handleRefreshTable });
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../apps/opsflow/styles/opsflow-global' as *;
+@use '../../../../../styles/opsflow-global' as *;
 
 .menu-button-com {
   height: 100%;

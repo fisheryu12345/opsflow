@@ -215,7 +215,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../apps/opsflow/styles/opsflow-global' as *;
+@use '../../../../../styles/opsflow-global' as *;
 
 .menu-tree-com {
   display: flex;
@@ -292,7 +292,7 @@ defineExpose({
 </style>
 
 <style lang="scss">
-@use '../../../../apps/opsflow/styles/opsflow-global' as *;
+@use '../../../../../styles/opsflow-global' as *;
 
 /* Global tree overrides / 全局树样式覆盖 */
 .menu-tree-com .of-tree,

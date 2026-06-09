@@ -113,7 +113,7 @@ watch(() => props.visible, (v) => { if (v) loadSchemes() })
 </script>
 
 <style lang="scss" scoped>
-@use '../../styles/opsflow-global' as *;
+@use '../../../../../styles/opsflow-global' as *;
 
 .scheme-manager { min-height: 200px; }
 .scheme-header { margin-bottom: 12px; }

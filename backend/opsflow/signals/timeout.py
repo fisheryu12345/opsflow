@@ -8,7 +8,11 @@
 参考 bk_sops `_node_timeout_info_update()`
 """
 
+from datetime import timedelta
+
 import logging
+
+from django.utils import timezone
 
 from bamboo_engine import states
 
@@ -31,7 +35,6 @@ def _update_node_timeout(execution, node_id: str, to_state):
     """根据节点状态变更更新 Redis 超时追踪集合"""
     try:
         from opsflow.models import NodeTimeoutConfig
-        import datetime
 
         r = _get_redis()
         key = f"{node_id}_{getattr(to_state, 'version', '0')}"
@@ -47,8 +50,8 @@ def _update_node_timeout(execution, node_id: str, to_state):
 
             config = configs.first()
             deadline = (
-                datetime.datetime.now() +
-                datetime.timedelta(seconds=config.timeout_seconds)
+                timezone.now() +
+                timedelta(seconds=config.timeout_seconds)
             ).timestamp()
             r.zadd(REDIS_EXECUTING_NODES_KEY, {key: deadline}, nx=True)
             logger.debug(

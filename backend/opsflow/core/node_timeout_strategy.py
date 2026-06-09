@@ -12,7 +12,11 @@
   5. execute_node_timeout_strategy Celery 任务执行对应策略
 """
 
+from datetime import timedelta
+
 import logging
+
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -176,10 +180,9 @@ def update_node_timeout(execution, node_id: str, to_state: str, version: str = "
                 return
 
             config = configs.first()
-            import datetime
             deadline = (
-                datetime.datetime.now() +
-                datetime.timedelta(seconds=config.timeout_seconds)
+                timezone.now() +
+                timedelta(seconds=config.timeout_seconds)
             ).timestamp()
             r.zadd(REDIS_EXECUTING_NODES_KEY, {key: deadline}, nx=True)
             logger.debug(

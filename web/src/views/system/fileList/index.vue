@@ -89,7 +89,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../apps/opsflow/styles/opsflow-variables' as *;
+@use '../../../styles/opsflow-variables' as *;
 
 .filelist-page {
   position: absolute;

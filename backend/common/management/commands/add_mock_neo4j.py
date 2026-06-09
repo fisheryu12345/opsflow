@@ -16,7 +16,7 @@ Uses the current Cypher-based CMDB service layer (NodeService + graph_driver).
 import logging
 import random
 import uuid
-from datetime import datetime
+from django.utils import timezone
 
 from django.core.management.base import BaseCommand, CommandError
 
@@ -130,7 +130,7 @@ class Command(BaseCommand):
     def _create_topology(self, gd, num_biz, spb, mps, hpm, pph):
         biz_names = BIZ_NAMES[:num_biz]
         ip_base = 1
-        now = datetime.utcnow().isoformat()
+        now = timezone.now().isoformat()
 
         for bi, biz_name in enumerate(biz_names):
             biz_id = str(uuid.uuid4())

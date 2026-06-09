@@ -205,7 +205,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use '../opsflow/styles/opsflow-global' as *;
+@use '../../../styles/opsflow-global' as *;
 
 .itsm-dashboard {
   padding: 16px 0;

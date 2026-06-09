@@ -428,7 +428,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@use '../../opsflow/styles/opsflow-global' as *;
+@use '../../../../styles/opsflow-global' as *;
 
 .cmdb-table-card {
   background: #fff; border-radius: 14px; box-shadow: $of-shadow-card; overflow: hidden;

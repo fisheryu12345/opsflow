@@ -335,7 +335,7 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@use '../opsflow/styles/opsflow-global' as *;
+@use '../../../styles/opsflow-global' as *;
 
 .portal-page {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;

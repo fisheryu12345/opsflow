@@ -514,7 +514,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-@use './styles/opsflow-global' as *;
+@use '../../../styles/opsflow-global' as *;
 /* ===== Layout ===== */
 .opsflow-page {
   position: absolute;

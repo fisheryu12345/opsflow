@@ -234,7 +234,7 @@ function onClosed() {
 </script>
 
 <style lang="scss" scoped>
-@use '../../styles/opsflow-global' as *;
+@use '../../../../../styles/opsflow-global' as *;
 
 .condition-dialog-body {
   min-height: 200px;

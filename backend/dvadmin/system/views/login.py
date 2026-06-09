@@ -1,6 +1,7 @@
 import base64
 import hashlib
-from datetime import datetime, timedelta
+from datetime import timedelta
+from django.utils import timezone
 from captcha.views import CaptchaStore, captcha_image
 from django.contrib import auth
 from django.contrib.auth import login
@@ -68,7 +69,7 @@ class LoginSerializer(TokenObtainPairSerializer):
             self.image_code = CaptchaStore.objects.filter(
                 id=self.initial_data["captchaKey"]
             ).first()
-            five_minute_ago = datetime.now() - timedelta(hours=0, minutes=5, seconds=0)
+            five_minute_ago = timezone.now() - timedelta(hours=0, minutes=5, seconds=0)
             if self.image_code and five_minute_ago > self.image_code.expiration:
                 self.image_code and self.image_code.delete()
                 raise CustomValidationError("验证码过期")

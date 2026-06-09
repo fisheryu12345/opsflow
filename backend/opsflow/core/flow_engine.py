@@ -4,8 +4,9 @@
 节点状态追踪通过 post_set_state 信号异步完成（见 signals.py）。
 """
 
-import datetime
 import logging
+
+from django.utils import timezone
 
 from bamboo_engine import api as pipeline_api
 from bamboo_engine.builder import Data, Var
@@ -40,7 +41,7 @@ class FlowEngine:
     def _fail_execution(self, msg, save_fields=None, do_rollback=False):
         """标记执行为失败状态 — run() 中多处失败路径共享"""
         self.execution.status = "failed"
-        self.execution.ended_at = datetime.datetime.now()
+        self.execution.ended_at = timezone.now()
         if msg:
             self.execution.context['_validation_error'] = msg
         save_fields = save_fields or ["status", "ended_at"]
@@ -60,7 +61,7 @@ class FlowEngine:
             sync: True=同步执行（当前进程阻塞等待），False=派发到 Celery 异步执行
         """
         self.execution.status = "running"
-        self.execution.started_at = datetime.datetime.now()
+        self.execution.started_at = timezone.now()
         if not self.execution.node_status:
             self.execution.node_status = {}
         # 不重置 context — 保留创建时冻结的 template_snapshot
@@ -142,7 +143,7 @@ class FlowEngine:
             if not result.result:
                 logger.error("[FlowEngine] cancel failed: %s", result.message)
         self.execution.status = "cancelled"
-        self.execution.ended_at = datetime.datetime.now()
+        self.execution.ended_at = timezone.now()
         self.execution.save(update_fields=["status", "ended_at"])
         self._send_ws_completed()
         logger.info("[FlowEngine] execution %s cancelled", self.execution.id)

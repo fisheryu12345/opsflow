@@ -227,7 +227,7 @@ onMounted(loadList)
 </script>
 
 <style lang="scss" scoped>
-@use '../opsflow/styles/opsflow-global' as *;
+@use '../../../styles/opsflow-global' as *;
 
 .itsm-delegation {
   padding-top: 16px;

@@ -165,7 +165,7 @@ watch(() => props.projectId, (v) => { if (v) load() }, { immediate: true })
 </script>
 
 <style lang="scss" scoped>
-@use '../../styles/opsflow-global' as *;
+@use '../../../../../styles/opsflow-global' as *;
 .env-panel { display: flex; flex-direction: column; gap: 12px; }
 .env-header { display: flex; align-items: center; justify-content: space-between; }
 .env-title { font-size: 14px; font-weight: 600; color: #303133; }

@@ -102,7 +102,7 @@ function onSelect(value: string) {
 </script>
 
 <style lang="scss" scoped>
-@use '../../styles/opsflow-global' as *;
+@use '../../../../../styles/opsflow-global' as *;
 
 .variable-option {
   display: flex;

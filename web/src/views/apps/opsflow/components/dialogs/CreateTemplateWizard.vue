@@ -319,7 +319,7 @@ watch(() => props.modelValue, async (val) => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../styles/opsflow-global' as *;
+@use '../../../../../styles/opsflow-global' as *;
 
 $accent: #409EFF;
 $accent-dark: #337ecc;

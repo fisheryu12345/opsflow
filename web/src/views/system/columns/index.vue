@@ -121,7 +121,7 @@ const handleClick = (type: string, record: any) => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../apps/opsflow/styles/opsflow-global' as *;
+@use '../../../styles/opsflow-global' as *;
 
 .sys-page {
   position: absolute;

@@ -1,8 +1,8 @@
 import asyncio
-import datetime
 import os
 import re
 import uuid
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -24,7 +24,7 @@ class TaskRunViewSet(viewsets.GenericViewSet):
         user_input = ser.validated_data['input']
         environment_id = ser.validated_data.get('environment_id')
 
-        session_id = datetime.datetime.now().strftime('%Y%m%d-%H%M%S-') + uuid.uuid4().hex[:6]
+        session_id = timezone.now().strftime('%Y%m%d-%H%M%S-') + uuid.uuid4().hex[:6]
 
         env_type = RiskEnv.DEVELOPMENT
         env_name = None
@@ -118,7 +118,7 @@ class TaskRunViewSet(viewsets.GenericViewSet):
             }
             session.status = 'completed'
             session.task_status = 'completed'
-            session.ended_at = datetime.datetime.now()
+            session.ended_at = timezone.now()
             session.save()
 
             result_ser = TaskRunResultSerializer(instance={
@@ -134,7 +134,7 @@ class TaskRunViewSet(viewsets.GenericViewSet):
             session.status = 'aborted'
             session.task_status = 'failed'
             session.result_json = {'error': str(exc)}
-            session.ended_at = datetime.datetime.now()
+            session.ended_at = timezone.now()
             session.save()
             return Response(
                 {'code': 4000, 'msg': f'Execution failed: {exc}', 'data': None},

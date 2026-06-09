@@ -423,7 +423,7 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, z
 </script>
 
 <style lang="scss" scoped>
-@use '../../styles/opsflow-global' as *;
+@use '../../../../../styles/opsflow-global' as *;
 
 .design-canvas-wrapper {
   height: 100%;

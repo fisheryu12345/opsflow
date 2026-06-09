@@ -83,12 +83,12 @@ def dashboard_stats(request):
     )
 
     # Next scheduled run (soonest future execution)
-    now_naive = timezone.now().replace(tzinfo=None)
+    now = timezone.now()
     next_schedule = (
         SchedulePlan.objects.filter(
             is_active=True,
             next_run_at__isnull=False,
-            next_run_at__gte=now_naive,
+            next_run_at__gte=now,
         )
         .order_by("next_run_at")
         .first()

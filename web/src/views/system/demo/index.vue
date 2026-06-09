@@ -22,7 +22,7 @@ import { Monitor } from '@element-plus/icons-vue'
 </script>
 
 <style scoped lang="scss">
-@use '../../apps/opsflow/styles/opsflow-global' as *;
+@use '../../../styles/opsflow-global' as *;
 
 .of-page {
   padding: 24px;

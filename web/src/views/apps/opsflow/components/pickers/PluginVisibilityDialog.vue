@@ -213,7 +213,7 @@ watch(() => props.visible, (v) => { if (v) { loadData(); searchQuery.value = '' 
 </script>
 
 <style lang="scss" scoped>
-@use '../../styles/opsflow-global' as *;
+@use '../../../../../styles/opsflow-global' as *;
 
 .pv-dialog :deep(.el-dialog__body) { padding: 0; }
 .pv-body { max-height: 65vh; overflow-y: auto; padding: 18px 20px; }

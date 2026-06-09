@@ -46,7 +46,7 @@ function onSwitch(id: number) {
 </script>
 
 <style lang="scss" scoped>
-@use '../../styles/opsflow-global' as *;
+@use '../../../../../styles/opsflow-global' as *;
 
 .project-switcher {
   flex: 0 0 auto;
