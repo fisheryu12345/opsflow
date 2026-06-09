@@ -60,11 +60,13 @@
  * 并将 node_status 传递给本组件。
  */
 import { ref, computed, onMounted, onActivated, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Monitor, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
 import { useGraphCanvas, layoutNodes } from '../../composables/useGraphCanvas'
 import { resolveNodeShape, updateAtomNode, CARD_WIDTH, CARD_HEIGHT } from '../../utils/shapes'
 
 const props = defineProps<{ executionId: number; startedAt?: string; endedAt?: string }>()
+const { t } = useI18n()
 
 const canvasRef = ref<HTMLElement | null>(null)
 const graphNodeCount = ref(0)
@@ -133,14 +135,14 @@ function atomMonitorAttrs(status: string, _label: string): MonitorAttrs {
     case 'running':
       override.body = { fill: '#FFFBF0', stroke: '#E6A23C' }
       override.label = { fill: '#E6A23C' }
-      override.desc = { fill: '#E6A23C', text: '执行中' }
+      override.desc = { fill: '#E6A23C', text: t('message.execution.statRunning') }
       override['icon-bg'] = { stroke: '#E6A23C', strokeDasharray: '60 28' }
       override['status-dot'] = { fill: '#E6A23C' }
       break
     case 'completed':
       override.body = { fill: '#F0F9EB', stroke: '#67C23A' }
       override.label = { fill: '#67C23A' }
-      override.desc = { fill: '#67C23A', text: '已完成' }
+      override.desc = { fill: '#67C23A', text: t('message.execution.statCompleted') }
       override['icon-bg'] = { fill: '#E1F3D8', stroke: '#67C23A', strokeDasharray: '' }
       override.icon = { text: '✓', fill: '#67C23A', fontSize: 14 }
       override['status-dot'] = { fill: '#67C23A' }
@@ -148,7 +150,7 @@ function atomMonitorAttrs(status: string, _label: string): MonitorAttrs {
     case 'failed':
       override.body = { fill: '#FEF0F0', stroke: '#F56C6C' }
       override.label = { fill: '#F56C6C' }
-      override.desc = { fill: '#F56C6C', text: '失败' }
+      override.desc = { fill: '#F56C6C', text: t('message.execution.statFailed') }
       override['icon-bg'] = { fill: '#FDE2E2', stroke: '#F56C6C', strokeDasharray: '' }
       override.icon = { text: '✕', fill: '#F56C6C', fontSize: 14 }
       override['status-dot'] = { fill: '#F56C6C' }
@@ -156,14 +158,14 @@ function atomMonitorAttrs(status: string, _label: string): MonitorAttrs {
     case 'skipped':
       override.body = { fill: '#F5F7FA', stroke: '#C0C4CC' }
       override.label = { fill: '#C0C4CC' }
-      override.desc = { fill: '#C0C4CC', text: '已跳过' }
+      override.desc = { fill: '#C0C4CC', text: t('message.execution.statusSkipped') }
       override['icon-bg'] = { fill: '#EBEEF5', stroke: '#C0C4CC', strokeDasharray: '' }
       override['status-dot'] = { fill: '#C0C4CC' }
       break
     case 'pending_approval':
       override.body = { fill: '#F3E8FF', stroke: '#9B59B6' }
       override.label = { fill: '#9B59B6' }
-      override.desc = { fill: '#9B59B6', text: '等待审批' }
+      override.desc = { fill: '#9B59B6', text: t('message.execution.statusPendingApproval') }
       override['icon-bg'] = { fill: '#EDDDFF', stroke: '#9B59B6', strokeDasharray: '' }
       override.icon = { text: '🔐', fontSize: 14 }
       override['status-dot'] = { fill: '#9B59B6' }
@@ -171,7 +173,7 @@ function atomMonitorAttrs(status: string, _label: string): MonitorAttrs {
     default:
       override.body = { fill: '#FFF', stroke: '#DCDFE6' }
       override.label = { fill: '#C0C4CC' }
-      override.desc = { fill: '#C0C4CC', text: '等待执行' }
+      override.desc = { fill: '#C0C4CC', text: t('message.execution.statusWaiting') }
       override['icon-bg'] = { fill: '#F5F7FA', stroke: '#DCDFE6', strokeDasharray: '' }
       override['status-dot'] = { fill: 'transparent' }
   }

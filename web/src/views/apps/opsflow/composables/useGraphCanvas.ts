@@ -330,15 +330,15 @@ export function validateConditionExpr(
 }
 
 /** 默认节点 label 映射 */
-export function defaultNodeLabel(nodeType: string): string {
+export function defaultNodeLabel(nodeType: string, t?: (key: string) => string): string {
   const map: Record<string, string> = {
-    exclusive_gateway: 'Exclusive',
-    parallel_gateway: 'Parallel',
-    conditional_parallel_gateway: 'Conditional',
-    converge_gateway: 'Converge',
+    exclusive_gateway: t ? t('message.canvas.exclusiveGateway') : 'Exclusive Gateway',
+    parallel_gateway: t ? t('message.canvas.parallelGateway') : 'Parallel',
+    conditional_parallel_gateway: t ? t('message.canvas.conditionalGateway') : 'Conditional',
+    converge_gateway: t ? t('message.canvas.convergeGateway') : 'Converge',
     approval: 'Approval',
-    subprocess: 'SubProcess',
-    atom: 'Task',
+    subprocess: t ? t('message.canvas.subprocess') : 'SubProcess',
+    atom: t ? t('message.canvas.task') : 'Task',
   }
   return map[nodeType] || ''
 }

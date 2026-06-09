@@ -2,7 +2,7 @@
   <div class="execution-detail">
     <!-- Header -->
     <div class="detail-header">
-      <el-button text :icon="ArrowLeft" @click="$emit('back')">Back</el-button>
+      <el-button text :icon="ArrowLeft" @click="$emit('back')">{{ $t("message.common.back") }}</el-button>
       <div class="detail-header-info">
         <span class="detail-title">Execution #{{ execution.id }}</span>
         <el-tag :type="statusTagType" size="small" effect="dark">{{ statusLabel }}</el-tag>
@@ -12,16 +12,16 @@
       </div>
       <div class="detail-header-actions">
         <el-button type="success" :disabled="execDetail.status !== 'pending'" :loading="starting"
-                   @click="onStart">Start</el-button>
+                   @click="onStart">{{ $t("message.execution.start") }}</el-button>
         <el-button type="warning" :disabled="execDetail.status !== 'running'" :loading="pausing"
-                   @click="onPause">Pause</el-button>
+                   @click="onPause">{{ $t("message.execution.pause") }}</el-button>
         <el-button type="primary" :disabled="execDetail.status !== 'paused'" :loading="resuming"
-                   @click="onResume">Resume</el-button>
-        <el-button type="danger" :disabled="selectedNodeId === null" @click="onRetry">Retry</el-button>
-        <el-button type="info" :disabled="selectedNodeId === null" @click="onSkip">Skip</el-button>
+                   @click="onResume">{{ $t("message.execution.resume") }}</el-button>
+        <el-button type="danger" :disabled="selectedNodeId === null" @click="onRetry">{{ $t("message.execution.retry") }}</el-button>
+        <el-button type="info" :disabled="selectedNodeId === null" @click="onSkip">{{ $t("message.execution.skip") }}</el-button>
         <el-button type="danger" :disabled="!isCancelable"
-                   :loading="cancelling" @click="onCancel">Cancel</el-button>
-        <el-button type="info" @click="refresh">Refresh</el-button>
+                   :loading="cancelling" @click="onCancel">{{ $t("message.execution.cancel") }}</el-button>
+        <el-button type="info" @click="refresh">{{ $t("message.common.refresh") }}</el-button>
       </div>
     </div>
 
@@ -29,7 +29,7 @@
     <div v-if="isPendingApproval" class="approval-banner">
       <div class="approval-banner-left">
         <el-icon :size="18" color="#9B59B6"><Clock /></el-icon>
-        <span class="approval-banner-text">Pipeline paused — approval required</span>
+        <span class="approval-banner-text">{{ $t("message.execution.approvalRequired") }}</span>
         <el-tag size="small" type="warning" effect="light" round>{{ execDetail.current_node || 'approval node' }}</el-tag>
       </div>
       <div class="approval-banner-actions">
@@ -63,7 +63,7 @@
                 </div>
                 <div class="log-list" ref="logScrollRef">
                   <div v-if="logsLoading" class="log-empty">Loading logs...</div>
-                  <div v-else-if="logs.length === 0" class="log-empty">No logs yet</div>
+                  <div v-else-if="logs.length === 0" class="log-empty">{{ $t("message.execution.noLogs") }}</div>
                   <div v-for="log in logs" :key="log.id" class="log-entry">
                     <span class="log-time">{{ formatTime(log.created_at) }}</span>
                     <el-tag :type="logTagType(log.status)" size="small" effect="dark" round>{{ log.status }}</el-tag>
@@ -88,11 +88,11 @@
                   <table class="trace-table" v-if="traces.length > 0">
                     <thead>
                       <tr>
-                        <th>Node</th>
-                        <th>Status</th>
-                        <th>Duration</th>
-                        <th>Retry</th>
-                        <th>Action</th>
+                        <th>{{ $t("message.properties.nodeName") }}</th>
+                        <th>{{ $t("message.execution.status") }}</th>
+                        <th>{{ $t("message.execution.duration") }}</th>
+                        <th>{{ $t("message.execution.retry") }}</th>
+                        <th>{{ $t("message.execution.operate") }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -110,12 +110,12 @@
                         <td class="trace-retry-count">{{ t.retry_count }}</td>
                         <td>
                           <el-button size="small" text type="primary" @click.stop="viewTraceLog(t.node_id)"
-                                     :loading="logLoadingNode === t.node_id">Log</el-button>
+                                     :loading="logLoadingNode === t.node_id">{{ $t("message.execution.logView") }}</el-button>
                         </td>
                       </tr>
                     </tbody>
                   </table>
-                  <div v-else class="log-empty">No traces yet</div>
+                  <div v-else class="log-empty">{{ $t("message.execution.noTraces") }}</div>
                 </div>
                 <!-- Trace Log Viewer -->
                 <div v-if="traceLogContent !== null" class="trace-log-viewer">
@@ -137,7 +137,7 @@
                   <span><el-icon size="14"><Monitor /></el-icon> Node Data</span>
                   <el-tag v-if="selectedNodeId" size="small" type="info" effect="plain" round>{{ selectedNodeId }}</el-tag>
                 </div>
-                <div v-if="!selectedNodeId" class="log-empty">Click a node in Traces tab to view data</div>
+                <div v-if="!selectedNodeId" class="log-empty">{{ $t("message.execution.clickNodeHint") }}</div>
                 <div v-else-if="dataLoading" class="log-empty">Loading...</div>
                 <template v-else>
                   <!-- Inputs -->
@@ -151,7 +151,7 @@
                         <span class="data-val">{{ formatDataValue(val) }}</span>
                       </div>
                     </div>
-                    <div v-else class="data-empty">No inputs</div>
+                    <div v-else class="data-empty">{{ $t("message.common.noData") }}</div>
                   </div>
                   <!-- Outputs -->
                   <div class="data-group">
@@ -164,7 +164,7 @@
                         <span class="data-val">{{ formatDataValue(val) }}</span>
                       </div>
                     </div>
-                    <div v-else class="data-empty">No outputs</div>
+                    <div v-else class="data-empty">{{ $t("message.common.noData") }}</div>
                   </div>
                   <!-- Stdout (prominent) -->
                   <div v-if="nodeStdout" class="data-group">
@@ -191,6 +191,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, onActivated, onBeforeUnmount, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Refresh, Monitor, Document, Close, DArrowLeft, DArrowRight, CircleCheck, Clock, WarningFilled, Upload, Download } from '@element-plus/icons-vue'
@@ -202,6 +203,7 @@ import MonitorCanvas from '/@/views/apps/opsflow/components/canvas/MonitorCanvas
 
 const props = defineProps<{ execution: any }>()
 const emit = defineEmits<{ back: []; executionUpdate: [exec: any] }>()
+const { t } = useI18n()
 
 const monitorRef = ref<InstanceType<typeof MonitorCanvas> | null>(null)
 const logScrollRef = ref<HTMLElement | null>(null)
@@ -225,7 +227,7 @@ const traceLogNodeId = ref<string>('')
 const logLoadingNode = ref<string | null>(null)
 
 const statusLabel = computed(() => {
-  const map: Record<string, string> = { pending: 'Pending', pending_approval: 'Pending Approval', running: 'Running', paused: 'Paused', completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled' }
+  const map: Record<string, string> = { pending: t('message.execution.statePending'), pending_approval: t('message.execution.statusPendingApproval'), running: t('message.execution.statRunning'), paused: t('message.execution.statePaused'), completed: t('message.execution.statCompleted'), failed: t('message.execution.statFailed'), cancelled: t('message.execution.stateCancelled') }
   return map[execDetail.value.status] || execDetail.value.status
 })
 const statusTagType = computed(() => {

@@ -5,22 +5,22 @@
       <div class="tpl-hero-bg" />
       <div class="tpl-hero-inner">
         <div class="tpl-hero-left">
-          <h1 class="tpl-hero-title">Templates</h1>
-          <p class="tpl-hero-subtitle">Pipeline template library</p>
+          <h1 class="tpl-hero-title">{{ $t('message.template.title') }}</h1>
+          <p class="tpl-hero-subtitle">{{ $t('message.template.tplSubtitle') }}</p>
         </div>
         <ProjectSwitcher :dark="true" />
         <div class="tpl-hero-center">
-          <el-input v-model="filterName" placeholder="Search templates..." clearable size="default"
+          <el-input v-model="filterName" :placeholder="$t('message.template.searchPlaceholder')" clearable size="default"
             class="tpl-search-input" @keyup.enter="onFilter" @clear="onFilter">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
         </div>
         <div class="tpl-hero-stats">
-          <div class="tpl-stat-item"><span class="tpl-stat-value">{{ total }}</span><span class="tpl-stat-label">Total</span></div>
+          <div class="tpl-stat-item"><span class="tpl-stat-value">{{ total }}</span><span class="tpl-stat-label">{{ $t('message.template.tplStatTotal') }}</span></div>
           <div class="tpl-stat-divider" />
-          <div class="tpl-stat-item"><span class="tpl-stat-value">{{ pubCount }}</span><span class="tpl-stat-label">Published</span></div>
+          <div class="tpl-stat-item"><span class="tpl-stat-value">{{ pubCount }}</span><span class="tpl-stat-label">{{ $t('message.template.tplStatPublished') }}</span></div>
           <div class="tpl-stat-divider" />
-          <div class="tpl-stat-item"><span class="tpl-stat-value">{{ draftCount }}</span><span class="tpl-stat-label">Draft</span></div>
+          <div class="tpl-stat-item"><span class="tpl-stat-value">{{ draftCount }}</span><span class="tpl-stat-label">{{ $t('message.template.tplStatDraft') }}</span></div>
         </div>
       </div>
     </div>
@@ -38,24 +38,24 @@
       <div class="tpl-filter-bar">
         <div class="tpl-filter-tabs">
           <div class="tpl-tab" :class="{ active: filterStatus === '' }" @click="filterStatus = ''; onFilter()">
-            <span class="tpl-tab-dot" style="background:#409EFF" />All
+            <span class="tpl-tab-dot" style="background:#409EFF" />{{ $t('message.template.tplFilterAll') }}
           </div>
           <div class="tpl-tab" :class="{ active: filterStatus === 'published' }" @click="filterStatus = 'published'; onFilter()">
-            <span class="tpl-tab-dot" style="background:#67C23A" />Published
+            <span class="tpl-tab-dot" style="background:#67C23A" />{{ $t('message.template.tplFilterPublished') }}
           </div>
           <div class="tpl-tab" :class="{ active: filterStatus === 'draft' }" @click="filterStatus = 'draft'; onFilter()">
-            <span class="tpl-tab-dot" style="background:#E6A23C" />Draft
+            <span class="tpl-tab-dot" style="background:#E6A23C" />{{ $t('message.template.tplFilterDraft') }}
           </div>
         </div>
         <div class="tpl-filter-actions">
-          <el-select v-model="filterCategory" placeholder="Category" clearable filterable size="small" style="width:140px" @change="onFilter">
+          <el-select v-model="filterCategory" :placeholder="$t('message.template.tplFilterCategory')" clearable filterable size="small" style="width:140px" @change="onFilter">
             <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
           </el-select>
           <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">{{ $t('message.common.refresh') }}</el-button>
           <div class="tpl-view-toggle" :class="viewMode" @click="viewMode = viewMode === 'table' ? 'cards' : 'table'">
             <div class="tpl-toggle-btn"><el-icon :size="13"><component :is="viewMode === 'table' ? 'Grid' : 'List'" /></el-icon></div>
           </div>
-          <el-tooltip content="Import" placement="top">
+          <el-tooltip :content="$t('message.template.importTemplate')" placement="top">
             <div class="tpl-view-toggle" @click="openImport">
               <div class="tpl-toggle-btn"><el-icon :size="13"><UploadFilled /></el-icon></div>
             </div>
@@ -71,17 +71,17 @@
             <el-table-column prop="name" :label="$t('message.common.name')" width="160" show-overflow-tooltip />
             <el-table-column :label="$t('message.execution.status')" width="120" align="center">
               <template #default="{ row }">
-                <span class="tpl-status-badge" :class="row.is_draft ? 'st-draft' : 'st-published'">{{ row.is_draft ? 'Draft' : 'Published' }}</span>
+                <span class="tpl-status-badge" :class="row.is_draft ? 'st-draft' : 'st-published'">{{ row.is_draft ? $t('message.template.tplStatusDraft') : $t('message.template.tplStatusPublished') }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="Scope" width="110" align="center" v-if="activeTab === 'public'">
+            <el-table-column :label="$t('message.template.tplColScope')" width="110" align="center" v-if="activeTab === 'public'">
               <template #default="{ row }">
                 <el-tooltip :content="formatScope(row.project_scope)" placement="top">
                   <span class="tpl-scope-badge">{{ formatScopeShort(row.project_scope) }}</span>
                 </el-tooltip>
               </template>
             </el-table-column>
-            <el-table-column label="Pipeline" min-width="160" class-name="pipeline-col">
+            <el-table-column :label="$t('message.template.tplColPipeline')" min-width="160" class-name="pipeline-col">
               <template #default="{ row }">
                 <div class="tpl-mini-flow" v-if="row.pipeline_tree?.nodes?.length">
                   <template v-for="(node, ni) in row.pipeline_tree.nodes.slice(0, 6)" :key="node.id">
@@ -95,37 +95,37 @@
                 <span v-else class="tpl-no-pl">-</span>
               </template>
             </el-table-column>
-            <el-table-column prop="category" label="Category" width="120" show-overflow-tooltip />
-            <el-table-column prop="created_by_name" label="Creator" width="120" show-overflow-tooltip />
-            <el-table-column label="Version" width="120" align="center">
+            <el-table-column prop="category" :label="$t('message.template.tplColCategory')" width="120" show-overflow-tooltip />
+            <el-table-column prop="created_by_name" :label="$t('message.template.tplColCreator')" width="120" show-overflow-tooltip />
+            <el-table-column :label="$t('message.template.tplColVersion')" width="120" align="center">
               <template #default="{ row }">
                 <span v-if="!row.is_draft" class="tpl-version">V{{ row.version || 1 }}</span>
                 <span v-else class="tpl-no-pl">-</span>
               </template>
             </el-table-column>
-            <el-table-column prop="created_at" label="Created" width="140" />
+            <el-table-column prop="created_at" :label="$t('message.template.tplColCreated')" width="140" />
             <el-table-column label="Actions" width="280" fixed="right">
               <template #default="{ row }">
                 <div class="tpl-actions">
-                  <el-tooltip content="Edit in Designer" placement="top">
+                  <el-tooltip :content="$t('message.template.editInDesigner')" placement="top">
                     <el-button size="small" text type="primary" @click.stop="goEditTemplate(row)"><el-icon><Edit /></el-icon></el-button>
                   </el-tooltip>
-                  <el-tooltip v-if="!row.is_public || isSuperuser" content="Modify Info" placement="top">
+                  <el-tooltip v-if="!row.is_public || isSuperuser" :content="$t('message.template.modifyInfo')" placement="top">
                     <el-button size="small" text type="primary" @click.stop="openEdit(row)"><el-icon><Setting /></el-icon></el-button>
                   </el-tooltip>
-                  <el-tooltip v-if="!row.is_public || isSuperuser" :content="row.is_draft ? 'Publish' : 'New Version'" placement="top">
+                  <el-tooltip v-if="!row.is_public || isSuperuser" :content="row.is_draft ? $t('message.template.publish') : $t('message.template.newVersion')" placement="top">
                     <el-button size="small" text type="success" :loading="publishingId === row.id" @click.stop="handlePublish(row)"><el-icon><Upload /></el-icon></el-button>
                   </el-tooltip>
-                  <el-tooltip v-if="!row.is_draft && (!row.is_public || isSuperuser)" content="Schedule" placement="top">
+                  <el-tooltip v-if="!row.is_draft && (!row.is_public || isSuperuser)" :content="$t('message.schedule.title')" placement="top">
                     <el-button size="small" text type="warning" @click.stop="openSchedule(row)"><el-icon><Timer /></el-icon></el-button>
                   </el-tooltip>
-                  <el-tooltip content="Versions" placement="top">
+                  <el-tooltip :content="$t('message.template.versions')" placement="top">
                     <el-button size="small" text type="info" @click.stop="openVersions(row)"><el-icon><Clock /></el-icon></el-button>
                   </el-tooltip>
-                  <el-tooltip content="Export" placement="top">
+                  <el-tooltip :content="$t('message.common.export')" placement="top">
                     <el-button size="small" text @click.stop="handleExport(row)"><el-icon><Download /></el-icon></el-button>
                   </el-tooltip>
-                  <el-popconfirm v-if="!row.is_public || isSuperuser" title="Delete this template?" @confirm.stop="handleDelete(row)">
+                  <el-popconfirm v-if="!row.is_public || isSuperuser" :title="$t('message.template.confirmDelete')" @confirm.stop="handleDelete(row)">
                     <template #reference>
                       <el-tooltip :content="$t('message.common.delete')" placement="top">
                         <el-button size="small" text type="danger" @click.stop><el-icon><Delete /></el-icon></el-button>
@@ -150,7 +150,7 @@
           <div v-for="item in displayList" :key="item.id" class="tpl-card" @click="openView(item)">
             <div class="tpl-card-top">
               <div class="tpl-card-header">
-                <span class="tpl-card-badge" :class="item.is_draft ? 'st-draft' : 'st-published'">{{ item.is_draft ? 'Draft' : 'Published' }}</span>
+                <span class="tpl-card-badge" :class="item.is_draft ? 'st-draft' : 'st-published'">{{ item.is_draft ? $t('message.template.tplStatusDraft') : $t('message.template.tplStatusPublished') }}</span>
                 <span v-if="item.category" class="tpl-card-cat">{{ item.category }}</span>
               </div>
               <div class="tpl-card-name">{{ item.name }}</div>
@@ -158,8 +158,8 @@
             </div>
             <div class="tpl-card-bottom">
               <div class="tpl-card-stats">
-                <span class="tpl-stat-chip"><b>{{ item.pipeline_tree?.nodes?.length || 0 }}</b> nodes</span>
-                <span class="tpl-stat-chip"><b>{{ item.pipeline_tree?.edges?.length || 0 }}</b> edges</span>
+                <span class="tpl-stat-chip"><b>{{ item.pipeline_tree?.nodes?.length || 0 }}</b> {{ $t('message.template.tplNodes') }}</span>
+                <span class="tpl-stat-chip"><b>{{ item.pipeline_tree?.edges?.length || 0 }}</b> {{ $t('message.template.tplEdges') }}</span>
                 <span v-if="!item.is_draft" class="tpl-stat-chip">V{{ item.version || 1 }}</span>
               </div>
               <div class="tpl-card-actions" @click.stop>
@@ -184,7 +184,7 @@
                 <el-button size="small" text @click.stop="handleExport(item)">
                   <el-icon><Download /></el-icon>
                 </el-button>
-                <el-popconfirm v-if="!item.is_public || isSuperuser" title="Delete?" @confirm.stop="handleDelete(item)">
+                <el-popconfirm v-if="!item.is_public || isSuperuser" :title="$t('message.template.confirmDelete')" @confirm.stop="handleDelete(item)">
                   <template #reference><el-button size="small" text type="danger"><el-icon><Delete /></el-icon></el-button></template>
                 </el-popconfirm>
               </div>
@@ -195,35 +195,35 @@
     </div>
 
     <!-- Edit dialog -->
-    <el-dialog v-model="formVisible" title="Edit Template" width="480px" top="15vh" destroy-on-close>
+    <el-dialog v-model="formVisible" :title="$t('message.template.editTemplate')" width="480px" top="15vh" destroy-on-close>
       <el-form label-width="90px" size="small">
         <el-form-item :label="$t('message.common.name')" required>
-          <el-input v-model="form.name" placeholder="Template name" maxlength="200" />
+          <el-input v-model="form.name" :placeholder="$t('message.template.namePlaceholder')" maxlength="200" />
         </el-form-item>
-        <el-form-item label="Category">
-          <el-input v-model="form.category" placeholder="e.g. Inspection, Backup, Deploy" maxlength="64" />
+        <el-form-item :label="$t('message.template.tplColCategory')">
+          <el-input v-model="form.category" :placeholder="$t('message.template.categoryPlaceholder')" maxlength="64" />
         </el-form-item>
-        <el-form-item label="Desc">
-          <el-input v-model="form.description" type="textarea" :rows="2" placeholder="Optional description" maxlength="500" />
+        <el-form-item :label="$t('message.template.descLabel')">
+          <el-input v-model="form.description" type="textarea" :rows="2" :placeholder="$t('message.template.descPlaceholder')" maxlength="500" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false" size="small">{{ $t('message.common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleSave" size="small">Update</el-button>
+        <el-button type="primary" @click="handleSave" size="small">{{ $t('message.common.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- View dialog -->
-    <el-dialog v-model="viewVisible" title="Template Detail" width="760px" top="5vh" destroy-on-close class="tpl-view-dialog">
+    <el-dialog v-model="viewVisible" :title="$t('message.template.templateDetail')" width="760px" top="5vh" destroy-on-close class="tpl-view-dialog">
       <template v-if="viewRow">
         <div class="tpl-view-meta">
-          <span class="tpl-status-badge" :class="viewRow.is_draft ? 'st-draft' : 'st-published'">{{ viewRow.is_draft ? 'Draft' : 'Published' }}</span>
+          <span class="tpl-status-badge" :class="viewRow.is_draft ? 'st-draft' : 'st-published'">{{ viewRow.is_draft ? $t('message.template.tplStatusDraft') : $t('message.template.tplStatusPublished') }}</span>
           <span v-if="viewRow.category" class="tpl-view-cat">{{ viewRow.category }}</span>
-          <span class="tpl-view-info">By {{ viewRow.created_by_name || '-' }}</span>
+          <span class="tpl-view-info">{{ $t('message.template.tplBy') }} {{ viewRow.created_by_name || '-' }}</span>
           <span class="tpl-view-info">{{ viewRow.created_at }}</span>
         </div>
         <div class="tpl-view-section" v-if="viewRow.pipeline_tree?.nodes?.length">
-          <div class="tpl-view-section-title">Pipeline Flow</div>
+          <div class="tpl-view-section-title">{{ $t('message.template.pipelineFlow') }}</div>
           <div class="tpl-view-pipeline">
             <div v-for="(node, ni) in viewRow.pipeline_tree.nodes" :key="node.id" class="tpl-vp-node-wrapper">
               <div class="tpl-vp-node" :style="{ background: nodeColor(node, true), borderColor: nodeColor(node) }">
@@ -245,7 +245,7 @@
         </div>
         <div class="tpl-view-actions">
           <el-button size="small" :icon="Edit" @click="goEditTemplate(viewRow); viewVisible = false">{{ $t('message.common.edit') }}</el-button>
-          <el-button size="small" :icon="Upload" @click="handlePublish(viewRow)">Publish</el-button>
+          <el-button size="small" :icon="Upload" @click="handlePublish(viewRow)">{{ $t('message.template.publish') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -258,11 +258,11 @@
       :template-name="versionTemplateName" :current-version="versionCurrentVer" @rolled-back="fetchData" />
 
     <!-- Import dialog -->
-    <el-dialog v-model="importVisible" title="Import Template" width="480px" top="15vh" destroy-on-close>
+    <el-dialog v-model="importVisible" :title="$t('message.template.importTemplate')" width="480px" top="15vh" destroy-on-close>
       <el-upload drag accept=".json" :auto-upload="false" :limit="1" :on-change="onImportFileChange" :file-list="importFiles">
         <el-icon :size="32" color="#C0C4CC"><UploadFilled /></el-icon>
-        <div class="el-upload__text">Drop JSON here or <em>click to browse</em></div>
-        <template #tip><div class="el-upload__tip">Exported template JSON (.json)</div></template>
+        <div class="el-upload__text">{{ $t('message.template.dropJson') }}</div>
+        <template #tip><div class="el-upload__tip">{{ $t('message.template.jsonHint') }}</div></template>
       </el-upload>
       <template #footer>
         <el-button @click="importVisible = false" size="small">{{ $t('message.common.cancel') }}</el-button>
@@ -310,8 +310,8 @@ const editingId = ref<number | null>(null)
 const form = reactive({ name: '', category: '', description: '' })
 
 function formatScope(scope: string[] | undefined): string {
-  if (!scope || scope.length === 0) return 'No projects'
-  if (scope.includes('*')) return 'Visible to all projects'
+  if (!scope || scope.length === 0) return t('message.template.noProjects')
+  if (scope.includes('*')) return t('message.template.visibleAll')
   return `Visible to projects: ${scope.join(', ')}`
 }
 function formatScopeShort(scope: string[] | undefined): string {
@@ -348,7 +348,7 @@ const importing = ref(false)
 
 const pubCount = computed(() => displayList.value.filter(t => !t.is_draft).length)
 const draftCount = computed(() => displayList.value.filter(t => t.is_draft).length)
-const emptyText = computed(() => loading.value ? 'Loading...' : 'No templates yet')
+const emptyText = computed(() => loading.value ? 'Loading...' : t('message.template.noTemplates'))
 
 const displayList = computed(() => {
   let items = list.value
@@ -442,23 +442,23 @@ async function goEditTemplate(row: any) {
 }
 
 async function handleSave() {
-  if (!form.name.trim()) { ElMessage.warning('Name is required'); return }
+  if (!form.name.trim()) { ElMessage.warning(t('message.template.nameRequired')); return }
   if (!editingId.value) return
   try {
     const data = { name: form.name, category: form.category || '', description: form.description || '' }
     await UpdateTemplate(editingId.value, data)
-    ElMessage.success('Updated')
+    ElMessage.success(t('message.template.updateSuccess'))
     formVisible.value = false; await fetchData()
-  } catch (e: any) { ElMessage.error(e?.msg || e?.message || 'Failed') }
+  } catch (e: any) { ElMessage.error(e?.msg || e?.message || t('message.template.operationFailed')) }
 }
 
 async function handlePublish(row: any) {
   publishingId.value = row.id
   try {
-    if (row.is_draft) { await ConfirmDraft(row.id); ElMessage.success('Published as V1') }
-    else { await PublishTemplate(row.id); ElMessage.success('New version published') }
+    if (row.is_draft) { await ConfirmDraft(row.id); ElMessage.success(t('message.template.publishedV1')) }
+    else { await PublishTemplate(row.id); ElMessage.success(t('message.template.newVersionPublished')) }
     await fetchData()
-  } catch (e: any) { ElMessage.error(e?.msg || e?.message || 'Publish failed') }
+  } catch (e: any) { ElMessage.error(e?.msg || e?.message || t('message.template.publishFailed')) }
   publishingId.value = null
 }
 
@@ -466,19 +466,19 @@ function openImport() { importVisible.value = true; importFiles.value = []; impo
 function onImportFileChange(uploadFile: any) {
   const file = uploadFile.raw; if (!file) return
   const reader = new FileReader()
-  reader.onload = (e) => { try { importData.value = JSON.parse(e.target?.result as string); ElMessage.success('Parsed') } catch { ElMessage.error('Invalid JSON'); importData.value = null } }
+  reader.onload = (e) => { try { importData.value = JSON.parse(e.target?.result as string); ElMessage.success('Parsed') } catch { ElMessage.error(t('message.template.invalidJson')); importData.value = null } }
   reader.readAsText(file)
 }
 async function handleImport() {
   if (!importData.value) return; importing.value = true
-  try { await ImportTemplate({ data: importData.value }); ElMessage.success('Imported'); importVisible.value = false; await fetchData() } catch { ElMessage.error('Import failed') }
+  try { await ImportTemplate({ data: importData.value }); ElMessage.success(t('message.template.importSuccess')); importVisible.value = false; await fetchData() } catch { ElMessage.error(t('message.template.importFailed')) }
   importing.value = false
 }
 async function handleExport(row: any) {
-  try { const r = await ExportTemplate(row.id); const blob = new Blob([JSON.stringify(r.data?.data || r.data, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${row.name.replace(/\s+/g, '_')}.json`; a.click(); URL.revokeObjectURL(url); ElMessage.success('Exported') } catch { ElMessage.error('Export failed') }
+  try { const r = await ExportTemplate(row.id); const blob = new Blob([JSON.stringify(r.data?.data || r.data, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${row.name.replace(/\s+/g, '_')}.json`; a.click(); URL.revokeObjectURL(url); ElMessage.success(t('message.common.export')) } catch { ElMessage.error(t('message.template.exportFailed')) }
 }
 async function handleDelete(row: any) {
-  try { await ElMessageBox.confirm('Delete this template?', 'Confirm', { type: 'warning' }); await DeleteTemplate(row.id); ElMessage.success('Deleted'); await fetchData() } catch { /* cancelled */ }
+  try { await ElMessageBox.confirm('Delete this template?', 'Confirm', { type: 'warning' }); await DeleteTemplate(row.id); ElMessage.success(t('message.template.deleteSuccess')); await fetchData() } catch { /* cancelled */ }
 }
 
 function openView(row: any) { viewRow.value = row; viewVisible.value = true }

@@ -466,7 +466,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     // 内容节点
     for (const node of contentNodes) {
       const pos = positions[node.id] || { x: 0, y: 0 }
-      const nodeLabel = node.label || defaultNodeLabel(node.node_type)
+      const nodeLabel = node.label || defaultNodeLabel(node.node_type, t)
       const x6Node = graph.value.createNode({
         shape: resolveNodeShape(node),
         id: node.id, x: pos.x, y: pos.y,
