@@ -4,36 +4,33 @@
     <div class="portal-hero">
       <div class="portal-hero-bg" />
       <div class="portal-hero-inner">
-        <div class="portal-hero-content">
-          <div class="portal-hero-welcome">
-            <h1 class="portal-hero-title">
-              运维工作台
-              <span class="portal-hero-user" v-if="userInfo?.name">
-                — {{ userInfo.name }}
-              </span>
-            </h1>
-            <p class="portal-hero-subtitle">Welcome back — 这里聚合了你的待办、系统概览和快捷操作</p>
+        <div class="portal-hero-left">
+          <h1 class="portal-hero-title">
+            运维工作台
+            <span class="portal-hero-user" v-if="userInfo?.name">— {{ userInfo.name }}</span>
+          </h1>
+          <p class="portal-hero-subtitle">Welcome back — 这里聚合了你的待办、系统概览和快捷操作</p>
+        </div>
+        <div class="portal-hero-spacer" />
+        <div class="portal-hero-stats">
+          <div class="portal-stat-item">
+            <span class="portal-stat-value" :class="{ 'text-danger': stats.alerts?.firing > 0 }">{{ stats.alerts?.firing ?? '--' }}</span>
+            <span class="portal-stat-label">告警中</span>
           </div>
-          <div class="portal-hero-stats">
-            <div class="portal-stat-item">
-              <span class="portal-stat-value" :class="{ 'text-danger': stats.alerts?.firing > 0 }">{{ stats.alerts?.firing ?? '--' }}</span>
-              <span class="portal-stat-label">告警中</span>
-            </div>
-            <div class="portal-stat-divider" />
-            <div class="portal-stat-item">
-              <span class="portal-stat-value">{{ stats.itsm_ticket_stats?.running ?? stats.incidents?.open ?? '--' }}</span>
-              <span class="portal-stat-label">进行中工单</span>
-            </div>
-            <div class="portal-stat-divider" />
-            <div class="portal-stat-item">
-              <span class="portal-stat-value">{{ stats.execution_stats?.running ?? '--' }}</span>
-              <span class="portal-stat-label">执行中作业</span>
-            </div>
-            <div class="portal-stat-divider" />
-            <div class="portal-stat-item">
-              <span class="portal-stat-value" :class="{ 'text-danger': stats.incident_stats?.overdue > 0 }">{{ stats.incident_stats?.overdue ?? '--' }}</span>
-              <span class="portal-stat-label">SLA 违例</span>
-            </div>
+          <div class="portal-stat-divider" />
+          <div class="portal-stat-item">
+            <span class="portal-stat-value">{{ stats.itsm_ticket_stats?.running ?? stats.incidents?.open ?? '--' }}</span>
+            <span class="portal-stat-label">进行中工单</span>
+          </div>
+          <div class="portal-stat-divider" />
+          <div class="portal-stat-item">
+            <span class="portal-stat-value">{{ stats.execution_stats?.running ?? '--' }}</span>
+            <span class="portal-stat-label">执行中作业</span>
+          </div>
+          <div class="portal-stat-divider" />
+          <div class="portal-stat-item">
+            <span class="portal-stat-value" :class="{ 'text-danger': stats.incident_stats?.overdue > 0 }">{{ stats.incident_stats?.overdue ?? '--' }}</span>
+            <span class="portal-stat-label">SLA 违例</span>
           </div>
         </div>
       </div>
@@ -44,46 +41,11 @@
 
       <!-- Quick Stats Cards -->
       <div class="portal-quick-stats of-fade-in-up">
-        <div class="portal-qstat-card" style="--qstat-color: #F56C6C; --qstat-bg: #fef0f0;">
-          <div class="portal-qstat-icon"><el-icon :size="22"><WarningFilled /></el-icon></div>
+        <div v-for="(s, si) in quickStats" :key="s.key" class="portal-qstat-card" :style="{ '--qstat-color': s.color, '--qstat-bg': s.bg, '--i': si }">
+          <div class="portal-qstat-icon"><el-icon :size="22"><component :is="s.icon" /></el-icon></div>
           <div class="portal-qstat-body">
-            <div class="portal-qstat-value">{{ stats.alerts?.firing ?? '--' }}</div>
-            <div class="portal-qstat-label">进行中告警</div>
-          </div>
-        </div>
-        <div class="portal-qstat-card" style="--qstat-color: #E6A23C; --qstat-bg: #fdf6ec;">
-          <div class="portal-qstat-icon"><el-icon :size="22"><List /></el-icon></div>
-          <div class="portal-qstat-body">
-            <div class="portal-qstat-value">{{ stats.itsm_ticket_stats?.running ?? stats.incidents?.open ?? '--' }}</div>
-            <div class="portal-qstat-label">开放工单</div>
-          </div>
-        </div>
-        <div class="portal-qstat-card" style="--qstat-color: #67C23A; --qstat-bg: #f0f9eb;">
-          <div class="portal-qstat-icon"><el-icon :size="22"><Monitor /></el-icon></div>
-          <div class="portal-qstat-body">
-            <div class="portal-qstat-value">{{ stats.execution_stats?.running ?? '--' }}</div>
-            <div class="portal-qstat-label">执行中作业</div>
-          </div>
-        </div>
-        <div class="portal-qstat-card" style="--qstat-color: #409EFF; --qstat-bg: #ecf5ff;">
-          <div class="portal-qstat-icon"><el-icon :size="22"><Clock /></el-icon></div>
-          <div class="portal-qstat-body">
-            <div class="portal-qstat-value" :class="{ 'text-danger': stats.incident_stats?.overdue > 0 }">{{ stats.incident_stats?.overdue ?? '--' }}</div>
-            <div class="portal-qstat-label">SLA 违例</div>
-          </div>
-        </div>
-        <div class="portal-qstat-card" style="--qstat-color: #909399; --qstat-bg: #f5f7fa;">
-          <div class="portal-qstat-icon"><el-icon :size="22"><Folder /></el-icon></div>
-          <div class="portal-qstat-body">
-            <div class="portal-qstat-value">{{ stats.opsflow_template_stats?.published ?? '--' }}</div>
-            <div class="portal-qstat-label">已发布模板</div>
-          </div>
-        </div>
-        <div class="portal-qstat-card" style="--qstat-color: #F56C6C; --qstat-bg: #fef0f0;">
-          <div class="portal-qstat-icon"><el-icon :size="22"><Warning /></el-icon></div>
-          <div class="portal-qstat-body">
-            <div class="portal-qstat-value">{{ stats.execution_stats?.failed_today ?? '--' }}</div>
-            <div class="portal-qstat-label">今日失败</div>
+            <div class="portal-qstat-value" :class="{ 'text-danger': s.danger }">{{ s.label }}</div>
+            <div class="portal-qstat-num">{{ s.value }}</div>
           </div>
         </div>
       </div>
@@ -92,10 +54,16 @@
       <div class="portal-grid-2col">
 
         <!-- Left: My Tasks -->
-        <div class="portal-table-card of-fade-in-up">
-          <div class="portal-table-header">
-            <span class="portal-table-title">我的待办</span>
-            <el-button link type="primary" size="small" @click="$router.push('/apps/itsm')">查看全部</el-button>
+        <div class="portal-card of-fade-in-up">
+          <div class="portal-card-header">
+            <div class="portal-card-header-left">
+              <el-icon size="15" color="#409EFF"><List /></el-icon>
+              <span class="portal-card-title">我的待办</span>
+              <el-tag v-if="tasks.length > 0" size="small" type="primary" effect="plain" class="portal-card-count">{{ tasks.length }}</el-tag>
+            </div>
+            <el-button text size="small" @click="$router.push('/apps/itsm')">
+              查看全部 <el-icon><ArrowRight /></el-icon>
+            </el-button>
           </div>
           <el-table :data="tasks" v-loading="loadingTasks" stripe style="width:100%" size="small"
             :empty-text="loadingTasks ? '加载中...' : '暂无待办事项'"
@@ -126,15 +94,19 @@
         </div>
 
         <!-- Right: Recent Activity -->
-        <div class="portal-table-card of-fade-in-up">
-          <div class="portal-table-header">
-            <span class="portal-table-title">近期活动</span>
-            <el-button link type="primary" size="small" @click="loadRecentActivity">刷新</el-button>
+        <div class="portal-card of-fade-in-up">
+          <div class="portal-card-header">
+            <div class="portal-card-header-left">
+              <el-icon size="15" color="#E6A23C"><Timer /></el-icon>
+              <span class="portal-card-title">近期活动</span>
+            </div>
+            <el-button text size="small" :icon="Refresh" @click="loadRecentActivity">{{ $t("message.common.refresh") || '刷新' }}</el-button>
           </div>
           <div class="portal-activity-list" v-loading="loadingActivity">
             <div v-if="activities.length === 0 && !loadingActivity" class="portal-empty">暂无活动记录</div>
-            <div v-for="act in activities" :key="act.type + '-' + act.id"
-              class="portal-activity-item"
+            <div v-for="(act, ai) in activities" :key="act.type + '-' + act.id"
+              class="portal-activity-item of-stagger-item"
+              :style="{ animationDelay: `${ai * 0.06}s` }"
               @click="handleActivityClick(act)">
               <span class="portal-activity-icon" :class="'act-icon-' + act.type">
                 <el-icon :size="16">
@@ -158,30 +130,42 @@
       </div>
 
       <!-- Favorites -->
-      <div class="portal-table-card of-fade-in-up" v-if="favorites.templates?.length > 0 || favorites.recent_actions?.length > 0">
-        <div class="portal-table-header">
-          <span class="portal-table-title">收藏与最近</span>
-          <el-button link type="primary" size="small" @click="$router.push('/apps/opsflow')">管理模板</el-button>
+      <div class="portal-card of-fade-in-up" v-if="favorites.templates?.length > 0 || favorites.recent_actions?.length > 0">
+        <div class="portal-card-header">
+          <div class="portal-card-header-left">
+            <el-icon size="15" color="#E6A23C"><StarFilled /></el-icon>
+            <span class="portal-card-title">收藏与最近</span>
+          </div>
+          <el-button text size="small" @click="$router.push('/apps/opsflow')">
+            管理模板 <el-icon><ArrowRight /></el-icon>
+          </el-button>
         </div>
         <div class="portal-favorites-body">
-          <!-- Favorite Templates -->
           <div class="portal-fav-section" v-if="favorites.templates?.length > 0">
-            <div class="portal-fav-label">收藏的流程模板</div>
+            <div class="portal-fav-label">
+              <el-icon size="12"><StarFilled /></el-icon>
+              收藏的流程模板
+            </div>
             <div class="portal-fav-items">
-              <div v-for="tpl in favorites.templates" :key="'tpl-' + tpl.id"
-                class="portal-fav-item" @click="$router.push(tpl.url)">
+              <div v-for="(tpl, ti) in favorites.templates" :key="'tpl-' + tpl.id"
+                class="portal-fav-item of-stagger-item"
+                :style="{ animationDelay: `${ti * 0.06}s` }"
+                @click="$router.push(tpl.url)">
                 <el-icon><StarFilled /></el-icon>
                 <span class="portal-fav-name">{{ tpl.name }}</span>
                 <span class="portal-fav-category" v-if="tpl.category">{{ tpl.category }}</span>
               </div>
             </div>
           </div>
-          <!-- Recent Actions -->
           <div class="portal-fav-section" v-if="favorites.recent_actions?.length > 0">
-            <div class="portal-fav-label">最近操作</div>
+            <div class="portal-fav-label">
+              <el-icon size="12"><Clock /></el-icon>
+              最近操作
+            </div>
             <div class="portal-fav-items">
-              <div v-for="act in favorites.recent_actions" :key="'act-' + act.id"
-                class="portal-fav-item">
+              <div v-for="(act, ai) in favorites.recent_actions" :key="'act-' + act.id"
+                class="portal-fav-item of-stagger-item"
+                :style="{ animationDelay: `${ai * 0.06}s` }">
                 <el-icon><Clock /></el-icon>
                 <span class="portal-fav-name">{{ act.action || '操作' }}</span>
                 <span class="portal-fav-time">{{ formatTime(act.created_at) }}</span>
@@ -191,43 +175,55 @@
         </div>
       </div>
 
-      <!-- Module Health -->
-      <div class="portal-table-card of-fade-in-up" v-if="Object.keys(moduleCounts).length > 0">
-        <div class="portal-table-header">
-          <span class="portal-table-title">系统概览</span>
-        </div>
-        <div class="portal-health-body">
-          <div v-for="(count, key) in moduleCounts" :key="key" class="portal-health-item">
-            <span class="portal-health-label">{{ formatModuleName(key) }}</span>
-            <span class="portal-health-value" :class="{ 'text-muted': count === 0 }">{{ count }}</span>
+      <!-- Module Health & Quick Actions -->
+      <div class="portal-grid-2col">
+        <!-- Module Health -->
+        <div class="portal-card of-fade-in-up" v-if="Object.keys(moduleCounts).length > 0">
+          <div class="portal-card-header">
+            <div class="portal-card-header-left">
+              <el-icon size="15" color="#67C23A"><Monitor /></el-icon>
+              <span class="portal-card-title">系统概览</span>
+            </div>
+          </div>
+          <div class="portal-health-body">
+            <div v-for="(count, key) in moduleCounts" :key="key" class="portal-health-item of-stagger-item" :style="{ animationDelay: `${Object.keys(moduleCounts).indexOf(key) * 0.06}s` }">
+              <span class="portal-health-icon">{{ formatModuleIcon(key) }}</span>
+              <div class="portal-health-info">
+                <span class="portal-health-label">{{ formatModuleName(key) }}</span>
+                <span class="portal-health-value" :class="{ 'text-muted': count === 0 }">{{ count }}</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Quick Actions -->
-      <div class="portal-actions-card of-fade-in-up">
-        <div class="portal-actions-header">
-          <span class="portal-table-title">快捷操作</span>
-        </div>
-        <div class="portal-actions-body">
-          <el-button type="primary" size="default" @click="$router.push('/apps/itsm')">
-            <el-icon><Plus /></el-icon> 创建工单
-          </el-button>
-          <el-button size="default" @click="$router.push('/apps/opsflow')">
-            <el-icon><CaretRight /></el-icon> 执行流程
-          </el-button>
-          <el-button size="default" @click="$router.push('/apps/cmdb')">
-            <el-icon><Monitor /></el-icon> 查看 CMDB
-          </el-button>
-          <el-button size="default" @click="$router.push('/apps/monitor')">
-            <el-icon><WarningFilled /></el-icon> 告警中心
-          </el-button>
-          <el-button size="default" @click="$router.push('/apps/job-platform')">
-            <el-icon><Tools /></el-icon> 作业平台
-          </el-button>
-          <el-button size="default" @click="$router.push('/open-api')">
-            <el-icon><Connection /></el-icon> API 管理
-          </el-button>
+        <!-- Quick Actions -->
+        <div class="portal-card of-fade-in-up">
+          <div class="portal-card-header">
+            <div class="portal-card-header-left">
+              <el-icon size="15" color="#409EFF"><Lightning /></el-icon>
+              <span class="portal-card-title">快捷操作</span>
+            </div>
+          </div>
+          <div class="portal-actions-body">
+            <el-button type="primary" size="default" class="portal-action-btn" @click="$router.push('/apps/itsm')">
+              <el-icon><Plus /></el-icon> 创建工单
+            </el-button>
+            <el-button size="default" class="portal-action-btn" @click="$router.push('/apps/opsflow')">
+              <el-icon><CaretRight /></el-icon> 执行流程
+            </el-button>
+            <el-button size="default" class="portal-action-btn" @click="$router.push('/apps/cmdb')">
+              <el-icon><Monitor /></el-icon> 查看 CMDB
+            </el-button>
+            <el-button size="default" class="portal-action-btn" @click="$router.push('/apps/monitor')">
+              <el-icon><WarningFilled /></el-icon> 告警中心
+            </el-button>
+            <el-button size="default" class="portal-action-btn" @click="$router.push('/apps/job-platform')">
+              <el-icon><Tools /></el-icon> 作业平台
+            </el-button>
+            <el-button size="default" class="portal-action-btn" @click="$router.push('/open-api')">
+              <el-icon><Connection /></el-icon> API 管理
+            </el-button>
+          </div>
         </div>
       </div>
     </div>
@@ -235,11 +231,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { GetDashboard, GetMyTasks, GetRecentActivity, GetFavorites } from '/@/api/portal/index'
 import {
   WarningFilled, List, Monitor, Clock, Plus, CaretRight,
   Folder, Warning, StarFilled, Tools, Connection,
+  ArrowRight, Refresh, Lightning, Timer,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
@@ -254,6 +251,16 @@ const activities = ref<any[]>([])
 const favorites = ref<any>({ templates: [], recent_actions: [] })
 const moduleCounts = ref<Record<string, number>>({})
 const userInfo = ref<any>(null)
+
+// Quick stats card definitions / 快捷统计卡片定义
+const quickStats = computed(() => [
+  { key: 'alerts', value: stats.value.alerts?.firing ?? '--', label: '进行中告警', icon: WarningFilled, color: '#F56C6C', bg: '#fef0f0', danger: (stats.value.alerts?.firing ?? 0) > 0 },
+  { key: 'tickets', value: stats.value.itsm_ticket_stats?.running ?? stats.value.incidents?.open ?? '--', label: '开放工单', icon: List, color: '#E6A23C', bg: '#fdf6ec' },
+  { key: 'exec', value: stats.value.execution_stats?.running ?? '--', label: '执行中作业', icon: Monitor, color: '#67C23A', bg: '#f0f9eb' },
+  { key: 'sla', value: stats.value.incident_stats?.overdue ?? '--', label: 'SLA 违例', icon: Timer, color: '#409EFF', bg: '#ecf5ff', danger: (stats.value.incident_stats?.overdue ?? 0) > 0 },
+  { key: 'tpl', value: stats.value.opsflow_template_stats?.published ?? '--', label: '已发布模板', icon: Folder, color: '#909399', bg: '#f5f7fa' },
+  { key: 'fail', value: stats.value.execution_stats?.failed_today ?? '--', label: '今日失败', icon: Warning, color: '#F56C6C', bg: '#fef0f0', danger: (stats.value.execution_stats?.failed_today ?? 0) > 0 },
+])
 
 function formatTime(val: string | null | undefined): string {
   if (!val) return ''
@@ -276,6 +283,18 @@ function formatModuleName(key: string): string {
     alerts: '告警',
   }
   return map[key] || key
+}
+
+function formatModuleIcon(key: string): string {
+  const map: Record<string, string> = {
+    itsm_tickets: '📋',
+    opsflow_templates: '📁',
+    opsflow_executions: '⚡',
+    cmdb_hosts: '🖥',
+    incidents: '🚨',
+    alerts: '🔔',
+  }
+  return map[key] || '📊'
 }
 
 function handleTaskClick(row: any) {
@@ -340,40 +359,44 @@ onMounted(async () => {
 .portal-page {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   display: flex; flex-direction: column;
-  background: #f5f6fa; overflow: hidden;
+  background: $of-bg-page; overflow: hidden;
 }
 
-/* ===== Hero ===== */
+/* ===== Hero — dark gradient (matching opsflow-dashboard) ===== */
 .portal-hero {
   position: relative; flex-shrink: 0; overflow: hidden;
-  background: $of-gradient-hero;
-  border-bottom: 1px solid $of-border-light;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
 }
 .portal-hero-bg {
-  position: absolute; inset: 0; opacity: 0.04;
-  background-image: radial-gradient(circle at 15% 60%, #409EFF 2px, transparent 2px), radial-gradient(circle at 85% 40%, #667eea 2px, transparent 2px);
-  background-size: 60px 60px;
+  position: absolute; inset: 0; opacity: 0.06;
+  background-image:
+    radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px),
+    radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 .portal-hero-inner {
-  position: relative; z-index: 1; padding: 24px 32px;
+  position: relative; z-index: 1;
+  padding: 22px 32px;
+  display: flex; align-items: center; gap: 20px;
+  max-width: 1200px; margin: 0 auto;
 }
-.portal-hero-content { max-width: 1200px; margin: 0 auto; }
-.portal-hero-welcome { margin-bottom: 20px; }
-.portal-hero-title { margin: 0; font-size: 26px; font-weight: 800; color: $of-text-primary; }
-.portal-hero-user { font-weight: 400; font-size: 20px; color: $of-text-muted; }
-.portal-hero-subtitle { margin: 6px 0 0; color: $of-text-muted; font-size: 14px; }
-
-.portal-hero-stats { display: flex; align-items: center; gap: 0; }
-.portal-stat-item { text-align: center; padding: 0 24px; }
-.portal-stat-value { display: block; font-size: 24px; font-weight: 700; color: $of-text-primary; line-height: 1.3; }
-.portal-stat-label { font-size: 12px; color: $of-text-muted; margin-top: 2px; }
-.portal-stat-divider { width: 1px; height: 32px; background: $of-border-default; }
+.portal-hero-left { flex: 0 0 auto; }
+.portal-hero-title { margin: 0; font-size: 24px; font-weight: 800; color: #fff; white-space: nowrap; }
+.portal-hero-user { font-weight: 400; font-size: 18px; color: rgba(255,255,255,0.55); }
+.portal-hero-subtitle { margin: 4px 0 0; font-size: 12px; color: rgba(255,255,255,0.45); white-space: nowrap; }
+.portal-hero-spacer { flex: 1; }
+.portal-hero-stats { flex: 0 0 auto; display: flex; align-items: center; }
+.portal-stat-item { text-align: center; padding: 0 18px; }
+.portal-stat-value { display: block; font-size: 20px; font-weight: 700; color: #fff; line-height: 1.2; }
+.portal-stat-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; letter-spacing: 0.3px; }
+.portal-stat-divider { width: 1px; height: 26px; background: rgba(255,255,255,0.1); }
 
 /* ===== Body ===== */
 .portal-body {
   flex: 1; overflow-y: auto;
   padding: 20px 32px 32px;
   max-width: 1200px; margin: 0 auto; width: 100%; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 16px;
 }
 
 /* ===== Quick Stats ===== */
@@ -381,7 +404,6 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 12px;
-  margin-bottom: 20px;
 }
 @media (max-width: 1000px) {
   .portal-quick-stats { grid-template-columns: repeat(3, 1fr); }
@@ -392,13 +414,32 @@ onMounted(async () => {
 .portal-qstat-card {
   background: #fff;
   border-radius: 14px;
-  padding: 16px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
   box-shadow: $of-shadow-card;
-  @include of-hover-lift;
+  border: 1px solid $of-border-card;
   position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Gradient accent line on hover (matching opsflow-dashboard pattern) / 悬停时渐变色描边
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--qstat-color);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $of-shadow-hover;
+    border-color: transparent;
+    &::before { opacity: 1; }
+  }
 }
 .portal-qstat-icon {
   width: 40px; height: 40px;
@@ -408,36 +449,63 @@ onMounted(async () => {
   color: var(--qstat-color);
   flex-shrink: 0;
 }
-.portal-qstat-body { flex: 1; }
-.portal-qstat-value { font-size: 22px; font-weight: 700; line-height: 1.2; color: $of-text-primary; }
-.portal-qstat-label { font-size: 11px; color: $of-text-muted; margin-top: 2px; }
+.portal-qstat-body { flex: 1; display: flex; flex-direction: column; }
+.portal-qstat-value { font-size: 11px; color: $of-text-muted; order: 2; margin-top: 2px; }
+.portal-qstat-num { font-size: 22px; font-weight: 700; line-height: 1.2; color: $of-text-primary; order: 1; }
 
-/* ===== Two-column Grid ===== */
-.portal-grid-2col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-@media (max-width: 800px) {
-  .portal-grid-2col { grid-template-columns: 1fr; }
-}
-
-/* ===== Table Card ===== */
-.portal-table-card {
+/* ===== Card (standard OPSflow card with header/body) ===== */
+.portal-card {
   background: #fff;
   border-radius: 14px;
   box-shadow: $of-shadow-card;
+  border: 1px solid $of-border-card;
   overflow: hidden;
-  margin-bottom: 16px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    box-shadow: $of-shadow-hover;
+    border-color: transparent;
+  }
 }
-.portal-table-card :deep(.el-table th.el-table__cell) { background: #fafafa; color: #606266; font-weight: 600; font-size: 12px; }
-.portal-table-card :deep(.el-table__body tr:hover td) { background: #f5f7fa; cursor: pointer; }
-.portal-table-card :deep(.el-table__empty-text) { padding: 20px 0; }
-.portal-table-header {
-  display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 0;
+.portal-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid $of-border-light;
 }
-.portal-table-title { font-size: 15px; font-weight: 600; color: $of-text-primary; }
+.portal-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.portal-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: $of-text-primary;
+}
+.portal-card-count {
+  font-weight: 600;
+}
+.portal-card :deep(.el-table th.el-table__cell) {
+  background: #fafafa;
+  color: #606266;
+  font-weight: 600;
+  font-size: 12px;
+}
+.portal-card :deep(.el-table__body tr:hover td) {
+  background: #f5f7fa;
+  cursor: pointer;
+}
+.portal-card :deep(.el-table__empty-text) {
+  padding: 24px 0;
+}
+.portal-card :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background: #fafbfc;
+}
+.portal-card :deep(.el-table) {
+  border-top: none;
+}
 
 /* ===== Type Badge ===== */
 .portal-type-badge {
@@ -482,13 +550,23 @@ onMounted(async () => {
 .portal-status-closed { background: #f5f7fa; color: #909399; }
 .portal-status-terminated { background: #f5f7fa; color: #909399; }
 
+/* ===== Two-column Grid ===== */
+.portal-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 800px) {
+  .portal-grid-2col { grid-template-columns: 1fr; }
+}
+
 /* ===== Activity List ===== */
 .portal-activity-list {
-  padding: 8px 0;
+  padding: 4px 0;
   max-height: 420px;
   overflow-y: auto;
 }
-.portal-empty { text-align: center; padding: 40px 0; color: #909399; font-size: 13px; }
+.portal-empty { text-align: center; padding: 40px 0; color: $of-text-placeholder; font-size: 13px; }
 .portal-activity-item {
   display: flex;
   align-items: flex-start;
@@ -529,7 +607,11 @@ onMounted(async () => {
 .portal-favorites-body { padding: 12px 20px 16px; }
 .portal-fav-section { margin-bottom: 12px; }
 .portal-fav-section:last-child { margin-bottom: 0; }
-.portal-fav-label { font-size: 12px; color: #909399; margin-bottom: 8px; }
+.portal-fav-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: $of-text-muted; margin-bottom: 8px;
+  .el-icon { font-size: 13px; color: $of-text-placeholder; }
+}
 .portal-fav-items { display: flex; flex-wrap: wrap; gap: 8px; }
 .portal-fav-item {
   display: inline-flex;
@@ -537,51 +619,79 @@ onMounted(async () => {
   gap: 6px;
   padding: 6px 14px;
   border-radius: 8px;
-  background: #f5f7fa;
+  background: $of-bg-card;
+  border: 1px solid $of-border-card;
   cursor: pointer;
   font-size: 13px;
   color: $of-text-primary;
-  transition: background 0.15s;
+  transition: all 0.2s;
 }
-.portal-fav-item:hover { background: #ecf5ff; color: #409EFF; }
+.portal-fav-item:hover {
+  background: $of-bg-light-blue;
+  border-color: $of-border-blue;
+  color: $of-color-primary;
+  transform: translateY(-1px);
+}
 .portal-fav-item .el-icon { font-size: 14px; color: #E6A23C; }
-.portal-fav-category { font-size: 11px; color: #909399; margin-left: 4px; }
-.portal-fav-time { font-size: 11px; color: #c0c4cc; margin-left: 4px; }
+.portal-fav-category { font-size: 11px; color: $of-text-placeholder; margin-left: 4px; }
+.portal-fav-time { font-size: 11px; color: $of-text-placeholder; margin-left: 4px; }
 
 /* ===== Health ===== */
 .portal-health-body {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 16px 20px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 20px 16px;
 }
 .portal-health-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  background: #f5f7fa;
-  min-width: 140px;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: $of-bg-card;
+  transition: background 0.2s;
 }
-.portal-health-label { font-size: 12px; color: #606266; }
-.portal-health-value { font-size: 16px; font-weight: 700; color: $of-text-primary; margin-left: auto; }
-.portal-health-value.text-muted { color: #c0c4cc; }
-
-/* ===== Actions Card ===== */
-.portal-actions-card {
+.portal-health-item:hover { background: $of-bg-card-hover; }
+.portal-health-icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
+.portal-health-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+.portal-health-label { font-size: 13px; color: $of-text-secondary; }
+.portal-health-value {
+  font-size: 16px; font-weight: 700;
+  color: $of-text-primary;
+  margin-left: auto;
+  padding: 1px 10px;
+  border-radius: 6px;
   background: #fff;
-  border-radius: 14px;
-  box-shadow: $of-shadow-card;
-  overflow: hidden;
 }
-.portal-actions-header { padding: 16px 20px 0; }
+.portal-health-value.text-muted { color: $of-text-placeholder; background: transparent; }
+
+/* ===== Actions Body ===== */
 .portal-actions-body {
-  display: flex; gap: 12px; padding: 12px 20px 20px; flex-wrap: wrap;
+  display: flex; gap: 10px; padding: 14px 20px 18px; flex-wrap: wrap;
 }
+.portal-action-btn {
+  transition: all 0.2s;
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+/* ===== Scrollbar ===== */
+.portal-body::-webkit-scrollbar { width: 4px; }
+.portal-body::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 2px; }
+.portal-body::-webkit-scrollbar-track { background: transparent; }
+
+.portal-activity-list::-webkit-scrollbar { width: 3px; }
+.portal-activity-list::-webkit-scrollbar-thumb { background: #e0e2e6; border-radius: 2px; }
+.portal-activity-list::-webkit-scrollbar-track { background: transparent; }
 
 /* ===== Utilities ===== */
 .text-danger { color: #F56C6C; }
 .text-success { color: #67C23A; }
-.text-muted { color: #c0c4cc; }
+.text-muted { color: $of-text-placeholder; }
 </style>

@@ -5,8 +5,8 @@
       <div class="db-hero-bg" />
       <div class="db-hero-inner">
         <div class="db-hero-left">
-          <h1 class="db-hero-title">Dashboard</h1>
-          <p class="db-hero-subtitle">Pipeline execution overview &amp; system health</p>
+          <h1 class="db-hero-title">{{ $t("message.opsflowPage.dashboardTitle") }}</h1>
+          <p class="db-hero-subtitle">{{ $t("message.opsflowPage.dashboardSubtitle") }}</p>
         </div>
         <div class="db-hero-center">
           <el-radio-group v-model="period" size="small" @change="refreshAll" class="db-period-group">
@@ -16,13 +16,13 @@
           </el-radio-group>
         </div>
         <div class="db-hero-stats">
-          <div class="db-stat-item"><span class="db-stat-value">{{ stats.total_executions ?? 0 }}</span><span class="db-stat-label">Exec</span></div>
+          <div class="db-stat-item"><span class="db-stat-value">{{ stats.total_executions ?? 0 }}</span><span class="db-stat-label">{{ $t("message.opsflowPage.dashboardExec") }}</span></div>
           <div class="db-stat-divider" />
-          <div class="db-stat-item"><span class="db-stat-value">{{ stats.running_executions ?? 0 }}</span><span class="db-stat-label">Run</span></div>
+          <div class="db-stat-item"><span class="db-stat-value">{{ stats.running_executions ?? 0 }}</span><span class="db-stat-label">{{ $t("message.opsflowPage.dashboardRun") }}</span></div>
           <div class="db-stat-divider" />
-          <div class="db-stat-item"><span class="db-stat-value">{{ (stats.success_rate ?? 0) + '%' }}</span><span class="db-stat-label">Ok</span></div>
+          <div class="db-stat-item"><span class="db-stat-value">{{ (stats.success_rate ?? 0) + '%' }}</span><span class="db-stat-label">{{ $t("message.opsflowPage.dashboardOk") }}</span></div>
           <div class="db-stat-divider" />
-          <div class="db-stat-item"><span class="db-stat-value">{{ stats.failed_executions ?? 0 }}</span><span class="db-stat-label">Fail</span></div>
+          <div class="db-stat-item"><span class="db-stat-value">{{ stats.failed_executions ?? 0 }}</span><span class="db-stat-label">{{ $t("message.opsflowPage.dashboardFail") }}</span></div>
         </div>
       </div>
     </div>
@@ -46,7 +46,7 @@
       <div class="db-chart-row">
         <div class="db-chart-card db-chart-wide">
           <div class="db-chart-header">
-            <span class="db-chart-title">Execution Trend</span>
+            <span class="db-chart-title">{{ $t("message.opsflowPage.trendTitle") }}</span>
             <el-tag v-if="trendUp !== null" :type="trendUp >= 0 ? 'success' : 'danger'" size="small" effect="plain">
               {{ trendUp >= 0 ? '+' : '' }}{{ trendUp }}%
             </el-tag>
@@ -55,7 +55,7 @@
         </div>
         <div class="db-chart-card db-chart-narrow">
           <div class="db-chart-header">
-            <span class="db-chart-title">Status</span>
+            <span class="db-chart-title">{{ $t("message.execution.status") }}</span>
           </div>
           <div ref="statusChartRef" class="db-chart-area" />
         </div>
@@ -65,17 +65,17 @@
       <div class="db-chart-row">
         <div class="db-chart-card db-chart-wide">
           <div class="db-chart-header">
-            <span class="db-chart-title">Top Templates</span>
+            <span class="db-chart-title">{{ $t("message.opsflowPage.topTemplates") }}</span>
             <el-tag size="small" type="info" effect="plain">Top 8</el-tag>
           </div>
           <div ref="templatesChartRef" class="db-chart-area" />
         </div>
         <div class="db-chart-card db-chart-narrow">
           <div class="db-chart-header">
-            <span class="db-chart-title">Node Type</span>
+            <span class="db-chart-title">{{ $t("message.opsflowPage.dashboardNodeType") }}</span>
           </div>
           <div ref="nodeTypeChartRef" class="db-chart-area" />
-          <div v-if="nodeTypeDist.length === 0" class="db-chart-empty">No data yet</div>
+          <div v-if="nodeTypeDist.length === 0" class="db-chart-empty">{{ $t("message.common.noData") }}</div>
         </div>
       </div>
 
@@ -83,7 +83,7 @@
       <div class="db-section-header">
         <div class="db-section-header-left">
           <el-icon :size="16" color="#409EFF"><Timer /></el-icon>
-          <span class="db-section-title">Scheduler</span>
+          <span class="db-section-title">{{ $t("message.opsflowPage.dashboardScheduler") }}</span>
         </div>
         <el-tag size="small" type="info" effect="plain">
           {{ (scheduleStats.type_distribution || {}).cron || 0 }} cron · {{ (scheduleStats.type_distribution || {}).one_time || 0 }} once
@@ -107,13 +107,13 @@
       <div class="db-chart-row">
         <div class="db-chart-card db-chart-wide">
           <div class="db-chart-header">
-            <span class="db-chart-title">Schedule Execution Trend</span>
+            <span class="db-chart-title">{{ $t("message.opsflowPage.scheduleTrendTitle") }}</span>
             <el-tag v-if="scheduleTrendUp !== null" size="small" type="success" effect="plain">+{{ scheduleTrendUp }}%</el-tag>
           </div>
           <div ref="schedTrendChartRef" class="db-chart-area" />
         </div>
         <div class="db-chart-card db-chart-narrow">
-          <div class="db-chart-header"><span class="db-chart-title">Top Schedules</span></div>
+          <div class="db-chart-header"><span class="db-chart-title">{{ $t("message.opsflowPage.topSchedules") }}</span></div>
           <div class="db-sched-list">
             <div v-for="(s, si) in (scheduleStats.top_schedules || []).slice(0, 5)" :key="s.id" class="db-sched-item" :style="{ '--idx': si }">
               <span class="db-sched-rank">{{ si + 1 }}</span>
@@ -129,7 +129,7 @@
       <!-- Bottom row: User Activity + System Summary -->
       <div class="db-chart-row">
         <div class="db-chart-card db-chart-wide">
-          <div class="db-chart-header"><span class="db-chart-title">User Activity</span></div>
+          <div class="db-chart-header"><span class="db-chart-title">{{ $t("message.opsflowPage.userActivity") }}</span></div>
           <el-table :data="userActivity" stripe size="small" style="width:100%" empty-text="No data" class="db-table">
             <el-table-column label="User" min-width="120">
               <template #default="{ row }">
@@ -146,29 +146,29 @@
           </el-table>
         </div>
         <div class="db-chart-card db-chart-narrow">
-          <div class="db-chart-header"><span class="db-chart-title">System Summary</span></div>
+          <div class="db-chart-header"><span class="db-chart-title">{{ $t("message.opsflowPage.systemSummary") }}</span></div>
           <div class="db-summary">
             <div class="db-summary-item">
-              <span class="db-summary-label">Success Rate</span>
+              <span class="db-summary-label">{{ $t("message.opsflowPage.dashboardSuccessRate") }}</span>
               <el-progress :percentage="stats.success_rate || 0" :stroke-width="8" :status="(stats.success_rate || 0) >= 90 ? 'success' : (stats.success_rate || 0) >= 75 ? 'warning' : 'exception'" :format="() => (stats.success_rate || 0) + '%'" />
             </div>
             <div class="db-summary-item">
-              <span class="db-summary-label">Avg Duration</span>
+              <span class="db-summary-label">{{ $t("message.opsflowPage.dashboardAvgDuration") }}</span>
               <span class="db-summary-value">{{ formatDuration(stats.avg_duration_sec) }}</span>
             </div>
             <div class="db-summary-item">
-              <span class="db-summary-label">Nodes Executed</span>
+              <span class="db-summary-label">{{ $t("message.opsflowPage.dashboardNodesExecuted") }}</span>
               <span class="db-summary-value">{{ (stats.total_nodes_executed || 0).toLocaleString() }}</span>
             </div>
             <div class="db-summary-item">
-              <span class="db-summary-label">Templates</span>
+              <span class="db-summary-label">{{ $t("message.opsflowPage.dashboardTotalTemplates") }}</span>
               <div class="db-stacked-bar">
                 <div class="db-stack-track"><div class="db-stack-seg" style="background:#67C23A;flex:66" /><div class="db-stack-seg" style="background:#C0C4CC;flex:34" /></div>
                 <div class="db-stack-labels"><span><span class="dot" style="background:#67C23A" /> {{ stats.published_templates || 0 }}</span><span><span class="dot" style="background:#C0C4CC" /> {{ stats.draft_templates || 0 }}</span></div>
               </div>
             </div>
             <div class="db-summary-item">
-              <span class="db-summary-label">Health</span>
+              <span class="db-summary-label">{{ $t("message.opsflowPage.dashboardHealth") }}</span>
               <div class="db-health"><div class="db-health-bar h-completed" :style="{ flex: stats.completed_executions || 1 }">{{ stats.completed_executions || 0 }}</div><div class="db-health-bar h-failed" :style="{ flex: stats.failed_executions || 0.01 }">{{ stats.failed_executions || 0 }}</div><div class="db-health-bar h-running" :style="{ flex: stats.running_executions || 0.01 }">{{ stats.running_executions || 0 }}</div></div>
               <div class="db-health-legend"><span><span class="dot" style="background:#67C23A" /> OK</span><span><span class="dot" style="background:#F56C6C" /> Fail</span><span><span class="dot" style="background:#E6A23C" /> Run</span></div>
             </div>
@@ -180,6 +180,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, onUnmounted, shallowRef, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
@@ -190,6 +191,7 @@ import {
   GetDashboardStatusDistribution, GetDashboardNodeTypeDistribution,
 } from '../opsflow/api/dashboard'
 
+const { t } = useI18n()
 const loading = ref(false)
 const period = ref<'7d' | '14d' | '30d'>('30d')
 const stats = ref<any>({})
@@ -227,21 +229,21 @@ const trendUp = computed(() => {
 })
 
 const statsCards = computed(() => [
-  { key: 'total_exec', label: 'Total Executions', value: stats.value.total_executions ?? 0, icon: Histogram, color: '#409EFF' },
-  { key: 'running', label: 'Running Now', value: stats.value.running_executions ?? 0, icon: Loading, color: '#E6A23C' },
-  { key: 'completed', label: 'Completed', value: stats.value.completed_executions ?? 0, icon: CircleCheck, color: '#67C23A' },
-  { key: 'failed', label: 'Failed', value: stats.value.failed_executions ?? 0, icon: CircleClose, color: '#F56C6C' },
-  { key: 'templates', label: 'Templates', value: stats.value.total_templates ?? 0, icon: Collection, color: '#2f54eb' },
-  { key: 'published', label: 'Published', value: stats.value.published_templates ?? 0, icon: Upload, color: '#52c41a' },
-  { key: 'users', label: 'Active Users', value: stats.value.active_users_7d ?? 0, icon: User, color: '#eb2f96' },
+  { key: 'total_exec', label: t('message.opsflowPage.dashboardTotalExec'), value: stats.value.total_executions ?? 0, icon: Histogram, color: '#409EFF' },
+  { key: 'running', label: t('message.opsflowPage.dashboardRunningNow'), value: stats.value.running_executions ?? 0, icon: Loading, color: '#E6A23C' },
+  { key: 'completed', label: t('message.execution.statCompleted'), value: stats.value.completed_executions ?? 0, icon: CircleCheck, color: '#67C23A' },
+  { key: 'failed', label: t('message.execution.statFailed'), value: stats.value.failed_executions ?? 0, icon: CircleClose, color: '#F56C6C' },
+  { key: 'templates', label: t('message.opsflowPage.dashboardTotalTemplates'), value: stats.value.total_templates ?? 0, icon: Collection, color: '#2f54eb' },
+  { key: 'published', label: t('message.opsflowPage.dashboardPublished'), value: stats.value.published_templates ?? 0, icon: Upload, color: '#52c41a' },
+  { key: 'users', label: t('message.opsflowPage.dashboardActiveUsers'), value: stats.value.active_users_7d ?? 0, icon: User, color: '#eb2f96' },
 ])
 
 const schedCards = computed(() => [
-  { key: 'total_schedules', label: 'Sched Plans', value: stats.value.total_schedule_plans ?? 0, icon: Timer, color: '#2f54eb' },
-  { key: 'active_schedules', label: 'Active', value: stats.value.active_schedule_plans ?? 0, icon: VideoPlay, color: '#67C23A' },
-  { key: 'paused_schedules', label: 'Paused', value: stats.value.paused_schedule_plans ?? 0, icon: VideoPause, color: '#E6A23C' },
-  { key: 'total_runs', label: 'Total Runs', value: stats.value.total_scheduled_runs ?? 0, icon: RefreshRight, color: '#409EFF' },
-  { key: 'sched_success', label: 'Sched Success', value: (stats.value.schedule_success_rate ?? 0) + '%', icon: CircleCheck, color: '#52c41a' },
+  { key: 'total_schedules', label: t('message.opsflowPage.dashboardSchedPlans'), value: stats.value.total_schedule_plans ?? 0, icon: Timer, color: '#2f54eb' },
+  { key: 'active_schedules', label: t('message.opsflowPage.dashboardActive'), value: stats.value.active_schedule_plans ?? 0, icon: VideoPlay, color: '#67C23A' },
+  { key: 'paused_schedules', label: t('message.execution.statePaused'), value: stats.value.paused_schedule_plans ?? 0, icon: VideoPause, color: '#E6A23C' },
+  { key: 'total_runs', label: t('message.opsflowPage.dashboardTotalRuns'), value: stats.value.total_scheduled_runs ?? 0, icon: RefreshRight, color: '#409EFF' },
+  { key: 'sched_success', label: t('message.opsflowPage.dashboardSchedSuccess'), value: (stats.value.schedule_success_rate ?? 0) + '%', icon: CircleCheck, color: '#52c41a' },
 ])
 
 const scheduleTrendUp = computed(() => {

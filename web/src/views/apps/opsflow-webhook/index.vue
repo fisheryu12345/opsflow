@@ -38,13 +38,13 @@
       <div class="wh-filter-bar">
         <div class="wh-filter-tabs">
           <div class="wh-tab" :class="{ active: filterEvent === '' }" @click="filterEvent = ''; onSearch()">
-            <span class="wh-tab-dot" style="background:#409EFF" />All
+            <span class="wh-tab-dot" style="background:#409EFF" />{{ $t("message.opsflowPage.webhookFilterAll") }}
           </div>
           <div class="wh-tab" :class="{ active: filterEvent === 'completed' }" @click="filterEvent = 'completed'; onSearch()">
-            <span class="wh-tab-dot" style="background:#67C23A" />Completed
+            <span class="wh-tab-dot" style="background:#67C23A" />{{ $t("message.execution.statCompleted") }}
           </div>
           <div class="wh-tab" :class="{ active: filterEvent === 'failed' }" @click="filterEvent = 'failed'; onSearch()">
-            <span class="wh-tab-dot" style="background:#F56C6C" />Failed
+            <span class="wh-tab-dot" style="background:#F56C6C" />{{ $t("message.execution.statFailed") }}
           </div>
         </div>
         <div class="wh-filter-actions">
@@ -93,31 +93,31 @@
         <el-form-item :label="$t('message.common.name')" required>
           <el-input v-model="form.name" :placeholder="$t('message.opsflowPage.webhookNamePlaceholder')" maxlength="128" />
         </el-form-item>
-        <el-form-item label="URL" required>
+        <el-form-item :label="$t('message.opsflowPage.webhookUrl')" required>
           <el-input v-model="form.url" :placeholder="$t('message.opsflowPage.webhookUrlPlaceholder')" maxlength="1024" />
         </el-form-item>
-        <el-form-item label="Template" required>
-          <el-select v-model="form.template_id" placeholder="Select template" filterable style="width:100%">
+        <el-form-item :label="$t('message.execution.colTemplate')" required>
+          <el-select v-model="form.template_id" :placeholder="$t('message.opsflowPage.webhookSelectTemplate')" filterable style="width:100%">
             <el-option v-for="t in templates" :key="t.id" :label="t.name" :value="t.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Events">
+        <el-form-item :label="$t('message.opsflowPage.webhookEvents')">
           <el-checkbox-group v-model="form.trigger_events">
             <el-checkbox value="completed" size="small">{{ $t("message.execution.statCompleted") }}</el-checkbox>
             <el-checkbox value="failed" size="small">{{ $t("message.execution.statFailed") }}</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
-        <el-form-item label="Secret">
+        <el-form-item :label="$t('message.opsflowPage.webhookSecret')">
           <el-input v-model="form.secret" :placeholder="$t('message.opsflowPage.webhookSecretPlaceholder')" type="password" show-password maxlength="256" />
         </el-form-item>
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="Max Retries">
+            <el-form-item :label="$t('message.properties.maxRetries')">
               <el-input-number v-model="form.retry_count" :min="0" :max="10" style="width:100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="Interval (s)">
+            <el-form-item :label="$t('message.opsflowPage.webhookInterval')">
               <el-input-number v-model="form.retry_interval" :min="5" :max="3600" style="width:100%" />
             </el-form-item>
           </el-col>
@@ -141,36 +141,36 @@
           </span>
         </div>
         <el-descriptions :column="1" border size="small" class="wh-detail-descs">
-          <el-descriptions-item label="URL">{{ detail.url }}</el-descriptions-item>
-          <el-descriptions-item label="Template">{{ detail.template_name }}</el-descriptions-item>
-          <el-descriptions-item label="Max Retries">{{ detail.retry_count }}</el-descriptions-item>
-          <el-descriptions-item label="Retry Interval">{{ detail.retry_interval }}s</el-descriptions-item>
-          <el-descriptions-item label="HMAC Secret">{{ detail.has_secret ? '{{ $t("message.opsflowPage.webhookConfigured") }}' : '—' }}</el-descriptions-item>
-          <el-descriptions-item label="Created">{{ detail.created_at }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.opsflowPage.webhookUrl')">{{ detail.url }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.execution.colTemplate')">{{ detail.template_name }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.opsflowPage.webhookRetry')">{{ detail.retry_count }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.opsflowPage.webhookInterval')">{{ detail.retry_interval }}s</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.opsflowPage.webhookSecret')">{{ detail.has_secret ? $t('message.opsflowPage.webhookConfigured') : '—' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.opsflowPage.webhookCreated')">{{ detail.created_at }}</el-descriptions-item>
         </el-descriptions>
 
         <!-- {{ $t("message.opsflowPage.webhookDeliveryLogs") }} -->
         <div class="wh-detail-section">
           <div class="wh-detail-section-title">{{ $t("message.opsflowPage.webhookDeliveryLogs") }}</div>
-          <el-table :data="logs" v-loading="logLoading" stripe size="small" empty-text=t("message.opsflowPage.webhookNoLogs")>
-            <el-table-column label="Event" width="90">
+          <el-table :data="logs" v-loading="logLoading" stripe size="small" :empty-text="$t('message.opsflowPage.webhookNoLogs')">
+            <el-table-column :label="$t('message.opsflowPage.webhookEvent')" width="90">
               <template #default="{ row }">
                 <span class="wh-event-tag" :class="'event-' + row.event" style="font-size:11px">{{ row.event }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="Status" width="90">
+            <el-table-column :label="$t('message.execution.status')" width="90">
               <template #default="{ row }">
                 <span :class="'wh-log-status status-' + row.status">{{ row.status }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="HTTP" width="60" align="center">
+            <el-table-column :label="$t('message.opsflowPage.webhookHttp')" width="60" align="center">
               <template #default="{ row }">{{ row.response_status || '—' }}</template>
             </el-table-column>
-            <el-table-column label="Retry" width="50" align="center">{{ row.retry_count }}</el-table-column>
-            <el-table-column label="Error" min-width="180" show-overflow-tooltip>
+            <el-table-column :label="$t('message.execution.retry')" width="50" align="center">{{ row.retry_count }}</el-table-column>
+            <el-table-column :label="$t('message.opsflowPage.webhookError')" min-width="180" show-overflow-tooltip>
               <template #default="{ row }">{{ row.error_message || '—' }}</template>
             </el-table-column>
-            <el-table-column label="Time" width="160">
+            <el-table-column :label="$t('message.opsflowPage.webhookTime')" width="160">
               <template #default="{ row }">{{ row.created_at }}</template>
             </el-table-column>
           </el-table>
