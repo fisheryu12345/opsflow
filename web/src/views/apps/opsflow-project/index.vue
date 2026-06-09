@@ -5,13 +5,13 @@
       <div class="pj-hero-bg" />
       <div class="pj-hero-inner">
         <div class="pj-hero-left">
-          <h1 class="pj-hero-title">Projects</h1>
-          <p class="pj-hero-subtitle">Multi-tenant isolation for OpsFlow workspaces</p>
+          <h1 class="pj-hero-title">{{ $t("message.project.title") }}</h1>
+          <p class="pj-hero-subtitle">{{ $t("message.opsflowPage.projectsSubtitle") }}</p>
         </div>
         <div class="pj-hero-center">
           <el-input
             v-model="searchQuery"
-            placeholder="Search projects..."
+            :placeholder="$t('message.opsflowPage.projectsSearch')"
             clearable
             size="default"
             class="pj-search-input"
@@ -22,11 +22,11 @@
           </el-input>
         </div>
         <div class="pj-hero-stats">
-          <div class="pj-stat-item"><span class="pj-stat-value">{{ total }}</span><span class="pj-stat-label">Total</span></div>
+          <div class="pj-stat-item"><span class="pj-stat-value">{{ total }}</span><span class="pj-stat-label">{{ $t("message.opsflowPage.projectsStatTotal") }}</span></div>
           <div class="pj-stat-divider" />
-          <div class="pj-stat-item"><span class="pj-stat-value">{{ activeCount }}</span><span class="pj-stat-label">Active</span></div>
+          <div class="pj-stat-item"><span class="pj-stat-value">{{ activeCount }}</span><span class="pj-stat-label">{{ $t("message.opsflowPage.projectsStatActive") }}</span></div>
           <div class="pj-stat-divider" />
-          <div class="pj-stat-item"><span class="pj-stat-value">{{ templateTotal }}</span><span class="pj-stat-label">Templates</span></div>
+          <div class="pj-stat-item"><span class="pj-stat-value">{{ templateTotal }}</span><span class="pj-stat-label">{{ $t("message.opsflowPage.projectsStatTemplates") }}</span></div>
         </div>
       </div>
     </div>
@@ -37,18 +37,18 @@
       <div class="pj-filter-bar">
         <div class="pj-filter-tabs">
           <div class="pj-tab" :class="{ active: filterStatus === '' }" @click="filterStatus = ''; onSearch()">
-            <span class="pj-tab-dot" style="background:#409EFF" />All
+            <span class="pj-tab-dot" style="background:#409EFF" />{{ $t("message.opsflowPage.projectsFilterAll") }}
           </div>
           <div class="pj-tab" :class="{ active: filterStatus === 'active' }" @click="filterStatus = 'active'; onSearch()">
-            <span class="pj-tab-dot" style="background:#67C23A" />Active
+            <span class="pj-tab-dot" style="background:#67C23A" />{{ $t("message.opsflowPage.projectsFilterActive") }}
           </div>
           <div class="pj-tab" :class="{ active: filterStatus === 'inactive' }" @click="filterStatus = 'inactive'; onSearch()">
-            <span class="pj-tab-dot" style="background:#909399" />Inactive
+            <span class="pj-tab-dot" style="background:#909399" />{{ $t("message.opsflowPage.projectsFilterInactive") }}
           </div>
         </div>
         <div class="pj-filter-actions">
-          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">Refresh</el-button>
-          <el-button type="primary" :icon="Plus" @click="showForm(null)" size="small">New Project</el-button>
+          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">{{ $t("message.common.refresh") }}</el-button>
+          <el-button type="primary" :icon="Plus" @click="showForm(null)" size="small">{{ $t("message.opsflowPage.projectsNew") }}</el-button>
         </div>
       </div>
 
@@ -63,17 +63,17 @@
           <div class="pj-card-top">
             <div class="pj-card-badge-row">
               <span class="pj-card-badge" :class="p.is_active ? 'badge-active' : 'badge-inactive'">
-                {{ p.is_active ? 'Active' : 'Inactive' }}
+                {{ p.is_active ? $t('message.opsflowPage.projectsActive') : $t('message.opsflowPage.projectsInactive') }}
               </span>
               <span class="pj-card-owner" v-if="p.owner_name">👤 {{ p.owner_name }}</span>
             </div>
             <div class="pj-card-name">{{ p.name }}</div>
-            <div class="pj-card-desc">{{ p.description || 'No description' }}</div>
+            <div class="pj-card-desc">{{ p.description || t('message.opsflowPage.projectsNoDesc') }}</div>
           </div>
           <div class="pj-card-bottom">
             <div class="pj-card-stats">
-              <span class="pj-stat-chip"><b>{{ p.template_count ?? 0 }}</b> templates</span>
-              <span class="pj-stat-chip"><b>{{ p.execution_count ?? 0 }}</b> executions</span>
+              <span class="pj-stat-chip"><b>{{ p.template_count ?? 0 }}</b> {{ $t("message.opsflowPage.projectsTemplates") }}</span>
+              <span class="pj-stat-chip"><b>{{ p.execution_count ?? 0 }}</b> {{ $t("message.opsflowPage.projectsExecutions") }}</span>
             </div>
             <div class="pj-card-time">{{ p.created_at?.substring(0, 10) }}</div>
           </div>
@@ -82,25 +82,25 @@
     </div>
 
     <!-- Create/Edit dialog -->
-    <el-dialog v-model="formVisible" :title="formId ? 'Edit Project' : 'New Project'" width="480px" top="5vh" destroy-on-close>
+    <el-dialog v-model="formVisible" :title="formId ? $t('message.opsflowPage.projectsEdit') : $t('message.opsflowPage.projectsNew')" width="480px" top="5vh" destroy-on-close>
       <el-form label-width="100px">
-        <el-form-item label="Name" required>
-          <el-input v-model="form.name" placeholder="Project name (unique)" maxlength="128" />
+        <el-form-item :label="$t('message.common.name')" required>
+          <el-input v-model="form.name" :placeholder="$t('message.opsflowPage.projectsNamePlaceholder')" maxlength="128" />
         </el-form-item>
-        <el-form-item label="Description">
-          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="Optional description..." maxlength="255" />
+        <el-form-item :label="$t('message.template.descLabel')">
+          <el-input v-model="form.description" type="textarea" :rows="3" :placeholder="$t('message.opsflowPage.projectsDescPlaceholder')" maxlength="255" />
         </el-form-item>
-        <el-form-item v-if="formId" label="Active">
+        <el-form-item v-if="formId" :label="$t('message.opsflowPage.projectsActive')">
           <el-switch v-model="form.is_active" />
         </el-form-item>
-        <el-form-item label="Max Schedules">
+        <el-form-item :label="$t('message.opsflowPage.projectsMaxSchedules')">
           <el-input-number v-model="form.max_schedule_plans" :min="0" :max="1000" />
-          <div class="form-tip" style="margin-left:8px">0 = unlimited</div>
+          <div class="form-tip" style="margin-left:8px">{{ $t("message.opsflowPage.projectsUnlimitedHint") }}</div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="formVisible = false" size="small">Cancel</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving" size="small">{{ formId ? 'Update' : 'Create' }}</el-button>
+        <el-button @click="formVisible = false" size="small">{{ $t("message.common.cancel") }}</el-button>
+        <el-button type="primary" @click="handleSave" :loading="saving" size="small">{{ formId ? $t('message.opsflowPage.projectsUpdate') : $t('message.opsflowPage.projectsCreate') }}</el-button>
       </template>
     </el-dialog>
 
@@ -109,40 +109,40 @@
       <template v-if="detail">
         <el-tabs v-model="detailTab" class="pj-detail-tabs">
           <!-- ═══ Tab: Overview ═══ -->
-          <el-tab-pane label="Overview" name="overview">
+          <el-tab-pane :label="$t('message.opsflowPage.projectsOverview')" name="overview">
             <div class="pj-hero-row">
               <span class="pj-badge" :class="detail.is_active ? 'badge-active' : 'badge-inactive'">
-                {{ detail.is_active ? 'Active' : 'Inactive' }}
+                {{ detail.is_active ? $t('message.opsflowPage.projectsActive') : $t('message.opsflowPage.projectsInactive') }}
               </span>
-              <span class="pj-hero-label" v-if="detail.owner_name">Owner: {{ detail.owner_name }}</span>
-              <span class="pj-hero-date">Created {{ detail.created_at?.substring(0, 10) }}</span>
+              <span class="pj-hero-label" v-if="detail.owner_name">{{ $t("message.opsflowPage.projectsOwner") }}: {{ detail.owner_name }}</span>
+              <span class="pj-hero-date">{{ $t("message.opsflowPage.projectsCreated") }} {{ detail.created_at?.substring(0, 10) }}</span>
             </div>
 
             <div class="pj-info-grid">
-              <div class="pj-info-card"><span class="pj-info-label">Desc</span><span class="pj-info-value">{{ detail.description || '—' }}</span></div>
-              <div class="pj-info-card"><span class="pj-info-label">Templates</span><span class="pj-info-value">{{ detail.template_count ?? 0 }}</span></div>
-              <div class="pj-info-card"><span class="pj-info-label">Executions</span><span class="pj-info-value">{{ detail.execution_count ?? 0 }}</span></div>
-              <div class="pj-info-card"><span class="pj-info-label">Schedule Limit</span><span class="pj-info-value">{{ detail.max_schedule_plans ?? 'Unlimited' }}</span></div>
+              <div class="pj-info-card"><span class="pj-info-label">{{ $t("message.opsflowPage.projectsDescLabel") }}</span><span class="pj-info-value">{{ detail.description || '—' }}</span></div>
+              <div class="pj-info-card"><span class="pj-info-label">{{ $t("message.opsflowPage.projectsTemplates") }}</span><span class="pj-info-value">{{ detail.template_count ?? 0 }}</span></div>
+              <div class="pj-info-card"><span class="pj-info-label">{{ $t("message.opsflowPage.projectsExecutions") }}</span><span class="pj-info-value">{{ detail.execution_count ?? 0 }}</span></div>
+              <div class="pj-info-card"><span class="pj-info-label">{{ $t("message.opsflowPage.projectsScheduleLimit") }}</span><span class="pj-info-value">{{ detail.max_schedule_plans ?? $t('message.opsflowPage.projectsUnlimited') }}</span></div>
             </div>
 
             <div class="pj-overview-actions">
-              <el-button size="small" :icon="Edit" @click="showForm(detail); detailVisible = false">Edit</el-button>
+              <el-button size="small" :icon="Edit" @click="showForm(detail); detailVisible = false">{{ $t("message.common.edit") }}</el-button>
               <el-popconfirm title="Delete this project?" @confirm="handleDelete(detail)">
                 <template #reference>
-                  <el-button size="small" type="danger" :icon="Delete">Delete</el-button>
+                  <el-button size="small" type="danger" :icon="Delete">{{ $t("message.common.delete") }}</el-button>
                 </template>
               </el-popconfirm>
             </div>
           </el-tab-pane>
 
           <!-- ═══ Tab: Members ═══ -->
-          <el-tab-pane label="Members" name="members">
+          <el-tab-pane :label="$t('message.opsflowPage.projectsMembers')" name="members">
             <div class="pj-tab-header">
               <span class="pj-tab-title">{{ members.length }} member{{ members.length !== 1 ? 's' : '' }}</span>
             </div>
             <el-table :data="members" v-loading="membersLoading" size="small" empty-text="No members" style="width:100%">
-              <el-table-column prop="username" label="User" min-width="140" />
-              <el-table-column label="Role" width="120">
+              <el-table-column prop="username" :label="$t('message.opsflowPage.projectsUser')" min-width="140" />
+              <el-table-column :label="$t('message.opsflowPage.projectsRole')" width="120">
                 <template #default="{ row }">
                   <el-tag :type="row.role === 'admin' ? 'danger' : row.role === 'editor' ? 'primary' : 'info'" size="small" effect="plain">{{ row.role }}</el-tag>
                 </template>
@@ -155,31 +155,30 @@
             </el-table>
             <div class="pj-add-row">
               <el-select v-model="newMemberIds" filterable multiple collapse-tags collapse-tags-tooltip
-                :loading="usersLoading" placeholder="Select users..." style="width:260px" size="small" clearable>
+                :loading="usersLoading" :placeholder="$t('message.opsflowPage.projectsSelectUsers')" style="width:260px" size="small" clearable>
                 <el-option v-for="u in userOptions" :key="u.id" :label="u.username" :value="u.id" />
               </el-select>
               <el-select v-model="newMemberRole" size="small" style="width:110px">
                 <el-option label="Editor" value="editor" />
                 <el-option label="Viewer" value="viewer" />
               </el-select>
-              <el-button size="small" type="primary" @click="addMember" :disabled="!newMemberIds.length">Add</el-button>
+              <el-button size="small" type="primary" @click="addMember" :disabled="!newMemberIds.length">{{ $t("message.opsflowPage.projectsAdd") }}</el-button>
             </div>
           </el-tab-pane>
 
           <!-- ═══ Tab: Plugins ═══ -->
-          <el-tab-pane label="Plugins" name="plugins">
+          <el-tab-pane :label="$t('message.opsflowPage.projectsPlugins')" name="plugins">
             <div class="pj-tab-header">
-              <span class="pj-tab-title">Plugins for this project</span>
+              <span class="pj-tab-title">{{ $t("message.opsflowPage.projectsPluginsFor") }}</span>
             </div>
-            <p class="pj-tab-desc">Toggle which plugins are available when designing pipelines in this project.
-            When a plugin is switched off, it will not appear in the plugin picker for any template within this project.</p>
+            <p class="pj-tab-desc">{{ $t("message.opsflowPage.projectsPluginsDesc") }}</p>
             <el-button size="small" :icon="Setting" @click="showPluginVisibility = true" type="primary">
-              Manage Plugins
+              {{ $t("message.opsflowPage.projectsManagePlugins") }}
             </el-button>
           </el-tab-pane>
 
           <!-- ═══ Tab: Environment ═══ -->
-          <el-tab-pane label="Environment" name="env">
+          <el-tab-pane :label="$t('message.opsflowPage.projectsEnvironment')" name="env">
             <ProjectEnvVarPanel :project-id="detail.id" />
           </el-tab-pane>
         </el-tabs>
@@ -193,6 +192,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete, Setting } from '@element-plus/icons-vue'
 import { request } from '/@/utils/service'
@@ -200,6 +200,8 @@ import { GetProjects, CreateProject, UpdateProject, DeleteProject, GetProjectDet
          GetProjectMembers, AddProjectMember, RemoveProjectMember } from '../opsflow/api/projects'
 import PluginVisibilityDialog from '/@/views/apps/opsflow/components/pickers/PluginVisibilityDialog.vue'
 import ProjectEnvVarPanel from '/@/views/apps/opsflow/components/common/ProjectEnvVarPanel.vue'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -210,7 +212,7 @@ const filterStatus = ref('')
 const total = computed(() => projects.value.length)
 const activeCount = computed(() => projects.value.filter(p => p.is_active).length)
 const templateTotal = computed(() => projects.value.reduce((s, p) => s + (p.template_count || 0), 0))
-const emptyText = computed(() => 'No projects yet. Create one to get started.')
+const emptyText = computed(() => t('message.opsflowPage.projectsNoProjects'))
 
 // Form
 const formVisible = ref(false)
@@ -247,7 +249,7 @@ async function fetchData() {
     if (filterStatus.value === 'inactive') items = items.filter(p => !p.is_active)
     projects.value = items
   } catch (e: any) {
-    ElMessage.error(e?.msg || e?.message || 'Failed to load projects')
+    ElMessage.error(e?.msg || e?.message || t('message.opsflowPage.projectsLoadFailed'))
   } finally {
     loading.value = false
   }
@@ -329,7 +331,7 @@ async function removeMember(row: any) {
   if (!detail.value) return
   try {
     await RemoveProjectMember(detail.value.id, row.id)
-    ElMessage.success('Member removed')
+    ElMessage.success(t('message.opsflowPage.projectsMemberRemoved'))
     await loadMembers(detail.value.id)
   } catch (e: any) { ElMessage.error(e?.msg || e?.message || 'Failed to remove member') }
 }
@@ -340,10 +342,10 @@ async function handleSave() {
   try {
     if (formId.value) {
       await UpdateProject(formId.value, form.value)
-      ElMessage.success('Project updated')
+      ElMessage.success(t('message.opsflowPage.projectsUpdated'))
     } else {
       await CreateProject({ name: form.value.name, description: form.value.description })
-      ElMessage.success('Project created')
+      ElMessage.success(t('message.opsflowPage.projectsCreated'))
     }
     formVisible.value = false; await fetchData()
   } catch (e: any) {
@@ -356,7 +358,7 @@ async function handleSave() {
 async function handleDelete(row: any) {
   try {
     await DeleteProject(row.id)
-    ElMessage.success('Project deleted')
+    ElMessage.success(t('message.opsflowPage.projectsDeleted'))
     detailVisible.value = false; await fetchData()
   } catch (e: any) {
     ElMessage.error(e?.msg || e?.message || 'Delete failed')

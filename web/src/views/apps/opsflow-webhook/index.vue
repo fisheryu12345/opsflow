@@ -5,14 +5,14 @@
       <div class="wh-hero-bg" />
       <div class="wh-hero-inner">
         <div class="wh-hero-left">
-          <h1 class="wh-hero-title">Webhook</h1>
-          <p class="wh-hero-subtitle">HTTP callback notifications for pipeline events</p>
+          <h1 class="wh-hero-title">{{ $t("message.opsflowPage.webhookTitle") }}</h1>
+          <p class="wh-hero-subtitle">{{ $t("message.opsflowPage.webhookSubtitle") }}</p>
         </div>
         <ProjectSwitcher :dark="true" />
         <div class="wh-hero-center">
           <el-input
             v-model="searchQuery"
-            placeholder="Search webhooks..."
+            :placeholder="$t('message.opsflowPage.webhookSearch')"
             clearable
             size="default"
             class="wh-search-input"
@@ -23,11 +23,11 @@
           </el-input>
         </div>
         <div class="wh-hero-stats">
-          <div class="wh-stat-item"><span class="wh-stat-value">{{ total }}</span><span class="wh-stat-label">Total</span></div>
+          <div class="wh-stat-item"><span class="wh-stat-value">{{ total }}</span><span class="wh-stat-label">{{ $t("message.opsflowPage.webhookStatTotal") }}</span></div>
           <div class="wh-stat-divider" />
-          <div class="wh-stat-item"><span class="wh-stat-value">{{ activeCount }}</span><span class="wh-stat-label">Active</span></div>
+          <div class="wh-stat-item"><span class="wh-stat-value">{{ activeCount }}</span><span class="wh-stat-label">{{ $t("message.opsflowPage.webhookStatActive") }}</span></div>
           <div class="wh-stat-divider" />
-          <div class="wh-stat-item"><span class="wh-stat-value">{{ failedLogs }}</span><span class="wh-stat-label">Err</span></div>
+          <div class="wh-stat-item"><span class="wh-stat-value">{{ failedLogs }}</span><span class="wh-stat-label">{{ $t("message.opsflowPage.webhookStatErr") }}</span></div>
         </div>
       </div>
     </div>
@@ -48,8 +48,8 @@
           </div>
         </div>
         <div class="wh-filter-actions">
-          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">Refresh</el-button>
-          <el-button type="primary" :icon="Plus" @click="showForm(null)" size="small">Add Webhook</el-button>
+          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">{{ $t("message.common.refresh") }}</el-button>
+          <el-button type="primary" :icon="Plus" @click="showForm(null)" size="small">{{ $t("message.opsflowPage.webhookAdd") }}</el-button>
         </div>
       </div>
 
@@ -64,7 +64,7 @@
           <div class="wh-card-top">
             <div class="wh-card-header">
               <div class="wh-card-badge" :class="w.enabled ? 'badge-active' : 'badge-paused'">
-                {{ w.enabled ? 'Active' : 'Paused' }}
+                {{ w.enabled ? $t('message.opsflowPage.webhookActive') : $t('message.opsflowPage.webhookPaused') }}
               </div>
               <div class="wh-card-event-tags">
                 <span v-for="ev in (w.trigger_events || [])" :key="ev"
@@ -77,7 +77,7 @@
           <div class="wh-card-bottom">
             <div class="wh-card-meta">
               <span class="wh-card-template">📋 {{ w.template_name || '-' }}</span>
-              <span class="wh-card-secret" v-if="w.has_secret">🔐 Signed</span>
+              <span class="wh-card-secret" v-if="w.has_secret">🔐 {{ $t("message.opsflowPage.webhookSigned") }}</span>
             </div>
             <div class="wh-card-actions">
               <el-tag type="info" size="small" effect="plain">Retry {{ w.retry_count }}</el-tag>
@@ -88,13 +88,13 @@
     </div>
 
     <!-- Create/Edit dialog -->
-    <el-dialog v-model="formVisible" :title="formId ? 'Edit Webhook' : 'Add Webhook'" width="560px" top="5vh" destroy-on-close>
+    <el-dialog v-model="formVisible" :title="formId ? $t('message.opsflowPage.webhookEdit') : $t('message.opsflowPage.webhookAdd')" width="560px" top="5vh" destroy-on-close>
       <el-form label-width="100px" size="small">
-        <el-form-item label="Name" required>
-          <el-input v-model="form.name" placeholder="Webhook name" maxlength="128" />
+        <el-form-item :label="$t('message.common.name')" required>
+          <el-input v-model="form.name" :placeholder="$t('message.opsflowPage.webhookNamePlaceholder')" maxlength="128" />
         </el-form-item>
         <el-form-item label="URL" required>
-          <el-input v-model="form.url" placeholder="https://example.com/callback" maxlength="1024" />
+          <el-input v-model="form.url" :placeholder="$t('message.opsflowPage.webhookUrlPlaceholder')" maxlength="1024" />
         </el-form-item>
         <el-form-item label="Template" required>
           <el-select v-model="form.template_id" placeholder="Select template" filterable style="width:100%">
@@ -103,12 +103,12 @@
         </el-form-item>
         <el-form-item label="Events">
           <el-checkbox-group v-model="form.trigger_events">
-            <el-checkbox value="completed" size="small">completed</el-checkbox>
-            <el-checkbox value="failed" size="small">failed</el-checkbox>
+            <el-checkbox value="completed" size="small">{{ $t("message.execution.statCompleted") }}</el-checkbox>
+            <el-checkbox value="failed" size="small">{{ $t("message.execution.statFailed") }}</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
         <el-form-item label="Secret">
-          <el-input v-model="form.secret" placeholder="HMAC signing key (optional)" type="password" show-password maxlength="256" />
+          <el-input v-model="form.secret" :placeholder="$t('message.opsflowPage.webhookSecretPlaceholder')" type="password" show-password maxlength="256" />
         </el-form-item>
         <el-row :gutter="16">
           <el-col :span="12">
@@ -124,8 +124,8 @@
         </el-row>
       </el-form>
       <template #footer>
-        <el-button @click="formVisible = false" size="small">Cancel</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving" size="small">{{ formId ? 'Update' : 'Create' }}</el-button>
+        <el-button @click="formVisible = false" size="small">{{ $t("message.common.cancel") }}</el-button>
+        <el-button type="primary" @click="handleSave" :loading="saving" size="small">{{ formId ? $t('message.opsflowPage.webhookUpdate') : $t('message.opsflowPage.webhookCreate') }}</el-button>
       </template>
     </el-dialog>
 
@@ -134,7 +134,7 @@
       <template v-if="detail">
         <div class="wh-detail-meta">
           <span class="wh-detail-badge" :class="detail.enabled ? 'badge-active' : 'badge-paused'">
-            {{ detail.enabled ? 'Active' : 'Paused' }}
+            {{ detail.enabled ? $t('message.opsflowPage.webhookActive') : $t('message.opsflowPage.webhookPaused') }}
           </span>
           <span class="wh-detail-events">
             <span v-for="ev in (detail.trigger_events || [])" :key="ev" class="wh-event-tag" :class="'event-' + ev">{{ ev }}</span>
@@ -145,14 +145,14 @@
           <el-descriptions-item label="Template">{{ detail.template_name }}</el-descriptions-item>
           <el-descriptions-item label="Max Retries">{{ detail.retry_count }}</el-descriptions-item>
           <el-descriptions-item label="Retry Interval">{{ detail.retry_interval }}s</el-descriptions-item>
-          <el-descriptions-item label="HMAC Secret">{{ detail.has_secret ? '✓ Configured' : '—' }}</el-descriptions-item>
+          <el-descriptions-item label="HMAC Secret">{{ detail.has_secret ? '{{ $t("message.opsflowPage.webhookConfigured") }}' : '—' }}</el-descriptions-item>
           <el-descriptions-item label="Created">{{ detail.created_at }}</el-descriptions-item>
         </el-descriptions>
 
-        <!-- Delivery Logs -->
+        <!-- {{ $t("message.opsflowPage.webhookDeliveryLogs") }} -->
         <div class="wh-detail-section">
-          <div class="wh-detail-section-title">Delivery Logs</div>
-          <el-table :data="logs" v-loading="logLoading" stripe size="small" empty-text="No delivery logs">
+          <div class="wh-detail-section-title">{{ $t("message.opsflowPage.webhookDeliveryLogs") }}</div>
+          <el-table :data="logs" v-loading="logLoading" stripe size="small" empty-text=t("message.opsflowPage.webhookNoLogs")>
             <el-table-column label="Event" width="90">
               <template #default="{ row }">
                 <span class="wh-event-tag" :class="'event-' + row.event" style="font-size:11px">{{ row.event }}</span>
@@ -177,10 +177,10 @@
         </div>
 
         <div class="wh-detail-actions">
-          <el-button size="small" :icon="Edit" @click="showForm(detail); detailVisible = false">Edit</el-button>
+          <el-button size="small" :icon="Edit" @click="showForm(detail); detailVisible = false">{{ $t("message.common.edit") }}</el-button>
           <el-popconfirm title="Delete this webhook?" @confirm="handleDelete(detail)">
             <template #reference>
-              <el-button size="small" type="danger" :icon="Delete">Delete</el-button>
+              <el-button size="small" type="danger" :icon="Delete">{{ $t("message.common.delete") }}</el-button>
             </template>
           </el-popconfirm>
         </div>
@@ -190,6 +190,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete, Link } from '@element-plus/icons-vue'
@@ -199,6 +200,7 @@ import {
 } from '../opsflow/api/webhooks'
 
 import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
+const { t } = useI18n()
 const loading = ref(false)
 const saving = ref(false)
 const webhooks = ref<any[]>([])
@@ -210,7 +212,7 @@ const total = computed(() => webhooks.value.length)
 const activeCount = computed(() => webhooks.value.filter(w => w.enabled).length)
 const failedLogs = computed(() => 0)  // placeholder
 
-const emptyText = computed(() => 'No webhooks configured yet. Create one to receive HTTP callbacks.')
+const emptyText = computed(() => t('message.opsflowPage.webhookEmptyText'))
 
 // Form
 const formVisible = ref(false)
@@ -240,7 +242,7 @@ async function fetchData() {
       ? results.filter(w => w.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || w.url.includes(searchQuery.value))
       : results
   } catch (e: any) {
-    ElMessage.error(e?.msg || 'Failed to load webhooks')
+    ElMessage.error(e?.msg || t('message.opsflowPage.webhookLoadFailed'))
   } finally {
     loading.value = false
   }
@@ -262,20 +264,20 @@ function showForm(row: any | null) {
 
 async function handleSave() {
   if (!form.value.name || !form.value.url || !form.value.template_id) {
-    ElMessage.warning('Name, URL, and Template are required'); return
+    ElMessage.warning(t('message.opsflowPage.webhookRequired')); return
   }
   saving.value = true
   try {
     if (formId.value) {
       await UpdateWebhook(form.value.template_id, formId.value, form.value)
-      ElMessage.success('Webhook updated')
+      ElMessage.success(t('message.opsflowPage.webhookUpdated'))
     } else {
       await CreateWebhook(form.value.template_id, form.value)
-      ElMessage.success('Webhook created')
+      ElMessage.success(t('message.opsflowPage.webhookCreated'))
     }
     formVisible.value = false; await fetchData()
   } catch (e: any) {
-    ElMessage.error(e?.msg || 'Save failed')
+    ElMessage.error(e?.msg || t('message.opsflowPage.webhookSaveFailed'))
   } finally {
     saving.value = false
   }
@@ -284,10 +286,10 @@ async function handleSave() {
 async function handleDelete(row: any) {
   try {
     await DeleteWebhook(row.template_id, row.id)
-    ElMessage.success('Webhook deleted')
+    ElMessage.success(t('message.opsflowPage.webhookDeleted'))
     detailVisible.value = false; await fetchData()
   } catch (e: any) {
-    ElMessage.error(e?.msg || 'Delete failed')
+    ElMessage.error(e?.msg || t('message.opsflowPage.webhookDeleteFailed'))
   }
 }
 

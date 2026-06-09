@@ -1,14 +1,14 @@
 <template>
   <el-dialog :model-value="visible" @update:model-value="emit('update:visible', $event)"
-    :title="projectName ? `Plugins: ${projectName}` : 'Plugin Visibility'" width="720px" top="5vh" destroy-on-close
+    :title="projectName ? `${$t('message.opsflowPage.pluginVisTitle')}: ${projectName}` : $t('message.opsflowPage.pluginVisTitle')" width="720px" top="5vh" destroy-on-close
     class="opsflow-dialog pv-dialog">
     <div v-loading="loading" class="pv-body">
       <div class="pv-intro">
-        Toggle plugins ON to show them in this project, OFF to hide them.
-        <span v-if="enabledCount < totalPlugins" class="pv-intro-note">{{ disabledCount }} plugin(s) currently hidden.</span>
+        {{ $t("message.opsflowPage.pluginVisDesc1") }}
+        <span v-if="enabledCount < totalPlugins" class="pv-intro-note">{{ disabledCount }} {{ $t("message.opsflowPage.pluginVisHidden") }}</span>
       </div>
 
-      <el-input v-model="searchQuery" placeholder="Search plugin name or code..."
+      <el-input v-model="searchQuery" :placeholder="$t('message.opsflowPage.pluginVisSearch')"
         clearable prefix-icon="Search" size="small" class="pv-search" />
 
       <div v-for="(plugins, group) in groupedPlugins" :key="group" class="pv-group">
@@ -25,8 +25,8 @@
             <el-switch
               :model-value="plugin.enabled"
               size="small"
-              active-text="On"
-              inactive-text="Off"
+              :active-text="$t('message.opsflowPage.pluginVisOn')"
+              :inactive-text="$t('message.opsflowPage.pluginVisOff')"
               @change="(val: boolean) => plugin.enabled = val"
             />
           </div>
@@ -34,15 +34,15 @@
       </div>
 
       <el-empty v-if="filteredPlugins.length === 0 && !loading"
-        description="No plugins found" :image-size="40" />
+        :description="$t('message.opsflowPage.pluginVisNoPlugins')" :image-size="40" />
     </div>
 
     <template #footer>
       <div class="pv-footer">
-        <span class="pv-footer-note">{{ changedCount > 0 ? `${changedCount} change(s) unsaved` : '' }}</span>
-        <el-button size="small" @click="handleReset">Reset</el-button>
+        <span class="pv-footer-note">{{ changedCount > 0 ? `${changedCount} ${$t('message.opsflowPage.pluginVisChanges')}` : '' }}</span>
+        <el-button size="small" @click="handleReset">{{ $t("message.opsflowPage.pluginVisReset") }}</el-button>
         <el-button size="small" type="primary" :loading="saving" @click="handleSave"
-          :disabled="changedCount === 0">Save</el-button>
+          :disabled="changedCount === 0">{{ $t("message.common.save") }}</el-button>
       </div>
     </template>
   </el-dialog>
@@ -50,6 +50,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { GetPluginsVisibilityList, BatchSetPluginsVisibility } from '../../api/plugins'
 import { GetProjects } from '../../api/projects'
@@ -63,6 +64,8 @@ interface PluginItem {
   allowed_projects: number[]
   enabled: boolean  // computed: visible for THIS project?
 }
+
+const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   visible?: boolean

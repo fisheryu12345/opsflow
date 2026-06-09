@@ -1,17 +1,17 @@
 <template>
   <div class="env-panel">
     <div class="env-header">
-      <span class="env-title">Environment Variables</span>
-      <el-button size="small" type="primary" :icon="Plus" @click="showForm(null)">Add</el-button>
+      <span class="env-title">{{ $t("message.opsflowPage.envTitle") }}</span>
+      <el-button size="small" type="primary" :icon="Plus" @click="showForm(null)">{{ $t("message.opsflowPage.envAdd") }}</el-button>
     </div>
-    <p class="env-desc">Project-level variables shared across templates. Reference them as <code>${env.key}</code> in your pipeline.</p>
+    <p class="env-desc">{{ $t("message.opsflowPage.envDesc") }}</p>
 
-    <el-input v-model="search" placeholder="Search..." clearable size="small" prefix-icon="Search" class="env-search" />
+    <el-input v-model="search" :placeholder="$t('message.opsflowPage.envSearch')" clearable size="small" prefix-icon="Search" class="env-search" />
 
     <div v-if="loading" v-loading="loading" style="min-height: 80px" />
 
     <div v-else-if="filteredList.length === 0" class="env-empty">
-      <el-empty :description="search ? 'No matching variables' : 'No environment variables yet'" :image-size="40" />
+      <el-empty :description="search ? t('message.opsflowPage.envNoMatch') : t('message.opsflowPage.envNoVars')" :image-size="40" />
     </div>
 
     <div v-else class="env-list">
@@ -44,30 +44,30 @@
     </div>
 
     <!-- Form dialog -->
-    <el-dialog v-model="formVisible" :title="editing ? 'Edit Variable' : 'Add Variable'" width="480px" top="12vh" destroy-on-close>
+    <el-dialog v-model="formVisible" :title="editing ? $t('message.opsflowPage.envEditVar') : $t('message.opsflowPage.envAddVar')" width="480px" top="12vh" destroy-on-close>
       <el-form label-width="100px">
-        <el-form-item label="Key" required>
-          <el-input v-model="form.key" :disabled="!!editing" placeholder="e.g. API_URL, REDIS_HOST" />
+        <el-form-item :label="$t('message.opsflowPage.envFormKey')" required>
+          <el-input v-model="form.key" :disabled="!!editing" :placeholder="$t('message.opsflowPage.envFormKeyPlaceholder')" />
         </el-form-item>
-        <el-form-item label="Type">
+        <el-form-item :label="$t('message.opsflowPage.envFormType')">
           <el-select v-model="form.var_type" style="width:100%">
-            <el-option label="Text" value="input" />
-            <el-option label="Textarea" value="textarea" />
-            <el-option label="Password" value="password" />
-            <el-option label="Number" value="int" />
-            <el-option label="Float" value="float" />
+            <el-option :label="$t('message.opsflowPage.envTypeText')" value="input" />
+            <el-option :label="$t('message.opsflowPage.envTypeTextarea')" value="textarea" />
+            <el-option :label="$t('message.opsflowPage.envTypePassword')" value="password" />
+            <el-option :label="$t('message.opsflowPage.envTypeNumber')" value="int" />
+            <el-option :label="$t('message.opsflowPage.envTypeFloat')" value="float" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Value">
+        <el-form-item :label="$t('message.opsflowPage.envFormValue')">
           <el-input v-model="form.value" :type="form.var_type === 'password' ? 'password' : 'text'" :rows="form.var_type === 'textarea' ? 3 : 1" />
         </el-form-item>
-        <el-form-item label="Desc">
-          <el-input v-model="form.description" placeholder="Optional description" maxlength="255" />
+        <el-form-item :label="$t('message.opsflowPage.envFormDesc')">
+          <el-input v-model="form.description" :placeholder="$t('message.opsflowPage.envFormDescPlaceholder')" maxlength="255" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="formVisible = false">Cancel</el-button>
-        <el-button size="small" type="primary" @click="handleSave" :loading="saving">Save</el-button>
+        <el-button size="small" @click="formVisible = false">{{ $t("message.common.cancel") }}</el-button>
+        <el-button size="small" type="primary" @click="handleSave" :loading="saving">{{ $t("message.common.save") }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -75,6 +75,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Plus, Edit, Delete, View, Hide } from '@element-plus/icons-vue'
 import { GetProjectEnvVars, SetProjectEnvVars, PatchProjectEnvVars } from '../../api/projects'
@@ -87,6 +88,8 @@ interface EnvVarItem {
   description: string
   _revealed?: boolean
 }
+
+const { t } = useI18n()
 
 const props = defineProps<{ projectId: number | null }>()
 
@@ -104,9 +107,9 @@ const filteredList = computed(() => {
   return items.value.filter(i => i.key.toLowerCase().includes(q) || i.description.toLowerCase().includes(q))
 })
 
-function typeLabel(t: string) {
-  const m: Record<string, string> = { input: 'Text', textarea: 'Textarea', password: 'Password', int: 'Number', float: 'Float' }
-  return m[t] || t
+function typeLabel(type: string) {
+  const m: Record<string, string> = { input: t('message.opsflowPage.envTypeText'), textarea: t('message.opsflowPage.envTypeTextarea'), password: t('message.opsflowPage.envTypePassword'), int: t('message.opsflowPage.envTypeNumber'), float: t('message.opsflowPage.envTypeFloat') }
+  return m[type] || type
 }
 
 function showForm(item: EnvVarItem | null) {
