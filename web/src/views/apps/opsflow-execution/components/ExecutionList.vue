@@ -5,24 +5,24 @@
       <div class="exec-hero-bg" />
       <div class="exec-hero-inner">
         <div class="exec-hero-left">
-          <h1 class="exec-hero-title">Executions</h1>
-          <p class="exec-hero-subtitle">Pipeline execution history and monitoring</p>
+          <h1 class="exec-hero-title">{{ $t('message.execution.title') }}</h1>
+          <p class="exec-hero-subtitle">{{ $t('message.execution.subtitle') }}</p>
         </div>
         <ProjectSwitcher :dark="true" />
         <div class="exec-hero-center">
-          <el-input v-model="searchQuery" placeholder="Search by template name..." clearable size="default"
+          <el-input v-model="searchQuery" :placeholder="$t('message.execution.searchPlaceholder')" clearable size="default"
             class="exec-search-input" @keyup.enter="onSearch" @clear="onSearch">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
         </div>
         <div class="exec-hero-stats">
-          <div class="exec-stat-item"><span class="exec-stat-value">{{ total }}</span><span class="exec-stat-label">Total</span></div>
+          <div class="exec-stat-item"><span class="exec-stat-value">{{ total }}</span><span class="exec-stat-label">{{ $t('message.execution.statTotal') }}</span></div>
           <div class="exec-stat-divider" />
-          <div class="exec-stat-item"><span class="exec-stat-value">{{ runningCount }}</span><span class="exec-stat-label">Running</span></div>
+          <div class="exec-stat-item"><span class="exec-stat-value">{{ runningCount }}</span><span class="exec-stat-label">{{ $t('message.execution.statRunning') }}</span></div>
           <div class="exec-stat-divider" />
-          <div class="exec-stat-item"><span class="exec-stat-value">{{ failedCount }}</span><span class="exec-stat-label">Failed</span></div>
+          <div class="exec-stat-item"><span class="exec-stat-value">{{ failedCount }}</span><span class="exec-stat-label">{{ $t('message.execution.statFailed') }}</span></div>
           <div class="exec-stat-divider" />
-          <div class="exec-stat-item"><span class="exec-stat-value">{{ completedCount }}</span><span class="exec-stat-label">Completed</span></div>
+          <div class="exec-stat-item"><span class="exec-stat-value">{{ completedCount }}</span><span class="exec-stat-label">{{ $t('message.execution.statCompleted') }}</span></div>
         </div>
       </div>
     </div>
@@ -33,29 +33,29 @@
       <div class="exec-filter-bar">
         <div class="exec-filter-tabs">
           <div class="exec-tab" :class="{ active: filterStatus.length === 0 }" @click="filterStatus = []; onFilter()">
-            <span class="exec-tab-dot" style="background:#409EFF" />All
+            <span class="exec-tab-dot" style="background:#409EFF" />{{ $t('message.execution.filterAll') }}
           </div>
           <div class="exec-tab" :class="{ active: filterStatus.includes('running') }" @click="filterStatus = ['running']; onFilter()">
-            <span class="exec-tab-dot" style="background:#E6A23C" />Running
+            <span class="exec-tab-dot" style="background:#E6A23C" />{{ $t('message.execution.statRunning') }}
           </div>
           <div class="exec-tab" :class="{ active: filterStatus.includes('completed') }" @click="filterStatus = ['completed']; onFilter()">
-            <span class="exec-tab-dot" style="background:#67C23A" />Completed
+            <span class="exec-tab-dot" style="background:#67C23A" />{{ $t('message.execution.statCompleted') }}
           </div>
           <div class="exec-tab" :class="{ active: filterStatus.includes('failed') }" @click="filterStatus = ['failed']; onFilter()">
-            <span class="exec-tab-dot" style="background:#F56C6C" />Failed
+            <span class="exec-tab-dot" style="background:#F56C6C" />{{ $t('message.execution.statFailed') }}
           </div>
           <div class="exec-tab" :class="{ active: filterStatus.includes('paused') }" @click="filterStatus = ['paused']; onFilter()">
-            <span class="exec-tab-dot" style="background:#909399" />Paused
+            <span class="exec-tab-dot" style="background:#909399" />{{ $t("message.execution.statePaused") }}
           </div>
           <div class="exec-tab" :class="{ active: filterStatus.includes('pending_approval') }" @click="filterStatus = ['pending_approval']; onFilter()">
-            <span class="exec-tab-dot" style="background:#9B59B6" />Pending Approval
+            <span class="exec-tab-dot" style="background:#9B59B6" />{{ $t("message.execution.statusPendingApproval") }}
           </div>
           <div class="exec-tab" :class="{ active: filterStatus.includes('pending') }" @click="filterStatus = ['pending']; onFilter()">
-            <span class="exec-tab-dot" style="background:#909399" />Pending
+            <span class="exec-tab-dot" style="background:#909399" />{{ $t("message.execution.statePending") }}
           </div>
         </div>
         <div class="exec-filter-actions">
-          <el-button :icon="Refresh" @click="fetchExecutions" :loading="loading" text size="small">Refresh</el-button>
+          <el-button :icon="Refresh" @click="fetchExecutions" :loading="loading" text size="small">{{ $t("message.common.refresh") }}</el-button>
         </div>
       </div>
 
@@ -63,56 +63,56 @@
       <div class="exec-table-card">
         <el-table :data="displayList" v-loading="loading" stripe highlight-current-row
           @row-click="onRowClick" style="width:100%" :empty-text="emptyText" size="small">
-          <el-table-column prop="id" label="ID" width="60" />
-          <el-table-column label="Status" width="140">
+          <el-table-column prop="id" :label="$t('message.execution.colId')" width="60" />
+          <el-table-column :label="$t('message.execution.status')" width="140">
             <template #default="{ row }">
               <span class="exec-status-badge" :class="'st-' + row.status">{{ statusLabel(row.status) }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="template_name" label="Template" min-width="180" show-overflow-tooltip />
-          <el-table-column label="Started" width="160">
+          <el-table-column prop="template_name" :label="$t('message.execution.colTemplate')" min-width="180" show-overflow-tooltip />
+          <el-table-column :label="$t('message.execution.colStarted')" width="160">
             <template #default="{ row }">{{ row.started_at || '-' }}</template>
           </el-table-column>
-          <el-table-column label="Duration" width="100">
+          <el-table-column :label="$t('message.execution.colDuration')" width="100">
             <template #default="{ row }">
-              <span class="exec-duration">{{ row.started_at && row.ended_at ? formatDuration(row.started_at, row.ended_at) : (row.started_at ? 'Running...' : '-') }}</span>
+              <span class="exec-duration">{{ row.started_at && row.ended_at ? formatDuration(row.started_at, row.ended_at) : (row.started_at ? t('message.execution.durationRunning') : '-') }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="CR Number" width="140">
+          <el-table-column :label="$t('message.execution.colCrNumber')" width="140">
             <template #default="{ row }">
               <span class="exec-cr-number">{{ row.context?.cr_number || '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="CR Title" min-width="180" show-overflow-tooltip>
+          <el-table-column :label="$t('message.execution.colCrTitle')" min-width="180" show-overflow-tooltip>
             <template #default="{ row }">
               <span>{{ row.context?.cr_title || '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="CR Status" width="110">
+          <el-table-column :label="$t('message.execution.colCrStatus')" width="110">
             <template #default="{ row }">
-              <span v-if="row.context?.cr_status === 'approved'" class="exec-cr-status st-approved">Approved</span>
-              <span v-else-if="row.context?.cr_status === 'pending'" class="exec-cr-status st-pending-cr">Pending</span>
+              <span v-if="row.context?.cr_status === 'approved'" class="exec-cr-status st-approved">{{ $t("message.execution.stateApproved") }}</span>
+              <span v-else-if="row.context?.cr_status === 'pending'" class="exec-cr-status st-pending-cr">{{ $t("message.execution.statePending") }}</span>
               <span v-else class="exec-cr-status st-none">-</span>
             </template>
           </el-table-column>
-          <el-table-column label="Schedule" width="160">
+          <el-table-column :label="$t('message.execution.colSchedule')" width="160">
             <template #default="{ row }">
               <span>{{ row.schedule_plan_scheduled_at ? formatTime(row.schedule_plan_scheduled_at) : '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="Actions" width="220" fixed="right">
+          <el-table-column :label="$t('message.execution.colActions')" width="220" fixed="right">
             <template #default="{ row }">
               <div class="exec-actions">
-                <el-tooltip content="View Detail" placement="top">
+                <el-tooltip :content="$t('message.execution.viewDetail')" placement="top">
                   <el-button size="small" circle text type="primary" :icon="View" @click.stop="emit('viewDetail', row)" />
                 </el-tooltip>
-                <el-tooltip v-if="row.status === 'pending'" content="Start" placement="top">
+                <el-tooltip v-if="row.status === 'pending'" :content="$t('message.execution.start')" placement="top">
                   <el-button size="small" circle text type="success" :icon="VideoPlay" :loading="startingId === row.id" @click.stop="onStart(row)" />
                 </el-tooltip>
-                <el-tooltip v-if="row.status === 'pending_approval' || row.status === 'pending'" content="Cancel" placement="top">
+                <el-tooltip v-if="row.status === 'pending_approval' || row.status === 'pending'" :content="$t('message.execution.cancel')" placement="top">
                   <el-button size="small" circle text type="danger" :icon="Close" :loading="cancellingId === row.id" @click.stop="onCancel(row)" />
                 </el-tooltip>
-                <el-tooltip v-if="row.status === 'running'" content="Pause" placement="top">
+                <el-tooltip v-if="row.status === 'running'" :content="$t('message.execution.pause')" placement="top">
                   <el-button size="small" circle text type="warning" :icon="VideoPause" :loading="pausingId === row.id" @click.stop="onPause(row)" />
                 </el-tooltip>
               </div>
@@ -130,6 +130,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Refresh, Search, View, VideoPlay, VideoPause, Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { GetExecutions, StartExecution as StartExec, PauseExecution, CancelExecution } from '../../opsflow/api/executions'
@@ -138,6 +139,7 @@ import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwit
 const emit = defineEmits<{ viewDetail: [execution: any] }>()
 
 const store = useOpsflowStore()
+const { t } = useI18n()
 
 const executions = ref<any[]>([])
 const loading = ref(false)
@@ -153,7 +155,7 @@ const cancellingId = ref<number | null>(null)
 const runningCount = computed(() => executions.value.filter(e => e.status === 'running').length)
 const failedCount = computed(() => executions.value.filter(e => e.status === 'failed').length)
 const completedCount = computed(() => executions.value.filter(e => e.status === 'completed').length)
-const emptyText = computed(() => loading.value ? 'Loading...' : 'No executions yet')
+const emptyText = computed(() => loading.value ? t('message.common.loading') : t('message.execution.noExecutions'))
 
 const displayList = computed(() => {
   let items = executions.value
@@ -166,7 +168,7 @@ const displayList = computed(() => {
 })
 
 function statusLabel(s: string) {
-  const m: Record<string, string> = { pending: 'Pending', pending_approval: 'Pending Approval', running: 'Running', paused: 'Paused', completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled' }
+  const m: Record<string, string> = { pending: t('message.execution.statePending'), pending_approval: t('message.execution.statusPendingApproval'), running: t('message.execution.statRunning'), paused: t('message.execution.statePaused'), completed: t('message.execution.statCompleted'), failed: t('message.execution.statFailed'), cancelled: t('message.execution.stateCancelled') }
   return m[s] || s
 }
 function formatDuration(start: string, end: string) {
@@ -201,7 +203,7 @@ function onPageChange() { fetchExecutions() }
 function onRowClick(row: any) { emit('viewDetail', row) }
 async function onStart(row: any) { startingId.value = row.id; try { await StartExec(row.id); await fetchExecutions() } catch { /* ignore */ }; startingId.value = null }
 async function onPause(row: any) { pausingId.value = row.id; try { await PauseExecution(row.id); await fetchExecutions() } catch { /* ignore */ }; pausingId.value = null }
-async function onCancel(row: any) { cancellingId.value = row.id; try { await CancelExecution(row.id); ElMessage.success('Execution cancelled'); await fetchExecutions() } catch { /* ignore */ }; cancellingId.value = null }
+async function onCancel(row: any) { cancellingId.value = row.id; try { await CancelExecution(row.id); ElMessage.success(t('message.execution.cancelSuccess')); await fetchExecutions() } catch { /* ignore */ }; cancellingId.value = null }
 
 onMounted(async () => {
   if (!store.myProjects.length) await store.fetchMyProjects()
