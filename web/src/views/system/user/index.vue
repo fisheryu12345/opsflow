@@ -112,7 +112,7 @@
 
           <!-- Pagination -->
           <div class="user-pagination">
-            <el-pagination v-model:current-page="page" v-model:page-size="limit" :total="total" :page-sizes="[10,20,50,100]" layout="total, sizes, prev, pager, next, jumper" background small @size-change="getList" @current-change="getList" />
+            <el-pagination v-model:current-page="page" v-model:page-size="limit" :total="total" :page-sizes="[10,20,50,100]" layout="total, sizes, prev, pager, next, jumper" background size="small" @size-change="getList" @current-change="getList" />
           </div>
         </div>
       </el-col>

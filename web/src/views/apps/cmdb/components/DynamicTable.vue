@@ -59,7 +59,7 @@
       </el-table>
 
       <div class="cmdb-table-footer" v-if="total > pageSize">
-        <el-pagination small background layout="total, prev, pager, next"
+        <el-pagination size="small" background layout="total, prev, pager, next"
           :total="total" :page-size="pageSize" v-model:current-page="currentPage"
           @current-change="loadData" />
       </div>
@@ -152,7 +152,7 @@
       <el-empty v-else description="暂无变更记录" />
 
       <div class="cmdb-table-footer" v-if="historyTotal > historyPageSize">
-        <el-pagination small background layout="total, prev, pager, next"
+        <el-pagination size="small" background layout="total, prev, pager, next"
           :total="historyTotal" :page-size="historyPageSize" v-model:current-page="historyPage"
           @current-change="loadChangeHistory" />
       </div>

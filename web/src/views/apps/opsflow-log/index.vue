@@ -80,7 +80,7 @@
         </el-table>
         <div class="log-pagination" v-if="total > 0">
           <el-pagination v-model:current-page="page" :page-size="pageSize" :total="total"
-            layout="prev, pager, next, total" @current-change="onPageChange" small />
+            layout="prev, pager, next, total" @current-change="onPageChange" size="small" />
         </div>
       </div>
     </div>

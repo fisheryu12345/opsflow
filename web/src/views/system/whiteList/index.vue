@@ -71,7 +71,7 @@
 
         <!-- Pagination -->
         <div class="wl-pagination">
-          <el-pagination v-model:current-page="searchParams.page" v-model:page-size="searchParams.limit" :total="state.total" :page-sizes="[10,20,50,100]" layout="total, sizes, prev, pager, next, jumper" background small @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+          <el-pagination v-model:current-page="searchParams.page" v-model:page-size="searchParams.limit" :total="state.total" :page-sizes="[10,20,50,100]" layout="total, sizes, prev, pager, next, jumper" background size="small" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
         </div>
       </div>
     </div>
