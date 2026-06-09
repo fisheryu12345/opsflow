@@ -2,27 +2,27 @@
   <div class="property-panel">
     <div class="panel-header">
       <el-icon size="16"><Setting /></el-icon>
-      <span>Node Properties</span>
+      <span>{{ $t("message.properties.basic") }}</span>
     </div>
 
     <template v-if="form.id">
       <div class="panel-section">
-        <div class="section-title">Basic Info</div>
+        <div class="section-title">{{ $t("message.properties.basicInfo") }}</div>
         <div class="prop-row">
           <span class="prop-label">ID</span>
           <span class="prop-value prop-id">{{ form.id }}</span>
         </div>
         <div class="prop-row">
-          <span class="prop-label">Label</span>
+          <span class="prop-label">{{ $t("message.properties.label") }}</span>
           <el-input v-model="form.label" size="small" @change="emitUpdate" class="prop-input" />
         </div>
       </div>
 
       <template v-if="isAtom">
         <div class="panel-section">
-          <div class="section-title">Action Config</div>
+          <div class="section-title">{{ $t("message.properties.actionConfig") }}</div>
           <div class="prop-row">
-            <span class="prop-label">Plugin</span>
+            <span class="prop-label">{{ $t("message.properties.plugin") }}</span>
             <el-select v-model="form.plugin_code" size="small" style="width:100%"
               filterable @change="onPluginChange" :loading="pluginsLoading">
               <el-option-group v-for="(items, group) in pluginGroups" :key="group" :label="group">
@@ -32,7 +32,7 @@
           </div>
           <!-- 版本选择器 -->
           <div class="prop-row" v-if="isAtom && pluginVersions.length > 1">
-            <span class="prop-label">Version</span>
+            <span class="prop-label">{{ $t("message.properties.version") }}</span>
             <el-select v-model="form._plugin_version" size="small" style="width:120px" @change="emitUpdate">
               <el-option v-for="v in pluginVersions" :key="v" :label="v" :value="v" />
             </el-select>
@@ -51,7 +51,7 @@
 
         <!-- Output Parameters -->
         <div class="panel-section" v-if="isAtom && outputSchema.length">
-          <div class="section-title">Output Parameters</div>
+          <div class="section-title">{{ $t("message.properties.outputParams") }}</div>
           <div class="output-list">
             <div v-for="out in outputSchema" :key="out.name || out.key" class="output-row">
               <div class="output-top">
@@ -71,7 +71,7 @@
 
         <!-- Variable References in this node -->
         <div class="panel-section" v-if="varReferences.length">
-          <div class="section-title">Variable References</div>
+          <div class="section-title">{{ $t("message.properties.variableRefs") }}</div>
           <div class="var-ref-list">
             <el-tag v-for="ref in varReferences" :key="ref" size="small" type="warning" effect="light" class="var-ref-tag">
               {{ ref }}
@@ -80,27 +80,27 @@
         </div>
 
         <div class="panel-section">
-          <div class="section-title">Execution Control</div>
+          <div class="section-title">{{ $t("message.properties.executionControl") }}</div>
           <div class="prop-row">
-            <span class="prop-label">Max Retries</span>
+            <span class="prop-label">{{ $t("message.properties.maxRetries") }}</span>
             <el-input-number v-model="form.max_retries" :min="0" :max="10" size="small" controls-position="right" style="width:120px" @change="emitUpdate" />
           </div>
           <div class="prop-row">
-            <span class="prop-label">Retry Delay (s)</span>
+            <span class="prop-label">{{ $t("message.properties.retryDelay") }}</span>
             <el-input-number v-model="form.retry_delay" :min="0" :max="300" size="small" controls-position="right" style="width:120px" @change="emitUpdate" />
           </div>
           <div class="prop-row">
-            <span class="prop-label">Timeout (s)</span>
+            <span class="prop-label">{{ $t("message.properties.timeoutSeconds") }}</span>
             <el-input-number v-model="form.timeout_seconds" :min="5" :max="600" size="small" controls-position="right" style="width:120px" @change="emitUpdate" />
           </div>
           <div class="prop-row">
-            <span class="prop-label">Risk Level</span>
+            <span class="prop-label">{{ $t("message.properties.riskLevel") }}</span>
             <el-tag :type="riskTagType" size="small" effect="dark" class="risk-tag">
               {{ riskLevelText }}
             </el-tag>
           </div>
           <div class="prop-row">
-            <span class="prop-label">Optional</span>
+            <span class="prop-label">{{ $t("message.properties.optional") }}</span>
             <el-switch v-model="form.optional" @change="emitUpdate" size="small" />
           </div>
         </div>
@@ -109,9 +109,9 @@
       <!-- SubProcess 配置 -->
       <template v-else-if="isSubprocess">
         <div class="panel-section">
-          <div class="section-title">SubProcess Config</div>
+          <div class="section-title">{{ $t("message.properties.subprocessConfig") }}</div>
           <div class="prop-row-vertical">
-            <span class="prop-label">Target Template</span>
+            <span class="prop-label">{{ $t("message.properties.targetTemplate") }}</span>
             <el-select v-model="form.target_template_id" size="small" filterable style="width:100%"
               @change="emitUpdate" :loading="templatesLoading">
               <el-option v-for="t in publishedTemplates" :key="t.id" :label="t.name" :value="t.id" />
@@ -132,21 +132,21 @@
           </div>
           <!-- Mode toggle (Phase 5) -->
           <div class="prop-row" style="margin-top:8px">
-            <span class="prop-label">Mode</span>
+            <span class="prop-label">{{ $t("message.properties.mode") }}</span>
             <el-switch
               v-model="form.independent"
-              active-text="Independent"
-              inactive-text="Embedded"
+              :active-text="$t('message.properties.independent')"
+              :inactive-text="$t('message.properties.embedded')"
               @change="emitUpdate"
               size="small"
             />
           </div>
           <div class="prop-row-vertical" style="margin-top:8px">
-            <span class="prop-label">Variable Mapping (parent → child)</span>
+            <span class="prop-label">{{ $t("message.properties.variableMapping") }}</span>
             <TagVariableMapping v-model="form.variable_mapping" />
           </div>
           <div class="prop-row-vertical" style="margin-top:8px">
-            <span class="prop-label">Output Mapping (child → parent)</span>
+            <span class="prop-label">{{ $t("message.properties.outputMapping") }}</span>
             <TagVariableMapping v-model="form.output_mapping" />
           </div>
         </div>
@@ -155,16 +155,16 @@
       <!-- Approval 配置 -->
       <template v-else-if="isApproval">
         <div class="panel-section">
-          <div class="section-title">Approval Config</div>
+          <div class="section-title">{{ $t("message.properties.approvalConfig") }}</div>
           <div class="prop-row-vertical">
-            <span class="prop-label">Approver(s)</span>
+            <span class="prop-label">{{ $t("message.properties.approvers") }}</span>
             <el-select v-model="form.approvers" multiple filterable size="small" style="width:100%"
-              placeholder="Select approvers" @change="emitUpdate">
+              :placeholder="$t('message.properties.selectApprovers')" @change="emitUpdate">
               <el-option v-for="u in userList" :key="u" :label="u" :value="u" />
             </el-select>
           </div>
           <div class="prop-row">
-            <span class="prop-label">Timeout</span>
+            <span class="prop-label">{{ $t("message.properties.timeout") }}</span>
             <el-input-number v-model="form.approval_timeout" :min="300" :max="604800" :step="3600" size="small" controls-position="right" style="width:140px" @change="emitUpdate" />
             <span style="font-size:11px;color:#909399">sec</span>
           </div>
@@ -173,7 +173,7 @@
 
       <template v-else>
         <div class="panel-section">
-          <div class="section-title">Node Type</div>
+          <div class="section-title">{{ $t("message.opsflowPage.dashboardNodeType") }}</div>
           <div class="gateway-info">
             <el-tag :type="gatewayTagType" size="default" effect="plain">
               <el-icon size="14" style="margin-right:4px"><component :is="gatewayIcon" /></el-icon>
@@ -187,18 +187,18 @@
 
     <template v-else-if="edgeData && edgeData.id">
       <div class="panel-section">
-        <div class="section-title">Edge Condition</div>
+        <div class="section-title">{{ $t("message.properties.condition") }}</div>
         <div class="prop-row">
-          <span class="prop-label">From</span>
+          <span class="prop-label">{{ $t("message.opsflowPage.from") }}</span>
           <span class="prop-value prop-id">{{ edgeData.from }}</span>
         </div>
         <div class="prop-row">
-          <span class="prop-label">To</span>
+          <span class="prop-label">{{ $t("message.opsflowPage.to") }}</span>
           <span class="prop-value prop-id">{{ edgeData.to }}</span>
         </div>
         <div class="prop-row">
-          <span class="prop-label">Label</span>
-          <el-select v-model="edgeForm.label" size="small" style="width:100%" @change="onEdgeLabelChange" clearable placeholder="Select...">
+          <span class="prop-label">{{ $t("message.properties.label") }}</span>
+          <el-select v-model="edgeForm.label" size="small" style="width:100%" @change="onEdgeLabelChange" clearable :placeholder="$t('message.properties.select')">
             <el-option label="success（成功路径）" value="success" />
             <el-option label="failure（失败路径）" value="failure" />
             <el-option label="custom（自定义条件）" value="custom" />
@@ -206,7 +206,7 @@
         </div>
         <!-- 自定义条件（结构化编辑器） -->
         <div class="prop-row-vertical" v-if="edgeForm.label === 'custom'">
-          <span class="prop-label">Condition</span>
+          <span class="prop-label">{{ $t("message.properties.condition") }}</span>
           <div class="condition-preview" @click="openConditionDialog">
             <template v-if="edgeForm.condition">
               <code class="condition-code">{{ edgeForm.condition }}</code>
@@ -216,7 +216,7 @@
               </el-button>
             </template>
             <template v-else>
-              <span class="condition-placeholder">Click to set condition expression</span>
+              <span class="condition-placeholder">{{ $t("message.condition.expressionPlaceholder") }}</span>
               <el-button size="small" text type="primary">Add</el-button>
             </template>
           </div>
@@ -257,6 +257,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Setting, Pointer, WarnTriangleFilled, CircleCheckFilled, InfoFilled, Aim, Connection, Switch, EditPen } from '@element-plus/icons-vue'
 import RenderForm from '/@/components/RenderForm/RenderForm.vue'
 import TagVariableMapping from '/@/components/RenderForm/tags/TagVariableMapping.vue'
@@ -266,6 +267,8 @@ import { useOpsflowStore } from '../../stores/opsflowStore'
 import ConditionDialog from '../gates/ConditionDialog.vue'
 import { generateConditionExpr, extractAvailableVariables as getAvailableVars } from '../../composables/useGraphCanvas'
 import type { ConditionStruct } from '../../utils/shapes'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   nodeData?: any
@@ -366,7 +369,7 @@ function outputTypeTag(type: string): string {
 
 function copyRef(ref: string) {
   navigator.clipboard.writeText('${' + ref + '}')
-  ElMessage.success('Copied')
+  ElMessage.success(t('message.opsflowPage.copied'))
 }
 
 /* ---------- Subprocess version tracking ---------- */
@@ -432,8 +435,8 @@ const gatewayIcon = computed(() => gatewayIcons[form.value.node_type] || InfoFil
 
 const riskLevelText = computed(() => {
   const risk = form.value.risk_level || pluginRiskMap.value[form.value.plugin_code] || ''
-  const map: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' }
-  return map[risk] || risk || 'Unknown'
+  const map: Record<string, string> = { high: t('message.wizard.high'), medium: t('message.wizard.medium'), low: t('message.wizard.low') }
+  return map[risk] || risk || t('message.opsflowPage.unknown')
 })
 
 const riskTagType = computed(() => {

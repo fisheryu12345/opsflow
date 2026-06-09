@@ -3,15 +3,15 @@
     <div class="canvas-body">
       <div class="canvas-toolbar-float" :class="{ collapsed: toolbarCollapsed }" :style="{ left: stencilCollapsed ? '32px' : '220px' }">
         <template v-if="!toolbarCollapsed">
-          <el-tooltip :show-after="500" content="Switch project" placement="bottom">
+          <el-tooltip :show-after="500" :content="$t('message.project.switchProject')" placement="bottom">
             <ProjectSwitcher />
           </el-tooltip>
           <div class="toolbar-divider" />
-          <el-tooltip :show-after="500" content="Select template" placement="bottom">
+          <el-tooltip :show-after="500" :content="$t('message.canvas.selectTemplate')" placement="bottom">
             <el-select
               data-tour="template-selector"
               :model-value="templateId"
-              placeholder="Select template"
+              :placeholder="$t('message.canvas.selectTemplate')"
               clearable filterable
               size="small"
               style="width: 200px"
@@ -23,56 +23,56 @@
               <el-option-group v-if="publicTemplates.length" label="🌐 Public Templates">
                 <el-option v-for="t in publicTemplates" :key="t.id" :value="t.id">
                   <span>{{ t.name }}</span>
-                  <el-tag size="small" type="warning" style="margin-left: 6px;">Public</el-tag>
+                  <el-tag size="small" type="warning" style="margin-left: 6px;">{{ $t("message.template.publicTemplates") }}</el-tag>
                 </el-option>
               </el-option-group>
             </el-select>
           </el-tooltip>
           <div class="toolbar-divider" />
           <div class="zoom-controls">
-            <el-tooltip :show-after="500" content="Zoom in" placement="bottom">
+            <el-tooltip :show-after="500" :content="$t('message.canvas.zoomIn')" placement="bottom">
               <el-button size="small" text :icon="ZoomIn" @click="zoomIn" />
             </el-tooltip>
             <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
-            <el-tooltip :show-after="500" content="Zoom out" placement="bottom">
+            <el-tooltip :show-after="500" :content="$t('message.canvas.zoomOut')" placement="bottom">
               <el-button size="small" text :icon="ZoomOut" @click="zoomOut" />
             </el-tooltip>
-            <el-tooltip :show-after="500" content="Fit canvas" placement="bottom">
+            <el-tooltip :show-after="500" :content="$t('message.canvas.fitCanvas')" placement="bottom">
               <el-button size="small" text :icon="FullScreen" @click="fitCanvas" />
             </el-tooltip>
           </div>
           <div class="toolbar-divider" />
-          <el-tooltip :show-after="500" content="Diff with AI original" placement="bottom">
+          <el-tooltip :show-after="500" :content="$t('message.canvas.diffWithAI')" placement="bottom">
             <el-button size="small" circle type="info" @click="$emit('diff')" :icon="CopyDocument" />
           </el-tooltip>
-          <el-tooltip :show-after="500" content="AI analyze pipeline" placement="bottom">
+          <el-tooltip :show-after="500" :content="$t('message.canvas.aiAnalyze')" placement="bottom">
             <el-button size="small" circle type="primary" @click="$emit('analyze')" :icon="DataAnalysis" />
           </el-tooltip>
-          <el-tooltip :show-after="500" content="Auto layout" placement="bottom">
+          <el-tooltip :show-after="500" :content="$t('message.canvas.autoLayout')" placement="bottom">
             <el-button size="small" circle type="warning" @click="aiLayout" :icon="Operation" />
           </el-tooltip>
-          <el-tooltip :show-after="500" content="Validate pipeline" placement="bottom">
+          <el-tooltip :show-after="500" :content="$t('message.canvas.validate')" placement="bottom">
             <el-button size="small" circle @click="onValidate" :icon="CircleCheck" class="btn-validate" />
           </el-tooltip>
-          <el-tooltip :show-after="500" content="New template wizard" placement="bottom">
+          <el-tooltip :show-after="500" :content="$t('message.canvas.newTemplateTip')" placement="bottom">
             <el-button size="small" circle type="success" @click="$emit('newTemplate')" :icon="Plus" />
           </el-tooltip>
           <div class="toolbar-divider" />
-          <el-tooltip :show-after="500" content="Global Variables" placement="bottom">
+          <el-tooltip :show-after="500" :content="$t('message.canvas.globalVars')" placement="bottom">
             <el-button size="small" circle type="danger" @click="showVarPanel = !showVarPanel" :icon="Coin" data-var-toggle />
           </el-tooltip>
           <div class="toolbar-divider" />
-          <el-tooltip :show-after="500" content="Submit Execution" placement="bottom">
+          <el-tooltip :show-after="500" :content="$t('message.canvas.submitExec')" placement="bottom">
             <el-button size="small" circle @click="onSubmitExecution" :icon="VideoPlay" class="btn-exec" data-tour="submit-exec" />
           </el-tooltip>
-          <el-tooltip :show-after="500" content="Dry Run - test with mock atoms" placement="bottom">
+          <el-tooltip :show-after="500" :content="$t('message.canvas.dryRunTip')" placement="bottom">
             <el-button size="small" circle @click="onDryRun" :icon="Monitor" class="btn-dryrun" />
           </el-tooltip>
-          <el-tooltip :show-after="500" content="Save draft" placement="bottom">
+          <el-tooltip :show-after="500" :content="$t('message.canvas.saveDraft')" placement="bottom">
             <el-button size="small" circle @click="onSave" :icon="Upload" class="btn-save" />
           </el-tooltip>
         </template>
-        <el-tooltip :content="toolbarCollapsed ? 'Expand toolbar' : 'Collapse toolbar'" placement="bottom">
+        <el-tooltip :content="toolbarCollapsed ? $t('message.canvas.expandToolbar') : $t('message.canvas.collapseToolbar')" placement="bottom">
           <button class="toolbar-collapse-btn" @click="toolbarCollapsed = !toolbarCollapsed">
             <el-icon><component :is="toolbarCollapsed ? Expand : Fold" /></el-icon>
           </button>

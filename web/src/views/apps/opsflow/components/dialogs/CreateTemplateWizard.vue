@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="New Template Wizard"
+    :title="$t('message.template.newTemplate')"
     width="700px"
     top="6vh"
     :close-on-click-modal="false"
@@ -39,28 +39,28 @@
         <div class="panel-hero">
           <div class="panel-hero-icon">📝</div>
           <div class="panel-hero-text">
-            <h3>Basic Information</h3>
-            <p>Set the name, category, and project for your template</p>
+            <h3>{{ $t("message.template.basicInfo") }}</h3>
+            <p>{{ $t("message.template.basicInfoDesc") }}</p>
           </div>
         </div>
 
         <div class="form-card">
           <el-form label-position="top" size="default">
-            <el-form-item label="Project" required>
-              <el-select v-model="form.project_id" placeholder="Select project..." filterable>
+            <el-form-item :label="$t('message.template.projectLabel')" required>
+              <el-select v-model="form.project_id" :placeholder="$t('message.template.selectProject')" filterable>
                 <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
               </el-select>
             </el-form-item>
-            <el-form-item label="Template Name" required>
-              <el-input v-model="form.name" placeholder="e.g. Database Backup Pipeline" maxlength="200" />
+            <el-form-item :label="$t('message.template.templateName')" required>
+              <el-input v-model="form.name" :placeholder="$t('message.template.namePlaceholder')" maxlength="200" />
             </el-form-item>
-            <el-form-item label="Category" required>
-              <el-select v-model="form.category" placeholder="Select category..." filterable>
+            <el-form-item :label="$t('message.template.categoryLabel')" required>
+              <el-select v-model="form.category" :placeholder="$t('message.template.selectCategory')" filterable>
                 <el-option v-for="cat in categories" :key="cat.code" :label="cat.name" :value="cat.code" />
               </el-select>
             </el-form-item>
-            <el-form-item label="Description (optional)">
-              <el-input v-model="form.description" type="textarea" :rows="2" placeholder="Briefly describe the purpose of this template" maxlength="500" />
+            <el-form-item :label="$t('message.template.descLabel')">
+              <el-input v-model="form.description" type="textarea" :rows="2" :placeholder="$t('message.template.descPlaceholder')" maxlength="500" />
             </el-form-item>
           </el-form>
         </div>
@@ -71,8 +71,8 @@
         <div class="panel-hero">
           <div class="panel-hero-icon">🎯</div>
           <div class="panel-hero-text">
-            <h3>Creation Method</h3>
-            <p>Choose how to create this template</p>
+            <h3>{{ $t("message.template.creationMethod") }}</h3>
+            <p>{{ $t("message.template.creationMethodDesc") }}</p>
           </div>
         </div>
 
@@ -80,8 +80,8 @@
           <div class="mode-card" :class="{ active: method === 'blank' }" @click="method = 'blank'">
             <div class="mode-card-icon">📄</div>
             <div class="mode-card-content">
-              <div class="mode-card-title">Blank Canvas</div>
-              <div class="mode-card-desc">Start from scratch — an empty pipeline with just Start & End nodes</div>
+              <div class="mode-card-title">{{ $t("message.template.blankCanvas") }}</div>
+              <div class="mode-card-desc">{{ $t("message.template.blankCanvasDesc") }}</div>
             </div>
             <div class="mode-card-radio" :class="{ checked: method === 'blank' }" />
           </div>
@@ -89,8 +89,8 @@
           <div class="mode-card" :class="{ active: method === 'ai' }" @click="method = 'ai'">
             <div class="mode-card-icon">🤖</div>
             <div class="mode-card-content">
-              <div class="mode-card-title">AI Generate</div>
-              <div class="mode-card-desc">Describe your workflow in plain English — AI generates the pipeline for you</div>
+              <div class="mode-card-title">{{ $t("message.template.aiGenerate") }}</div>
+              <div class="mode-card-desc">{{ $t("message.template.aiGenerateDesc") }}</div>
             </div>
             <div class="mode-card-radio" :class="{ checked: method === 'ai' }" />
           </div>
@@ -98,8 +98,8 @@
           <div class="mode-card" :class="{ active: method === 'clone' }" @click="method = 'clone'">
             <div class="mode-card-icon">📋</div>
             <div class="mode-card-content">
-              <div class="mode-card-title">Clone from Existing</div>
-              <div class="mode-card-desc">Duplicate an existing template as a starting point</div>
+              <div class="mode-card-title">{{ $t("message.template.cloneExisting") }}</div>
+              <div class="mode-card-desc">{{ $t("message.template.cloneExistingDesc") }}</div>
             </div>
             <div class="mode-card-radio" :class="{ checked: method === 'clone' }" />
           </div>
@@ -109,35 +109,35 @@
           <div v-if="method === 'ai'" class="extra-card">
             <div class="extra-card-header">
               <el-icon size="15" color="#409EFF"><ChatDotSquare /></el-icon>
-              <span>Describe Your Pipeline</span>
+              <span>{{ $t("message.template.describePipeline") }}</span>
             </div>
             <el-input
               v-model="aiPrompt"
               type="textarea"
               :rows="4"
-              placeholder='e.g. "Inspect disk space on all hosts at 2 AM daily, then send an alert if usage exceeds 90%"'
+              :placeholder="$t('message.template.aiPlaceholder')"
             />
           </div>
 
           <div v-else-if="method === 'clone'" class="extra-card">
             <div class="extra-card-header">
               <el-icon size="15" color="#409EFF"><CopyDocument /></el-icon>
-              <span>Select Source Template</span>
+              <span>{{ $t("message.template.selectSource") }}</span>
             </div>
             <el-select
               v-model="cloneTemplateId"
-              placeholder="Select a template to clone..."
+              :placeholder="$t('message.template.selectClone')"
               filterable
               style="width:100%"
               size="default"
             >
-              <el-option-group v-if="projectTemplates.length" label="📁 Project Templates">
+              <el-option-group v-if="projectTemplates.length" :label="'📁 ' + $t('message.template.projectTemplates')">
                 <el-option v-for="t in projectTemplates" :key="t.id" :label="t.name" :value="t.id" />
               </el-option-group>
-              <el-option-group v-if="publicTemplates.length" label="🌐 Public Templates">
+              <el-option-group v-if="publicTemplates.length" :label="'🌐 ' + $t('message.template.publicTemplates')">
                 <el-option v-for="t in publicTemplates" :key="t.id" :value="t.id">
                   <span>{{ t.name }}</span>
-                  <el-tag size="small" type="warning" style="margin-left:6px">public</el-tag>
+                  <el-tag size="small" type="warning" style="margin-left:6px">{{ $t("message.template.publicTemplates") }}</el-tag>
                 </el-option>
               </el-option-group>
             </el-select>
@@ -151,11 +151,11 @@
       <div class="wiz-footer">
         <div class="wiz-footer-left">
           <el-button v-if="activeStep > 0" text size="default" @click="prevStep">
-            ← Back
+            ← {{ $t("message.common.back") }}
           </el-button>
         </div>
         <div class="wiz-footer-right">
-          <el-button plain size="default" @click="visible = false">Cancel</el-button>
+          <el-button plain size="default" @click="visible = false">{{ $t("message.common.cancel") }}</el-button>
           <el-button
             v-if="activeStep < 1"
             type="primary"
@@ -164,7 +164,7 @@
             @click="nextStep"
             class="wiz-next-btn"
           >
-            Continue →
+            {{ $t("message.common.next") }} →
           </el-button>
           <el-button
             v-else
@@ -175,7 +175,7 @@
             @click="handleCreate"
             class="wiz-create-btn"
           >
-            <el-icon><CircleCheck /></el-icon> Create Template
+            <el-icon><CircleCheck /></el-icon> {{ $t("message.template.createTemplate") }}
           </el-button>
         </div>
       </div>
@@ -185,6 +185,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { CircleCheck, ChatDotSquare, CopyDocument } from '@element-plus/icons-vue'
 import { CreateTemplate, CreateFromAi, ExportTemplate, ImportTemplate, GetTemplates, UpdateTemplate } from '../../api/templates'
@@ -192,6 +193,7 @@ import { GetTemplateCategories } from '../../api/template-categories'
 import { useOpsflowStore } from '../../stores/opsflowStore'
 
 const store = useOpsflowStore()
+const { t } = useI18n()
 
 const props = defineProps<{
   modelValue: boolean
@@ -202,10 +204,10 @@ const emit = defineEmits<{
   'created': [template: any]
 }>()
 
-const steps = [
-  { title: 'Basic Info', desc: 'Name & Category' },
-  { title: 'Method', desc: 'Creation Method' },
-]
+const steps = computed(() => [
+  { title: t('message.template.step1Title'), desc: t('message.template.step1Desc') },
+  { title: t('message.template.step2Title'), desc: t('message.template.step2Desc') },
+])
 
 const visible = computed({
   get: () => props.modelValue,
@@ -284,7 +286,7 @@ async function handleCreate() {
 
     if (!template?.id) throw new Error('Template creation returned no ID')
 
-    ElMessage.success(`Template "${template.name}" created`)
+    ElMessage.success(t("message.template.createSuccess"))
     visible.value = false
     emit('created', template)
   } catch (e: any) {

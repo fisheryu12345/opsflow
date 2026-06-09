@@ -768,6 +768,9 @@ export default {
         aiRisks: 'Risks',
         aiProcessingFailed: 'AI processing failed',
         saveFailed: 'Save failed',
+        from: 'From',
+        to: 'To',
+        unknown: 'Unknown',
     },
     common: {
         confirm: 'Confirm',

@@ -780,6 +780,9 @@ export default {
         aiRisks: '风险',
         aiProcessingFailed: 'AI 处理失败',
         saveFailed: '保存失败',
+        from: '来源',
+        to: '目标',
+        unknown: '未知',
     },
     common: {
         confirm: '确定',
