@@ -287,6 +287,7 @@ export default {
         placeholderNumber: '例如 80',
         placeholderBool: 'true / false',
         placeholderDefault: '例如 ok',
+        custom: '自定义',
     },
     // ===== 插件 =====
     plugin: {

@@ -1,7 +1,7 @@
 <template>
   <el-drawer
     v-model="visible"
-    :title="$t('message.opsflowPage.helpDrawer.title')"
+    :title="$t('message.helpDrawer.title')"
     size="420px"
     direction="rtl"
     :close-on-click-modal="true"
@@ -11,7 +11,7 @@
       <div class="help-drawer-header">
         <div class="help-drawer-title">
           <span class="help-drawer-icon">📖</span>
-          <span>{{ $t('message.opsflowPage.helpDrawer.title') }}</span>
+          <span>{{ $t('message.helpDrawer.title') }}</span>
         </div>
         <el-tag
           size="small"
@@ -20,7 +20,7 @@
           style="cursor: pointer"
           @click="$emit('startTour')"
         >
-          👉 {{ $t('message.opsflowPage.helpDrawer.tourBtn') }}
+          👉 {{ $t('message.helpDrawer.tourBtn') }}
         </el-tag>
       </div>
     </template>
@@ -28,104 +28,104 @@
     <div class="help-content">
       <!-- Overview -->
       <section class="help-section">
-        <h2 class="help-h2">{{ $t('message.opsflowPage.helpDrawer.overview') }}</h2>
+        <h2 class="help-h2">{{ $t('message.helpDrawer.overview') }}</h2>
         <div class="help-flow">
-          <span class="help-flow-text">{{ $t('message.opsflowPage.helpDrawer.flowOverview') }}</span>
+          <span class="help-flow-text">{{ $t('message.helpDrawer.flowOverview') }}</span>
         </div>
       </section>
 
       <!-- 1. Create Template -->
       <section class="help-section">
-        <h2 class="help-h2">{{ $t('message.opsflowPage.helpDrawer.createTemplate') }}</h2>
+        <h2 class="help-h2">{{ $t('message.helpDrawer.createTemplate') }}</h2>
         <div class="help-methods">
           <div class="help-method">
             <span class="help-method-icon">🤖</span>
             <div>
-              <strong>{{ $t('message.opsflowPage.helpDrawer.aiGenerate') }}</strong>
-              <p>{{ $t('message.opsflowPage.helpDrawer.aiGenerateDesc') }}</p>
+              <strong>{{ $t('message.helpDrawer.aiGenerate') }}</strong>
+              <p>{{ $t('message.helpDrawer.aiGenerateDesc') }}</p>
             </div>
           </div>
           <div class="help-method">
             <span class="help-method-icon">📄</span>
             <div>
-              <strong>{{ $t('message.opsflowPage.helpDrawer.blankCanvas') }}</strong>
-              <p>{{ $t('message.opsflowPage.helpDrawer.blankCanvasDesc') }}</p>
+              <strong>{{ $t('message.helpDrawer.blankCanvas') }}</strong>
+              <p>{{ $t('message.helpDrawer.blankCanvasDesc') }}</p>
             </div>
           </div>
           <div class="help-method">
             <span class="help-method-icon">📋</span>
             <div>
-              <strong>{{ $t('message.opsflowPage.helpDrawer.cloneExisting') }}</strong>
-              <p>{{ $t('message.opsflowPage.helpDrawer.cloneExistingDesc') }}</p>
+              <strong>{{ $t('message.helpDrawer.cloneExisting') }}</strong>
+              <p>{{ $t('message.helpDrawer.cloneExistingDesc') }}</p>
             </div>
           </div>
         </div>
         <div class="help-tip">
-          <strong>{{ $t('message.opsflowPage.helpDrawer.draftTip') }}</strong>
-          {{ $t('message.opsflowPage.helpDrawer.draftTipDesc') }}
+          <strong>{{ $t('message.helpDrawer.draftTip') }}</strong>
+          {{ $t('message.helpDrawer.draftTipDesc') }}
         </div>
       </section>
 
       <!-- 2. Design Pipeline -->
       <section class="help-section">
-        <h2 class="help-h2">{{ $t('message.opsflowPage.helpDrawer.designPipeline') }}</h2>
+        <h2 class="help-h2">{{ $t('message.helpDrawer.designPipeline') }}</h2>
         <div class="help-node-grid">
           <div class="help-node-item">
             <span class="help-node-tag help-node-tag-start">🟢</span>
-            <span>{{ $t('message.opsflowPage.helpDrawer.startEnd') }}</span>
+            <span>{{ $t('message.helpDrawer.startEnd') }}</span>
           </div>
           <div class="help-node-item">
             <span class="help-node-tag help-node-tag-task">▢</span>
-            <span>{{ $t('message.opsflowPage.helpDrawer.taskNode') }} <em class="help-warn">{{ $t('message.opsflowPage.helpDrawer.pluginRequired') }}</em></span>
+            <span>{{ $t('message.helpDrawer.taskNode') }} <em class="help-warn">{{ $t('message.helpDrawer.pluginRequired') }}</em></span>
           </div>
           <div class="help-node-item">
             <span class="help-node-tag help-node-tag-exclusive">🔷×</span>
-            <span>{{ $t('message.opsflowPage.helpDrawer.exclusiveGateway') }}</span>
+            <span>{{ $t('message.helpDrawer.exclusiveGateway') }}</span>
           </div>
           <div class="help-node-item">
             <span class="help-node-tag help-node-tag-parallel">🔷+</span>
-            <span>{{ $t('message.opsflowPage.helpDrawer.parallelGateway') }}</span>
+            <span>{{ $t('message.helpDrawer.parallelGateway') }}</span>
           </div>
           <div class="help-node-item">
             <span class="help-node-tag help-node-tag-converge">🔷⊕</span>
-            <span>{{ $t('message.opsflowPage.helpDrawer.convergeGateway') }}</span>
+            <span>{{ $t('message.helpDrawer.convergeGateway') }}</span>
           </div>
           <div class="help-node-item">
             <span class="help-node-tag help-node-tag-subprocess">⬜</span>
-            <span>{{ $t('message.opsflowPage.helpDrawer.subprocess') }}</span>
+            <span>{{ $t('message.helpDrawer.subprocess') }}</span>
           </div>
         </div>
 
-        <h3 class="help-h3">{{ $t('message.opsflowPage.helpDrawer.keyActions') }}</h3>
+        <h3 class="help-h3">{{ $t('message.helpDrawer.keyActions') }}</h3>
         <ul class="help-list">
-          <li>{{ $t('message.opsflowPage.helpDrawer.actionDrag') }}</li>
-          <li>{{ $t('message.opsflowPage.helpDrawer.actionPlugin') }}</li>
-          <li>{{ $t('message.opsflowPage.helpDrawer.actionConfig') }}</li>
-          <li v-html="$t('message.opsflowPage.helpDrawer.actionVar', { code: '<code>${node_id.output_key}</code>' })" />
-          <li v-html="$t('message.opsflowPage.helpDrawer.actionEdge', { code: '<code>${node_id.key} &gt; 80</code>' })" />
+          <li>{{ $t('message.helpDrawer.actionDrag') }}</li>
+          <li>{{ $t('message.helpDrawer.actionPlugin') }}</li>
+          <li>{{ $t('message.helpDrawer.actionConfig') }}</li>
+          <li v-html="$t('message.helpDrawer.actionVar', { code: '<code>${node_id.output_key}</code>' })" />
+          <li v-html="$t('message.helpDrawer.actionEdge', { code: '<code>${node_id.key} &gt; 80</code>' })" />
         </ul>
       </section>
 
       <!-- 3. Publish Version -->
       <section class="help-section">
-        <h2 class="help-h2">{{ $t('message.opsflowPage.helpDrawer.publishVersion') }}</h2>
+        <h2 class="help-h2">{{ $t('message.helpDrawer.publishVersion') }}</h2>
         <ol class="help-list">
-          <li v-html="$t('message.opsflowPage.helpDrawer.pubSave')" />
-          <li v-html="$t('message.opsflowPage.helpDrawer.pubPublish')" />
-          <li v-html="$t('message.opsflowPage.helpDrawer.pubSnapshot')" />
+          <li v-html="$t('message.helpDrawer.pubSave')" />
+          <li v-html="$t('message.helpDrawer.pubPublish')" />
+          <li v-html="$t('message.helpDrawer.pubSnapshot')" />
         </ol>
       </section>
 
       <!-- 4. Execution Flow -->
       <section class="help-section">
-        <h2 class="help-h2">{{ $t('message.opsflowPage.helpDrawer.executionFlow') }}</h2>
-        <p v-html="$t('message.opsflowPage.helpDrawer.execDesc')" />
+        <h2 class="help-h2">{{ $t('message.helpDrawer.executionFlow') }}</h2>
+        <p v-html="$t('message.helpDrawer.execDesc')" />
         <div class="help-wizard-steps">
-          <div class="help-wiz-item">① {{ $t('message.opsflowPage.helpDrawer.execStep1') }}</div>
-          <div class="help-wiz-item">② {{ $t('message.opsflowPage.helpDrawer.execStep2') }}</div>
-          <div class="help-wiz-item">③ {{ $t('message.opsflowPage.helpDrawer.execStep3') }}</div>
-          <div class="help-wiz-item">④ {{ $t('message.opsflowPage.helpDrawer.execStep4') }}</div>
-          <div class="help-wiz-item">⑤ {{ $t('message.opsflowPage.helpDrawer.execStep5') }}</div>
+          <div class="help-wiz-item">① {{ $t('message.helpDrawer.execStep1') }}</div>
+          <div class="help-wiz-item">② {{ $t('message.helpDrawer.execStep2') }}</div>
+          <div class="help-wiz-item">③ {{ $t('message.helpDrawer.execStep3') }}</div>
+          <div class="help-wiz-item">④ {{ $t('message.helpDrawer.execStep4') }}</div>
+          <div class="help-wiz-item">⑤ {{ $t('message.helpDrawer.execStep5') }}</div>
         </div>
         <div class="help-states">
           <span class="help-state pending">pending</span>
@@ -140,51 +140,51 @@
 
       <!-- 5. Monitor & Troubleshoot -->
       <section class="help-section">
-        <h2 class="help-h2">{{ $t('message.opsflowPage.helpDrawer.monitorTitle') }}</h2>
-        <p v-html="$t('message.opsflowPage.helpDrawer.monitorDesc')" />
+        <h2 class="help-h2">{{ $t('message.helpDrawer.monitorTitle') }}</h2>
+        <p v-html="$t('message.helpDrawer.monitorDesc')" />
 
-        <h3 class="help-h3">{{ $t('message.opsflowPage.helpDrawer.nodeActions') }}</h3>
+        <h3 class="help-h3">{{ $t('message.helpDrawer.nodeActions') }}</h3>
         <div class="help-grid">
-          <div class="help-grid-item"><strong>Retry</strong> — {{ $t('message.opsflowPage.helpDrawer.actRetry') }}</div>
-          <div class="help-grid-item"><strong>Skip</strong> — {{ $t('message.opsflowPage.helpDrawer.actSkip') }}</div>
-          <div class="help-grid-item"><strong>Pause</strong> — {{ $t('message.opsflowPage.helpDrawer.actPause') }}</div>
-          <div class="help-grid-item"><strong>Cancel</strong> — {{ $t('message.opsflowPage.helpDrawer.actCancel') }}</div>
+          <div class="help-grid-item"><strong>Retry</strong> — {{ $t('message.helpDrawer.actRetry') }}</div>
+          <div class="help-grid-item"><strong>Skip</strong> — {{ $t('message.helpDrawer.actSkip') }}</div>
+          <div class="help-grid-item"><strong>Pause</strong> — {{ $t('message.helpDrawer.actPause') }}</div>
+          <div class="help-grid-item"><strong>Cancel</strong> — {{ $t('message.helpDrawer.actCancel') }}</div>
         </div>
 
-        <h3 class="help-h3">{{ $t('message.opsflowPage.helpDrawer.approvalNodes') }}</h3>
-        <p v-html="$t('message.opsflowPage.helpDrawer.approvalDesc')" />
+        <h3 class="help-h3">{{ $t('message.helpDrawer.approvalNodes') }}</h3>
+        <p v-html="$t('message.helpDrawer.approvalDesc')" />
 
-        <h3 class="help-h3">{{ $t('message.opsflowPage.helpDrawer.logs') }}</h3>
-        <p v-html="$t('message.opsflowPage.helpDrawer.logsDesc')" />
+        <h3 class="help-h3">{{ $t('message.helpDrawer.logs') }}</h3>
+        <p v-html="$t('message.helpDrawer.logsDesc')" />
       </section>
 
       <!-- 6. FAQ -->
       <section class="help-section">
-        <h2 class="help-h2">{{ $t('message.opsflowPage.helpDrawer.faq') }}</h2>
+        <h2 class="help-h2">{{ $t('message.helpDrawer.faq') }}</h2>
 
         <div class="help-faq">
-          <div class="help-faq-q">{{ $t('message.opsflowPage.helpDrawer.faq1q') }}</div>
-          <div class="help-faq-a">{{ $t('message.opsflowPage.helpDrawer.faq1a') }}</div>
+          <div class="help-faq-q">{{ $t('message.helpDrawer.faq1q') }}</div>
+          <div class="help-faq-a">{{ $t('message.helpDrawer.faq1a') }}</div>
         </div>
 
         <div class="help-faq">
-          <div class="help-faq-q">{{ $t('message.opsflowPage.helpDrawer.faq2q') }}</div>
-          <div class="help-faq-a" v-html="$t('message.opsflowPage.helpDrawer.faq2a', { code1: '<code>${node_id.output_key}</code>', code2: '<code>${node_2.stdout}</code>' })" />
+          <div class="help-faq-q">{{ $t('message.helpDrawer.faq2q') }}</div>
+          <div class="help-faq-a" v-html="$t('message.helpDrawer.faq2a', { code1: '<code>${node_id.output_key}</code>', code2: '<code>${node_2.stdout}</code>' })" />
         </div>
 
         <div class="help-faq">
-          <div class="help-faq-q">{{ $t('message.opsflowPage.helpDrawer.faq3q') }}</div>
-          <div class="help-faq-a">{{ $t('message.opsflowPage.helpDrawer.faq3a') }}</div>
+          <div class="help-faq-q">{{ $t('message.helpDrawer.faq3q') }}</div>
+          <div class="help-faq-a">{{ $t('message.helpDrawer.faq3a') }}</div>
         </div>
 
         <div class="help-faq">
-          <div class="help-faq-q">{{ $t('message.opsflowPage.helpDrawer.faq4q') }}</div>
-          <div class="help-faq-a">{{ $t('message.opsflowPage.helpDrawer.faq4a') }}</div>
+          <div class="help-faq-q">{{ $t('message.helpDrawer.faq4q') }}</div>
+          <div class="help-faq-a">{{ $t('message.helpDrawer.faq4a') }}</div>
         </div>
 
         <div class="help-faq">
-          <div class="help-faq-q">{{ $t('message.opsflowPage.helpDrawer.faq5q') }}</div>
-          <div class="help-faq-a" v-html="$t('message.opsflowPage.helpDrawer.faq5a', { code1: '<code>${_result} == True</code>', code2: '<code>${node_2.cpu} &gt; 80</code>' })" />
+          <div class="help-faq-q">{{ $t('message.helpDrawer.faq5q') }}</div>
+          <div class="help-faq-a" v-html="$t('message.helpDrawer.faq5a', { code1: '<code>${_result} == True</code>', code2: '<code>${node_2.cpu} &gt; 80</code>' })" />
         </div>
       </section>
     </div>

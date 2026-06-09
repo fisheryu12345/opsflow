@@ -358,6 +358,7 @@ export default {
         placeholderNumber: 'e.g. 80',
         placeholderBool: 'true / false',
         placeholderDefault: 'e.g. ok',
+        custom: 'Custom',
     },
     plugin: {
         title: 'Plugins',
