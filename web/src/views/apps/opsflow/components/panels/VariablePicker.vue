@@ -4,7 +4,7 @@
     filterable
     size="small"
     style="width:100%"
-    :placeholder="placeholder"
+    :placeholder="placeholder || $t('message.condition.variableHint')"
     @change="onSelect"
     :clearable="clearable"
   >
@@ -30,7 +30,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { VariableOption } from '../../utils/shapes'
+
+const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   options: VariableOption[]
@@ -40,7 +43,8 @@ const props = withDefaults(defineProps<{
 }>(), {
   modelValue: '',
   clearable: true,
-  placeholder: 'Select variable',
+  placeholder: '',
+
 })
 
 const emit = defineEmits<{

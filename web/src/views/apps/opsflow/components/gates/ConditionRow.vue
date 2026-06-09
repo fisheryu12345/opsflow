@@ -2,7 +2,7 @@
   <div class="condition-row" :class="{ 'has-error': hasError }">
     <div class="row-header">
       <span class="row-index" :style="{ background: indexColor }">{{ index + 1 }}</span>
-      <span class="row-label">When</span>
+      <span class="row-label">{{ $t("message.condition.when") }}</span>
       <el-button size="small" text type="danger" :icon="Delete" @click="$emit('remove')" />
     </div>
     <div class="row-fields">
@@ -13,7 +13,7 @@
         @select="onVariableSelect"
         @update:model-value="onVariableKeyChange"
         :clearable="false"
-        placeholder="Select a variable..."
+        :placeholder="$t('message.condition.variableHint')"
       />
       <el-select
         v-model="localRule.op"
@@ -46,10 +46,13 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Delete } from '@element-plus/icons-vue'
 import VariablePicker from '../panels/VariablePicker.vue'
 import { opsForType } from '../../composables/useGraphCanvas'
 import type { VariableOption, ConditionRule } from '../../utils/shapes'
+
+const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   rule: ConditionRule
@@ -81,9 +84,9 @@ const fieldTypeLabel = computed(() => {
 })
 const valueInputType = computed(() => fieldType.value === 'number' ? 'number' : 'text')
 const valuePlaceholder = computed(() => {
-  if (fieldType.value === 'number') return 'e.g. 80'
-  if (fieldType.value === 'boolean') return 'true / false'
-  return 'e.g. ok'
+  if (fieldType.value === 'number') return t('message.condition.placeholderNumber')
+  if (fieldType.value === 'boolean') return t('message.condition.placeholderBool')
+  return t('message.condition.placeholderDefault')
 })
 const indexColor = computed(() => {
   const colors = ['#67C23A', '#E6A23C', '#409EFF', '#9B59B6', '#00BCD4']

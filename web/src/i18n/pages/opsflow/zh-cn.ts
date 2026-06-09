@@ -279,6 +279,14 @@ export default {
         variableHint: '选择变量或输入表达式',
         save: '保存条件',
         cancel: '取消',
+        when: '当',
+        validationPassed: '校验通过',
+        validationFailed: '校验失败',
+        rowsError: '行有错误',
+        hint: '添加条件或选择快速预设：',
+        placeholderNumber: '例如 80',
+        placeholderBool: 'true / false',
+        placeholderDefault: '例如 ok',
     },
     // ===== 插件 =====
     plugin: {
@@ -384,6 +392,7 @@ export default {
         title: '快速入门指南',
         tourBtn: '5 步引导',
         overview: '概览',
+        flowOverview: '① 创建 → ② 设计 → ③ 发布 → ④ 执行 → ⑤ 监控',
         create: '创建',
         design: '设计',
         publish: '发布',

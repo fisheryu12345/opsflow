@@ -42,16 +42,16 @@
       <!-- 空状态 + 快捷条件按钮 -->
       <div v-else class="rules-empty">
         <el-icon size="24" color="#c0c4cc"><Plus /></el-icon>
-        <p>Add a condition or pick a quick preset:</p>
+        <p>{{ $t("message.condition.hint") }}</p>
         <div class="quick-presets">
           <el-button size="small" @click="addPreset('_result', '==', 'True')" title="${_result} == True">
-            <el-icon><CircleCheck /></el-icon> Success
+            <el-icon><CircleCheck /></el-icon> {{ $t("message.execution.statCompleted") }}
           </el-button>
           <el-button size="small" @click="addPreset('_result', '==', 'False')" title="${_result} == False">
-            <el-icon><CloseBold /></el-icon> Failure
+            <el-icon><CloseBold /></el-icon> {{ $t("message.execution.statFailed") }}
           </el-button>
           <el-button size="small" @click="addRule">
-            <el-icon><Plus /></el-icon> Custom
+            <el-icon><Plus /></el-icon> {{ $t("message.condition.custom") }}
           </el-button>
         </div>
       </div>
@@ -60,14 +60,14 @@
       <div class="add-rule-row" v-if="rules.length > 0">
         <el-button size="small" type="primary" plain @click="addRule">
           <el-icon><Plus /></el-icon>
-          Add Condition
+          {{ $t("message.condition.addCondition") }}
         </el-button>
       </div>
 
       <!-- 预览 + 校验 -->
       <div class="preview-bar" v-if="rules.length > 0">
         <div class="preview-row">
-          <span class="preview-label">Expression:</span>
+          <span class="preview-label">{{ $t("message.condition.expression") }}:</span>
           <code class="preview-expr">{{ conditionExpr }}</code>
         </div>
         <div class="validation-row" :class="validationStatus">
@@ -79,9 +79,9 @@
     </div>
 
     <template #footer>
-      <el-button @click="$emit('update:visible', false)">Cancel</el-button>
+      <el-button @click="$emit('update:visible', false)">{{ $t("message.common.cancel") }}</el-button>
       <el-button type="primary" @click="onSave" :disabled="!isValid">
-        Confirm
+        {{ $t("message.condition.save") }}
       </el-button>
     </template>
   </el-dialog>
@@ -89,10 +89,13 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Plus, ArrowDown, CircleCheck, CloseBold, WarningFilled } from '@element-plus/icons-vue'
 import ConditionRow from './ConditionRow.vue'
 import { generateConditionExpr } from '../../composables/useGraphCanvas'
 import type { VariableOption, ConditionRule, ConditionStruct } from '../../utils/shapes'
+
+const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   visible: boolean
@@ -119,7 +122,7 @@ const errors = ref<Record<number, string>>({})
 const conditionExpr = ref('')
 
 const dialogTitle = computed(() => {
-  const base = 'Edit Condition'
+  const base = t('message.condition.title')
   if (props.sourceNodeLabel && props.targetNodeLabel) {
     return `${base}: ${props.sourceNodeLabel} → ${props.targetNodeLabel}`
   }
@@ -139,9 +142,9 @@ const validationMessage = computed(() => {
   if (rules.value.length === 0) return ''
   const errKeys = Object.keys(errors.value)
   if (errKeys.length > 0) {
-    return `Validation failed: ${errKeys.length} row(s) have errors`
+    return `${t('message.condition.validationFailed')}: ${errKeys.length} ${t('message.condition.rowsError')}`
   }
-  return 'Validation passed'
+  return t('message.condition.validationPassed')
 })
 
 // 初始化/回填
