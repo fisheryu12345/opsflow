@@ -53,6 +53,7 @@ COLUMN_EXCLUDE_APPS = ['channels', 'captcha'] + locals().get("COLUMN_EXCLUDE_APP
 
 INSTALLED_APPS = [
     "simpleui",
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -63,11 +64,11 @@ INSTALLED_APPS = [
     "rest_framework",
     "django_filters",
     "corsheaders",  # 注册跨域app
-    "drf_yasg",
+    "drf_spectacular",
     "captcha",
     "channels",
     "django_apscheduler",
-    "django_extensions",   
+    "django_extensions",
     "dvadmin.system",
     "opsagent",
     # ------------------------------------------------------------------ #
@@ -364,6 +365,7 @@ REST_FRAMEWORK = {
     ),
     "DATETIME_FORMAT": "%Y-%m-%d %H:%M:%S",  # 日期时间格式配置
     "DATE_FORMAT": "%Y-%m-%d",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",  # drf-spectacular schema
     "DEFAULT_FILTER_BACKENDS": (
         # 'django_filters.rest_framework.DjangoFilterBackend',
         "dvadmin.utils.filters.CustomDjangoFilterBackend",
@@ -399,28 +401,20 @@ SIMPLE_JWT = {
 }
 
 # ====================================#
-# ****************swagger************#
+# ***********drf-spectacular**********#
 # ====================================#
-SWAGGER_SETTINGS = {
-    # 基础样式
-    "SECURITY_DEFINITIONS": {"basic": {"type": "basic"}},
-    # 如果需要登录才能够查看接口文档, 登录的链接使用restframework自带的.
-    "LOGIN_URL": "apiLogin/",
-    # 'LOGIN_URL': 'rest_framework:login',
-    "LOGOUT_URL": "rest_framework:logout",
-    # 'DOC_EXPANSION': None,
-    # 'SHOW_REQUEST_HEADERS':True,
-    # 'USE_SESSION_AUTH': True,
-    # 'DOC_EXPANSION': 'list',
-    # 接口文档中方法列表以首字母升序排列
-    "APIS_SORTER": "alpha",
-    # 如果支持json提交, 则接口文档中包含json输入框
-    "JSON_EDITOR": True,
-    # 方法列表字母排序
-    "OPERATIONS_SORTER": "alpha",
-    "VALIDATOR_URL": None,
-    "AUTO_SCHEMA_TYPE": 2,  # 分组根据url层级分，0、1 或 2 层
-    "DEFAULT_AUTO_SCHEMA_CLASS": "dvadmin.utils.swagger.CustomSwaggerAutoSchema",
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Snippets API',
+    'DESCRIPTION': 'OpsFlow API Documentation',
+    'VERSION': 'v1',
+    'SERVE_INCLUDE_SCHEMA': False,
+    # 分组根据url层级分，0、1 或 2 层
+    'SCHEMA_PATH_PREFIX': r'/api/',
+    'SWAGGER_UI_SETTINGS': {
+        'apisSorter': 'alpha',
+        'operationsSorter': 'alpha',
+        'jsonEditor': True,
+    },
 }
 
 # ================================================= #

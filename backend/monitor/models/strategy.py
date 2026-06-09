@@ -80,7 +80,9 @@ class MonitorStrategy(models.Model):
         verbose_name = "监控策略"
         verbose_name_plural = verbose_name
         ordering = ["-create_time"]
-        index_together = [("is_enabled", "bk_biz_id", "scenario")]
+        indexes = [
+            models.Index(fields=["is_enabled", "bk_biz_id", "scenario"]),
+        ]
 
     def __str__(self):
         return self.name
@@ -150,7 +152,9 @@ class MonitorQueryConfig(models.Model):
         db_table = table_prefix + "monitor_query_config"
         verbose_name = "查询配置"
         verbose_name_plural = verbose_name
-        index_together = [("data_source_label", "data_type_label")]
+        indexes = [
+            models.Index(fields=["data_source_label", "data_type_label"]),
+        ]
 
     def __str__(self):
         return f"{self.alias} ({self.metric_id})"

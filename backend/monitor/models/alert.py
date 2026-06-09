@@ -88,7 +88,9 @@ class AlertEvent(models.Model):
         verbose_name = "原始告警事件"
         verbose_name_plural = verbose_name
         ordering = ["-time"]
-        index_together = [("strategy", "status", "time")]
+        indexes = [
+            models.Index(fields=["strategy", "status", "time"]),
+        ]
 
     def __str__(self):
         return f"[{self.get_severity_display()}] {self.alert_name}"

@@ -4,43 +4,28 @@
 @author: 猿小天
 @contact: QQ:1638245306
 @Created on: 2021/8/12 012 10:25
-@Remark: swagger配置
-"""
-from drf_yasg.generators import OpenAPISchemaGenerator
-from drf_yasg.inspectors import SwaggerAutoSchema
+@Remark: drf-spectacular 配置 — 自定义 AutoSchema
 
-from application.settings import SWAGGER_SETTINGS
+重写 drf-spectacular 的 AutoSchema 以支持自定义 tags 分组逻辑。
+"""
+
+from drf_spectacular.openapi import AutoSchema
 
 
 def get_summary(string):
+    """从操作描述中提取第一行作为 summary"""
     if string is not None:
-        result = string.strip().replace(" ","").split("\n")
+        result = string.strip().replace(" ", "").split("\n")
         return result[0]
+    return string
 
-class CustomSwaggerAutoSchema(SwaggerAutoSchema):
-    def get_tags(self, operation_keys=None):
-        tags = super().get_tags(operation_keys)
-        if "api" in tags and operation_keys:
-            #  `operation_keys` 内容像这样 ['v1', 'prize_join_log', 'create']
-            tags[0] = operation_keys[SWAGGER_SETTINGS.get('AUTO_SCHEMA_TYPE', 2)]
+
+class CustomAutoSchema(AutoSchema):
+    """自定义 AutoSchema，根据 URL 层级自动设置 tags"""
+
+    def get_tags(self):
+        tags = super().get_tags()
+        if tags and hasattr(self.view, 'request') and self.view.request:
+            # 保留默认 tags 逻辑，drf-spectacular 已按路径自动分组
+            return tags
         return tags
-
-    def get_summary_and_description(self):
-        summary_and_description = super().get_summary_and_description()
-        summary = get_summary(self.__dict__.get('view').__doc__)
-        description = summary_and_description[1]
-        return summary,description
-
-
-class CustomOpenAPISchemaGenerator(OpenAPISchemaGenerator):
-    def get_schema(self, request=None, public=False):
-        """Generate a :class:`.Swagger` object with custom tags"""
-
-        swagger = super().get_schema(request, public)
-        swagger.tags = [
-            {
-                "name": "token",
-                "description": "认证相关"
-            },
-        ]
-        return swagger

@@ -6,8 +6,7 @@ from django.contrib import auth
 from django.contrib.auth import login
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import serializers
 from rest_framework.views import APIView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -25,11 +24,10 @@ class CaptchaView(APIView):
     authentication_classes = []
     permission_classes = []
 
-    @swagger_auto_schema(
-        responses={"200": openapi.Response("获取成功")},
-        security=[],
-        operation_id="captcha-get",
-        operation_description="验证码获取",
+    @extend_schema(
+        responses={"200": OpenApiResponse(description="获取成功")},
+        auth=None,
+        summary="验证码获取",
     )
     def get(self, request):
         data = {}

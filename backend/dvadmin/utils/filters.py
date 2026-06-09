@@ -11,7 +11,6 @@ import re
 from collections import OrderedDict
 from functools import reduce
 
-import six
 from django.db.models import Q, F
 from django.db.models.constants import LOOKUP_SEP
 from django_filters import utils
@@ -312,7 +311,7 @@ class CustomDjangoFilterBackend(DjangoFilterBackend):
             for search_field in filterset.filters:
                 if isinstance(filterset.filters[search_field], CharFilter):
                     orm_lookups.append(
-                        self.construct_search(six.text_type(search_field), filterset.filters[search_field].lookup_expr)
+                        self.construct_search(str(search_field), filterset.filters[search_field].lookup_expr)
                     )
                 else:
                     orm_lookups.append(search_field)
