@@ -5,20 +5,20 @@
       <div class="app-hero-bg" />
       <div class="app-hero-inner">
         <div class="app-hero-left">
-          <h1 class="app-hero-title">Pending Approvals</h1>
-          <p class="app-hero-subtitle">Executions awaiting human review</p>
+          <h1 class="app-hero-title">{{ $t("message.opsflowPage.approvalTitle") }}</h1>
+          <p class="app-hero-subtitle">{{ $t("message.opsflowPage.approvalSubtitle") }}</p>
         </div>
         <ProjectSwitcher :dark="true" />
         <div class="app-hero-center">
-          <el-input v-model="searchQuery" placeholder="Search by template..." clearable size="default"
+          <el-input v-model="searchQuery" :placeholder="$t('message.opsflowPage.approvalSearchPlaceholder')" clearable size="default"
             class="app-search-input" @keyup.enter="onSearch" @clear="onSearch">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
         </div>
         <div class="app-hero-stats">
-          <div class="app-stat-item"><span class="app-stat-value">{{ total }}</span><span class="app-stat-label">Pending</span></div>
+          <div class="app-stat-item"><span class="app-stat-value">{{ total }}</span><span class="app-stat-label">{{ $t("message.opsflowPage.approvalStatPending") }}</span></div>
           <div class="app-stat-divider" />
-          <div class="app-stat-item"><span class="app-stat-value">{{ urgentCount }}</span><span class="app-stat-label">&gt; 1h</span></div>
+          <div class="app-stat-item"><span class="app-stat-value">{{ urgentCount }}</span><span class="app-stat-label">{{ $t("message.opsflowPage.approvalStatOver1h") }}</span></div>
         </div>
       </div>
     </div>
@@ -29,38 +29,38 @@
       <div class="app-filter-bar">
         <div class="app-filter-tabs">
           <div class="app-tab" :class="{ active: filterUrgent === '' }" @click="filterUrgent = ''; onSearch()">
-            <span class="app-tab-dot" style="background:#409EFF" />All
+            <span class="app-tab-dot" style="background:#409EFF" />{{ $t("message.opsflowPage.approvalFilterAll") }}
           </div>
           <div class="app-tab" :class="{ active: filterUrgent === 'urgent' }" @click="filterUrgent = 'urgent'; onSearch()">
-            <span class="app-tab-dot" style="background:#F56C6C" />Urgent (&gt;1h)
+            <span class="app-tab-dot" style="background:#F56C6C" />{{ $t("message.opsflowPage.approvalFilterUrgent") }}
           </div>
         </div>
         <div class="app-filter-actions">
-          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">Refresh</el-button>
+          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">{{ $t("message.common.refresh") }}</el-button>
         </div>
       </div>
 
       <!-- Table card -->
       <div class="app-table-card">
         <el-table :data="displayList" v-loading="loading" stripe style="width:100%" :empty-text="emptyText" size="small">
-          <el-table-column prop="template_name" label="Template" min-width="200" show-overflow-tooltip />
-          <el-table-column label="Approval Node" width="180">
+          <el-table-column prop="template_name" :label="$t('message.execution.colTemplate')" min-width="200" show-overflow-tooltip />
+          <el-table-column :label="$t('message.opsflowPage.approvalColNode')" width="180">
             <template #default="{ row }">
               <span class="app-node-badge"><el-icon size="12" style="margin-right:4px"><Clock /></el-icon>{{ row.node_id }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="Wait Duration" width="130">
+          <el-table-column :label="$t('message.opsflowPage.approvalColWait')" width="130">
             <template #default="{ row }">
               <span class="app-wait" :class="{ 'wait-urgent': isUrgent(row) }">{{ formatWait(row.paused_at) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="Actions" width="260" fixed="right">
+          <el-table-column :label="$t('message.execution.colActions')" width="260" fixed="right">
             <template #default="{ row }">
               <div class="app-actions">
                 <el-button size="small" type="success" :icon="CircleCheck" @click.stop="handleApprove(row)"
-                  :loading="actionLoading === row.id + '-approve'" round>Approve</el-button>
+                  :loading="actionLoading === row.id + '-approve'" round>{{ $t("message.execution.approve") }}</el-button>
                 <el-button size="small" type="danger" :icon="Close" @click.stop="handleReject(row)"
-                  :loading="actionLoading === row.id + '-reject'" round>Reject</el-button>
+                  :loading="actionLoading === row.id + '-reject'" round>{{ $t("message.execution.reject") }}</el-button>
               </div>
             </template>
           </el-table-column>
@@ -73,15 +73,15 @@
     </div>
 
     <!-- Reject dialog -->
-    <el-dialog v-model="rejectVisible" title="Reject Approval" width="420px" top="20vh" destroy-on-close>
+    <el-dialog v-model="rejectVisible" :title="$t('message.opsflowPage.approvalRejectTitle')" width="420px" top="20vh" destroy-on-close>
       <el-form>
-        <el-form-item label="Reason">
-          <el-input v-model="rejectReason" type="textarea" :rows="3" placeholder="Reason for rejection..." />
+        <el-form-item :label="$t('message.opsflowPage.approvalRejectReason')">
+          <el-input v-model="rejectReason" type="textarea" :rows="3" :placeholder="$t('message.opsflowPage.approvalReasonPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="rejectVisible = false" size="small">Cancel</el-button>
-        <el-button type="danger" @click="confirmReject" size="small">Confirm Reject</el-button>
+        <el-button @click="rejectVisible = false" size="small">{{ $t('message.common.cancel') }}</el-button>
+        <el-button type="danger" @click="confirmReject" size="small">{{ $t("message.opsflowPage.approvalConfirmReject") }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -89,11 +89,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Refresh, Search, CircleCheck, Close, Clock } from '@element-plus/icons-vue'
 import { GetPendingApprovals, ApproveNode, RejectNode } from '../opsflow/api/executions'
 
 import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
+const { t } = useI18n()
 const loading = ref(false)
 const actionLoading = ref<string | null>(null)
 const list = ref<any[]>([])
@@ -108,7 +110,7 @@ const currentRow = ref<any>(null)
 
 const total = computed(() => displayList.value.length)
 const urgentCount = computed(() => displayList.value.filter(r => isUrgent(r)).length)
-const emptyText = computed(() => loading.value ? 'Loading...' : 'No pending approvals — all caught up!')
+const emptyText = computed(() => loading.value ? t('message.common.loading') : t('message.opsflowPage.approvalNoPending'))
 
 const displayList = computed(() => {
   let items = list.value
@@ -150,10 +152,10 @@ async function fetchData() {
 async function handleApprove(row: any) {
   actionLoading.value = row.id + '-approve'
   try {
-    await ApproveNode(row.id, row.node_id, 'Approved from dashboard')
-    ElMessage.success(`Approved execution #${row.id}`)
+    await ApproveNode(row.id, row.node_id, t('message.execution.approve'))
+    ElMessage.success(t('message.opsflowPage.approvalExecApproved', { id: row.id }))
     await fetchData()
-  } catch (e: any) { ElMessage.error(e?.msg || 'Approve failed') }
+  } catch (e: any) { ElMessage.error(e?.msg || t('message.opsflowPage.approvalApproveFailed')) }
   actionLoading.value = null
 }
 
@@ -165,10 +167,10 @@ async function confirmReject() {
   if (!currentRow.value) return
   actionLoading.value = currentRow.value.id + '-reject'
   try {
-    await RejectNode(currentRow.value.id, currentRow.value.node_id, rejectReason.value || 'Rejected from dashboard')
-    ElMessage.success(`Rejected execution #${currentRow.value.id}`)
+    await RejectNode(currentRow.value.id, currentRow.value.node_id, rejectReason.value || t('message.opsflowPage.approvalRejected'))
+    ElMessage.success(t('message.opsflowPage.approvalExecRejected', { id: currentRow.value.id }))
     rejectVisible.value = false; await fetchData()
-  } catch (e: any) { ElMessage.error(e?.msg || 'Reject failed') }
+  } catch (e: any) { ElMessage.error(e?.msg || t('message.opsflowPage.approvalRejectFailed')) }
   actionLoading.value = null
 }
 
