@@ -774,6 +774,12 @@ export default {
         webhookSaveFailed: '保存失败',
         webhookDeleteFailed: '删除失败',
         webhookRequired: '名称、URL 和模板为必填项',
+        aiAnalysis: 'AI 流程分析',
+        aiSummary: '摘要',
+        aiSteps: '流程步骤',
+        aiRisks: '风险',
+        aiProcessingFailed: 'AI 处理失败',
+        saveFailed: '保存失败',
     },
     common: {
         confirm: '确定',

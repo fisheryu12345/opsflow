@@ -1,6 +1,6 @@
 <template>
-  <el-dialog v-model="visible" title="创建监控策略" width="900px" top="3vh" :close-on-click-modal="false"
-    :before-close="handleClose" class="strategy-wizard-dialog">
+  <el-dialog :model-value="visible" title="创建监控策略" width="900px" top="3vh" :close-on-click-modal="false"
+    :before-close="handleClose" class="strategy-wizard-dialog" @update:model-value="emit('close')">
     <!-- Step progress -->
     <el-steps :active="activeStep" finish-status="success" align-center style="margin-bottom: 24px;">
       <el-step title="基本信息" description="Basic Info" />
@@ -92,7 +92,7 @@
         </el-row>
         <el-form-item label="查询语句 (PromQL)">
           <el-input v-model="form.promql" type="textarea" :rows="2"
-            placeholder="例如: 100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)" />
+            placeholder='例如: 100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)' />
           <div style="font-size:12px;color:#909399;margin-top:4px;">
             PromQL 语法提示: rate() / irate() / avg() / sum() / by() 等
           </div>

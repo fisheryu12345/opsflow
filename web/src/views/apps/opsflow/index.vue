@@ -5,10 +5,10 @@
       <div class="chat-float-header">
         <div class="chat-header-left">
           <el-icon size="16"><ChatDotSquare /></el-icon>
-          <span>AI Design</span>
+          <span>{{ $t("message.ai.title") }}</span>
         </div>
         <div class="chat-header-actions">
-          <el-tooltip :show-after="500" content="Quick start guide" placement="bottom">
+          <el-tooltip :show-after="500" :content="$t('message.ai.quickStart')" placement="bottom">
             <el-button size="small" circle :icon="Reading" @click="store.openHelpDrawer()" class="chat-hdr-btn" />
           </el-tooltip>
           <el-button size="small" circle :icon="Fold" @click="chatExpanded = false" class="chat-hdr-btn" />
@@ -35,17 +35,17 @@
         </div>
         <div v-if="chatMessages.length === 0 && !generating" class="chat-placeholder">
           <el-icon size="24"><ChatLineSquare /></el-icon>
-          <p>Hi! Describe the ops workflow you want to create, or start dragging nodes from the left panel.</p>
+          <p>{{ $t("message.ai.chatPlaceholder") }}</p>
           <!-- Quick suggestion tags for new users -->
           <div v-if="!store.isOnboarded" class="quick-suggestions">
-            <el-tag @click="quickFill('Create a pipeline to check disk space on all servers')" effect="plain" class="qs-tag">
-              💾 Disk check pipeline
+            <el-tag @click="quickFill($t('message.ai.suggestionDisk'))" effect="plain" class="qs-tag">
+              💾 {{ $t("message.ai.suggestionDiskShort") }}
             </el-tag>
-            <el-tag @click="quickFill('Restart nginx if health check fails')" effect="plain" class="qs-tag">
-              🔄 Health check → auto restart
+            <el-tag @click="quickFill($t('message.ai.suggestionHealth'))" effect="plain" class="qs-tag">
+              🔄 {{ $t("message.ai.suggestionHealthShort") }}
             </el-tag>
-            <el-tag @click="quickFill('Schedule this pipeline to run daily at 2am')" effect="plain" class="qs-tag">
-              ⏰ Daily schedule
+            <el-tag @click="quickFill($t('message.ai.suggestionSchedule'))" effect="plain" class="qs-tag">
+              ⏰ {{ $t("message.ai.suggestionScheduleShort") }}
             </el-tag>
           </div>
         </div>
@@ -53,7 +53,7 @@
       <div class="chat-float-input">
         <el-input
           v-model="nlInput"
-          placeholder="Describe your ops task..."
+          :placeholder="$t('message.ai.placeholder')"
           :disabled="!selectedTemplateId || generating"
           type="textarea"
           :rows="2"
@@ -61,13 +61,13 @@
           @keydown.enter.prevent="onGenerate"
         />
         <el-button type="primary" :loading="generating" :disabled="!selectedTemplateId" @click="onGenerate" class="chat-send-btn">
-          Send
+          {{ $t("message.common.send") }}
         </el-button>
       </div>
     </div>
     <el-button v-if="!chatExpanded" class="chat-float-trigger" round @click="chatExpanded = true">
       <el-icon><ChatDotSquare /></el-icon>
-      AI Design
+      {{ $t("message.ai.title") }}
     </el-button>
 
     <!-- Main body / 主体 -->
@@ -95,14 +95,14 @@
                @confirmed="onDiffConfirmed" />
 
     <!-- AI analysis dialog / AI 分析弹窗 -->
-    <el-dialog v-model="analyzeVisible" title="AI Pipeline Analysis" width="740px" top="5vh" class="opsflow-dialog">
+    <el-dialog v-model="analyzeVisible" :title="$t('message.opsflowPage.aiAnalysis')" width="740px" top="5vh" class="opsflow-dialog">
       <div v-loading="analyzing" element-loading-text="AI analyzing..." class="analyze-body">
         <div v-if="analysisResult" class="analyze-content">
           <!-- Summary Hero -->
           <div class="summary-hero of-fade-in-up">
             <div class="summary-hero-icon"><el-icon size="22"><InfoFilled /></el-icon></div>
             <div class="summary-hero-text">
-              <div class="summary-hero-label">Summary</div>
+              <div class="summary-hero-label">{{ $t("message.opsflowPage.aiSummary") }}</div>
               <p>{{ analysisResult.summary }}</p>
             </div>
           </div>
@@ -110,7 +110,7 @@
           <div class="section-card of-fade-in-up" v-if="analysisResult.steps?.length" :style="{ animationDelay: '0.15s' }">
             <div class="section-card-header">
               <el-icon size="16" color="#409EFF"><List /></el-icon>
-              <span>Pipeline Steps</span>
+              <span>{{ $t("message.opsflowPage.aiSteps") }}</span>
               <el-tag size="small" type="primary" effect="plain">{{ analysisResult.steps.length }} steps</el-tag>
             </div>
             <div class="timeline">
@@ -129,7 +129,7 @@
             <div class="section-card section-card-half of-fade-in-up" v-if="analysisResult.risks?.length" :style="{ animationDelay: '0.3s' }">
               <div class="section-card-header">
                 <el-icon size="16" color="#E6A23C"><WarningFilled /></el-icon>
-                <span>Risks</span>
+                <span>{{ $t("message.opsflowPage.aiRisks") }}</span>
                 <el-tag size="small" type="warning" effect="plain">{{ analysisResult.risks.length }}</el-tag>
               </div>
               <div class="risk-list">
@@ -142,7 +142,7 @@
             <div class="section-card section-card-half of-fade-in-up" v-if="analysisResult.suggestions?.length" :style="{ animationDelay: '0.45s' }">
               <div class="section-card-header">
                 <el-icon size="16" color="#409EFF"><Lightning /></el-icon>
-                <span>Suggestions</span>
+                <span>{{ $t("message.opsflowPage.aiSuggestions") }}</span>
                 <el-tag size="small" type="primary" effect="plain">{{ analysisResult.suggestions.length }}</el-tag>
               </div>
               <div class="suggestion-list">
@@ -183,6 +183,7 @@ import DryRunDialog from './components/dialogs/DryRunDialog.vue'
 import HelpDrawer from './components/common/HelpDrawer.vue'
 
 const store = useOpsflowStore()
+const { t } = useI18n()
 
 const designCanvasRef = ref<InstanceType<typeof DesignCanvas> | null>(null)
 const diffModalRef = ref<InstanceType<typeof DiffModal> | null>(null)
@@ -228,8 +229,8 @@ function quickFill(text: string) {
   onGenerate()
 }
 
-// Collapse AI panel when node is selected / 选中节点 → 折叠 AI 面板
-const chatExpanded = ref(true)
+// Collapse AI panel by default / AI 面板默认折叠
+const chatExpanded = ref(false)
 const chatMessages = ref<{ role: 'user' | 'ai'; content: string }[]>([])
 
 function onNodeSelect(node: any) {
@@ -314,7 +315,7 @@ async function onSelectTemplate(id: any) {
     }
   } catch (e: any) {
     console.error('[onSelectTemplate] Failed to load template', e)
-    ElMessage.error(e?.msg || e?.message || 'Failed to load template')
+    ElMessage.error(e?.msg || e?.message || t('message.template.operationFailed'))
   }
 }
 
@@ -323,11 +324,11 @@ const LAYOUT_KEYWORDS = ['layout', 'arrange', 'align', 'organize']
 
 async function onGenerate() {
   if (!nlInput.value.trim()) {
-    ElMessage.warning('Please describe your ops task')
+    ElMessage.warning(t('message.opsflowPage.describeTask'))
     return
   }
   if (!selectedTemplateId.value) {
-    ElMessage.warning('Please select a template first')
+    ElMessage.warning(t('message.opsflowPage.selectTemplateFirst'))
     return
   }
   const input = nlInput.value.trim()
@@ -398,7 +399,7 @@ async function onGenerate() {
     }
   } catch (e: any) {
     console.error('AI processing failed', e)
-    ElMessage.error(e?.response?.data?.msg || e?.msg || 'AI processing failed')
+    ElMessage.error(e?.response?.data?.msg || e?.msg || t('message.opsflowPage.aiProcessingFailed'))
   } finally {
     generating.value = false
     scrollChatBottom()
@@ -408,16 +409,16 @@ async function onGenerate() {
 // Save draft / 保存草稿
 async function onSaveDraft(data: any) {
   if (!selectedTemplateId.value) {
-    ElMessage.warning('Please select or create a template first')
+    ElMessage.warning(t('message.opsflowPage.selectTemplateFirst'))
     return
   }
   try {
     await UpdateTemplate(selectedTemplateId.value, { pipeline_tree: data })
-    ElMessage.success('Draft saved')
+    ElMessage.success(t('message.opsflowPage.saveDraft'))
     await fetchTemplates()
   } catch (e: any) {
     console.error('Save failed', e)
-    ElMessage.error(e?.msg || e?.message || 'Save failed')
+    ElMessage.error(e?.msg || e?.message || t('message.opsflowPage.saveFailed'))
   }
 }
 
@@ -433,7 +434,7 @@ async function onAnalyze() {
   if (!designCanvasRef.value) return
   const data = designCanvasRef.value.getGraphData()
   if (!data.nodes.length) {
-    ElMessage.warning('Canvas is empty, nothing to analyze')
+    ElMessage.warning(t('message.opsflowPage.canvasEmpty'))
     return
   }
   analyzing.value = true
@@ -444,7 +445,7 @@ async function onAnalyze() {
     analysisResult.value = res.data?.data || res.data
   } catch (e: any) {
     console.error('AI analysis failed', e)
-    ElMessage.error(e?.msg || e?.message || 'AI analysis failed')
+    ElMessage.error(e?.msg || e?.message || t('message.opsflowPage.aiProcessingFailed'))
     analyzeVisible.value = false
   } finally {
     analyzing.value = false
@@ -471,11 +472,11 @@ async function onDiffConfirmed() {
     if (selectedTemplateId.value && currentTree.value) {
       await UpdateTemplate(selectedTemplateId.value, { pipeline_tree: currentTree.value })
     }
-    ElMessage.success('Confirmed and saved')
+    ElMessage.success(t('message.opsflowPage.confirmSave'))
     await fetchTemplates()
   } catch (e: any) {
     console.error('Save failed', e)
-    ElMessage.error(e?.msg || e?.message || 'Save failed')
+    ElMessage.error(e?.msg || e?.message || t('message.opsflowPage.saveFailed'))
   }
 }
 

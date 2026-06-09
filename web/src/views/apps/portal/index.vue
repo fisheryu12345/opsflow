@@ -378,7 +378,6 @@ onMounted(async () => {
   position: relative; z-index: 1;
   padding: 22px 32px;
   display: flex; align-items: center; gap: 20px;
-  max-width: 1200px; margin: 0 auto;
 }
 .portal-hero-left { flex: 0 0 auto; }
 .portal-hero-title { margin: 0; font-size: 24px; font-weight: 800; color: #fff; white-space: nowrap; }
@@ -395,7 +394,7 @@ onMounted(async () => {
 .portal-body {
   flex: 1; overflow-y: auto;
   padding: 20px 32px 32px;
-  max-width: 1200px; margin: 0 auto; width: 100%; box-sizing: border-box;
+  box-sizing: border-box;
   display: flex; flex-direction: column; gap: 16px;
 }
 

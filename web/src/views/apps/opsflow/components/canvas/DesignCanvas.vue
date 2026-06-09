@@ -132,6 +132,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, Coin, VideoPlay, CircleCheck, Monitor } from '@element-plus/icons-vue'
 // X6 CSS — v3 auto-injects CSS via JS, no need for separate CSS imports
@@ -149,6 +150,8 @@ const props = defineProps<{
   templates?: any[]
   templateId?: number | null
 }>()
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   save: [data: any]

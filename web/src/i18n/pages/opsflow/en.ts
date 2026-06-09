@@ -762,6 +762,12 @@ export default {
         webhookSaveFailed: 'Save failed',
         webhookDeleteFailed: 'Delete failed',
         webhookRequired: 'Name, URL, and Template are required',
+        aiAnalysis: 'AI Pipeline Analysis',
+        aiSummary: 'Summary',
+        aiSteps: 'Pipeline Steps',
+        aiRisks: 'Risks',
+        aiProcessingFailed: 'AI processing failed',
+        saveFailed: 'Save failed',
     },
     common: {
         confirm: 'Confirm',
