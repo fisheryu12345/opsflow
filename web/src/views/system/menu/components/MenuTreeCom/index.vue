@@ -5,7 +5,7 @@
       <el-input
         v-model="filterVal"
         :prefix-icon="Search"
-        placeholder="Search menu name / 请输入菜单名称"
+        :placeholder="$t('message.menuPage.searchMenuPlaceholder')"
         size="default"
         clearable
       />
@@ -43,35 +43,21 @@
 
     <!-- Action buttons / 操作按钮 -->
     <div class="mtc-actions">
-      <el-tooltip effect="dark" content="Add / 新增" placement="top">
-        <el-icon size="16" v-auth="'menu:Create'" @click="handleUpdateMenu('create')" class="mtc-action-icon">
-          <Plus />
-        </el-icon>
-      </el-tooltip>
-
-      <el-tooltip effect="dark" content="Edit / 编辑" placement="top">
-        <el-icon size="16" v-auth="'menu:Update'" @click="handleUpdateMenu('update')" class="mtc-action-icon">
-          <Edit />
-        </el-icon>
-      </el-tooltip>
-
-      <el-tooltip effect="dark" content="Move Up / 上移" placement="top">
-        <el-icon size="16" v-auth="'menu:MoveUp'" @click="handleSort('up')" class="mtc-action-icon">
-          <Top />
-        </el-icon>
-      </el-tooltip>
-
-      <el-tooltip effect="dark" content="Move Down / 下移" placement="top">
-        <el-icon size="16" v-auth="'menu:MoveDown'" @click="handleSort('down')" class="mtc-action-icon">
-          <Bottom />
-        </el-icon>
-      </el-tooltip>
-
-      <el-tooltip effect="dark" content="Delete / 删除" placement="top">
-        <el-icon size="16" v-auth="'menu:Delete'" @click="handleDeleteMenu()" class="mtc-action-icon mtc-action-danger">
-          <Delete />
-        </el-icon>
-      </el-tooltip>
+      <el-button size="small" type="primary" v-auth="'menu:Create'" @click="handleUpdateMenu('create')">
+        <el-icon><Plus /></el-icon>
+      </el-button>
+      <el-button size="small" v-auth="'menu:Update'" @click="handleUpdateMenu('update')" :disabled="!treeSelectMenu.id">
+        <el-icon><Edit /></el-icon>
+      </el-button>
+      <el-button size="small" v-auth="'menu:MoveUp'" @click="handleSort('up')" :disabled="!treeSelectMenu.id">
+        <el-icon><Top /></el-icon>
+      </el-button>
+      <el-button size="small" v-auth="'menu:MoveDown'" @click="handleSort('down')" :disabled="!treeSelectMenu.id">
+        <el-icon><Bottom /></el-icon>
+      </el-button>
+      <el-button size="small" type="danger" v-auth="'menu:Delete'" @click="handleDeleteMenu()" :disabled="!treeSelectMenu.id">
+        <el-icon><Delete /></el-icon>
+      </el-button>
     </div>
   </div>
 </template>
@@ -122,18 +108,12 @@ watch(filterVal, (val) => {
   treeRef.value!.filter(val);
 });
 
-/**
- * Tree filter / 树的搜索事件
- */
 const filterNode = (value: string, data: any) => {
   if (!value) return true;
   const raw = toRaw(data);
   return (raw.name + (raw.name_display || '')).indexOf(value) !== -1;
 };
 
-/**
- * Lazy load / 树的懒加载
- */
 const handleTreeLoad = (node: Node, resolve: Function) => {
   if (node.level !== 0) {
     lazyLoadMenu({ parent: node.data.id }).then((res: APIResponseData) => {
@@ -142,18 +122,12 @@ const handleTreeLoad = (node: Node, resolve: Function) => {
   }
 };
 
-/**
- * Tree click / 树的点击事件
- */
 const handleNodeClick = (record: MenuTreeItemType, node: Node) => {
   treeSelectMenu.value = record;
   treeSelectNode.value = node;
   emit('treeClick', record);
 };
 
-/**
- * Edit button click / 点击左侧编辑按钮
- */
 const handleUpdateMenu = (type: string) => {
   if (type === 'update') {
     if (!treeSelectMenu.value.id) {
@@ -166,9 +140,6 @@ const handleUpdateMenu = (type: string) => {
   }
 };
 
-/**
- * Delete menu / 删除菜单
- */
 const handleDeleteMenu = () => {
   if (!treeSelectMenu.value.id) {
     warningNotification('Please select a menu! / 请选择菜单！');
@@ -179,9 +150,6 @@ const handleDeleteMenu = () => {
   });
 };
 
-/**
- * Sort move / 移动操作
- */
 const handleSort = async (type: string) => {
   if (!treeSelectMenu.value.id) {
     warningNotification('Please select a menu! / 请选择菜单！');
@@ -237,7 +205,6 @@ defineExpose({
   padding: 0 8px;
 }
 
-/* ===== Tree Node Labels ===== */
 .mtc-node-label {
   font-size: 13px;
   display: inline-flex;
@@ -256,39 +223,14 @@ defineExpose({
 
 /* ===== Action Buttons ===== */
 .mtc-actions {
-  height: 44px;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  padding: 0 16px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
   border-top: 1px solid $of-border-light;
   background: $of-bg-card;
-}
-
-.mtc-action-icon {
-  cursor: pointer;
-  color: $of-color-primary;
-  padding: 6px;
-  border-radius: 6px;
-  transition: background $of-transition-default, transform $of-transition-default;
-
-  &:hover {
-    background: $of-bg-light-blue;
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: scale(0.92);
-  }
-}
-
-.mtc-action-danger {
-  color: #f56c6c;
-
-  &:hover {
-    background: $of-bg-danger;
-  }
+  flex-shrink: 0;
 }
 </style>
 
@@ -331,20 +273,12 @@ defineExpose({
     &.is-leaf {
       margin-left: 4px;
       visibility: visible;
-
-      &::before {
-        display: none;
-      }
+      &::before { display: none; }
     }
 
-    svg {
-      display: none !important;
-      height: 0;
-      width: 0;
-    }
+    svg { display: none !important; height: 0; width: 0; }
   }
 
-  /* Tree expand/collapse custom icons */
   .el-tree-node__expand-icon:before {
     background: url('../../../../../assets/img/menu-tree-show-icon.png') no-repeat center / 100%;
     content: '';

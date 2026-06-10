@@ -3,151 +3,164 @@
     <!-- Form tips / 表单提示 -->
     <div class="mf-alert">
       <el-icon size="14" style="flex-shrink:0"><InfoFilled /></el-icon>
-      <div class="mf-alert-text">
-        1. Red asterisk means required / 红色星号表示必填;<br />
-        2. For catalog menus, component path may be empty / 添加菜单，如果是目录，组件地址为空即可;<br />
-        3. For root menus, parent can be empty / 添加根节点菜单，父级菜单为空即可.
-      </div>
+      <div class="mf-alert-text" v-html="$t('message.menuPage.formTips')" />
     </div>
 
-    <el-form ref="formRef" :rules="rules" :model="menuFormData" label-width="90px" label-position="top" size="default" class="mf-form">
-      <!-- Row 1: Name + Name_EN + Parent -->
-      <el-row :gutter="16">
-        <el-col :span="8">
-          <el-form-item label="Menu Name / 菜单名称" prop="name">
-            <el-input v-model="menuFormData.name" placeholder="Enter menu name / 请输入菜单名称" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item label="Name (EN) / 英文名称" prop="name_en">
-            <el-input v-model="menuFormData.name_en" placeholder="Enter English name / 请输入英文名称" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item label="Parent Menu / 父级菜单" prop="parent">
-            <el-tree-select
-              v-model="menuFormData.parent"
-              :props="defaultTreeProps"
-              :data="deptDefaultList"
-              :cache-data="props.cacheData"
-              lazy
-              check-strictly
-              clearable
-              :load="handleTreeLoad"
-              placeholder="Select parent / 请选择父级菜单"
-              style="width: 100%"
-            />
-          </el-form-item>
-        </el-col>
-      </el-row>
+    <el-form ref="formRef" :rules="rules" :model="menuFormData" label-position="top" size="default" class="mf-form">
 
-      <!-- Row 2: Route + Icon -->
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="Route Path / 路由地址" prop="web_path">
-            <el-input v-model="menuFormData.web_path" placeholder="Start with / / 请以/开头" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="Icon / 图标" prop="icon">
-            <IconSelector clearable v-model="menuFormData.icon" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+      <!-- Section: Basic Info -->
+      <div class="mf-section">
+        <div class="mf-sec-title">{{ $t('message.menuPage.menuName') }} / Name (EN)</div>
+        <el-row :gutter="14">
+          <el-col :span="12">
+            <el-form-item :label="$t('message.menuPage.menuName')" prop="name">
+              <el-input v-model="menuFormData.name" :placeholder="$t('message.menuPage.menuNamePlaceholder')" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item :label="$t('message.menuPage.nameEn')" prop="name_en">
+              <el-input v-model="menuFormData.name_en" :placeholder="$t('message.menuPage.nameEnPlaceholder')" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </div>
 
-      <!-- Row 3: Switches Row 1 -->
-      <el-row :gutter="16">
-        <el-col :span="8">
-          <el-form-item label="Status / 状态">
-            <el-switch v-model="menuFormData.status" width="60" inline-prompt active-text="Enable / 启用" inactive-text="Disable / 禁用" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item v-if="menuFormData.status" label="Sidebar / 侧边显示">
-            <el-switch v-model="menuFormData.visible" width="60" inline-prompt active-text="Show / 显示" inactive-text="Hide / 隐藏" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item label="Cache / 缓存">
-            <el-switch v-model="menuFormData.cache" width="60" inline-prompt active-text="Enable / 启用" inactive-text="Disable / 禁用" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+      <!-- Section: Route & Icon -->
+      <div class="mf-section">
+        <div class="mf-sec-title">{{ $t('message.menuPage.routePath') }} / {{ $t('message.menuPage.icon') }}</div>
+        <el-row :gutter="14">
+          <el-col :span="12">
+            <el-form-item :label="$t('message.menuPage.routePath')" prop="web_path">
+              <el-input v-model="menuFormData.web_path" :placeholder="$t('message.menuPage.routePathPlaceholder')" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item :label="$t('message.menuPage.icon')" prop="icon">
+              <IconSelector clearable v-model="menuFormData.icon" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </div>
 
-      <!-- Row 4: Switches Row 2 -->
-      <el-row :gutter="16">
-        <el-col :span="8">
-          <el-form-item label="Is Catalog / 是否目录">
-            <el-switch v-model="menuFormData.is_catalog" width="60" inline-prompt active-text="Yes / 是" inactive-text="No / 否" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item v-if="!menuFormData.is_catalog" label="External Link / 外链接">
-            <el-switch v-model="menuFormData.is_link" width="60" inline-prompt active-text="Yes / 是" inactive-text="No / 否" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item v-if="!menuFormData.is_catalog" label="Is Affix / 是否固定">
-            <el-switch v-model="menuFormData.is_affix" width="60" inline-prompt active-text="Yes / 是" inactive-text="No / 否" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+      <!-- Section: Parent -->
+      <div class="mf-section">
+        <div class="mf-sec-title">{{ $t('message.menuPage.parentMenu') }}</div>
+        <el-form-item prop="parent">
+          <el-tree-select
+            v-model="menuFormData.parent"
+            :props="defaultTreeProps"
+            :data="deptDefaultList"
+            :cache-data="props.cacheData"
+            lazy check-strictly clearable
+            :load="handleTreeLoad"
+            :placeholder="$t('message.menuPage.parentMenuPlaceholder')"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </div>
 
-      <!-- Row 5: Iframe -->
-      <el-row :gutter="16">
-        <el-col :span="8">
-          <el-form-item v-if="!menuFormData.is_catalog && menuFormData.is_link" label="Is Iframe / 是否内嵌">
-            <el-switch v-model="menuFormData.is_iframe" width="60" inline-prompt active-text="Yes / 是" inactive-text="No / 否" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+      <!-- Section: Switches -->
+      <div class="mf-section">
+        <div class="mf-sec-title">{{ $t('message.menuPage.status') }} / {{ $t('message.menuPage.cache') }}</div>
+        <el-row :gutter="14">
+          <el-col :span="8">
+            <el-form-item :label="$t('message.menuPage.status')">
+              <el-switch v-model="menuFormData.status" width="60" inline-prompt
+                :active-text="$t('message.menuPage.statusEnable')"
+                :inactive-text="$t('message.menuPage.statusDisable')" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8" v-if="menuFormData.status">
+            <el-form-item :label="$t('message.menuPage.sidebar')">
+              <el-switch v-model="menuFormData.visible" width="60" inline-prompt
+                :active-text="$t('message.menuPage.sidebarShow')"
+                :inactive-text="$t('message.menuPage.sidebarHide')" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item :label="$t('message.menuPage.cache')">
+              <el-switch v-model="menuFormData.cache" width="60" inline-prompt
+                :active-text="$t('message.menuPage.cacheEnable')"
+                :inactive-text="$t('message.menuPage.cacheDisable')" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="14" style="margin-top:6px">
+          <el-col :span="6">
+            <el-form-item :label="$t('message.menuPage.isCatalog')">
+              <el-switch v-model="menuFormData.is_catalog" width="60" inline-prompt
+                :active-text="$t('message.menuPage.catalogYes')"
+                :inactive-text="$t('message.menuPage.catalogNo')" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6" v-if="!menuFormData.is_catalog">
+            <el-form-item :label="$t('message.menuPage.externalLink')">
+              <el-switch v-model="menuFormData.is_link" width="60" inline-prompt
+                :active-text="$t('message.menuPage.linkYes')"
+                :inactive-text="$t('message.menuPage.linkNo')" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6" v-if="!menuFormData.is_catalog">
+            <el-form-item :label="$t('message.menuPage.isAffix')">
+              <el-switch v-model="menuFormData.is_affix" width="60" inline-prompt
+                :active-text="$t('message.menuPage.affixYes')"
+                :inactive-text="$t('message.menuPage.affixNo')" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6" v-if="!menuFormData.is_catalog && menuFormData.is_link">
+            <el-form-item :label="$t('message.menuPage.isIframe')">
+              <el-switch v-model="menuFormData.is_iframe" width="60" inline-prompt
+                :active-text="$t('message.menuPage.iframeYes')"
+                :inactive-text="$t('message.menuPage.iframeNo')" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </div>
 
-      <!-- Divider -->
-      <el-divider class="mf-divider" />
-
-      <!-- Row 6: Component section -->
-      <div v-if="!menuFormData.is_catalog">
-        <el-row :gutter="16">
+      <!-- Section: Component -->
+      <div v-if="!menuFormData.is_catalog" class="mf-section">
+        <div class="mf-sec-title">{{ $t('message.menuPage.componentPath') }} / {{ $t('message.menuPage.componentName') }}</div>
+        <el-row :gutter="14">
           <el-col :span="12" v-if="!menuFormData.is_link">
-            <el-form-item label="Component Path / 组件地址" prop="component">
+            <el-form-item :label="$t('message.menuPage.componentPath')" prop="component">
               <el-autocomplete
                 class="w-full"
                 v-model="menuFormData.component"
                 :fetch-suggestions="querySearch"
-                :trigger-on-focus="false"
-                clearable
-                :debounce="100"
-                placeholder="Enter component path / 输入组件地址"
+                :trigger-on-focus="false" clearable :debounce="100"
+                :placeholder="$t('message.menuPage.componentPathPlaceholder')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12" v-if="!menuFormData.is_link">
-            <el-form-item label="Component Name / 组件名称" prop="component_name">
-              <el-input v-model="menuFormData.component_name" placeholder="Enter component name / 请输入组件名称" />
+            <el-form-item :label="$t('message.menuPage.componentName')" prop="component_name">
+              <el-input v-model="menuFormData.component_name" :placeholder="$t('message.menuPage.componentNamePlaceholder')" />
             </el-form-item>
           </el-col>
           <el-col :span="12" v-if="menuFormData.is_link">
-            <el-form-item label="Link URL / 外链接" prop="link_url">
-              <el-input v-model="menuFormData.link_url" placeholder="Enter link URL / 请输入外链接地址" />
+            <el-form-item :label="$t('message.menuPage.linkUrl')" prop="link_url">
+              <el-input v-model="menuFormData.link_url" :placeholder="$t('message.menuPage.linkUrlPlaceholder')" />
             </el-form-item>
           </el-col>
         </el-row>
       </div>
 
       <!-- Description -->
-      <el-form-item label="Description / 备注">
-        <el-input v-model="menuFormData.description" maxlength="200" show-word-limit type="textarea" :rows="3" placeholder="Enter description / 请输入备注" />
-      </el-form-item>
+      <div class="mf-section">
+        <div class="mf-sec-title">{{ $t('message.menuPage.description') }}</div>
+        <el-form-item>
+          <el-input v-model="menuFormData.description" maxlength="200" show-word-limit type="textarea" :rows="3"
+            :placeholder="$t('message.menuPage.descriptionPlaceholder')" />
+        </el-form-item>
+      </div>
 
-      <el-divider class="mf-divider" />
-
-      <!-- Submit / Cancel Buttons -->
+      <!-- Submit / Cancel -->
       <div class="mf-actions">
-        <el-button @click="handleSubmit" type="primary" :loading="menuBtnLoading">
-          <el-icon><Check /></el-icon> Save / 保存
+        <el-button @click="handleCancel" class="mf-btn-cancel">
+          {{ $t('message.menuPage.cancel') }}
         </el-button>
-        <el-button @click="handleCancel">
-          Cancel / 取消
+        <el-button @click="handleSubmit" type="primary" :loading="menuBtnLoading" class="mf-btn-primary">
+          <el-icon><Check /></el-icon> {{ $t('message.menuPage.save') }}
         </el-button>
       </div>
     </el-form>
@@ -157,7 +170,7 @@
 <script lang="ts" setup>
 import { ref, onMounted, reactive } from 'vue';
 import { ElForm, FormRules } from 'element-plus';
-import { InfoFilled, Check } from '@element-plus/icons-vue';
+import { InfoFilled, Check, Link } from '@element-plus/icons-vue';
 import IconSelector from '/@/components/iconSelector/index.vue';
 import { lazyLoadMenu, AddObj, UpdateObj } from '../../api';
 import { successNotification } from '/@/utils/message';
@@ -172,7 +185,7 @@ interface IProps {
 
 const defaultTreeProps: any = {
   children: 'children',
-  label: 'name',
+  label: 'name_display',
   value: 'id',
   isLeaf: (data: MenuTreeItemType[], node: Node) => {
     if (node?.data.hasChild) {
@@ -188,7 +201,7 @@ const validateWebPath = (rule: any, value: string, callback: Function) => {
   if (pattern.test(value)) {
     callback();
   } else {
-    callback(new Error('Please enter a valid path / 请输入正确的地址'));
+    callback(new Error(t('message.menuPage.routePathRequired')));
   }
 };
 
@@ -198,9 +211,12 @@ const validateLinkUrl = (rule: any, value: string, callback: Function) => {
   if (pattern.test(value) || patternUrl.test(value)) {
     callback();
   } else {
-    callback(new Error('Please enter a valid URL / 请输入正确的地址'));
+    callback(new Error(t('message.menuPage.routePathRequired')));
   }
 };
+
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 
 const props = withDefaults(defineProps<IProps>(), {
   initFormData: () => null,
@@ -212,11 +228,11 @@ const emit = defineEmits(['drawerClose']);
 const formRef = ref<InstanceType<typeof ElForm>>();
 
 const rules = reactive<FormRules>({
-  web_path: [{ required: true, message: 'Please enter a valid path / 请输入正确的地址', validator: validateWebPath, trigger: 'blur' }],
-  name: [{ required: true, message: 'Menu name is required / 菜单名称必填', trigger: 'blur' }],
-  component: [{ required: true, message: 'Component path is required / 请输入组件地址', trigger: 'blur' }],
-  component_name: [{ required: true, message: 'Component name is required / 请输入组件名称', trigger: 'blur' }],
-  link_url: [{ required: true, message: 'Link URL is required / 请输入外链接地址', validator: validateLinkUrl, trigger: 'blur' }],
+  web_path: [{ required: true, message: t('message.menuPage.routePathRequired'), validator: validateWebPath, trigger: 'blur' }],
+  name: [{ required: true, message: t('message.menuPage.menuNameRequired'), trigger: 'blur' }],
+  component: [{ required: true, message: t('message.menuPage.componentPathRequired'), trigger: 'blur' }],
+  component_name: [{ required: true, message: t('message.menuPage.componentNameRequired'), trigger: 'blur' }],
+  link_url: [{ required: true, message: t('message.menuPage.linkUrlRequired'), validator: validateLinkUrl, trigger: 'blur' }],
 });
 
 let deptDefaultList = ref<MenuTreeItemType[]>([]);
@@ -285,9 +301,6 @@ const createFilter = (queryString: string) => {
   };
 };
 
-/**
- * Lazy load tree / 树的懒加载
- */
 const handleTreeLoad = (node: Node, resolve: Function) => {
   if (node.level !== 0) {
     lazyLoadMenu({ parent: node.data.id }).then((res: APIResponseData) => {
@@ -343,67 +356,69 @@ onMounted(async () => {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 14px;
+  padding: 12px 14px;
   margin-bottom: 20px;
   border-radius: $of-radius-sm;
-  background: $of-gradient-hero;
+  background: linear-gradient(135deg, #f0f4ff 0%, #f8f9fb 100%);
   border-left: 3px solid $of-color-primary;
   font-size: 12px;
-  line-height: 1.7;
-  color: $of-text-secondary;
+  line-height: 1.8;
+  color: $of-text-muted;
 }
 
-.mf-alert-text {
-  flex: 1;
-  min-width: 0;
+.mf-alert-text { flex: 1; min-width: 0; }
+
+/* ===== Section ===== */
+.mf-section {
+  background: $of-bg-card;
+  border: 1px solid $of-border-card;
+  border-radius: $of-radius-sm;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.mf-sec-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: $of-text-primary;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid $of-border-light;
 }
 
 /* ===== Form ===== */
 .mf-form {
   :deep(.el-form-item) {
-    margin-bottom: 18px;
+    margin-bottom: 0;
   }
-
   :deep(.el-form-item__label) {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
-    color: $of-text-primary;
-    padding-bottom: 4px;
+    color: $of-text-secondary;
+    padding-bottom: 2px;
   }
-
   :deep(.el-input__wrapper),
   :deep(.el-autocomplete .el-input__wrapper) {
     border-radius: 6px;
-    transition: box-shadow $of-transition-default, border-color $of-transition-default;
   }
-
-  :deep(.el-input__wrapper:hover),
-  :deep(.el-autocomplete .el-input__wrapper:hover) {
-    box-shadow: 0 0 0 1px $of-color-primary inset;
-  }
-
   :deep(.el-switch) {
     --el-switch-on-color: #409eff;
   }
 }
 
-/* ===== Divider ===== */
-.mf-divider {
-  margin: 12px 0 18px;
-  border-top-color: $of-border-light;
-}
-
 /* ===== Actions ===== */
 .mf-actions {
   display: flex;
+  justify-content: flex-end;
   gap: 10px;
-  padding-top: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid $of-border-light;
 }
 
 .mf-btn-primary {
-  min-width: 120px;
+  min-width: 110px;
   transition: transform $of-transition-default, box-shadow $of-transition-default;
-
   &:hover {
     transform: translateY(-1px);
     box-shadow: $of-shadow-primary;
@@ -412,9 +427,6 @@ onMounted(async () => {
 
 .mf-btn-cancel {
   transition: transform $of-transition-default;
-
-  &:hover {
-    transform: translateY(-1px);
-  }
+  &:hover { transform: translateY(-1px); }
 }
 </style>
