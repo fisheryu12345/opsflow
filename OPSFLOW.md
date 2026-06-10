@@ -10,7 +10,11 @@
 
 ## 工程规范
 
-- [Project & Engineering Standards](docs/opsflow/guides/project-standards.md) — Project structure, Backend layers, API naming, Error handling, API response convention, Skills
+- [Project & Engineering Standards](docs/opsflow/guides/project-standards.md) — Project structure, Backend layers, API naming, Error handling, API response convention, Skills, **Data init & mock data rules**
+
+## 部署规范
+
+- [Mock 数据生成指南](docs/opsflow/guides/mock-data-guide.md) — 命令用法、数据范围、开发约束
 
 ## 流程规范
 

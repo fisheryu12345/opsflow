@@ -1,12 +1,58 @@
-# OpsFlow 平台 — Mock 数据生成指南
+# OpsFlow 平台 — 数据初始化指南
 
 ## 概述
 
-提供两个管理命令批量生成平台测试数据，覆盖所有 Django ORM 模型和 Neo4j 图数据库。
+平台数据通过一条命令完成新环境初始化。数据分布在 3 个管理命令中，按依赖顺序执行。
+
+### 统一入口
+
+```bash
+cd backend
+python manage.py bootstrap                      # 全量初始化（参考数据 + 演示数据）
+python manage.py bootstrap --essential-only     # 仅系统必需（系统核心 + 参考数据）
+python manage.py bootstrap --demo-only          # 仅演示数据
+python manage.py bootstrap --phase 0            # 单阶段执行
+python manage.py bootstrap --force              # 强制更新演示数据
+```
+
+### 执行阶段
+
+| 阶段 | 命令 | 包含内容 |
+|------|------|----------|
+| **Phase 0**: 系统核心 | `init` | RBAC 基础：部门、角色、用户、菜单、字典、系统配置、API 白名单 |
+| **Phase 1**: 参考数据 | `seed_reference` | 模板分类、知识库、App 菜单、CMDB 模型、监控插件、连接器定义、IAM 菜单、项目迁移、示例模板 |
+| **Phase 2**: 演示数据 | `add_mock_data` + `add_itsm_mock_data` + `add_mock_neo4j` | 示例项目/模板/执行记录、ITSM 工作流、CMDB 拓扑 |
 
 ---
 
-## 1. Django ORM Mock 数据
+## 1. 参考数据（Phase 0 + 1）
+
+```bash
+# 系统核心（RBAC）
+python manage.py init
+
+# 参考数据（模板分类、知识库、CMDB 模型、监控插件、连接器等）
+python manage.py seed_reference
+```
+
+### 覆盖的数据范围
+
+| 模块 | 模型 | 数量 |
+|------|------|------|
+| **RBAC** | Menu, Role, User, Dept, Dictionary, SystemConfig | 完整参考数据 |
+| **opsflow** | TemplateCategory — 模板分类 | 18 |
+| | OpsKnowledge — 知识库 | 17 |
+| | FlowTemplate — 示例模板 | 2（已发布） |
+| **cmdb** | Classification — 分类 | 5 |
+| | AssociationType — 关联类型 | 5 |
+| | ModelDefinition — 模型定义 | 5 |
+| | ModelField — 模型字段 | 22 |
+| **monitor** | ActionPlugin — 监控插件 | 7 |
+| **integration** | ConnectorDefinition — 连接器定义 | 13 |
+
+---
+
+## 2. Django ORM 演示数据（Phase 2）
 
 ### 命令
 
@@ -167,3 +213,10 @@ python manage.py add_mock_neo4j
 - **依赖顺序**：先执行 `add_mock_data` 创建 Django 数据，再执行 `add_mock_neo4j` 创建图数据
 - **Neo4j 连接**：确保 `env.py` 中 Neo4j 配置正确且服务正在运行
 - **测试用户**：Mock 数据使用 `superadmin`（id=1）作为创建者
+
+---
+
+## 5. 开发约束
+
+> **新增 model 或生成新的 mock 数据时，必须同步更新对应的 seed 文件。**
+> 详细规则见 [Project & Engineering Standards](project-standards.md#数据初始化规范)。
