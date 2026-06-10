@@ -79,8 +79,8 @@
           </el-table-column>
         </el-table>
         <div class="pagination-wrap">
-          <el-pagination v-model:page-size="alertPageSize" v-model:current-page="alertPage"
-            :total="alertTotal" small layout="total,prev,pager,next" />
+          <el-pagination v-model:pageSize="alertPageSize" v-model:currentPage="alertPage"
+            :total="alertTotal" size="small" layout="total,prev,pager,next" />
         </div>
       </div>
     </div>

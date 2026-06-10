@@ -41,8 +41,8 @@
     </el-table>
 
     <div class="pagination-wrap" v-if="total > 0">
-      <el-pagination v-model:current-page="page" :page-size="pageSize" :total="total"
-                     layout="prev, pager, next, total" @current-change="fetchPending" />
+      <el-pagination v-model:currentPage="page" :page-size="pageSize" :total="total"
+                     layout="prev, pager, next, total" @update:currentPage="fetchPending" />
     </div>
 
     <!-- Review Dialog -->

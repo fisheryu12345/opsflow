@@ -1,6 +1,6 @@
 <template>
   <el-select popper-class="popperClass" class="tableSelector" :multiple="props.tableConfig.isMultiple"
-             @remove-tag="removeTag" v-model="data" placeholder="请选择" @visible-change="visibleChange">
+    v-model="data" placeholder="请选择" @visible-change="visibleChange">
     <template #empty>
       <div class="option">
         <el-input style="margin-bottom: 10px" v-model="search" clearable placeholder="请输入关键词" @change="getDict"
@@ -12,7 +12,7 @@
         <el-table
             ref="tableRef"
             :data="tableData"
-            size="mini"
+            size="small"
             border
             row-key="id"
             style="width: 400px"
@@ -28,11 +28,11 @@
                            v-for="(item,index) in props.tableConfig.columns" :key="index"/>
         </el-table>
         <el-pagination style="margin-top: 10px" background
-                       v-model:current-page="pageConfig.page"
-                       v-model:page-size="pageConfig.limit"
+                       v-model:currentPage="pageConfig.page"
+                       v-model:pageSize="pageConfig.limit"
                        layout="prev, pager, next"
                        :total="pageConfig.total"
-                       @current-change="handlePageChange"
+                       @update:currentPage="handlePageChange"
         />
       </div>
     </template>
@@ -123,22 +123,19 @@ const getDict = async () => {
   const params = {
     page: pageConfig.page,
     limit: pageConfig.limit,
-    search: search
   }
+  if (search.value) params.search = search.value
   const dicts = dict({url: url, params: params})
   await dicts.reloadDict()
-  const dictData: any = dicts.data
-  const {data, page, limit, total} = dictData
-  pageConfig.page = page
-  pageConfig.limit = limit
-  pageConfig.total = total
-  if (props.tableConfig.data === undefined || props.tableConfig.data.length === 0) {
-    if (props.tableConfig.isTree) {
-      tableData.value = XEUtils.toArrayTree(data, {parentKey: 'parent', key: 'id', children: 'children'})
-    } else {
-      tableData.value = data
-    }
+  const dictData = dicts.data
+  if (Array.isArray(dictData)) {
+    tableData.value = dictData
+    pageConfig.total = dictData.length
   } else {
+    tableData.value = dictData?.data || dictData?.results || []
+    pageConfig.total = dictData?.total || tableData.value.length
+  }
+  if (props.tableConfig.data && props.tableConfig.data.length > 0) {
     tableData.value = props.tableConfig.data
   }
 }

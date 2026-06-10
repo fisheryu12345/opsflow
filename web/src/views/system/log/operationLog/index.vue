@@ -5,7 +5,7 @@
       <div class="oplog-hero-bg" />
       <div class="oplog-hero-inner">
         <div class="oplog-hero-left">
-          <h1 class="oplog-hero-title">操作日志</h1>
+          <h1 class="oplog-hero-title">{{ $t('message.operationLogPage.title') }}</h1>
           <p class="oplog-hero-subtitle">Operation Log</p>
         </div>
         <div class="oplog-hero-stats">
@@ -37,103 +37,103 @@
       <!-- ===== Search / Filter Bar ===== -->
       <div class="oplog-filter-bar">
         <el-form :model="searchForm" inline size="small" @keyup.enter="onSearch">
-          <el-form-item label="请求模块">
-            <el-input v-model="searchForm.request_modular" placeholder="请求模块" clearable style="width:140px" />
+          <el-form-item :label="$t('message.operationLogPage.filterModular')">
+            <el-input v-model="searchForm.request_modular" :placeholder="$t('message.operationLogPage.filterModularPlaceholder')" clearable style="width:140px" />
           </el-form-item>
-          <el-form-item label="请求地址">
-            <el-input v-model="searchForm.request_path" placeholder="请求地址" clearable style="width:180px" />
+          <el-form-item :label="$t('message.operationLogPage.filterPath')">
+            <el-input v-model="searchForm.request_path" :placeholder="$t('message.operationLogPage.filterPathPlaceholder')" clearable style="width:180px" />
           </el-form-item>
-          <el-form-item label="请求方法">
-            <el-input v-model="searchForm.request_method" placeholder="请求方法" clearable style="width:120px" />
+          <el-form-item :label="$t('message.operationLogPage.filterMethod')">
+            <el-input v-model="searchForm.request_method" :placeholder="$t('message.operationLogPage.filterMethodPlaceholder')" clearable style="width:120px" />
           </el-form-item>
-          <el-form-item label="IP地址">
-            <el-input v-model="searchForm.request_ip" placeholder="IP地址" clearable style="width:150px" />
+          <el-form-item :label="$t('message.operationLogPage.filterIp')">
+            <el-input v-model="searchForm.request_ip" :placeholder="$t('message.operationLogPage.filterIpPlaceholder')" clearable style="width:150px" />
           </el-form-item>
-          <el-form-item label="操作人">
-            <el-input v-model="searchForm.creator_name" placeholder="操作人" clearable style="width:120px" />
+          <el-form-item :label="$t('message.operationLogPage.filterCreator')">
+            <el-input v-model="searchForm.creator_name" :placeholder="$t('message.operationLogPage.filterCreatorPlaceholder')" clearable style="width:120px" />
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" :icon="Search" @click="onSearch">搜索</el-button>
-            <el-button :icon="Refresh" @click="onReset">重置</el-button>
+            <el-button type="primary" :icon="Search" @click="onSearch">{{ $t('message.operationLogPage.search') }}</el-button>
+            <el-button :icon="Refresh" @click="onReset">{{ $t('message.operationLogPage.reset') }}</el-button>
           </el-form-item>
         </el-form>
         <div class="oplog-filter-actions">
-          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">刷新</el-button>
+          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">{{ $t('message.operationLogPage.refresh') }}</el-button>
         </div>
       </div>
 
       <!-- ===== Table Card ===== -->
       <div class="oplog-table-card">
         <el-table :data="list" v-loading="loading" stripe style="width:100%"
-          :empty-text="loading ? '加载中...' : '暂无操作日志数据'" size="small" highlight-current-row>
+          :empty-text="loading ? $t('message.operationLogPage.loading') : $t('message.operationLogPage.empty')" size="small" highlight-current-row>
           <el-table-column type="index" label="#" width="60" align="center">
             <template #default="{ $index }">
               {{ (page - 1) * pageSize + $index + 1 }}
             </template>
           </el-table-column>
-          <el-table-column prop="creator_name" label="操作人" width="120" show-overflow-tooltip />
-          <el-table-column prop="request_modular" label="请求模块" min-width="140" show-overflow-tooltip />
-          <el-table-column prop="request_path" label="请求地址" min-width="220" show-overflow-tooltip />
-          <el-table-column prop="request_method" label="请求方法" width="110" align="center">
+          <el-table-column prop="creator_name" :label="$t('message.operationLogPage.colCreator')" width="120" show-overflow-tooltip />
+          <el-table-column prop="request_modular" :label="$t('message.operationLogPage.colModule')" min-width="140" show-overflow-tooltip />
+          <el-table-column prop="request_path" :label="$t('message.operationLogPage.colPath')" min-width="220" show-overflow-tooltip />
+          <el-table-column prop="request_method" :label="$t('message.operationLogPage.colMethod')" width="110" align="center">
             <template #default="{ row }">
               <el-tag :type="methodTagType(row.request_method)" size="small" effect="plain">
                 {{ row.request_method || '-' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="response_code" label="响应码" width="90" align="center">
+          <el-table-column prop="response_code" :label="$t('message.operationLogPage.colCode')" width="90" align="center">
             <template #default="{ row }">
               <span class="oplog-code-badge" :class="codeClass(row.response_code)">
                 {{ row.response_code ?? '-' }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="create_datetime" label="操作时间" width="170" />
-          <el-table-column label="操作" width="80" fixed="right" align="center">
+          <el-table-column prop="create_datetime" :label="$t('message.operationLogPage.colTime')" width="170" />
+          <el-table-column :label="$t('message.operationLogPage.colActions')" width="80" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button size="small" text type="primary" @click="showDetail(row)">查看</el-button>
+              <el-button size="small" text type="primary" @click="showDetail(row)">{{ $t('message.operationLogPage.view') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
         <div class="oplog-pagination" v-if="total > 0">
-          <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :total="total"
+          <el-pagination v-model:currentPage="page" v-model:pageSize="pageSize" :total="total"
             :page-sizes="[15, 30, 50, 100]" layout="total, sizes, prev, pager, next, jumper"
-            @current-change="onPageChange" @size-change="onSizeChange" small />
+            @update:currentPage="onPageChange" @update:pageSize="onSizeChange" size="small" />
         </div>
       </div>
     </div>
 
     <!-- ===== Detail Drawer ===== -->
-    <el-drawer v-model="detailVisible" title="操作日志详情" size="560px" destroy-on-close class="oplog-detail-drawer">
+    <el-drawer v-model="detailVisible" :title="$t('message.operationLogPage.drawerTitle')" size="560px" destroy-on-close class="oplog-detail-drawer">
       <template v-if="detailRow">
         <div class="oplog-detail-body">
           <el-descriptions :column="2" border size="small">
-            <el-descriptions-item label="操作人" :span="1">{{ detailRow.creator_name || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="请求模块" :span="1">{{ detailRow.request_modular || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="请求地址" :span="2">{{ detailRow.request_path || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="请求方法" :span="1">
+            <el-descriptions-item :label="$t('message.operationLogPage.descCreator')" :span="1">{{ detailRow.creator_name || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('message.operationLogPage.descModule')" :span="1">{{ detailRow.request_modular || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('message.operationLogPage.descPath')" :span="2">{{ detailRow.request_path || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('message.operationLogPage.descMethod')" :span="1">
               <el-tag :type="methodTagType(detailRow.request_method)" size="small" effect="plain">
                 {{ detailRow.request_method || '-' }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="响应码" :span="1">
+            <el-descriptions-item :label="$t('message.operationLogPage.descCode')" :span="1">
               <span class="oplog-code-badge" :class="codeClass(detailRow.response_code)">
                 {{ detailRow.response_code ?? '-' }}
               </span>
             </el-descriptions-item>
-            <el-descriptions-item label="IP地址" :span="1">{{ detailRow.request_ip || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="请求浏览器" :span="1">{{ detailRow.request_browser || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="操作系统" :span="1">{{ detailRow.request_os || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="操作说明" :span="2">{{ detailRow.request_msg || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="操作时间" :span="2">{{ detailRow.create_datetime || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('message.operationLogPage.descIp')" :span="1">{{ detailRow.request_ip || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('message.operationLogPage.descBrowser')" :span="1">{{ detailRow.request_browser || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('message.operationLogPage.descOs')" :span="1">{{ detailRow.request_os || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('message.operationLogPage.descMsg')" :span="2">{{ detailRow.request_msg || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('message.operationLogPage.descTime')" :span="2">{{ detailRow.create_datetime || '-' }}</el-descriptions-item>
           </el-descriptions>
 
           <div class="oplog-detail-section">
-            <div class="oplog-detail-label">请求参数 (request_body)</div>
+            <div class="oplog-detail-label">{{ $t('message.operationLogPage.sectionRequestBody') }}</div>
             <pre class="oplog-detail-code">{{ formatJson(detailRow.request_body) }}</pre>
           </div>
           <div class="oplog-detail-section">
-            <div class="oplog-detail-label">返回信息 (json_result)</div>
+            <div class="oplog-detail-label">{{ $t('message.operationLogPage.sectionResult') }}</div>
             <pre class="oplog-detail-code">{{ formatJson(detailRow.json_result) }}</pre>
           </div>
         </div>
@@ -144,9 +144,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { GetList } from './api'
+
+const { t } = useI18n()
 
 // ── State ──
 const loading = ref(false)
@@ -285,7 +288,7 @@ onMounted(() => {
 
   const key = 'opsflow_tour_operation_log'
   if (!localStorage.getItem(key)) {
-    ElMessage.info({ message: '操作日志 — 记录用户操作请求，用于审计和问题追溯', duration: 5000 })
+    ElMessage.info({ message: t('message.operationLogPage.tourTip'), duration: 5000 })
     localStorage.setItem(key, 'true')
   }
 })

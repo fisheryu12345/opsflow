@@ -8,14 +8,14 @@
           <span class="sys-card-icon">
             <el-icon :size="16"><Setting /></el-icon>
           </span>
-          <span>系统配置</span>
+          <span>{{ $t('message.menuPage.configTitle') }}</span>
           <el-tag size="small" type="info" effect="plain" class="sys-tag-subtitle">
-            您可以对您的网站进行自定义配置
+            {{ $t('message.menuPage.configSubtitle') }}
           </el-tag>
         </div>
         <div class="sys-card-extra">
-          <el-button type="primary" size="small" :icon="FolderAdd" @click="tabsDrawer = true">添加分组</el-button>
-          <el-button size="small" type="warning" :icon="Edit" @click="contentDrawer = true">添加内容</el-button>
+          <el-button type="primary" size="small" :icon="FolderAdd" @click="tabsDrawer = true">{{ $t('message.menuPage.configAddGroup') }}</el-button>
+          <el-button size="small" type="warning" :icon="Edit" @click="contentDrawer = true">{{ $t('message.menuPage.configAddContent') }}</el-button>
         </div>
       </div>
 
@@ -41,12 +41,12 @@
     </div>
 
     <!-- Add Group Drawer / 添加分组抽屉 -->
-    <el-drawer v-if="tabsDrawer" title="添加分组" v-model="tabsDrawer" direction="rtl" size="30%">
+    <el-drawer v-if="tabsDrawer" :title="$t('message.menuPage.configAddGroupTitle')" v-model="tabsDrawer" direction="rtl" size="30%">
       <addTabs></addTabs>
     </el-drawer>
 
     <!-- Add Content Drawer / 添加内容抽屉 -->
-    <el-drawer v-if="contentDrawer" title="添加内容" v-model="contentDrawer" direction="rtl" size="30%">
+    <el-drawer v-if="contentDrawer" :title="$t('message.menuPage.configAddContentTitle')" v-model="contentDrawer" direction="rtl" size="30%">
       <addContent></addContent>
     </el-drawer>
   </div>

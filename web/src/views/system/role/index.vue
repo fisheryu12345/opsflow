@@ -20,10 +20,10 @@
           <span class="sys-card-icon">
             <el-icon :size="16"><User /></el-icon>
           </span>
-          <span>角色管理</span>
+          <span>{{ $t('message.rolePage.roleManagement') }}</span>
         </div>
         <div class="sys-card-extra">
-          <el-button v-if="auth('role:Create')" type="primary" :icon="Plus" @click="handleAdd">新增角色</el-button>
+          <el-button v-if="auth('role:Create')" type="primary" :icon="Plus" @click="handleAdd">{{ $t('message.rolePage.addRole') }}</el-button>
         </div>
       </div>
 
@@ -31,19 +31,22 @@
         <!-- Toolbar: Search -->
         <div class="role-toolbar">
           <el-form :model="searchForm" inline size="default">
-            <el-form-item label="角色名称">
-              <el-input v-model="searchForm.name" placeholder="请输入" clearable style="width:180px" @keyup.enter="handleSearch" />
+            <el-form-item :label="$t('message.rolePage.roleName')">
+              <el-input v-model="searchForm.name" :placeholder="$t('message.rolePage.inputPlaceholder')" clearable style="width:180px" @keyup.enter="handleSearch" />
             </el-form-item>
-            <el-form-item label="状态">
-              <el-select v-model="searchForm.status" placeholder="全部" clearable style="width:110px" @change="handleSearch">
-                <el-option v-for="item in statusDict" :key="String(item.value)" :label="item.label" :value="item.value" />
+            <el-form-item :label="$t('message.rolePage.status')">
+              <el-select v-model="searchForm.status" :placeholder="$t('message.rolePage.all')" clearable style="width:110px" @change="handleSearch">
+                <el-option :label="$t('message.rolePage.enabled')" :value="true" />
+                <el-option :label="$t('message.rolePage.disabled')" :value="false" />
               </el-select>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="handleSearch">
-                <el-icon><Search /></el-icon> 查询
+              <el-button type="primary" size="small" @click="handleSearch">
+                <el-icon><Search /></el-icon> {{ $t('message.rolePage.search') }}
               </el-button>
-              <el-button @click="handleReset">重置</el-button>
+              <el-button size="small" @click="handleReset">
+                <el-icon><Refresh /></el-icon> {{ $t('message.rolePage.reset') }}
+              </el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -56,11 +59,11 @@
           style="width:100%"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="index" label="序号" width="65" align="center" />
-          <el-table-column v-if="colPerm('name','is_query')" prop="name" label="角色名称" min-width="140" sortable="custom" />
-          <el-table-column v-if="colPerm('key','is_query')" prop="key" label="权限标识" min-width="140" />
-          <el-table-column v-if="colPerm('sort','is_query')" prop="sort" label="排序" width="80" sortable="custom" align="center" />
-          <el-table-column v-if="colPerm('status','is_query')" label="状态" width="100" align="center">
+          <el-table-column type="index" :label="$t('message.rolePage.index')" width="65" align="center" />
+          <el-table-column v-if="colPerm('name','is_query')" prop="name" :label="$t('message.rolePage.roleName')" min-width="140" sortable="custom" />
+          <el-table-column v-if="colPerm('key','is_query')" prop="key" :label="$t('message.rolePage.roleKey')" min-width="140" />
+          <el-table-column v-if="colPerm('sort','is_query')" prop="sort" :label="$t('message.rolePage.sort')" width="80" sortable="custom" align="center" />
+          <el-table-column v-if="colPerm('status','is_query')" :label="$t('message.rolePage.status')" width="100" align="center">
             <template #default="{ row }">
               <el-switch
                 :model-value="row.status"
@@ -70,14 +73,14 @@
               />
             </template>
           </el-table-column>
-          <el-table-column v-if="colPerm('update_datetime','is_query')" prop="update_datetime" label="更新时间" min-width="170" sortable="custom" />
-          <el-table-column v-if="colPerm('create_datetime','is_query')" prop="create_datetime" label="创建时间" min-width="170" sortable="custom" />
-          <el-table-column label="操作" :width="actionColWidth" fixed="right" align="center">
+          <el-table-column v-if="colPerm('update_datetime','is_query')" prop="update_datetime" :label="$t('message.rolePage.updateTime')" min-width="170" sortable="custom" />
+          <el-table-column v-if="colPerm('create_datetime','is_query')" prop="create_datetime" :label="$t('message.rolePage.createTime')" min-width="170" sortable="custom" />
+          <el-table-column :label="$t('message.rolePage.actions')" :width="actionColWidth" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button text type="primary" size="small" style="padding:0 4px" @click="handleView(row)">查看</el-button>
-              <el-button v-if="auth('role:Update')" text type="primary" size="small" style="padding:0 4px" @click="handleEdit(row)">编辑</el-button>
-              <el-button v-if="auth('role:Delete')" text type="danger" size="small" style="padding:0 4px" @click="handleDelete(row)">删除</el-button>
-              <el-button v-if="auth('role:Permission')" text type="primary" size="small" style="padding:0 4px" @click="handlePermissionOpen(row)">权限</el-button>
+              <el-button text type="primary" size="small" style="padding:0 4px" @click="handleView(row)">{{ $t('message.rolePage.view') }}</el-button>
+              <el-button v-if="auth('role:Update')" text type="primary" size="small" style="padding:0 4px" @click="handleEdit(row)">{{ $t('message.rolePage.edit') }}</el-button>
+              <el-button v-if="auth('role:Delete')" text type="danger" size="small" style="padding:0 4px" @click="handleDelete(row)">{{ $t('message.rolePage.delete') }}</el-button>
+              <el-button v-if="auth('role:Permission')" text type="primary" size="small" style="padding:0 4px" @click="handlePermissionOpen(row)">{{ $t('message.rolePage.permission') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -85,39 +88,39 @@
         <!-- Pagination -->
         <div class="role-pagination">
           <el-pagination
-            v-model:current-page="pagination.page"
-            v-model:page-size="pagination.limit"
+            v-model:currentPage="pagination.page"
+            v-model:pageSize="pagination.limit"
             :total="pagination.total"
             :page-sizes="[15,30,50,100]"
             layout="total, sizes, prev, pager, next, jumper"
             background
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
+            @update:pageSize="handleSizeChange"
+            @update:currentPage="handleCurrentChange"
           />
         </div>
       </div>
     </div>
 
     <!-- ===== View Dialog ===== -->
-    <el-dialog v-model="viewDialogVisible" title="查看角色" width="560px" :close-on-click-modal="false" class="opsflow-dialog">
+    <el-dialog v-model="viewDialogVisible" :title="$t('message.rolePage.viewRole')" width="560px" :close-on-click-modal="false" class="opsflow-dialog">
       <el-form label-width="100px" disabled>
-        <el-form-item label="角色名称">{{ viewForm.name }}</el-form-item>
-        <el-form-item label="权限标识">{{ viewForm.key }}</el-form-item>
-        <el-form-item label="排序">{{ viewForm.sort }}</el-form-item>
-        <el-form-item label="状态">
+        <el-form-item :label="$t('message.rolePage.roleName')">{{ viewForm.name }}</el-form-item>
+        <el-form-item :label="$t('message.rolePage.roleKey')">{{ viewForm.key }}</el-form-item>
+        <el-form-item :label="$t('message.rolePage.sort')">{{ viewForm.sort }}</el-form-item>
+        <el-form-item :label="$t('message.rolePage.status')">
           <el-tag :type="viewForm.status ? 'success' : 'danger'" effect="plain" round>
-            {{ viewForm.status ? '启用' : '禁用' }}
+            {{ viewForm.status ? $t('message.rolePage.enabled') : $t('message.rolePage.disabled') }}
           </el-tag>
         </el-form-item>
-        <el-form-item label="创建时间">{{ viewForm.create_datetime }}</el-form-item>
-        <el-form-item label="更新时间">{{ viewForm.update_datetime }}</el-form-item>
+        <el-form-item :label="$t('message.rolePage.createTime')">{{ viewForm.create_datetime }}</el-form-item>
+        <el-form-item :label="$t('message.rolePage.updateTime')">{{ viewForm.update_datetime }}</el-form-item>
       </el-form>
     </el-dialog>
 
     <!-- ===== Add / Edit Dialog ===== -->
     <el-dialog
       v-model="editDialogVisible"
-      :title="editMode === 'add' ? '新增角色' : '编辑角色'"
+      :title="editMode === 'add' ? $t('message.rolePage.addRole') : $t('message.rolePage.editRole')"
       width="560px"
       :close-on-click-modal="false"
       :before-close="handleEditDialogClose"
@@ -126,36 +129,35 @@
       <el-form ref="editFormRef" :model="editForm" :rules="editFormRules" label-width="100px">
         <el-form-item
           v-if="(editMode==='add' && colPerm('name','is_create')) || (editMode==='edit' && colPerm('name','is_update'))"
-          label="角色名称" prop="name"
+          :label="$t('message.rolePage.roleName')" prop="name"
         >
-          <el-input v-model="editForm.name" placeholder="请输入角色名称" maxlength="50" />
+          <el-input v-model="editForm.name" :placeholder="$t('message.rolePage.roleNamePlaceholder')" maxlength="50" />
         </el-form-item>
         <el-form-item
           v-if="(editMode==='add' && colPerm('key','is_create')) || (editMode==='edit' && colPerm('key','is_update'))"
-          label="权限标识" prop="key"
+          :label="$t('message.rolePage.roleKey')" prop="key"
         >
-          <el-input v-model="editForm.key" placeholder="输入唯一标识" maxlength="50" />
+          <el-input v-model="editForm.key" :placeholder="$t('message.rolePage.keyPlaceholder')" maxlength="50" />
         </el-form-item>
         <el-form-item
           v-if="(editMode==='add' && colPerm('sort','is_create')) || (editMode==='edit' && colPerm('sort','is_update'))"
-          label="排序" prop="sort"
+          :label="$t('message.rolePage.sort')" prop="sort"
         >
           <el-input-number v-model="editForm.sort" :min="0" />
         </el-form-item>
         <el-form-item
           v-if="(editMode==='add' && colPerm('status','is_create')) || (editMode==='edit' && colPerm('status','is_update'))"
-          label="状态" prop="status"
+          :label="$t('message.rolePage.status')" prop="status"
         >
           <el-radio-group v-model="editForm.status">
-            <el-radio v-for="item in statusDict" :key="String(item.value)" :value="item.value">
-              {{ item.label }}
-            </el-radio>
+            <el-radio :value="true">{{ $t('message.rolePage.enabled') }}</el-radio>
+            <el-radio :value="false">{{ $t('message.rolePage.disabled') }}</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="handleEditDialogClose">取消</el-button>
-        <el-button type="primary" :loading="editLoading" round @click="handleEditSubmit">确定</el-button>
+        <el-button size="small" @click="handleEditDialogClose">{{ $t('message.rolePage.cancel') }}</el-button>
+        <el-button size="small" type="primary" :loading="editLoading" @click="handleEditSubmit">{{ $t('message.rolePage.confirm') }}</el-button>
       </template>
     </el-dialog>
 
@@ -170,11 +172,11 @@
 </template>
 
 <script setup lang="ts" name="role">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, markRaw } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessageBox, ElMessage } from 'element-plus';
-import { Plus, Search, User, Tickets, Check, Close } from '@element-plus/icons-vue';
+import { Plus, Search, Refresh, User, Tickets, Check, Close } from '@element-plus/icons-vue';
 import { GetList, GetObj, AddObj, UpdateObj, DelObj, GetPermission } from './api';
-import { dictionary } from '/@/utils/dictionary';
 import { auth } from '/@/utils/authFunction';
 import { successMessage } from '/@/utils/message';
 import PermissionComNew from './components/PermissionComNew/index.vue';
@@ -197,12 +199,15 @@ interface ColumnPermItem {
   is_update: boolean;
 }
 
+/* ===================== i18n ===================== */
+const { t } = useI18n();
+
 /* ===================== Stats ===================== */
 const statCards = computed(() => [
-  { label: '角色总数', value: pagination.total, icon: Tickets, bg: 'linear-gradient(135deg, #409eff, #337ecc)' },
-  { label: '已启用', value: tableData.value.filter(r => r.status).length, icon: Check, bg: 'linear-gradient(135deg, #67c23a, #409eff)' },
-  { label: '已禁用', value: tableData.value.filter(r => !r.status).length, icon: Close, bg: 'linear-gradient(135deg, #f56c6c, #e6a23c)' },
-  { label: '当前查询', value: '---', icon: User, bg: 'linear-gradient(135deg, #909399, #606266)' },
+  { label: t('message.rolePage.statTotal'), value: pagination.total, icon: markRaw(Tickets), bg: 'linear-gradient(135deg, #409eff, #337ecc)' },
+  { label: t('message.rolePage.statEnabled'), value: tableData.value.filter(r => r.status).length, icon: markRaw(Check), bg: 'linear-gradient(135deg, #67c23a, #409eff)' },
+  { label: t('message.rolePage.statDisabled'), value: tableData.value.filter(r => !r.status).length, icon: markRaw(Close), bg: 'linear-gradient(135deg, #f56c6c, #e6a23c)' },
+  { label: t('message.rolePage.statCurrent'), value: '---', icon: markRaw(User), bg: 'linear-gradient(135deg, #909399, #606266)' },
 ]);
 
 /* ===================== State ===================== */
@@ -229,9 +234,6 @@ const actionColWidth = computed(() => {
   return 60 + count * 55;
 });
 
-/* ===================== Dictionary ===================== */
-const statusDict = computed(() => dictionary('button_status_bool') || []);
-
 /* ===================== View Dialog ===================== */
 const viewDialogVisible = ref(false);
 const viewForm = reactive<Partial<RoleItem>>({});
@@ -243,9 +245,9 @@ const editLoading = ref(false);
 const editFormRef = ref();
 const editForm = reactive<Partial<RoleItem>>({ name: '', key: '', sort: 1, status: true, id: undefined });
 const editFormRules = {
-  name: [{ required: true, message: '角色名称必填', trigger: 'blur' }],
-  key: [{ required: true, message: '权限标识必填', trigger: 'blur' }],
-  sort: [{ required: true, message: '排序必填', trigger: 'blur' }],
+  name: [{ required: true, message: t('message.rolePage.nameRequired'), trigger: 'blur' }],
+  key: [{ required: true, message: t('message.rolePage.keyRequired'), trigger: 'blur' }],
+  sort: [{ required: true, message: t('message.rolePage.sortRequired'), trigger: 'blur' }],
 };
 
 /* ===================== Permission Drawer ===================== */
@@ -292,7 +294,7 @@ const handleCurrentChange = (val: number) => { pagination.page = val; fetchData(
 const handleStatusChange = async (row: RoleItem) => {
   try {
     const res: any = await UpdateObj(row);
-    if (res?.code === 2000) successMessage(res.msg || '更新成功');
+    if (res?.code === 2000) successMessage(res.msg || t('message.rolePage.updateSuccess'));
   } catch { /* noop */ }
 };
 
@@ -313,16 +315,16 @@ const handleEdit = async (row: RoleItem) => {
       Object.assign(editForm, { id: d.id, name: d.name, key: d.key, sort: d.sort, status: d.status });
       editDialogVisible.value = true;
     }
-  } catch { ElMessage.error('获取角色信息失败'); }
+  } catch { ElMessage.error(t('message.rolePage.fetchRoleFailed')); }
 };
 
 const handleDelete = (row: RoleItem) => {
-  ElMessageBox.confirm(`确认删除角色「${row.name}」？`, '确认', {
-    confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning',
+  ElMessageBox.confirm(t('message.rolePage.confirmDelete', { name: row.name }), t('message.rolePage.confirmTitle'), {
+    confirmButtonText: t('message.rolePage.deleteBtn'), cancelButtonText: t('message.rolePage.cancelBtn'), type: 'warning',
   }).then(async () => {
     try {
       const res: any = await DelObj(row.id);
-      if (res?.code === 2000) { successMessage('删除成功'); fetchData(); }
+      if (res?.code === 2000) { successMessage(t('message.rolePage.deleteSuccess')); fetchData(); }
     } catch { /* noop */ }
   }).catch(() => {});
 };
@@ -336,7 +338,7 @@ const handleEditSubmit = async () => {
   try {
     const res: any = editMode.value === 'add' ? await AddObj(editForm) : await UpdateObj(editForm);
     if (res?.code === 2000) {
-      successMessage(res.msg || '保存成功');
+      successMessage(res.msg || t('message.rolePage.saveSuccess'));
       editDialogVisible.value = false;
       fetchData();
     }

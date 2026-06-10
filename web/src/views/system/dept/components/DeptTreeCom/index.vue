@@ -4,7 +4,7 @@
       <span class="dtc-head-icon">
         <el-icon :size="15"><OfficeBuilding /></el-icon>
       </span>
-      <span class="dtc-head-title">部门架构</span>
+      <span class="dtc-head-title">{{ $t('message.menuPage.deptArch') }}</span>
       <el-tooltip content="显示/隐藏人数" placement="bottom">
         <el-icon :size="14" class="dtc-head-action" @click="showTotalNum = !showTotalNum">
           <View v-if="!showTotalNum" /><Hide v-else />
@@ -15,7 +15,7 @@
     <el-input
       v-model="filterVal"
       :prefix-icon="Search"
-      placeholder="搜索部门..."
+      :placeholder="$t('message.menuPage.deptSearch')"
       clearable
       size="small"
       class="dtc-filter"
@@ -29,7 +29,7 @@
         :filter-node-method="onFilter"
         :load="onLoad"
         lazy
-        indent="30"
+        :indent="30"
         @node-click="onClick"
         highlight-current
         node-key="id"
@@ -48,19 +48,19 @@
     </div>
 
     <div class="dtc-actions">
-      <el-tooltip content="新增" placement="top">
+      <el-tooltip :content="$t('message.menuPage.deptNew')" placement="top">
         <el-button text :icon="Plus" circle size="small" @click="emitUpdate('create')" />
       </el-tooltip>
-      <el-tooltip content="编辑" placement="top">
+      <el-tooltip :content="$t('message.menuPage.deptEdit')" placement="top">
         <el-button text :icon="Edit" circle size="small" @click="emitUpdate('update')" />
       </el-tooltip>
-      <el-tooltip content="上移" placement="top">
+      <el-tooltip :content="$t('message.menuPage.deptMoveUp')" placement="top">
         <el-button text :icon="Top" circle size="small" @click="handleSort('up')" />
       </el-tooltip>
-      <el-tooltip content="下移" placement="top">
+      <el-tooltip :content="$t('message.menuPage.deptMoveDown')" placement="top">
         <el-button text :icon="Bottom" circle size="small" @click="handleSort('down')" />
       </el-tooltip>
-      <el-tooltip content="删除" placement="top">
+      <el-tooltip :content="$t('message.menuPage.deptDelete')" placement="top">
         <el-button text type="danger" :icon="Delete" circle size="small" @click="handleDelete" />
       </el-tooltip>
     </div>
@@ -69,6 +69,7 @@
 
 <script lang="ts" setup>
 import { ref, watch, toRaw, h } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElTree } from 'element-plus';
 import { getElementLabelLine } from 'element-tree-line';
 import { Search, OfficeBuilding, View, Hide, Plus, Edit, Top, Bottom, Delete } from '@element-plus/icons-vue';
@@ -76,6 +77,8 @@ import { lazyLoadDept, deptMoveUp, deptMoveDown } from '../../api';
 import { warningNotification } from '/@/utils/message';
 import { TreeItemType, APIResponseData } from '../../types';
 import type Node from 'element-plus/es/components/tree/src/model/node';
+
+const { t } = useI18n();
 
 const ElementTreeLine = getElementLabelLine(h);
 
@@ -102,17 +105,17 @@ const onLoad = (node: Node, resolve: Function) => {
 const onClick = (record: TreeItemType, node: Node) => { selectedDept.value = record; selectedNode.value = node; emit('treeClick', record); };
 
 const emitUpdate = (type: string) => {
-  if (type === 'update' && !selectedDept.value.id) { warningNotification('请先选择部门'); return; }
+  if (type === 'update' && !selectedDept.value.id) { warningNotification(t('message.menuPage.deptSelectFirst')); return; }
   emit('updateDept', type, type === 'update' ? selectedDept.value : undefined);
 };
 
 const handleDelete = () => {
-  if (!selectedDept.value.id) { warningNotification('请先选择部门'); return; }
+  if (!selectedDept.value.id) { warningNotification(t('message.menuPage.deptSelectFirst')); return; }
   emit('deleteDept', selectedDept.value.id, () => { selectedDept.value = {}; });
 };
 
 const handleSort = async (dir: 'up' | 'down') => {
-  if (!selectedDept.value.id) { warningNotification('请先选择部门'); return; }
+  if (!selectedDept.value.id) { warningNotification(t('message.menuPage.deptSelectFirst')); return; }
   if (sortLock) return;
   const siblings = selectedNode.value?.parent.childNodes || [];
   const idx = siblings.findIndex((i: any) => i.data.id === selectedDept.value.id);

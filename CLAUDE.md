@@ -96,4 +96,4 @@ Document each bug fix with background, effect, suggestion in the TODO list.
 
 ## OPSflow Style Guide
 
-See [OPSFLOW.md](OPSFLOW.md) — design tokens, animations, dialog styling, naming conventions.
+See [OPSFLOW.md](OPSFLOW.md) — design tokens, animations, dialog styling, naming conventions, i18n rules.

@@ -8,12 +8,12 @@
           <span class="sys-card-icon">
             <el-icon><Notebook /></el-icon>
           </span>
-          字典管理
+          {{ $t('message.dictionaryPage.title') }}
         </div>
         <div class="sys-card-extra">
           <el-input
             v-model="searchQuery"
-            placeholder="搜索字典名称 / 编号"
+            :placeholder="$t('message.dictionaryPage.searchPlaceholder')"
             clearable
             size="default"
             style="width: 260px"
@@ -26,7 +26,7 @@
           </el-input>
           <el-button v-if="auth('dictionary:Create')" type="primary" size="default" @click="openAddDialog">
             <el-icon><Plus /></el-icon>
-            新增字典
+            {{ $t('message.dictionaryPage.add') }}
           </el-button>
         </div>
       </div>
@@ -39,17 +39,17 @@
           stripe
           size="small"
           style="width: 100%"
-          :empty-text="loading ? '加载中...' : '暂无字典数据'"
+          :empty-text="loading ? $t('message.dictionaryPage.loading') : $t('message.dictionaryPage.empty')"
           row-key="id"
         >
-          <el-table-column type="index" label="序号" width="70" align="center">
+          <el-table-column type="index" :label="$t('message.dictionaryPage.columnIndex')" width="70" align="center">
             <template #default="{ $index }">
               {{ (pagination.page - 1) * pagination.limit + $index + 1 }}
             </template>
           </el-table-column>
-          <el-table-column prop="label" label="字典名称" min-width="140" show-overflow-tooltip />
-          <el-table-column prop="value" label="字典编号" min-width="140" show-overflow-tooltip />
-          <el-table-column prop="status" label="状态" width="100" align="center">
+          <el-table-column prop="label" :label="$t('message.dictionaryPage.columnName')" min-width="140" show-overflow-tooltip />
+          <el-table-column prop="value" :label="$t('message.dictionaryPage.columnValue')" min-width="140" show-overflow-tooltip />
+          <el-table-column prop="status" :label="$t('message.dictionaryPage.columnStatus')" width="100" align="center">
             <template #default="{ row }">
               <el-switch
                 :model-value="row.status"
@@ -60,8 +60,8 @@
               />
             </template>
           </el-table-column>
-          <el-table-column prop="sort" label="排序" width="80" align="center" />
-          <el-table-column label="操作" width="240" fixed="right">
+          <el-table-column prop="sort" :label="$t('message.dictionaryPage.columnSort')" width="80" align="center" />
+          <el-table-column :label="$t('message.dictionaryPage.columnActions')" width="240" fixed="right">
             <template #default="{ row }">
               <el-button
                 v-if="auth('dictionary:Update')"
@@ -71,7 +71,7 @@
                 @click="openSubDict(row)"
               >
                 <el-icon><Setting /></el-icon>
-                字典配置
+                {{ $t('message.dictionaryPage.actionConfig') }}
               </el-button>
               <el-button
                 v-if="auth('dictionary:Update')"
@@ -81,10 +81,10 @@
                 @click="openEditDialog(row)"
               >
                 <el-icon><Edit /></el-icon>
-                编辑
+                {{ $t('message.dictionaryPage.actionEdit') }}
               </el-button>
               <el-popconfirm
-                title="确认删除该字典?"
+                :title="$t('message.dictionaryPage.confirmDelete')"
                 @confirm="handleDelete(row)"
               >
                 <template #reference>
@@ -95,7 +95,7 @@
                     type="danger"
                   >
                     <el-icon><Delete /></el-icon>
-                    删除
+                    {{ $t('message.dictionaryPage.actionDelete') }}
                   </el-button>
                 </template>
               </el-popconfirm>
@@ -106,15 +106,15 @@
         <!-- Pagination -->
         <div class="dict-pagination-wrap">
           <el-pagination
-            v-model:current-page="pagination.page"
-            v-model:page-size="pagination.limit"
+            v-model:currentPage="pagination.page"
+            v-model:pageSize="pagination.limit"
             :page-sizes="[10, 20, 50, 100]"
             :total="pagination.total"
             layout="total, sizes, prev, pager, next, jumper"
             background
-            small
-            @current-change="loadData"
-            @size-change="loadData"
+            size="small"
+            @update:currentPage="loadData"
+            @update:pageSize="loadData"
           />
         </div>
       </div>
@@ -123,7 +123,7 @@
     <!-- ===== Add / Edit Dialog ===== -->
     <el-dialog
       v-model="dialog.visible"
-      :title="dialog.isEdit ? '编辑字典' : '新增字典'"
+      :title="dialog.isEdit ? $t('message.dictionaryPage.editTitle') : $t('message.dictionaryPage.addTitle')"
       width="520px"
       top="8vh"
       destroy-on-close
@@ -136,22 +136,22 @@
         label-width="100px"
         class="dict-form"
       >
-        <el-form-item label="字典名称" prop="label">
+        <el-form-item :label="$t('message.dictionaryPage.formName')" prop="label">
           <el-input
             v-model="dialog.form.label"
-            placeholder="请输入字典名称"
+            :placeholder="$t('message.dictionaryPage.formNamePlaceholder')"
             clearable
           />
         </el-form-item>
-        <el-form-item label="字典编号" prop="value">
+        <el-form-item :label="$t('message.dictionaryPage.formValue')" prop="value">
           <div style="width: 100%">
             <el-input
               v-model="dialog.form.value"
-              placeholder="请输入字典编号"
+              :placeholder="$t('message.dictionaryPage.formValuePlaceholder')"
               clearable
             />
             <el-alert
-              title="使用方法：dictionary('字典编号')"
+              :title="$t('message.dictionaryPage.formValueTips')"
               type="warning"
               :closable="false"
               show-icon
@@ -159,13 +159,13 @@
             />
           </div>
         </el-form-item>
-        <el-form-item label="状态" prop="status">
+        <el-form-item :label="$t('message.dictionaryPage.formStatus')" prop="status">
           <el-radio-group v-model="dialog.form.status">
-            <el-radio :value="true">启用</el-radio>
-            <el-radio :value="false">禁用</el-radio>
+            <el-radio :value="true">{{ $t('message.dictionaryPage.formStatusEnable') }}</el-radio>
+            <el-radio :value="false">{{ $t('message.dictionaryPage.formStatusDisable') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="排序" prop="sort">
+        <el-form-item :label="$t('message.dictionaryPage.formSort')" prop="sort">
           <el-input-number
             v-model="dialog.form.sort"
             :min="0"
@@ -175,9 +175,9 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialog.visible = false">取消</el-button>
+        <el-button @click="dialog.visible = false">{{ $t('message.dictionaryPage.cancel') }}</el-button>
         <el-button type="primary" :loading="dialog.submitting" @click="handleSubmit">
-          {{ dialog.isEdit ? '保存' : '确认' }}
+          {{ dialog.isEdit ? $t('message.dictionaryPage.save') : $t('message.dictionaryPage.confirm') }}
         </el-button>
       </template>
     </el-dialog>
@@ -191,11 +191,14 @@
 import { ref, reactive, onMounted, defineAsyncComponent } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { Search, Plus, Notebook, Setting, Edit, Delete } from '@element-plus/icons-vue'
 import * as api from './api'
 import type { DictItem } from './api'
 import { auth } from '/@/utils/authFunction'
 import { successMessage } from '/@/utils/message'
+
+const { t } = useI18n()
 
 // Lazy-load the sub-dictionary drawer component
 const subDict = defineAsyncComponent(() => import('./subDict/index.vue'))
@@ -230,9 +233,9 @@ const dialog = reactive({
 
 // ===== Form Rules =====
 const formRules = {
-  label: [{ required: true, message: '字典名称必填项', trigger: 'blur' }],
-  value: [{ required: true, message: '字典编号必填项', trigger: 'blur' }],
-  status: [{ required: true, message: '状态必填项', trigger: 'change' }],
+  label: [{ required: true, message: t('message.dictionaryPage.nameRequired'), trigger: 'blur' }],
+  value: [{ required: true, message: t('message.dictionaryPage.valueRequired'), trigger: 'blur' }],
+  status: [{ required: true, message: t('message.dictionaryPage.statusRequired'), trigger: 'change' }],
 }
 
 // ===== Data Loading =====
@@ -247,7 +250,7 @@ async function loadData() {
     tableData.value = res.data || []
     pagination.total = res.total || 0
   } catch (e: any) {
-    ElMessage.error(e?.msg || '获取字典列表失败')
+    ElMessage.error(e?.msg || t('message.dictionaryPage.fetchFailed'))
     tableData.value = []
   } finally {
     loading.value = false
@@ -286,15 +289,15 @@ async function handleSubmit() {
   try {
     if (dialog.isEdit && dialog.form.id) {
       const res = await api.UpdateObj(dialog.form as any)
-      successMessage(res.msg || '更新成功')
+      successMessage(res.msg || t('message.dictionaryPage.updateSuccess'))
     } else {
       const res = await api.AddObj(dialog.form)
-      successMessage(res.msg || '新增成功')
+      successMessage(res.msg || t('message.dictionaryPage.createSuccess'))
     }
     dialog.visible = false
     await loadData()
   } catch (e: any) {
-    ElMessage.error(e?.msg || '操作失败')
+    ElMessage.error(e?.msg || t('message.dictionaryPage.operationFailed'))
   } finally {
     dialog.submitting = false
   }
@@ -303,20 +306,20 @@ async function handleSubmit() {
 async function handleDelete(row: DictItem) {
   try {
     const res = await api.DelObj(row.id)
-    successMessage(res.msg || '删除成功')
+    successMessage(res.msg || t('message.dictionaryPage.deleteSuccess'))
     await loadData()
   } catch (e: any) {
-    ElMessage.error(e?.msg || '删除失败')
+    ElMessage.error(e?.msg || t('message.dictionaryPage.deleteFailed'))
   }
 }
 
 async function handleStatusChange(row: DictItem, val: boolean) {
   try {
     const res = await api.UpdateObj({ id: row.id, status: val } as any)
-    successMessage(res.msg || '状态更新成功')
+    successMessage(res.msg || t('message.dictionaryPage.statusUpdateSuccess'))
     row.status = val
   } catch (e: any) {
-    ElMessage.error(e?.msg || '状态更新失败')
+    ElMessage.error(e?.msg || t('message.dictionaryPage.statusUpdateFailed'))
     // Revert on failure
     await loadData()
   }

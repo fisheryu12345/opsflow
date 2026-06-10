@@ -66,8 +66,8 @@
           </el-table-column>
         </el-table>
         <div class="app-pagination" v-if="total > 0">
-          <el-pagination v-model:current-page="page" :page-size="pageSize" :total="total"
-            layout="prev, pager, next, total" @current-change="fetchData" size="small" />
+          <el-pagination v-model:currentPage="page" :page-size="pageSize" :total="total"
+            layout="prev, pager, next, total" @update:currentPage="fetchData" size="small" />
         </div>
       </div>
     </div>

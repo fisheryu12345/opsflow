@@ -79,6 +79,23 @@ opsflow/
 - 组件使用 PascalCase 命名（如 `DesignCanvas.vue`）
 - 新增 opsflow 独立页面必须在 `views/apps/opsflow-*/` 下创建独立目录
 
+### 国际化规范（i18n First）
+
+**所有新页面、新组件、新对话框，从第一行代码开始就必须使用 i18n，禁止硬编码中文。**
+
+| # | 规则 | 说明 |
+|---|------|------|
+| 1 | **先写翻译键** | 新建页面时，先同时改 `web/src/i18n/lang/en.ts` 和 `zh-cn.ts`，加 `xxxPage` 命名空间段 |
+| 2 | **模板用 `$t()`** | `{{ $t('message.pageName.key') }}`，禁止裸中文 |
+| 3 | **脚本用 `t()`** | `t('message.pageName.key')`，从 `useI18n()` 取实例 |
+| 4 | **不用字典 label 代替翻译** | `statusDict` 的 `item.label` 不会随语言切换，直接用 `$t` |
+| 5 | **所有消息走 i18n** | `ElMessage`、`ElMessageBox.confirm`、`successMessage` 全要走翻译 |
+| 6 | **动态参数用插值** | `t('xxx', { name: row.name })`，翻译文件用 `{name}` 占位 |
+
+**Code Review 检查三样：** ① 翻译段有无添加到 en.ts/zh-cn.ts ② 模板有无裸中文 ③ 脚本有无裸中文
+
+**命名规范：** `message.<pageName>.<camelCaseKey>`，如 `message.rolePage.statTotal`。
+
 #### Skills 规范
 
 - 所有 Claude 技能放在项目级 `.claude/skills/` 目录

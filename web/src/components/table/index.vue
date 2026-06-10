@@ -44,15 +44,15 @@
 		</el-table>
 		<div class="table-footer mt15">
 			<el-pagination
-				v-model:current-page="state.page.pageNum"
-				v-model:page-size="state.page.pageSize"
+				v-model:currentPage="state.page.pageNum"
+				v-model:pageSize="state.page.pageSize"
 				:pager-count="5"
 				:page-sizes="[10, 20, 30]"
 				:total="config.total"
 				layout="total, sizes, prev, pager, next, jumper"
 				background
-				@size-change="onHandleSizeChange"
-				@current-change="onHandleCurrentChange"
+				@update:pageSize="onHandleSizeChange"
+				@update:currentPage="onHandleCurrentChange"
 			>
 			</el-pagination>
 			<div class="table-footer-tool">

@@ -36,15 +36,15 @@
 
 		<div class="ctc-pagination">
 			<el-pagination
-				v-model:current-page="searchParams.page"
-				v-model:page-size="searchParams.limit"
+				v-model:currentPage="searchParams.page"
+				v-model:pageSize="searchParams.limit"
 				:page-sizes="[5, 10, 20, 50]"
 				:total="state.total"
 				background
-				small
+				size="small"
 				layout="total, sizes, prev, pager, next, jumper"
-				@size-change="handleSizeChange"
-				@current-change="handleCurrentChange"
+				@update:pageSize="handleSizeChange"
+				@update:currentPage="handleCurrentChange"
 			/>
 		</div>
 

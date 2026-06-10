@@ -5,25 +5,26 @@
     size="70%"
     direction="rtl"
     destroy-on-close
-    title="字典配置"
+    :title="$t('message.dictionaryPage.subDictTitle')"
     :before-close="handleClose"
+    class="subdict-drawer"
   >
     <!-- 搜索栏 / Search bar -->
     <div class="subdict-search">
       <el-form :model="searchForm" inline>
-        <el-form-item label="名称">
-          <el-input v-model="searchForm.label" placeholder="请输入名称" clearable />
+        <el-form-item :label="$t('message.dictionaryPage.subDictSearchLabel')">
+          <el-input v-model="searchForm.label" :placeholder="$t('message.dictionaryPage.subDictSearchPlaceholder')" clearable />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <el-button type="primary" size="small" @click="handleSearch">{{ $t('message.dictionaryPage.subDictSearch') }}</el-button>
+          <el-button size="small" @click="handleReset">{{ $t('message.dictionaryPage.subDictReset') }}</el-button>
         </el-form-item>
       </el-form>
     </div>
 
     <!-- 工具栏 / Toolbar -->
     <div class="subdict-toolbar">
-      <el-button type="primary" icon="Plus" @click="openAddDialog">新增</el-button>
+      <el-button type="primary" size="small" icon="Plus" @click="openAddDialog">{{ $t('message.dictionaryPage.subDictAdd') }}</el-button>
     </div>
 
     <!-- 数据表格 / Data table -->
@@ -35,19 +36,19 @@
       style="width: 100%"
       size="small"
     >
-      <el-table-column type="index" label="序号" width="70" align="center">
+      <el-table-column type="index" :label="$t('message.dictionaryPage.subDictColumnIndex')" width="70" align="center">
         <template #default="{ $index }">
           {{ ((pagination.currentPage - 1) * pagination.pageSize) + $index + 1 }}
         </template>
       </el-table-column>
-      <el-table-column prop="label" label="名称" min-width="120" show-overflow-tooltip />
-      <el-table-column prop="value" label="数据值" min-width="120" show-overflow-tooltip />
-      <el-table-column prop="type" label="数据值类型" width="100" align="center">
+      <el-table-column prop="label" :label="$t('message.dictionaryPage.subDictColumnName')" min-width="120" show-overflow-tooltip />
+      <el-table-column prop="value" :label="$t('message.dictionaryPage.subDictColumnValue')" min-width="120" show-overflow-tooltip />
+      <el-table-column prop="type" :label="$t('message.dictionaryPage.subDictColumnValueType')" width="100" align="center">
         <template #default="{ row }">
           <el-tag size="small">{{ typeMap[row.type] || row.type }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="80" align="center">
+      <el-table-column prop="status" :label="$t('message.dictionaryPage.subDictColumnStatus')" width="80" align="center">
         <template #default="{ row }">
           <el-switch
             :model-value="row.status"
@@ -59,23 +60,17 @@
           />
         </template>
       </el-table-column>
-      <el-table-column prop="sort" label="排序" width="70" align="center" />
-      <el-table-column prop="color" label="标签颜色" width="100" align="center">
+      <el-table-column prop="sort" :label="$t('message.dictionaryPage.subDictColumnSort')" width="70" align="center" />
+      <el-table-column prop="color" :label="$t('message.dictionaryPage.subDictColumnColor')" width="100" align="center">
         <template #default="{ row }">
-          <el-tag v-if="row.color" :type="row.color" effect="plain" size="small">
-            {{ row.color }}
-          </el-tag>
+          <el-tag v-if="row.color" :type="row.color" effect="plain" size="small">{{ row.color }}</el-tag>
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="160" fixed="right" align="center">
+      <el-table-column :label="$t('message.dictionaryPage.subDictColumnActions')" width="160" fixed="right" align="center">
         <template #default="{ row }">
-          <el-button type="primary" link size="small" @click="openEditDialog(row)">
-            编辑
-          </el-button>
-          <el-button type="danger" link size="small" @click="handleDelete(row)">
-            删除
-          </el-button>
+          <el-button type="primary" link size="small" @click="openEditDialog(row)">{{ $t('message.dictionaryPage.subDictEdit') }}</el-button>
+          <el-button type="danger" link size="small" @click="handleDelete(row)">{{ $t('message.dictionaryPage.subDictDelete') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -83,14 +78,14 @@
     <!-- 分页 / Pagination -->
     <div class="subdict-pagination">
       <el-pagination
-        v-model:current-page="pagination.currentPage"
-        v-model:page-size="pagination.pageSize"
+        v-model:currentPage="pagination.currentPage"
+        v-model:pageSize="pagination.pageSize"
         :page-sizes="[10, 20, 50, 100]"
         :total="pagination.total"
         layout="total, sizes, prev, pager, next, jumper"
         background
-        @current-change="getList"
-        @size-change="getList"
+        @update:currentPage="getList"
+        @update:pageSize="getList"
       />
     </div>
   </el-drawer>
@@ -98,61 +93,73 @@
   <!-- 新增/编辑弹窗 / Add/Edit dialog -->
   <el-dialog
     v-model="dialogVisible"
-    :title="isEdit ? '编辑字典项' : '新增字典项'"
+    :title="isEdit ? $t('message.dictionaryPage.subDictEditTitle') : $t('message.dictionaryPage.subDictAddTitle')"
     width="500px"
     append-to-body
     destroy-on-close
+    class="of-dialog"
   >
-    <el-form
-      ref="formRef"
-      :model="formData"
-      :rules="formRules"
-      label-width="100px"
-      label-position="right"
-      size="small"
-    >
-      <el-form-item label="名称" prop="label">
-        <el-input v-model="formData.label" placeholder="请输入名称" clearable />
-      </el-form-item>
-      <el-form-item label="数据值" prop="value">
-        <el-input v-model="formData.value" placeholder="请输入数据值" clearable />
-      </el-form-item>
-      <el-form-item label="数据值类型" prop="type">
-        <el-select v-model="formData.type" placeholder="请选择数据值类型" style="width: 100%">
-          <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="状态" prop="status">
-        <el-radio-group v-model="formData.status">
-          <el-radio :value="true">启用</el-radio>
-          <el-radio :value="false">禁用</el-radio>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item label="排序" prop="sort">
-        <el-input-number v-model="formData.sort" :min="0" />
-      </el-form-item>
-      <el-form-item label="标签颜色" prop="color">
-        <el-select v-model="formData.color" placeholder="请选择标签颜色" clearable style="width: 100%">
-          <el-option
-            v-for="item in colorOptions"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-          >
-            <el-tag :type="item.value" size="small">{{ item.label }}</el-tag>
-          </el-option>
-        </el-select>
-      </el-form-item>
+    <el-form ref="formRef" :model="formData" :rules="formRules" label-position="top" size="default">
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item :label="$t('message.dictionaryPage.subDictFormName')" prop="label">
+            <el-input v-model="formData.label" :placeholder="$t('message.dictionaryPage.subDictFormNamePlaceholder')" clearable />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item :label="$t('message.dictionaryPage.subDictFormValue')" prop="value">
+            <el-input v-model="formData.value" :placeholder="$t('message.dictionaryPage.subDictFormValuePlaceholder')" clearable />
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item :label="$t('message.dictionaryPage.subDictFormValueType')" prop="type">
+            <el-select v-model="formData.type" :placeholder="$t('message.dictionaryPage.subDictFormValueTypePlaceholder')" style="width:100%">
+              <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item :label="$t('message.dictionaryPage.subDictFormStatus')" prop="status">
+            <el-radio-group v-model="formData.status">
+              <el-radio :value="true">{{ $t('message.dictionaryPage.subDictFormStatusEnable') }}</el-radio>
+              <el-radio :value="false">{{ $t('message.dictionaryPage.subDictFormStatusDisable') }}</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item :label="$t('message.dictionaryPage.subDictFormSort')" prop="sort">
+            <el-input-number v-model="formData.sort" :min="0" style="width:100%" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item :label="$t('message.dictionaryPage.subDictFormColor')" prop="color">
+            <el-select v-model="formData.color" :placeholder="$t('message.dictionaryPage.subDictFormColorPlaceholder')" clearable style="width:100%">
+              <el-option v-for="item in colorOptions" :key="item.value" :label="item.label" :value="item.value">
+                <el-tag :type="item.value" size="small">{{ item.label }}</el-tag>
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
     </el-form>
     <template #footer>
-      <el-button @click="dialogVisible = false">取消</el-button>
-      <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
+      <span class="of-dialog-footer">
+        <el-button size="small" @click="dialogVisible = false">{{ $t('message.dictionaryPage.subDictCancel') }}</el-button>
+        <el-button size="small" type="primary" @click="handleSubmit" :loading="submitLoading">{{ $t('message.dictionaryPage.subDictConfirm') }}</el-button>
+      </span>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 import type { FormInstance } from 'element-plus';
 import { ElMessageBox } from 'element-plus';
 import { successMessage } from '/@/utils/message';
@@ -161,233 +168,148 @@ import type { DictItem } from './api';
 
 /* ---------- 数据值类型映射 / Type display map ---------- */
 const typeMap: Record<number, string> = {
-  0: 'text',
-  1: 'number',
-  2: 'date',
-  3: 'datetime',
-  4: 'time',
-  5: 'file',
-  6: 'boolean',
-  7: 'images',
+  0: 'text', 1: 'number', 2: 'date', 3: 'datetime', 4: 'time', 5: 'file', 6: 'boolean', 7: 'images',
 };
+const typeOptions = Object.entries(typeMap).map(([value, label]) => ({ value: Number(value), label }));
 
-const typeOptions = Object.entries(typeMap).map(([value, label]) => ({
-  value: Number(value),
-  label,
-}));
-
-/* ---------- 标签颜色选项 / Color select options ---------- */
 const colorOptions = [
-  { label: 'success', value: 'success' as const },
-  { label: 'primary', value: 'primary' as const },
-  { label: 'info', value: 'info' as const },
-  { label: 'danger', value: 'danger' as const },
-  { label: 'warning', value: 'warning' as const },
+  { label: 'success', value: 'success' as const }, { label: 'primary', value: 'primary' as const },
+  { label: 'info', value: 'info' as const }, { label: 'danger', value: 'danger' as const }, { label: 'warning', value: 'warning' as const },
 ];
 
-/* ---------- 抽屉状态 / Drawer state ---------- */
+/* ---------- Drawer state ---------- */
 const drawerVisible = ref(false);
-
-/* ---------- 父字典 ID（由外部传入） / Parent dict ID ---------- */
 const parentId = ref<number | null>(null);
 
-/* ---------- 搜索表单 / Search form ---------- */
-const searchForm = reactive({
-  label: '',
-});
+/* ---------- Search ---------- */
+const searchForm = reactive({ label: '' });
 
-/* ---------- 表格数据 / Table data ---------- */
+/* ---------- Table ---------- */
 const tableData = ref<DictItem[]>([]);
 const loading = ref(false);
-const pagination = reactive({
-  currentPage: 1,
-  pageSize: 15,
-  total: 0,
-});
+const pagination = reactive({ currentPage: 1, pageSize: 15, total: 0 });
 
-/* ---------- 表单弹窗 / Form dialog ---------- */
+/* ---------- Dialog ---------- */
 const dialogVisible = ref(false);
 const isEdit = ref(false);
 const submitLoading = ref(false);
 const formRef = ref<FormInstance>();
-const formData = reactive<DictItem>({
-  label: '',
-  value: '',
-  type: 0,
-  status: true,
-  sort: 1,
-  color: '',
-});
+const formData = reactive<DictItem>({ label: '', value: '', type: 0, status: true, sort: 1, color: '' });
 
-/* 表单校验规则 / Form validation rules */
 const formRules = {
-  label: [{ required: true, message: '名称必填项', trigger: 'blur' }],
-  value: [{ required: true, message: '数据值必填项', trigger: 'blur' }],
-  type: [{ required: true, message: '数据值类型必填项', trigger: 'change' }],
-  status: [{ required: true, message: '状态必填项', trigger: 'change' }],
-  sort: [{ required: true, message: '排序必填项', trigger: 'blur' }],
+  label: [{ required: true, message: t('message.dictionaryPage.subDictNameRequired'), trigger: 'blur' }],
+  value: [{ required: true, message: t('message.dictionaryPage.subDictValueRequired'), trigger: 'blur' }],
+  type: [{ required: true, message: t('message.dictionaryPage.subDictValueTypeRequired'), trigger: 'change' }],
 };
 
-/* ---------- 获取列表数据 / Fetch list data ---------- */
+/* ---------- API ---------- */
 async function getList() {
   loading.value = true;
   try {
-    const params: Record<string, any> = {
-      page: pagination.currentPage,
-      limit: pagination.pageSize,
-    };
-    if (searchForm.label) {
-      params.label = searchForm.label;
-    }
-    if (parentId.value) {
-      params.parent = parentId.value;
-    }
+    const params: Record<string, any> = { page: pagination.currentPage, limit: pagination.pageSize };
+    if (searchForm.label) params.label = searchForm.label;
+    if (parentId.value) params.parent = parentId.value;
     const res: any = await api.GetList(params);
     tableData.value = res.data || [];
     pagination.total = res.total || 0;
-  } finally {
-    loading.value = false;
-  }
+  } finally { loading.value = false; }
 }
 
-/* ---------- 搜索 / Search ---------- */
-function handleSearch() {
-  pagination.currentPage = 1;
-  getList();
-}
+function handleSearch() { pagination.currentPage = 1; getList(); }
+function handleReset() { searchForm.label = ''; pagination.currentPage = 1; getList(); }
 
-/* ---------- 重置搜索 / Reset search ---------- */
-function handleReset() {
-  searchForm.label = '';
-  pagination.currentPage = 1;
-  getList();
-}
-
-/* ---------- 表格内状态切换 / Inline status toggle ---------- */
 function handleStatusChange(row: DictItem, val: boolean) {
   api.UpdateObj({ id: row.id, status: val }).then((res: any) => {
-    successMessage(res.msg || '更新成功');
+    successMessage(res.msg || t('message.dictionaryPage.subDictUpdateSuccess'));
     row.status = val;
   });
 }
 
-/* ---------- 打开新增弹窗 / Open add dialog ---------- */
 function openAddDialog() {
   isEdit.value = false;
-  formData.label = '';
-  formData.value = '';
-  formData.type = 0;
-  formData.status = true;
-  formData.sort = 1;
-  formData.color = '';
+  Object.assign(formData, { label: '', value: '', type: 0, status: true, sort: 1, color: '' });
   dialogVisible.value = true;
 }
 
-/* ---------- 打开编辑弹窗 / Open edit dialog ---------- */
 function openEditDialog(row: DictItem) {
   isEdit.value = true;
-  formData.id = row.id;
-  formData.label = row.label;
-  formData.value = row.value;
-  formData.type = row.type;
-  formData.status = row.status;
-  formData.sort = row.sort;
-  formData.color = row.color || '';
+  Object.assign(formData, { id: row.id, label: row.label, value: row.value, type: row.type, status: row.status, sort: row.sort, color: row.color || '' });
   dialogVisible.value = true;
 }
 
-/* ---------- 提交表单 / Submit form ---------- */
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return;
   submitLoading.value = true;
   try {
-    const data = { ...formData };
-    if (parentId.value) {
-      (data as any).parent = parentId.value;
-    }
-    const res: any = isEdit.value
-      ? await api.UpdateObj(data)
-      : await api.AddObj(data);
-    successMessage(res.msg || (isEdit.value ? '更新成功' : '新增成功'));
+    const data = { ...formData } as any;
+    if (parentId.value) data.parent = parentId.value;
+    const res: any = isEdit.value ? await api.UpdateObj(data) : await api.AddObj(data);
+    successMessage(res.msg || (isEdit.value ? t('message.dictionaryPage.subDictUpdateSuccess') : t('message.dictionaryPage.subDictCreateSuccess')));
     dialogVisible.value = false;
     getList();
-  } finally {
-    submitLoading.value = false;
-  }
+  } finally { submitLoading.value = false; }
 }
 
-/* ---------- 删除字典项 / Delete item ---------- */
 function handleDelete(row: DictItem) {
-  ElMessageBox.confirm('确定删除该字典项吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
+  ElMessageBox.confirm(t('message.dictionaryPage.subDictConfirmDelete'), t('message.dictionaryPage.subDictConfirmTitle'), {
+    confirmButtonText: t('message.dictionaryPage.subDictConfirmBtn'), cancelButtonText: t('message.dictionaryPage.subDictCancelBtn'), type: 'warning',
   }).then(() => {
-    api.DelObj(row.id!).then((res: any) => {
-      successMessage(res.msg || '删除成功');
-      getList();
-    });
-  }).catch(() => {
-    /* 取消删除不做任何操作 */
-  });
+    api.DelObj(row.id!).then((res: any) => { successMessage(res.msg || t('message.dictionaryPage.subDictDeleteSuccess')); getList(); });
+  }).catch(() => {});
 }
 
-/* ---------- 关闭抽屉确认 / Confirm drawer close ---------- */
 function handleClose(done: () => void) {
-  ElMessageBox.confirm('您确定要关闭?', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  })
-    .then(() => {
-      done();
-    })
-    .catch(() => {
-      /* 取消关闭 */
-    });
+  ElMessageBox.confirm(t('message.dictionaryPage.subDictCloseConfirm'), {
+    confirmButtonText: t('message.dictionaryPage.subDictCloseConfirmBtn'), cancelButtonText: t('message.dictionaryPage.subDictCloseCancelBtn'), type: 'warning',
+  }).then(() => done()).catch(() => {});
 }
 
-/* ---------- 外部接口 / Public API ---------- */
-/*
- * 设置搜索表单数据（由父组件调用，传入父字典 ID）
- * Set search form data, called by parent with parent dict row.id
- */
-function setSearchFormData(data: { form?: { parent?: number } }) {
-  if (data?.form?.parent) {
-    parentId.value = data.form.parent;
-  }
-}
-
-/*
- * 强制刷新列表（由父组件调用）
- * Force refresh list, called by parent
- */
-function doRefresh() {
+function open(parentIdVal: number, _label?: string) {
+  parentId.value = parentIdVal;
+  drawerVisible.value = true;
   pagination.currentPage = 1;
   getList();
 }
 
-/* 暴露给父组件的属性和方法 / Expose to parent component */
-defineExpose({
-  drawer: drawerVisible,
-  setSearchFormData,
-  doRefresh,
-});
+defineExpose({ drawer: drawerVisible, open, doRefresh: () => { pagination.currentPage = 1; getList(); } });
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .subdict-search {
-  padding-bottom: 16px;
+  padding: 0 0 12px;
 }
-
 .subdict-toolbar {
-  padding-bottom: 16px;
+  padding-bottom: 12px;
 }
-
 .subdict-pagination {
   display: flex;
   justify-content: flex-end;
-  padding-top: 16px;
+  padding-top: 12px;
+}
+</style>
+
+<style>
+/* Dialog styling */
+.of-dialog .el-dialog__header {
+  padding: 14px 20px;
+  margin: 0;
+  border-bottom: 1px solid #e4e7ed;
+  font-weight: 600;
+}
+.of-dialog .el-dialog__body {
+  padding: 20px;
+}
+.of-dialog .el-dialog__body .el-form-item {
+  margin-bottom: 16px;
+}
+.of-dialog .el-dialog__footer {
+  padding: 10px 20px;
+  border-top: 1px solid #e4e7ed;
+}
+.of-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>

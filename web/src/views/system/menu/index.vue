@@ -89,7 +89,7 @@
 </template>
 
 <script lang="ts" setup name="menuPages">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, markRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
 import XEUtils from 'xe-utils';
 import { ElMessageBox } from 'element-plus';
@@ -109,8 +109,8 @@ const menuCount = ref(0);
 const catalogCount = ref(0);
 const leafCount = ref(0);
 const stats = computed(() => [
-  { label: t('message.menuPage.statTotal'), value: menuCount.value, icon: OfficeBuilding, bg: 'linear-gradient(135deg,#409eff,#337ecc)' },
-  { label: t('message.menuPage.statCatalog'), value: catalogCount.value, icon: Tickets, bg: 'linear-gradient(135deg,#e6a23c,#f56c6c)' },
+  { label: t('message.menuPage.statTotal'), value: menuCount.value, icon: markRaw(OfficeBuilding), bg: 'linear-gradient(135deg,#409eff,#337ecc)' },
+  { label: t('message.menuPage.statCatalog'), value: catalogCount.value, icon: markRaw(Tickets), bg: 'linear-gradient(135deg,#e6a23c,#f56c6c)' },
   { label: t('message.menuPage.statLeaf'), value: leafCount.value, icon: List, bg: 'linear-gradient(135deg,#67c23a,#409eff)' },
   { label: t('message.menuPage.statCurrent'), value: '---', icon: Search, bg: 'linear-gradient(135deg,#909399,#606266)' },
 ]);

@@ -20,13 +20,13 @@
         <div class="sys-card user-tree-card sys-fade-in-up" style="animation-delay:0.06s">
           <div class="user-section-header">
             <span class="user-header-icon"><el-icon :size="15"><OfficeBuilding /></el-icon></span>
-            <span>部门列表</span>
-            <el-tooltip content="点击部门节点筛选用户" placement="right">
+            <span>{{ $t('message.userPage.deptList') }}</span>
+            <el-tooltip :content="$t('message.userPage.deptTooltip')" placement="right">
               <el-icon style="margin-left:auto;cursor:pointer;color:#909399" :size="14"><QuestionFilled /></el-icon>
             </el-tooltip>
           </div>
           <div class="user-tree-body">
-            <el-input v-model="filterText" placeholder="搜索部门..." clearable size="small" :prefix-icon="Search" class="user-tree-filter" />
+            <el-input v-model="filterText" :placeholder="$t('message.userPage.searchDept')" clearable size="small" :prefix-icon="Search" class="user-tree-filter" />
             <div class="user-tree-scroll">
               <el-tree
                 ref="treeRef"
@@ -54,7 +54,7 @@
         <div class="sys-card user-table-card sys-fade-in-up" style="animation-delay:0.1s">
           <div class="user-section-header user-section-header-table">
             <span class="user-header-icon user-header-icon-accent"><el-icon :size="15"><User /></el-icon></span>
-            <span>用户管理</span>
+            <span>{{ $t('message.userPage.userManagement') }}</span>
             <span v-if="currentDeptName" class="user-header-dept">{{ currentDeptName }}</span>
             <span class="user-header-badge">User Management</span>
           </div>
@@ -62,104 +62,105 @@
           <!-- Toolbar -->
           <div class="user-toolbar">
             <div class="user-toolbar-left">
-              <el-button v-if="auth('user:Create')" type="primary" size="small" :icon="Plus" @click="openAddDialog">新增</el-button>
-              <el-button v-if="auth('user:Export')" size="small" @click="handleExport">导出</el-button>
-              <importExcel v-if="auth('user:Import')" api="api/system/user/" />
+              <el-button v-if="auth('user:Create')" type="primary" size="small" :icon="Plus" @click="openAddDialog">{{ $t('message.userPage.addUser') }}</el-button>
+              <el-button v-if="auth('user:Export')" size="small" :icon="Download" @click="handleExport">{{ $t('message.userPage.export') }}</el-button>
+              <importExcel v-if="auth('user:Import')" api="api/system/user/">{{ $t('message.userPage.import') }}</importExcel>
             </div>
             <div class="user-toolbar-right">
-              <el-input v-model="searchForm.username" placeholder="账号" clearable size="small" style="width:130px" @keyup.enter="handleSearch" />
-              <el-input v-model="searchForm.name" placeholder="姓名" clearable size="small" style="width:120px" @keyup.enter="handleSearch" />
-              <el-input v-model="searchForm.mobile" placeholder="手机号" clearable size="small" style="width:130px" @keyup.enter="handleSearch" />
-              <el-button type="primary" size="small" @click="handleSearch">搜索</el-button>
-              <el-button size="small" @click="resetSearch">重置</el-button>
+              <el-input v-model="searchForm.username" :placeholder="$t('message.userPage.placeholderAccount')" clearable size="small" style="width:130px" @keyup.enter="handleSearch" />
+              <el-input v-model="searchForm.name" :placeholder="$t('message.userPage.placeholderName')" clearable size="small" style="width:120px" @keyup.enter="handleSearch" />
+              <el-input v-model="searchForm.mobile" :placeholder="$t('message.userPage.placeholderMobile')" clearable size="small" style="width:130px" @keyup.enter="handleSearch" />
+              <el-button type="primary" size="small" @click="handleSearch">{{ $t('message.userPage.search') }}</el-button>
+              <el-button size="small" :icon="Refresh" @click="resetSearch">{{ $t('message.userPage.reset') }}</el-button>
             </div>
           </div>
 
           <!-- Table -->
           <el-table :data="tableData" v-loading="loading" stripe size="small" style="width:100%" row-key="id" class="user-table">
             <el-table-column type="index" label="#" width="50" align="center" />
-            <el-table-column prop="username" label="账号" min-width="110" show-overflow-tooltip />
-            <el-table-column prop="name" label="姓名" min-width="90" show-overflow-tooltip />
-            <el-table-column label="部门" min-width="120" show-overflow-tooltip>
+            <el-table-column prop="username" :label="$t('message.userPage.account')" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="name" :label="$t('message.userPage.name')" min-width="90" show-overflow-tooltip />
+            <el-table-column :label="$t('message.userPage.dept')" min-width="120" show-overflow-tooltip>
               <template #default="{ row }">{{ row.dept_name || row.dept?.name || '-' }}</template>
             </el-table-column>
-            <el-table-column label="角色" min-width="140">
+            <el-table-column :label="$t('message.userPage.role')" min-width="140">
               <template #default="{ row }">
                 <el-tag v-for="r in resolveRoles(row)" :key="r.id || r" size="small" class="user-role-tag">{{ r.name || r }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="mobile" label="手机号" width="120" />
-            <el-table-column prop="email" label="邮箱" min-width="160" show-overflow-tooltip />
-            <el-table-column label="性别" width="60" align="center">
+            <el-table-column prop="mobile" :label="$t('message.userPage.mobile')" width="120" />
+            <el-table-column prop="email" :label="$t('message.userPage.email')" min-width="160" show-overflow-tooltip />
+            <el-table-column :label="$t('message.userPage.gender')" width="60" align="center">
               <template #default="{ row }">{{ getDictLabel('gender', row.gender) }}</template>
             </el-table-column>
-            <el-table-column label="类型" width="80" align="center">
+            <el-table-column :label="$t('message.userPage.type')" width="80" align="center">
               <template #default="{ row }">{{ getDictLabel('user_type', row.user_type) }}</template>
             </el-table-column>
-            <el-table-column label="状态" width="70" align="center">
+            <el-table-column :label="$t('message.userPage.status')" width="70" align="center">
               <template #default="{ row }">
                 <el-switch :model-value="Boolean(row.is_active)" size="small" @change="(val) => handleActiveChange(row, val)" />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="250" fixed="right" align="center">
+            <el-table-column :label="$t('message.userPage.actions')" width="250" fixed="right" align="center">
               <template #default="{ row }">
-                <el-button v-if="auth('user:Update')" text type="primary" size="small" style="padding:0 4px" @click="openEditDialog(row)">编辑</el-button>
-                <el-button v-if="auth('user:Delete')" text type="danger" size="small" style="padding:0 4px" @click="handleDelete(row)">删除</el-button>
-                <el-button v-if="auth('user:ResetPassword')" text type="warning" size="small" style="padding:0 4px" @click="openResetPwdDialog(row)">重置密码</el-button>
+                <el-button v-if="auth('user:Update')" text type="primary" size="small" style="padding:0 4px" @click="openEditDialog(row)">{{ $t('message.userPage.edit') }}</el-button>
+                <el-button v-if="auth('user:Delete')" text type="danger" size="small" style="padding:0 4px" @click="handleDelete(row)">{{ $t('message.userPage.delete') }}</el-button>
+                <el-button v-if="auth('user:ResetPassword')" text type="warning" size="small" style="padding:0 4px" @click="openResetPwdDialog(row)">{{ $t('message.userPage.resetPwd') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
 
           <!-- Pagination -->
           <div class="user-pagination">
-            <el-pagination v-model:current-page="page" v-model:page-size="limit" :total="total" :page-sizes="[10,20,50,100]" layout="total, sizes, prev, pager, next, jumper" background size="small" @size-change="getList" @current-change="getList" />
+            <el-pagination v-model:currentPage="page" v-model:pageSize="limit" :total="total" :page-sizes="[10,20,50,100]" layout="total, sizes, prev, pager, next, jumper" background size="small" @update:pageSize="getList" @update:currentPage="getList" />
           </div>
         </div>
       </el-col>
     </el-row>
 
     <!-- ===== Add/Edit Dialog ===== -->
-    <el-dialog v-model="dialogVisible" :title="dialogType === 'add' ? '新增用户' : '编辑用户'" width="640px" :close-on-click-modal="false" :destroy-on-close="true" @close="resetForm" class="opsflow-dialog">
+    <el-dialog v-model="dialogVisible" :title="dialogType === 'add' ? $t('message.userPage.addUser') : $t('message.userPage.editUser')" width="640px" :close-on-click-modal="false" :destroy-on-close="true" @close="resetForm" class="opsflow-dialog">
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="90px" size="small">
         <el-row :gutter="20">
-          <el-col :span="12"><el-form-item label="账号" prop="username"><el-input v-model="formData.username" placeholder="请输入登录账号" maxlength="150" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="姓名" prop="name"><el-input v-model="formData.name" placeholder="请输入真实姓名" maxlength="50" /></el-form-item></el-col>
-          <el-col :span="12" v-if="dialogType==='add'"><el-form-item label="密码" prop="password"><el-input v-model="formData.password" type="password" show-password placeholder="默认: 123456" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="部门" prop="dept"><el-tree-select v-model="formData.dept" :data="deptSelectData" :props="deptSelectProps" placeholder="请选择部门" filterable check-strictly clearable style="width:100%" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="角色" prop="role"><el-select v-model="formData.role" multiple filterable placeholder="请选择角色" style="width:100%"><el-option v-for="item in roleOptions" :key="item.id" :label="item.name" :value="item.id" /></el-select></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="手机号" prop="mobile"><el-input v-model="formData.mobile" placeholder="11 位手机号" maxlength="11" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="邮箱" prop="email"><el-input v-model="formData.email" placeholder="电子邮箱" maxlength="100" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="性别"><el-select v-model="formData.gender" placeholder="请选择" style="width:100%"><el-option v-for="item in genderDict" :key="item.value" :label="item.label" :value="item.value" /></el-select></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="启用"><el-switch v-model="formData.is_active" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.userPage.account')" prop="username"><el-input v-model="formData.username" :placeholder="$t('message.userPage.placeholderAccount')" maxlength="150" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.userPage.name')" prop="name"><el-input v-model="formData.name" :placeholder="$t('message.userPage.placeholderName')" maxlength="50" /></el-form-item></el-col>
+          <el-col :span="12" v-if="dialogType==='add'"><el-form-item :label="$t('message.userPage.password')" prop="password"><el-input v-model="formData.password" type="password" show-password :placeholder="$t('message.userPage.placeholderDefaultPwd')" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.userPage.dept')" prop="dept"><el-tree-select v-model="formData.dept" :data="deptSelectData" :props="deptSelectProps" :placeholder="$t('message.userPage.placeholderDept')" filterable check-strictly clearable style="width:100%" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.userPage.role')" prop="role"><el-select v-model="formData.role" multiple filterable :placeholder="$t('message.userPage.placeholderRole')" style="width:100%"><el-option v-for="item in roleOptions" :key="item.id" :label="item.name" :value="item.id" /></el-select></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.userPage.mobile')" prop="mobile"><el-input v-model="formData.mobile" :placeholder="$t('message.userPage.placeholderMobile')" maxlength="11" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.userPage.email')" prop="email"><el-input v-model="formData.email" :placeholder="$t('message.userPage.placeholderEmail')" maxlength="100" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.userPage.gender')"><el-select v-model="formData.gender" :placeholder="$t('message.userPage.placeholderGender')" style="width:100%"><el-option v-for="item in genderDict" :key="item.value" :label="item.label" :value="item.value" /></el-select></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.userPage.enable')"><el-switch v-model="formData.is_active" /></el-form-item></el-col>
         </el-row>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="dialogVisible = false">取消</el-button>
-        <el-button size="small" type="primary" :loading="submitLoading" @click="handleSubmit">保存</el-button>
+        <el-button size="small" @click="dialogVisible = false">{{ $t('message.userPage.cancel') }}</el-button>
+        <el-button size="small" type="primary" :loading="submitLoading" @click="handleSubmit">{{ $t('message.userPage.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ===== Reset Password Dialog ===== -->
-    <el-dialog v-model="resetPwdVisible" title="重设密码" width="420px" :close-on-click-modal="false" :destroy-on-close="true" @close="resetResetPwdForm" class="opsflow-dialog">
+    <el-dialog v-model="resetPwdVisible" :title="$t('message.userPage.resetPwdTitle')" width="420px" :close-on-click-modal="false" :destroy-on-close="true" @close="resetResetPwdForm" class="opsflow-dialog">
       <el-form ref="resetPwdFormRef" :model="resetPwdForm" :rules="resetPwdRules" label-width="90px" size="small">
-        <el-form-item label="新密码" prop="newPassword"><el-input v-model="resetPwdForm.newPassword" type="password" show-password placeholder="8-30 位，含字母和数字" /></el-form-item>
-        <el-form-item label="确认密码" prop="newPassword2"><el-input v-model="resetPwdForm.newPassword2" type="password" show-password placeholder="再次输入新密码" /></el-form-item>
+        <el-form-item :label="$t('message.userPage.newPwd')" prop="newPassword"><el-input v-model="resetPwdForm.newPassword" type="password" show-password :placeholder="$t('message.userPage.placeholderNewPwd')" /></el-form-item>
+        <el-form-item :label="$t('message.userPage.confirmPwd')" prop="newPassword2"><el-input v-model="resetPwdForm.newPassword2" type="password" show-password :placeholder="$t('message.userPage.placeholderConfirmPwd')" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="resetPwdVisible = false">取消</el-button>
-        <el-button size="small" type="primary" :loading="resetPwdLoading" @click="handleResetPwdSubmit">保存</el-button>
+        <el-button size="small" @click="resetPwdVisible = false">{{ $t('message.userPage.cancel') }}</el-button>
+        <el-button size="small" type="primary" :loading="resetPwdLoading" @click="handleResetPwdSubmit">{{ $t('message.userPage.save') }}</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script lang="ts" setup name="user">
-import { ref, reactive, onMounted, watch, computed, provide } from 'vue';
+import { ref, reactive, onMounted, watch, computed, provide, markRaw } from 'vue';
+import { useI18n } from 'vue-i18n';
 import XEUtils from 'xe-utils';
 import { ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { Md5 } from 'ts-md5';
-import { Plus, Search, User, OfficeBuilding, Male, Female, QuestionFilled } from '@element-plus/icons-vue';
+import { Plus, Search, Refresh, Download, User, OfficeBuilding, Male, Female, QuestionFilled } from '@element-plus/icons-vue';
 import SvgIcon from '/@/components/SvgIcon/index.vue';
 import importExcel from '/@/components/importExcel/index.vue';
 import { auth } from '/@/utils/authFunction';
@@ -177,16 +178,19 @@ interface RoleItem { id: number; name: string; [key: string]: any; }
 /* ===================== Provide ===================== */
 provide('refreshView', () => getList());
 
+/* ===================== i18n ===================== */
+const { t } = useI18n();
+
 /* ===================== Store ===================== */
 const systemConfigStore = SystemConfigStore();
 const defaultPassword = computed(() => systemConfigStore.systemConfig?.['base.default_password'] || '123456');
 
 /* ===================== Stats ===================== */
 const statsArr = ref([
-  { label: '用户总数', value: 0, icon: User, bg: 'linear-gradient(135deg,#409eff,#337ecc)' },
-  { label: '活跃用户', value: 0, icon: Male, bg: 'linear-gradient(135deg,#67c23a,#409eff)' },
-  { label: '锁定用户', value: 0, icon: Female, bg: 'linear-gradient(135deg,#f56c6c,#e6a23c)' },
-  { label: '当前部门', value: '--', icon: OfficeBuilding, bg: 'linear-gradient(135deg,#909399,#606266)' },
+  { label: t('message.userPage.statTotal'), value: 0, icon: markRaw(User), bg: 'linear-gradient(135deg,#409eff,#337ecc)' },
+  { label: t('message.userPage.statActive'), value: 0, icon: markRaw(Male), bg: 'linear-gradient(135deg,#67c23a,#409eff)' },
+  { label: t('message.userPage.statLocked'), value: 0, icon: markRaw(Female), bg: 'linear-gradient(135deg,#f56c6c,#e6a23c)' },
+  { label: t('message.userPage.statCurrentDept'), value: '--', icon: markRaw(OfficeBuilding), bg: 'linear-gradient(135deg,#909399,#606266)' },
 ]);
 const stats = computed(() => statsArr.value);
 
@@ -289,13 +293,13 @@ const formRef = ref<FormInstance>();
 const formData = reactive({ id: 0, username: '', password: '', name: '', dept: null as number | null, role: [] as number[], mobile: '', email: '', gender: 1, is_active: true, user_type: 0 });
 const deptSelectProps = { children: 'children', label: 'name', value: 'id' };
 const formRules: FormRules = {
-  username: [{ required: true, message: '必填项', trigger: 'blur' }, { min: 2, max: 150, message: '长度 2-150', trigger: 'blur' }],
-  password: [{ required: true, message: '必填项', trigger: 'blur' }, { min: 6, message: '至少 6 位', trigger: 'blur' }],
-  name: [{ required: true, message: '必填项', trigger: 'blur' }],
-  dept: [{ required: true, message: '必选项', trigger: 'change' }],
-  role: [{ required: true, message: '必选项', trigger: 'change' }],
-  mobile: [{ pattern: /^1[3-9]\d{9}$/, message: '格式不正确', trigger: 'blur' }],
-  email: [{ type: 'email' as const, message: '格式不正确', trigger: ['blur', 'change'] }],
+  username: [{ required: true, message: t('message.userPage.required'), trigger: 'blur' }, { min: 2, max: 150, message: t('message.userPage.length2to150'), trigger: 'blur' }],
+  password: [{ required: true, message: t('message.userPage.required'), trigger: 'blur' }, { min: 6, message: t('message.userPage.min6'), trigger: 'blur' }],
+  name: [{ required: true, message: t('message.userPage.required'), trigger: 'blur' }],
+  dept: [{ required: true, message: t('message.userPage.requiredSelect'), trigger: 'change' }],
+  role: [{ required: true, message: t('message.userPage.requiredSelect'), trigger: 'change' }],
+  mobile: [{ pattern: /^1[3-9]\d{9}$/, message: t('message.userPage.invalidFormat'), trigger: 'blur' }],
+  email: [{ type: 'email' as const, message: t('message.userPage.invalidFormat'), trigger: ['blur', 'change'] }],
 };
 
 function openAddDialog() {
@@ -319,16 +323,16 @@ async function handleSubmit() {
     if (dialogType.value === 'add' && payload.password) payload.password = Md5.hashStr(payload.password);
     if (dialogType.value === 'add') delete payload.id;
     const res = dialogType.value === 'add' ? await api.AddObj(payload) : await api.UpdateObj(payload);
-    if (res?.code === 2000) { successMessage(res.msg || '操作成功'); dialogVisible.value = false; getList(); }
+    if (res?.code === 2000) { successMessage(res.msg || t('message.userPage.saveSuccess')); dialogVisible.value = false; getList(); }
   } finally { submitLoading.value = false; }
 }
 
 /* ===================== Delete ===================== */
 async function handleDelete(row: UserRecord) {
   try {
-    await ElMessageBox.confirm('确认删除该用户？', '确认', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' });
+    await ElMessageBox.confirm(t('message.userPage.confirmDelete'), t('message.userPage.confirmTitle'), { confirmButtonText: t('message.userPage.deleteBtn'), cancelButtonText: t('message.userPage.cancelBtn'), type: 'warning' });
     const res: any = await api.DelObj(row.id);
-    if (res?.code === 2000) { successNotification(res.msg || '删除成功'); getList(); }
+    if (res?.code === 2000) { successNotification(res.msg || t('message.userPage.deleteSuccess')); getList(); }
   } catch {}
 }
 
@@ -351,8 +355,8 @@ const resetPwdFormRef = ref<FormInstance>();
 const resetPwdTargetId = ref(0);
 const resetPwdForm = reactive({ newPassword: '', newPassword2: '' });
 const resetPwdRules: FormRules = {
-  newPassword: [{ required: true, message: '请输入新密码', trigger: 'blur' }, { pattern: /(?=.*[0-9])(?=.*[a-zA-Z]).{8,30}/, message: '需包含字母和数字', trigger: 'blur' }],
-  newPassword2: [{ required: true, message: '请再次输入', trigger: 'blur' }, { validator: (_r: any, v: string, cb: Function) => v !== resetPwdForm.newPassword ? cb(new Error('两次输入不一致')) : cb(), trigger: 'blur' }],
+  newPassword: [{ required: true, message: t('message.userPage.required'), trigger: 'blur' }, { pattern: /(?=.*[0-9])(?=.*[a-zA-Z]).{8,30}/, message: t('message.userPage.pwdRule'), trigger: 'blur' }],
+  newPassword2: [{ required: true, message: t('message.userPage.required'), trigger: 'blur' }, { validator: (_r: any, v: string, cb: Function) => v !== resetPwdForm.newPassword ? cb(new Error(t('message.userPage.pwdMismatch'))) : cb(), trigger: 'blur' }],
 };
 function openResetPwdDialog(row: UserRecord) { resetPwdTargetId.value = row.id; resetPwdForm.newPassword = ''; resetPwdForm.newPassword2 = ''; resetPwdVisible.value = true; }
 function resetResetPwdForm() { resetPwdFormRef.value?.resetFields(); resetPwdTargetId.value = 0; }
@@ -362,7 +366,7 @@ async function handleResetPwdSubmit() {
   resetPwdLoading.value = true;
   try {
     const res: any = await api.resetPwd(resetPwdTargetId.value, { new_password: Md5.hashStr(resetPwdForm.newPassword), new_password2: Md5.hashStr(resetPwdForm.newPassword2) });
-    if (res?.code === 2000) { successNotification(res.msg || '重置成功'); resetPwdVisible.value = false; }
+    if (res?.code === 2000) { successNotification(res.msg || t('message.userPage.resetPwdSuccess')); resetPwdVisible.value = false; }
   } finally { resetPwdLoading.value = false; }
 }
 

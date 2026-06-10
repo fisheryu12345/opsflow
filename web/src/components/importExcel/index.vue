@@ -1,7 +1,7 @@
 <template>
   <div style="display: inline-block">
-    <el-button size="default" type="success" @click="handleImport()">
-      <slot>导入</slot>
+    <el-button size="small" type="primary" :icon="Upload" @click="handleImport()">
+      <slot></slot>
     </el-button>
     <el-dialog :title="props.upload.title" v-model="uploadShow" width="400px" append-to-body>
       <div v-loading="loading">
@@ -44,6 +44,7 @@
 <script lang="ts" setup name="importExcel">
 import { request, downloadFile } from '/@/utils/service';
 import {inject,ref} from "vue";
+import {Upload} from '@element-plus/icons-vue';
 import { getBaseURL } from '/@/utils/baseUrl';
 import { Session } from '/@/utils/storage';
 import {  ElMessageBox } from 'element-plus'

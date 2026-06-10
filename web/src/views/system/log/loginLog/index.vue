@@ -4,36 +4,36 @@
     <div class="stats-row">
       <el-card shadow="never" class="stat-card">
         <div class="stat-value">{{ stats.total }}</div>
-        <div class="stat-label">总日志数 / Total Logs</div>
+        <div class="stat-label">{{ $t('message.loginLogPage.totalLogs') }}</div>
       </el-card>
       <el-card shadow="never" class="stat-card">
         <div class="stat-value">{{ stats.unique_ips }}</div>
-        <div class="stat-label">独立IP数 / Unique IPs</div>
+        <div class="stat-label">{{ $t('message.loginLogPage.uniqueIps') }}</div>
       </el-card>
       <el-card shadow="never" class="stat-card">
         <div class="stat-value">{{ stats.today_count }}</div>
-        <div class="stat-label">今日日志数 / Today's Logs</div>
+        <div class="stat-label">{{ $t('message.loginLogPage.todayLogs') }}</div>
       </el-card>
     </div>
 
     <!-- Search bar / 搜索栏 -->
     <el-card shadow="never" class="search-card">
       <el-form :model="queryParams" inline>
-        <el-form-item label="用户名 / Username">
-          <el-input v-model="queryParams.username" placeholder="请输入用户名" clearable size="default" />
+        <el-form-item :label="$t('message.loginLogPage.username')">
+          <el-input v-model="queryParams.username" :placeholder="$t('message.loginLogPage.usernamePlaceholder')" clearable size="default" />
         </el-form-item>
-        <el-form-item label="登录IP / IP">
-          <el-input v-model="queryParams.ip" placeholder="请输入登录IP" clearable size="default" />
+        <el-form-item :label="$t('message.loginLogPage.ip')">
+          <el-input v-model="queryParams.ip" :placeholder="$t('message.loginLogPage.ipPlaceholder')" clearable size="default" />
         </el-form-item>
-        <el-form-item label="登录类型 / Login Type">
-          <el-select v-model="queryParams.login_type" placeholder="请选择登录类型" clearable size="default">
+        <el-form-item :label="$t('message.loginLogPage.loginType')">
+          <el-select v-model="queryParams.login_type" :placeholder="$t('message.loginLogPage.loginTypePlaceholder')" clearable size="default">
             <el-option label="普通登录" :value="1" />
             <el-option label="微信扫码登录" :value="2" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索 / Search</el-button>
-          <el-button @click="handleReset">重置 / Reset</el-button>
+          <el-button type="primary" @click="handleSearch">{{ $t('message.loginLogPage.search') }}</el-button>
+          <el-button @click="handleReset">{{ $t('message.loginLogPage.reset') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -41,35 +41,35 @@
     <!-- Table / 表格 -->
     <el-card shadow="never" class="table-card">
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
-        <el-table-column type="index" label="序号 / #" width="70" align="center" />
-        <el-table-column prop="username" label="登录用户名 / Username" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="ip" label="登录IP / IP" min-width="130" show-overflow-tooltip />
-        <el-table-column prop="login_type" label="登录类型 / Type" min-width="100" align="center">
+        <el-table-column type="index" :label="$t('message.loginLogPage.colIndex')" width="70" align="center" />
+        <el-table-column prop="username" label="登录{{ $t('message.loginLogPage.username') }}" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="ip" :label="$t('message.loginLogPage.ip')" min-width="130" show-overflow-tooltip />
+        <el-table-column prop="login_type" :label="$t('message.loginLogPage.colLoginType')" min-width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.login_type === 1 ? 'primary' : 'success'" size="small" effect="plain">
-              {{ row.login_type === 1 ? '普通登录' : '微信扫码' }}
+              {{ row.login_type === 1 ? t('message.loginLogPage.normalLogin') : t('message.loginLogPage.wechatLogin') }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="os" label="操作系统 / OS" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="browser" label="浏览器 / Browser" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="create_datetime" label="登录时间 / Time" min-width="170" show-overflow-tooltip />
-        <el-table-column label="操作 / Actions" width="80" fixed="right" align="center">
+        <el-table-column prop="os" :label="$t('message.loginLogPage.colOs')" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="browser" :label="$t('message.loginLogPage.colBrowser')" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="create_datetime" :label="$t('message.loginLogPage.colTime')" min-width="170" show-overflow-tooltip />
+        <el-table-column :label="$t('message.loginLogPage.colActions')" width="80" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleView(row)">查看 / View</el-button>
+            <el-button type="primary" link size="small" @click="handleView(row)">{{ $t('message.loginLogPage.view') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <div class="pagination-wrapper">
         <el-pagination
-          v-model:current-page="queryParams.page"
-          v-model:page-size="queryParams.limit"
+          v-model:currentPage="queryParams.page"
+          v-model:pageSize="queryParams.limit"
           :total="total"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="fetchData"
-          @current-change="fetchData"
+          @update:pageSize="fetchData"
+          @update:currentPage="fetchData"
         />
       </div>
     </el-card>
@@ -77,34 +77,34 @@
     <!-- Detail drawer / 详情抽屉 -->
     <el-drawer
       v-model="drawerVisible"
-      title="登录日志详情 / Login Log Detail"
+      :title="$t('message.loginLogPage.detailTitle')"
       size="500px"
       class="opsflow-dialog"
     >
       <template v-if="currentRow">
         <el-descriptions :column="1" border>
-          <el-descriptions-item label="用户名 / Username">{{ currentRow.username || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="登录IP / IP">{{ currentRow.ip || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="登录类型 / Login Type">
+          <el-descriptions-item :label="$t('message.loginLogPage.username')">{{ currentRow.username || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.ip')">{{ currentRow.ip || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.loginType')">
             <el-tag :type="currentRow.login_type === 1 ? 'primary' : 'success'" size="small" effect="plain">
-              {{ currentRow.login_type === 1 ? '普通登录' : '微信扫码' }}
+              {{ currentRow.login_type === 1 ? t('message.loginLogPage.normalLogin') : t('message.loginLogPage.wechatLogin') }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="操作系统 / OS">{{ currentRow.os || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="浏览器 / Browser">{{ currentRow.browser || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="运营商 / ISP">{{ currentRow.isp || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="大洲 / Continent">{{ currentRow.continent || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="国家 / Country">{{ currentRow.country || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="省份 / Province">{{ currentRow.province || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="城市 / City">{{ currentRow.city || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="县区 / District">{{ currentRow.district || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="区域代码 / Area Code">{{ currentRow.area_code || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="英文全称 / Country EN">{{ currentRow.country_english || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="简称 / Country Code">{{ currentRow.country_code || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="经度 / Longitude">{{ currentRow.longitude || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="纬度 / Latitude">{{ currentRow.latitude || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="Agent信息 / Agent">{{ currentRow.agent || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="登录时间 / Login Time">{{ currentRow.create_datetime || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.colOs')">{{ currentRow.os || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.colBrowser')">{{ currentRow.browser || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.isp')">{{ currentRow.isp || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.continent')">{{ currentRow.continent || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.country')">{{ currentRow.country || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.province')">{{ currentRow.province || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.city')">{{ currentRow.city || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.district')">{{ currentRow.district || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.areaCode')">{{ currentRow.area_code || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.countryEn')">{{ currentRow.country_english || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.countryCode')">{{ currentRow.country_code || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.longitude')">{{ currentRow.longitude || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.latitude')">{{ currentRow.latitude || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.agent')">{{ currentRow.agent || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('message.loginLogPage.loginTime')">{{ currentRow.create_datetime || '-' }}</el-descriptions-item>
         </el-descriptions>
       </template>
     </el-drawer>
@@ -113,6 +113,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { GetList, GetStats } from './api';
 
@@ -146,6 +147,8 @@ interface StatsData {
 }
 
 // State / 状态
+const { t } = useI18n();
+
 const loading = ref(false);
 const tableData = ref<LoginLogRecord[]>([]);
 const total = ref(0);
@@ -183,7 +186,7 @@ async function fetchData() {
     tableData.value = res.data || [];
     total.value = res.total || 0;
   } catch (e: any) {
-    ElMessage.error(e?.msg || e?.response?.data?.msg || '获取登录日志列表失败');
+    ElMessage.error(e?.msg || e?.response?.data?.msg || t('message.loginLogPage.fetchFailed'));
     tableData.value = [];
     total.value = 0;
   } finally {

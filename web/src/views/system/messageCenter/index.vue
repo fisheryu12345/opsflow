@@ -28,7 +28,7 @@
             <template #label>
               <span class="tab-label">
                 <el-icon><Promotion /></el-icon>
-                <span class="tab-text">我的发布</span>
+                <span class="tab-text">{{ $t('message.messageCenter.tabSend') }}</span>
                 <el-tag
                   v-if="sendCount > 0"
                   size="small"
@@ -43,7 +43,7 @@
             <template #label>
               <span class="tab-label">
                 <el-icon><Message /></el-icon>
-                <span class="tab-text">我的接收</span>
+                <span class="tab-text">{{ $t('message.messageCenter.tabReceive') }}</span>
                 <el-badge
                   v-if="unreadCount > 0"
                   :value="unreadCount > 99 ? '99+' : unreadCount"
@@ -68,7 +68,7 @@
         <div class="toolbar-left">
           <el-input
             v-model="searchText"
-            placeholder="搜索消息标题..."
+            :placeholder="$t('message.messageCenter.searchPlaceholder')"
             clearable
             style="width:260px"
             size="default"
@@ -79,7 +79,7 @@
             </template>
           </el-input>
           <el-button @click="onSearch" type="primary">
-            <el-icon><Search /></el-icon> 搜索
+            <el-icon><Search /></el-icon> {{ $t('message.messageCenter.search') }}
           </el-button>
         </div>
         <div class="toolbar-right">
@@ -88,7 +88,7 @@
             type="primary"
             @click="openAddDialog"
           >
-            <el-icon><Plus /></el-icon> 发布消息
+            <el-icon><Plus /></el-icon> {{ $t('message.messageCenter.sendAddBtn') }}
           </el-button>
         </div>
       </div>
@@ -105,7 +105,7 @@
           :row-class-name="tableRowClassName"
           @row-click="onRowClick"
         >
-          <el-table-column label="消息" min-width="360">
+          <el-table-column :label="$t('message.messageCenter.colMessage')" min-width="360">
             <template #default="{ row }">
               <div class="msg-cell-main">
                 <div class="msg-cell-top">
@@ -115,7 +115,7 @@
                     class="msg-cell-title"
                     :class="{ 'is-unread': isReceiveTab && !row.is_read }"
                     @click.stop="openDetailDrawer(row)"
-                  >{{ row.title || '无标题' }}</span>
+                  >{{ row.title || $t('message.messageCenter.noTitle') }}</span>
                   <span class="msg-cell-time">{{ formatTime(row.create_datetime) }}</span>
                 </div>
                 <div class="msg-cell-preview">
@@ -127,41 +127,41 @@
                       <el-icon><User /></el-icon> {{ row.creator_name || row.creator?.name }}
                     </span>
                   </template>
-                  <span class="msg-target-tag" :class="`msg-target-tag--${targetTypeMap[row.target_type]?.type || 'info'}`">
-                    {{ targetTypeMap[row.target_type]?.label || '未知' }}
+                  <span class="msg-target-tag" :class="`msg-target-tag--${targetTypeInfo(row.target_type)?.type || 'info'}`">
+                    {{ getTargetLabel(row.target_type) }}
                   </span>
                 </div>
               </div>
             </template>
           </el-table-column>
 
-          <el-table-column label="类型" width="100" align="center">
+          <el-table-column :label="$t('message.messageCenter.colType')" width="100" align="center">
             <template #default="{ row }">
-              <span class="msg-target-tag" :class="`msg-target-tag--${targetTypeMap[row.target_type]?.type || 'info'}`">
-                {{ targetTypeMap[row.target_type]?.label || '未知' }}
+              <span class="msg-target-tag" :class="`msg-target-tag--${targetTypeInfo(row.target_type)?.type || 'info'}`">
+                {{ getTargetLabel(row.target_type) }}
               </span>
             </template>
           </el-table-column>
 
-          <el-table-column label="状态" width="90" align="center" v-if="isReceiveTab">
+          <el-table-column :label="$t('message.messageCenter.colStatus')" width="90" align="center" v-if="isReceiveTab">
             <template #default="{ row }">
               <span class="msg-status-badge" :class="row.is_read ? 'is-read' : 'is-unread'">
                 <span class="msg-status-dot" />
-                {{ row.is_read ? '已读' : '未读' }}
+                {{ row.is_read ? $t('message.messageCenter.read') : $t('message.messageCenter.unread') }}
               </span>
             </template>
           </el-table-column>
 
-          <el-table-column label="时间" width="170" align="center">
+          <el-table-column :label="$t('message.messageCenter.colTime')" width="170" align="center">
             <template #default="{ row }">
               <span class="msg-cell-datetime">{{ formatTime(row.create_datetime) }}</span>
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="130" fixed="right" align="center">
+          <el-table-column :label="$t('message.messageCenter.colActions')" width="130" fixed="right" align="center">
             <template #default="{ row }">
               <el-button text type="primary" size="small" @click.stop="openDetailDrawer(row)">
-                <el-icon><View /></el-icon> 查看
+                <el-icon><View /></el-icon> {{ $t('message.messageCenter.view') }}
               </el-button>
               <el-button
                 v-if="auth('messageCenter:Delete')"
@@ -170,7 +170,7 @@
                 size="small"
                 @click.stop="onDelete(row)"
               >
-                <el-icon><Delete /></el-icon> 删除
+                <el-icon><Delete /></el-icon> {{ $t('message.messageCenter.delete') }}
               </el-button>
             </template>
           </el-table-column>
@@ -179,14 +179,14 @@
         <!-- Pagination -->
         <div class="msg-pagination">
           <el-pagination
-            v-model:current-page="page"
-            v-model:page-size="pageSize"
+            v-model:currentPage="page"
+            v-model:pageSize="pageSize"
             :page-sizes="[10, 20, 50, 100]"
             :total="total"
             layout="total, sizes, prev, pager, next, jumper"
             background
-            @current-change="fetchData"
-            @size-change="onSizeChange"
+            @update:currentPage="fetchData"
+            @update:pageSize="onSizeChange"
           />
         </div>
       </div>
@@ -203,7 +203,7 @@
     >
       <template #header>
         <div class="msg-drawer-header">
-          <div class="msg-drawer-title">{{ currentMsg.title || '消息详情' }}</div>
+          <div class="msg-drawer-title">{{ currentMsg.title || $t('message.messageCenter.detailTitle') }}</div>
           <div class="msg-drawer-meta">
             <span v-if="currentMsg.creator_name || currentMsg.creator?.name" class="meta-item">
               <el-icon><User /></el-icon>
@@ -214,29 +214,29 @@
               {{ formatTime(currentMsg.create_datetime) }}
             </span>
             <el-tag :type="targetTypeTag(currentMsg.target_type)" size="small" effect="plain" round>
-              {{ targetTypeMap[currentMsg.target_type]?.label || '未知' }}
+              {{ getTargetLabel(currentMsg.target_type) }}
             </el-tag>
           </div>
           <div v-if="isReceiveTab" class="msg-drawer-status">
             <span v-if="currentMsg.is_read" class="status-read">
-              <el-icon><Select /></el-icon> 已读
+              <el-icon><Select /></el-icon> {{ $t('message.messageCenter.read') }}
             </span>
             <span v-else class="status-unread">
-              <el-icon><CloseBold /></el-icon> 未读
+              <el-icon><CloseBold /></el-icon> {{ $t('message.messageCenter.unread') }}
             </span>
           </div>
         </div>
       </template>
       <div class="msg-drawer-body">
         <div v-if="currentMsg.content" class="msg-content-html" v-html="currentMsg.content" />
-        <el-empty v-else :image-size="60" description="暂无内容" />
+        <el-empty v-else :image-size="60" :description="$t('message.messageCenter.noContent')" />
       </div>
     </el-drawer>
 
     <!-- ===== Add / Edit Dialog ===== -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? '编辑消息' : '发布消息'"
+      :title="isEdit ? $t('message.messageCenter.editTitle') : $t('message.messageCenter.publishTitle')"
       width="720px"
       :close-on-click-modal="false"
       destroy-on-close
@@ -251,21 +251,21 @@
         label-position="left"
         size="default"
       >
-        <el-form-item label="标题" prop="title">
-          <el-input v-model="formData.title" placeholder="请输入消息标题" maxlength="100" />
+        <el-form-item :label="$t('message.messageCenter.title')" prop="title">
+          <el-input v-model="formData.title" :placeholder="$t('message.messageCenter.titlePlaceholder')" maxlength="100" />
         </el-form-item>
 
-        <el-form-item label="目标类型" prop="target_type">
+        <el-form-item :label="$t('message.messageCenter.targetType')" prop="target_type">
           <el-radio-group v-model="formData.target_type">
-            <el-radio-button :value="0">按用户</el-radio-button>
-            <el-radio-button :value="1">按角色</el-radio-button>
-            <el-radio-button :value="2">按部门</el-radio-button>
-            <el-radio-button :value="3">通知公告</el-radio-button>
+            <el-radio-button :value="0">{{ $t('message.messageCenter.targetUser') }}</el-radio-button>
+            <el-radio-button :value="1">{{ $t('message.messageCenter.targetRole') }}</el-radio-button>
+            <el-radio-button :value="2">{{ $t('message.messageCenter.targetDept') }}</el-radio-button>
+            <el-radio-button :value="3">{{ $t('message.messageCenter.targetNotice') }}</el-radio-button>
           </el-radio-group>
         </el-form-item>
 
         <!-- 按用户 -->
-        <el-form-item v-if="formData.target_type === 0" label="目标用户" prop="target_user">
+        <el-form-item v-if="formData.target_type === 0" :label="$t('message.messageCenter.targetUserLabel')" prop="target_user">
           <TableSelector
             v-model="formData.target_user"
             :table-config="tableSelectorConfig.user"
@@ -274,7 +274,7 @@
         </el-form-item>
 
         <!-- 按角色 -->
-        <el-form-item v-if="formData.target_type === 1" label="目标角色" prop="target_role">
+        <el-form-item v-if="formData.target_type === 1" :label="$t('message.messageCenter.targetRoleLabel')" prop="target_role">
           <TableSelector
             v-model="formData.target_role"
             :table-config="tableSelectorConfig.role"
@@ -283,7 +283,7 @@
         </el-form-item>
 
         <!-- 按部门 -->
-        <el-form-item v-if="formData.target_type === 2" label="目标部门" prop="target_dept">
+        <el-form-item v-if="formData.target_type === 2" :label="$t('message.messageCenter.targetDeptLabel')" prop="target_dept">
           <TableSelector
             v-model="formData.target_dept"
             :table-config="tableSelectorConfig.dept"
@@ -291,15 +291,15 @@
           />
         </el-form-item>
 
-        <el-form-item label="内容" prop="content">
+        <el-form-item :label="$t('message.messageCenter.content')" prop="content">
           <EditorWang5 v-model="formData.content" style="width:100%" />
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="dialogVisible = false">{{ $t('message.messageCenter.cancel') }}</el-button>
         <el-button type="primary" :loading="submitLoading" @click="onSubmit">
-          {{ isEdit ? '保存' : '发布' }}
+          {{ isEdit ? $t('message.messageCenter.save') : $t('message.messageCenter.publish') }}
         </el-button>
       </template>
     </el-dialog>
@@ -307,14 +307,17 @@
 </template>
 
 <script lang="ts" setup name="messageCenter">
-import { ref, computed, onMounted, shallowRef } from 'vue';
+import { ref, computed, onMounted, shallowRef, markRaw } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import {
   Promotion, Message, User, Clock, Select, CloseBold,
   DataBoard, Tickets, View, Plus, Search, Delete,
 } from '@element-plus/icons-vue';
 import { auth } from '/@/utils/authFunction';
 import * as api from './api';
+
+const { t } = useI18n();
 
 /* ===================== Types ===================== */
 interface MessageItem {
@@ -351,17 +354,17 @@ const unreadCount = ref(0);
 const statCards = computed(() => {
   if (isReceiveTab.value) {
     return [
-      { label: '接收总数', value: receiveCount.value, icon: Tickets, bg: '#409eff' },
-      { label: '未读消息', value: unreadCount.value, icon: Message, bg: '#f56c6c' },
-      { label: '已读消息', value: Math.max(0, receiveCount.value - unreadCount.value), icon: Select, bg: '#67c23a' },
-      { label: '当前查询', value: '---', icon: DataBoard, bg: '#909399' },
+      { label: t('message.messageCenter.statTotalReceived'), value: receiveCount.value, icon: markRaw(Tickets), bg: '#409eff' },
+      { label: t('message.messageCenter.statUnread'), value: unreadCount.value, icon: markRaw(Message), bg: '#f56c6c' },
+      { label: t('message.messageCenter.statRead'), value: Math.max(0, receiveCount.value - unreadCount.value), icon: markRaw(Select), bg: '#67c23a' },
+      { label: t('message.messageCenter.statCurrentQuery'), value: '---', icon: markRaw(DataBoard), bg: '#909399' },
     ];
   }
   return [
-    { label: '发布总数', value: sendCount.value, icon: Promotion, bg: '#409eff' },
-    { label: '消息类型', value: '3 种', icon: Tickets, bg: '#e6a23c' },
-    { label: '通知公告', value: '---', icon: View, bg: '#67c23a' },
-    { label: '当前查询', value: '---', icon: DataBoard, bg: '#909399' },
+    { label: t('message.messageCenter.statTotalPublished'), value: sendCount.value, icon: markRaw(Promotion), bg: '#409eff' },
+    { label: t('message.messageCenter.statMsgTypes'), value: t('message.messageCenter.threeTypes'), icon: markRaw(Tickets), bg: '#e6a23c' },
+    { label: t('message.messageCenter.statNotice'), value: '---', icon: markRaw(View), bg: '#67c23a' },
+    { label: t('message.messageCenter.statCurrentQuery'), value: '---', icon: markRaw(DataBoard), bg: '#909399' },
   ];
 });
 
@@ -402,7 +405,7 @@ async function fetchData() {
     }
   } catch (e: any) {
     console.error('Failed to fetch messages', e);
-    ElMessage.error(e?.msg || '获取消息列表失败');
+    ElMessage.error(e?.msg || t('message.messageCenter.fetchFailed'));
     tableData.value = [];
   } finally {
     loading.value = false;
@@ -461,21 +464,21 @@ function openDetailDrawer(row: MessageItem) {
 
 /* ===================== Delete ===================== */
 function onDelete(row: MessageItem) {
-  ElMessageBox.confirm(`确定删除消息「${row.title || '无标题'}」？`, '确认删除', {
+  ElMessageBox.confirm(t('message.messageCenter.confirmDelete', { title: row.title || t('message.messageCenter.noTitle') }), t('message.messageCenter.confirmDeleteTitle'), {
     type: 'warning',
-    confirmButtonText: '删除',
-    cancelButtonText: '取消',
+    confirmButtonText: t('message.messageCenter.deleteConfirm'),
+    cancelButtonText: t('message.messageCenter.cancel'),
   }).then(async () => {
     try {
       const res = await api.DelObj(row.id);
       if (res?.code === 2000) {
-        ElMessage.success('删除成功');
+        ElMessage.success(t('message.messageCenter.deleteSuccess'));
         fetchData();
       } else {
-        ElMessage.error(res?.msg || '删除失败');
+        ElMessage.error(res?.msg || t('message.messageCenter.deleteFailed'));
       }
     } catch (e: any) {
-      ElMessage.error(e?.msg || '删除失败');
+      ElMessage.error(e?.msg || t('message.messageCenter.deleteFailed'));
     }
   }).catch(() => {});
 }
@@ -494,15 +497,15 @@ const displayUserLabel = ref('');
 const displayRoleLabel = ref('');
 const displayDeptLabel = ref('');
 
-const tableSelectorConfig = {
+const tableSelectorConfig = computed(() => ({
   user: {
     url: '/api/system/user/',
     label: 'name',
     value: 'id',
     isMultiple: true,
     columns: [
-      { prop: 'name', label: '用户名称', width: 120 },
-      { prop: 'phone', label: '用户电话', width: 120 },
+      { prop: 'name', label: t('message.messageCenter.userName'), width: 120 },
+      { prop: 'phone', label: t('message.messageCenter.userPhone'), width: 120 },
     ],
   },
   role: {
@@ -511,8 +514,8 @@ const tableSelectorConfig = {
     value: 'id',
     isMultiple: true,
     columns: [
-      { prop: 'name', label: '角色名称' },
-      { prop: 'key', label: '权限标识' },
+      { prop: 'name', label: t('message.messageCenter.roleName') },
+      { prop: 'key', label: t('message.messageCenter.roleKey') },
     ],
   },
   dept: {
@@ -522,12 +525,12 @@ const tableSelectorConfig = {
     isTree: true,
     isMultiple: true,
     columns: [
-      { prop: 'name', label: '部门名称' },
-      { prop: 'status_label', label: '状态' },
-      { prop: 'parent_name', label: '父级部门' },
+      { prop: 'name', label: t('message.messageCenter.deptName') },
+      { prop: 'status_label', label: t('message.messageCenter.deptStatus') },
+      { prop: 'parent_name', label: t('message.messageCenter.deptParent') },
     ],
   },
-};
+}));
 
 const formData = ref<any>({
   title: '',
@@ -539,8 +542,8 @@ const formData = ref<any>({
 });
 
 const formRules = {
-  title: [{ required: true, message: '请输入消息标题', trigger: 'blur' }],
-  target_type: [{ required: true, message: '请选择目标类型', trigger: 'change' }],
+  title: [{ required: true, message: t('message.messageCenter.titleRequired'), trigger: 'blur' }],
+  target_type: [{ required: true, message: t('message.messageCenter.targetTypeRequired'), trigger: 'change' }],
 };
 
 async function openAddDialog() {
@@ -595,29 +598,43 @@ async function onSubmit() {
       res = await api.AddObj(payload);
     }
     if (res?.code === 2000) {
-      ElMessage.success(isEdit.value ? '保存成功' : '发布成功');
+      ElMessage.success(isEdit.value ? t('message.messageCenter.saveSuccess') : t('message.messageCenter.publishSuccess'));
       dialogVisible.value = false;
       fetchData();
     } else {
-      ElMessage.error(res?.msg || '操作失败');
+      ElMessage.error(res?.msg || t('message.messageCenter.operationFailed'));
     }
   } catch (e: any) {
-    ElMessage.error(e?.msg || '操作失败');
+    ElMessage.error(e?.msg || t('message.messageCenter.operationFailed'));
   } finally {
     submitLoading.value = false;
   }
 }
 
 /* ===================== Helpers ===================== */
-const targetTypeMap: Record<number, { label: string; type: string }> = {
-  0: { label: '按用户', type: 'primary' },
-  1: { label: '按角色', type: 'success' },
-  2: { label: '按部门', type: 'warning' },
-  3: { label: '通知公告', type: 'danger' },
-};
 
-function targetTypeTag(val: number): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
-  return (targetTypeMap[val]?.type as any) || 'info';
+function getTargetLabel(type: number): string {
+  const map: Record<number, string> = {
+    0: t('message.messageCenter.targetUser'),
+    1: t('message.messageCenter.targetRole'),
+    2: t('message.messageCenter.targetDept'),
+    3: t('message.messageCenter.targetNotice'),
+  };
+  return map[type] || t('message.messageCenter.unknown');
+}
+
+function targetTypeInfo(type: number): { label: string; type: string } {
+  const map: Record<number, { label: string; type: string }> = {
+    0: { label: t('message.messageCenter.targetUser'), type: 'primary' },
+    1: { label: t('message.messageCenter.targetRole'), type: 'success' },
+    2: { label: t('message.messageCenter.targetDept'), type: 'warning' },
+    3: { label: t('message.messageCenter.targetNotice'), type: 'danger' },
+  };
+  return map[type] || { label: t('message.messageCenter.unknown'), type: 'info' };
+}
+
+function targetTypeTag(val: number): string {
+  return targetTypeInfo(val).type;
 }
 
 function formatTime(dateStr: string | undefined | null): string {
@@ -628,12 +645,12 @@ function formatTime(dateStr: string | undefined | null): string {
     const now = new Date();
     const diff = now.getTime() - d.getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return '刚刚';
-    if (mins < 60) return `${mins}分钟前`;
+    if (mins < 1) return t('message.messageCenter.justNow');
+    if (mins < 60) return t('message.messageCenter.minutesAgo', { n: mins });
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}小时前`;
+    if (hours < 24) return t('message.messageCenter.hoursAgo', { n: hours });
     const days = Math.floor(hours / 24);
-    if (days < 30) return `${days}天前`;
+    if (days < 30) return t('message.messageCenter.daysAgo', { n: days });
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${m}-${day}`;

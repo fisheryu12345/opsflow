@@ -33,8 +33,8 @@
 
           <!-- Empty state -->
           <div v-if="!currentDeptId" class="dept-empty">
-            <el-empty :image-size="80" description="请在左侧选择一个部门">
-              <el-tag type="info" effect="plain" round>点击部门树中的节点查看详情</el-tag>
+            <el-empty :image-size="80" :description="$t('message.menuPage.deptSelectOnLeft')">
+              <el-tag type="info" effect="plain" round>{{ $t('message.menuPage.deptClickNode') }}</el-tag>
             </el-empty>
           </div>
 
@@ -45,10 +45,10 @@
               <el-icon color="#409eff" :size="18"><OfficeBuilding /></el-icon>
               <span class="dept-bread-name">{{ deptInfo.dept_name || currentDeptName }}</span>
               <el-tag size="small" effect="plain" round type="info" class="dept-bread-tag">
-                {{ deptInfo.dept_user ?? 0 }} 名成员
+                {{ deptInfo.dept_user ?? 0 }} {{ $t('message.menuPage.deptMembers') }}
               </el-tag>
               <span class="dept-bread-switch">
-                <span class="dept-bread-switch-label">包含子级</span>
+                <span class="dept-bread-switch-label">{{ $t('message.menuPage.deptIncludeChildren') }}</span>
                 <el-switch
                   v-model="isShowChildFlag"
                   size="small"
@@ -61,12 +61,12 @@
             <div class="dept-dashboard">
               <div class="dept-dash-info">
                 <div class="dept-info-row">
-                  <span class="dept-info-label">负责人</span>
-                  <span class="dept-info-val">{{ deptInfo.owner || '无' }}</span>
+                  <span class="dept-info-label">{{ $t('message.menuPage.deptOwner') }}</span>
+                  <span class="dept-info-val">{{ deptInfo.owner || $t('message.menuPage.deptNoOwner') }}</span>
                 </div>
                 <div class="dept-info-row">
-                  <span class="dept-info-label">部门简介</span>
-                  <span class="dept-info-val dept-info-desc">{{ deptInfo.description || '暂无描述' }}</span>
+                  <span class="dept-info-label">{{ $t('message.menuPage.deptDesc') }}</span>
+                  <span class="dept-info-val dept-info-desc">{{ deptInfo.description || $t('message.menuPage.deptNoDesc') }}</span>
                 </div>
               </div>
               <div class="dept-dash-charts">
@@ -79,14 +79,14 @@
             <div class="dept-toolbar">
               <div class="dept-toolbar-left">
                 <el-button v-auth="'user:Create'" type="primary" size="small" :icon="Plus" @click="handleAddUser">
-                  新增用户
+                  {{ $t('message.menuPage.deptAddUser') }}
                 </el-button>
-                <el-button size="small" :icon="Refresh" @click="handleRefreshAll">刷新</el-button>
+                <el-button size="small" :icon="Refresh" @click="handleRefreshAll">{{ $t('message.menuPage.deptRefresh') }}</el-button>
               </div>
               <div class="dept-toolbar-right">
                 <el-input
                   v-model="searchKeyword"
-                  placeholder="搜索姓名/账号/手机..."
+                  :placeholder="$t('message.menuPage.deptSearchUser')"
                   clearable
                   size="small"
                   style="width:210px"
@@ -105,20 +105,20 @@
               size="small"
               style="width:100%"
               row-key="id"
-              empty-text="该部门暂无用户"
+              :empty-text="$t('message.menuPage.deptNoUsers')"
             >
               <el-table-column type="index" label="#" width="50" align="center" />
-              <el-table-column prop="username" label="账号" min-width="100" show-overflow-tooltip />
-              <el-table-column prop="name" label="姓名" min-width="90" show-overflow-tooltip />
-              <el-table-column label="角色" min-width="120" show-overflow-tooltip>
+              <el-table-column prop="username" :label="$t('message.menuPage.deptColAccount')" min-width="100" show-overflow-tooltip />
+              <el-table-column prop="name" :label="$t('message.menuPage.deptColName')" min-width="90" show-overflow-tooltip />
+              <el-table-column :label="$t('message.menuPage.deptColRole')" min-width="120" show-overflow-tooltip>
                 <template #default="{ row }">{{ getRoleNames(row.role) }}</template>
               </el-table-column>
-              <el-table-column prop="mobile" label="手机" min-width="110" />
-              <el-table-column prop="email" label="邮箱" min-width="140" show-overflow-tooltip />
-              <el-table-column label="性别" width="60" align="center">
+              <el-table-column prop="mobile" :label="$t('message.menuPage.deptColPhone')" min-width="110" />
+              <el-table-column prop="email" :label="$t('message.menuPage.deptColEmail')" min-width="140" show-overflow-tooltip />
+              <el-table-column :label="$t('message.menuPage.deptColGender')" width="60" align="center">
                 <template #default="{ row }">{{ displayGender(row.gender) }}</template>
               </el-table-column>
-              <el-table-column label="状态" width="70" align="center">
+              <el-table-column :label="$t('message.menuPage.deptColStatus')" width="70" align="center">
                 <template #default="{ row }">
                   <el-switch
                     v-model="row.is_active"
@@ -129,11 +129,11 @@
                   />
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="235" fixed="right" align="center">
+              <el-table-column :label="$t('message.menuPage.deptColActions')" width="235" fixed="right" align="center">
                 <template #default="{ row }">
-                  <el-button v-auth="'user:Update'" text type="primary" size="small" style="padding:0 4px" @click="handleEditUser(row)">编辑</el-button>
-                  <el-button v-auth="'user:Delete'" text type="danger" size="small" style="padding:0 4px" @click="handleDeleteUser(row)">删除</el-button>
-                  <el-button v-auth="'user:ResetPassword'" text type="warning" size="small" style="padding:0 4px" @click="handleResetPwdOpen(row)">重置密码</el-button>
+                  <el-button v-auth="'user:Update'" text type="primary" size="small" style="padding:0 4px" @click="handleEditUser(row)">{{ $t('message.menuPage.deptEditUser') }}</el-button>
+                  <el-button v-auth="'user:Delete'" text type="danger" size="small" style="padding:0 4px" @click="handleDeleteUser(row)">{{ $t('message.menuPage.deptDeleteUser') }}</el-button>
+                  <el-button v-auth="'user:ResetPassword'" text type="warning" size="small" style="padding:0 4px" @click="handleResetPwdOpen(row)">{{ $t('message.menuPage.deptResetPwd') }}</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -141,15 +141,15 @@
             <!-- Pagination -->
             <div class="dept-pagination">
               <el-pagination
-                v-model:current-page="pageParams.current"
-                v-model:page-size="pageParams.pageSize"
+                v-model:currentPage="pageParams.current"
+                v-model:pageSize="pageParams.pageSize"
                 :total="pageParams.total"
                 :page-sizes="[10,20,50,100]"
                 layout="total, sizes, prev, pager, next, jumper"
                 background
-                small
-                @size-change="handlePageChange"
-                @current-change="handlePageChange"
+                size="small"
+                @update:pageSize="handlePageChange"
+                @update:currentPage="handlePageChange"
               />
             </div>
           </template>
@@ -160,7 +160,7 @@
     <!-- ===== Dept Drawer ===== -->
     <el-drawer
       v-model="drawerVisible"
-      title="部门配置"
+      :title="$t('message.menuPage.deptEditDept')"
       direction="rtl"
       size="480px"
       :close-on-click-modal="false"
@@ -179,7 +179,7 @@
     <!-- ===== User Dialog ===== -->
     <el-dialog
       v-model="userDialogVisible"
-      :title="isEditUser ? '编辑用户' : '新增用户'"
+      :title="isEditUser ? $t('message.menuPage.deptEditUserTitle') : $t('message.menuPage.deptAddUserTitle')"
       width="580px"
       :close-on-click-modal="false"
       @closed="handleUserDialogClose"
@@ -187,55 +187,56 @@
     >
       <el-form ref="userFormRef" :model="userForm" :rules="userFormRules" label-width="90px" size="small">
         <el-row :gutter="20">
-          <el-col :span="12"><el-form-item label="账号" prop="username"><el-input v-model="userForm.username" placeholder="登录账号" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="姓名" prop="name"><el-input v-model="userForm.name" placeholder="真实姓名" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.menuPage.deptColAccount')" prop="username"><el-input v-model="userForm.username" :placeholder="$t('message.menuPage.deptUserAccountPlaceholder')" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.menuPage.deptColName')" prop="name"><el-input v-model="userForm.name" :placeholder="$t('message.menuPage.deptUserNamePlaceholder')" /></el-form-item></el-col>
         </el-row>
         <el-row :gutter="20">
-          <el-col :span="12"><el-form-item label="手机" prop="mobile"><el-input v-model="userForm.mobile" placeholder="11 位手机号" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="邮箱" prop="email"><el-input v-model="userForm.email" placeholder="电子邮箱" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.menuPage.deptUserPhone')" prop="mobile"><el-input v-model="userForm.mobile" :placeholder="$t('message.menuPage.deptUserPhonePlaceholder')" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.menuPage.deptColEmail')" prop="email"><el-input v-model="userForm.email" :placeholder="$t('message.menuPage.deptUserEmailPlaceholder')" /></el-form-item></el-col>
         </el-row>
         <el-row :gutter="20">
-          <el-col :span="12"><el-form-item label="性别"><el-select v-model="userForm.gender" placeholder="请选择" clearable><el-option v-for="g in genderOptions" :key="g.value" :label="g.label" :value="g.value" /></el-select></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="用户类型"><el-select v-model="userForm.user_type" placeholder="请选择" clearable><el-option v-for="u in userTypeOptions" :key="u.value" :label="u.label" :value="u.value" /></el-select></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.menuPage.deptColGender')"><el-select v-model="userForm.gender" :placeholder="$t('message.menuPage.deptUserGenderPlaceholder')" clearable><el-option v-for="g in genderOptions" :key="g.value" :label="g.label" :value="g.value" /></el-select></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.menuPage.deptUserType')"><el-select v-model="userForm.user_type" :placeholder="$t('message.menuPage.deptUserGenderPlaceholder')" clearable><el-option v-for="u in userTypeOptions" :key="u.value" :label="u.label" :value="u.value" /></el-select></el-form-item></el-col>
         </el-row>
         <el-row :gutter="20">
-          <el-col :span="12"><el-form-item label="启用"><el-switch v-model="userForm.is_active" /></el-form-item></el-col>
-          <el-col v-if="!isEditUser" :span="12"><el-form-item label="密码" prop="password"><el-input v-model="userForm.password" type="password" show-password placeholder="默认: 123456" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('message.menuPage.deptUserEnable')"><el-switch v-model="userForm.is_active" /></el-form-item></el-col>
+          <el-col v-if="!isEditUser" :span="12"><el-form-item :label="$t('message.menuPage.deptUserPassword')" prop="password"><el-input v-model="userForm.password" type="password" show-password :placeholder="$t('message.menuPage.deptUserPasswordPlaceholder')" /></el-form-item></el-col>
         </el-row>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="userDialogVisible = false">取消</el-button>
-        <el-button size="small" type="primary" :loading="userBtnLoading" @click="handleUserSubmit">保存</el-button>
+        <el-button size="small" @click="userDialogVisible = false">{{ $t('message.menuPage.deptUserCancel') }}</el-button>
+        <el-button size="small" type="primary" :loading="userBtnLoading" @click="handleUserSubmit">{{ $t('message.menuPage.deptUserSave') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ===== Reset Password Dialog ===== -->
     <el-dialog
       v-model="resetPwdVisible"
-      title="重设密码"
+      :title="$t('message.menuPage.deptResetPwdTitle')"
       width="400px"
       :close-on-click-modal="false"
       @closed="handleResetPwdClose"
       class="opsflow-dialog"
     >
       <el-form ref="resetPwdFormRef" :model="resetPwdForm" :rules="resetPwdRules" label-width="90px" size="small">
-        <el-form-item label="新密码" prop="newPassword">
-          <el-input v-model="resetPwdForm.newPassword" type="password" show-password placeholder="8-30 位，含字母和数字" />
+        <el-form-item :label="$t('message.menuPage.deptNewPwd')" prop="newPassword">
+          <el-input v-model="resetPwdForm.newPassword" type="password" show-password :placeholder="$t('message.menuPage.deptNewPwdPlaceholder')" />
         </el-form-item>
-        <el-form-item label="确认密码" prop="newPassword2">
-          <el-input v-model="resetPwdForm.newPassword2" type="password" show-password placeholder="再次输入新密码" />
+        <el-form-item :label="$t('message.menuPage.deptConfirmPwd')" prop="newPassword2">
+          <el-input v-model="resetPwdForm.newPassword2" type="password" show-password :placeholder="$t('message.menuPage.deptConfirmPwdPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="handleResetPwdClose">取消</el-button>
-        <el-button size="small" type="primary" :loading="resetPwdLoading" @click="handleResetPwdSubmit">确定</el-button>
+        <el-button size="small" @click="handleResetPwdClose">{{ $t('message.menuPage.deptResetPwdCancel') }}</el-button>
+        <el-button size="small" type="primary" :loading="resetPwdLoading" @click="handleResetPwdSubmit">{{ $t('message.menuPage.deptResetPwdConfirm') }}</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script lang="ts" setup name="dept">
-import { ref, reactive, computed, onMounted, nextTick, onUnmounted } from 'vue';
+import { ref, reactive, computed, onMounted, nextTick, onUnmounted, markRaw } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessageBox, ElForm } from 'element-plus';
 import {
   Plus, Refresh, Search,
@@ -259,11 +260,13 @@ import {
 import type { APIResponseData, TreeItemType, HeadDeptInfoType } from './types';
 
 /* ===================== Stats ===================== */
+const { t } = useI18n();
+
 const stats = computed(() => [
-  { label: '部门总数', value: deptCount.value, icon: OfficeBuilding, bg: 'linear-gradient(135deg,#409eff,#337ecc)' },
-  { label: '当前部门人数', value: deptInfo.value.dept_user ?? '--', icon: User, bg: 'linear-gradient(135deg,#67c23a,#409eff)' },
-  { label: '男性', value: deptInfo.value.gender?.male ?? '--', icon: Male, bg: 'linear-gradient(135deg,#409eff,#667eea)' },
-  { label: '女性', value: deptInfo.value.gender?.female ?? '--', icon: Female, bg: 'linear-gradient(135deg,#f56c6c,#e6a23c)' },
+  { label: t('message.menuPage.deptTotal'), value: deptCount.value, icon: markRaw(OfficeBuilding), bg: 'linear-gradient(135deg,#409eff,#337ecc)' },
+  { label: t('message.menuPage.deptCurrentMembers'), value: deptInfo.value.dept_user ?? '--', icon: markRaw(User), bg: 'linear-gradient(135deg,#67c23a,#409eff)' },
+  { label: t('message.menuPage.deptMale'), value: deptInfo.value.gender?.male ?? '--', icon: markRaw(Male), bg: 'linear-gradient(135deg,#409eff,#667eea)' },
+  { label: t('message.menuPage.deptFemale'), value: deptInfo.value.gender?.female ?? '--', icon: markRaw(Female), bg: 'linear-gradient(135deg,#f56c6c,#e6a23c)' },
 ]);
 const deptCount = ref(0);
 
@@ -297,11 +300,11 @@ const userForm = reactive<Record<string, any>>({
   user_type: undefined, is_active: true, password: '', password2: '', id: undefined,
 });
 const userFormRules = {
-  username: [{ required: true, message: '账号必填', trigger: 'blur' }, { min: 3, max: 50, message: '3-50个字符', trigger: 'blur' }],
-  name: [{ required: true, message: '姓名必填', trigger: 'blur' }],
-  mobile: [{ pattern: /^1[3-9]\d{9}$/, message: '格式不正确', trigger: 'blur' }],
-  email: [{ type: 'email' as const, message: '格式不正确', trigger: 'blur' }],
-  password: [{ required: true, message: '密码必填', trigger: 'blur' }, { pattern: /(?=.*[0-9])(?=.*[a-zA-Z]).{8,30}/, message: '需包含字母和数字', trigger: 'blur' }],
+  username: [{ required: true, message: t('message.menuPage.deptAccountRequired'), trigger: 'blur' }, { min: 3, max: 50, message: t('message.menuPage.deptAccountLen'), trigger: 'blur' }],
+  name: [{ required: true, message: t('message.menuPage.deptNameInputRequired'), trigger: 'blur' }],
+  mobile: [{ pattern: /^1[3-9]\d{9}$/, message: t('message.menuPage.deptPhoneInvalid'), trigger: 'blur' }],
+  email: [{ type: 'email' as const, message: t('message.menuPage.deptPhoneInvalid'), trigger: 'blur' }],
+  password: [{ required: true, message: t('message.menuPage.deptPwdRequired'), trigger: 'blur' }, { pattern: /(?=.*[0-9])(?=.*[a-zA-Z]).{8,30}/, message: t('message.menuPage.deptPwdRule'), trigger: 'blur' }],
 };
 
 const resetPwdVisible = ref(false);
@@ -309,10 +312,10 @@ const resetPwdLoading = ref(false);
 const resetPwdFormRef = ref<InstanceType<typeof ElForm> | null>(null);
 const resetPwdForm = reactive({ id: 0, newPassword: '', newPassword2: '' });
 const resetPwdRules = {
-  newPassword: [{ required: true, message: '请输入新密码', trigger: 'blur' }, { pattern: /(?=.*[0-9])(?=.*[a-zA-Z]).{8,30}/, message: '需包含字母和数字', trigger: 'blur' }],
+  newPassword: [{ required: true, message: t('message.menuPage.deptPwdRequired'), trigger: 'blur' }, { pattern: /(?=.*[0-9])(?=.*[a-zA-Z]).{8,30}/, message: t('message.menuPage.deptPwdRule'), trigger: 'blur' }],
   newPassword2: [
-    { required: true, message: '请再次输入密码', trigger: 'blur' },
-    { validator: (_r: any, v: string, cb: Function) => v !== resetPwdForm.newPassword ? cb(new Error('两次输入不一致')) : cb(), trigger: 'blur' },
+    { required: true, message: t('message.menuPage.deptConfirmPwdRequired'), trigger: 'blur' },
+    { validator: (_r: any, v: string, cb: Function) => v !== resetPwdForm.newPassword ? cb(new Error(t('message.menuPage.deptPwdMismatch'))) : cb(), trigger: 'blur' },
   ],
 };
 
@@ -350,7 +353,7 @@ const handleTreeClick = (record: TreeItemType) => {
 };
 
 const handleDeleteMenu = (id: string, callback: Function) => {
-  ElMessageBox.confirm('确认删除该部门？', '确认', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
+  ElMessageBox.confirm(t('message.menuPage.deptConfirmDelete'), t('message.menuPage.deptConfirm'), { confirmButtonText: t('message.menuPage.deptDeleteBtn'), cancelButtonText: t('message.menuPage.deptCancelBtn'), type: 'warning' })
     .then(async () => {
       const res: APIResponseData = await DelObj(id);
       callback();
@@ -448,8 +451,8 @@ const displayGender = (val: number | null | undefined) => {
 
 /* ===================== User CRUD ===================== */
 const handleToggleActive = async (row: any) => {
-  try { await UpdateUserObj({ id: row.id, is_active: row.is_active }); successNotification('状态已更新'); }
-  catch { row.is_active = !row.is_active; warningNotification('更新失败'); }
+  try { await UpdateUserObj({ id: row.id, is_active: row.is_active }); successNotification(t('message.menuPage.deptStatusUpdated')); }
+  catch { row.is_active = !row.is_active; warningNotification(t('message.menuPage.deptUpdateFailed')); }
 };
 
 const resetUserForm = () => { Object.assign(userForm, { id: undefined, username: '', name: '', mobile: '', email: '', gender: undefined, user_type: undefined, is_active: true, password: '' }); };
@@ -475,7 +478,7 @@ const handleUserSubmit = () => {
 const handleUserDialogClose = () => { userFormRef.value?.resetFields(); resetUserForm(); };
 
 const handleDeleteUser = (row: any) => {
-  ElMessageBox.confirm(`确认删除用户「${row.name || row.username}」？`, '确认', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
+  ElMessageBox.confirm(t('message.menuPage.deptDeleteUserConfirm') + `「${row.name || row.username}」？`, '确认', { confirmButtonText: t('message.menuPage.deptDeleteBtn'), cancelButtonText: t('message.menuPage.deptCancelBtn'), type: 'warning' })
     .then(async () => {
       const res = await DelUserObj(row.id);
       if (res?.code === 2000) { successNotification(res.msg as string); fetchUserList(); fetchDeptInfo(); }
@@ -491,7 +494,7 @@ const handleResetPwdSubmit = () => {
     resetPwdLoading.value = true;
     try {
       const res = await resetPwd(resetPwdForm.id, { newPassword: Md5.hashStr(resetPwdForm.newPassword), newPassword2: Md5.hashStr(resetPwdForm.newPassword2) });
-      if (res?.code === 2000) { successNotification(res.msg || '修改成功'); handleResetPwdClose(); }
+      if (res?.code === 2000) { successNotification(res.msg || t('message.menuPage.deptPwdChanged')); handleResetPwdClose(); }
     } finally { resetPwdLoading.value = false; }
   });
 };

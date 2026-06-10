@@ -17,14 +17,14 @@
 		<div v-if="showPagination" class="item-com-pagination">
 			<el-pagination
 				background
-				small
+				size="small"
 				hide-on-single-page
-				v-model:current-page="state.page"
-				v-model:page-size="state.limit"
+				v-model:currentPage="state.page"
+				v-model:pageSize="state.limit"
 				layout="prev, pager, next"
 				:pager-count="5"
 				:total="state.total"
-				@current-change="handleCurrentChange"
+				@update:currentPage="handleCurrentChange"
 			/>
 		</div>
 	</div>

@@ -60,8 +60,8 @@
 
       <div class="cmdb-table-footer" v-if="total > pageSize">
         <el-pagination size="small" background layout="total, prev, pager, next"
-          :total="total" :page-size="pageSize" v-model:current-page="currentPage"
-          @current-change="loadData" />
+          :total="total" :page-size="pageSize" v-model:currentPage="currentPage"
+          @update:currentPage="loadData" />
       </div>
     </div>
 
@@ -153,8 +153,8 @@
 
       <div class="cmdb-table-footer" v-if="historyTotal > historyPageSize">
         <el-pagination size="small" background layout="total, prev, pager, next"
-          :total="historyTotal" :page-size="historyPageSize" v-model:current-page="historyPage"
-          @current-change="loadChangeHistory" />
+          :total="historyTotal" :page-size="historyPageSize" v-model:currentPage="historyPage"
+          @update:currentPage="loadChangeHistory" />
       </div>
     </el-dialog>
   </div>

@@ -181,7 +181,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, computed, onMounted, onUnmounted, shallowRef, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, shallowRef, nextTick, markRaw } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { Refresh, Top, Bottom, Timer, VideoPlay, VideoPause, RefreshRight, Histogram, Collection, CircleCheck, CircleClose, User, Loading, Upload } from '@element-plus/icons-vue'
@@ -229,21 +229,21 @@ const trendUp = computed(() => {
 })
 
 const statsCards = computed(() => [
-  { key: 'total_exec', label: t('message.opsflowPage.dashboardTotalExec'), value: stats.value.total_executions ?? 0, icon: Histogram, color: '#409EFF' },
-  { key: 'running', label: t('message.opsflowPage.dashboardRunningNow'), value: stats.value.running_executions ?? 0, icon: Loading, color: '#E6A23C' },
-  { key: 'completed', label: t('message.execution.statCompleted'), value: stats.value.completed_executions ?? 0, icon: CircleCheck, color: '#67C23A' },
-  { key: 'failed', label: t('message.execution.statFailed'), value: stats.value.failed_executions ?? 0, icon: CircleClose, color: '#F56C6C' },
-  { key: 'templates', label: t('message.opsflowPage.dashboardTotalTemplates'), value: stats.value.total_templates ?? 0, icon: Collection, color: '#2f54eb' },
-  { key: 'published', label: t('message.opsflowPage.dashboardPublished'), value: stats.value.published_templates ?? 0, icon: Upload, color: '#52c41a' },
-  { key: 'users', label: t('message.opsflowPage.dashboardActiveUsers'), value: stats.value.active_users_7d ?? 0, icon: User, color: '#eb2f96' },
+  { key: 'total_exec', label: t('message.opsflowPage.dashboardTotalExec'), value: stats.value.total_executions ?? 0, icon: markRaw(Histogram), color: '#409EFF' },
+  { key: 'running', label: t('message.opsflowPage.dashboardRunningNow'), value: stats.value.running_executions ?? 0, icon: markRaw(Loading), color: '#E6A23C' },
+  { key: 'completed', label: t('message.execution.statCompleted'), value: stats.value.completed_executions ?? 0, icon: markRaw(CircleCheck), color: '#67C23A' },
+  { key: 'failed', label: t('message.execution.statFailed'), value: stats.value.failed_executions ?? 0, icon: markRaw(CircleClose), color: '#F56C6C' },
+  { key: 'templates', label: t('message.opsflowPage.dashboardTotalTemplates'), value: stats.value.total_templates ?? 0, icon: markRaw(Collection), color: '#2f54eb' },
+  { key: 'published', label: t('message.opsflowPage.dashboardPublished'), value: stats.value.published_templates ?? 0, icon: markRaw(Upload), color: '#52c41a' },
+  { key: 'users', label: t('message.opsflowPage.dashboardActiveUsers'), value: stats.value.active_users_7d ?? 0, icon: markRaw(User), color: '#eb2f96' },
 ])
 
 const schedCards = computed(() => [
-  { key: 'total_schedules', label: t('message.opsflowPage.dashboardSchedPlans'), value: stats.value.total_schedule_plans ?? 0, icon: Timer, color: '#2f54eb' },
-  { key: 'active_schedules', label: t('message.opsflowPage.dashboardActive'), value: stats.value.active_schedule_plans ?? 0, icon: VideoPlay, color: '#67C23A' },
-  { key: 'paused_schedules', label: t('message.execution.statePaused'), value: stats.value.paused_schedule_plans ?? 0, icon: VideoPause, color: '#E6A23C' },
+  { key: 'total_schedules', label: t('message.opsflowPage.dashboardSchedPlans'), value: stats.value.total_schedule_plans ?? 0, icon: markRaw(Timer), color: '#2f54eb' },
+  { key: 'active_schedules', label: t('message.opsflowPage.dashboardActive'), value: stats.value.active_schedule_plans ?? 0, icon: markRaw(VideoPlay), color: '#67C23A' },
+  { key: 'paused_schedules', label: t('message.execution.statePaused'), value: stats.value.paused_schedule_plans ?? 0, icon: markRaw(VideoPause), color: '#E6A23C' },
   { key: 'total_runs', label: t('message.opsflowPage.dashboardTotalRuns'), value: stats.value.total_scheduled_runs ?? 0, icon: RefreshRight, color: '#409EFF' },
-  { key: 'sched_success', label: t('message.opsflowPage.dashboardSchedSuccess'), value: (stats.value.schedule_success_rate ?? 0) + '%', icon: CircleCheck, color: '#52c41a' },
+  { key: 'sched_success', label: t('message.opsflowPage.dashboardSchedSuccess'), value: (stats.value.schedule_success_rate ?? 0) + '%', icon: markRaw(CircleCheck), color: '#52c41a' },
 ])
 
 const scheduleTrendUp = computed(() => {

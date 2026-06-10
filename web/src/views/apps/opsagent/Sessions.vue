@@ -75,9 +75,9 @@
           <el-table-column prop="started_at" label="Started" min-width="160" sortable />
         </el-table>
         <div class="ss-pagination" v-if="total > 0">
-          <el-pagination v-model:current-page="page" :page-size="pageSize" :total="total"
+          <el-pagination v-model:currentPage="page" :page-size="pageSize" :total="total"
             :page-sizes="[20, 50, 100]" layout="total, sizes, prev, pager, next" background
-            @current-change="onPageChange" @size-change="onSizeChange" small />
+            @update:currentPage="onPageChange" @update:pageSize="onSizeChange" size="small" />
         </div>
       </div>
     </div>
