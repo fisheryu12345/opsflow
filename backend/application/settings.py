@@ -13,44 +13,36 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os
 import sys
 from pathlib import Path
-from datetime import timedelta
-import socket
-from kombu import Queue
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ================================================= #
-# ******************** 动态配置 ******************** #
+# ******************** 环境配置 ******************** #
 # ================================================= #
-
 from conf.env import *
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure--z8%exyzt7e_%i@1+#1mm=%lb5=^fx_57=1@a+_y7bg5-w%)sm"
 # 初始化plugins插件路径到环境变量中
 PLUGINS_PATH = os.path.join(BASE_DIR, "plugins")
 sys.path.insert(0, os.path.join(PLUGINS_PATH))
-
 [
     sys.path.insert(0, os.path.join(PLUGINS_PATH, ele))
     for ele in os.listdir(PLUGINS_PATH)
     if os.path.isdir(os.path.join(PLUGINS_PATH, ele)) and not ele.startswith("__")
 ]
 
-
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = locals().get("DEBUG", True)
-# ALLOWED_HOSTS = locals().get("ALLOWED_HOSTS", ["*"])
-ALLOWED_HOSTS = ['*'] 
+ALLOWED_HOSTS = ['*']
 
 # 列权限需要排除的App应用
 COLUMN_EXCLUDE_APPS = ['channels', 'captcha'] + locals().get("COLUMN_EXCLUDE_APPS", [])
 
+# ================================================= #
+# ******************** App 注册 ******************* #
+# ================================================= #
 INSTALLED_APPS = [
     "simpleui",
     "daphne",
@@ -91,6 +83,9 @@ INSTALLED_APPS = [
     "mock_service",
 ]
 
+# ================================================= #
+# ******************** 骨架配置 ******************* #
+# ================================================= #
 MIDDLEWARE = [
     "dvadmin.utils.middleware.HealthCheckMiddleware",
     "django.middleware.security.SecurityMiddleware",
@@ -126,469 +121,78 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "application.wsgi.application"
 
-# Database
-# https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-
-# 根据目标IP动态配置数据库HOST
-hostname = socket.gethostname()
-ip_addresses = socket.gethostbyname_ex(hostname)[2]
-
-# 检查是否包含目标IP
-# target_ip = '172.25.21.218'
-# if target_ip in ip_addresses:
-#     DB_HOST = '127.0.0.1'  # 内网环境使用本地数据库
-# else:
-#     DB_HOST = '139.196.47.19'  # 外网环境使用公网IP
-DB_HOST = '127.0.0.1'
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'stock',
-        'USER': 'trade',
-        'PASSWORD': '312711936!@#GHS',
-        'HOST': DB_HOST,
-        'PORT': '3306',
-        'CONN_MAX_AGE': 5,
-        'CONN_HEALTH_CHECKS': True,
-        'OPTIONS': {
-            'ssl': {'ssl-mode': 'DISABLED'},
-        },
-        'TEST': {
-            'CHARSET': 'utf8mb4',
-            'COLLATION': 'utf8mb4_unicode_ci',
-        },
-        # 'OPTIONS': {
-        #     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        # },
-    }
-}
-
-# ── Test mode: use SQLite (MySQL test DB not available) ──
-import sys
-if 'test' in sys.argv or 'test_coverage' in sys.argv:
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': ':memory:',
-    }
-
-# ──────────────────────────────────────────────
-#  Neo4j 图数据库 (CMDB 拓扑存储)
-# ──────────────────────────────────────────────
-NEO4J_PROTOCOL = locals().get("NEO4J_PROTOCOL", "bolt")
-NEO4J_HOST = locals().get("NEO4J_HOST", "localhost")
-NEO4J_PORT = locals().get("NEO4J_PORT", 7687)
-NEO4J_USER = locals().get("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = locals().get("NEO4J_PASSWORD", "password")
-
-# Django database router: cmdb MySQL models → 'default'
-DATABASE_ROUTERS = ['cmdb.neo4j_router.CmdbNeo4jRouter']
-
 AUTH_USER_MODEL = "system.Users"
 USERNAME_FIELD = "username"
 
-# Password validation
-# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/3.2/topics/i18n/
-
+# ================================================= #
+# ****************** 国际化 *********************** #
+# ================================================= #
 LANGUAGE_CODE = "zh-hans"
-
-# 支持的语言列表
 LANGUAGES = [
     ('zh-hans', '简体中文'),
     ('en', 'English'),
 ]
-
-# 翻译文件路径
 LOCALE_PATHS = [os.path.join(BASE_DIR, 'locale')]
-
 TIME_ZONE = "Asia/Shanghai"
-
 USE_I18N = True
-
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.2/howto/static-files/
-
+# ================================================= #
+# ****************** 静态文件 ********************* #
+# ================================================= #
 STATIC_URL = "/static/"
-# # 设置django的静态文件目录
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),
-]
-
-MEDIA_ROOT = "media"  # 项目下的目录
-MEDIA_URL = "/media/"  # 跟STATIC_URL类似，指定用户可以通过这个url找到文件
-
-#添加以下代码以后就不用写{% load staticfiles %}，可以直接引用
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+MEDIA_ROOT = "media"
+MEDIA_URL = "/media/"
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
-    "django.contrib.staticfiles.finders.AppDirectoriesFinder"
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 )
-# 收集静态文件，必须将 MEDIA_ROOT,STATICFILES_DIRS先注释
-# python manage.py collectstatic
-# STATIC_ROOT=os.path.join(BASE_DIR,'static')
 
 # ================================================= #
-# ******************* 跨域的配置 ******************* #
+# ****************** 组件配置 ********************* #
 # ================================================= #
-
-# 全部允许配置
-CORS_ORIGIN_ALLOW_ALL = True
-# 允许cookie
-CORS_ALLOW_CREDENTIALS = True  # 指明在跨域访问中，后端是否支持对cookie的操作
-
-# ===================================================== #
-# ********************* channels配置 ******************* #
-# ===================================================== #
-# 使用 RedisChannelLayer 而非 InMemoryChannelLayer，原因：
-# ASGI 服务（Daphne/Uvicorn）和 Celery worker 是不同进程，
-# InMemoryChannelLayer 跨不了进程，Celery worker 发出的
-# WebSocket 消息前端收不到。Redis 作为共享消息通道解决此问题。
-ASGI_APPLICATION = 'application.asgi.application'
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
-        },
-    },
-}
-
+from application.components.database import *
+from application.components.channels import *
+from application.components.logging import *
+from application.components.rest_framework import *
+from application.components.auth import *
+from application.components.cors_security import *
+from application.components.monitor_adapters import *
+from application.components.celery import *
+from application.components.pipeline import *
 
 # ================================================= #
-# ********************* 日志配置 ******************* #
+# ****************** 杂项配置 ********************* #
 # ================================================= #
-# # log 配置部分BEGIN #
-SERVER_LOGS_FILE = os.path.join(BASE_DIR, "logs", "server.log")
-ERROR_LOGS_FILE = os.path.join(BASE_DIR, "logs", "error.log")
-LOGS_FILE = os.path.join(BASE_DIR, "logs")
-LOG_DIR = os.path.join(BASE_DIR, "logs")
-if not os.path.exists(os.path.join(BASE_DIR, "logs")):
-    os.makedirs(os.path.join(BASE_DIR, "logs"))
-
-# 格式:[2020-04-22 23:33:01][micoservice.apps.ready():16] [INFO] 这是一条日志:
-# 格式:[日期][模块.函数名称():行号] [级别] 信息
-STANDARD_LOG_FORMAT = (
-    "[%(asctime)s][%(name)s.%(funcName)s():%(lineno)d] [%(levelname)s] %(message)s"
-)
-CONSOLE_LOG_FORMAT = (
-    "[%(asctime)s][%(name)s.%(funcName)s():%(lineno)d] [%(levelname)s] %(message)s"
-)
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "standard": {"format": STANDARD_LOG_FORMAT},
-        "console": {
-            "format": CONSOLE_LOG_FORMAT,
-            "datefmt": "%Y-%m-%d %H:%M:%S",
-        },
-        "file": {
-            "format": CONSOLE_LOG_FORMAT,
-            "datefmt": "%Y-%m-%d %H:%M:%S",
-        },
-    },
-    "handlers": {
-        "file": {
-            "level": "INFO",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": SERVER_LOGS_FILE,
-            "maxBytes": 1024 * 1024 * 100,  # 100 MB
-            "backupCount": 5,  # 最多备份5个
-            "formatter": "standard",
-            "encoding": "utf-8",
-        },
-        "error": {
-            "level": "ERROR",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": ERROR_LOGS_FILE,
-            "maxBytes": 1024 * 1024 * 100,  # 100 MB
-            "backupCount": 3,  # 最多备份3个
-            "formatter": "standard",
-            "encoding": "utf-8",
-        },
-        "console": {
-            "level": "INFO",
-            "class": "logging.StreamHandler",
-            "formatter": "console",
-        },
-
-    },
-    "loggers": {
-        "": {
-            "handlers": ["console", "error", "file"],
-            "level": "INFO",
-        },
-        "django": {
-            "handlers": ["console", "error", "file"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        'django.db.backends': {
-            'handlers': ["console", "error", "file"],
-            'propagate': False,
-            'level': "INFO"
-        },
-        'apscheduler.executors.default': {
-            'handlers': ["console", "error", "file"],
-            'propagate': False,
-            'level': "WARNING"
-        },
-        "uvicorn.error": {
-            "level": "INFO",
-            "handlers": ["console", "error", "file"],
-        },
-        "uvicorn.access": {
-            "handlers": ["console", "error", "file"],
-            "level": "INFO"
-        },
-    },
-}
-
-# ================================================= #
-# *************** REST_FRAMEWORK配置 *************** #
-# ================================================= #
-
-REST_FRAMEWORK = {
-    'DEFAULT_PARSER_CLASSES': (
-        'rest_framework.parsers.JSONParser',
-        'rest_framework.parsers.MultiPartParser',
-    ),
-    "DATETIME_FORMAT": "%Y-%m-%d %H:%M:%S",  # 日期时间格式配置
-    "DATE_FORMAT": "%Y-%m-%d",
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",  # drf-spectacular schema
-    "DEFAULT_FILTER_BACKENDS": (
-        # 'django_filters.rest_framework.DjangoFilterBackend',
-        "dvadmin.utils.filters.CustomDjangoFilterBackend",
-        "rest_framework.filters.SearchFilter",
-        "rest_framework.filters.OrderingFilter",
-    ),
-    "DEFAULT_PAGINATION_CLASS": "dvadmin.utils.pagination.CustomPagination",  # 自定义分页
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",  # 只有经过身份认证确定用户身份才能访问
-    ],
-    "EXCEPTION_HANDLER": "dvadmin.utils.exception.CustomExceptionHandler",  # 自定义的异常处理
-}
-# ================================================= #
-# ******************** 登录方式配置 ******************** #
-# ================================================= #
-
-AUTHENTICATION_BACKENDS = ["dvadmin.utils.backends.CustomBackend"]
-# ================================================= #
-# ****************** simplejwt配置 ***************** #
-# ================================================= #
-SIMPLE_JWT = {
-    # token有效时长
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=7),
-    # token刷新后的有效时间
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    # 设置前缀
-    "AUTH_HEADER_TYPES": ("JWT",),
-    "ROTATE_REFRESH_TOKENS": True,
-}
-
-# ====================================#
-# ***********drf-spectacular**********#
-# ====================================#
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'Snippets API',
-    'DESCRIPTION': 'OpsFlow API Documentation',
-    'VERSION': 'v1',
-    'SERVE_INCLUDE_SCHEMA': False,
-    # 分组根据url层级分，0、1 或 2 层
-    'SCHEMA_PATH_PREFIX': r'/api/',
-    'SWAGGER_UI_SETTINGS': {
-        'apisSorter': 'alpha',
-        'operationsSorter': 'alpha',
-        'jsonEditor': True,
-    },
-}
-
-# ================================================= #
-# **************** 验证码配置  ******************* #
-# ================================================= #
-CAPTCHA_IMAGE_SIZE = (160, 46)  # 设置 captcha 图片大小
-CAPTCHA_LENGTH = 4  # 字符个数
-CAPTCHA_TIMEOUT = 1  # 超时(minutes)
-CAPTCHA_OUTPUT_FORMAT = "%(image)s %(text_field)s %(hidden_field)s "
-CAPTCHA_FONT_SIZE = 36  # 字体大小
-CAPTCHA_FOREGROUND_COLOR = "#64DAAA"  # 前景色
-CAPTCHA_BACKGROUND_COLOR = "#F5F7F4"  # 背景色
-CAPTCHA_NOISE_FUNCTIONS = (
-    "captcha.helpers.noise_arcs",  # 线
-    # "captcha.helpers.noise_dots",  # 点
-)
-# CAPTCHA_CHALLENGE_FUNCT = 'captcha.helpers.random_char_challenge' #字母验证码
-CAPTCHA_CHALLENGE_FUNCT = "captcha.helpers.math_challenge"  # 加减乘除验证码
-
-# ================================================= #
-# ******************** 其他配置 ******************** #
-# ================================================= #
-
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 API_LOG_ENABLE = True
-# API_LOG_METHODS = 'ALL' # ['POST', 'DELETE']
-API_LOG_METHODS = ["POST", "UPDATE", "DELETE", "PUT"]  # ['POST', 'DELETE']
+API_LOG_METHODS = ["POST", "UPDATE", "DELETE", "PUT"]
 API_MODEL_MAP = {
     "/token/": "登录模块",
     "/api/login/": "登录模块",
     "/api/plugins_market/plugins/": "插件市场",
 }
 
-DJANGO_CELERY_BEAT_TZ_AWARE = False
-CELERY_TIMEZONE = "Asia/Shanghai"  # celery 时区问题
-CELERY_RESULT_SERIALIZER = "json"
-# CELERY_TASK_DEFAULT_QUEUE = "default"
-# CELERY_TASK_DEFAULT_ROUTE = "default"
-# 静态页面压缩
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
-ALL_MODELS_OBJECTS = []  # 所有app models 对象
-
-# 初始化需要执行的列表，用来初始化后执行
+ALL_MODELS_OBJECTS = []
 INITIALIZE_LIST = []
 INITIALIZE_RESET_LIST = []
-# 表前缀
 TABLE_PREFIX = locals().get('TABLE_PREFIX', "")
-# 系统配置
 SYSTEM_CONFIG = {}
-# 字典配置
 DICTIONARY_CONFIG = {}
 
-# ================================================= #
-# ******************** 插件配置 ******************** #
-# ================================================= #
-# 租户共享app
-TENANT_SHARED_APPS = []
-# 插件 urlpatterns
-PLUGINS_URL_PATTERNS = []
-# ********** 一键导入插件配置开始 **********
-# 例如:
-# from dvadmin_upgrade_center.settings import *    # 升级中心
-# from dvadmin_celery.settings import *            # celery 异步任务
-# from dvadmin_third.settings import *            # 第三方用户管理
-# from dvadmin_ak_sk.settings import *            # 秘钥管理管理
-# from dvadmin_tenants.settings import *            # 租户管理
-#from dvadmin_social_auth.settings import *
-# ...
-# ********** 一键导入插件配置结束 **********
+# # ================================================= #
+# # ******************** 插件配置 ******************** #
+# # ================================================= #
+# TENANT_SHARED_APPS = []
+# PLUGINS_URL_PATTERNS = []
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        # 格式: redis://[:密码]@IP:端口/数据库ID
-        "LOCATION": "redis://127.0.0.1:6379/1", 
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            # "PARSER_CLASS": "redis.connection.HiredisParser", # 推荐使用 hiredis 解析器提升性能
-        }
-    }
-}
-
-CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
-CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/1'
-
-CELERY_TASK_DEFAULT_QUEUE = 'default'
-
-# ------------------------------------------------------------------ #
-#  OpsFlow Pipeline: Celery 任务队列 (er_execute / er_schedule)       #
-#  由 BambooDjangoRuntime 内部调度节点执行和轮询/回调任务             #
-# ------------------------------------------------------------------ #
-CELERY_TASK_QUEUES = [
-    Queue('default', routing_key='default'),
-    Queue('er_execute', routing_key='er_execute'),
-    Queue('er_schedule', routing_key='er_schedule'),
-]
-
-# ------------------------------------------------------------------ #
-#  OpsFlow Pipeline: 引擎行为配置                                      #
-# ------------------------------------------------------------------ #
-ENABLE_PIPELINE_EVENT_SIGNALS = True        # 启用 30+ 生命周期信号 (pipeline_event)
-PIPELINE_ENABLE_ROLLBACK = True             # 启用流程回滚 API
-ROLLBACK_QUEUE = "default"                  # 回滚任务队列
-PIPELINE_ENABLE_AUTO_EXECUTE_WHEN_ROLL_BACKED = False  # 回滚后不自动执行
-
-# ------------------------------------------------------------------ #
-#  Monitor: SPI 适配器注册表                                           #
-#  各类适配器通过类路径注册，运行时反射加载                              #
-# ------------------------------------------------------------------ #
-# ================================================= #
-# ******************** OAuth2/SSO 配置 ************** #
-# ================================================= #
-OAUTH_PROVIDERS = {
-    'oidc': {
-        'client_id': '',
-        'client_secret': '',
-        'authorize_url': '',
-        'token_url': '',
-        'userinfo_url': '',
-        'scopes': ['openid', 'profile', 'email'],
-        'redirect_uri': '',
-    },
-    'wecom': {
-        'client_id': '',
-        'client_secret': '',
-        'authorize_url': 'https://open.weixin.qq.com/connect/oauth2/authorize',
-        'token_url': 'https://qyapi.weixin.qq.com/cgi-bin/gettoken',
-        'userinfo_url': 'https://qyapi.weixin.qq.com/cgi-bin/user/getuserinfo',
-        'scopes': ['snsapi_base'],
-        'redirect_uri': '',
-    },
-    'dingtalk': {
-        'client_id': '',
-        'client_secret': '',
-        'authorize_url': 'https://login.dingtalk.com/oauth2/auth',
-        'token_url': 'https://api.dingtalk.com/v1.0/oauth2/userAccessToken',
-        'userinfo_url': 'https://api.dingtalk.com/v1.0/contact/users/me',
-        'scopes': ['openid', 'profile'],
-        'redirect_uri': '',
-    },
-}
-
-# ================================================= #
-# ******************* Monitor 适配器 *************** #
-# ================================================= #
-MONITOR_ADAPTERS = {
-    'datasource': {
-        'prometheus': 'monitor.adapters.datasource.prometheus.PrometheusDataSource',
-        'influxdb': 'monitor.adapters.datasource.influxdb.InfluxdbDataSource',
-        'custom': 'monitor.adapters.datasource.custom.CustomDataSource',
-    },
-    'notify': {
-        'integration_hub': 'monitor.adapters.notify.integration_hub.IntegrationHubNotify',
-        'wecom': 'monitor.adapters.notify.wecom.WeComNotify',
-        'dingtalk': 'monitor.adapters.notify.dingtalk.DingTalkNotify',
-        'email': 'monitor.adapters.notify.email.EmailNotify',
-        'sms': 'monitor.adapters.notify.sms.SmsNotify',
-    },
-    'action': {
-        'opsflow': 'monitor.adapters.action.opsflow.OpsflowAction',
-        'awx': 'monitor.adapters.action.awx.AwxAction',
-        'itsm': 'monitor.adapters.action.itsm.ItsmAction',
-    },
-    'target_resolver': {
-        'cmdb': 'monitor.adapters.target.cmdb.CmdbTargetResolver',
-        'static': 'monitor.adapters.target.static.StaticTargetResolver',
-    },
-}

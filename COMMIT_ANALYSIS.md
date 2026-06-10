@@ -2,28 +2,86 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-## `28c16f75`
+## `80a7b575`
 
-> 提交日期: 2026-06-10 | 提交信息: docs: add 8 development standards to OPSFLOW.md — 补充 8 项开发规范
+> 提交日期: 2026-06-10 | 提交信息: refactor: clean env.example.py — 移除默认凭据，完善多环境配置模板
 
 ### 改动
 
 | 文件 | 类型 | 说明 |
 |------|------|------|
-| `OPSFLOW.md` | 文档 | 补充 8 项开发规范（+143 行）：Vue 组件结构、前端注释、TS 类型、后端分层、API 命名、错误处理、Git 提交、Pinia Store |
+| `backend/conf/env.example.py` | 配置 | 重写 — 移除 root/123456 默认凭据（安全改进），新增 OpsFlow 调度器/LLM/Ansible/Neo4j 配置区块，补充 env_dev/uat/prod 多环境说明 |
 
 ### 解决
 
-- **问题/背景：** OPSFLOW.md 原有规范集中在 SCSS/按钮/i18n/项目结构，缺少 Vue 组件写法、TypeScript 类型、后端分层、Git 分支、Store 管理等高频开发场景的规范约束
-- **办法：** 一次性补充 8 项规范，覆盖前端（组件/注释/类型/Store）、后端（分层/API/错误处理）、Git 流程全链路
+- **问题/背景：** env.example.py 长期未更新，使用 sqlite3 默认、root/123456 凭据硬编码，缺少 OpsFlow 特有配置（调度器/LLM/Ansible/Neo4j），新增 App 不知该配什么
+- **办法：** 整体重构：移除所有默认值（仅留占位空串），按领域分组（DB/Redis/邮件/调度器/LLM/Ansible/Neo4j），补充多环境说明索引
 
 ### 验证
 
-- 改动类型: docs
+- 改动类型: refactor
+- 清理乱码: 有（`6`、`Retry`、`**日期:**`、`**状态:**` 空文件）
+- 工作区状态: 干净 ✅
+
+---
+
+## `4648d591`
+
+> 提交日期: 2026-06-10 | 提交信息: refactor: unify seed commands into bootstrap + seed_reference — 统一数据初始化入口，删除 10 个分散的 seed 命令
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/common/management/commands/bootstrap.py` | 后端 | **新建** — 统一引导命令，分 3 阶段（系统核心/参考数据/演示数据），支持 --essential-only/--demo-only/--phase/--force 参数 |
+| `backend/common/management/commands/seed_reference.py` | 后端 | **新建** — 聚合 9 个旧 seed 命令，562 行统一管理所有参考数据 |
+| `backend/*/seed_*.py` (×7) | 后端 | **删除** — seed_template_categories, seed_knowledge, seed_sample_template, opsflow_migrate_projects, seed_cmdb_models, seed_monitor, seed_connector_definitions |
+| `backend/*/add_*_menu.py` (×3) | 后端 | **删除** — add_app_menus, add_iam_menu |
+| `docs/opsflow/guides/mock-data-guide.md` | 文档 | 重写 — 从仅 ORM mock 改为完整数据初始化指南，覆盖 bootstrap 统一入口、3 阶段流程、开发约束 |
+| `OPSFLOW.md` | 文档 | 新增部署规范章节，引用 mock-data-guide 和数据初始化规范 |
+| `docs/superpowers/specs/2026-06-10-config-architecture-design.md` | 文档 | **新建** — 配置体系重构设计文档（多环境/密钥管理/settings 拆分） |
+
+### 解决
+
+- **问题/背景：** 数据初始化散落在 10 个独立的 management command 中，开发者需要知道执行顺序和依赖关系；新增数据模型需新建一个 seed 命令，维护成本高
+- **办法：** 统一为 bootstrap.py（入口编排）+ seed_reference.py（所有参考数据聚合）两层架构，删除全部旧命令；mock-data-guide 同步更新为完整的数据初始化指南
+
+### 验证
+
+- 改动类型: refactor
+- 清理乱码: 有
+- 工作区状态: 干净 ✅
+
+---
+
+## `b026452f`
+
+> 提交日期: 2026-06-10 | 提交信息: refactor: split OPSFLOW.md and slim CLAUDE.md — OPSFLOW.md 按领域拆分，CLAUDE.md 精简
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `CLAUDE.md` | 文档 | 精简 41 行 — 移除架构/API 规范/日志等低频内容，改为指向拆分后的规范文件 |
+| `OPSFLOW.md` | 文档 | 361 行 → 17 行轻量索引，原内容按领域拆分为 3 个独立文件 |
+| `docs/opsflow/guides/frontend-style-guide.md` | 文档 | **新建** — 前端规范合集（SCSS/Vue/i18n/TS/按钮/Pinia，210 行） |
+| `docs/opsflow/guides/project-standards.md` | 文档 | **新建** — 工程规范合集（架构/项目结构/后端分层/API/错误处理，173 行，含数据初始化规范） |
+| `docs/opsflow/guides/process-standards.md` | 文档 | **新建** — 流程规范合集（Git/文档/设计约束，82 行） |
+
+### 解决
+
+- **问题/背景：** CLAUDE.md（99 行）含大量低频内容（架构布局、API 规范、日志约定），每次会话都注入浪费上下文；OPSFLOW.md（361 行）混合前端风格、后端工程、流程治理三类不相关内容，Claude 需完整加载才能找到所需信息
+- **办法：** 按领域拆分为 3 个独立规范文件，按需加载；CLAUDE.md 仅保留高频内容（项目规则、Agent 协调、MCP 工具）和索引引用；OPSFLOW.md 改为轻量导航
+
+### 验证
+
+- 改动类型: refactor
 - 清理乱码: 无
 - 工作区状态: 干净 ✅
 
 ---
+
+## `28c16f75`
 
 ## `d2cf3d83`
 
