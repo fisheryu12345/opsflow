@@ -2,6 +2,44 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `4ca4a835`
+
+> 提交日期: 2026-06-10 | 提交信息: refactor: extract settings.py into domain components — settings.py 按领域拆分为 9 个组件文件
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/application/settings.py` | 配置 | 593 行 → 198 行（-67%），仅保留 Django 骨架 + App 注册 |
+| `backend/conf/env.py` | 配置 | 重写为动态加载入口：先加载 base，再根据 DJANGO_ENV 执行环境覆写 |
+| `backend/conf/env_base.py` | 配置 | **新建** — 共享变量定义 + 默认值 |
+| `backend/conf/env_dev.py` | 配置 | **新建** — 开发环境覆写（当前实际值） |
+| `backend/conf/env_uat.py` | 配置 | **新建** — UAT 占位 |
+| `backend/conf/env_prod.py` | 配置 | **新建** — 生产占位 |
+| `backend/conf/env.example.py` | 配置 | 清理为纯模板（移除默认凭据） |
+| `backend/application/components/database.py` | 配置 | **新建** — DATABASES / Neo4j / CACHES |
+| `backend/application/components/logging.py` | 配置 | **新建** — LOGGING 字典（97 行） |
+| `backend/application/components/rest_framework.py` | 配置 | **新建** — DRF / Spectacular / JWT |
+| `backend/application/components/auth.py` | 配置 | **新建** — 登录 / OAuth2 / 验证码 |
+| `backend/application/components/channels.py` | 配置 | **新建** — CHANNEL_LAYERS / ASGI |
+| `backend/application/components/cors_security.py` | 配置 | **新建** — CORS 跨域 |
+| `backend/application/components/monitor_adapters.py` | 配置 | **新建** — Monitor SPI |
+| `backend/application/components/celery.py` | 配置 | **新建** — Celery 队列 / Broker |
+| `backend/application/components/pipeline.py` | 配置 | **新建** — Pipeline 引擎配置 |
+
+### 解决
+
+- **问题/背景：** settings.py 593 行混入 15+ 区块，新增配置不知放哪；conf/env.py 单文件无法按环境切换
+- **办法：** 按 Django 领域拆分为 9 个 component 文件，conf/ 改为分层结构（base + 环境覆写），settings.py 缩为 import 聚合入口
+
+### 验证
+
+- 改动类型: refactor
+- 清理乱码: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## `80a7b575`
 
 > 提交日期: 2026-06-10 | 提交信息: refactor: clean env.example.py — 移除默认凭据，完善多环境配置模板

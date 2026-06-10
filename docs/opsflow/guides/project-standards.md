@@ -138,6 +138,53 @@ opsflow/
 
 ---
 
+## 配置治理规范
+
+配置体系采用 conf/ 分层 + components/ 组件化结构，详见 [配置体系重构设计](../../superpowers/specs/2026-06-10-config-architecture-design.md)。
+
+### 配置放置决策树
+
+```
+要新增/修改一个配置 → 问：
+├─ 是原始值（字符串/数字/布尔）？
+│   ├─ 所有环境相同？     → conf/env_base.py
+│   └─ 不同环境不同值？   → conf/env_dev.py / env_uat.py / env_prod.py
+│
+├─ 是 Django 结构体（DATABASES、LOGGING）？
+│   ├─ 已有对应组件文件？ → application/components/xxx.py
+│   └─ 无对应文件？       → 新建组件文件 + settings.py 加 import
+│
+├─ 是注册新 App？
+│   └─ 直接在 settings.py 的 INSTALLED_APPS 加一行
+│
+└─ 是新增独立配置类别？
+    └─ 新建 application/components/xxx.py
+       ├─ from conf.env import *（如果需要 env 值）
+       └─ 在 settings.py 的组件配置区加 import
+```
+
+### 组件文件对照表
+
+| 文件 | 职责 | 关联 env 变量 |
+|------|------|-------------|
+| `application/components/database.py` | DATABASES, Neo4j, CACHES, DB 路由 | DATABASE_*, NEO4J_* |
+| `application/components/logging.py` | LOGGING 字典 | 无（路径基于 BASE_DIR） |
+| `application/components/rest_framework.py` | DRF, Spectacular, simplejwt | 无 |
+| `application/components/auth.py` | 登录、OAuth2/SSO、验证码 | OAUTH_PROVIDERS 密钥 |
+| `application/components/channels.py` | CHANNEL_LAYERS, ASGI | 无 |
+| `application/components/cors_security.py` | CORS 跨域 | 无 |
+| `application/components/celery.py` | Celery 队列、Broker、Backend | 无 |
+| `application/components/monitor_adapters.py` | Monitor SPI 适配器注册表 | 无 |
+| `application/components/pipeline.py` | Pipeline 引擎行为配置 | 无 |
+
+### 强制规则
+
+1. **新增变量必须在 env_base.py 声明** — 禁止只在一个环境文件中单独定义
+2. **组件文件不跨域** — `database.py` 不放 LOGGING，不确定归属时新建文件
+3. **新增组件文件要登记** — 同步更新 settings.py 的 import 区和本规范表的对照表
+
+---
+
 ## 数据初始化规范
 
 ### 统一入口
