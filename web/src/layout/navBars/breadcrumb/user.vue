@@ -24,7 +24,6 @@
 				<el-dropdown-menu>
 					<el-dropdown-item command="zh-cn" :disabled="state.disabledI18n === 'zh-cn'">简体中文</el-dropdown-item>
 					<el-dropdown-item command="en" :disabled="state.disabledI18n === 'en'">English</el-dropdown-item>
-					<el-dropdown-item command="zh-tw" :disabled="state.disabledI18n === 'zh-tw'">繁體中文</el-dropdown-item>
 				</el-dropdown-menu>
 			</template>
 		</el-dropdown>
@@ -237,6 +236,15 @@ const onLanguageChange = (lang: string) => {
 	locale.value = lang;
 	other.useTitle();
 	initI18nOrSize('globalI18n', 'disabledI18n');
+	// 同步用户语言到后端 / sync language to backend
+	const backendLang = lang === 'zh-cn' ? 'zh-hans' : 'en';
+	import('/@/utils/service').then(({ request }) => {
+		request({ url: '/api/system/language/', method: 'post', data: { language: backendLang } }).then(() => {
+			window.location.reload();
+		}).catch(() => {
+			window.location.reload();
+		});
+	});
 };
 // 初始化组件大小/i18n
 const initI18nOrSize = (value: string, attr: string) => {

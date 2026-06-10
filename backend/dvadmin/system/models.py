@@ -71,6 +71,10 @@ class Users(CoreModel, AbstractUser):
         help_text="关联部门",
     )
     objects = CustomUserManager()
+    language = models.CharField(max_length=10, default='zh-hans', verbose_name="语言",
+                                 help_text="zh-hans: 中文, en: English",
+                                 choices=[('zh-hans', '中文'), ('en', 'English')])
+
     def set_password(self, raw_password):
         super().set_password(hashlib.md5(raw_password.encode(encoding="UTF-8")).hexdigest())
 
@@ -155,6 +159,7 @@ class Menu(CoreModel):
     )
     icon = models.CharField(max_length=64, verbose_name="菜单图标", null=True, blank=True, help_text="菜单图标")
     name = models.CharField(max_length=64, verbose_name="菜单名称", help_text="菜单名称")
+    name_en = models.CharField(max_length=128, verbose_name="菜单名称(英文)", null=True, blank=True, help_text="菜单名称(英文)")
     sort = models.IntegerField(default=1, verbose_name="显示排序", null=True, blank=True, help_text="显示排序")
     ISLINK_CHOICES = (
         (0, "否"),

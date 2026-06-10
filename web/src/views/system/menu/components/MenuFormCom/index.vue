@@ -11,14 +11,19 @@
     </div>
 
     <el-form ref="formRef" :rules="rules" :model="menuFormData" label-width="90px" label-position="top" size="default" class="mf-form">
-      <!-- Row 1: Name + Parent -->
+      <!-- Row 1: Name + Name_EN + Parent -->
       <el-row :gutter="16">
-        <el-col :span="12">
+        <el-col :span="8">
           <el-form-item label="Menu Name / 菜单名称" prop="name">
             <el-input v-model="menuFormData.name" placeholder="Enter menu name / 请输入菜单名称" />
           </el-form-item>
         </el-col>
-        <el-col :span="12">
+        <el-col :span="8">
+          <el-form-item label="Name (EN) / 英文名称" prop="name_en">
+            <el-input v-model="menuFormData.name_en" placeholder="Enter English name / 请输入英文名称" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="8">
           <el-form-item label="Parent Menu / 父级菜单" prop="parent">
             <el-tree-select
               v-model="menuFormData.parent"
@@ -138,10 +143,10 @@
 
       <!-- Submit / Cancel Buttons -->
       <div class="mf-actions">
-        <el-button @click="handleSubmit" type="primary" :loading="menuBtnLoading" class="mf-btn-primary">
+        <el-button @click="handleSubmit" type="primary" :loading="menuBtnLoading">
           <el-icon><Check /></el-icon> Save / 保存
         </el-button>
-        <el-button @click="handleCancel" class="mf-btn-cancel">
+        <el-button @click="handleCancel">
           Cancel / 取消
         </el-button>
       </div>
@@ -218,6 +223,7 @@ let deptDefaultList = ref<MenuTreeItemType[]>([]);
 let menuFormData = reactive<MenuFormDataType>({
   parent: '',
   name: '',
+  name_en: '',
   component: '',
   web_path: '',
   icon: '',
@@ -238,6 +244,7 @@ const setMenuFormData = () => {
   if (props.initFormData?.id) {
     menuFormData.id = props.initFormData?.id || '';
     menuFormData.name = props.initFormData?.name || '';
+    menuFormData.name_en = props.initFormData?.name_en || '';
     menuFormData.parent = props.initFormData?.parent || '';
     menuFormData.component = props.initFormData?.component || '';
     menuFormData.web_path = props.initFormData?.web_path || '';

@@ -19,9 +19,8 @@
       <el-col :span="6" class="menu-col">
         <div class="sys-card menu-tree-card sys-fade-in-up" style="animation-delay:0.06s">
           <div class="menu-section-header">
-            <span class="menu-header-icon"><el-icon :size="16"><Menu /></el-icon></span>
-            <span>菜单树</span>
-            <span class="menu-header-badge">Menu Tree</span>
+            <el-icon :size="16"><Menu /></el-icon>
+            <span>{{ $t('message.menuPage.menuTree') }}</span>
           </div>
           <MenuTreeCom
             ref="menuTreeRef"
@@ -36,17 +35,16 @@
       <!-- ── Right: Tabs ── -->
       <el-col :span="18" class="menu-col">
         <div class="sys-card menu-tabs-card sys-fade-in-up" style="animation-delay:0.1s">
-          <div class="menu-section-header menu-section-header-accent">
-            <span class="menu-header-icon menu-header-icon-accent"><el-icon :size="16"><Setting /></el-icon></span>
-            <span>权限配置</span>
-            <span class="menu-header-badge">Permission Config</span>
+          <div class="menu-section-header">
+            <el-icon :size="16"><Setting /></el-icon>
+            <span>{{ $t('message.menuPage.permissionConfig') }}</span>
           </div>
           <el-tabs v-model="activeTab" class="menu-tabs">
             <el-tab-pane name="button">
               <template #label>
                 <span class="menu-tab-label">
                   <el-icon :size="14"><Key /></el-icon>
-                  <span>按钮权限</span>
+                  <span>{{ $t('message.menuPage.btnPermission') }}</span>
                 </span>
               </template>
               <div class="menu-tab-body">
@@ -57,7 +55,7 @@
               <template #label>
                 <span class="menu-tab-label">
                   <el-icon :size="14"><Grid /></el-icon>
-                  <span>列权限</span>
+                  <span>{{ $t('message.menuPage.colPermission') }}</span>
                 </span>
               </template>
               <div class="menu-tab-body">
@@ -72,21 +70,13 @@
     <!-- ===== Drawer: Menu Form ===== -->
     <el-drawer
       v-model="drawerVisible"
-      title="菜单配置"
+      :title="drawerFormData.id ? $t('message.menuPage.editMenu') : $t('message.menuPage.addMenu')"
       direction="rtl"
       size="540px"
       :close-on-click-modal="false"
       :before-close="handleDrawerClose"
       class="opsflow-drawer"
     >
-      <template #header>
-        <div class="of-drawer-header">
-          <span class="of-drawer-title">
-            <el-icon :size="16"><Menu /></el-icon>
-            {{ drawerFormData.id ? '编辑菜单' : '新增菜单' }}
-          </span>
-        </div>
-      </template>
       <MenuFormCom
         v-if="drawerVisible"
         :initFormData="drawerFormData"
@@ -100,6 +90,7 @@
 
 <script lang="ts" setup name="menuPages">
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import XEUtils from 'xe-utils';
 import { ElMessageBox } from 'element-plus';
 import { Search, Menu, Setting, Key, Grid, OfficeBuilding, Tickets, List } from '@element-plus/icons-vue';
@@ -111,15 +102,17 @@ import { GetList, DelObj } from './api';
 import { successNotification } from '/@/utils/message';
 import { APIResponseData, MenuTreeItemType } from './types';
 
+const { t } = useI18n();
+
 /* ===================== Stats ===================== */
 const menuCount = ref(0);
 const catalogCount = ref(0);
 const leafCount = ref(0);
 const stats = computed(() => [
-  { label: '菜单总计', value: menuCount.value, icon: OfficeBuilding, bg: 'linear-gradient(135deg,#409eff,#337ecc)' },
-  { label: '目录节点', value: catalogCount.value, icon: Tickets, bg: 'linear-gradient(135deg,#e6a23c,#f56c6c)' },
-  { label: '页面节点', value: leafCount.value, icon: List, bg: 'linear-gradient(135deg,#67c23a,#409eff)' },
-  { label: '当前查询', value: '---', icon: Search, bg: 'linear-gradient(135deg,#909399,#606266)' },
+  { label: t('message.menuPage.statTotal'), value: menuCount.value, icon: OfficeBuilding, bg: 'linear-gradient(135deg,#409eff,#337ecc)' },
+  { label: t('message.menuPage.statCatalog'), value: catalogCount.value, icon: Tickets, bg: 'linear-gradient(135deg,#e6a23c,#f56c6c)' },
+  { label: t('message.menuPage.statLeaf'), value: leafCount.value, icon: List, bg: 'linear-gradient(135deg,#67c23a,#409eff)' },
+  { label: t('message.menuPage.statCurrent'), value: '---', icon: Search, bg: 'linear-gradient(135deg,#909399,#606266)' },
 ]);
 
 /* ===================== State ===================== */
@@ -176,8 +169,10 @@ const handleDrawerClose = (type?: string) => {
 };
 
 const handleDeleteMenu = (id: string, callback: Function) => {
-  ElMessageBox.confirm('确认删除该菜单项？', '确认', {
-    confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning',
+  ElMessageBox.confirm(t('message.menuPage.confirmDelete'), t('message.menuPage.confirm'), {
+    confirmButtonText: t('message.menuPage.deleteBtn'),
+    cancelButtonText: t('message.menuPage.cancelBtn'),
+    type: 'warning',
   }).then(async () => {
     const res: APIResponseData = await DelObj(id);
     callback();
@@ -188,60 +183,99 @@ const handleDeleteMenu = (id: string, callback: Function) => {
 onMounted(() => { getData(); });
 </script>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 @use '../../../styles/opsflow-global' as *;
 
-.sys-page { height: 100%; background: $of-bg-page; display: flex; flex-direction: column; overflow: hidden; }
+.sys-page {
+  height: 100%;
+  background: $of-bg-page;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
-// ===== Stats =====
+/* ===== Stats ===== */
 .menu-stats {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px; margin-bottom: 16px; padding: 12px 12px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 12px 12px 0;
 }
 .menu-stat-card {
-  display: flex; align-items: center; gap: 14px;
-  background: #fff; border-radius: $of-radius-card; padding: 16px 18px;
-  box-shadow: $of-shadow-card; transition: transform .2s, box-shadow .2s; cursor: default;
-  &:hover { transform: translateY(-2px); box-shadow: $of-shadow-hover; }
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border-radius: $of-radius-card;
+  padding: 16px 18px;
+  box-shadow: $of-shadow-card;
 }
-.menu-stat-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; }
+.menu-stat-icon {
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
 .menu-stat-body { flex: 1; min-width: 0; }
-.menu-stat-val { font-size: 22px; font-weight: 700; color: $of-text-primary; line-height: 1.2; }
+.menu-stat-val { font-size: 22px; font-weight: 700; color: $of-text-primary; }
 .menu-stat-lbl { font-size: 13px; color: $of-text-secondary; margin-top: 2px; }
 
-// ===== Layout =====
-.menu-body { flex: 1; overflow: hidden; padding: 0 12px; }
-.menu-row { height: calc(100vh - 180px); overflow: hidden; margin: 0 12px !important; .el-col { height: 100%; } }
-.sys-card { background: #fff; border: 1px solid $of-border-card; border-radius: $of-radius-card; height: 100%; display: flex; flex-direction: column; overflow: hidden; box-shadow: $of-shadow-card; transition: box-shadow $of-transition-default; }
-.sys-card:hover { box-shadow: $of-shadow-hover; }
-
-// ===== Section Header =====
-.menu-section-header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 12px 16px; background: $of-gradient-hero;
-  border-bottom: 1px solid $of-border-light;
-  font-size: 14px; font-weight: 600; color: $of-text-primary; flex-shrink: 0;
+/* ===== Layout ===== */
+.menu-row {
+  height: calc(100vh - 180px);
+  overflow: hidden;
+  margin: 0 12px !important;
 }
-.menu-section-header-accent { background: linear-gradient(135deg, #f0f5ff 0%, #fafbfc 100%); }
-.menu-header-badge { margin-left: auto; font-size: 11px; font-weight: 400; color: $of-text-muted; }
-.menu-header-icon { @include of-icon-circle(30px, $of-gradient-blue); }
-.menu-header-icon-accent { background: $of-gradient-accent; }
+.menu-col { height: 100%; }
 
-// ===== Tabs =====
+.sys-card {
+  background: #fff;
+  border: 1px solid $of-border-card;
+  border-radius: $of-radius-card;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: $of-shadow-card;
+}
+
+/* ===== Section Header ===== */
+.menu-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: $of-gradient-hero;
+  border-bottom: 1px solid $of-border-light;
+  font-size: 14px;
+  font-weight: 600;
+  color: $of-text-primary;
+  flex-shrink: 0;
+}
+
+/* ===== Tabs ===== */
 .menu-tabs-card { display: flex; flex-direction: column; overflow: hidden; }
 .menu-tabs {
-  flex: 1; display: flex; flex-direction: column; overflow: hidden;
-  :deep(.el-tabs__header) { margin: 0; padding: 8px 16px 0; background: transparent; border-bottom: 1px solid $of-border-light; }
-  :deep(.el-tabs__item) { font-size: 13px; padding: 0 16px; height: 36px; line-height: 36px; transition: color $of-transition-default; }
-  :deep(.el-tabs__item.is-active) { font-weight: 600; color: $of-color-primary; }
-  :deep(.el-tabs__active-bar) { height: 2px; background: $of-gradient-blue; }
-  :deep(.el-tabs__content) { flex: 1; overflow: hidden; padding: 0; }
-  :deep(.el-tab-pane) { height: 100%; overflow: hidden; }
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.menu-tab-label { display: inline-flex; align-items: center; gap: 5px; }
-.menu-tab-body { height: 100%; overflow: auto; padding: 12px 16px; }
-
-// ===== Drawer =====
-.opsflow-drawer :deep(.el-drawer__header) { @include of-dialog-header; background: $of-gradient-hero; border-bottom: 1px solid $of-border-light; margin-bottom: 0; }
-.opsflow-drawer :deep(.el-drawer__body) { @include of-dialog-body; }
+.menu-tabs :deep(.el-tabs__header) {
+  margin: 0;
+  padding: 8px 16px 0;
+  border-bottom: 1px solid $of-border-light;
+}
+.menu-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.menu-tab-body {
+  height: 100%;
+  overflow: auto;
+  padding: 12px 16px;
+}
 </style>

@@ -24,6 +24,7 @@ class MenuSerializer(CustomModelSerializer):
     """
     menuPermission = serializers.SerializerMethodField(read_only=True)
     hasChild = serializers.SerializerMethodField()
+    name_display = serializers.SerializerMethodField()
 
     def get_menuPermission(self, instance):
         queryset = instance.menuPermission.order_by('-name').values('id', 'name', 'value')
@@ -38,6 +39,14 @@ class MenuSerializer(CustomModelSerializer):
         if hasChild:
             return True
         return False
+
+    def get_name_display(self, obj):
+        """按用户语言返回菜单名称"""
+        request = getattr(self, 'request', None)
+        if request and request.user.is_authenticated:
+            if request.user.language == 'en' and obj.name_en:
+                return obj.name_en
+        return obj.name
 
     class Meta:
         model = Menu
@@ -65,10 +74,18 @@ class MenuCreateSerializer(CustomModelSerializer):
 
 class WebRouterSerializer(CustomModelSerializer):
     """
-    前端菜单路由的简单序列化器
+    前端菜单路由的简单序列化器 — 按用户语言返回 title
     """
     path = serializers.CharField(source="web_path")
-    title = serializers.CharField(source="name")
+    title = serializers.SerializerMethodField()
+
+    def get_title(self, obj):
+        """按用户语言偏好返回菜单名称"""
+        request = getattr(self, 'request', None)
+        if request and request.user.is_authenticated:
+            if request.user.language == 'en' and obj.name_en:
+                return obj.name_en
+        return obj.name
 
     class Meta:
         model = Menu

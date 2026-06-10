@@ -5,12 +5,12 @@
       <div class="mbc-toolbar-left">
         <span class="mbc-toolbar-title">
           <el-icon size="14"><Key /></el-icon>
-          Button Permission List / 按钮权限列表
+          {{ $t('message.menuPage.btnPermList') }}
         </span>
       </div>
       <div class="mbc-toolbar-right">
         <el-button v-auth="'btn:Create'" type="primary" size="small" @click="openAddDialog">
-          <el-icon><Plus /></el-icon> Add / 新增
+          <el-icon><Plus /></el-icon> {{ $t('message.menuPage.btnAdd') }}
         </el-button>
       </div>
     </div>
@@ -28,13 +28,13 @@
       class="mbc-table"
     >
       <el-table-column type="index" label="#" width="60" align="center" />
-      <el-table-column prop="name" label="Permission Name / 权限名称" min-width="140" show-overflow-tooltip />
-      <el-table-column prop="value" label="Permission Value / 权限值" min-width="160" show-overflow-tooltip>
+      <el-table-column prop="name" :label="$t('message.menuPage.permName')" min-width="140" show-overflow-tooltip />
+      <el-table-column prop="value" :label="$t('message.menuPage.permValue')" min-width="160" show-overflow-tooltip>
         <template #default="{ row }">
           <el-tag size="small" effect="plain">{{ row.value }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="method" label="Method / 请求方式" width="120" align="center">
+      <el-table-column prop="method" :label="$t('message.menuPage.method')" width="120" align="center">
         <template #default="{ row }">
           <el-tag
             :type="methodTagType(row.method)"
@@ -45,23 +45,23 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="api" label="API Path / 接口地址" min-width="220" show-overflow-tooltip>
+      <el-table-column prop="api" :label="$t('message.menuPage.apiPath')" min-width="220" show-overflow-tooltip>
         <template #default="{ row }">
           <code class="mbc-api-code">{{ row.api }}</code>
         </template>
       </el-table-column>
-      <el-table-column label="Actions / 操作" width="160" fixed="right">
+      <el-table-column :label="$t('message.menuPage.actions')" width="160" fixed="right">
         <template #default="{ row }">
           <el-button v-auth="'btn:Update'" size="small" text type="primary" @click="openEditDialog(row)">
-            <el-icon><Edit /></el-icon> Edit
+            <el-icon><Edit /></el-icon> {{ $t('message.menuPage.edit') }}
           </el-button>
           <el-popconfirm
-            title="Confirm delete? / 确认删除?"
+            :title="$t('message.menuPage.confirmDelPerm')"
             @confirm="handleDelete(row)"
           >
             <template #reference>
               <el-button v-auth="'btn:Delete'" size="small" text type="danger">
-                <el-icon><Delete /></el-icon> Delete
+                <el-icon><Delete /></el-icon> {{ $t('message.menuPage.delete') }}
               </el-button>
             </template>
           </el-popconfirm>
@@ -72,34 +72,34 @@
     <!-- Add/Edit Dialog / 新增/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? 'Edit Button Permission / 编辑按钮权限' : 'Add Button Permission / 新增按钮权限'"
+      :title="isEdit ? $t('message.menuPage.editPerm') : $t('message.menuPage.addPerm')"
       width="560px"
       :close-on-click-modal="false"
       class="opsflow-dialog"
       @closed="handleDialogClosed"
     >
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="110px" label-position="top" class="mbc-form">
-        <el-form-item label="Permission Name / 权限名称" prop="name">
-          <el-input v-model="formData.name" placeholder="Enter permission name / 输入权限名称" />
+        <el-form-item :label="$t('message.menuPage.permName')" prop="name">
+          <el-input v-model="formData.name" :placeholder="$t('message.menuPage.permNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="Permission Value / 权限值" prop="value">
-          <el-input v-model="formData.value" placeholder="Enter permission value / 输入权限标识" />
+        <el-form-item :label="$t('message.menuPage.permValue')" prop="value">
+          <el-input v-model="formData.value" :placeholder="$t('message.menuPage.permValuePlaceholder')" />
         </el-form-item>
-        <el-form-item label="Method / 请求方式" prop="method">
-          <el-select v-model="formData.method" placeholder="Select method / 选择请求方式" style="width: 100%">
+        <el-form-item :label="$t('message.menuPage.method')" prop="method">
+          <el-select v-model="formData.method" :placeholder="$t('message.menuPage.methodPlaceholder')" style="width: 100%">
             <el-option :value="0" label="GET" />
             <el-option :value="1" label="POST" />
             <el-option :value="2" label="PUT" />
             <el-option :value="3" label="DELETE" />
           </el-select>
         </el-form-item>
-        <el-form-item label="API Path / 接口地址" prop="api">
+        <el-form-item :label="$t('message.menuPage.apiPath')" prop="api">
           <el-select
             v-model="formData.api"
             filterable
             allow-create
             clearable
-            placeholder="Select or type API path / 选择或输入接口地址"
+            :placeholder="$t('message.menuPage.apiPathPlaceholder')"
             style="width: 100%"
           >
             <el-option
@@ -113,9 +113,9 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">Cancel / 取消</el-button>
+          <el-button @click="dialogVisible = false">{{ $t('message.common.cancel') }}</el-button>
           <el-button type="primary" :loading="submitLoading" @click="handleSave">
-            {{ isEdit ? 'Update / 更新' : 'Create / 创建' }}
+            {{ isEdit ? $t('message.menuPage.update') : $t('message.menuPage.create') }}
           </el-button>
         </span>
       </template>
@@ -125,6 +125,7 @@
 
 <script lang="ts" setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElForm, ElMessageBox, FormRules } from 'element-plus';
 import { Key, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { GetList, AddObj, UpdateObj, DelObj } from './api';
@@ -141,6 +142,8 @@ interface ButtonPermissionItem {
   menu?: number;
 }
 
+const { t } = useI18n();
+
 const tableData = ref<ButtonPermissionItem[]>([]);
 const loading = ref(false);
 const selectedMenu = ref<MenuTreeItemType | null>(null);
@@ -152,8 +155,8 @@ const formRef = ref<InstanceType<typeof ElForm>>();
 const apiPaths = ref<string[]>([]);
 
 const emptyText = computed(() => {
-  if (!selectedMenu.value) return 'Please select a menu on the left / 请先在左侧选择菜单';
-  return 'No data / 暂无数据';
+  if (!selectedMenu.value) return t('message.menuPage.selectMenuFirst');
+  return t('message.menuPage.noData');
 });
 
 const defaultForm: ButtonPermissionItem = {
@@ -166,10 +169,10 @@ const defaultForm: ButtonPermissionItem = {
 let formData = reactive<ButtonPermissionItem>({ ...defaultForm });
 
 const formRules = reactive<FormRules>({
-  name: [{ required: true, message: 'Permission name is required / 权限名称必填', trigger: 'blur' }],
-  value: [{ required: true, message: 'Permission value is required / 权限标识必填', trigger: 'blur' }],
-  method: [{ required: true, message: 'Please select method / 请选择请求方式', trigger: 'change' }],
-  api: [{ required: true, message: 'API path is required / 接口地址必填', trigger: 'blur' }],
+  name: [{ required: true, message: t('message.menuPage.permNameRequired'), trigger: 'blur' }],
+  value: [{ required: true, message: t('message.menuPage.permValueRequired'), trigger: 'blur' }],
+  method: [{ required: true, message: t('message.menuPage.methodRequired'), trigger: 'change' }],
+  api: [{ required: true, message: t('message.menuPage.apiPathRequired'), trigger: 'blur' }],
 });
 
 const methodLabel = (method: number): string => {
@@ -227,7 +230,7 @@ const fetchApiPaths = async () => {
  */
 const openAddDialog = () => {
   if (!selectedMenu.value?.id) {
-    warningNotification('Please select a menu first! / 请先选择菜单！');
+    warningNotification(t('message.menuPage.selectMenuWarning'));
     return;
   }
   isEdit.value = false;

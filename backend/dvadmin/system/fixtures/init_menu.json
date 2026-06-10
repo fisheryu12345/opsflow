@@ -1,6 +1,8 @@
 [
     {
         "name": "系统管理",
+
+        "name_en": "System Management",
         "icon": "iconfont icon-xitongshezhi",
         "sort": 1,
         "is_link": false,
@@ -15,6 +17,8 @@
         "children": [
             {
                 "name": "菜单管理",
+
+                "name_en": "Menu Management",
                 "icon": "iconfont icon-caidan",
                 "sort": 1,
                 "is_link": false,
@@ -141,6 +145,8 @@
             },
             {
                 "name": "部门管理",
+
+                "name_en": "Dept Management",
                 "icon": "ele-OfficeBuilding",
                 "sort": 3,
                 "is_link": false,
@@ -219,6 +225,8 @@
             },
             {
                 "name": "角色管理",
+
+                "name_en": "Role Management",
                 "icon": "ele-ColdDrink",
                 "sort": 4,
                 "is_link": false,
@@ -335,6 +343,8 @@
             },
             {
                 "name": "用户管理",
+
+                "name_en": "User Management",
                 "icon": "iconfont icon-icon-",
                 "sort": 6,
                 "is_link": false,
@@ -483,6 +493,8 @@
             },
             {
                 "name": "消息中心",
+
+                "name_en": "Message Center",
                 "icon": "iconfont icon-xiaoxizhongxin",
                 "sort": 7,
                 "is_link": false,
@@ -582,6 +594,8 @@
             },
             {
                 "name": "接口白名单",
+
+                "name_en": "API White List",
                 "icon": "ele-SetUp",
                 "sort": 8,
                 "is_link": false,
@@ -685,6 +699,8 @@
     },
     {
         "name": "常规配置",
+
+        "name_en": "Configuration",
         "icon": "iconfont icon-configure",
         "sort": 2,
         "is_link": false,
@@ -699,6 +715,8 @@
         "children": [
             {
                 "name": "系统配置",
+
+                "name_en": "System Config",
                 "icon": "iconfont icon-system",
                 "sort": 0,
                 "is_link": false,
@@ -747,6 +765,8 @@
             },
             {
                 "name": "字典管理",
+
+                "name_en": "Dictionary",
                 "icon": "iconfont icon-dict",
                 "sort": 1,
                 "is_link": false,
@@ -876,6 +896,8 @@
             },
             {
                 "name": "地区管理",
+
+                "name_en": "Areas",
                 "icon": "iconfont icon-Area",
                 "sort": 2,
                 "is_link": false,
@@ -995,6 +1017,8 @@
             },
             {
                 "name": "附件管理",
+
+                "name_en": "Attachments",
                 "icon": "iconfont icon-file",
                 "sort": 3,
                 "is_link": false,
@@ -1112,6 +1136,8 @@
     },
     {
         "name": "日志管理",
+
+        "name_en": "Logs",
         "icon": "iconfont icon-rizhi",
         "sort": 3,
         "is_link": false,
@@ -1126,6 +1152,8 @@
         "children": [
             {
                 "name": "登录日志",
+
+                "name_en": "Login Log",
                 "icon": "iconfont icon-guanlidenglurizhi",
                 "sort": 1,
                 "is_link": false,
@@ -1277,6 +1305,8 @@
             },
             {
                 "name": "操作日志",
+
+                "name_en": "Operation Log",
                 "icon": "iconfont icon-caozuorizhi",
                 "sort": 2,
                 "is_link": false,

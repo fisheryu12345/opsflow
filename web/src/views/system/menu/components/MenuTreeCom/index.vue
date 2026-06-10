@@ -95,7 +95,7 @@ const ElementTreeLine = getElementLabelLine(h);
 
 const defaultTreeProps: any = {
   children: 'children',
-  label: 'name',
+  label: 'name_display',
   icon: 'icon',
   isLeaf: (data: TreeTypes[], node: Node) => {
     if (node.data.is_catalog) {
@@ -127,7 +127,8 @@ watch(filterVal, (val) => {
  */
 const filterNode = (value: string, data: any) => {
   if (!value) return true;
-  return toRaw(data).name.indexOf(value) !== -1;
+  const raw = toRaw(data);
+  return (raw.name + (raw.name_display || '')).indexOf(value) !== -1;
 };
 
 /**
