@@ -29,40 +29,6 @@ cd web && npm install && npm run dev  # localhost:8080
 - **No emoji in DB:** NEVER store emoji characters in MySQL backend — filter or replace them before saving. MySQL (utf8mb3) does not support 4-byte Unicode (emoji).
 - **Stray files forbidden:** NEVER run `python -c "..."` with inline code containing `{}` — bash expands them and creates stray files. Always use `python << 'EOF' ... EOF` heredoc instead.
 
-## Architecture
-
-- **Backend:** Django apps under `dvadmin/` (RBAC), `opsflow/` (ops), `opsagent/`,
-  `plugins/` — config in `conf/env.py`, settings in `application/settings.py`.
-  Reference sources in `reference/` (bk-sops, bk-cmdb, bk-itsm, bk-job, bamboo-engine).
-- **Frontend:** `web/src/views/apps/` (OpsFlow app pages), `views/system/` (RBAC),
-  `api/` (axios clients), `stores/` (Pinia), `router/`, `utils/`
-- **API:** `api/system/*` (RBAC), `api/opsflow/*`, `api/ops/*` (opsagent)
-- **Docs:** `docs/architecture/` (架构), `docs/design/` (设计), `docs/knowledge/` (知识库)
-- **Deploy:** `deploy/docker/`, `deploy/nginx/`
-
-## API Response Convention
-
-All opsflow API responses **MUST** use `DetailResponse` / `ErrorResponse` from `dvadmin.utils.json_response`. **Bare `Response()` or default DRF format is forbidden** — the frontend interceptor requires `code` field in every response.
-
-| Function | When | Signature |
-|----------|------|-----------|
-| `DetailResponse(data, msg='success')` | Success (any endpoint) | Returns `{"code": 2000, "data": ..., "msg": "success"}` |
-| `ErrorResponse(msg, data=None, code=4000, status=400)` | Business error | Returns `{"code": 4000, "data": ..., "msg": "..."}` |
-| `SuccessResponse(data, msg='success', page=1, limit=1, total=1)` | Paginated list | Returns `{"code": 2000, "page": ..., "limit": ..., "total": ..., "data": ..., "msg": "success"}` |
-
-| Code | Meaning |
-|------|---------|
-| `2000` | Success | `4000` | Business error | `401` | Auth | `400` | Bad request |
-
-- Success (no pagination) → `DetailResponse(data=serializer.data)`
-- Success (paginated list) → use `self.get_paginated_response()` or `SuccessResponse(data=data, total=count)`
-- Business error → `ErrorResponse(msg='something went wrong', code=4000)`
-
-## Logging Convention
-
-Use `import logging; logger = logging.getLogger(__name__)` for standard Django logging.
-Define module-level `FSM = 'my_func_name'` constant for reusable context labels.
-
 ## Agent Coordination
 
 Named agents message each other via `SendMessage`. Spawn all in one message.
@@ -94,6 +60,9 @@ Swarm NO for single edits, fixes, docs, config, questions.
 
 Document each bug fix with background, effect, suggestion in the TODO list.
 
-## OPSflow Style Guide
+## Project Standards
 
-See [OPSFLOW.md](OPSFLOW.md) — design tokens, animations, dialog styling, naming conventions, i18n rules.
+Key standards reference files (loaded on demand):
+- [Frontend Style Guide](docs/opsflow/guides/frontend-style-guide.md) — SCSS, Vue, i18n, TS, Buttons, Pinia
+- [Project & Engineering Standards](docs/opsflow/guides/project-standards.md) — Architecture, API response, Backend layers, Error handling
+- [Process & Governance Standards](docs/opsflow/guides/process-standards.md) — Git, Docs, Design constraints

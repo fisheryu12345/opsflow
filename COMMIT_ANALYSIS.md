@@ -2,6 +2,29 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `28c16f75`
+
+> 提交日期: 2026-06-10 | 提交信息: docs: add 8 development standards to OPSFLOW.md — 补充 8 项开发规范
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `OPSFLOW.md` | 文档 | 补充 8 项开发规范（+143 行）：Vue 组件结构、前端注释、TS 类型、后端分层、API 命名、错误处理、Git 提交、Pinia Store |
+
+### 解决
+
+- **问题/背景：** OPSFLOW.md 原有规范集中在 SCSS/按钮/i18n/项目结构，缺少 Vue 组件写法、TypeScript 类型、后端分层、Git 分支、Store 管理等高频开发场景的规范约束
+- **办法：** 一次性补充 8 项规范，覆盖前端（组件/注释/类型/Store）、后端（分层/API/错误处理）、Git 流程全链路
+
+### 验证
+
+- 改动类型: docs
+- 清理乱码: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## `d2cf3d83`
 
 > 提交日期: 2026-06-10 | 提交信息: refactor: unify SCSS architecture and standardize button styles — SCSS 架构统一 & 按钮风格规范
