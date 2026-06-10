@@ -1,60 +1,83 @@
-import os
+"""
+env.example.py — 配置模板
 
-from application.settings import BASE_DIR
+复制此文件为对应环境文件后填写实际值：
+  env_dev.py   — 本地开发环境
+  env_uat.py   — UAT 测试环境
+  env_prod.py  — 生产环境
+
+完整变量定义见 env_base.py（所有环境的共享默认值）。
+本文件仅作为配置清单参考，不参与实际加载。
+"""
 
 # ================================================= #
-# *************** mysql数据库 配置  *************** #
+# *************** MySQL 数据库  ******************* #
 # ================================================= #
-# 数据库 ENGINE ，默认演示使用 sqlite3 数据库，正式环境建议使用 mysql 数据库
-# sqlite3 设置
-DATABASE_ENGINE = "django.db.backends.sqlite3"
-DATABASE_NAME = os.path.join(BASE_DIR, "db.sqlite3")
-
-# 使用mysql时，改为此配置
-# DATABASE_ENGINE = "django.db.backends.mysql"
-# DATABASE_NAME = 'django-vue-admin' # mysql 时使用
-
-# 数据库地址 改为自己数据库地址
-DATABASE_HOST = "127.0.0.1"
-# # 数据库端口
+DATABASE_ENGINE = "django.db.backends.mysql"
+DATABASE_NAME = ""
+DATABASE_HOST = ""
 DATABASE_PORT = 3306
-# # 数据库用户名
-DATABASE_USER = "root"
-# # 数据库密码
-DATABASE_PASSWORD = "123456"
+DATABASE_USER = ""
+DATABASE_PASSWORD = ""
 
-# 表前缀
-TABLE_PREFIX = "dvadmin_"
 # ================================================= #
-# ******** redis配置，无redis 可不进行配置  ******** #
+# *************** Redis 配置  ********************* #
 # ================================================= #
-# REDIS_PASSWORD = ''
-# REDIS_HOST = '127.0.0.1'
-# REDIS_URL = f'redis://:{REDIS_PASSWORD or ""}@{REDIS_HOST}:6380'
-# ================================================= #
-# ****************** 功能 启停  ******************* #
-# ================================================= #
-DEBUG = True
-# 启动登录详细概略获取(通过调用api获取ip详细地址。如果是内网，关闭即可)
-ENABLE_LOGIN_ANALYSIS_LOG = True
-# 登录接口 /api/token/ 是否需要验证码认证，用于测试，正式环境建议取消
-LOGIN_NO_CAPTCHA_AUTH = True
-# ================================================= #
-# ****************** 其他 配置  ******************* #
-# ================================================= #
+REDIS_PASSWORD = ""
+REDIS_HOST = ""
+REDIS_PORT = 6379
 
+# ================================================= #
+# *************** 功能开关  *********************** #
+# ================================================= #
+DEBUG = False
+ENABLE_LOGIN_ANALYSIS_LOG = False
+LOGIN_NO_CAPTCHA_AUTH = False
+
+# ================================================= #
+# *************** 主机/安全  ********************** #
+# ================================================= #
 ALLOWED_HOSTS = ["*"]
-# 列权限中排除App应用
 COLUMN_EXCLUDE_APPS = []
 
 # ================================================= #
-# ****************** 邮件 配置  ******************* #
+# *************** 邮件配置  *********************** #
 # ================================================= #
-# EMAIL_ENABLE = True
-# EMAIL_HOST = "smtp.qq.com"
-# EMAIL_PORT = 465
-# EMAIL_USE_SSL = True
-# EMAIL_HOST_USER = "your_email@qq.com"
-# EMAIL_HOST_PASSWORD = "your_smtp_authorization_code"
-# EMAIL_FROM = "your_email@qq.com"
-# EMAIL_TO = ["receiver@example.com"]
+EMAIL_ENABLE = False
+EMAIL_HOST = ""
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = ""
+EMAIL_HOST_PASSWORD = ""
+EMAIL_FROM = ""
+EMAIL_TO = []
+
+# ================================================= #
+# *************** OpsFlow 调度器  ***************** #
+# ================================================= #
+OPSFLOW_SCHEDULER_AUTOSTART = True
+
+# ================================================= #
+# *************** OpsAgent LLM 配置  ************** #
+# ================================================= #
+OPSAGENT_API_KEY = ""
+OPSAGENT_BASE_URL = "https://api.deepseek.com/v1"
+OPSAGENT_MODEL = "deepseek-chat"
+
+# ================================================= #
+# *************** Ansible 配置  ******************* #
+# ================================================= #
+ANSIBLE_API_URL = ""
+ANSIBLE_API_TOKEN = ""
+ANSIBLE_TEMPLATE_ID = 1
+ANSIBLE_VERIFY_SSL = False
+
+# ================================================= #
+# *************** Neo4j 图数据库  ***************** #
+# ================================================= #
+NEO4J_PROTOCOL = "bolt"
+NEO4J_HOST = ""
+NEO4J_PORT = 7687
+NEO4J_USER = ""
+NEO4J_PASSWORD = ""
+NEO4J_DATABASE = "neo4j"
