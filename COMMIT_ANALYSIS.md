@@ -2,6 +2,38 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `d2cf3d83`
+
+> 提交日期: 2026-06-10 | 提交信息: refactor: unify SCSS architecture and standardize button styles — SCSS 架构统一 & 按钮风格规范
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `OPSFLOW.md` | 文档 | 更新 SCSS 规范（$g-*/@use styles/global）和按钮风格规范 |
+| `web/src/styles/_tokens.scss` | 样式 | **新文件** — 全局设计令牌（$g-* 变量，合并 sys 和 of 两套） |
+| `web/src/styles/_mixins.scss` | 样式 | **新文件** — 全局 mixin（g-hover-lift/g-dialog-header 等） |
+| `web/src/styles/_components.scss` | 样式 | **新文件** — 全局 class（.g-card/.g-fade-in-up 等） |
+| `web/src/styles/global.scss` | 样式 | **新文件** — 统一入口（@forward 三个 partials） |
+| `web/src/styles/opsflow-*.scss` | 样式 | **删除** — 旧两套 SCSS 系统（opsflow-global/opsflow-variables） |
+| `web/src/views/system/styles/system-global.scss` | 样式 | **删除** — 旧 system-global SCSS |
+| `web/` (70+ .vue 文件) | 前端 | 全部 @use 路径改为 `/@/styles/global`；$sys-*/$of-* → $g-*；.sys-*/.of-* → .g-*；mixin 同步改名 |
+| `web/` (44 .vue 文件) | 前端 | 按钮规范统一：行内 text type="primary" → text；弹窗移除 size="small"；primary 加图标；工具栏加图标 |
+
+### 解决
+
+- **问题/背景：** 项目有两套并行的 SCSS 系统（opsflow-* 45 文件 + sys-* 7 文件），值几乎相同但命名不同，开发者选择困难、UI 有不一致、维护需改两处。同时按钮风格不统一（大小混用、79% 无图标、行内按钮写法混乱）
+- **办法：** 一次性合并为三层架构（tokens + mixins + components），前缀统一 g-；通过自动化脚本批量重命名 70+ 文件的变量/class/mixin；按 OPSFLOW.md 规范统一按钮大小/类型/图标
+
+### 验证
+
+- 改动类型: refactor
+- 清理乱码: 有（fix_buttons.py/fix_buttons_v2.py 临时脚本）
+- 工作区状态: 干净 ✅
+- Vite build 零错误 ✅ (32.92s)
+
+---
+
 ## `99c70038`
 
 > 提交日期: 2026-06-09 | 提交信息: chore: remove deprecated USE_L10N setting — 移除 Django 5.0 已废弃的 USE_L10N
