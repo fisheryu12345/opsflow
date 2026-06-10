@@ -57,7 +57,7 @@
               <div class="output-top">
                 <code class="output-key">{{ out.name || out.key }}</code>
                 <el-tag size="mini" :type="outputTypeTag(out.type)" effect="plain">{{ out.type }}</el-tag>
-                <el-button size="small" text type="primary" @click="copyRef(form.id + '.' + (out.name || out.key))">
+                <el-button size="small" text @click="copyRef(form.id + '.' + (out.name || out.key))">
                   <el-icon><CopyDocument /></el-icon>
                 </el-button>
               </div>
@@ -210,14 +210,14 @@
           <div class="condition-preview" @click="openConditionDialog">
             <template v-if="edgeForm.condition">
               <code class="condition-code">{{ edgeForm.condition }}</code>
-              <el-button size="small" text type="primary">
+              <el-button size="small" text>
                 <el-icon><EditPen /></el-icon>
                 Edit
               </el-button>
             </template>
             <template v-else>
               <span class="condition-placeholder">{{ $t("message.condition.expressionPlaceholder") }}</span>
-              <el-button size="small" text type="primary">Add</el-button>
+              <el-button size="small" text>Add</el-button>
             </template>
           </div>
           <!-- 引用变量标签 -->
@@ -577,7 +577,7 @@ loadTemplates()
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .property-panel {
   width: 280px;

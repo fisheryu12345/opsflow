@@ -160,7 +160,7 @@
 
           <el-table-column :label="$t('message.messageCenter.colActions')" width="130" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button text type="primary" size="small" @click.stop="openDetailDrawer(row)">
+              <el-button text size="small" @click.stop="openDetailDrawer(row)">
                 <el-icon><View /></el-icon> {{ $t('message.messageCenter.view') }}
               </el-button>
               <el-button

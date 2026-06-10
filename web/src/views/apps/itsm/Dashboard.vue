@@ -205,7 +205,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .itsm-dashboard {
   padding: 16px 0;
@@ -226,7 +226,7 @@ onUnmounted(() => {
   background: #fff;
   border-radius: 12px;
   padding: 18px 20px;
-  box-shadow: $of-shadow-card;
+  box-shadow: $g-shadow-card;
 }
 
 .itsm-dash-stat-icon {
@@ -247,13 +247,13 @@ onUnmounted(() => {
 .itsm-dash-stat-value {
   font-size: 24px;
   font-weight: 700;
-  color: $of-text-primary;
+  color: $g-text-primary;
   line-height: 1.2;
 }
 
 .itsm-dash-stat-label {
   font-size: 12px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   margin-top: 2px;
 }
 
@@ -269,7 +269,7 @@ onUnmounted(() => {
 .itsm-dash-card {
   background: #fff;
   border-radius: 12px;
-  box-shadow: $of-shadow-card;
+  box-shadow: $g-shadow-card;
   padding: 16px 18px;
 }
 
@@ -283,7 +283,7 @@ onUnmounted(() => {
 .itsm-dash-card-title {
   font-size: 14px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 
 /* ===== Overdue List ===== */
@@ -314,7 +314,7 @@ onUnmounted(() => {
 
 .itsm-dash-list-title {
   font-size: 13px;
-  color: $of-text-primary;
+  color: $g-text-primary;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -324,7 +324,7 @@ onUnmounted(() => {
 
 .itsm-dash-list-meta {
   font-size: 11px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   flex-shrink: 0;
 }
 

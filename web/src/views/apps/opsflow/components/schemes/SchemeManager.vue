@@ -41,8 +41,8 @@
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button size="small" @click="showEditor = false">Cancel</el-button>
-          <el-button size="small" type="primary" @click="saveScheme">Save</el-button>
+          <el-button  @click="showEditor = false">Cancel</el-button>
+          <el-button  type="primary" @click="saveScheme">Save</el-button>
         </template>
       </el-dialog>
     </div>
@@ -113,7 +113,7 @@ watch(() => props.visible, (v) => { if (v) loadSchemes() })
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .scheme-manager { min-height: 200px; }
 .scheme-header { margin-bottom: 12px; }

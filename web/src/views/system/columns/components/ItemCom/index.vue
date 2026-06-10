@@ -98,7 +98,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .item-com {
 	width: 100%;
@@ -112,21 +112,21 @@ onMounted(() => {
 		gap: 8px;
 		padding-bottom: 10px;
 		margin-bottom: 12px;
-		border-bottom: 1px solid $of-border-light;
+		border-bottom: 1px solid $g-border-light;
 		flex-shrink: 0;
 
 		.item-com-header-bar {
 			width: 3px;
 			height: 16px;
 			border-radius: 2px;
-			background: $of-gradient-blue;
+			background: $g-gradient-primary;
 			flex-shrink: 0;
 		}
 
 		.item-com-title {
 			font-size: 14px;
 			font-weight: 600;
-			color: $of-text-primary;
+			color: $g-text-primary;
 		}
 	}
 
@@ -142,22 +142,22 @@ onMounted(() => {
 			width: fit-content;
 			min-width: 100%;
 			padding: 9px 14px;
-			border-radius: $of-radius-sm;
+			border-radius: $g-radius-sm;
 			cursor: pointer;
-			transition: all $of-transition-default;
-			color: $of-text-secondary;
+			transition: all $g-transition-default;
+			color: $g-text-secondary;
 			font-size: 13px;
 			box-sizing: border-box;
 		}
 
 		.item-com-item:hover {
-			background: $of-bg-card-hover;
-			color: $of-color-primary;
+			background: $g-bg-card-hover;
+			color: $g-color-primary;
 		}
 
 		.active {
-			background: $of-bg-light-blue;
-			color: $of-color-primary;
+			background: $g-bg-light-blue;
+			color: $g-color-primary;
 			font-weight: 600;
 		}
 	}

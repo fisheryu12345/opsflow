@@ -74,7 +74,7 @@
               <el-button v-if="row.status==='firing'" size="small" text type="warning" @click="ackAlert(row)">确认</el-button>
               <el-button v-if="row.status==='firing'||row.status==='acknowledged'" size="small" text type="success" @click="resolveAlert(row)">恢复</el-button>
               <el-button v-if="row.status!=='closed'" size="small" text type="info" @click="closeAlert(row)">关闭</el-button>
-              <el-button v-if="!row.incident_id" size="small" text type="primary" @click="createIncident(row)">建单</el-button>
+              <el-button v-if="!row.incident_id" size="small" text @click="createIncident(row)">建单</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -92,7 +92,7 @@
           <span class="section-title">告警规则</span>
           <div class="section-actions">
             <el-input v-model="strategySearch" placeholder="搜索规则" clearable size="small" style="width:200px;margin-right:8px;" />
-            <el-button type="primary" size="small" @click="showStrategyWizard = true">+ 创建策略</el-button>
+            <el-button type="primary" :icon="Plus" size="small" @click="showStrategyWizard = true">+ 创建策略</el-button>
             <el-button :icon="Refresh" size="small" @click="loadStrategies" :loading="loading">刷新</el-button>
           </div>
         </div>

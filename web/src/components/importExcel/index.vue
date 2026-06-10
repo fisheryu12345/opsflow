@@ -27,7 +27,7 @@
           </template>
         </el-upload>
         <div>
-          <el-button type="warning" style="font-size:14px;margin-top: 20px" @click="importTemplate">下载导入模板</el-button>
+          <el-button :icon="Upload" type="warning" style="font-size:14px;margin-top: 20px" @click="importTemplate">下载导入模板</el-button>
           <el-button type="warning" style="font-size:14px;margin-top: 20px" @click="updateTemplate">批量更新模板</el-button>
         </div>
       </div>

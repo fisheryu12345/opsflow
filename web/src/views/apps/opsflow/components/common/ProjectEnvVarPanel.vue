@@ -66,8 +66,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="formVisible = false">{{ $t("message.common.cancel") }}</el-button>
-        <el-button size="small" type="primary" @click="handleSave" :loading="saving">{{ $t("message.common.save") }}</el-button>
+        <el-button  @click="formVisible = false">{{ $t("message.common.cancel") }}</el-button>
+        <el-button  type="primary" @click="handleSave" :loading="saving">{{ $t("message.common.save") }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -168,7 +168,7 @@ watch(() => props.projectId, (v) => { if (v) load() }, { immediate: true })
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 .env-panel { display: flex; flex-direction: column; gap: 12px; }
 .env-header { display: flex; align-items: center; justify-content: space-between; }
 .env-title { font-size: 14px; font-weight: 600; color: #303133; }

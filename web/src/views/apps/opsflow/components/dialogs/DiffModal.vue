@@ -128,17 +128,17 @@ defineExpose({ show })
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
-.diff-dialog :deep(.el-dialog__header) { @include of-dialog-header; }
+.diff-dialog :deep(.el-dialog__header) { @include g-dialog-header; }
 .diff-dialog :deep(.el-dialog__body) { padding: 0; }
-.diff-dialog :deep(.el-dialog__footer) { @include of-dialog-footer; }
+.diff-dialog :deep(.el-dialog__footer) { @include g-dialog-footer; }
 .diff-stats {
   display: flex;
   gap: 16px;
   padding: 12px 20px;
-  background: $of-bg-card;
-  border-bottom: 1px solid $of-border-default;
+  background: $g-bg-card;
+  border-bottom: 1px solid $g-border-default;
 }
 .diff-stat {
   font-size: 13px;
@@ -148,15 +148,15 @@ defineExpose({ show })
 }
 .diff-stat-add {
   color: #67c23a;
-  background: $of-bg-success;
+  background: $g-bg-success;
 }
 .diff-stat-remove {
   color: #f56c6c;
-  background: $of-bg-danger;
+  background: $g-bg-danger;
 }
 .diff-stat-modify {
   color: #e6a23c;
-  background: $of-bg-warning;
+  background: $g-bg-warning;
 }
 .diff-container {
   display: flex;
@@ -174,11 +174,11 @@ defineExpose({ show })
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: $of-bg-header;
-  border-bottom: 1px solid $of-border-default;
+  background: $g-bg-header;
+  border-bottom: 1px solid $g-border-default;
   font-size: 13px;
   font-weight: 600;
-  color: $of-text-secondary;
+  color: $g-text-secondary;
   flex-shrink: 0;
 }
 .diff-content-wrapper {
@@ -190,7 +190,7 @@ defineExpose({ show })
   user-select: none;
   text-align: right;
   padding: 10px 0;
-  border-right: 1px solid $of-border-default;
+  border-right: 1px solid $g-border-default;
   background: #fafafa;
   flex-shrink: 0;
 }
@@ -198,7 +198,7 @@ defineExpose({ show })
   font-size: 11px;
   line-height: 1.6;
   padding: 0 8px;
-  color: $of-text-placeholder;
+  color: $g-text-placeholder;
   font-family: 'SF Mono', 'Cascadia Code', monospace;
 }
 .diff-content {
@@ -215,16 +215,16 @@ defineExpose({ show })
   white-space: pre;
 }
 .diff-line-remove {
-  background: $of-bg-danger;
+  background: $g-bg-danger;
   color: #f56c6c;
 }
 .diff-line-add {
-  background: $of-bg-success;
+  background: $g-bg-success;
   color: #67c23a;
 }
 .diff-divider {
   width: 1px;
-  background: $of-border-default;
+  background: $g-border-default;
   flex-shrink: 0;
 }
 </style>

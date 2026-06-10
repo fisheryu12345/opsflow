@@ -82,7 +82,7 @@ onMounted(fetchStatus)
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .subprocess-status-badge {
   position: absolute;

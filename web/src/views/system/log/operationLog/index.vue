@@ -91,7 +91,7 @@
           <el-table-column prop="create_datetime" :label="$t('message.operationLogPage.colTime')" width="170" />
           <el-table-column :label="$t('message.operationLogPage.colActions')" width="80" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button size="small" text type="primary" @click="showDetail(row)">{{ $t('message.operationLogPage.view') }}</el-button>
+              <el-button size="small" text @click="showDetail(row)">{{ $t('message.operationLogPage.view') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -295,12 +295,12 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .oplog-page {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   display: flex; flex-direction: column;
-  background: $of-bg-page; overflow: hidden;
+  background: $g-bg-page; overflow: hidden;
 }
 
 /* ===== Hero ===== */
@@ -336,31 +336,31 @@ onMounted(() => {
   display: flex; justify-content: space-between; align-items: flex-start;
   padding: 14px 0 10px; gap: 12px;
   position: sticky; top: 0; z-index: 10;
-  background: $of-bg-page;
+  background: $g-bg-page;
 }
 .oplog-filter-bar :deep(.el-form-item) { margin-bottom: 4px; }
-.oplog-filter-bar :deep(.el-form-item__label) { font-size: 12px; color: $of-text-secondary; }
+.oplog-filter-bar :deep(.el-form-item__label) { font-size: 12px; color: $g-text-secondary; }
 .oplog-filter-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; padding-top: 2px; }
 
 /* ===== Table Card ===== */
 .oplog-table-card {
-  background: #fff; border-radius: 14px; box-shadow: $of-shadow-card; overflow: hidden;
+  background: #fff; border-radius: 14px; box-shadow: $g-shadow-card; overflow: hidden;
 }
 .oplog-table-card :deep(.el-table th.el-table__cell) {
-  background: $of-bg-header; color: $of-text-secondary; font-weight: 600; font-size: 12px;
+  background: $g-bg-header; color: $g-text-secondary; font-weight: 600; font-size: 12px;
 }
 .oplog-table-card :deep(.el-table__body tr:hover td) { background: #f5f7fa; }
-.oplog-table-card :deep(.el-table__body tr.current-row > td) { background: $of-bg-light-blue; }
+.oplog-table-card :deep(.el-table__body tr.current-row > td) { background: $g-bg-light-blue; }
 
 /* ===== Response Code Badge ===== */
 .oplog-code-badge {
   display: inline-block; font-size: 12px; font-weight: 600;
   padding: 2px 10px; border-radius: 10px; min-width: 40px; text-align: center;
 }
-.code-success { background: $of-bg-success; color: #67C23A; }
-.code-redirect { background: $of-bg-light-blue; color: #409EFF; }
-.code-client-err { background: $of-bg-warning; color: #E6A23C; }
-.code-server-err { background: $of-bg-danger; color: #F56C6C; }
+.code-success { background: $g-bg-success; color: #67C23A; }
+.code-redirect { background: $g-bg-light-blue; color: #409EFF; }
+.code-client-err { background: $g-bg-warning; color: #E6A23C; }
+.code-server-err { background: $g-bg-danger; color: #F56C6C; }
 
 /* ===== Pagination ===== */
 .oplog-pagination {
@@ -372,8 +372,8 @@ onMounted(() => {
   --el-drawer-padding-primary: 0;
 }
 .oplog-detail-drawer :deep(.el-drawer__header) {
-  margin-bottom: 0; padding: $of-padding-dialog-header;
-  border-bottom: 1px solid $of-border-light;
+  margin-bottom: 0; padding: $g-padding-dialog-header;
+  border-bottom: 1px solid $g-border-light;
 }
 .oplog-detail-drawer :deep(.el-drawer__body) {
   padding: 20px;
@@ -385,19 +385,19 @@ onMounted(() => {
   padding: 6px 10px !important;
 }
 .oplog-detail-body :deep(.el-descriptions__label.is-bordered-label) {
-  font-weight: 500; color: $of-text-secondary;
+  font-weight: 500; color: $g-text-secondary;
 }
 .oplog-detail-section {
   margin-top: 4px;
 }
 .oplog-detail-label {
-  font-size: 13px; font-weight: 600; color: $of-text-primary;
+  font-size: 13px; font-weight: 600; color: $g-text-primary;
   margin-bottom: 8px;
 }
 .oplog-detail-code {
-  background: $of-bg-card; border-radius: $of-radius-sm;
+  background: $g-bg-card; border-radius: $g-radius-sm;
   padding: 12px; font-size: 12px; line-height: 1.5;
   max-height: 280px; overflow: auto; white-space: pre-wrap; word-break: break-all;
-  margin: 0; border: 1px solid $of-border-card;
+  margin: 0; border: 1px solid $g-border-card;
 }
 </style>

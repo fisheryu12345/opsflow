@@ -131,7 +131,7 @@
               </el-table-column>
               <el-table-column :label="$t('message.menuPage.deptColActions')" width="235" fixed="right" align="center">
                 <template #default="{ row }">
-                  <el-button v-auth="'user:Update'" text type="primary" size="small" style="padding:0 4px" @click="handleEditUser(row)">{{ $t('message.menuPage.deptEditUser') }}</el-button>
+                  <el-button v-auth="'user:Update'" text size="small" style="padding:0 4px" @click="handleEditUser(row)">{{ $t('message.menuPage.deptEditUser') }}</el-button>
                   <el-button v-auth="'user:Delete'" text type="danger" size="small" style="padding:0 4px" @click="handleDeleteUser(row)">{{ $t('message.menuPage.deptDeleteUser') }}</el-button>
                   <el-button v-auth="'user:ResetPassword'" text type="warning" size="small" style="padding:0 4px" @click="handleResetPwdOpen(row)">{{ $t('message.menuPage.deptResetPwd') }}</el-button>
                 </template>
@@ -204,8 +204,8 @@
         </el-row>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="userDialogVisible = false">{{ $t('message.menuPage.deptUserCancel') }}</el-button>
-        <el-button size="small" type="primary" :loading="userBtnLoading" @click="handleUserSubmit">{{ $t('message.menuPage.deptUserSave') }}</el-button>
+        <el-button  @click="userDialogVisible = false">{{ $t('message.menuPage.deptUserCancel') }}</el-button>
+        <el-button  type="primary" :loading="userBtnLoading" @click="handleUserSubmit">{{ $t('message.menuPage.deptUserSave') }}</el-button>
       </template>
     </el-dialog>
 
@@ -227,8 +227,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="handleResetPwdClose">{{ $t('message.menuPage.deptResetPwdCancel') }}</el-button>
-        <el-button size="small" type="primary" :loading="resetPwdLoading" @click="handleResetPwdSubmit">{{ $t('message.menuPage.deptResetPwdConfirm') }}</el-button>
+        <el-button  @click="handleResetPwdClose">{{ $t('message.menuPage.deptResetPwdCancel') }}</el-button>
+        <el-button  type="primary" :loading="resetPwdLoading" @click="handleResetPwdSubmit">{{ $t('message.menuPage.deptResetPwdConfirm') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -505,7 +505,7 @@ onUnmounted(() => { deptCountChart?.dispose(); deptSexChart?.dispose(); });
 </script>
 
 <style scoped lang="scss">
-@use '../styles/system-global' as *;
+@use '/@/styles/global' as *;
 
 .dept-page { width: 100%; }
 
@@ -518,18 +518,18 @@ onUnmounted(() => { deptCountChart?.dispose(); deptSexChart?.dispose(); });
 }
 .dept-stat-card {
   display: flex; align-items: center; gap: 14px;
-  background: #fff; border-radius: $sys-radius; padding: 16px 18px;
-  box-shadow: $sys-shadow-card; transition: transform .2s, box-shadow .2s;
+  background: #fff; border-radius: $g-radius; padding: 16px 18px;
+  box-shadow: $g-shadow-card; transition: transform .2s, box-shadow .2s;
   cursor: default;
-  &:hover { transform: translateY(-2px); box-shadow: $sys-shadow-hover; }
+  &:hover { transform: translateY(-2px); box-shadow: $g-shadow-hover; }
 }
 .dept-stat-icon {
   width: 42px; height: 42px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff;
 }
 .dept-stat-body { flex: 1; min-width: 0; }
-.dept-stat-val { font-size: 22px; font-weight: 700; color: $sys-text-primary; line-height: 1.2; }
-.dept-stat-lbl { font-size: 13px; color: $sys-text-secondary; margin-top: 2px; }
+.dept-stat-val { font-size: 22px; font-weight: 700; color: $g-text-primary; line-height: 1.2; }
+.dept-stat-lbl { font-size: 13px; color: $g-text-secondary; margin-top: 2px; }
 
 // ===== Layout =====
 .dept-main-row {
@@ -552,37 +552,37 @@ onUnmounted(() => { deptCountChart?.dispose(); deptSexChart?.dispose(); });
 .dept-bread {
   display: flex; align-items: center; gap: 8px;
   padding: 14px 18px 10px;
-  border-bottom: 1px solid $sys-border-light;
+  border-bottom: 1px solid $g-border-light;
   flex-shrink: 0;
 }
 .dept-bread-name {
-  font-size: 16px; font-weight: 600; color: $sys-text-primary;
+  font-size: 16px; font-weight: 600; color: $g-text-primary;
 }
 .dept-bread-tag { margin-left: 2px; }
 .dept-bread-switch {
   margin-left: auto;
   display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: $sys-text-secondary;
+  font-size: 12px; color: $g-text-secondary;
 }
 
 // ===== Dashboard (info + charts) =====
 .dept-dashboard {
   display: flex; align-items: stretch; gap: 0;
   padding: 14px 18px;
-  background: $sys-gradient-hero;
-  border-bottom: 1px solid $sys-border-light;
+  background: $g-gradient-hero;
+  border-bottom: 1px solid $g-border-light;
   flex-shrink: 0;
 }
 .dept-dash-info {
   display: flex; flex-direction: column; justify-content: center; gap: 6px;
   min-width: 160px; flex-shrink: 0;
   padding-right: 18px;
-  border-right: 1px solid $sys-border-light;
+  border-right: 1px solid $g-border-light;
 }
 .dept-info-row {
   display: flex; align-items: center; gap: 8px; font-size: 13px;
-  .dept-info-label { color: $sys-text-secondary; min-width: 56px; }
-  .dept-info-val { color: $sys-text-regular; font-weight: 500; }
+  .dept-info-label { color: $g-text-secondary; min-width: 56px; }
+  .dept-info-val { color: $g-text-regular; font-weight: 500; }
   .dept-info-desc { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 .dept-dash-charts {
@@ -597,7 +597,7 @@ onUnmounted(() => { deptCountChart?.dispose(); deptSexChart?.dispose(); });
 .dept-toolbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 18px; flex-shrink: 0;
-  border-bottom: 1px solid $sys-border-light;
+  border-bottom: 1px solid $g-border-light;
   .dept-toolbar-left, .dept-toolbar-right { display: flex; align-items: center; gap: 8px; }
 }
 
@@ -605,13 +605,13 @@ onUnmounted(() => { deptCountChart?.dispose(); deptSexChart?.dispose(); });
 .dept-pagination {
   display: flex; justify-content: flex-end;
   padding: 10px 18px; flex-shrink: 0;
-  border-top: 1px solid $sys-border-light;
+  border-top: 1px solid $g-border-light;
 }
 
 // ===== Responsive =====
 @media screen and (max-width: 1200px) {
   .dept-dashboard { flex-direction: column; align-items: stretch; }
-  .dept-dash-info { border-right: none; border-bottom: 1px solid $sys-border-light; padding: 0 0 10px; }
+  .dept-dash-info { border-right: none; border-bottom: 1px solid $g-border-light; padding: 0 0 10px; }
   .dept-dash-charts { padding: 10px 0 0; }
   .dept-chart-bar { width: 260px; }
 }

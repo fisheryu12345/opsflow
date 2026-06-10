@@ -40,8 +40,8 @@
     <template #footer>
       <div class="pv-footer">
         <span class="pv-footer-note">{{ changedCount > 0 ? `${changedCount} ${$t('message.opsflowPage.pluginVisChanges')}` : '' }}</span>
-        <el-button size="small" @click="handleReset">{{ $t("message.opsflowPage.pluginVisReset") }}</el-button>
-        <el-button size="small" type="primary" :loading="saving" @click="handleSave"
+        <el-button  @click="handleReset">{{ $t("message.opsflowPage.pluginVisReset") }}</el-button>
+        <el-button  type="primary" :loading="saving" @click="handleSave"
           :disabled="changedCount === 0">{{ $t("message.common.save") }}</el-button>
       </div>
     </template>
@@ -216,7 +216,7 @@ watch(() => props.visible, (v) => { if (v) { loadData(); searchQuery.value = '' 
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .pv-dialog :deep(.el-dialog__body) { padding: 0; }
 .pv-body { max-height: 65vh; overflow-y: auto; padding: 18px 20px; }

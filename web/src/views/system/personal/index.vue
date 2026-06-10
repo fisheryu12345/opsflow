@@ -1,7 +1,7 @@
 <template>
   <div class="personal-page layout-pd">
     <!-- ===== 顶部问候横幅 ===== -->
-    <div class="of-fade-in-up personal-hero">
+    <div class="g-fade-in-up personal-hero">
       <div class="personal-hero-content">
         <div class="personal-hero-avatar">
           <avatarSelector
@@ -42,7 +42,7 @@
       <!-- ===== 左侧: 更新信息 ===== -->
       <el-col :xs="24" :sm="16">
         <!-- 基本信息 -->
-        <div class="of-card personal-section of-fade-in-up" style="animation-delay:0.1s">
+        <div class="of-card personal-section g-fade-in-up" style="animation-delay:0.1s">
           <div class="personal-section-header">
             <span class="personal-section-icon" :style="{ background: 'linear-gradient(135deg, #409eff, #337ecc)' }">
               <el-icon :size="16"><EditPen /></el-icon>
@@ -99,7 +99,7 @@
         </div>
 
         <!-- 账号安全 -->
-        <div class="of-card personal-section of-fade-in-up" style="animation-delay:0.2s">
+        <div class="of-card personal-section g-fade-in-up" style="animation-delay:0.2s">
           <div class="personal-section-header">
             <span class="personal-section-icon" :style="{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }">
               <el-icon :size="16"><Lock /></el-icon>
@@ -107,7 +107,7 @@
             <span>账号安全</span>
           </div>
 
-          <div class="personal-safe-item of-hover-shift" @click="passwordDialogVisible = true">
+          <div class="personal-safe-item g-hover-shift" @click="passwordDialogVisible = true">
             <div class="personal-safe-item-left">
               <span class="personal-safe-item-icon" :style="{ background: 'linear-gradient(135deg, #f56c6c, #e6a23c)' }">
                 <el-icon :size="16"><Lock /></el-icon>
@@ -152,13 +152,13 @@
 
       <!-- ===== 右侧: 消息通知 ===== -->
       <el-col :xs="24" :sm="8">
-        <div class="of-card personal-section personal-msg-section of-fade-in-up" style="animation-delay:0.15s">
+        <div class="of-card personal-section personal-msg-section g-fade-in-up" style="animation-delay:0.15s">
           <div class="personal-section-header">
             <span class="personal-section-icon" :style="{ background: 'linear-gradient(135deg, #e6a23c, #f56c6c)' }">
               <el-icon :size="16"><Bell /></el-icon>
             </span>
             <span>消息通知</span>
-            <el-button text type="primary" size="small" class="personal-msg-more" @click="goMessageCenter">
+            <el-button text size="small" class="personal-msg-more" @click="goMessageCenter">
               更多
               <el-icon><ArrowRight /></el-icon>
             </el-button>
@@ -168,7 +168,7 @@
             <div
               v-for="(item, i) in newsList"
               :key="i"
-              class="personal-msg-item of-stagger-item"
+              class="personal-msg-item g-stagger-item"
               :style="{ animationDelay: `${i * 0.06}s` }"
               @click="goMessageCenter"
             >
@@ -491,20 +491,20 @@ onMounted(() => {
 // ============================================================
 // OPSflow design tokens (inline for independence)
 // ============================================================
-$of-radius-card: 10px;
-$of-shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06);
-$of-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
+$g-radius-card: 10px;
+$g-shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06);
+$g-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
 
 // ============================================================
 // Animations (inline so no external import needed)
 // ============================================================
-.of-fade-in-up {
-  animation: ofFadeInUp 0.5s ease both;
+.g-fade-in-up {
+  animation: gFadeInUp 0.5s ease both;
 }
-.of-stagger-item {
-  animation: ofFadeInUp 0.4s ease both;
+.g-stagger-item {
+  animation: gFadeInUp 0.4s ease both;
 }
-@keyframes ofFadeInUp {
+@keyframes gFadeInUp {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
@@ -528,14 +528,14 @@ $of-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
 .personal-hero {
   background: linear-gradient(135deg, #ecf5ff 0%, #f8f9fb 100%);
   border: 1px solid #f0f0f0;
-  border-radius: $of-radius-card;
+  border-radius: $g-radius-card;
   padding: 24px;
   margin-bottom: 18px;
-  box-shadow: $of-shadow-card;
+  box-shadow: $g-shadow-card;
   transition: box-shadow 0.2s;
 
   &:hover {
-    box-shadow: $of-shadow-hover;
+    box-shadow: $g-shadow-hover;
   }
 }
 
@@ -649,7 +649,7 @@ $of-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
     transform: translateX(3px);
   }
 
-  &.of-hover-shift {
+  &.g-hover-shift {
     cursor: pointer;
 
     &:hover {

@@ -1,6 +1,6 @@
 <template>
   <div class="of-page">
-    <div class="of-card of-fade-in-up">
+    <div class="of-card g-fade-in-up">
       <div class="of-section-header">
         <el-icon :size="20" color="#409EFF"><Monitor /></el-icon>
         <span>Demo / 测试页</span>
@@ -22,7 +22,7 @@ import { Monitor } from '@element-plus/icons-vue'
 </script>
 
 <style scoped lang="scss">
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .of-page {
   padding: 24px;
@@ -38,7 +38,7 @@ import { Monitor } from '@element-plus/icons-vue'
       gap: 8px;
       font-size: 15px;
       font-weight: 600;
-      color: $of-text-primary;
+      color: $g-text-primary;
     }
   }
 
@@ -54,12 +54,12 @@ import { Monitor } from '@element-plus/icons-vue'
     display: flex;
     align-items: center;
     gap: 10px;
-    color: $of-text-muted;
+    color: $g-text-muted;
     font-size: 13px;
   }
 
   .of-hint-text {
-    color: $of-text-muted;
+    color: $g-text-muted;
   }
 }
 </style>

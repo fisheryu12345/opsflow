@@ -89,7 +89,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../styles/opsflow-variables' as *;
+@use '/@/styles/global' as *;
 
 .filelist-page {
   position: absolute;
@@ -99,7 +99,7 @@ onMounted(() => {
   bottom: 0;
   display: flex;
   flex-direction: column;
-  background: $of-bg-page;
+  background: $g-bg-page;
   overflow: hidden;
 }
 
@@ -108,15 +108,15 @@ onMounted(() => {
   position: relative;
   flex-shrink: 0;
   overflow: hidden;
-  background: $of-gradient-hero;
+  background: $g-gradient-hero;
 }
 .filelist-hero-bg {
   position: absolute;
   inset: 0;
   opacity: 0.04;
   background-image:
-    radial-gradient(circle at 20% 50%, $of-color-primary 1px, transparent 1px),
-    radial-gradient(circle at 80% 30%, $of-color-accent 1px, transparent 1px);
+    radial-gradient(circle at 20% 50%, $g-color-primary 1px, transparent 1px),
+    radial-gradient(circle at 80% 30%, $g-color-accent 1px, transparent 1px);
   background-size: 40px 40px;
 }
 .filelist-hero-inner {
@@ -135,13 +135,13 @@ onMounted(() => {
   margin: 0;
   font-size: 22px;
   font-weight: 800;
-  color: $of-text-primary;
+  color: $g-text-primary;
   white-space: nowrap;
 }
 .filelist-hero-subtitle {
   margin: 0;
   font-size: 11px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   white-space: nowrap;
 }
 .filelist-hero-center {
@@ -153,21 +153,21 @@ onMounted(() => {
   width: 100%;
 }
 .filelist-search-input :deep(.el-input__wrapper) {
-  background: $of-bg-light-blue;
-  border: 1px solid $of-border-blue;
+  background: $g-bg-light-blue;
+  border: 1px solid $g-border-blue;
   box-shadow: none;
   border-radius: 10px;
   padding: 2px 12px;
 }
 .filelist-search-input :deep(.el-input__inner) {
-  color: $of-text-primary;
+  color: $g-text-primary;
   font-size: 14px;
 }
 .filelist-search-input :deep(.el-input__inner::placeholder) {
-  color: $of-text-placeholder;
+  color: $g-text-placeholder;
 }
 .filelist-search-input :deep(.el-input__prefix-inner) {
-  color: $of-text-muted;
+  color: $g-text-muted;
 }
 
 /* ===== Body ===== */
@@ -180,18 +180,18 @@ onMounted(() => {
 /* ===== Table Card ===== */
 .filelist-table-card {
   background: #fff;
-  border-radius: $of-radius-card;
-  box-shadow: $of-shadow-card;
+  border-radius: $g-radius-card;
+  box-shadow: $g-shadow-card;
   overflow: hidden;
 }
 .filelist-table-card :deep(.el-table th.el-table__cell) {
-  background: $of-bg-header;
-  color: $of-text-secondary;
+  background: $g-bg-header;
+  color: $g-text-secondary;
   font-weight: 600;
   font-size: 12px;
 }
 .filelist-table-card :deep(.el-table__body tr:hover td) {
-  background: $of-bg-card-hover;
+  background: $g-bg-card-hover;
 }
 .filelist-pagination {
   display: flex;

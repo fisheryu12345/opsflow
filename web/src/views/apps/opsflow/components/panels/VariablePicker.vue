@@ -106,7 +106,7 @@ function onSelect(value: string) {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .variable-option {
   display: flex;
@@ -120,13 +120,13 @@ function onSelect(value: string) {
   font-weight: 600;
   flex-shrink: 0;
 }
-.var-source-tag.node { background: $of-bg-light-blue; color: $of-color-primary; }
-.var-source-tag.global { background: $of-bg-success; color: #67C23A; }
-.var-source-tag.project { background: $of-bg-warning; color: #E6A23C; }
-.var-source-tag.system { background: #f4f4f5; color: $of-text-muted; }
+.var-source-tag.node { background: $g-bg-light-blue; color: $g-color-primary; }
+.var-source-tag.global { background: $g-bg-success; color: #67C23A; }
+.var-source-tag.project { background: $g-bg-warning; color: #E6A23C; }
+.var-source-tag.system { background: #f4f4f5; color: $g-text-muted; }
 .var-field-label {
   font-size: 12px;
-  color: $of-text-primary;
+  color: $g-text-primary;
   font-family: monospace;
 }
 </style>

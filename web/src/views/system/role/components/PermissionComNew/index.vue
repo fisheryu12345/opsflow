@@ -302,20 +302,20 @@ const column = reactive({
 
 <style scoped lang="scss">
 // Design tokens (inline to avoid dependency issues)
-$of-color-primary: #409eff;
-$of-bg-light-blue: #ecf5ff;
-$of-bg-card-hover: #f5f9ff;
-$of-bg-header: #f5f7fa;
-$of-bg-card: #f8f9fb;
-$of-text-primary: #303133;
-$of-text-secondary: #666;
-$of-text-muted: #909399;
-$of-border-light: #ebeef5;
-$of-border-card: #f0f0f0;
-$of-radius-sm: 8px;
-$of-radius-card: 10px;
-$of-shadow-card: 0 1px 4px rgba(0,0,0,.06);
-$of-transition-default: .2s;
+$g-color-primary: #409eff;
+$g-bg-light-blue: #ecf5ff;
+$g-bg-card-hover: #f5f9ff;
+$g-bg-header: #f5f7fa;
+$g-bg-card: #f8f9fb;
+$g-text-primary: #303133;
+$g-text-secondary: #666;
+$g-text-muted: #909399;
+$g-border-light: #ebeef5;
+$g-border-card: #f0f0f0;
+$g-radius-sm: 8px;
+$g-radius-card: 10px;
+$g-shadow-card: 0 1px 4px rgba(0,0,0,.06);
+$g-transition-default: .2s;
 
 /* ===== Drawer ===== */
 .pc-drawer {
@@ -343,7 +343,7 @@ $of-transition-default: .2s;
   gap: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 
 .pc-drawer-icon {
@@ -363,7 +363,7 @@ $of-transition-default: .2s;
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   margin-left: 4px;
 
   .pc-role-label {
@@ -394,7 +394,7 @@ $of-transition-default: .2s;
   .pc-menu-name {
     font-size: 15px;
     font-weight: 600;
-    color: $of-text-primary;
+    color: $g-text-primary;
   }
 }
 
@@ -407,7 +407,7 @@ $of-transition-default: .2s;
     margin-right: 0;
     .el-checkbox__label {
       font-size: 12px;
-      color: $of-text-muted;
+      color: $g-text-muted;
     }
   }
 }
@@ -431,14 +431,14 @@ $of-transition-default: .2s;
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: $of-text-secondary;
+  color: $g-text-secondary;
   margin-bottom: 10px;
   padding-bottom: 6px;
-  border-bottom: 1px solid $of-border-card;
+  border-bottom: 1px solid $g-border-card;
 
   .el-icon {
     font-size: 14px;
-    color: $of-color-primary;
+    color: $g-color-primary;
   }
 }
 
@@ -454,19 +454,19 @@ $of-transition-default: .2s;
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  border: 1px solid $of-border-card;
-  border-radius: $of-radius-sm;
+  border: 1px solid $g-border-card;
+  border-radius: $g-radius-sm;
   background: #fafbfc;
-  transition: border-color $of-transition-default, background $of-transition-default;
+  transition: border-color $g-transition-default, background $g-transition-default;
 
   &:hover {
-    border-color: $of-color-primary;
-    background: $of-bg-light-blue;
+    border-color: $g-color-primary;
+    background: $g-bg-light-blue;
   }
 
   &.is-checked {
-    border-color: $of-color-primary;
-    background: $of-bg-light-blue;
+    border-color: $g-color-primary;
+    background: $g-bg-light-blue;
   }
 
   :deep(.el-checkbox) {
@@ -486,13 +486,13 @@ $of-transition-default: .2s;
 
 .pc-btn-name {
   font-size: 13px;
-  color: $of-text-primary;
+  color: $g-text-primary;
   line-height: 1.4;
 }
 
 .pc-btn-range {
   font-size: 11px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   font-weight: 400;
 }
 
@@ -511,12 +511,12 @@ $of-transition-default: .2s;
   font-size: 13px;
 
   thead tr {
-    background: $of-bg-header;
+    background: $g-bg-header;
   }
 
   th, td {
     padding: 8px 12px;
-    border: 1px solid $of-border-light;
+    border: 1px solid $g-border-light;
     text-align: center;
     white-space: nowrap;
   }
@@ -525,7 +525,7 @@ $of-transition-default: .2s;
     width: 160px;
     text-align: left;
     font-weight: 500;
-    color: $of-text-primary;
+    color: $g-text-primary;
   }
 
   .pc-col-check {
@@ -538,9 +538,9 @@ $of-transition-default: .2s;
   }
 
   tbody tr {
-    transition: background $of-transition-default;
+    transition: background $g-transition-default;
     &:hover {
-      background: $of-bg-card-hover;
+      background: $g-bg-card-hover;
     }
   }
 }
@@ -563,10 +563,10 @@ $of-transition-default: .2s;
 
 <style lang="scss">
 /* Unscoped global overrides for el-collapse */
-$of-border-light: #ebeef5;
-$of-bg-card: #f8f9fb;
-$of-color-primary: #409eff;
-$of-radius-sm: 8px;
+$g-border-light: #ebeef5;
+$g-bg-card: #f8f9fb;
+$g-color-primary: #409eff;
+$g-radius-sm: 8px;
 
 .pc-body {
   .el-collapse {
@@ -576,8 +576,8 @@ $of-radius-sm: 8px;
 
   .el-collapse-item {
     margin-bottom: 12px;
-    border: 1px solid $of-border-light;
-    border-radius: $of-radius-sm;
+    border: 1px solid $g-border-light;
+    border-radius: $g-radius-sm;
     overflow: hidden;
     transition: box-shadow 0.2s;
 
@@ -590,7 +590,7 @@ $of-radius-sm: 8px;
     height: auto;
     padding: 12px 16px;
     background: #fafbfc;
-    border-bottom: 1px solid $of-border-light;
+    border-bottom: 1px solid $g-border-light;
     font-weight: 500;
   }
 

@@ -1,0 +1,63 @@
+// ============================================================
+// Global Reusable Mixins
+// ============================================================
+
+@use 'tokens' as *;
+
+// ===== Dialog =====
+@mixin g-dialog-header {
+  padding: $g-padding-dialog-header;
+  margin: 0;
+  border-bottom: 1px solid $g-border-default;
+  font-weight: 600;
+}
+
+@mixin g-dialog-body {
+  padding: $g-padding-dialog-body;
+}
+
+@mixin g-dialog-footer {
+  padding: $g-padding-dialog-footer;
+  border-top: 1px solid $g-border-default;
+}
+
+// ===== Hover Effects =====
+@mixin g-hover-lift {
+  transition: transform $g-transition-default, box-shadow $g-transition-default;
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: $g-shadow-hover;
+  }
+}
+
+@mixin g-hover-shift {
+  transition: transform $g-transition-default, box-shadow $g-transition-default, border-color $g-transition-default;
+  &:hover {
+    transform: translateX(3px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+}
+
+// ===== Gradient Icon Circle =====
+@mixin g-icon-circle($size: 40px, $gradient: $g-gradient-primary) {
+  width: $size;
+  height: $size;
+  border-radius: 50%;
+  background: $gradient;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+// ===== Section Header =====
+@mixin g-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $g-text-primary;
+}

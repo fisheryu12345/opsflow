@@ -49,8 +49,8 @@
       </div>
     </div>
     <template #footer>
-      <el-button @click="emit('update:visible', false)" size="small">Cancel</el-button>
-      <el-button type="primary" @click="confirmSelected" size="small" :disabled="!selectedPlugin">Confirm</el-button>
+      <el-button @click="emit('update:visible', false)" >Cancel</el-button>
+      <el-button type="primary" @click="confirmSelected"  :disabled="!selectedPlugin">Confirm</el-button>
     </template>
   </el-dialog>
 </template>
@@ -144,7 +144,7 @@ function riskTagType(risk: string): string {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .plugin-picker { display: flex; flex-direction: column; gap: 12px; min-height: 400px; }
 .picker-search { flex-shrink: 0; }

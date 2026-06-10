@@ -80,8 +80,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="rejectVisible = false" size="small">{{ $t('message.common.cancel') }}</el-button>
-        <el-button type="danger" @click="confirmReject" size="small">{{ $t("message.opsflowPage.approvalConfirmReject") }}</el-button>
+        <el-button @click="rejectVisible = false" >{{ $t('message.common.cancel') }}</el-button>
+        <el-button type="danger" @click="confirmReject" >{{ $t("message.opsflowPage.approvalConfirmReject") }}</el-button>
       </template>
     </el-dialog>
   </div>

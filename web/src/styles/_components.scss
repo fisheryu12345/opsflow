@@ -1,0 +1,66 @@
+// ============================================================
+// Global Reusable Classes
+// ============================================================
+
+@use 'tokens' as *;
+
+// ===== Card =====
+.g-card {
+  background: $g-bg-card;
+  border: 1px solid $g-border-card;
+  border-radius: $g-radius-card;
+  padding: $g-padding-card;
+  transition: transform $g-transition-default, box-shadow $g-transition-default;
+}
+.g-card:hover {
+  transform: translateY(-1px);
+  box-shadow: $g-shadow-hover;
+}
+
+// ===== Card with Header Bar =====
+.g-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid $g-border-light;
+  background: #fafbfc;
+}
+.g-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: $g-text-primary;
+}
+
+.g-card-body {
+  padding: 16px 20px;
+}
+
+// ===== Animations =====
+.g-fade-in-up {
+  animation: gFadeInUp 0.5s ease both;
+}
+.g-stagger-item {
+  animation: gFadeInUp 0.4s ease both;
+}
+@keyframes gFadeInUp {
+  from { opacity: 0; transform: translateY($g-fade-translate); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ===== Status Tags =====
+.g-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 1px 10px;
+  border-radius: 12px;
+
+  &.is-active { background: $g-bg-success; color: $g-color-success; }
+  &.is-inactive { background: $g-bg-danger; color: $g-color-danger; }
+  &.is-pending { background: $g-bg-warning; color: $g-color-warning; }
+}

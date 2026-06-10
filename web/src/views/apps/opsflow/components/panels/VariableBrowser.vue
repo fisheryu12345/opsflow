@@ -125,7 +125,7 @@ watch(() => props.modelValue, (v) => { if (v) fetchData() })
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .var-browser-dialog :deep(.el-dialog__body) { padding-top: 8px; }
 .tab-empty { padding: 20px 0; }

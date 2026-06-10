@@ -40,7 +40,7 @@
     <div class="portal-body">
 
       <!-- Quick Stats Cards -->
-      <div class="portal-quick-stats of-fade-in-up">
+      <div class="portal-quick-stats g-fade-in-up">
         <div v-for="(s, si) in quickStats" :key="s.key" class="portal-qstat-card" :style="{ '--qstat-color': s.color, '--qstat-bg': s.bg, '--i': si }">
           <div class="portal-qstat-icon"><el-icon :size="22"><component :is="s.icon" /></el-icon></div>
           <div class="portal-qstat-body">
@@ -54,7 +54,7 @@
       <div class="portal-grid-2col">
 
         <!-- Left: My Tasks -->
-        <div class="portal-card of-fade-in-up">
+        <div class="portal-card g-fade-in-up">
           <div class="portal-card-header">
             <div class="portal-card-header-left">
               <el-icon size="15" color="#409EFF"><List /></el-icon>
@@ -94,7 +94,7 @@
         </div>
 
         <!-- Right: Recent Activity -->
-        <div class="portal-card of-fade-in-up">
+        <div class="portal-card g-fade-in-up">
           <div class="portal-card-header">
             <div class="portal-card-header-left">
               <el-icon size="15" color="#E6A23C"><Timer /></el-icon>
@@ -105,7 +105,7 @@
           <div class="portal-activity-list" v-loading="loadingActivity">
             <div v-if="activities.length === 0 && !loadingActivity" class="portal-empty">暂无活动记录</div>
             <div v-for="(act, ai) in activities" :key="act.type + '-' + act.id"
-              class="portal-activity-item of-stagger-item"
+              class="portal-activity-item g-stagger-item"
               :style="{ animationDelay: `${ai * 0.06}s` }"
               @click="handleActivityClick(act)">
               <span class="portal-activity-icon" :class="'act-icon-' + act.type">
@@ -130,7 +130,7 @@
       </div>
 
       <!-- Favorites -->
-      <div class="portal-card of-fade-in-up" v-if="favorites.templates?.length > 0 || favorites.recent_actions?.length > 0">
+      <div class="portal-card g-fade-in-up" v-if="favorites.templates?.length > 0 || favorites.recent_actions?.length > 0">
         <div class="portal-card-header">
           <div class="portal-card-header-left">
             <el-icon size="15" color="#E6A23C"><StarFilled /></el-icon>
@@ -148,7 +148,7 @@
             </div>
             <div class="portal-fav-items">
               <div v-for="(tpl, ti) in favorites.templates" :key="'tpl-' + tpl.id"
-                class="portal-fav-item of-stagger-item"
+                class="portal-fav-item g-stagger-item"
                 :style="{ animationDelay: `${ti * 0.06}s` }"
                 @click="$router.push(tpl.url)">
                 <el-icon><StarFilled /></el-icon>
@@ -164,7 +164,7 @@
             </div>
             <div class="portal-fav-items">
               <div v-for="(act, ai) in favorites.recent_actions" :key="'act-' + act.id"
-                class="portal-fav-item of-stagger-item"
+                class="portal-fav-item g-stagger-item"
                 :style="{ animationDelay: `${ai * 0.06}s` }">
                 <el-icon><Clock /></el-icon>
                 <span class="portal-fav-name">{{ act.action || '操作' }}</span>
@@ -178,7 +178,7 @@
       <!-- Module Health & Quick Actions -->
       <div class="portal-grid-2col">
         <!-- Module Health -->
-        <div class="portal-card of-fade-in-up" v-if="Object.keys(moduleCounts).length > 0">
+        <div class="portal-card g-fade-in-up" v-if="Object.keys(moduleCounts).length > 0">
           <div class="portal-card-header">
             <div class="portal-card-header-left">
               <el-icon size="15" color="#67C23A"><Monitor /></el-icon>
@@ -186,7 +186,7 @@
             </div>
           </div>
           <div class="portal-health-body">
-            <div v-for="(count, key) in moduleCounts" :key="key" class="portal-health-item of-stagger-item" :style="{ animationDelay: `${Object.keys(moduleCounts).indexOf(key) * 0.06}s` }">
+            <div v-for="(count, key) in moduleCounts" :key="key" class="portal-health-item g-stagger-item" :style="{ animationDelay: `${Object.keys(moduleCounts).indexOf(key) * 0.06}s` }">
               <span class="portal-health-icon">{{ formatModuleIcon(key) }}</span>
               <div class="portal-health-info">
                 <span class="portal-health-label">{{ formatModuleName(key) }}</span>
@@ -197,7 +197,7 @@
         </div>
 
         <!-- Quick Actions -->
-        <div class="portal-card of-fade-in-up">
+        <div class="portal-card g-fade-in-up">
           <div class="portal-card-header">
             <div class="portal-card-header-left">
               <el-icon size="15" color="#409EFF"><Lightning /></el-icon>
@@ -354,12 +354,12 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .portal-page {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   display: flex; flex-direction: column;
-  background: $of-bg-page; overflow: hidden;
+  background: $g-bg-page; overflow: hidden;
 }
 
 /* ===== Hero — dark gradient (matching opsflow-dashboard) ===== */
@@ -417,8 +417,8 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: $of-shadow-card;
-  border: 1px solid $of-border-card;
+  box-shadow: $g-shadow-card;
+  border: 1px solid $g-border-card;
   position: relative;
   overflow: hidden;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -435,7 +435,7 @@ onMounted(async () => {
   }
   &:hover {
     transform: translateY(-2px);
-    box-shadow: $of-shadow-hover;
+    box-shadow: $g-shadow-hover;
     border-color: transparent;
     &::before { opacity: 1; }
   }
@@ -449,20 +449,20 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 .portal-qstat-body { flex: 1; display: flex; flex-direction: column; }
-.portal-qstat-value { font-size: 11px; color: $of-text-muted; order: 2; margin-top: 2px; }
-.portal-qstat-num { font-size: 22px; font-weight: 700; line-height: 1.2; color: $of-text-primary; order: 1; }
+.portal-qstat-value { font-size: 11px; color: $g-text-muted; order: 2; margin-top: 2px; }
+.portal-qstat-num { font-size: 22px; font-weight: 700; line-height: 1.2; color: $g-text-primary; order: 1; }
 
 /* ===== Card (standard OPSflow card with header/body) ===== */
 .portal-card {
   background: #fff;
   border-radius: 14px;
-  box-shadow: $of-shadow-card;
-  border: 1px solid $of-border-card;
+  box-shadow: $g-shadow-card;
+  border: 1px solid $g-border-card;
   overflow: hidden;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    box-shadow: $of-shadow-hover;
+    box-shadow: $g-shadow-hover;
     border-color: transparent;
   }
 }
@@ -471,7 +471,7 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 14px 20px;
-  border-bottom: 1px solid $of-border-light;
+  border-bottom: 1px solid $g-border-light;
 }
 .portal-card-header-left {
   display: flex;
@@ -481,7 +481,7 @@ onMounted(async () => {
 .portal-card-title {
   font-size: 14px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 .portal-card-count {
   font-weight: 600;
@@ -565,7 +565,7 @@ onMounted(async () => {
   max-height: 420px;
   overflow-y: auto;
 }
-.portal-empty { text-align: center; padding: 40px 0; color: $of-text-placeholder; font-size: 13px; }
+.portal-empty { text-align: center; padding: 40px 0; color: $g-text-placeholder; font-size: 13px; }
 .portal-activity-item {
   display: flex;
   align-items: flex-start;
@@ -587,7 +587,7 @@ onMounted(async () => {
 .act-icon-execution { background: #f0f9eb; color: #67C23A; }
 .act-icon-cmdb { background: #ecf5ff; color: #409EFF; }
 .portal-activity-body { flex: 1; min-width: 0; }
-.portal-activity-title { font-size: 13px; font-weight: 500; color: $of-text-primary; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.portal-activity-title { font-size: 13px; font-weight: 500; color: $g-text-primary; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .portal-activity-meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 11px; }
 .portal-activity-status {
   display: inline-block; padding: 1px 8px; border-radius: 8px; font-weight: 500;
@@ -608,8 +608,8 @@ onMounted(async () => {
 .portal-fav-section:last-child { margin-bottom: 0; }
 .portal-fav-label {
   display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: $of-text-muted; margin-bottom: 8px;
-  .el-icon { font-size: 13px; color: $of-text-placeholder; }
+  font-size: 12px; color: $g-text-muted; margin-bottom: 8px;
+  .el-icon { font-size: 13px; color: $g-text-placeholder; }
 }
 .portal-fav-items { display: flex; flex-wrap: wrap; gap: 8px; }
 .portal-fav-item {
@@ -618,22 +618,22 @@ onMounted(async () => {
   gap: 6px;
   padding: 6px 14px;
   border-radius: 8px;
-  background: $of-bg-card;
-  border: 1px solid $of-border-card;
+  background: $g-bg-card;
+  border: 1px solid $g-border-card;
   cursor: pointer;
   font-size: 13px;
-  color: $of-text-primary;
+  color: $g-text-primary;
   transition: all 0.2s;
 }
 .portal-fav-item:hover {
-  background: $of-bg-light-blue;
-  border-color: $of-border-blue;
-  color: $of-color-primary;
+  background: $g-bg-light-blue;
+  border-color: $g-border-blue;
+  color: $g-color-primary;
   transform: translateY(-1px);
 }
 .portal-fav-item .el-icon { font-size: 14px; color: #E6A23C; }
-.portal-fav-category { font-size: 11px; color: $of-text-placeholder; margin-left: 4px; }
-.portal-fav-time { font-size: 11px; color: $of-text-placeholder; margin-left: 4px; }
+.portal-fav-category { font-size: 11px; color: $g-text-placeholder; margin-left: 4px; }
+.portal-fav-time { font-size: 11px; color: $g-text-placeholder; margin-left: 4px; }
 
 /* ===== Health ===== */
 .portal-health-body {
@@ -648,26 +648,26 @@ onMounted(async () => {
   gap: 10px;
   padding: 8px 12px;
   border-radius: 10px;
-  background: $of-bg-card;
+  background: $g-bg-card;
   transition: background 0.2s;
 }
-.portal-health-item:hover { background: $of-bg-card-hover; }
+.portal-health-item:hover { background: $g-bg-card-hover; }
 .portal-health-icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
 .portal-health-info {
   display: flex;
   align-items: center;
   flex: 1;
 }
-.portal-health-label { font-size: 13px; color: $of-text-secondary; }
+.portal-health-label { font-size: 13px; color: $g-text-secondary; }
 .portal-health-value {
   font-size: 16px; font-weight: 700;
-  color: $of-text-primary;
+  color: $g-text-primary;
   margin-left: auto;
   padding: 1px 10px;
   border-radius: 6px;
   background: #fff;
 }
-.portal-health-value.text-muted { color: $of-text-placeholder; background: transparent; }
+.portal-health-value.text-muted { color: $g-text-placeholder; background: transparent; }
 
 /* ===== Actions Body ===== */
 .portal-actions-body {
@@ -692,5 +692,5 @@ onMounted(async () => {
 /* ===== Utilities ===== */
 .text-danger { color: #F56C6C; }
 .text-success { color: #67C23A; }
-.text-muted { color: $of-text-placeholder; }
+.text-muted { color: $g-text-placeholder; }
 </style>

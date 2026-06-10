@@ -345,7 +345,7 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .menu-form-com {
   padding: 4px 0;
@@ -358,21 +358,21 @@ onMounted(async () => {
   gap: 10px;
   padding: 12px 14px;
   margin-bottom: 20px;
-  border-radius: $of-radius-sm;
+  border-radius: $g-radius-sm;
   background: linear-gradient(135deg, #f0f4ff 0%, #f8f9fb 100%);
-  border-left: 3px solid $of-color-primary;
+  border-left: 3px solid $g-color-primary;
   font-size: 12px;
   line-height: 1.8;
-  color: $of-text-muted;
+  color: $g-text-muted;
 }
 
 .mf-alert-text { flex: 1; min-width: 0; }
 
 /* ===== Section ===== */
 .mf-section {
-  background: $of-bg-card;
-  border: 1px solid $of-border-card;
-  border-radius: $of-radius-sm;
+  background: $g-bg-card;
+  border: 1px solid $g-border-card;
+  border-radius: $g-radius-sm;
   padding: 14px 16px;
   margin-bottom: 14px;
 }
@@ -380,10 +380,10 @@ onMounted(async () => {
 .mf-sec-title {
   font-size: 13px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
   margin-bottom: 12px;
   padding-bottom: 6px;
-  border-bottom: 1px solid $of-border-light;
+  border-bottom: 1px solid $g-border-light;
 }
 
 /* ===== Form ===== */
@@ -394,7 +394,7 @@ onMounted(async () => {
   :deep(.el-form-item__label) {
     font-size: 12px;
     font-weight: 500;
-    color: $of-text-secondary;
+    color: $g-text-secondary;
     padding-bottom: 2px;
   }
   :deep(.el-input__wrapper),
@@ -413,20 +413,20 @@ onMounted(async () => {
   gap: 10px;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid $of-border-light;
+  border-top: 1px solid $g-border-light;
 }
 
 .mf-btn-primary {
   min-width: 110px;
-  transition: transform $of-transition-default, box-shadow $of-transition-default;
+  transition: transform $g-transition-default, box-shadow $g-transition-default;
   &:hover {
     transform: translateY(-1px);
-    box-shadow: $of-shadow-primary;
+    box-shadow: $g-shadow-primary;
   }
 }
 
 .mf-btn-cancel {
-  transition: transform $of-transition-default;
+  transition: transform $g-transition-default;
   &:hover { transform: translateY(-1px); }
 }
 </style>

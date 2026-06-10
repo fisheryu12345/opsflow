@@ -37,7 +37,7 @@
     <div class="openapi-body">
 
       <!-- ── Apps ── -->
-      <div v-show="activeTab === 'apps'" class="openapi-section of-fade-in-up">
+      <div v-show="activeTab === 'apps'" class="openapi-section g-fade-in-up">
         <div class="openapi-table-card">
           <div class="openapi-table-header">
             <span class="openapi-table-title">第三方应用管理</span>
@@ -60,7 +60,7 @@
             </el-table-column>
             <el-table-column label="操作" width="120" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" text type="primary" @click="editApp(row)">
+                <el-button size="small" text @click="editApp(row)">
                   <el-icon><Edit /></el-icon> 编辑
                 </el-button>
               </template>
@@ -70,7 +70,7 @@
       </div>
 
       <!-- ── Tokens ── -->
-      <div v-show="activeTab === 'tokens'" class="openapi-section of-fade-in-up">
+      <div v-show="activeTab === 'tokens'" class="openapi-section g-fade-in-up">
         <div class="openapi-table-card">
           <div class="openapi-table-header">
             <span class="openapi-table-title">访问凭证</span>
@@ -103,7 +103,7 @@
       </div>
 
       <!-- ── Webhooks ── -->
-      <div v-show="activeTab === 'webhooks'" class="openapi-section of-fade-in-up">
+      <div v-show="activeTab === 'webhooks'" class="openapi-section g-fade-in-up">
         <div class="openapi-table-card">
           <div class="openapi-table-header">
             <span class="openapi-table-title">事件订阅</span>
@@ -113,7 +113,7 @@
       </div>
 
       <!-- ── Call Logs ── -->
-      <div v-show="activeTab === 'logs'" class="openapi-section of-fade-in-up">
+      <div v-show="activeTab === 'logs'" class="openapi-section g-fade-in-up">
         <div class="openapi-table-card">
           <div class="openapi-table-header">
             <span class="openapi-table-title">调用日志</span>
@@ -195,7 +195,7 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .open-api-page {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -244,14 +244,14 @@ onMounted(async () => {
 
 /* ===== Table Card ===== */
 .openapi-table-card {
-  background: #fff; border-radius: 14px; box-shadow: $of-shadow-card; overflow: hidden;
+  background: #fff; border-radius: 14px; box-shadow: $g-shadow-card; overflow: hidden;
 }
 .openapi-table-card :deep(.el-table th.el-table__cell) { background: #fafafa; color: #606266; font-weight: 600; font-size: 12px; }
 .openapi-table-card :deep(.el-table__body tr:hover td) { background: #f5f7fa; }
 .openapi-table-header {
   display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 0;
 }
-.openapi-table-title { font-size: 15px; font-weight: 600; color: $of-text-primary; }
+.openapi-table-title { font-size: 15px; font-weight: 600; color: $g-text-primary; }
 
 /* ===== Status Badge ===== */
 .openapi-status-badge {

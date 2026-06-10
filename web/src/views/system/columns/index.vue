@@ -1,7 +1,7 @@
 <template>
   <div class="sys-page columns-page">
     <!-- ===== Section Header ===== -->
-    <div class="columns-header of-fade-in-up">
+    <div class="columns-header g-fade-in-up">
       <div class="columns-header-bg" />
       <div class="columns-header-inner">
         <div class="columns-header-icon">
@@ -17,22 +17,22 @@
     <!-- ===== 3-Column Layout ===== -->
     <div class="columns-body">
       <el-row :gutter="10" class="columns-row">
-        <el-col :span="6" class="of-fade-in-up" style="animation-delay: 0.05s">
+        <el-col :span="6" class="g-fade-in-up" style="animation-delay: 0.05s">
           <div class="sys-card">
             <ItemCom title="角色" type="role" showPagination @fetchData="fetchRoleData" @itemClick="handleClick" />
           </div>
         </el-col>
-        <!--<el-col :span="4" class="of-fade-in-up" style="animation-delay: 0.07s">
+        <!--<el-col :span="4" class="g-fade-in-up" style="animation-delay: 0.07s">
           <div class="sys-card">
             <ItemCom title="菜单" type="menu" showPagination @fetchData="fetchMenuData" @itemClick="handleClick" />
           </div>
         </el-col>-->
-        <el-col :span="8" class="of-fade-in-up" style="animation-delay: 0.10s">
+        <el-col :span="8" class="g-fade-in-up" style="animation-delay: 0.10s">
           <div class="sys-card">
             <ItemCom title="模型表" type="model" label="showText" value="key" @fetchData="fetchModelData" @itemClick="handleClick" />
           </div>
         </el-col>
-        <el-col :span="10" class="of-fade-in-up" style="animation-delay: 0.15s">
+        <el-col :span="10" class="g-fade-in-up" style="animation-delay: 0.15s">
           <div class="sys-card">
             <ColumnsTableCom ref="columnsTableRef" :currentInfo="currentInfo" />
           </div>
@@ -121,9 +121,9 @@ const handleClick = (type: string, record: any) => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
-.sys-page {
+.g-page {
   position: absolute;
   top: 0;
   left: 0;
@@ -131,7 +131,7 @@ const handleClick = (type: string, record: any) => {
   bottom: 0;
   display: flex;
   flex-direction: column;
-  background: $of-bg-page;
+  background: $g-bg-page;
   overflow: hidden;
 }
 
@@ -140,8 +140,8 @@ const handleClick = (type: string, record: any) => {
   position: relative;
   flex-shrink: 0;
   overflow: hidden;
-  background: $of-gradient-hero;
-  border-bottom: 1px solid $of-border-light;
+  background: $g-gradient-hero;
+  border-bottom: 1px solid $g-border-light;
   padding: 10px 20px;
 }
 .columns-header-bg {
@@ -165,7 +165,7 @@ const handleClick = (type: string, record: any) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $of-gradient-blue;
+  background: $g-gradient-primary;
   color: #fff;
   flex-shrink: 0;
 }
@@ -176,12 +176,12 @@ const handleClick = (type: string, record: any) => {
 .columns-header-title {
   font-size: 16px;
   font-weight: 700;
-  color: $of-text-primary;
+  color: $g-text-primary;
   line-height: 1.3;
 }
 .columns-header-desc {
   font-size: 11px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   margin-top: 1px;
 }
 
@@ -199,12 +199,12 @@ const handleClick = (type: string, record: any) => {
 }
 
 /* ===== Card ===== */
-.sys-card {
+.g-card {
   height: 100%;
   position: relative;
   background: #fff;
-  border-radius: $of-radius-card;
-  box-shadow: $of-shadow-card;
+  border-radius: $g-radius-card;
+  box-shadow: $g-shadow-card;
   padding: 14px 16px;
   overflow: hidden;
 }

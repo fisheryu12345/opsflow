@@ -64,7 +64,7 @@
       <template #default="{ row }">
         <div class="action-btns">
           <el-tooltip :content="$t('message.common.edit')" placement="top">
-            <el-button size="small" text type="primary" @click="emit('edit', row)" :icon="Edit" />
+            <el-button size="small" text @click="emit('edit', row)" :icon="Edit" />
           </el-tooltip>
           <el-tooltip v-if="row.status === 'active'" :content="$t('message.execution.pause')" placement="top">
             <el-button size="small" text type="warning" @click="emit('pause', row)" :icon="VideoPause" />
@@ -73,7 +73,7 @@
             <el-button size="small" text type="success" @click="emit('resume', row)" :icon="VideoPlay" />
           </el-tooltip>
           <el-tooltip :content="$t('message.schedule.schTriggerNow')" placement="top">
-            <el-button size="small" text type="primary" @click="emit('trigger', row)" :icon="Lightning" />
+            <el-button size="small" text @click="emit('trigger', row)" :icon="Lightning" />
           </el-tooltip>
           <el-tooltip :content="$t('message.common.delete')" placement="top">
             <el-button size="small" text type="danger" @click="emit('delete', row)" :icon="Delete" />

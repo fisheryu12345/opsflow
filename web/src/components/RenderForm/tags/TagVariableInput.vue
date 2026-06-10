@@ -10,7 +10,7 @@
           <el-icon style="margin-right:2px"><WarningFilled /></el-icon>Variable reference
         </el-tag>
       </div>
-      <el-button v-if="nodeId && tagCode && templateId && !hooked" size="small" text type="primary" class="promote-text-btn" @click="onHook">
+      <el-button v-if="nodeId && tagCode && templateId && !hooked" size="small" text class="promote-text-btn" @click="onHook">
         <el-icon><PromoteIcon /></el-icon> Promote
       </el-button>
       <el-tag v-if="hooked" size="small" type="success" effect="light" round>Global</el-tag>

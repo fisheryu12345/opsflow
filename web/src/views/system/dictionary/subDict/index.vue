@@ -69,7 +69,7 @@
       </el-table-column>
       <el-table-column :label="$t('message.dictionaryPage.subDictColumnActions')" width="160" fixed="right" align="center">
         <template #default="{ row }">
-          <el-button type="primary" link size="small" @click="openEditDialog(row)">{{ $t('message.dictionaryPage.subDictEdit') }}</el-button>
+          <el-button text size="small" @click="openEditDialog(row)">{{ $t('message.dictionaryPage.subDictEdit') }}</el-button>
           <el-button type="danger" link size="small" @click="handleDelete(row)">{{ $t('message.dictionaryPage.subDictDelete') }}</el-button>
         </template>
       </el-table-column>
@@ -97,7 +97,7 @@
     width="500px"
     append-to-body
     destroy-on-close
-    class="of-dialog"
+    class="g-dialog"
   >
     <el-form ref="formRef" :model="formData" :rules="formRules" label-position="top" size="default">
       <el-row :gutter="16">
@@ -147,9 +147,9 @@
       </el-row>
     </el-form>
     <template #footer>
-      <span class="of-dialog-footer">
-        <el-button size="small" @click="dialogVisible = false">{{ $t('message.dictionaryPage.subDictCancel') }}</el-button>
-        <el-button size="small" type="primary" @click="handleSubmit" :loading="submitLoading">{{ $t('message.dictionaryPage.subDictConfirm') }}</el-button>
+      <span class="g-dialog-footer">
+        <el-button  @click="dialogVisible = false">{{ $t('message.dictionaryPage.subDictCancel') }}</el-button>
+        <el-button  type="primary" @click="handleSubmit" :loading="submitLoading">{{ $t('message.dictionaryPage.subDictConfirm') }}</el-button>
       </span>
     </template>
   </el-dialog>
@@ -291,23 +291,23 @@ defineExpose({ drawer: drawerVisible, open, doRefresh: () => { pagination.curren
 
 <style>
 /* Dialog styling */
-.of-dialog .el-dialog__header {
+.g-dialog .el-dialog__header {
   padding: 14px 20px;
   margin: 0;
   border-bottom: 1px solid #e4e7ed;
   font-weight: 600;
 }
-.of-dialog .el-dialog__body {
+.g-dialog .el-dialog__body {
   padding: 20px;
 }
-.of-dialog .el-dialog__body .el-form-item {
+.g-dialog .el-dialog__body .el-form-item {
   margin-bottom: 16px;
 }
-.of-dialog .el-dialog__footer {
+.g-dialog .el-dialog__footer {
   padding: 10px 20px;
   border-top: 1px solid #e4e7ed;
 }
-.of-dialog-footer {
+.g-dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 8px;

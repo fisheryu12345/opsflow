@@ -56,7 +56,7 @@
         <el-table-column prop="create_datetime" :label="$t('message.loginLogPage.colTime')" min-width="170" show-overflow-tooltip />
         <el-table-column :label="$t('message.loginLogPage.colActions')" width="80" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleView(row)">{{ $t('message.loginLogPage.view') }}</el-button>
+            <el-button text size="small" @click="handleView(row)">{{ $t('message.loginLogPage.view') }}</el-button>
           </template>
         </el-table-column>
       </el-table>

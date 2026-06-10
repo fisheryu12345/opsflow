@@ -51,7 +51,7 @@
         </el-table-column>
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" text type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button size="small" text @click="openEdit(row)">编辑</el-button>
             <el-button size="small" text type="danger" @click="onDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -90,7 +90,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="onSave">保存</el-button>
+        <el-button type="primary" :icon="Check" :loading="saving" @click="onSave">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -227,7 +227,7 @@ onMounted(loadList)
 </script>
 
 <style lang="scss" scoped>
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .itsm-delegation {
   padding-top: 16px;
@@ -243,23 +243,23 @@ onMounted(loadList)
 .itsm-delegation-title {
   font-size: 15px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 
 .itsm-delegation-all {
-  color: $of-text-muted;
+  color: $g-text-muted;
   font-size: 12px;
 }
 
 .itsm-delegation-remark {
-  color: $of-text-secondary;
+  color: $g-text-secondary;
   font-size: 12px;
 }
 
 .itsm-table-card {
   background: #fff;
   border-radius: 14px;
-  box-shadow: $of-shadow-card;
+  box-shadow: $g-shadow-card;
   overflow: hidden;
 }
 

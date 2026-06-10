@@ -1,7 +1,7 @@
 <template>
   <div class="sys-page">
     <!-- Main Card / 主卡片 -->
-    <div class="sys-card of-fade-in-up">
+    <div class="sys-card g-fade-in-up">
       <!-- Card Header / 卡片头部 -->
       <div class="sys-card-header">
         <div class="sys-card-title">
@@ -9,11 +9,11 @@
             <el-icon :size="16"><Setting /></el-icon>
           </span>
           <span>{{ $t('message.menuPage.configTitle') }}</span>
-          <el-tag size="small" type="info" effect="plain" class="sys-tag-subtitle">
+          <el-tag size="small" type="info" effect="plain" class="g-tag-subtitle">
             {{ $t('message.menuPage.configSubtitle') }}
           </el-tag>
         </div>
-        <div class="sys-card-extra">
+        <div class="g-card-extra">
           <el-button type="primary" size="small" :icon="FolderAdd" @click="tabsDrawer = true">{{ $t('message.menuPage.configAddGroup') }}</el-button>
           <el-button size="small" type="warning" :icon="Edit" @click="contentDrawer = true">{{ $t('message.menuPage.configAddContent') }}</el-button>
         </div>
@@ -88,15 +88,15 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use '../styles/system-global' as *;
+@use '/@/styles/global' as *;
 
 // ============================================================
-// Animations / 动画 (of-fade-in-up for OPSflow consistency)
+// Animations / 动画 (g-fade-in-up for OPSflow consistency)
 // ============================================================
-.of-fade-in-up {
-  animation: ofFadeInUp 0.5s ease both;
+.g-fade-in-up {
+  animation: gFadeInUp 0.5s ease both;
 }
-@keyframes ofFadeInUp {
+@keyframes gFadeInUp {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
@@ -114,7 +114,7 @@ onMounted(() => {
 
   :deep(.el-tabs--border-card > .el-tabs__header) {
     background-color: #fafbfc;
-    border-bottom: 1px solid $sys-border-light;
+    border-bottom: 1px solid $g-border-light;
     padding: 0 20px;
     margin: 0;
   }
@@ -125,12 +125,12 @@ onMounted(() => {
     transition: color 0.2s;
 
     &.is-active {
-      color: $sys-color-primary;
+      color: $g-color-primary;
       font-weight: 600;
     }
 
     &:hover {
-      color: $sys-color-primary;
+      color: $g-color-primary;
     }
   }
 
@@ -142,10 +142,10 @@ onMounted(() => {
 // ============================================================
 // Subtitle Tag / 副标题标签
 // ============================================================
-.sys-tag-subtitle {
+.g-tag-subtitle {
   font-size: 11px;
   border: none;
   background: transparent;
-  color: $sys-text-secondary !important;
+  color: $g-text-secondary !important;
 }
 </style>

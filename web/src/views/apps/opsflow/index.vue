@@ -99,7 +99,7 @@
       <div v-loading="analyzing" element-loading-text="AI analyzing..." class="analyze-body">
         <div v-if="analysisResult" class="analyze-content">
           <!-- Summary Hero -->
-          <div class="summary-hero of-fade-in-up">
+          <div class="summary-hero g-fade-in-up">
             <div class="summary-hero-icon"><el-icon size="22"><InfoFilled /></el-icon></div>
             <div class="summary-hero-text">
               <div class="summary-hero-label">{{ $t("message.opsflowPage.aiSummary") }}</div>
@@ -107,14 +107,14 @@
             </div>
           </div>
           <!-- Steps Timeline -->
-          <div class="section-card of-fade-in-up" v-if="analysisResult.steps?.length" :style="{ animationDelay: '0.15s' }">
+          <div class="section-card g-fade-in-up" v-if="analysisResult.steps?.length" :style="{ animationDelay: '0.15s' }">
             <div class="section-card-header">
               <el-icon size="16" color="#409EFF"><List /></el-icon>
               <span>{{ $t("message.opsflowPage.aiSteps") }}</span>
               <el-tag size="small" type="primary" effect="plain">{{ analysisResult.steps.length }} steps</el-tag>
             </div>
             <div class="timeline">
-              <div v-for="(step, i) in analysisResult.steps" :key="i" class="timeline-item of-stagger-item" :style="{ animationDelay: `${0.3 + i * 0.12}s` }">
+              <div v-for="(step, i) in analysisResult.steps" :key="i" class="timeline-item g-stagger-item" :style="{ animationDelay: `${0.3 + i * 0.12}s` }">
                 <div class="timeline-marker">
                   <div class="timeline-dot">{{ i + 1 }}</div>
                   <div v-if="i < analysisResult.steps.length - 1" class="timeline-line" />
@@ -126,27 +126,27 @@
             </div>
           </div>
           <div class="section-card-row">
-            <div class="section-card section-card-half of-fade-in-up" v-if="analysisResult.risks?.length" :style="{ animationDelay: '0.3s' }">
+            <div class="section-card section-card-half g-fade-in-up" v-if="analysisResult.risks?.length" :style="{ animationDelay: '0.3s' }">
               <div class="section-card-header">
                 <el-icon size="16" color="#E6A23C"><WarningFilled /></el-icon>
                 <span>{{ $t("message.opsflowPage.aiRisks") }}</span>
                 <el-tag size="small" type="warning" effect="plain">{{ analysisResult.risks.length }}</el-tag>
               </div>
               <div class="risk-list">
-                <div v-for="(risk, i) in analysisResult.risks" :key="i" class="risk-item of-stagger-item" :style="{ animationDelay: `${0.5 + i * 0.08}s` }">
+                <div v-for="(risk, i) in analysisResult.risks" :key="i" class="risk-item g-stagger-item" :style="{ animationDelay: `${0.5 + i * 0.08}s` }">
                   <div class="risk-severity risk-severity-warning" />
                   <span>{{ risk }}</span>
                 </div>
               </div>
             </div>
-            <div class="section-card section-card-half of-fade-in-up" v-if="analysisResult.suggestions?.length" :style="{ animationDelay: '0.45s' }">
+            <div class="section-card section-card-half g-fade-in-up" v-if="analysisResult.suggestions?.length" :style="{ animationDelay: '0.45s' }">
               <div class="section-card-header">
                 <el-icon size="16" color="#409EFF"><Lightning /></el-icon>
                 <span>{{ $t("message.opsflowPage.aiSuggestions") }}</span>
                 <el-tag size="small" type="primary" effect="plain">{{ analysisResult.suggestions.length }}</el-tag>
               </div>
               <div class="suggestion-list">
-                <div v-for="(sug, i) in analysisResult.suggestions" :key="i" class="suggestion-item of-stagger-item" :style="{ animationDelay: `${0.6 + i * 0.08}s` }">
+                <div v-for="(sug, i) in analysisResult.suggestions" :key="i" class="suggestion-item g-stagger-item" :style="{ animationDelay: `${0.6 + i * 0.08}s` }">
                   <el-icon size="14" color="#409EFF"><CircleCheck /></el-icon>
                   <span>{{ sug }}</span>
                 </div>
@@ -516,7 +516,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 /* ===== Layout ===== */
 .opsflow-page {
   position: absolute;
@@ -526,7 +526,7 @@ onBeforeUnmount(() => {
   bottom: 0;
   display: flex;
   flex-direction: column;
-  background: $of-bg-page;
+  background: $g-bg-page;
   overflow: hidden;
 }
 
@@ -538,8 +538,8 @@ onBeforeUnmount(() => {
   width: 380px;
   max-height: 520px;
   background: #fff;
-  border: 1px solid $of-border-default;
-  border-radius: $of-radius-lg;
+  border: 1px solid $g-border-default;
+  border-radius: $g-radius-lg;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
   z-index: 200;
   display: flex;
@@ -556,7 +556,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  background: $of-gradient-blue;
+  background: $g-gradient-primary;
   background-size: 200% 100%;
   color: #fff;
   animation: headerShimmer 4s ease-in-out infinite;
@@ -621,7 +621,7 @@ onBeforeUnmount(() => {
   gap: 10px;
   min-height: 120px;
   max-height: 320px;
-  background: $of-bg-card;
+  background: $g-bg-card;
 }
 .chat-placeholder {
   display: flex;
@@ -645,7 +645,7 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 8px;
   padding: 10px 14px;
-  border-top: 1px solid $of-border-default;
+  border-top: 1px solid $g-border-default;
   background: #fff;
   align-items: flex-end;
 }
@@ -728,7 +728,7 @@ onBeforeUnmount(() => {
   margin-top: 2px;
 }
 .chat-avatar-ai {
-  background: $of-gradient-blue;
+  background: $g-gradient-primary;
   color: #fff;
 }
 .chat-avatar-user {
@@ -738,14 +738,14 @@ onBeforeUnmount(() => {
 .chat-bubble {
   max-width: 75%;
   padding: 8px 14px;
-  border-radius: $of-radius-lg;
+  border-radius: $g-radius-lg;
   font-size: 13px;
   line-height: 1.6;
   word-break: break-word;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 .chat-msg.user .chat-bubble {
-  background: $of-gradient-blue;
+  background: $g-gradient-primary;
   color: #fff;
   border-bottom-right-radius: 4px;
 }
@@ -805,15 +805,15 @@ onBeforeUnmount(() => {
   overflow: hidden;
   position: relative;
   margin: 8px;
-  border-radius: $of-radius-sm;
+  border-radius: $g-radius-sm;
   background: #fff;
-  box-shadow: $of-shadow-card;
+  box-shadow: $g-shadow-card;
 }
 
 /* ===== Dialog ===== */
-.opsflow-dialog :deep(.el-dialog__header) { @include of-dialog-header; }
-.opsflow-dialog :deep(.el-dialog__body) { @include of-dialog-body; }
-.opsflow-dialog :deep(.el-dialog__footer) { @include of-dialog-footer; }
+.opsflow-dialog :deep(.el-dialog__header) { @include g-dialog-header; }
+.opsflow-dialog :deep(.el-dialog__body) { @include g-dialog-body; }
+.opsflow-dialog :deep(.el-dialog__footer) { @include g-dialog-footer; }
 .form-tip {
   font-size: 11px;
   color: #999;
@@ -834,17 +834,17 @@ onBeforeUnmount(() => {
 .summary-hero {
   display: flex;
   gap: 14px;
-  background: $of-gradient-hero;
-  border-left: 4px solid $of-color-primary;
-  border-radius: $of-radius-card;
-  padding: $of-padding-card;
+  background: $g-gradient-hero;
+  border-left: 4px solid $g-color-primary;
+  border-radius: $g-radius-card;
+  padding: $g-padding-card;
   align-items: flex-start;
 }
 .summary-hero-icon {
   width: 40px;
   height: 40px;
-  border-radius: $of-radius-card;
-  background: $of-gradient-blue;
+  border-radius: $g-radius-card;
+  background: $g-gradient-primary;
   color: #fff;
   display: flex;
   align-items: center;
@@ -858,7 +858,7 @@ onBeforeUnmount(() => {
 .summary-hero-label {
   font-size: 13px;
   font-weight: 600;
-  color: $of-color-primary;
+  color: $g-color-primary;
   margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -872,10 +872,10 @@ onBeforeUnmount(() => {
 
 /* Section cards */
 .section-card {
-  background: $of-bg-card;
-  border-radius: $of-radius-card;
-  padding: $of-padding-card;
-  border: 1px solid $of-border-card;
+  background: $g-bg-card;
+  border-radius: $g-radius-card;
+  padding: $g-padding-card;
+  border: 1px solid $g-border-card;
 }
 .section-card-header {
   display: flex;
@@ -919,7 +919,7 @@ onBeforeUnmount(() => {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: $of-gradient-blue;
+  background: $g-gradient-primary;
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -967,7 +967,7 @@ onBeforeUnmount(() => {
   padding: 10px 12px;
   background: #fff;
   border-radius: 6px;
-  border: 1px solid $of-border-danger;
+  border: 1px solid $g-border-danger;
   font-size: 13px;
   line-height: 1.5;
   color: #555;
@@ -1033,10 +1033,10 @@ onBeforeUnmount(() => {
 
 /* Section card — extends .of-card */
 .section-card {
-  @extend .of-card;
+  @extend .g-card;
 }
 .section-card:hover {
-  @include of-hover-lift;
+  @include g-hover-lift;
 }
 
 /* Timeline dot pulse on hover */

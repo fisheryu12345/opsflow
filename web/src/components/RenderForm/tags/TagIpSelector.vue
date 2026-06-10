@@ -23,7 +23,7 @@
       <div class="ip-input-row">
         <el-input v-model="inputVal" :placeholder="placeholder" :disabled="disabled"
           size="small" clearable style="width:160px" @keyup.enter="addIp" />
-        <el-button size="small" type="primary" @click="addIp" :disabled="disabled">添加</el-button>
+        <el-button size="small" type="primary" :icon="Plus" @click="addIp" :disabled="disabled">添加</el-button>
         <el-button v-if="presetIps.length" size="small" @click="selectPreset">预设</el-button>
       </div>
     </template>

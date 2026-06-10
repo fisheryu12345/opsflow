@@ -10,7 +10,7 @@
           </span>
           {{ $t('message.dictionaryPage.title') }}
         </div>
-        <div class="sys-card-extra">
+        <div class="g-card-extra">
           <el-input
             v-model="searchQuery"
             :placeholder="$t('message.dictionaryPage.searchPlaceholder')"
@@ -337,7 +337,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/system-global' as *;
+@use '/@/styles/global' as *;
 
 // Fade-in-up animation matching OPSflow style
 .dict-fade-in-up {
@@ -360,7 +360,7 @@ onMounted(() => {
 }
 
 // Card header extra search + button row
-.sys-card-extra {
+.g-card-extra {
   display: flex;
   align-items: center;
   gap: 12px;

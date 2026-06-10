@@ -5,20 +5,73 @@ All OPSflow Vue components should follow these conventions for visual consistenc
 **后续向导对话框参考:** `SubmitWizardDialog.vue` — 多步骤弹窗的 HTML/SCSS/动画标准实现。
 
 ### SCSS
-- Use `<style lang="scss" scoped>` and `@use '../styles/opsflow-global' as *;`
-- Card containers: use `.of-card` class for standard card backgrounds/borders
-- Dialogs: add class `opsflow-dialog` — header/body/footer styled automatically
-- Animations: `.of-fade-in-up` for sections, `.of-stagger-item` for list items (keep inline `animation-delay`)
-- Colors/gradients: use `$of-*` variables from `styles/opsflow-variables.scss`, never hardcode
-- Hover effects: `@include of-hover-lift` (lift up) or `@include of-hover-shift` (shift right)
+
+**唯一入口：** `@use 'styles/global' as *;`
+```scss
+<style lang="scss" scoped>
+@use 'styles/global' as *;
+</style>
+```
+
+**设计令牌 — 使用 `$g-*` 变量，禁止硬编码颜色/阴影/圆角**
+
+| 常用变量 | 值 | 用途 |
+|----------|-----|------|
+| `$g-bg-page` | `#f0f2f5` | 页面背景 |
+| `$g-color-primary` | `#409EFF` | Element 蓝色主色 |
+| `$g-text-primary` | `#303133` | 主文字色 |
+| `$g-text-secondary` | `#666` | 次要文字色 |
+| `$g-text-muted` | `#909399` | 辅助文字/placeholder |
+| `$g-border-light` | `#ebeef5` | 浅边框（分割线） |
+| `$g-border-card` | `#f0f0f0` | 卡片边框 |
+| `$g-radius` | `10px` | 卡片/大圆角 |
+| `$g-radius-sm` | `8px` | 小组件圆角 |
+| `$g-shadow-card` | `0 1px 4px rgba(0,0,0,0.06)` | 卡片阴影 |
+| `$g-shadow-hover` | `0 4px 12px rgba(0,0,0,0.08)` | 悬浮阴影 |
+| `$g-bg-header` | `#f5f7fa` | 表格列头背景 |
+| `$g-bg-success` | `#f0f9eb` | 成功背景 |
+| `$g-bg-warning` | `#fdf6ec` | 警告背景 |
+| `$g-bg-danger` | `#fef0f0` | 危险背景 |
+| `$g-bg-light-blue` | `#ecf5ff` | 浅蓝色背景 |
+
+**完整变量表见** `web/src/styles/_tokens.scss`
+
+**通用 class — 使用 `.g-*` 前缀**
+
+| class | 用途 |
+|-------|------|
+| `.g-card` | 标准卡片容器（背景白、圆角、阴影） |
+| `.g-card-header` | 卡片标题栏（带下分割线） |
+| `.g-card-body` | 卡片内容区（内边距） |
+| `.g-fade-in-up` | 入场动画（淡入上移） |
+| `.g-stagger-item` | 列表交错动画 |
+| `.g-status-tag` | 状态标签（active/inactive/pending） |
+
+**Mixin — `@include g-*`**
+
+| mixin | 用途 |
+|-------|------|
+| `g-hover-lift` | 悬浮上移 + 阴影加深 |
+| `g-hover-shift` | 悬浮右移 |
+| `g-dialog-header` | 弹窗标题栏样式 |
+| `g-dialog-body` | 弹窗内容区内边距 |
+| `g-dialog-footer` | 弹窗底部按钮区 |
+| `g-icon-circle` | 渐变图标圆形背景 |
+| `g-section-header` | 区块标题栏 |
+
+**Dialog 规范：** 添加 class `opsflow-dialog`（header/body/footer 自动样式化）
+
+### HTML
 
 ### HTML
 - Class naming: kebab-case, component-prefixed (e.g. `mycomp-header`)
 - Empty state: `<el-empty :image-size="40" />`
 
 ### Key Files
-- `web/src/views/apps/opsflow/styles/opsflow-variables.scss` — design tokens
-- `web/src/views/apps/opsflow/styles/opsflow-global.scss` — reusable classes & mixins
+- `web/src/styles/_tokens.scss` — design tokens (`$g-*` 变量)
+- `web/src/styles/_mixins.scss` — reusable mixins
+- `web/src/styles/_components.scss` — reusable classes (`.g-*`)
+- `web/src/styles/global.scss` — 唯一入口（forward 以上三个文件）
 
 ### 设计文档管理规则
 所有通过 Superpowers 或其他 AI 工具生成的设计文档（架构设计、功能设计、详细设计等），**必须**遵守以下规则：
@@ -95,6 +148,40 @@ opsflow/
 **Code Review 检查三样：** ① 翻译段有无添加到 en.ts/zh-cn.ts ② 模板有无裸中文 ③ 脚本有无裸中文
 
 **命名规范：** `message.<pageName>.<camelCaseKey>`，如 `message.rolePage.statTotal`。
+
+### 按钮使用规范（Button Style Guide）
+
+所有 `el-button` **必须**遵循以下规范，确保全系统视觉统一：
+
+| 场景 | size | type | icon | 示例 |
+|------|------|------|------|------|
+| 页面级操作（新增/创建/发布/保存） | `default` | `primary` | **必须** | `<el-button type="primary" :icon="Plus">新增</el-button>` |
+| 工具栏次要（刷新/重置/导出） | `default` | 缺省 | **必须** | `<el-button :icon="Refresh">刷新</el-button>` |
+| 搜索/查询 | `default` | `primary` | 无 | `<el-button type="primary">搜索</el-button>` |
+| 表格行内操作（编辑/删除/查看） | `small` | `text` | 无 | `<el-button text size="small">编辑</el-button>` |
+| 弹窗底部按钮 | `default` | 取消→缺省, 确认→`primary` | 无 | `<el-button @click="...">取消</el-button>` + `<el-button type="primary">确定</el-button>` |
+| 树/图表区小操作 | `small` | `text` + `circle` | **必须** | `<el-button text circle :icon="Plus" size="small" />` |
+
+**Icon 自动映射规则：**
+
+| 按钮文本关键词 | Icon |
+|---|---|
+| 新增/添加/Add/Create | `Plus` |
+| 编辑/Edit/Modify | `Edit` |
+| 删除/Delete/Remove | `Delete` |
+| 保存/Save | `Check` |
+| 刷新/Refresh/Sync | `Refresh` |
+| 发布/Publish/Deploy | `Promotion` / `Upload` |
+| 导出/Export | `Download` |
+| 导入/Import | `Upload` |
+| 重置/Reset/Clear | `Refresh` |
+| 查看/View/Detail | 无（行内操作，用 `text` 即可） |
+
+**禁止项：**
+- 禁止在弹窗底部按钮上使用 `size="small"`
+- 禁止在表格行内使用 `type="primary" link` → 统一用 `text`
+- 禁止 `text` 与 `type="primary"` 同时使用 → 去掉 `type="primary"`
+- 禁止搜索按钮带图标
 
 #### Skills 规范
 

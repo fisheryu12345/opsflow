@@ -184,11 +184,11 @@ onMounted(() => { getData(); });
 </script>
 
 <style lang="scss" scoped>
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
-.sys-page {
+.g-page {
   height: 100%;
-  background: $of-bg-page;
+  background: $g-bg-page;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -207,9 +207,9 @@ onMounted(() => { getData(); });
   align-items: center;
   gap: 14px;
   background: #fff;
-  border-radius: $of-radius-card;
+  border-radius: $g-radius-card;
   padding: 16px 18px;
-  box-shadow: $of-shadow-card;
+  box-shadow: $g-shadow-card;
 }
 .menu-stat-icon {
   width: 42px; height: 42px;
@@ -219,8 +219,8 @@ onMounted(() => { getData(); });
   color: #fff;
 }
 .menu-stat-body { flex: 1; min-width: 0; }
-.menu-stat-val { font-size: 22px; font-weight: 700; color: $of-text-primary; }
-.menu-stat-lbl { font-size: 13px; color: $of-text-secondary; margin-top: 2px; }
+.menu-stat-val { font-size: 22px; font-weight: 700; color: $g-text-primary; }
+.menu-stat-lbl { font-size: 13px; color: $g-text-secondary; margin-top: 2px; }
 
 /* ===== Layout ===== */
 .menu-row {
@@ -230,15 +230,15 @@ onMounted(() => { getData(); });
 }
 .menu-col { height: 100%; }
 
-.sys-card {
+.g-card {
   background: #fff;
-  border: 1px solid $of-border-card;
-  border-radius: $of-radius-card;
+  border: 1px solid $g-border-card;
+  border-radius: $g-radius-card;
   height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: $of-shadow-card;
+  box-shadow: $g-shadow-card;
 }
 
 /* ===== Section Header ===== */
@@ -247,11 +247,11 @@ onMounted(() => { getData(); });
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  background: $of-gradient-hero;
-  border-bottom: 1px solid $of-border-light;
+  background: $g-gradient-hero;
+  border-bottom: 1px solid $g-border-light;
   font-size: 14px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
   flex-shrink: 0;
 }
 
@@ -266,7 +266,7 @@ onMounted(() => { getData(); });
 .menu-tabs :deep(.el-tabs__header) {
   margin: 0;
   padding: 8px 16px 0;
-  border-bottom: 1px solid $of-border-light;
+  border-bottom: 1px solid $g-border-light;
 }
 .menu-tab-label {
   display: inline-flex;

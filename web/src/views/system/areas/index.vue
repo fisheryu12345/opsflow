@@ -47,7 +47,7 @@
           </span>
           <span>地区管理</span>
         </div>
-        <div class="sys-card-extra">
+        <div class="g-card-extra">
           <el-form :model="searchForm" inline size="small" @keyup.enter="handleSearch">
             <el-form-item>
               <el-input v-model="searchForm.name" placeholder="名称" clearable />
@@ -60,7 +60,7 @@
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="handleSearch">搜索</el-button>
-              <el-button @click="handleReset">重置</el-button>
+              <el-button :icon="Refresh" @click="handleReset">重置</el-button>
             </el-form-item>
           </el-form>
           <el-button v-if="auth('area:Create')" type="primary" @click="handleAdd">
@@ -406,7 +406,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use '../styles/system-global' as *;
+@use '/@/styles/global' as *;
 
 .stats-row {
   display: grid;
@@ -443,14 +443,14 @@ onMounted(() => {
 .stats-value {
   font-size: 26px;
   font-weight: 700;
-  color: $sys-text-primary;
+  color: $g-text-primary;
   margin: 0;
   line-height: 1.2;
 }
 
 .stats-label {
   font-size: 13px;
-  color: $sys-text-secondary;
+  color: $g-text-secondary;
   margin: 4px 0 0;
 }
 

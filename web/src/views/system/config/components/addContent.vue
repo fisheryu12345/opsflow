@@ -40,7 +40,7 @@
 				<el-input-number v-model="form.sort" :min="0" :max="99"></el-input-number>
 			</el-form-item>
 			<el-form-item>
-				<el-button type="primary" @click="onSubmit(formRef)">立即创建</el-button>
+				<el-button type="primary" :icon="Plus" @click="onSubmit(formRef)">立即创建</el-button>
 			</el-form-item>
 		</el-form>
 	</div>

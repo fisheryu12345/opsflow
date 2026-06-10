@@ -20,7 +20,7 @@
 
     <template #footer>
       <div class="dryrun-footer">
-        <el-tag v-if="statusLabel" :type="statusTag" effect="dark" size="small">
+        <el-tag v-if="statusLabel" :type="statusTag" effect="dark" >
           {{ statusLabel }}
         </el-tag>
         <el-button type="primary" @click="visible = false">Close</el-button>
@@ -106,11 +106,11 @@ onBeforeUnmount(() => stopPolling())
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
-.opsflow-dialog :deep(.el-dialog__header) { @include of-dialog-header; }
+.opsflow-dialog :deep(.el-dialog__header) { @include g-dialog-header; }
 .opsflow-dialog :deep(.el-dialog__body) { padding: 0 !important; min-height: 0; }
-.opsflow-dialog :deep(.el-dialog__footer) { @include of-dialog-footer; }
+.opsflow-dialog :deep(.el-dialog__footer) { @include g-dialog-footer; }
 
 .dryrun-body {
   height: 560px;

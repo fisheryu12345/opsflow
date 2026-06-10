@@ -103,7 +103,7 @@
             </el-table-column>
             <el-table-column :label="$t('message.userPage.actions')" width="250" fixed="right" align="center">
               <template #default="{ row }">
-                <el-button v-if="auth('user:Update')" text type="primary" size="small" style="padding:0 4px" @click="openEditDialog(row)">{{ $t('message.userPage.edit') }}</el-button>
+                <el-button v-if="auth('user:Update')" text size="small" style="padding:0 4px" @click="openEditDialog(row)">{{ $t('message.userPage.edit') }}</el-button>
                 <el-button v-if="auth('user:Delete')" text type="danger" size="small" style="padding:0 4px" @click="handleDelete(row)">{{ $t('message.userPage.delete') }}</el-button>
                 <el-button v-if="auth('user:ResetPassword')" text type="warning" size="small" style="padding:0 4px" @click="openResetPwdDialog(row)">{{ $t('message.userPage.resetPwd') }}</el-button>
               </template>
@@ -134,8 +134,8 @@
         </el-row>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="dialogVisible = false">{{ $t('message.userPage.cancel') }}</el-button>
-        <el-button size="small" type="primary" :loading="submitLoading" @click="handleSubmit">{{ $t('message.userPage.save') }}</el-button>
+        <el-button  @click="dialogVisible = false">{{ $t('message.userPage.cancel') }}</el-button>
+        <el-button  type="primary" :loading="submitLoading" @click="handleSubmit">{{ $t('message.userPage.save') }}</el-button>
       </template>
     </el-dialog>
 
@@ -146,8 +146,8 @@
         <el-form-item :label="$t('message.userPage.confirmPwd')" prop="newPassword2"><el-input v-model="resetPwdForm.newPassword2" type="password" show-password :placeholder="$t('message.userPage.placeholderConfirmPwd')" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="resetPwdVisible = false">{{ $t('message.userPage.cancel') }}</el-button>
-        <el-button size="small" type="primary" :loading="resetPwdLoading" @click="handleResetPwdSubmit">{{ $t('message.userPage.save') }}</el-button>
+        <el-button  @click="resetPwdVisible = false">{{ $t('message.userPage.cancel') }}</el-button>
+        <el-button  type="primary" :loading="resetPwdLoading" @click="handleResetPwdSubmit">{{ $t('message.userPage.save') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -375,30 +375,30 @@ onMounted(async () => { await Promise.all([getDeptTree(), fetchRoleOptions(), fe
 </script>
 
 <style scoped lang="scss">
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .user-page { width: 100%; height: 100%; }
-.sys-page { height: 100%; background: $of-bg-page; display: flex; flex-direction: column; overflow: hidden; }
+.g-page { height: 100%; background: $g-bg-page; display: flex; flex-direction: column; overflow: hidden; }
 
 // ===== Stats =====
 .user-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 16px; padding: 12px 12px 0; }
-.user-stat-card { display: flex; align-items: center; gap: 14px; background: #fff; border-radius: $of-radius-card; padding: 16px 18px; box-shadow: $of-shadow-card; transition: transform .2s, box-shadow .2s; cursor: default; &:hover { transform: translateY(-2px); box-shadow: $of-shadow-hover; } }
+.user-stat-card { display: flex; align-items: center; gap: 14px; background: #fff; border-radius: $g-radius-card; padding: 16px 18px; box-shadow: $g-shadow-card; transition: transform .2s, box-shadow .2s; cursor: default; &:hover { transform: translateY(-2px); box-shadow: $g-shadow-hover; } }
 .user-stat-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; }
 .user-stat-body { flex: 1; min-width: 0; }
-.user-stat-val { font-size: 22px; font-weight: 700; color: $of-text-primary; line-height: 1.2; }
-.user-stat-lbl { font-size: 13px; color: $of-text-secondary; margin-top: 2px; }
+.user-stat-val { font-size: 22px; font-weight: 700; color: $g-text-primary; line-height: 1.2; }
+.user-stat-lbl { font-size: 13px; color: $g-text-secondary; margin-top: 2px; }
 
 // ===== Layout =====
 .user-main-row { height: calc(100vh - 180px); overflow: hidden; margin: 0 12px !important; .el-col { height: 100%; } }
-.sys-card { background: #fff; border: 1px solid $of-border-card; border-radius: $of-radius-card; height: 100%; display: flex; flex-direction: column; overflow: hidden; box-shadow: $of-shadow-card; transition: box-shadow $of-transition-default; }
+.g-card { background: #fff; border: 1px solid $g-border-card; border-radius: $g-radius-card; height: 100%; display: flex; flex-direction: column; overflow: hidden; box-shadow: $g-shadow-card; transition: box-shadow $g-transition-default; }
 
 // ===== Section Header =====
-.user-section-header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: $of-gradient-hero; border-bottom: 1px solid $of-border-light; font-size: 14px; font-weight: 600; color: $of-text-primary; flex-shrink: 0; }
+.user-section-header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: $g-gradient-hero; border-bottom: 1px solid $g-border-light; font-size: 14px; font-weight: 600; color: $g-text-primary; flex-shrink: 0; }
 .user-section-header-table { background: linear-gradient(135deg, #f0f5ff 0%, #fafbfc 100%); }
-.user-header-icon { @include of-icon-circle(30px, $of-gradient-blue); }
-.user-header-icon-accent { background: $of-gradient-accent; }
-.user-header-badge { margin-left: auto; font-size: 11px; font-weight: 400; color: $of-text-muted; }
-.user-header-dept { font-size: 12px; font-weight: 400; color: $of-color-primary; background: $of-bg-light-blue; padding: 2px 10px; border-radius: 10px; }
+.user-header-icon { @include g-icon-circle(30px, $g-gradient-primary); }
+.user-header-icon-accent { background: $g-gradient-accent; }
+.user-header-badge { margin-left: auto; font-size: 11px; font-weight: 400; color: $g-text-muted; }
+.user-header-dept { font-size: 12px; font-weight: 400; color: $g-color-primary; background: $g-bg-light-blue; padding: 2px 10px; border-radius: 10px; }
 
 // ===== Tree =====
 .user-tree-body { flex: 1; display: flex; flex-direction: column; padding: 12px; overflow: hidden; }
@@ -411,15 +411,15 @@ onMounted(async () => { await Promise.all([getDeptTree(), fetchRoleOptions(), fe
   .el-card__body { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 0 !important; }
 }
 .user-table { flex: 1; overflow: auto; }
-.user-table :deep(th.el-table__cell) { background: $of-bg-header; color: $of-text-primary; font-weight: 600; font-size: 12px; }
+.user-table :deep(th.el-table__cell) { background: $g-bg-header; color: $g-text-primary; font-weight: 600; font-size: 12px; }
 
 // ===== Toolbar =====
-.user-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; flex-shrink: 0; border-bottom: 1px solid $of-border-light; flex-wrap: wrap; gap: 8px; }
+.user-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; flex-shrink: 0; border-bottom: 1px solid $g-border-light; flex-wrap: wrap; gap: 8px; }
 .user-toolbar-left, .user-toolbar-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
 // ===== Tags =====
 .user-role-tag { margin-right: 2px; margin-bottom: 2px; }
 
 // ===== Pagination =====
-.user-pagination { display: flex; justify-content: flex-end; padding: 10px 16px; flex-shrink: 0; border-top: 1px solid $of-border-light; }
+.user-pagination { display: flex; justify-content: flex-end; padding: 10px 16px; flex-shrink: 0; border-top: 1px solid $g-border-light; }
 </style>

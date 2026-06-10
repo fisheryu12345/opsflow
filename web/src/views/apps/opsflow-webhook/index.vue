@@ -124,8 +124,8 @@
         </el-row>
       </el-form>
       <template #footer>
-        <el-button @click="formVisible = false" size="small">{{ $t("message.common.cancel") }}</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving" size="small">{{ formId ? $t('message.opsflowPage.webhookUpdate') : $t('message.opsflowPage.webhookCreate') }}</el-button>
+        <el-button @click="formVisible = false" >{{ $t("message.common.cancel") }}</el-button>
+        <el-button type="primary" @click="handleSave" :loading="saving" >{{ formId ? $t('message.opsflowPage.webhookUpdate') : $t('message.opsflowPage.webhookCreate') }}</el-button>
       </template>
     </el-dialog>
 

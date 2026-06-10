@@ -122,15 +122,15 @@ function emitChange() {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .condition-row {
-  background: $of-bg-header;
+  background: $g-bg-header;
   border-radius: 6px;
   padding: 10px 12px;
   margin-bottom: 8px;
   border: 1px solid transparent;
-  transition: border-color $of-transition-default;
+  transition: border-color $g-transition-default;
 }
 .condition-row.has-error {
   border-color: #F56C6C;
@@ -154,7 +154,7 @@ function emitChange() {
 }
 .row-label {
   font-size: 12px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   flex: 1;
 }
 .row-fields {
@@ -170,15 +170,15 @@ function emitChange() {
 }
 .field-type-badge {
   font-size: 10px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   background: #e9e9eb;
   padding: 2px 8px;
   border-radius: 3px;
   white-space: nowrap;
 }
 .field-type-badge.hint {
-  color: $of-text-placeholder;
-  background: $of-bg-header;
+  color: $g-text-placeholder;
+  background: $g-bg-header;
   font-style: italic;
 }
 </style>

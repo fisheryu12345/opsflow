@@ -8,7 +8,7 @@
 				<el-input v-model="form.key"></el-input>
 			</el-form-item>
 			<el-form-item>
-				<el-button type="primary" @click="onSubmit(formRef)">立即创建</el-button>
+				<el-button type="primary" :icon="Plus" @click="onSubmit(formRef)">立即创建</el-button>
 				<el-button>取消</el-button>
 			</el-form-item>
 		</el-form>

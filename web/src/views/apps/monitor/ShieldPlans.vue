@@ -36,7 +36,7 @@
       </el-form>
       <template #footer>
         <el-button @click="showDialog=false">取消</el-button>
-        <el-button type="primary" @click="saveItem">保存</el-button>
+        <el-button type="primary" :icon="Check" @click="saveItem">保存</el-button>
       </template>
     </el-dialog>
   </div>

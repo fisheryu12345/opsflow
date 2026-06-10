@@ -24,7 +24,7 @@
         @node-click="handleNodeClick"
         highlight-current
         node-key="id"
-        class="of-tree"
+        class="g-tree"
       >
         <template #default="{ node, data }">
           <element-tree-line :node="node" :showLabelLine="false" :indent="32">
@@ -184,7 +184,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .menu-tree-com {
   display: flex;
@@ -212,7 +212,7 @@ defineExpose({
 }
 
 .mtc-node-active {
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 
 .mtc-node-disabled {
@@ -228,46 +228,46 @@ defineExpose({
   justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  border-top: 1px solid $of-border-light;
-  background: $of-bg-card;
+  border-top: 1px solid $g-border-light;
+  background: $g-bg-card;
   flex-shrink: 0;
 }
 </style>
 
 <style lang="scss">
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 /* Global tree overrides / 全局树样式覆盖 */
-.menu-tree-com .of-tree,
+.menu-tree-com .g-tree,
 .mtc-tree-wrap .el-tree {
   background: transparent;
 
   .el-tree-node__content {
     height: 34px !important;
     border-radius: 6px;
-    transition: background $of-transition-default;
+    transition: background $g-transition-default;
 
     &:hover {
-      background: $of-bg-light-blue;
+      background: $g-bg-light-blue;
     }
   }
 
   .el-tree-node.is-current > .el-tree-node__content {
-    background: $of-bg-light-blue;
-    color: $of-color-primary;
+    background: $g-bg-light-blue;
+    color: $g-color-primary;
   }
 
   .el-tree-node__expand-icon {
     font-size: 14px;
-    color: $of-text-muted;
+    color: $g-text-muted;
     padding: 0;
     margin-right: 4px;
     margin-left: 20px;
-    transition: transform $of-transition-default;
+    transition: transform $g-transition-default;
 
     &.expanded {
       transform: rotate(0deg);
-      color: $of-color-primary;
+      color: $g-color-primary;
     }
 
     &.is-leaf {

@@ -107,7 +107,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .columns-form-com {
 	padding: 20px;

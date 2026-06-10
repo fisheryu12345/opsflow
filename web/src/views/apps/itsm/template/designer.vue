@@ -237,7 +237,7 @@
       </div>
       <template #footer>
         <el-button @click="showFieldEditor = false">关闭</el-button>
-        <el-button type="primary" @click="onSaveFields">保存字段</el-button>
+        <el-button type="primary" :icon="Check" @click="onSaveFields">保存字段</el-button>
       </template>
     </el-dialog>
 

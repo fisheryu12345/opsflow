@@ -1,6 +1,6 @@
 <template>
 	<div class="login-container flex">
-		<div class="login-left of-fade-in-up">
+		<div class="login-left g-fade-in-up">
 			<div class="login-left-logo">
 				<img :src="logoMini" />
 			</div>
@@ -10,7 +10,7 @@
 			<img :src="loginBg" class="login-left-waves" />
 		</div>
 		<div class="login-right flex">
-			<div class="login-right-warp flex-margin of-fade-in-up" style="animation-delay: 0.15s;">
+			<div class="login-right-warp flex-margin g-fade-in-up" style="animation-delay: 0.15s;">
 				<span class="login-right-warp-one"></span>
 				<span class="login-right-warp-two"></span>
 				<div class="login-right-warp-mian">
@@ -26,7 +26,7 @@
 			</div>
 		</div>
 
-		<div class="login-authorization of-fade-in-up" style="animation-delay: 0.3s;">
+		<div class="login-authorization g-fade-in-up" style="animation-delay: 0.3s;">
 			<p>
 				<a href="http://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
 					湘ICP备2026014297号
@@ -76,16 +76,16 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .login-container {
 	height: 100%;
-	background: $of-gradient-hero;
+	background: $g-gradient-hero;
 
 	.login-left {
 		flex: 1;
 		position: relative;
-		background: $of-gradient-accent;
+		background: $g-gradient-accent;
 		margin-right: 80px;
 
 		.login-left-logo {
@@ -127,13 +127,13 @@ onMounted(() => {
 		width: 700px;
 
 		.login-right-warp {
-			@extend .of-card;
+			@extend .g-card;
 			width: 500px;
 			height: 500px;
 			position: relative;
 			overflow: hidden;
-			border: 1px solid $of-border-blue;
-			box-shadow: $of-shadow-primary;
+			border: 1px solid $g-border-blue;
+			box-shadow: $g-shadow-primary;
 
 			.login-right-warp-one,
 			.login-right-warp-two {
@@ -157,7 +157,7 @@ onMounted(() => {
 					left: 0;
 					width: 100%;
 					height: 3px;
-					background: linear-gradient(90deg, transparent, $of-color-primary);
+					background: linear-gradient(90deg, transparent, $g-color-primary);
 					animation: loginLeft 3s linear infinite;
 				}
 
@@ -167,7 +167,7 @@ onMounted(() => {
 					right: 2px;
 					width: 3px;
 					height: 100%;
-					background: linear-gradient(180deg, transparent, $of-color-primary);
+					background: linear-gradient(180deg, transparent, $g-color-primary);
 					animation: loginTop 3s linear infinite;
 					animation-delay: 0.7s;
 				}
@@ -180,7 +180,7 @@ onMounted(() => {
 					right: -100%;
 					width: 100%;
 					height: 3px;
-					background: linear-gradient(270deg, transparent, $of-color-primary);
+					background: linear-gradient(270deg, transparent, $g-color-primary);
 					animation: loginRight 3s linear infinite;
 					animation-delay: 1.4s;
 				}
@@ -191,7 +191,7 @@ onMounted(() => {
 					left: 0px;
 					width: 3px;
 					height: 100%;
-					background: linear-gradient(360deg, transparent, $of-color-primary);
+					background: linear-gradient(360deg, transparent, $g-color-primary);
 					animation: loginBottom 3s linear infinite;
 					animation-delay: 2.1s;
 				}
@@ -209,9 +209,9 @@ onMounted(() => {
 					text-align: center;
 					letter-spacing: 3px;
 					font-weight: 700;
-					animation: ofFadeInUp 0.5s ease both;
+					animation: gFadeInUp 0.5s ease both;
 					animation-delay: 0.3s;
-					background: $of-gradient-accent;
+					background: $g-gradient-accent;
 					-webkit-background-clip: text;
 					-webkit-text-fill-color: transparent;
 					background-clip: text;
@@ -234,11 +234,11 @@ onMounted(() => {
 
 		p {
 			font-size: 14px;
-			color: $of-text-muted;
+			color: $g-text-muted;
 		}
 
 		a {
-			color: $of-color-primary;
+			color: $g-color-primary;
 			margin: 0 5px;
 		}
 	}

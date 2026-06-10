@@ -20,7 +20,7 @@
 			<el-table-column prop="title" label="列名" min-width="120" show-overflow-tooltip />
 			<el-table-column label="操作" width="200" align="center">
 				<template #default="scope">
-					<el-button size="small" text type="primary" @click="handleUpdateColumn('update', scope.row)">
+					<el-button size="small" text @click="handleUpdateColumn('update', scope.row)">
 						<el-icon><Edit /></el-icon> 编辑
 					</el-button>
 					<el-popconfirm title="确定删除该字段吗？" @confirm="handleDelete(scope.row)">
@@ -167,7 +167,7 @@ defineExpose({ fetchData });
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .columns-table-com {
 	height: 100%;
@@ -181,7 +181,7 @@ defineExpose({ fetchData });
 		align-items: center;
 		padding-bottom: 10px;
 		margin-bottom: 12px;
-		border-bottom: 1px solid $of-border-light;
+		border-bottom: 1px solid $g-border-light;
 
 		.ctc-header-left {
 			display: flex;
@@ -192,14 +192,14 @@ defineExpose({ fetchData });
 				width: 3px;
 				height: 16px;
 				border-radius: 2px;
-				background: $of-gradient-blue;
+				background: $g-gradient-primary;
 				flex-shrink: 0;
 			}
 
 			.ctc-title {
 				font-size: 14px;
 				font-weight: 600;
-				color: $of-text-primary;
+				color: $g-text-primary;
 			}
 		}
 
@@ -215,13 +215,13 @@ defineExpose({ fetchData });
 		min-height: 0;
 	}
 	.ctc-table :deep(.el-table th.el-table__cell) {
-		background: $of-bg-header;
-		color: $of-text-secondary;
+		background: $g-bg-header;
+		color: $g-text-secondary;
 		font-weight: 600;
 		font-size: 12px;
 	}
 	.ctc-table :deep(.el-table__body tr:hover td) {
-		background: $of-bg-card-hover;
+		background: $g-bg-card-hover;
 	}
 
 	.ctc-pagination {
@@ -233,7 +233,7 @@ defineExpose({ fetchData });
 
 	/* Drawer — OPSflow-style header */
 	.ctc-drawer :deep(.el-drawer__header) {
-		@include of-dialog-header;
+		@include g-dialog-header;
 	}
 }
 </style>

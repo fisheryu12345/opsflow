@@ -50,12 +50,12 @@
     <div class="itsm-body">
 
       <!-- ==================== TAB: 看板 ==================== -->
-      <div v-show="activeTab === 'dashboard'" class="itsm-section of-fade-in-up">
+      <div v-show="activeTab === 'dashboard'" class="itsm-section g-fade-in-up">
         <Dashboard :tickets="tickets" @view-ticket="onViewTicket" @switch-tab="activeTab = $event" />
       </div>
 
       <!-- ==================== TAB: 我的工单 ==================== -->
-      <div v-show="activeTab === 'tickets'" class="itsm-section of-fade-in-up">
+      <div v-show="activeTab === 'tickets'" class="itsm-section g-fade-in-up">
         <!-- Filter bar -->
         <div class="itsm-filter-bar">
           <div class="itsm-filter-tabs">
@@ -108,10 +108,10 @@
             <el-table-column prop="create_datetime" label="创建时间" width="170" />
             <el-table-column label="操作" width="180" fixed="right">
               <template #default="{ row }">
-                <el-button v-if="row.current_status === 'draft'" size="small" text type="primary" @click="onSubmitTicket(row)">
+                <el-button v-if="row.current_status === 'draft'" size="small" text @click="onSubmitTicket(row)">
                   提交
                 </el-button>
-                <el-button size="small" text type="primary" @click="onViewTicket(row)">
+                <el-button size="small" text @click="onViewTicket(row)">
                   详情
                 </el-button>
                 <el-button v-if="row.current_status === 'running'" size="small" text type="danger" @click="onCloseTicket(row)">
@@ -124,7 +124,7 @@
       </div>
 
       <!-- ==================== TAB: 流程模板 ==================== -->
-      <div v-show="activeTab === 'workflows'" class="itsm-section of-fade-in-up">
+      <div v-show="activeTab === 'workflows'" class="itsm-section g-fade-in-up">
         <div class="itsm-filter-bar">
           <div class="itsm-filter-tabs">
             <div class="itsm-tab" :class="{ active: wfFilter === '' }" @click="wfFilter = ''; loadWorkflows()">
@@ -160,13 +160,13 @@
                 <span>{{ wf.create_datetime || '' }}</span>
               </div>
               <div class="itsm-wf-actions">
-                <el-button v-if="!wf.is_draft" size="small" text type="primary" @click="onCreateTicketFromWf(wf)">
+                <el-button v-if="!wf.is_draft" size="small" text @click="onCreateTicketFromWf(wf)">
                   发起工单
                 </el-button>
                 <el-button v-if="wf.is_draft" size="small" text type="success" @click="onDeployWorkflow(wf)">
                   部署
                 </el-button>
-                <el-button size="small" text type="primary" @click="onOpenDesigner(wf.id)">
+                <el-button size="small" text @click="onOpenDesigner(wf.id)">
                   <el-icon><Setting /></el-icon> 设计
                 </el-button>
               </div>
@@ -179,7 +179,7 @@
       </div>
 
       <!-- ==================== TAB: 事件工单 ==================== -->
-      <div v-show="activeTab === 'incidents'" class="itsm-section of-fade-in-up">
+      <div v-show="activeTab === 'incidents'" class="itsm-section g-fade-in-up">
         <div class="itsm-table-card">
           <div class="itsm-table-header">
             <span class="itsm-table-title">事件工单</span>
@@ -212,7 +212,7 @@
             <el-table-column prop="create_datetime" label="创建时间" width="170" />
             <el-table-column label="操作" width="200" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" text type="primary" @click="assignIncident(row)">
+                <el-button size="small" text @click="assignIncident(row)">
                   <el-icon><User /></el-icon> 分派
                 </el-button>
                 <el-button size="small" text type="success" @click="resolveIncident(row)">
@@ -228,7 +228,7 @@
       </div>
 
       <!-- ==================== TAB: 变更申请 ==================== -->
-      <div v-show="activeTab === 'changes'" class="itsm-section of-fade-in-up">
+      <div v-show="activeTab === 'changes'" class="itsm-section g-fade-in-up">
         <div class="itsm-table-card">
           <div class="itsm-table-header">
             <span class="itsm-table-title">变更申请</span>
@@ -265,7 +265,7 @@
       </div>
 
       <!-- ==================== TAB: SLA 策略 ==================== -->
-      <div v-show="activeTab === 'sla'" class="itsm-section of-fade-in-up">
+      <div v-show="activeTab === 'sla'" class="itsm-section g-fade-in-up">
         <div class="itsm-table-card">
           <div class="itsm-table-header">
             <span class="itsm-table-title">SLA 策略</span>
@@ -284,7 +284,7 @@
       </div>
 
       <!-- ==================== TAB: 审批委托 ==================== -->
-      <div v-show="activeTab === 'delegation'" class="itsm-section of-fade-in-up">
+      <div v-show="activeTab === 'delegation'" class="itsm-section g-fade-in-up">
         <Delegation />
       </div>
     </div>
@@ -303,7 +303,7 @@
           </el-select>
         </el-form-item>
       </el-form>
-      <div v-if="aiResult" class="itsm-ai-preview of-fade-in-up">
+      <div v-if="aiResult" class="itsm-ai-preview g-fade-in-up">
         <div class="itsm-ai-preview-header">生成结果预览</div>
         <div class="itsm-ai-flow">
           <span v-for="(s, idx) in aiResult.states?.filter((s: any) => s.type !== 'START' && s.type !== 'END') || []" :key="idx" class="itsm-ai-node">
@@ -352,7 +352,7 @@
       </el-form>
       <template #footer>
         <el-button @click="showCreateTicket = false">取消</el-button>
-        <el-button type="primary" :loading="submittingTicket" @click="onCreateTicket">创建并提交</el-button>
+        <el-button type="primary" :icon="Plus" :loading="submittingTicket" @click="onCreateTicket">创建并提交</el-button>
       </template>
     </el-dialog>
 
@@ -709,7 +709,7 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .itsm-page {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -774,14 +774,14 @@ onMounted(async () => {
 
 /* ===== Table Card ===== */
 .itsm-table-card {
-  background: #fff; border-radius: 14px; box-shadow: $of-shadow-card; overflow: hidden;
+  background: #fff; border-radius: 14px; box-shadow: $g-shadow-card; overflow: hidden;
 }
 .itsm-table-card :deep(.el-table th.el-table__cell) { background: #fafafa; color: #606266; font-weight: 600; font-size: 12px; }
 .itsm-table-card :deep(.el-table__body tr:hover td) { background: #f5f7fa; }
 .itsm-table-header {
   display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 0;
 }
-.itsm-table-title { font-size: 15px; font-weight: 600; color: $of-text-primary; }
+.itsm-table-title { font-size: 15px; font-weight: 600; color: $g-text-primary; }
 
 /* ===== Status Badge ===== */
 .itsm-status-badge {
@@ -838,10 +838,10 @@ onMounted(async () => {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;
 }
 .itsm-wf-card {
-  border-radius: $of-radius-card; overflow: hidden; @include of-hover-lift;
+  border-radius: $g-radius-card; overflow: hidden; @include g-hover-lift;
 }
 .itsm-wf-card-inner {
-  background: #fff; border: 1px solid $of-border-default; border-radius: $of-radius-card;
+  background: #fff; border: 1px solid $g-border-default; border-radius: $g-radius-card;
   padding: 18px; height: 100%; display: flex; flex-direction: column;
 }
 .itsm-wf-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -850,22 +850,22 @@ onMounted(async () => {
 }
 .wf-type-change { background: #fdf6ec; color: #E6A23C; }
 .wf-type-incident { background: #fef0f0; color: #F56C6C; }
-.itsm-wf-name { font-weight: 600; font-size: 15px; color: $of-text-primary; margin-bottom: 6px; }
-.itsm-wf-desc { font-size: 12px; color: $of-text-secondary; line-height: 1.5; flex: 1; margin-bottom: 10px; }
-.itsm-wf-meta { font-size: 11px; color: $of-text-muted; display: flex; justify-content: space-between; margin-bottom: 10px; }
-.itsm-wf-actions { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid $of-border-light; }
+.itsm-wf-name { font-weight: 600; font-size: 15px; color: $g-text-primary; margin-bottom: 6px; }
+.itsm-wf-desc { font-size: 12px; color: $g-text-secondary; line-height: 1.5; flex: 1; margin-bottom: 10px; }
+.itsm-wf-meta { font-size: 11px; color: $g-text-muted; display: flex; justify-content: space-between; margin-bottom: 10px; }
+.itsm-wf-actions { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid $g-border-light; }
 .itsm-wf-empty { grid-column: 1 / -1; }
 
 /* ===== Dialog ===== */
-.itsm-dialog :deep(.el-dialog__header) { @include of-dialog-header; }
-.itsm-dialog :deep(.el-dialog__body) { @include of-dialog-body; }
-.itsm-dialog :deep(.el-dialog__footer) { @include of-dialog-footer; }
+.itsm-dialog :deep(.el-dialog__header) { @include g-dialog-header; }
+.itsm-dialog :deep(.el-dialog__body) { @include g-dialog-body; }
+.itsm-dialog :deep(.el-dialog__footer) { @include g-dialog-footer; }
 
 /* ===== AI Preview ===== */
 .itsm-ai-preview {
-  border: 1px solid $of-border-blue; border-radius: 8px; padding: 14px; background: $of-bg-light-blue;
+  border: 1px solid $g-border-blue; border-radius: 8px; padding: 14px; background: $g-bg-light-blue;
 }
-.itsm-ai-preview-header { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: $of-text-primary; }
+.itsm-ai-preview-header { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: $g-text-primary; }
 .itsm-ai-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .itsm-ai-node { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
 .itsm-ai-node-badge {
@@ -878,11 +878,11 @@ onMounted(async () => {
 /* ===== Ticket Detail ===== */
 .itsm-detail-meta { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
 .itsm-detail-field { font-size: 13px; color: #606266; }
-.itsm-detail-section-title { font-size: 14px; font-weight: 600; color: $of-text-primary; margin-bottom: 12px; }
-.itsm-detail-timeline { border: 1px solid $of-border-default; border-radius: 8px; padding: 14px; }
+.itsm-detail-section-title { font-size: 14px; font-weight: 600; color: $g-text-primary; margin-bottom: 12px; }
+.itsm-detail-timeline { border: 1px solid $g-border-default; border-radius: 8px; padding: 14px; }
 .itsm-timeline-item {
   display: flex; align-items: flex-start; gap: 10px; padding: 8px 0;
-  border-bottom: 1px solid $of-border-light;
+  border-bottom: 1px solid $g-border-light;
   &:last-child { border-bottom: none; }
 }
 .itsm-timeline-dot {
@@ -893,6 +893,6 @@ onMounted(async () => {
 .dot-wait { background: #c0c4cc; }
 .itsm-timeline-body { flex: 1; }
 .itsm-timeline-name { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
-.itsm-timeline-meta { font-size: 11px; color: $of-text-muted; margin-top: 2px; }
+.itsm-timeline-meta { font-size: 11px; color: $g-text-muted; margin-top: 2px; }
 .itsm-timeline-actions { flex-shrink: 0; display: flex; gap: 4px; }
 </style>

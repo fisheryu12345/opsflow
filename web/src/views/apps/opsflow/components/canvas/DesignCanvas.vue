@@ -427,7 +427,7 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, z
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .design-canvas-wrapper {
   height: 100%;
@@ -554,7 +554,7 @@ defineExpose({ loadPipeline, getGraphData, graph, aiLayout, onTaskNodeDropped, z
   box-shadow: 0 4px 12px rgba(64,158,255,0.2);
 }
 .canvas-toolbar-right .el-button--primary {
-  background: $of-gradient-accent;
+  background: $g-gradient-accent;
   border-color: transparent; color: #fff;
 }
 .canvas-toolbar-right .el-button--primary:hover {

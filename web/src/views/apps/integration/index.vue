@@ -45,7 +45,7 @@
     <div class="int-body">
 
       <!-- ── Tab: 连接器定义 ── -->
-      <div v-show="activeTab === 'definitions'" class="int-section of-fade-in-up">
+      <div v-show="activeTab === 'definitions'" class="int-section g-fade-in-up">
         <div class="int-filter-bar">
           <div class="int-filter-tabs">
             <div class="int-tab" :class="{ active: defCategoryFilter === 'all' }" @click="defCategoryFilter = 'all'">
@@ -71,7 +71,7 @@
 
         <div class="int-def-grid" v-if="filteredDefinitions.length">
           <div v-for="(def, idx) in filteredDefinitions" :key="def.id"
-               class="int-def-card of-stagger-item"
+               class="int-def-card g-stagger-item"
                :style="{ animationDelay: `${idx * 0.04}s` }"
                :class="{ 'int-def-card-ai': def.category === 'ai' }">
             <div class="int-def-card-inner">
@@ -88,7 +88,7 @@
               <div class="int-def-desc" v-if="def.description">{{ def.description }}</div>
               <div class="int-def-footer">
                 <el-tag size="small" type="info" effect="plain">v{{ def.version }}</el-tag>
-                <el-button size="small" type="primary" link @click="createInstance(def)">
+                <el-button size="small" text @click="createInstance(def)">
                   <el-icon><Plus /></el-icon> 添加实例
                 </el-button>
               </div>
@@ -99,7 +99,7 @@
       </div>
 
       <!-- ── Tab: 连接器实例 ── -->
-      <div v-show="activeTab === 'instances'" class="int-section of-fade-in-up">
+      <div v-show="activeTab === 'instances'" class="int-section g-fade-in-up">
         <div class="int-table-card">
           <div class="int-table-header">
             <span class="int-table-title">连接器实例</span>
@@ -138,10 +138,10 @@
             </el-table-column>
             <el-table-column label="操作" width="200" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" text type="primary" @click="runHealthCheck(row)">
+                <el-button size="small" text @click="runHealthCheck(row)">
                   <el-icon><Finished /></el-icon> 检查
                 </el-button>
-                <el-button size="small" text type="primary" @click="editInstance(row)">
+                <el-button size="small" text @click="editInstance(row)">
                   <el-icon><Edit /></el-icon> 配置
                 </el-button>
                 <el-button v-if="row.definition?.category === 'ai' || row.definition_category === 'ai'"
@@ -155,7 +155,7 @@
       </div>
 
       <!-- ── Tab: 凭证管理 ── -->
-      <div v-show="activeTab === 'credentials'" class="int-section of-fade-in-up">
+      <div v-show="activeTab === 'credentials'" class="int-section g-fade-in-up">
         <div class="int-table-card">
           <div class="int-table-header">
             <span class="int-table-title">凭证管理</span>
@@ -188,7 +188,7 @@
       </div>
 
       <!-- ── Tab: 调用日志 ── -->
-      <div v-show="activeTab === 'logs'" class="int-section of-fade-in-up">
+      <div v-show="activeTab === 'logs'" class="int-section g-fade-in-up">
         <div class="int-table-card">
           <div class="int-table-header">
             <span class="int-table-title">调用日志</span>
@@ -246,7 +246,7 @@
         <el-input v-model="chatPrompt" type="textarea" :rows="3"
           placeholder="输入测试消息，例如: 你好，请用中文回复" />
       </div>
-      <div v-if="chatResponse" class="int-chat-response of-fade-in-up">
+      <div v-if="chatResponse" class="int-chat-response g-fade-in-up">
         <div class="int-chat-response-header">响应结果：</div>
         <pre class="int-chat-response-body">{{ chatResponse }}</pre>
       </div>
@@ -449,7 +449,7 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 // ===== Page Layout =====
 .int-page {
@@ -587,14 +587,14 @@ onMounted(async () => {
   gap: 14px;
 }
 .int-def-card {
-  border-radius: $of-radius-card;
+  border-radius: $g-radius-card;
   overflow: hidden;
-  @include of-hover-lift;
+  @include g-hover-lift;
 }
 .int-def-card-inner {
   background: #fff;
-  border: 1px solid $of-border-default;
-  border-radius: $of-radius-card;
+  border: 1px solid $g-border-default;
+  border-radius: $g-radius-card;
   padding: 18px;
   height: 100%;
   display: flex;
@@ -641,16 +641,16 @@ onMounted(async () => {
 .int-def-icon-monitor { background: linear-gradient(135deg, #F56C6C, #f78989); }
 .int-def-icon-other { background: linear-gradient(135deg, #909399, #a6a9ad); }
 .int-cat-tag { font-size: 11px; }
-.int-def-name { font-weight: 600; font-size: 15px; color: $of-text-primary; margin-bottom: 4px; }
+.int-def-name { font-weight: 600; font-size: 15px; color: $g-text-primary; margin-bottom: 4px; }
 .int-def-code { margin-bottom: 6px; }
-.int-def-code code { font-size: 12px; color: $of-text-muted; }
-.int-def-desc { font-size: 12px; color: $of-text-secondary; margin-bottom: 10px; line-height: 1.5; flex: 1; }
+.int-def-code code { font-size: 12px; color: $g-text-muted; }
+.int-def-desc { font-size: 12px; color: $g-text-secondary; margin-bottom: 10px; line-height: 1.5; flex: 1; }
 .int-def-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding-top: 10px;
-  border-top: 1px solid $of-border-light;
+  border-top: 1px solid $g-border-light;
 }
 
 // ===== Table Card =====
@@ -676,7 +676,7 @@ onMounted(async () => {
 .int-table-title {
   font-size: 15px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 
 // ===== Status Badges =====
@@ -711,9 +711,9 @@ onMounted(async () => {
 .int-status-failed { background: #fef0f0; color: #F56C6C; }
 
 // ===== Dialog =====
-.int-dialog :deep(.el-dialog__header) { @include of-dialog-header; }
-.int-dialog :deep(.el-dialog__body) { @include of-dialog-body; }
-.int-dialog :deep(.el-dialog__footer) { @include of-dialog-footer; }
+.int-dialog :deep(.el-dialog__header) { @include g-dialog-header; }
+.int-dialog :deep(.el-dialog__body) { @include g-dialog-body; }
+.int-dialog :deep(.el-dialog__footer) { @include g-dialog-footer; }
 .int-form .el-form-item:last-child { margin-bottom: 0; }
 
 // ===== Chat =====
@@ -731,7 +731,7 @@ onMounted(async () => {
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 
 // ===== Utilities =====

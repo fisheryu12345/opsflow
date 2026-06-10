@@ -1,0 +1,74 @@
+// ============================================================
+// Global Design Tokens
+// Single source of truth for colors, spacing, radii, shadows
+// Import via: @use 'styles/global' as *;
+// ============================================================
+
+// ===== Colors =====
+$g-color-primary: #409EFF;
+$g-color-primary-dark: #337ecc;
+$g-color-accent: #667eea;
+$g-color-accent-dark: #764ba2;
+$g-color-success: #67c23a;
+$g-color-warning: #e6a23c;
+$g-color-danger: #f56c6c;
+$g-color-info: #909399;
+
+// ===== Backgrounds =====
+$g-bg-page: #f0f2f5;
+$g-bg-card: #f8f9fb;
+$g-bg-card-hover: #f5f9ff;
+$g-bg-light-blue: #ecf5ff;
+$g-bg-success: #f0f9eb;
+$g-bg-warning: #fdf6ec;
+$g-bg-danger: #fef0f0;
+$g-bg-suggestion: #f0f5ff;
+$g-bg-confirm: #fef7e0;
+$g-bg-header: #f5f7fa;
+
+// ===== Text =====
+$g-text-primary: #303133;
+$g-text-regular: #606266;
+$g-text-secondary: #666;
+$g-text-muted: #909399;
+$g-text-placeholder: #c0c4cc;
+
+// ===== Borders =====
+$g-border-default: #e4e7ed;
+$g-border-card: #f0f0f0;
+$g-border-light: #ebeef5;
+$g-border-blue: #d9ecff;
+$g-border-success: #e1f3d8;
+$g-border-warning: #faecd8;
+$g-border-danger: #fde2e2;
+$g-border-confirm: #f5e7b4;
+
+// ===== Spacing & Radius =====
+$g-radius: 10px;
+$g-radius-card: 10px;
+$g-radius-sm: 8px;
+$g-radius-lg: 12px;
+
+$g-padding-card: 16px 18px;
+$g-padding-dialog-header: 16px 20px;
+$g-padding-dialog-body: 20px;
+$g-padding-dialog-footer: 12px 20px;
+
+// ===== Gradients =====
+$g-gradient-primary: linear-gradient(135deg, $g-color-primary, $g-color-primary-dark);
+$g-gradient-accent: linear-gradient(135deg, $g-color-accent, $g-color-accent-dark);
+$g-gradient-success: linear-gradient(135deg, $g-color-success, $g-color-primary);
+$g-gradient-warning: linear-gradient(135deg, $g-color-warning, $g-color-danger);
+$g-gradient-danger: linear-gradient(135deg, $g-color-danger, $g-color-warning);
+$g-gradient-info: linear-gradient(135deg, $g-color-info, #606266);
+$g-gradient-hero: linear-gradient(135deg, #ecf5ff 0%, #f8f9fb 100%);
+$g-gradient-manual: linear-gradient(135deg, #f8f9fb 0%, #f0f5ff 100%);
+
+// ===== Shadows =====
+$g-shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06);
+$g-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+$g-shadow-primary: 0 2px 12px rgba(64, 158, 255, 0.12);
+
+// ===== Animation =====
+$g-transition-default: 0.2s;
+$g-fade-translate: 16px;

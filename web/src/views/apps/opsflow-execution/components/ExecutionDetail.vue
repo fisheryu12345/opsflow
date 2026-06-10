@@ -109,7 +109,7 @@
                         <td class="trace-duration">{{ formatDuration(t.duration_ms) }}</td>
                         <td class="trace-retry-count">{{ t.retry_count }}</td>
                         <td>
-                          <el-button size="small" text type="primary" @click.stop="viewTraceLog(t.node_id)"
+                          <el-button size="small" text @click.stop="viewTraceLog(t.node_id)"
                                      :loading="logLoadingNode === t.node_id">{{ $t("message.execution.logView") }}</el-button>
                         </td>
                       </tr>

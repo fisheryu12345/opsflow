@@ -1,0 +1,8 @@
+// ============================================================
+// Global Styles Entry Point
+// Import via: @use 'styles/global' as *;
+// ============================================================
+
+@forward 'tokens';
+@forward 'mixins';
+@forward 'components';

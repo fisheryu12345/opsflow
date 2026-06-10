@@ -784,7 +784,7 @@ watch(() => props.modelValue, (val) => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 $accent: #409EFF;
 $accent-dark: #337ecc;
@@ -827,7 +827,7 @@ $border-light: #e4e7ed;
   font-size: 12px;
   font-weight: 700;
   background: $bg-card;
-  color: $of-text-muted;
+  color: $g-text-muted;
   border: 2px solid #e0e0e0;
   transition: all 0.3s;
 }
@@ -853,7 +853,7 @@ $border-light: #e4e7ed;
 .wiz-step-title {
   font-size: 13px;
   font-weight: 600;
-  color: $of-text-muted;
+  color: $g-text-muted;
   transition: color 0.3s;
 }
 .wiz-step.active .wiz-step-title {
@@ -925,13 +925,13 @@ $border-light: #e4e7ed;
   margin: 0;
   font-size: 17px;
   font-weight: 700;
-  color: $of-text-primary;
+  color: $g-text-primary;
   line-height: 1.3;
 }
 .panel-hero-text p {
   margin: 3px 0 0;
   font-size: 12px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   line-height: 1.4;
 }
 
@@ -961,7 +961,7 @@ $border-light: #e4e7ed;
 .metric-card {
   flex: 1;
   background: #fff;
-  border: 1px solid $of-border-card;
+  border: 1px solid $g-border-card;
   border-radius: 12px;
   padding: 18px 14px;
   text-align: center;
@@ -1039,8 +1039,8 @@ $border-light: #e4e7ed;
   font-size: 13px;
   border: 1px solid transparent;
 }
-.result-item-warn { background: $of-bg-warning; border-color: #faecd8; }
-.result-item-error { background: $of-bg-danger; border-color: #fde2e2; }
+.result-item-warn { background: $g-bg-warning; border-color: #faecd8; }
+.result-item-error { background: $g-bg-danger; border-color: #fde2e2; }
 .result-item-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
 .result-item-warn .result-item-icon { color: #E6A23C; }
 .result-item-error .result-item-icon { color: #F56C6C; }
@@ -1087,7 +1087,7 @@ $border-light: #e4e7ed;
 }
 .cr-opt-title {
   font-size: 13px;
-  color: $of-text-primary;
+  color: $g-text-primary;
   margin-bottom: 2px;
 }
 .cr-opt-meta {
@@ -1100,7 +1100,7 @@ $border-light: #e4e7ed;
 /* ===== Info Card ===== */
 .info-card {
   background: #fff;
-  border: 1px solid $of-border-card;
+  border: 1px solid $g-border-card;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -1108,11 +1108,11 @@ $border-light: #e4e7ed;
   padding: 12px 16px;
   font-size: 12px;
   font-weight: 600;
-  color: $of-text-muted;
+  color: $g-text-muted;
   text-transform: uppercase;
   letter-spacing: 0.8px;
   background: $bg-card;
-  border-bottom: 1px solid $of-border-card;
+  border-bottom: 1px solid $g-border-card;
 }
 .info-card-grid {
   padding: 16px;
@@ -1137,7 +1137,7 @@ $border-light: #e4e7ed;
 }
 .info-value {
   font-size: 13px;
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 .info-value.mono { font-family: monospace; }
 .info-desc-label {
@@ -1166,7 +1166,7 @@ $border-light: #e4e7ed;
   gap: 6px;
   padding: 14px 16px;
   background: #fff;
-  border: 1px solid $of-border-card;
+  border: 1px solid $g-border-card;
   border-radius: 10px;
   transition: all 0.2s;
 }
@@ -1188,7 +1188,7 @@ $border-light: #e4e7ed;
   font-family: monospace;
   font-size: 14px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 .var-item-tag { font-size: 10px; }
 .var-item-desc {
@@ -1204,7 +1204,7 @@ $border-light: #e4e7ed;
 }
 .risk-section {
   background: #fff;
-  border: 1px solid $of-border-card;
+  border: 1px solid $g-border-card;
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -1226,7 +1226,7 @@ $border-light: #e4e7ed;
   flex: 1;
   font-size: 14px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
   line-height: 28px;
 }
 .risk-section-body {
@@ -1330,7 +1330,7 @@ $border-light: #e4e7ed;
 .mode-card-title {
   font-size: 15px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
   margin-bottom: 2px;
 }
 .mode-card-desc {
@@ -1365,7 +1365,7 @@ $border-light: #e4e7ed;
 /* Schedule card */
 .schedule-card {
   background: #fff;
-  border: 1px solid $of-border-card;
+  border: 1px solid $g-border-card;
   border-radius: 12px;
   padding: 20px;
   display: flex;
@@ -1439,7 +1439,7 @@ $border-light: #e4e7ed;
 .manual-card-title {
   font-size: 15px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 .manual-card-desc {
   font-size: 13px;

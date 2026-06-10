@@ -32,7 +32,7 @@
 
     <div class="job-body">
       <!-- ─── Tab 1: 快速执行 ─── -->
-      <div v-show="activeTab === 'quick'" class="job-section of-fade-in-up">
+      <div v-show="activeTab === 'quick'" class="job-section g-fade-in-up">
         <div class="job-quick-grid">
           <div class="job-table-card">
             <div class="job-table-header"><span class="job-table-title">快速执行脚本</span></div>
@@ -62,7 +62,7 @@
       </div>
 
       <!-- ─── Tab 2: 模板管理 ─── -->
-      <div v-show="activeTab === 'templates'" class="job-section of-fade-in-up">
+      <div v-show="activeTab === 'templates'" class="job-section g-fade-in-up">
         <div class="job-tpl-layout">
           <div class="job-tpl-sidebar">
             <div class="job-table-card">
@@ -85,7 +85,7 @@
                 <span class="job-table-title">{{ selectedTemplate.name }} — 步骤</span>
                 <div style="display:flex;gap:8px;">
                   <el-button size="small" @click="publishTemplate" v-if="selectedTemplate.status==='draft'">发布</el-button>
-                  <el-button size="small" type="primary" @click="showAddPlan = true">创建方案</el-button>
+                  <el-button size="small" type="primary" :icon="Plus" @click="showAddPlan = true">创建方案</el-button>
                 </div>
               </div>
               <div style="padding:16px;">
@@ -108,7 +108,7 @@
       </div>
 
       <!-- ─── Tab 3: 脚本管理 ─── -->
-      <div v-show="activeTab === 'scripts'" class="job-section of-fade-in-up">
+      <div v-show="activeTab === 'scripts'" class="job-section g-fade-in-up">
         <div class="job-table-card">
           <div class="job-table-header">
             <span class="job-table-title">脚本库</span>
@@ -132,7 +132,7 @@
       </div>
 
       <!-- ─── Tab 4: 执行记录 ─── -->
-      <div v-show="activeTab === 'history'" class="job-section of-fade-in-up">
+      <div v-show="activeTab === 'history'" class="job-section g-fade-in-up">
         <div class="job-table-card">
           <div class="job-table-header">
             <span class="job-table-title">执行记录</span>
@@ -157,7 +157,7 @@
             </el-table-column>
             <el-table-column label="操作" width="160" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" text type="primary" @click="showExecDetail(row)"><el-icon><View /></el-icon> 详情</el-button>
+                <el-button size="small" text @click="showExecDetail(row)"><el-icon><View /></el-icon> 详情</el-button>
                 <el-button v-if="row.status==='running'||row.status==='pending'" size="small" text type="danger" @click="stopExec(row)">
                   <el-icon><Close /></el-icon> 停止
                 </el-button>
@@ -171,11 +171,11 @@
       </div>
 
       <!-- ─── Tab 5: 账号管理 ─── -->
-      <div v-show="activeTab === 'accounts'" class="job-section of-fade-in-up">
+      <div v-show="activeTab === 'accounts'" class="job-section g-fade-in-up">
         <div class="job-table-card">
           <div class="job-table-header">
             <span class="job-table-title">执行账号</span>
-            <el-button type="primary" size="small" @click="showAddAccount = true"><el-icon><Plus /></el-icon> 新增</el-button>
+            <el-button type="primary" :icon="Plus" size="small" @click="showAddAccount = true"><el-icon><Plus /></el-icon> 新增</el-button>
           </div>
           <el-table :data="accounts" v-loading="loading" stripe size="small" style="width:100%">
             <el-table-column prop="name" label="别名" width="140" />
@@ -198,7 +198,7 @@
       </div>
 
       <!-- ─── Tab 6: 高危规则 + 定时作业 ─── -->
-      <div v-show="activeTab === 'settings'" class="job-section of-fade-in-up">
+      <div v-show="activeTab === 'settings'" class="job-section g-fade-in-up">
         <div class="job-settings-grid">
           <div class="job-table-card">
             <div class="job-table-header">
@@ -220,7 +220,7 @@
           <div class="job-table-card">
             <div class="job-table-header">
               <span class="job-table-title">定时作业</span>
-              <el-button size="small" type="primary" @click="showAddCron = true"><el-icon><Plus /></el-icon> 新增</el-button>
+              <el-button size="small" type="primary" :icon="Plus" @click="showAddCron = true"><el-icon><Plus /></el-icon> 新增</el-button>
             </div>
             <el-table :data="cronJobs" size="small" stripe style="width:100%">
               <el-table-column prop="name" label="名称" min-width="140" />
@@ -230,7 +230,7 @@
               </el-table-column>
               <el-table-column label="操作" width="100">
                 <template #default="{ row }">
-                  <el-button size="small" text type="primary" @click="runCronNow(row)"><el-icon><CaretRight /></el-icon></el-button>
+                  <el-button size="small" text @click="runCronNow(row)"><el-icon><CaretRight /></el-icon></el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -673,7 +673,7 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .job-platform-page {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -718,11 +718,11 @@ onMounted(async () => {
 .job-body { flex: 1; overflow-y: auto; padding: 0 20px 24px; }
 .job-section { padding-top: 16px; }
 
-.job-table-card { background: #fff; border-radius: 14px; box-shadow: $of-shadow-card; overflow: hidden; }
+.job-table-card { background: #fff; border-radius: 14px; box-shadow: $g-shadow-card; overflow: hidden; }
 .job-table-card :deep(.el-table th.el-table__cell) { background: #fafafa; color: #606266; font-weight: 600; font-size: 12px; }
 .job-table-card :deep(.el-table__body tr:hover td) { background: #f5f7fa; }
 .job-table-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 0; }
-.job-table-title { font-size: 15px; font-weight: 600; color: $of-text-primary; }
+.job-table-title { font-size: 15px; font-weight: 600; color: $g-text-primary; }
 
 .job-status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 10px; }
 .job-status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }

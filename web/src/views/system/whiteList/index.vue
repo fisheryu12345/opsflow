@@ -36,7 +36,7 @@
             </el-form-item>
             <el-form-item>
               <el-button type="primary" size="small" @click="handleSearch">查询</el-button>
-              <el-button size="small" @click="handleReset">重置</el-button>
+              <el-button :icon="Refresh" size="small" @click="handleReset">重置</el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -63,7 +63,7 @@
           </el-table-column>
           <el-table-column label="操作" width="150" fixed="right" align="center">
             <template #default="scope">
-              <el-button v-if="auth('api_white_list:Update')" text type="primary" size="small" style="padding:0 4px" @click="handleEdit(scope.row)">编辑</el-button>
+              <el-button v-if="auth('api_white_list:Update')" text size="small" style="padding:0 4px" @click="handleEdit(scope.row)">编辑</el-button>
               <el-button v-if="auth('api_white_list:Delete')" text type="danger" size="small" style="padding:0 4px" @click="handleDelete(scope.row)">删除</el-button>
             </template>
           </el-table-column>
@@ -98,8 +98,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="dialogVisible = false">取消</el-button>
-        <el-button size="small" type="primary" :loading="submitLoading" @click="handleSubmit">确定</el-button>
+        <el-button  @click="dialogVisible = false">取消</el-button>
+        <el-button  type="primary" :loading="submitLoading" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -203,7 +203,7 @@ onMounted(() => { fetchData(); });
 </script>
 
 <style scoped lang="scss">
-@use '../styles/system-global' as *;
+@use '/@/styles/global' as *;
 
 // ===== Stats =====
 .wl-stats {
@@ -212,29 +212,29 @@ onMounted(() => { fetchData(); });
 }
 .wl-stat-card {
   display: flex; align-items: center; gap: 14px;
-  background: #fff; border-radius: $sys-radius; padding: 16px 18px;
-  box-shadow: $sys-shadow-card; transition: transform .2s, box-shadow .2s;
+  background: #fff; border-radius: $g-radius; padding: 16px 18px;
+  box-shadow: $g-shadow-card; transition: transform .2s, box-shadow .2s;
   cursor: default;
-  &:hover { transform: translateY(-2px); box-shadow: $sys-shadow-hover; }
+  &:hover { transform: translateY(-2px); box-shadow: $g-shadow-hover; }
 }
 .wl-stat-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; }
 .wl-stat-body { flex: 1; min-width: 0; }
-.wl-stat-val { font-size: 22px; font-weight: 700; color: $sys-text-primary; line-height: 1.2; }
-.wl-stat-lbl { font-size: 13px; color: $sys-text-secondary; margin-top: 2px; }
+.wl-stat-val { font-size: 22px; font-weight: 700; color: $g-text-primary; line-height: 1.2; }
+.wl-stat-lbl { font-size: 13px; color: $g-text-secondary; margin-top: 2px; }
 
 // ===== Page =====
-.sys-page { width: 100%; }
+.g-page { width: 100%; }
 
 // ===== Toolbar =====
-.wl-toolbar { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid $sys-border-light; }
+.wl-toolbar { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid $g-border-light; }
 .wl-toolbar :deep(.el-form--inline .el-form-item) { margin-right: 14px; margin-bottom: 0; }
 
 // ===== URL Code =====
-.wl-url-code { font-size: 12px; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: $sys-bg-page; padding: 2px 6px; border-radius: 4px; color: $sys-text-regular; }
+.wl-url-code { font-size: 12px; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: $g-bg-page; padding: 2px 6px; border-radius: 4px; color: $g-text-regular; }
 
 // ===== Pagination =====
-.wl-pagination { display: flex; justify-content: flex-end; padding-top: 14px; margin-top: 4px; border-top: 1px solid $sys-border-light; }
+.wl-pagination { display: flex; justify-content: flex-end; padding-top: 14px; margin-top: 4px; border-top: 1px solid $g-border-light; }
 
 // ===== Form =====
-.wl-form-tip { margin-top: 4px; font-size: 12px; color: $sys-text-secondary; line-height: 1.4; code { font-size: 11px; background: $sys-bg-page; padding: 1px 4px; border-radius: 3px; } }
+.wl-form-tip { margin-top: 4px; font-size: 12px; color: $g-text-secondary; line-height: 1.4; code { font-size: 11px; background: $g-bg-page; padding: 1px 4px; border-radius: 3px; } }
 </style>

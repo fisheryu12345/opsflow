@@ -10,7 +10,7 @@
               <span class="version-note" v-if="v.created_by_name">by {{ v.created_by_name }}</span>
             </div>
             <div class="version-actions">
-              <el-button size="small" text type="primary" @click="handleRollback(v)" :disabled="v.version === currentVersion">
+              <el-button size="small" text @click="handleRollback(v)" :disabled="v.version === currentVersion">
                 {{ v.version === currentVersion ? 'Current version' : 'Rollback to this version' }}
               </el-button>
             </div>

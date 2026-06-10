@@ -321,7 +321,7 @@ watch(() => props.modelValue, async (val) => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 $accent: #409EFF;
 $accent-dark: #337ecc;
@@ -452,20 +452,20 @@ $accent-dark: #337ecc;
   margin: 0;
   font-size: 17px;
   font-weight: 700;
-  color: $of-text-primary;
+  color: $g-text-primary;
   line-height: 1.3;
 }
 .panel-hero-text p {
   margin: 3px 0 0;
   font-size: 12px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   line-height: 1.4;
 }
 
 /* ===== Form Card ===== */
 .form-card {
   background: #fff;
-  border: 1px solid $of-border-card;
+  border: 1px solid $g-border-card;
   border-radius: 12px;
   padding: 20px 24px;
 }
@@ -518,7 +518,7 @@ $accent-dark: #337ecc;
 .mode-card-title {
   font-size: 14px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
   margin-bottom: 2px;
 }
 .mode-card-desc {
@@ -553,7 +553,7 @@ $accent-dark: #337ecc;
 /* ===== Extra Card ===== */
 .extra-card {
   background: #fff;
-  border: 1px solid $of-border-card;
+  border: 1px solid $g-border-card;
   border-radius: 12px;
   padding: 18px 20px;
   display: flex;
@@ -590,7 +590,7 @@ $accent-dark: #337ecc;
   background: linear-gradient(135deg, #60b0ff, $accent);
 }
 .wiz-create-btn {
-  background: $of-gradient-accent;
+  background: $g-gradient-accent;
   border: none;
 }
 .wiz-create-btn:hover {

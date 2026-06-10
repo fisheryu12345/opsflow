@@ -44,7 +44,7 @@
       </el-table-column>
       <el-table-column :label="$t('message.menuPage.colActions')" width="160" fixed="right">
         <template #default="{ row }">
-          <el-button v-auth="'column:Update'" size="small" text type="primary" @click="openEditDialog(row)">
+          <el-button v-auth="'column:Update'" size="small" text @click="openEditDialog(row)">
             <el-icon><Edit /></el-icon> {{ $t('message.menuPage.colEdit') }}
           </el-button>
           <el-popconfirm
@@ -350,7 +350,7 @@ defineExpose({ handleRefreshTable });
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .menu-field-com {
   height: 100%;
@@ -376,7 +376,7 @@ defineExpose({ handleRefreshTable });
 .mfc-toolbar-title {
   font-size: 13px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -398,25 +398,25 @@ defineExpose({ handleRefreshTable });
 }
 
 .mfc-table :deep(th.el-table__cell) {
-  background: $of-bg-header;
-  color: $of-text-primary;
+  background: $g-bg-header;
+  color: $g-text-primary;
   font-weight: 600;
   font-size: 12px;
 }
 
 .mfc-field-code {
   font-size: 11px;
-  background: $of-bg-card;
+  background: $g-bg-card;
   padding: 2px 6px;
   border-radius: 4px;
-  color: $of-text-secondary;
+  color: $g-text-secondary;
   font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
 .mfc-form :deep(.el-form-item__label) {
   font-size: 13px;
   font-weight: 500;
-  color: $of-text-primary;
+  color: $g-text-primary;
   padding-bottom: 4px;
 }
 
@@ -444,22 +444,22 @@ defineExpose({ handleRefreshTable });
   margin-bottom: 4px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background $of-transition-default, border-color $of-transition-default;
+  transition: background $g-transition-default, border-color $g-transition-default;
   border: 1px solid transparent;
 
   &:hover {
-    background: $of-bg-light-blue;
-    border-color: $of-border-blue;
+    background: $g-bg-light-blue;
+    border-color: $g-border-blue;
   }
 }
 
 .mfc-model-active {
-  background: $of-bg-light-blue;
-  border-color: $of-color-primary;
+  background: $g-bg-light-blue;
+  border-color: $g-color-primary;
 }
 
 .mfc-model-name {
   font-size: 13px;
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 </style>

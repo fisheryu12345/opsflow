@@ -88,16 +88,16 @@
       <template #footer>
         <div class="gv-drawer-footer">
           <div class="gv-footer-left">
-            <el-button v-if="editKey" @click="onDelete" type="danger" plain size="small">
+            <el-button v-if="editKey" @click="onDelete" type="danger" plain >
               <el-icon><Delete /></el-icon> Delete
             </el-button>
           </div>
           <div class="gv-footer-right">
-            <el-button v-if="editForm.source_type === 'node_output'" @click="onUnhook" text size="small" class="gv-unhook-btn">
+            <el-button v-if="editForm.source_type === 'node_output'" @click="onUnhook" text  class="gv-unhook-btn">
               <el-icon><Link /></el-icon> Unhook
             </el-button>
-            <el-button @click="detailVisible = false" size="small">Cancel</el-button>
-            <el-button type="primary" @click="onSave" size="small">Save</el-button>
+            <el-button @click="detailVisible = false" >Cancel</el-button>
+            <el-button type="primary" @click="onSave" >Save</el-button>
           </div>
         </div>
       </template>
@@ -212,7 +212,7 @@ watch(() => props.templateId, fetchVars, { immediate: true })
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 /* ---------- Layout ---------- */
 .gv-panel {
   width: 300px; min-width: 300px;
@@ -235,7 +235,7 @@ watch(() => props.templateId, fetchVars, { immediate: true })
 .gv-header-left { display: flex; align-items: center; gap: 8px; }
 .gv-header-icon {
   width: 28px; height: 28px; border-radius: 8px;
-  background: $of-gradient-accent;
+  background: $g-gradient-accent;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 2px 8px rgba(102,126,234,0.3);
 }
@@ -312,7 +312,7 @@ watch(() => props.templateId, fetchVars, { immediate: true })
 .gv-drawer-icon {
   width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center;
 }
-.icon-edit { background: $of-gradient-accent; }
+.icon-edit { background: $g-gradient-accent; }
 .icon-add { background: linear-gradient(135deg, #52c41a, #73d13d); }
 .gv-form { padding: 0 20px; }
 .gv-form :deep(.el-form-item__label) { font-weight: 600; color: #606266; padding-bottom: 2px; }

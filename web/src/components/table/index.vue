@@ -33,7 +33,7 @@
 				<template v-slot="scope">
 					<el-popconfirm title="确定删除吗？" @confirm="onDelRow(scope.row)">
 						<template #reference>
-							<el-button text type="primary">删除</el-button>
+							<el-button text>删除</el-button>
 						</template>
 					</el-popconfirm>
 				</template>

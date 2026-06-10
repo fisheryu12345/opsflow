@@ -74,7 +74,7 @@
           <el-table-column prop="created_at" :label="$t('message.opsflowPage.auditColTime')" width="160" />
           <el-table-column :label="$t('message.execution.colActions')" width="70" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" text type="primary" @click="showDetail(row)">{{ $t('message.opsflowPage.auditView') }}</el-button>
+              <el-button size="small" text @click="showDetail(row)">{{ $t('message.opsflowPage.auditView') }}</el-button>
             </template>
           </el-table-column>
         </el-table>

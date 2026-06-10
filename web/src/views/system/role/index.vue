@@ -1,7 +1,7 @@
 <template>
   <div class="sys-page role-page">
     <!-- ===== Stats Cards ===== -->
-    <div class="role-stats-row of-fade-in-up">
+    <div class="role-stats-row g-fade-in-up">
       <div v-for="card in statCards" :key="card.label" class="role-stat-card">
         <div class="role-stat-icon" :style="{ background: card.bg }">
           <el-icon :size="20"><component :is="card.icon" /></el-icon>
@@ -14,7 +14,7 @@
     </div>
 
     <!-- ===== Main Card ===== -->
-    <div class="sys-card of-fade-in-up" style="animation-delay:0.08s">
+    <div class="sys-card g-fade-in-up" style="animation-delay:0.08s">
       <div class="sys-card-header">
         <div class="sys-card-title">
           <span class="sys-card-icon">
@@ -77,10 +77,10 @@
           <el-table-column v-if="colPerm('create_datetime','is_query')" prop="create_datetime" :label="$t('message.rolePage.createTime')" min-width="170" sortable="custom" />
           <el-table-column :label="$t('message.rolePage.actions')" :width="actionColWidth" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button text type="primary" size="small" style="padding:0 4px" @click="handleView(row)">{{ $t('message.rolePage.view') }}</el-button>
-              <el-button v-if="auth('role:Update')" text type="primary" size="small" style="padding:0 4px" @click="handleEdit(row)">{{ $t('message.rolePage.edit') }}</el-button>
+              <el-button text size="small" style="padding:0 4px" @click="handleView(row)">{{ $t('message.rolePage.view') }}</el-button>
+              <el-button v-if="auth('role:Update')" text size="small" style="padding:0 4px" @click="handleEdit(row)">{{ $t('message.rolePage.edit') }}</el-button>
               <el-button v-if="auth('role:Delete')" text type="danger" size="small" style="padding:0 4px" @click="handleDelete(row)">{{ $t('message.rolePage.delete') }}</el-button>
-              <el-button v-if="auth('role:Permission')" text type="primary" size="small" style="padding:0 4px" @click="handlePermissionOpen(row)">{{ $t('message.rolePage.permission') }}</el-button>
+              <el-button v-if="auth('role:Permission')" text size="small" style="padding:0 4px" @click="handlePermissionOpen(row)">{{ $t('message.rolePage.permission') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -156,8 +156,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="handleEditDialogClose">{{ $t('message.rolePage.cancel') }}</el-button>
-        <el-button size="small" type="primary" :loading="editLoading" @click="handleEditSubmit">{{ $t('message.rolePage.confirm') }}</el-button>
+        <el-button  @click="handleEditDialogClose">{{ $t('message.rolePage.cancel') }}</el-button>
+        <el-button  type="primary" :loading="editLoading" @click="handleEditSubmit">{{ $t('message.rolePage.confirm') }}</el-button>
       </template>
     </el-dialog>
 
@@ -359,7 +359,7 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-@use '../styles/system-global' as *;
+@use '/@/styles/global' as *;
 
 .role-page {
   width: 100%;
@@ -378,15 +378,15 @@ onMounted(async () => {
   align-items: center;
   gap: 14px;
   background: #fff;
-  border-radius: $sys-radius;
+  border-radius: $g-radius;
   padding: 16px 18px;
-  box-shadow: $sys-shadow-card;
+  box-shadow: $g-shadow-card;
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: default;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: $sys-shadow-hover;
+    box-shadow: $g-shadow-hover;
   }
 }
 
@@ -409,13 +409,13 @@ onMounted(async () => {
 .role-stat-value {
   font-size: 22px;
   font-weight: 700;
-  color: $sys-text-primary;
+  color: $g-text-primary;
   line-height: 1.2;
 }
 
 .role-stat-label {
   font-size: 13px;
-  color: $sys-text-secondary;
+  color: $g-text-secondary;
   margin-top: 2px;
 }
 
@@ -423,7 +423,7 @@ onMounted(async () => {
 .role-toolbar {
   margin-bottom: 14px;
   padding-bottom: 14px;
-  border-bottom: 1px solid $sys-border-light;
+  border-bottom: 1px solid $g-border-light;
 
   :deep(.el-form--inline .el-form-item) {
     margin-right: 14px;
@@ -437,6 +437,6 @@ onMounted(async () => {
   justify-content: flex-end;
   padding-top: 16px;
   margin-top: 4px;
-  border-top: 1px solid $sys-border-light;
+  border-top: 1px solid $g-border-light;
 }
 </style>

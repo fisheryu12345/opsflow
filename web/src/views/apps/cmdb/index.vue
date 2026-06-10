@@ -44,7 +44,7 @@
     <div class="cmdb-body">
 
       <!-- ─── Tab 1: 模型管理 ─── -->
-      <div v-show="store.activeView === 'schema'" class="cmdb-section of-fade-in-up">
+      <div v-show="store.activeView === 'schema'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-schema-layout">
           <!-- Left: Model List -->
           <div class="cmdb-schema-sidebar">
@@ -150,7 +150,7 @@
       </div>
 
       <!-- ─── Tab 2: 实例管理 ─── -->
-      <div v-show="store.activeView === 'instance'" class="cmdb-section of-fade-in-up">
+      <div v-show="store.activeView === 'instance'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-instance-layout">
           <div class="cmdb-instance-sidebar">
             <div class="cmdb-table-card">
@@ -181,7 +181,7 @@
       </div>
 
       <!-- ─── Tab 3: 拓扑视图 ─── -->
-      <div v-show="store.activeView === 'topology'" class="cmdb-section of-fade-in-up">
+      <div v-show="store.activeView === 'topology'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-topo-card">
           <div class="cmdb-topo-toolbar">
             <div class="cmdb-topo-toolbar-left">
@@ -217,7 +217,7 @@
       </div>
 
       <!-- ─── Tab 4: 数据同步 ─── -->
-      <div v-show="store.activeView === 'sync'" class="cmdb-section of-fade-in-up">
+      <div v-show="store.activeView === 'sync'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-sync-grid">
           <div class="cmdb-table-card">
             <div class="cmdb-table-header">
@@ -249,7 +249,7 @@
       </div>
 
       <!-- ─── Tab 5: 事件订阅 ─── -->
-      <div v-show="store.activeView === 'events'" class="cmdb-section of-fade-in-up">
+      <div v-show="store.activeView === 'events'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-table-card">
           <div class="cmdb-table-header">
             <span class="cmdb-table-title">事件订阅管理</span>
@@ -313,7 +313,7 @@
       </el-form>
       <template #footer>
         <el-button @click="showAddModel = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="doAddModel">创建</el-button>
+        <el-button type="primary" :icon="Plus" :loading="saving" @click="doAddModel">创建</el-button>
       </template>
     </el-dialog>
 
@@ -329,7 +329,7 @@
       </el-form>
       <template #footer>
         <el-button @click="showAddClass = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="doAddClass">创建</el-button>
+        <el-button type="primary" :icon="Plus" :loading="saving" @click="doAddClass">创建</el-button>
       </template>
     </el-dialog>
 
@@ -360,7 +360,7 @@
       </el-form>
       <template #footer>
         <el-button @click="showAddField = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="doAddField">添加</el-button>
+        <el-button type="primary" :icon="Plus" :loading="saving" @click="doAddField">添加</el-button>
       </template>
     </el-dialog>
 
@@ -417,7 +417,7 @@
       </el-form>
       <template #footer>
         <el-button @click="showAddSubscription = false">取消</el-button>
-        <el-button type="primary" :loading="subSaving" @click="doCreateSubscription">创建</el-button>
+        <el-button type="primary" :icon="Plus" :loading="subSaving" @click="doCreateSubscription">创建</el-button>
       </template>
     </el-dialog>
   </div>
@@ -719,7 +719,7 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .cmdb-page {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -771,14 +771,14 @@ onMounted(async () => {
 
 /* ===== Table Card ===== */
 .cmdb-table-card {
-  background: #fff; border-radius: 14px; box-shadow: $of-shadow-card; overflow: hidden;
+  background: #fff; border-radius: 14px; box-shadow: $g-shadow-card; overflow: hidden;
 }
 .cmdb-table-card :deep(.el-table th.el-table__cell) { background: #fafafa; color: #606266; font-weight: 600; font-size: 12px; }
 .cmdb-table-card :deep(.el-table__body tr:hover td) { background: #f5f7fa; }
 .cmdb-table-header {
   display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 0;
 }
-.cmdb-table-title { font-size: 15px; font-weight: 600; color: $of-text-primary; }
+.cmdb-table-title { font-size: 15px; font-weight: 600; color: $g-text-primary; }
 
 /* ===== Schema Layout ===== */
 .cmdb-schema-layout { display: flex; gap: 16px; min-height: 500px; }
@@ -805,11 +805,11 @@ onMounted(async () => {
 
 /* ===== Topology ===== */
 .cmdb-topo-card {
-  background: #fff; border-radius: 14px; box-shadow: $of-shadow-card; overflow: hidden;
+  background: #fff; border-radius: 14px; box-shadow: $g-shadow-card; overflow: hidden;
 }
 .cmdb-topo-toolbar {
   display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;
-  border-bottom: 1px solid $of-border-light;
+  border-bottom: 1px solid $g-border-light;
 }
 .cmdb-topo-toolbar-left { display: flex; align-items: center; }
 .cmdb-topo-body { min-height: 560px; position: relative; }

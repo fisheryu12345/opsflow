@@ -52,7 +52,7 @@
       </el-table-column>
       <el-table-column :label="$t('message.menuPage.actions')" width="160" fixed="right">
         <template #default="{ row }">
-          <el-button v-auth="'btn:Update'" size="small" text type="primary" @click="openEditDialog(row)">
+          <el-button v-auth="'btn:Update'" size="small" text @click="openEditDialog(row)">
             <el-icon><Edit /></el-icon> {{ $t('message.menuPage.edit') }}
           </el-button>
           <el-popconfirm
@@ -319,7 +319,7 @@ defineExpose({ handleRefreshTable });
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .menu-button-com {
   height: 100%;
@@ -346,7 +346,7 @@ defineExpose({ handleRefreshTable });
 .mbc-toolbar-title {
   font-size: 13px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -369,18 +369,18 @@ defineExpose({ handleRefreshTable });
 }
 
 .mbc-table :deep(th.el-table__cell) {
-  background: $of-bg-header;
-  color: $of-text-primary;
+  background: $g-bg-header;
+  color: $g-text-primary;
   font-weight: 600;
   font-size: 12px;
 }
 
 .mbc-api-code {
   font-size: 11px;
-  background: $of-bg-card;
+  background: $g-bg-card;
   padding: 2px 6px;
   border-radius: 4px;
-  color: $of-text-secondary;
+  color: $g-text-secondary;
   font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
@@ -388,7 +388,7 @@ defineExpose({ handleRefreshTable });
 .mbc-form :deep(.el-form-item__label) {
   font-size: 13px;
   font-weight: 500;
-  color: $of-text-primary;
+  color: $g-text-primary;
   padding-bottom: 4px;
 }
 

@@ -1,7 +1,7 @@
 <template>
   <div class="sys-page opsflow-dashboard">
     <!-- Hero Banner / 顶部问候横幅 -->
-    <div class="of-fade-in-up home-hero">
+    <div class="g-fade-in-up home-hero">
       <div class="home-hero-content">
         <div class="home-hero-icon">
           <el-icon :size="28"><DataBoard /></el-icon>
@@ -18,7 +18,7 @@
       <div
         v-for="(card, i) in statCards"
         :key="card.label"
-        class="of-card stat-card of-stagger-item"
+        class="of-card stat-card g-stagger-item"
         :style="{ animationDelay: `${i * 0.08}s` }"
       >
         <div class="stat-icon" :style="{ background: card.bg }">
@@ -32,7 +32,7 @@
     </div>
 
     <!-- Overview Section / 概览说明 -->
-    <div class="of-card home-section of-fade-in-up" style="animation-delay:0.2s">
+    <div class="of-card home-section g-fade-in-up" style="animation-delay:0.2s">
       <div class="home-section-header">
         <span class="home-section-icon">
           <el-icon :size="16"><InfoFilled /></el-icon>
@@ -99,44 +99,44 @@ onMounted(async () => {
 // ============================================================
 // OPSflow Design Tokens (inline for system page independence)
 // ============================================================
-$of-color-primary: #409EFF;
-$of-color-primary-dark: #337ecc;
-$of-color-accent: #667eea;
-$of-color-accent-dark: #764ba2;
-$of-bg-card: #f8f9fb;
-$of-bg-page: #f0f2f5;
-$of-text-primary: #303133;
-$of-text-secondary: #666;
-$of-text-muted: #909399;
-$of-border-card: #f0f0f0;
-$of-radius-card: 10px;
-$of-shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06);
-$of-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
-$of-transition-default: 0.2s;
-$of-padding-card: 16px 18px;
+$g-color-primary: #409EFF;
+$g-color-primary-dark: #337ecc;
+$g-color-accent: #667eea;
+$g-color-accent-dark: #764ba2;
+$g-bg-card: #f8f9fb;
+$g-bg-page: #f0f2f5;
+$g-text-primary: #303133;
+$g-text-secondary: #666;
+$g-text-muted: #909399;
+$g-border-card: #f0f0f0;
+$g-radius-card: 10px;
+$g-shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06);
+$g-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
+$g-transition-default: 0.2s;
+$g-padding-card: 16px 18px;
 
 // ============================================================
 // Reusable Classes (inline, matching opsflow-global)
 // ============================================================
-.of-card {
-  background: $of-bg-card;
-  border: 1px solid $of-border-card;
-  border-radius: $of-radius-card;
-  padding: $of-padding-card;
-  transition: transform $of-transition-default, box-shadow $of-transition-default;
+.g-card {
+  background: $g-bg-card;
+  border: 1px solid $g-border-card;
+  border-radius: $g-radius-card;
+  padding: $g-padding-card;
+  transition: transform $g-transition-default, box-shadow $g-transition-default;
 }
-.of-card:hover {
+.g-card:hover {
   transform: translateY(-1px);
-  box-shadow: $of-shadow-hover;
+  box-shadow: $g-shadow-hover;
 }
 
-.of-fade-in-up {
-  animation: ofFadeInUp 0.5s ease both;
+.g-fade-in-up {
+  animation: gFadeInUp 0.5s ease both;
 }
-.of-stagger-item {
-  animation: ofFadeInUp 0.4s ease both;
+.g-stagger-item {
+  animation: gFadeInUp 0.4s ease both;
 }
-@keyframes ofFadeInUp {
+@keyframes gFadeInUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
@@ -144,7 +144,7 @@ $of-padding-card: 16px 18px;
 // ============================================================
 // Page
 // ============================================================
-.sys-page.opsflow-dashboard {
+.g-page.opsflow-dashboard {
   width: 100%;
 }
 
@@ -153,15 +153,15 @@ $of-padding-card: 16px 18px;
 // ============================================================
 .home-hero {
   background: linear-gradient(135deg, #ecf5ff 0%, #f8f9fb 100%);
-  border: 1px solid $of-border-card;
-  border-radius: $of-radius-card;
+  border: 1px solid $g-border-card;
+  border-radius: $g-radius-card;
   padding: 20px 24px;
   margin-bottom: 18px;
-  box-shadow: $of-shadow-card;
-  transition: box-shadow $of-transition-default;
+  box-shadow: $g-shadow-card;
+  transition: box-shadow $g-transition-default;
 
   &:hover {
-    box-shadow: $of-shadow-hover;
+    box-shadow: $g-shadow-hover;
   }
 }
 
@@ -192,13 +192,13 @@ $of-padding-card: 16px 18px;
 .home-hero-title {
   font-size: 20px;
   font-weight: 700;
-  color: $of-text-primary;
+  color: $g-text-primary;
   margin: 0 0 4px;
 }
 
 .home-hero-desc {
   font-size: 13px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   margin: 0;
 }
 
@@ -220,7 +220,7 @@ $of-padding-card: 16px 18px;
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: $of-shadow-hover;
+    box-shadow: $g-shadow-hover;
   }
 }
 
@@ -242,13 +242,13 @@ $of-padding-card: 16px 18px;
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: $of-text-primary;
+  color: $g-text-primary;
   line-height: 1.2;
 }
 
 .stat-label {
   font-size: 13px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   margin-top: 4px;
 }
 
@@ -265,10 +265,10 @@ $of-padding-card: 16px 18px;
   gap: 8px;
   margin-bottom: 14px;
   padding-bottom: 12px;
-  border-bottom: 1px solid $of-border-card;
+  border-bottom: 1px solid $g-border-card;
   font-size: 15px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 
 .home-section-icon {
@@ -284,12 +284,12 @@ $of-padding-card: 16px 18px;
 }
 
 .home-section-text {
-  color: $of-text-secondary;
+  color: $g-text-secondary;
   line-height: 2;
   margin: 0;
 }
 
 .home-section-body {
-  // spacing handled by .of-card padding
+  // spacing handled by .g-card padding
 }
 </style>

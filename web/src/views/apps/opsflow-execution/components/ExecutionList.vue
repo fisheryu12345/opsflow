@@ -104,7 +104,7 @@
             <template #default="{ row }">
               <div class="exec-actions">
                 <el-tooltip :content="$t('message.execution.viewDetail')" placement="top">
-                  <el-button size="small" circle text type="primary" :icon="View" @click.stop="emit('viewDetail', row)" />
+                  <el-button size="small" circle text :icon="View" @click.stop="emit('viewDetail', row)" />
                 </el-tooltip>
                 <el-tooltip v-if="row.status === 'pending'" :content="$t('message.execution.start')" placement="top">
                   <el-button size="small" circle text type="success" :icon="VideoPlay" :loading="startingId === row.id" @click.stop="onStart(row)" />

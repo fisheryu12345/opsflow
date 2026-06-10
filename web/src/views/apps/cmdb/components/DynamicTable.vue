@@ -38,13 +38,13 @@
         </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" text type="primary" @click="showEditDialog(row)">
+            <el-button size="small" text @click="showEditDialog(row)">
               <el-icon><Edit /></el-icon>
             </el-button>
-            <el-button size="small" text type="primary" @click="showChangeHistory(row)" v-if="showDetailBtn">
+            <el-button size="small" text @click="showChangeHistory(row)" v-if="showDetailBtn">
               <el-icon><Timer /></el-icon>
             </el-button>
-            <el-button size="small" text type="primary" @click="showDetail(row)" v-if="showDetailBtn">
+            <el-button size="small" text @click="showDetail(row)" v-if="showDetailBtn">
               <el-icon><View /></el-icon>
             </el-button>
             <el-popconfirm title="确认删除?" @confirm="deleteRow(row)">
@@ -85,14 +85,14 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="save">保存</el-button>
+        <el-button type="primary" :icon="Check" :loading="saving" @click="save">保存</el-button>
       </template>
     </el-dialog>
 
     <!-- Export Dialog -->
     <el-dialog v-model="exportDialogVisible" title="导出 Excel" width="400px" destroy-on-close>
       <p style="margin-bottom:16px;color:#606266;">将当前模型的所有实例导出为 Excel (.xlsx) 文件。</p>
-      <el-button type="primary" :loading="exporting" @click="doExport">确认导出</el-button>
+      <el-button type="primary" :icon="Download" :loading="exporting" @click="doExport">确认导出</el-button>
     </el-dialog>
 
     <!-- Import Dialog -->
@@ -102,7 +102,7 @@
         <el-icon :size="40" color="#409EFF"><Upload /></el-icon>
         <div style="margin-top:8px;">拖拽或点击上传 .xlsx 文件</div>
       </el-upload>
-      <el-button type="primary" :loading="importing" :disabled="!importFile" @click="doImport">开始导入</el-button>
+      <el-button type="primary" :icon="Upload" :loading="importing" :disabled="!importFile" @click="doImport">开始导入</el-button>
     </el-dialog>
 
     <!-- Change History Dialog -->
@@ -428,10 +428,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@use '../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .cmdb-table-card {
-  background: #fff; border-radius: 14px; box-shadow: $of-shadow-card; overflow: hidden;
+  background: #fff; border-radius: 14px; box-shadow: $g-shadow-card; overflow: hidden;
 }
 .cmdb-table-card :deep(.el-table th.el-table__cell) { background: #fafafa; color: #606266; font-weight: 600; font-size: 12px; }
 .cmdb-table-card :deep(.el-table__body tr:hover td) { background: #f5f7fa; }
@@ -439,7 +439,7 @@ onMounted(() => {
   display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 0;
 }
 .cmdb-table-header-left { display: flex; align-items: center; gap: 8px; }
-.cmdb-table-title { font-size: 15px; font-weight: 600; color: $of-text-primary; }
+.cmdb-table-title { font-size: 15px; font-weight: 600; color: $g-text-primary; }
 .cmdb-table-subtitle { font-size: 12px; color: #909399; }
 .cmdb-table-footer { padding: 12px 20px; display: flex; justify-content: flex-end; }
 

@@ -215,12 +215,12 @@ const visible = computed({
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .help-drawer :deep(.el-drawer__header) {
   margin-bottom: 0;
   padding: 16px 20px;
-  border-bottom: 1px solid $of-border-card;
+  border-bottom: 1px solid $g-border-card;
 }
 .help-drawer-header {
   display: flex;
@@ -234,7 +234,7 @@ const visible = computed({
   gap: 8px;
   font-size: 16px;
   font-weight: 700;
-  color: $of-text-primary;
+  color: $g-text-primary;
 }
 .help-drawer-icon {
   font-size: 20px;
@@ -243,7 +243,7 @@ const visible = computed({
   padding: 4px 20px 20px;
   font-size: 13px;
   line-height: 1.7;
-  color: $of-text-secondary;
+  color: $g-text-secondary;
 }
 .help-section {
   margin-bottom: 22px;
@@ -251,16 +251,16 @@ const visible = computed({
 .help-h2 {
   font-size: 15px;
   font-weight: 700;
-  color: $of-text-primary;
+  color: $g-text-primary;
   margin: 0 0 10px;
   padding-bottom: 6px;
-  border-bottom: 2px solid $of-color-primary;
+  border-bottom: 2px solid $g-color-primary;
   display: inline-block;
 }
 .help-h3 {
   font-size: 13px;
   font-weight: 600;
-  color: $of-text-muted;
+  color: $g-text-muted;
   margin: 12px 0 6px;
 }
 
@@ -271,14 +271,14 @@ const visible = computed({
   flex-wrap: wrap;
   gap: 6px;
   padding: 12px 14px;
-  background: $of-bg-card;
-  border-radius: $of-radius-sm;
-  border: 1px solid $of-border-default;
+  background: $g-bg-card;
+  border-radius: $g-radius-sm;
+  border: 1px solid $g-border-default;
 }
 .help-flow-text {
   font-size: 13px;
   font-weight: 600;
-  color: $of-text-primary;
+  color: $g-text-primary;
   letter-spacing: 0.5px;
 }
 
@@ -295,8 +295,8 @@ const visible = computed({
   gap: 10px;
   padding: 8px 10px;
   background: #fff;
-  border: 1px solid $of-border-default;
-  border-radius: $of-radius-sm;
+  border: 1px solid $g-border-default;
+  border-radius: $g-radius-sm;
 }
 .help-method-icon {
   font-size: 18px;
@@ -311,12 +311,12 @@ const visible = computed({
 .help-method p {
   margin: 0;
   font-size: 11px;
-  color: $of-text-muted;
+  color: $g-text-muted;
 }
 .help-tip {
   font-size: 12px;
-  background: $of-bg-confirm;
-  border: 1px solid $of-border-confirm;
+  background: $g-bg-confirm;
+  border: 1px solid $g-border-confirm;
   border-radius: 6px;
   padding: 8px 10px;
   color: #92400e;
@@ -335,7 +335,7 @@ const visible = computed({
   gap: 6px;
   font-size: 11px;
   padding: 4px 6px;
-  background: $of-bg-card-hover;
+  background: $g-bg-card-hover;
   border-radius: 4px;
 }
 .help-node-tag {
@@ -355,10 +355,10 @@ const visible = computed({
 }
 /* Node tag color variants — replaces inline styles */
 .help-node-tag-start { background: #E1F3D8; color: #67C23A; }
-.help-node-tag-task { background: #fff; color: $of-color-primary; border: 1px solid $of-color-primary; }
+.help-node-tag-task { background: #fff; color: $g-color-primary; border: 1px solid $g-color-primary; }
 .help-node-tag-exclusive { background: #fff; color: #E6A23C; border: 1px solid #E6A23C; }
-.help-node-tag-parallel { background: #fff; color: $of-color-primary; border: 1px solid $of-color-primary; }
-.help-node-tag-converge { background: #fff; color: $of-text-muted; border: 1px solid $of-text-muted; }
+.help-node-tag-parallel { background: #fff; color: $g-color-primary; border: 1px solid $g-color-primary; }
+.help-node-tag-converge { background: #fff; color: $g-text-muted; border: 1px solid $g-text-muted; }
 .help-node-tag-subprocess { background: #EBF5FB; color: #2980B9; border: 1px dashed #2980B9; }
 
 /* Lists */
@@ -367,14 +367,14 @@ const visible = computed({
   padding-left: 18px;
   font-size: 12px;
   line-height: 2;
-  color: $of-text-muted;
+  color: $g-text-muted;
 }
 .help-list :deep(code) {
-  background: $of-bg-light-blue;
+  background: $g-bg-light-blue;
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 11px;
-  color: $of-color-primary;
+  color: $g-color-primary;
 }
 
 /* Wizard steps */
@@ -386,10 +386,10 @@ const visible = computed({
 }
 .help-wiz-item {
   padding: 4px 10px;
-  background: $of-bg-light-blue;
+  background: $g-bg-light-blue;
   border-radius: 12px;
   font-size: 11px;
-  color: $of-color-primary;
+  color: $g-color-primary;
   font-weight: 500;
 }
 
@@ -400,18 +400,18 @@ const visible = computed({
   flex-wrap: wrap;
   gap: 4px;
   padding: 8px 10px;
-  background: $of-bg-card-hover;
+  background: $g-bg-card-hover;
   border-radius: 6px;
   font-size: 11px;
   font-family: monospace;
 }
 .help-state { padding: 2px 6px; border-radius: 3px; }
-.help-state.pending { background: #f3f4f6; color: $of-text-muted; }
-.help-state.running { background: $of-bg-warning; color: #d97706; }
-.help-state.completed { background: $of-bg-success; color: #059669; }
-.help-state.failed { background: $of-bg-danger; color: #dc2626; }
-.help-state-arrow { color: $of-text-placeholder; }
-.help-state-divider { color: $of-border-default; }
+.help-state.pending { background: #f3f4f6; color: $g-text-muted; }
+.help-state.running { background: $g-bg-warning; color: #d97706; }
+.help-state.completed { background: $g-bg-success; color: #059669; }
+.help-state.failed { background: $g-bg-danger; color: #dc2626; }
+.help-state-arrow { color: $g-text-placeholder; }
+.help-state-divider { color: $g-border-default; }
 
 /* Grid actions */
 .help-grid {
@@ -421,11 +421,11 @@ const visible = computed({
 }
 .help-grid-item {
   padding: 6px 8px;
-  background: $of-bg-card-hover;
+  background: $g-bg-card-hover;
   border-radius: 4px;
   font-size: 11px;
-  color: $of-text-muted;
-  border: 1px solid $of-border-card;
+  color: $g-text-muted;
+  border: 1px solid $g-border-card;
 }
 
 /* FAQ */
@@ -433,25 +433,25 @@ const visible = computed({
   margin-bottom: 10px;
   padding: 10px;
   background: #fff;
-  border: 1px solid $of-border-default;
-  border-radius: $of-radius-sm;
+  border: 1px solid $g-border-default;
+  border-radius: $g-radius-sm;
 }
 .help-faq-q {
   font-weight: 600;
   font-size: 12px;
-  color: $of-text-primary;
+  color: $g-text-primary;
   margin-bottom: 4px;
 }
 .help-faq-a {
   font-size: 12px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   line-height: 1.5;
 }
 .help-faq-a :deep(code) {
-  background: $of-bg-light-blue;
+  background: $g-bg-light-blue;
   padding: 1px 4px;
   border-radius: 3px;
   font-size: 11px;
-  color: $of-color-primary;
+  color: $g-color-primary;
 }
 </style>

@@ -237,7 +237,7 @@ function onClosed() {
 </script>
 
 <style lang="scss" scoped>
-@use '../../../../../styles/opsflow-global' as *;
+@use '/@/styles/global' as *;
 
 .condition-dialog-body {
   min-height: 200px;
@@ -265,19 +265,19 @@ function onClosed() {
   user-select: none;
 }
 .logic-btn.and {
-  background: $of-bg-warning;
+  background: $g-bg-warning;
   color: #E6A23C;
-  border: 1px solid $of-border-warning;
+  border: 1px solid $g-border-warning;
 }
 .logic-btn.or {
-  background: $of-bg-light-blue;
-  color: $of-color-primary;
+  background: $g-bg-light-blue;
+  color: $g-color-primary;
   border: 1px solid #b3d8ff;
 }
 .connector-line {
   flex: 1;
   height: 1px;
-  background: $of-border-light;
+  background: $g-border-light;
 }
 .rules-empty {
   display: flex;
@@ -285,13 +285,13 @@ function onClosed() {
   align-items: center;
   justify-content: center;
   padding: 40px 0;
-  color: $of-text-placeholder;
+  color: $g-text-placeholder;
   gap: 12px;
 }
 .rules-empty p {
   margin: 0;
   font-size: 13px;
-  color: $of-text-muted;
+  color: $g-text-muted;
 }
 .quick-presets {
   display: flex;
@@ -303,7 +303,7 @@ function onClosed() {
   margin-bottom: 12px;
 }
 .preview-bar {
-  background: $of-bg-header;
+  background: $g-bg-header;
   border-radius: 6px;
   padding: 10px 14px;
 }
@@ -315,14 +315,14 @@ function onClosed() {
 }
 .preview-label {
   font-size: 12px;
-  color: $of-text-muted;
+  color: $g-text-muted;
   white-space: nowrap;
   margin-top: 2px;
 }
 .preview-expr {
   font-size: 13px;
   font-family: monospace;
-  color: $of-text-primary;
+  color: $g-text-primary;
   word-break: break-all;
   line-height: 1.5;
 }
