@@ -71,10 +71,6 @@ class Users(CoreModel, AbstractUser):
         help_text="关联部门",
     )
     objects = CustomUserManager()
-    language = models.CharField(max_length=10, default='zh-hans', verbose_name="语言",
-                                 help_text="zh-hans: 中文, en: English",
-                                 choices=[('zh-hans', '中文'), ('en', 'English')])
-
     def set_password(self, raw_password):
         super().set_password(hashlib.md5(raw_password.encode(encoding="UTF-8")).hexdigest())
 

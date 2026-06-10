@@ -18,7 +18,6 @@ from dvadmin.system.views.role_menu_button_permission import RoleMenuButtonPermi
 from dvadmin.system.views.system_config import SystemConfigViewSet
 from dvadmin.system.views.user import UserViewSet
 from dvadmin.system.views.menu_field import MenuFieldViewSet
-from dvadmin.system.views.language import LanguageView
 
 system_url = routers.SimpleRouter()
 system_url.register(r'menu', MenuViewSet)
@@ -51,6 +50,5 @@ urlpatterns = [
     path('dept_lazy_tree/', DeptViewSet.as_view({'get': 'dept_lazy_tree'})),
     path('clause/privacy.html', PrivacyView.as_view()),
     path('clause/terms_service.html', TermsServiceView.as_view()),
-    path('language/', LanguageView.as_view()),
 ]
 urlpatterns += system_url.urls
