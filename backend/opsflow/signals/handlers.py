@@ -33,36 +33,25 @@ def _safe_signal_handler(func, execution, node_id, to_state):
 def _push_node_status_via_ws(execution, node_id):
     """通过 WebSocket 实时推送节点状态到前端
 
-    在 DB 持久化完成后调用，使用 Channels user_{id} 组推送，
-    前端 wsReceive 收到 NODE_STATUS 后通过 mittBus 分发给
-    对应的 ExecutionDetail 页面，即时更新 X6 节点颜色。
+    在 DB 持久化完成后调用，使用 ws_push.push_to_user() 推送到 user_{id} 组，
+    前端 WebSocketService 收到 topic="node_status" 后分发给 ExecutionDetail 页面。
     """
     if not execution.created_by_id:
         return
-    try:
-        from channels.layers import get_channel_layer
-        from asgiref.sync import async_to_sync
-        status = (execution.node_status or {}).get(node_id, '')
-        if not status:
-            return
-        channel_layer = get_channel_layer()
-        if channel_layer:
-            async_to_sync(channel_layer.group_send)(
-                f"user_{execution.created_by_id}",
-                {
-                    "type": "push.message",
-                    "json": {
-                        "contentType": "NODE_STATUS",
-                        "content": {
-                            "execution_id": execution.id,
-                            "node_id": node_id,
-                            "status": status,
-                        },
-                    },
-                }
-            )
-    except Exception:
-        logger.exception("[Signal] WS push failed for node %s", node_id)
+    status = (execution.node_status or {}).get(node_id, '')
+    if not status:
+        return
+    from application.ws_push import push_to_user
+    push_to_user(
+        execution.created_by_id,
+        "node_status",
+        "update",
+        {
+            "execution_id": execution.id,
+            "node_id": node_id,
+            "status": status,
+        },
+    )
 
 
 def _try_webhook(execution, event: str):

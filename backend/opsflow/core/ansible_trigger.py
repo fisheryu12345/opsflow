@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 def execute_atom(node: dict, target_hosts: Optional[list] = None,
                  execution_id: Optional[str] = None,
-                 node_id: Optional[str] = None) -> dict:
+                 node_id: Optional[str] = None,
+                 user_id: Optional[int] = None) -> dict:
     """执行一个原子节点
 
     1. 组装 extra_vars
@@ -41,6 +42,7 @@ def execute_atom(node: dict, target_hosts: Optional[list] = None,
         target_hosts: 目标主机列表
         execution_id: 执行 ID（用于 WebSocket 推送）
         node_id: 节点 ID（用于 WebSocket 推送）
+        user_id: 创建者用户 ID（用于 WebSocket 推送）
 
     Returns:
         {"stdout": str, "stderr": str, "returncode": int,
@@ -80,6 +82,7 @@ def execute_atom(node: dict, target_hosts: Optional[list] = None,
         # Step 2: 主动轮询（含 WebSocket 推送）
         result = tower.poll_job(
             job_id,
+            user_id=user_id,
             execution_id=execution_id,
             node_id=node_ident,
         )
@@ -127,7 +130,8 @@ def execute_atom(node: dict, target_hosts: Optional[list] = None,
 
 
 def poll_job(job_id: int, execution_id: Optional[str] = None,
-             node_id: Optional[str] = None) -> dict:
+             node_id: Optional[str] = None,
+             user_id: Optional[int] = None) -> dict:
     """轮询 Tower 作业状态（外部调用用）
 
     返回: {"stdout": str, "stderr": str, "returncode": int}
@@ -136,6 +140,7 @@ def poll_job(job_id: int, execution_id: Optional[str] = None,
     try:
         result = tower.poll_job(
             job_id,
+            user_id=user_id,
             execution_id=execution_id,
             node_id=node_id,
         )

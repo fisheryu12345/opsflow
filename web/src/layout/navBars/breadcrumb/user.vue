@@ -114,7 +114,7 @@ import other from '/@/utils/other';
 import mittBus from '/@/utils/mitt';
 import { Session, Local } from '/@/utils/storage';
 import headerImage from '/@/assets/img/headerImage.png';
-import websocket from '/@/utils/websocket';
+import wsService from '/@/utils/websocket.service';
 import { InfoFilled } from '@element-plus/icons-vue'
 // 引入组件
 const UserNews = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/userNews.vue'));
@@ -150,10 +150,8 @@ const { isSocketOpen } = storeToRefs(useUserInfo());
 // websocket状态
 const onlinePopoverRef = ref()
 const onlineConfirmEvent = () => {
-  if (!isSocketOpen.value) {
-      websocket.is_reonnect = true
-      websocket.reconnect_current = 1
-      websocket.reconnect()
+  if (!wsService.isConnected) {
+      wsService.reconnect()
   }
   // 手动隐藏弹出
   unref(onlinePopoverRef).popperRef?.delayHide?.()

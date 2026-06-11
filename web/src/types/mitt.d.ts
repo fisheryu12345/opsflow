@@ -22,7 +22,6 @@ declare type MittType<T = any> = {
 	openShareTagsView?: string;
 	onTagsViewRefreshRouterView?: T;
 	onCurrentContextmenuClick?: T;
-	nodeStatusChange?: T;  // opsflow 实时节点状态推送
 };
 
 // mitt 参数类型定义

@@ -334,24 +334,18 @@ class FlowEngine:
 
     def _send_ws_completed(self):
         """推送执行完成通知到 WebSocket（best-effort，不抛异常）"""
-        try:
-            from channels.layers import get_channel_layer
-            from opsflow.tasks import run_async
+        from application.ws_push import push_to_user
 
-            channel_layer = get_channel_layer()
-            if channel_layer:
-                run_async(
-                    channel_layer.group_send(
-                        f"execution_{self.execution.id}",
-                        {
-                            "type": "execution.completed",
-                            "status": self.execution.status,
-                        },
-                    )
-                )
-        except Exception:
-            logger.debug(
-                "[FlowEngine] channel layer unavailable, skipped WS notification"
+        user_id = self.execution.created_by_id
+        if user_id:
+            push_to_user(
+                user_id,
+                "execution",
+                "completed",
+                {
+                    "execution_id": self.execution.id,
+                    "status": self.execution.status,
+                },
             )
 
 

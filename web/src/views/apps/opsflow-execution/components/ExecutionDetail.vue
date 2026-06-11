@@ -198,7 +198,7 @@ import { ArrowLeft, Refresh, Monitor, Document, Close, DArrowLeft, DArrowRight, 
 import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode, CancelExecution, GetExecutionTraces, GetNodeTraceLog, ApproveNode, RejectNode, GetEngineStates } from '../../opsflow/api/executions'
 import { GetTemplateDetail } from '../../opsflow/api/templates'
 import { GetLogs } from '../../opsflow/api/logs'
-import mittBus from '/@/utils/mitt'
+import wsService from '/@/utils/websocket.service'
 import MonitorCanvas from '/@/views/apps/opsflow/components/canvas/MonitorCanvas.vue'
 
 const props = defineProps<{ execution: any }>()
@@ -475,9 +475,10 @@ watch(isRunning, (v) => { if (v) startAutoRefresh(); else stopAutoRefresh() }, {
 watch(() => props.execution.id, (newId) => { if (newId) { graphInitialized = false; loadPipeline(true); fetchLogs(); fetchTraces() } })
 
 // WebSocket real-time node status update handler
-function handleNodeStatusChange(payload: any) {
-  if (payload.execution_id === props.execution.id) {
-    monitorRef.value?.updateNodeStatus?.(payload.node_id, payload.status)
+function handleNodeStatusChange(msg: WsMessage) {
+  const { execution_id, node_id, status } = msg.payload
+  if (execution_id === props.execution.id) {
+    monitorRef.value?.updateNodeStatus?.(node_id, status)
   }
 }
 
@@ -485,12 +486,12 @@ onMounted(() => {
   loadPipeline()
   fetchLogs()
   fetchTraces()
-  mittBus.on('nodeStatusChange', handleNodeStatusChange)
+  wsService.on('node_status', handleNodeStatusChange)
 })
 onActivated(() => { nextTick(() => { monitorRef.value?.refreshCanvas() }) })
 onBeforeUnmount(() => {
   stopAutoRefresh()
-  mittBus.off('nodeStatusChange', handleNodeStatusChange)
+  wsService.off('node_status', handleNodeStatusChange)
 })
 </script>
 

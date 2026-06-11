@@ -14,6 +14,7 @@ class TowerPollingMixin:
 
     def poll_job(self, job_id: int, *,
                  timeout: int = 3600,
+                 user_id: Optional[int] = None,
                  execution_id: Optional[str] = None,
                  node_id: Optional[str] = None,
                  on_status_change: Optional[Callable] = None) -> dict:
@@ -47,6 +48,7 @@ class TowerPollingMixin:
                 progress = self._estimate_progress(stdout_text)
 
                 self._emit_ws_status(
+                    user_id=user_id,
                     execution_id=execution_id,
                     node_id=node_id,
                     tower_status=current_status,
@@ -63,6 +65,7 @@ class TowerPollingMixin:
                             job_id, current_status, elapsed)
                 result = self.extract_result(job_id)
                 self._emit_ws_status(
+                    user_id=user_id,
                     execution_id=execution_id,
                     node_id=node_id,
                     tower_status=current_status,
@@ -98,30 +101,31 @@ class TowerPollingMixin:
         return min(int(done / total * 100), 99)
 
     @staticmethod
-    def _emit_ws_status(execution_id: Optional[str], node_id: Optional[str],
-                        tower_status: str, bamboo_status: str,
-                        progress: int, artifacts: dict):
-        """通过 Channels 推送 Tower 作业状态到前端"""
-        if not execution_id or not node_id:
-            return
-        try:
-            from channels.layers import get_channel_layer
-            from asgiref.sync import async_to_sync
+    def _emit_ws_status(user_id: Optional[int], execution_id: Optional[str],
+                        node_id: Optional[str], tower_status: str,
+                        bamboo_status: str, progress: int, artifacts: dict):
+        """通过 ws_push 推送 Tower 作业状态到用户组
 
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"execution_{execution_id}",
-                {
-                    "type": "tower_job_update",
-                    "node_id": node_id,
-                    "tower_status": tower_status,
-                    "bamboo_status": bamboo_status,
-                    "progress": progress,
-                    "artifacts": artifacts,
-                },
-            )
-        except Exception as e:
-            logger.warning("[Tower] WebSocket 推送失败: %s", e)
+        推送到 user_{user_id} 组（统一用户通道），
+        前端 WebSocketService 收到 topic="tower" 后按 execution_id 匹配页面。
+        """
+        if not user_id or not execution_id or not node_id:
+            return
+        from application.ws_push import push_to_user
+
+        push_to_user(
+            user_id,
+            "tower",
+            "progress",
+            {
+                "execution_id": execution_id,
+                "node_id": node_id,
+                "tower_status": tower_status,
+                "bamboo_status": bamboo_status,
+                "progress": progress,
+                "artifacts": artifacts,
+            },
+        )
 
     @staticmethod
     def build_extra_vars(atom_type: str, params: dict,

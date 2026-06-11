@@ -2,6 +2,30 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `a7d29650`
+
+> 提交日期: 2026-06-10 | 提交信息: docs: add config governance standards — 新增配置治理规范（决策树+组件对照表）
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `docs/superpowers/specs/2026-06-10-config-governance-design.md` | 文档 | **新建** — 配置治理设计文档，定义 4 类场景的配置变更流程（决策树+分场景规则+辅助原则） |
+| `docs/opsflow/guides/project-standards.md` | 文档 | 新增「配置治理规范」章节，含配置放置决策树、9 个组件文件对照表、3 条强制规则 |
+
+### 解决
+
+- **问题/背景：** 配置体系重构完成后（conf/分层 + components/组件化），缺少明确的配置变更流程规则，开发者不知该改哪个文件、如何跨环境覆写
+- **办法：** 定义配置放置决策树（env值→base/environments、Django结构→components、App注册→INSTALLED_APPS、新类别→新建组件），配套组件对照表和强制规则，落地到 project-standards.md
+
+### 验证
+
+- 改动类型: docs
+- 清理乱码: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## `4ca4a835`
 
 > 提交日期: 2026-06-10 | 提交信息: refactor: extract settings.py into domain components — settings.py 按领域拆分为 9 个组件文件

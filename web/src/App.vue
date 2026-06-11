@@ -33,7 +33,7 @@ const route = useRoute();
 const stores = useTagsViewRoutes();
 const storesThemeConfig = useThemeConfig();
 const { themeConfig } = storeToRefs(storesThemeConfig);
-import websocket from '/@/utils/websocket';
+import wsService from '/@/utils/websocket.service';
 import { ElNotification } from 'element-plus';
 // 获取版本号
 const getVersion = computed(() => {
@@ -87,39 +87,34 @@ watch(
 	() => route.path,
 	() => {
 		other.useTitle();
-    if (!websocket.websocket) {
-      //websockt 模块
-      try {
-        websocket.init(wsReceive)
-      } catch (e) {
-        console.log('websocket错误');
-      }
-    }
 	},
 	{
 		deep: true,
 	}
 );
 
-// websocket相关代码
+// WebSocket 初始化（onMounted 建立连接，不再依赖路由变化）
 import { messageCenterStore } from '/@/stores/messageCenter';
-const wsReceive = (message: any) => {
-	const data = JSON.parse(message.data);
-	const { unread } = data;
-	const messageCenter = messageCenterStore();
-	messageCenter.setUnread(unread);
-	if (data.contentType === 'SYSTEM') {
-		ElNotification({
-			title: '系统消息',
-			message: data.content,
-			type: 'success',
-			position: 'bottom-right',
-			duration: 15000,
-		});
-	}
-};
+onMounted(() => {
+  wsService.connect()
+  wsService.on('notification', (msg) => {
+    const { action, payload } = msg
+    const messageCenter = messageCenterStore()
+    if (payload.unread !== undefined) {
+      messageCenter.setUnread(payload.unread)
+    }
+    if (action === 'unread' && payload.content) {
+      ElNotification({
+        title: '系统消息',
+        message: payload.content,
+        type: 'success',
+        position: 'bottom-right',
+        duration: 15000,
+      })
+    }
+  })
+})
 onBeforeUnmount(() => {
-	// 关闭连接
-	websocket.close();
+	wsService.disconnect()
 });
 </script>
