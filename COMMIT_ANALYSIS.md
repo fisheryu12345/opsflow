@@ -26,6 +26,35 @@
 
 ---
 
+## `364b6ce7`
+
+> 提交日期: 2026-06-12 | 提交信息: feat: add node input tracing and node_type to execution traces — 节点入参追踪 + 节点类型输出
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `opsflow/signals/trace.py` | 后端 | 新增 _capture_node_inputs() 从 template_snapshot 读取 params；创建 trace 时写入 node_type/node_label |
+| `opsflow/core/node_dispatcher.py` | 后端 | get_trace() 返回值新增 inputs + node_type |
+| `opsflow/serializers.py` | 后端 | get_trace_summary() 返回值新增 inputs + node_type |
+| `docs/superpowers/specs/2026-06-11-node-input-tracing-design.md` | 文档 | **新建** — 节点入参追踪设计文档 |
+| `application/tests/test_ws_unification.py` | 后端 | WebSocket 测试改用 InMemoryChannelLayer |
+| `useGraphCanvas.ts` | 前端 | 移除未使用的引用，简化 label 获取 |
+| `types/index.ts` | 前端 | 移除未使用的 OutputField 接口 |
+
+### 解决
+
+- **问题/背景：** 前端 Data tab 的 Inputs 始终显示 "No data"，因为 trace.inputs 从未被写入；同时前端无法区分网关节点（无入参出参）和业务节点
+- **办法：** 新增 _capture_node_inputs() 从 template_snapshot 读取节点 params，在 FINISHED/FAILED 时写入 trace.inputs；node_type 在创建 trace 时一并写入，API 返回时带上
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## `696b0e57`
 
 > 提交日期: 2026-06-11 | 提交信息: refactor: unify variable binding and simplify pipeline builder — 变量绑定统一重写，pipeline builder 精简
