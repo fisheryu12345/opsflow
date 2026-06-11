@@ -1,12 +1,10 @@
-"""变量解析引擎测试 — resolve_variables / resolve_with_type / resolve_params / build_execution_context"""
+"""变量解析引擎测试 — resolve_variables / build_execution_context / get_variable_reference_details"""
 
 import pytest
 from unittest.mock import Mock, patch
 from opsflow.core.variable_resolver import (
     resolve_variables,
     split_value,
-    resolve_with_type,
-    resolve_params,
     _deep_get,
     get_variable_reference_details,
     build_execution_context,
@@ -88,109 +86,6 @@ class TestSplitValue:
 
     def test_custom_delimiter(self):
         assert split_value("a|b|c", delimiter="|") == ["a", "b", "c"]
-
-
-class TestResolveWithType:
-    """resolve_with_type 按类型解析"""
-
-    def test_plain_returns_as_is(self):
-        result = resolve_with_type("${key}", "plain", {"key": "val"})
-        assert result == "${key}"
-
-    def test_splice_replaces_variables(self):
-        result = resolve_with_type("hello ${name}", "splice", {"name": "world"})
-        assert result == "hello world"
-
-    def test_split_returns_list(self):
-        result = resolve_with_type("a,b,c", "split", {"x": "y"})
-        assert result == ["a", "b", "c"]
-
-    def test_lazy_calls_resolver(self):
-        resolver = MockResolver()
-        result = resolve_with_type("raw", "lazy", {"a": 1}, lazy_resolver=resolver.resolve)
-        assert resolver.called_with == ("raw", {"a": 1})
-        assert result == "lazy_result"
-
-    def test_splice_no_var_passthrough(self):
-        result = resolve_with_type("no variables", "splice", {"a": "b"})
-        assert result == "no variables"
-
-    def test_plain_with_variable(self):
-        """plain 类型不做替换"""
-        result = resolve_with_type("${ignore_me}", "plain", {"ignore_me": "val"})
-        assert result == "${ignore_me}"
-
-
-class MockResolver:
-    def __init__(self):
-        self.called_with = None
-
-    def resolve(self, value, context):
-        self.called_with = (value, context)
-        return "lazy_result"
-
-
-class TestResolveParams:
-    """resolve_params 递归参数解析"""
-
-    def test_flat_dict(self):
-        result = resolve_params({"host": "${ip}", "port": 8080}, {"ip": "10.0.0.1"})
-        assert result == {"host": "10.0.0.1", "port": 8080}
-
-    def test_nested_dict(self):
-        result = resolve_params(
-            {"server": {"host": "${ip}", "port": 8080}},
-            {"ip": "10.0.0.1"},
-        )
-        assert result == {"server": {"host": "10.0.0.1", "port": 8080}}
-
-    def test_list_with_variables(self):
-        result = resolve_params(
-            {"hosts": ["${host1}", "${host2}"]},
-            {"host1": "10.0.0.1", "host2": "10.0.0.2"},
-        )
-        assert result == {"hosts": ["10.0.0.1", "10.0.0.2"]}
-
-    def test_mixed_types(self):
-        result = resolve_params(
-            {"name": "${n}", "count": 42, "active": True, "tags": ["${t}"]},
-            {"n": "test", "t": "tag1"},
-        )
-        assert result == {"name": "test", "count": 42, "active": True, "tags": ["tag1"]}
-
-    def test_with_var_types_plain(self):
-        result = resolve_params(
-            {"dont_touch": "${keep}"},
-            {"keep": "changed"},
-            var_types={"dont_touch": "plain"},
-        )
-        assert result == {"dont_touch": "${keep}"}  # plain 类型不做替换
-
-    def test_with_var_types_split(self):
-        result = resolve_params(
-            {"hosts": "a,b,c"},
-            {},
-            var_types={"hosts": "split"},
-        )
-        assert result == {"hosts": ["a", "b", "c"]}
-
-    def test_with_var_types_lazy(self):
-        lazy = MockResolver()
-        result = resolve_params(
-            {"val": "test"},
-            {"x": 1},
-            var_types={"val": "lazy"},
-            lazy_resolver=lazy.resolve,
-        )
-        assert result["val"] == "lazy_result"
-        assert lazy.called_with == ("test", {"x": 1})
-
-    def test_empty_dict(self):
-        assert resolve_params({}, {"a": 1}) == {}
-
-    def test_none_values(self):
-        result = resolve_params({"key": None}, {"a": 1})
-        assert result["key"] is None
 
 
 class TestDeepGet:

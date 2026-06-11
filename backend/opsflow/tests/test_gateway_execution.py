@@ -90,7 +90,7 @@ class TestExclusiveGatewayPipelineBuild:
     def test_build_pipeline_structure(self):
         """验证构建出的 bamboo pipeline 结构完整"""
         tpl = _make_atom_pipeline(EXCLUSIVE_PIPELINE["nodes"], EXCLUSIVE_PIPELINE["edges"])
-        result, _ = build_bamboo_pipeline(tpl)
+        result = build_bamboo_pipeline(tpl)
 
         assert result is not None
         # 检查 gateways
@@ -106,7 +106,7 @@ class TestExclusiveGatewayPipelineBuild:
     def test_build_pipeline_activities(self):
         """所有原子节点应为 activities — 直接使用原始 X6 ID"""
         tpl = _make_atom_pipeline(EXCLUSIVE_PIPELINE["nodes"], EXCLUSIVE_PIPELINE["edges"])
-        result, _ = build_bamboo_pipeline(tpl)
+        result = build_bamboo_pipeline(tpl)
 
         # n1, n2, n3 应都在 activities 中（原始 X6 ID 直接作为 bamboo activity key）
         for nid in ["n1", "n2", "n3"]:
@@ -125,7 +125,7 @@ class TestExclusiveGatewayPipelineBuild:
              "condition": "${_result == True}"},
         ]
         tpl = _make_atom_pipeline(nodes, edges)
-        result, _ = build_bamboo_pipeline(tpl)
+        result = build_bamboo_pipeline(tpl)
         assert result is not None
 
     def test_validation_passes_for_valid_pipeline(self):
@@ -166,10 +166,7 @@ class TestExclusiveGatewayFlowEngineRun:
     ):
         """engine.run() 包含排他网关时正常执行"""
         mock_validate.return_value = {"valid": True, "errors": [], "warnings": []}
-        mock_build.return_value = (
-            {"id": "bp_001", "gateways": {"gw": {}}, "activities": {"act1": {}}},
-            {"uuid1": "n1"},
-        )
+        mock_build.return_value = {"id": "bp_001", "gateways": {"gw": {}}, "activities": {"act1": {}}}
         mock_api.run_pipeline.return_value = Mock(result=True)
 
         exec_mock = _make_execution(EXCLUSIVE_PIPELINE)
@@ -219,10 +216,7 @@ class TestExclusiveGatewayFlowEngineRun:
     ):
         """bamboo-engine run_pipeline 失败时状态变为 failed"""
         mock_validate.return_value = {"valid": True, "errors": [], "warnings": []}
-        mock_build.return_value = (
-            {"id": "bp_001", "gateways": {"gw": {}}, "activities": {"act1": {}}},
-            {"uuid1": "n1"},
-        )
+        mock_build.return_value = {"id": "bp_001", "gateways": {"gw": {}}, "activities": {"act1": {}}}
         mock_api.run_pipeline.return_value = Mock(result=False, message="engine error")
 
         exec_mock = _make_execution(EXCLUSIVE_PIPELINE)
@@ -240,7 +234,7 @@ class TestExclusiveGatewayFlowEngineRun:
     ):
         """start() → celery task → run() 链路正常"""
         mock_validate.return_value = {"valid": True, "errors": [], "warnings": []}
-        mock_build.return_value = ({"id": "bp_001"}, {"uuid1": "n1"})
+        mock_build.return_value = {"id": "bp_001"}
         mock_api.run_pipeline.return_value = Mock(result=True)
 
         exec_mock = _make_execution(EXCLUSIVE_PIPELINE, status="pending")

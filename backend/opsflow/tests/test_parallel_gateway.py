@@ -110,7 +110,7 @@ class TestParallelGatewayBuild:
             PARALLEL_3_BRANCH_PIPELINE["nodes"],
             PARALLEL_3_BRANCH_PIPELINE["edges"],
         )
-        result, _ = build_bamboo_pipeline(tpl)
+        result = build_bamboo_pipeline(tpl)
 
         assert result is not None
         assert "gateways" in result
@@ -130,7 +130,7 @@ class TestParallelGatewayBuild:
             PARALLEL_2_BRANCH_PIPELINE["nodes"],
             PARALLEL_2_BRANCH_PIPELINE["edges"],
         )
-        result, _ = build_bamboo_pipeline(tpl)
+        result = build_bamboo_pipeline(tpl)
         pg = result["gateways"]["pg1"]
         # 并行网关不应该有 conditions
         assert "conditions" not in pg
@@ -141,7 +141,7 @@ class TestParallelGatewayBuild:
             PARALLEL_3_BRANCH_PIPELINE["nodes"],
             PARALLEL_3_BRANCH_PIPELINE["edges"],
         )
-        result, _ = build_bamboo_pipeline(tpl)
+        result = build_bamboo_pipeline(tpl)
         cg = result["gateways"]["cg1"]
         # converge 的 incoming 应该收到 3 条分支
         assert "incoming" in cg
@@ -204,11 +204,8 @@ class TestParallelGatewayFlowEngine:
     ):
         """engine.run() 包含并行网关时正常执行"""
         mock_validate.return_value = {"valid": True, "errors": [], "warnings": []}
-        mock_build.return_value = (
-            {"id": "bp_001", "gateways": {"pg": {}, "cg": {}},
-             "activities": {"a1": {}, "a2": {}}},
-            {"uuid1": "pg1"},
-        )
+        mock_build.return_value = {"id": "bp_001", "gateways": {"pg": {}, "cg": {}},
+             "activities": {"a1": {}, "a2": {}}}
         mock_api.run_pipeline.return_value = Mock(result=True)
 
         exec_mock = _make_execution(PARALLEL_2_BRANCH_PIPELINE)
@@ -244,10 +241,7 @@ class TestParallelGatewayFlowEngine:
     ):
         """bamboo-engine run_pipeline 失败时标记为 failed"""
         mock_validate.return_value = {"valid": True, "errors": [], "warnings": []}
-        mock_build.return_value = (
-            {"id": "bp_001", "gateways": {"pg": {}}, "activities": {"a1": {}}},
-            {"uuid1": "pg1"},
-        )
+        mock_build.return_value = {"id": "bp_001", "gateways": {"pg": {}}, "activities": {"a1": {}}}
         mock_api.run_pipeline.return_value = Mock(result=False, message="engine error")
 
         exec_mock = _make_execution(PARALLEL_2_BRANCH_PIPELINE)
