@@ -103,16 +103,9 @@ export interface PipelineTree {
   edges: PipelineEdge[]
 }
 
-export interface OutputField {
-  source: string
-  field: string
-  fieldLabel: string
-  fieldType: string
-  sourceType: string
-}
-
 export interface VariableOption {
   source: string
+  sourceLabel: string
   field: string
   fieldLabel: string
   fieldType: string
@@ -121,6 +114,7 @@ export interface VariableOption {
 }
 
 export interface ConditionRule {
+  valueType: string
   source: string
   field: string
   fieldLabel?: string

@@ -9,8 +9,7 @@ import logging
 
 from django.utils import timezone
 
-from bamboo_engine import states, api as pipeline_api
-from pipeline.eri.runtime import BambooDjangoRuntime
+from bamboo_engine import states
 
 from opsflow.core.trace_logger import NodeTraceLogger
 from opsflow.signals.state import _map_bamboo_state
@@ -26,6 +25,15 @@ def _record_node_trace(execution, node_id, to_state):
     retry_count = _get_current_retry_count(execution, node_id)
     now_iso = timezone.now().isoformat()
 
+    # 从 template_snapshot 中读取 node_type / atom_type
+    snapshot = execution.template_snapshot or {}
+    tree = snapshot.get('pipeline_tree', {}) or {}
+    node_info = {}
+    for n in tree.get('nodes', []):
+        if n.get('id') == node_id:
+            node_info = n
+            break
+
     trace, created = NodeExecutionTrace.objects.get_or_create(
         execution=execution,
         node_id=node_id,
@@ -34,6 +42,8 @@ def _record_node_trace(execution, node_id, to_state):
             "status": _map_bamboo_state(to_state),
             "status_history": [{"state": _map_bamboo_state(to_state), "at": now_iso}],
             "entered_at": timezone.now() if to_state == states.RUNNING else None,
+            "node_type": node_info.get('node_type', ''),
+            "node_label": node_info.get('label', ''),
         },
     )
 
@@ -49,8 +59,9 @@ def _record_node_trace(execution, node_id, to_state):
             if trace.entered_at:
                 delta = trace.exited_at - trace.entered_at
                 trace.duration_ms = int(delta.total_seconds() * 1000)
-            # 尝试读取 outputs
+            # 读取 outputs 和 inputs
             trace.outputs = _capture_node_outputs(execution, node_id)
+            trace.inputs = _capture_node_inputs(execution, node_id)
 
             # 审批节点完成 → 暂停 pipeline
             if to_state == states.FINISHED and _is_approval_node(node_id):
@@ -70,6 +81,26 @@ def _record_node_trace(execution, node_id, to_state):
     # 写入日志文件
     tlog = NodeTraceLogger(execution.id)
     tlog.log_state(node_id, "", _map_bamboo_state(to_state))
+
+
+def _capture_node_inputs(execution, node_id) -> dict:
+    """从 pipeline_tree 模板快照中读取节点入参（params）
+
+    引擎只持久化 SPLICE 变量的解析值，PLAIN 类型不存储。
+    直接读取 execution.template_snapshot.pipeline_tree.nodes[].params
+    获取原始入参，不依赖引擎 ERI。
+    """
+    try:
+        snapshot = execution.template_snapshot or {}
+        tree = snapshot.get('pipeline_tree', {}) or {}
+        nodes = tree.get('nodes', []) or []
+        for node in nodes:
+            if node.get('id') == node_id:
+                params = node.get('params', {}) or {}
+                return dict(params)
+    except Exception:
+        logger.exception("[Signal] _capture_node_inputs failed")
+    return {}
 
 
 def _capture_node_outputs(execution, node_id) -> dict:

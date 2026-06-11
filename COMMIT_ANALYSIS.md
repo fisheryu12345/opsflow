@@ -26,6 +26,36 @@
 
 ---
 
+## `696b0e57`
+
+> 提交日期: 2026-06-11 | 提交信息: refactor: unify variable binding and simplify pipeline builder — 变量绑定统一重写，pipeline builder 精简
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `opsflow/core/pipeline_builder/conditions.py` | 后端 | **删除** — 136 行条件预处理逻辑，内联到 _create_element() |
+| `opsflow/core/pipeline_builder/__init__.py` | 后端 | 消除 node_output_specs 中间变量；Data 直写；build_bamboo_pipeline 不再返回 tuple |
+| `opsflow/core/pipeline_builder/elements.py` | 后端 | 消除 (element, specs) 中间元组；conditional refs 修复白名单 bug |
+| `opsflow/core/plugin_service_adapter.py` | 后端 | 删除 _promote_results 中 ContextValue 重复写入；删除 import json |
+| `opsflow/core/variable_resolver.py` | 后端 | 删除 resolve_params()（不再被调用） |
+| `opsflow/core/flow_engine.py` | 后端 | 不再 tuple unpack build_bamboo_pipeline 返回值 |
+| `application/settings.py` | 配置 | 取消 PLUGINS_URL_PATTERNS 注释以修复配置错误 |
+| `.gitignore` | 配置 | 添加 0 字节乱码文件过滤 |
+
+### 解决
+
+- **问题/背景：** 变量解析是"双轨制"（bamboo-engine SPLICE + 手动正则替换），重复劳动且容易不一致。conditions.py 是独立预处理阶段，增加复杂性
+- **办法：** 一次性统一为 bamboo-engine SPLICE 机制：global_vars 展开为独立 key、params 按 get_var_types() 分发 SPLICE/PLAIN、条件内联生成、Data 直写消除中间变量
+
+### 验证
+
+- 改动类型: refactor
+- 清理乱码: 有（`0` 0 字节垃圾文件）
+- 工作区状态: 干净 ✅
+
+---
+
 ## `4ca4a835`
 
 > 提交日期: 2026-06-10 | 提交信息: refactor: extract settings.py into domain components — settings.py 按领域拆分为 9 个组件文件

@@ -137,10 +137,10 @@ class NodeCommandDispatcher:
         traces = NodeExecutionTrace.objects.filter(
             execution=self.execution, node_id=node_id
         ).order_by("retry_count").values(
-            "node_id", "node_label", "status", "retry_count",
+            "node_id", "node_label", "node_type", "status", "retry_count",
             "duration_ms", "entered_at", "exited_at", "error",
             "status_history", "log_file_path",
-            "outputs",
+            "outputs", "inputs",
         )
         return {"result": True, "data": list(traces)}
 

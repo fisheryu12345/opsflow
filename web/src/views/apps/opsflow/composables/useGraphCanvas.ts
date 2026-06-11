@@ -1,6 +1,6 @@
 import { ref, shallowRef, onBeforeUnmount } from 'vue'
 import { Graph, Shape } from '@antv/x6'
-import type { OutputField, VariableOption, ConditionRule, ConditionStruct } from '../utils/shapes'
+import type { OutputField, VariableOption, ConditionRule } from '../utils/shapes'
 import { DEFAULT_OUTPUT_FIELDS, SYSTEM_VARIABLES } from '../utils/shapes'
 
 /** 通用 Graph 选项 — 设计/监控/预览模式通过 mode 区分 */
@@ -40,7 +40,7 @@ function createDefaultGraph(
         allowLoop: false,
         snap: true,
         highlight: true,
-        validateConnection({ sourceCell, targetCell, sourceMagnet, targetMagnet, sourcePort, targetPort }) {
+        validateConnection({ sourceCell, targetCell, sourceMagnet, targetMagnet, targetPort }) {
           if (!sourceMagnet) return false
           if (!targetPort && !targetMagnet) return false
           // 禁止从 end_event 连出（end_event 只能有入边）
@@ -330,6 +330,7 @@ export function validateConditionExpr(
 }
 
 /** 默认节点 label 映射 */
+// eslint-disable-next-line no-unused-vars
 export function defaultNodeLabel(nodeType: string, t?: (key: string) => string): string {
   const map: Record<string, string> = {
     exclusive_gateway: t ? t('message.canvas.exclusiveGateway') : 'Exclusive Gateway',
@@ -438,8 +439,7 @@ export function useGraphCanvas(containerId: string, options: GraphCanvasOptions)
         const pos = cell.getPosition()
         // Ensure label is present — X6 stores it on attrs, not in getData()
         if (!data.label) {
-          const nodeLabels = cell.getLabels?.() || []
-          data.label = nodeLabels[0]?.attrs?.text?.text || ''
+          data.label = (cell as any).getAttrByPath?.('label/text') || ''
         }
         nodes.push({ ...data, id: data.id || cell.id, x: pos.x, y: pos.y })
       } else if (cell.isEdge()) {
@@ -448,10 +448,10 @@ export function useGraphCanvas(containerId: string, options: GraphCanvasOptions)
         const labels = cell.getLabels?.() || []
         const edgeData = cell.getData?.() || {}
         edges.push({
-          from: typeof source === 'object' ? source.cell : source,
-          to: typeof target === 'object' ? target.cell : target,
-          sourcePort: typeof source === 'object' ? source.port : undefined,
-          targetPort: typeof target === 'object' ? target.port : undefined,
+          from: (source as any).cell ?? source,
+          to: (target as any).cell ?? target,
+          sourcePort: (source as any).port,
+          targetPort: (target as any).port,
           label: labels.length ? (labels[0].attrs?.text?.text || '') : '',
           condition: edgeData.condition || '',
         })

@@ -60,17 +60,20 @@ class TestDoSend(unittest.TestCase):
         self.ws_push._do_send("user_42", {"topic": "t", "action": "a", "payload": {}})
         # 不抛异常即通过
 
-    @patch("application.ws_push.get_channel_layer")
-    def test_group_send_called_with_correct_args(self, mock_get):
-        """验证 async_to_sync + group_send 参数正确"""
-        mock_layer = MagicMock()
-        mock_get.return_value = mock_layer
-        self.ws_push._do_send("user_42", {"topic": "node_status", "action": "update", "payload": {"node_id": "n1"}})
-        mock_layer.group_send.assert_called_once()
-        args, kwargs = mock_layer.group_send.call_args
-        self.assertEqual(args[0], "user_42")
-        self.assertEqual(kwargs["json"]["topic"], "node_status")
-        self.assertEqual(kwargs["json"]["payload"]["node_id"], "n1")
+    def test_group_send_called_with_correct_args(self):
+        """验证 group_send 调用参数正确（通过 InMemoryChannelLayer 集成）"""
+        from channels.layers import InMemoryChannelLayer
+        from asgiref.sync import async_to_sync
+        layer = InMemoryChannelLayer()
+        # 模拟 consumer 加入组
+        async_to_sync(layer.group_add)("user_42", "test_channel")
+        with patch("application.ws_push.get_channel_layer", return_value=layer):
+            self.ws_push._do_send("user_42", {"topic": "node_status", "action": "update", "payload": {"node_id": "n1"}})
+        # 验证消息已被推送到组中并可消费
+        msgs = async_to_sync(layer.receive)("test_channel")
+        self.assertEqual(msgs["type"], "push.message")
+        self.assertEqual(msgs["json"]["topic"], "node_status")
+        self.assertEqual(msgs["json"]["payload"]["node_id"], "n1")
 
 
 class TestPushToUser(unittest.TestCase):
