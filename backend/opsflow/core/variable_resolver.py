@@ -244,47 +244,6 @@ def resolve_with_type(value: Any, var_type: str, context: dict,
     return value
 
 
-def resolve_params(params: dict, context: dict,
-                   var_types: dict = None,
-                   lazy_resolver: Optional[Callable] = None) -> dict:
-    """递归解析参数字典中所有字段的 ${key} 引用，按 var_types 处理类型
-
-    Args:
-        params: 参数字典
-        context: 变量上下文
-        var_types: {field_name: "plain"|"splice"|"split"|"lazy"}
-        lazy_resolver: lazy 类型的回调
-    """
-    resolved = {}
-    for k, v in params.items():
-        vt = (var_types or {}).get(k, "splice")
-        if vt == "plain":
-            resolved[k] = v
-        elif vt == "split":
-            resolved[k] = resolve_with_type(v, "split", context)
-        elif vt == "lazy":
-            resolved[k] = resolve_with_type(v, "lazy", context, lazy_resolver)
-        elif isinstance(v, str) and '${' in v:
-            resolved[k] = resolve_variables(v, context)
-        elif isinstance(v, dict):
-            resolved[k] = resolve_params(v, context, var_types, lazy_resolver)
-        elif isinstance(v, list):
-            resolved[k] = [_resolve_item(item, context, var_types, lazy_resolver) for item in v]
-        else:
-            resolved[k] = v
-    return resolved
-
-
-def _resolve_item(item, context, var_types=None, lazy_resolver=None):
-    if isinstance(item, str) and '${' in item:
-        return resolve_variables(item, context)
-    if isinstance(item, dict):
-        return resolve_params(item, context, var_types, lazy_resolver)
-    if isinstance(item, list):
-        return [_resolve_item(i, context, var_types, lazy_resolver) for i in item]
-    return item
-
-
 def _deep_get(d: dict, dotted_key: str):
     """在嵌套 dict 中按点号路径查找值，如 'node_1.outputs.job_inst_id'"""
     parts = dotted_key.split('.')

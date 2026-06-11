@@ -3,18 +3,16 @@
 替换旧的 atom_service.py（按原子类型动态创建 N 个 Component/Service），
 改为一个统一的 PluginService，运行时从 PLUGIN_REGISTRY 查找并调用 execute()。
 
-变量解析：PluginService 读取 parent_data 中的 global_vars / target_hosts，
-并利用 variable_resolver 在节点参数中完成 ${key} 替换。
+变量解析：由 bamboo-engine SPLICE 机制在构建时注入 runtime context，
+PluginService 直接从 data.inputs 读取已解析的值。
 """
 
-import json
 import logging
 
 from pipeline.core.flow.activity import Service
 from pipeline.component_framework.component import Component
 
 from opsflow.plugins.registry import get_plugin
-from opsflow.core.variable_resolver import resolve_params
 
 logger = logging.getLogger(__name__)
 
@@ -30,40 +28,18 @@ def _extract_params(data):
 
 
 def _promote_results(result_value: bool, output_fields: dict, execution_id: int = None, node_id: str = None) -> None:
-    """将节点执行结果提升到 pipeline 上下文，供排他网关条件评估和 trace output 展示
+    """将节点执行结果写入 execution.context._node_outputs（供 UI trace 展示）
 
-    1. ContextValue 表 — 排他网关条件评估
-    2. execution.context['_node_outputs'] — trace output 展示
+    ContextValue 传播由 bamboo-engine NodeOutput 自动完成，不再重复写入。
+    data.outputs 由引擎自动存储，可通过 api.get_execution_data_outputs() 查询。
     """
     try:
-        from pipeline.eri.runtime import BambooDjangoRuntime
-        from bamboo_engine.eri import ContextValue, ContextValueType
-
         if not execution_id:
             return
 
         from opsflow.models import FlowExecution
         execution = FlowExecution.objects.get(id=execution_id)
-        bamboo_pipeline_id = execution.context.get("bamboo_pipeline_id")
-        if not bamboo_pipeline_id:
-            return
 
-        auto_vars = execution.context.get("auto_vars", {}) or {}
-
-        # 1. 写入 ContextValue（供排他网关条件评估）
-        runtime = BambooDjangoRuntime()
-        cv_map = {}
-        # _gwcond_* 别名（带 ${}）
-        for var_name, spec in auto_vars.items():
-            source_key = spec.get('source_key', '')
-            if spec.get('source_act') == node_id and source_key in output_fields:
-                ref_key = "${%s}" % var_name
-                cv_map[ref_key] = ContextValue(key=ref_key, type=ContextValueType.PLAIN, value=output_fields[source_key])
-
-        if cv_map:
-            runtime.upsert_plain_context_values(bamboo_pipeline_id, cv_map)
-
-        # 2. 写入 execution.context['_node_outputs'][node_id]（供 trace output 展示）
         _nid = node_id or 'unknown'
         ctx = dict(execution.context or {})
         node_outputs = dict(ctx.get('_node_outputs', {}) or {})
@@ -73,7 +49,7 @@ def _promote_results(result_value: bool, output_fields: dict, execution_id: int 
         execution.context = ctx
         execution.save(update_fields=['context'])
 
-        logger.info("_promote_results: node %s, %d fields promoted", node_id, len(cv_map) + len(output_fields) + 1)
+        logger.info("_promote_results: node %s, %d fields", node_id, len(output_fields) + 1)
     except Exception:
         logger.exception("_promote_results failed")
 
@@ -107,17 +83,15 @@ class PluginService(Service):
             logger.error("PluginService.execute: 未知插件 %s", atom_type)
             return False
 
-        # === 变量解析 ===
-        pd = dict(parent_data.inputs) if parent_data else {}
-        global_vars = pd.get('global_vars', {}) or {}
-        target_hosts = pd.get('target_hosts', []) or []
-        resolve_ctx = {}
-        if isinstance(global_vars, dict):
-            resolve_ctx.update(global_vars)
-        resolve_ctx['target_hosts'] = target_hosts
-        # 获取插件定义的变量类型映射
+        # === 变量解析：bamboo-engine SPLICE 运行时已自动完成 ===
+        # 直接从 data.inputs 读取已解析的用户参数字段（跳过 _ 开头的内部字段）
+        resolved_params = {k: v for k, v in inputs_dict.items()
+                           if not k.startswith('_') and k in data.inputs}
+        # split 类型字段补充分割（var_types 来自插件定义）
         var_types = plugin_cls.get_var_types() if hasattr(plugin_cls, 'get_var_types') else {}
-        resolved_params = resolve_params(params, resolve_ctx, var_types=var_types)
+        for k, v in resolved_params.items():
+            if var_types.get(k) == 'split' and isinstance(v, str):
+                resolved_params[k] = [s.strip() for s in v.split(',') if s.strip()]
         # === 变量解析结束 ===
 
         try:
@@ -138,7 +112,8 @@ class PluginService(Service):
                     data.outputs[k] = v
             if not success:
                 data.outputs['_error'] = result.get('error', '执行失败')
-            # 立即将执行结果提升到 pipeline 上下文（供排他网关条件评估 + trace output）
+            # 将执行结果写入 execution.context（供 UI trace 展示）
+            # ContextValue 由 bamboo-engine NodeOutput 自动传播
             _promote_results(success, executor_data, _execution_id, node_id=getattr(self, 'id', '') or '')
             return success
         except Exception as e:

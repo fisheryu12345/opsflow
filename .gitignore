@@ -1,3 +1,4 @@
 # OpsFlow - bamboo-engine source (vendored, not committed)
 ./claude/
 ./reference/
+./venv/

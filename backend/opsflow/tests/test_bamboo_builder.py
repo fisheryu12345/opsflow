@@ -139,8 +139,8 @@ class TestBuildBambooPipeline:
                 break
         assert result_var_name is not None, \
             "应存在从 n1._result 到 context var 的 NodeOutput 映射"
-        assert result_var_name == "_result_n1", \
-            f"NodeOutput key 应为 _result_n1，实际为 {result_var_name}"
+        assert result_var_name == "${_result_n1}", \
+            f"NodeOutput key 应为 ${{_result_n1}}，实际为 {result_var_name}"
 
         # 验证 gateway 条件中包含 _result_n1
         gateways = result.get("gateways", {})

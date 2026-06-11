@@ -194,5 +194,5 @@ DICTIONARY_CONFIG = {}
 # # ******************** 插件配置 ******************** #
 # # ================================================= #
 # TENANT_SHARED_APPS = []
-# PLUGINS_URL_PATTERNS = []
+PLUGINS_URL_PATTERNS = []
 
