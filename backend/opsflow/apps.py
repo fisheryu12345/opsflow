@@ -127,12 +127,37 @@ class OpsflowConfig(AppConfig):
         # 2b) 注册 OpsflowPluginComponent（ComponentMeta 元类在 import 时自动注册到 ComponentLibrary）
         from opsflow.core import plugin_service_adapter  # noqa
 
-        # 3) dev 模式自动启动调度器
+        # 3) dev 模式自动启动调度器（仅在非 Celery worker 进程中）
         try:
             from django.conf import settings
             if getattr(settings, 'OPSFLOW_SCHEDULER_AUTOSTART', False):
-                from opsflow.core.scheduler_service import opsflow_scheduler
-                opsflow_scheduler.start()
-                logger.info("OpsFlow 调度器已自动启动（dev 模式）")
+                # 检查是否在 Celery worker 进程中运行
+                import os, sys
+                _is_celery_worker = (
+                    os.environ.get('CELERY_WORKER_RUNNING') == '1'
+                    or (len(sys.argv) > 0 and 'celery' in os.path.basename(sys.argv[0]))
+                )
+                if _is_celery_worker:
+                    logger.info("Celery worker 进程，跳过调度器自动启动")
+                else:
+                    from opsflow.core.scheduler_service import opsflow_scheduler
+                    # Redis 锁防多进程重复启动
+                    try:
+                        import redis as _redis
+                        _r = _redis.Redis(
+                            host=getattr(settings, 'REDIS_HOST', '127.0.0.1'),
+                            port=getattr(settings, 'REDIS_PORT', 6379),
+                            db=0,
+                        )
+                        _lock_key = 'lock:opsflow_scheduler'
+                        if _r.set(_lock_key, '1', nx=True, ex=60):
+                            opsflow_scheduler.start()
+                            logger.info("OpsFlow 调度器已自动启动（dev 模式）")
+                        else:
+                            logger.info("调度器已在其他进程中运行，跳过自动启动")
+                    except Exception:
+                        # Redis 不可用时降级为直接启动
+                        opsflow_scheduler.start()
+                        logger.info("OpsFlow 调度器已自动启动（dev 模式，无 Redis 锁）")
         except Exception as e:
             logger.warning(f"OpsFlow 调度器自动启动失败: {e}")

@@ -44,7 +44,7 @@ def run(self):
             return
 
     # 3. 构建 bamboo-engine Pipeline Tree
-    pipeline, id_map = build_bamboo_pipeline(
+    pipeline = build_bamboo_pipeline(
         self.template,
         pipeline_tree=frozen_tree,
         target_hosts=frozen.get('target_hosts'),
@@ -64,10 +64,9 @@ def run(self):
     # 6. 创建超时配置
     batch_create_timeout_configs(execution, frozen_tree)
 
-    # 7. 保存 context（含 bamboo_pipeline_id + id_map）
+    # 7. 保存 context（含 bamboo_pipeline_id）
     self.execution.context["bamboo_pipeline_id"] = bamboo_pipeline_id
     self.execution.context["bamboo_pipeline"] = pipeline
-    self.execution.context["node_id_map"] = id_map
 
     # 8. 清理重新执行时可能残留的旧 pipeline data
     self._cleanup_pipeline_data(pipeline)
@@ -118,8 +117,10 @@ Step 1: _filter_nodes_and_edges()
 Step 2: 空节点检测
   └── if not effective_nodes → 返回空 pipeline（只有 start → end）
 
-Step 3: _parse_edge_conditions()
-  └── 扫描 edges，解析条件表达式 + 自动变量（_result_n1 等）
+Step 3: 创建元素 + 内联条件生成
+  ├── 调用 _create_all_elements() 遍历每个节点
+  ├── 网关节点创建时直接扫描出边生成条件表达式
+  └── 同时构造 NodeOutput 引用注入 data.inputs（网关条件变量传播）
 
 Step 4: _build_adjacency_lists()
   └── 构建 out_edges / in_edges 邻接表
@@ -160,7 +161,7 @@ Step 10: _build_id_map()
 ### 2.2 节点元素创建规则 (elements.py)
 
 ```python
-def _create_element(node, outgoing_edges, edge_conditions):
+def _create_element(node, outgoing_edges, *, effective_nodes=None, in_edges=None, data=None, execution_id=None):
 ```
 
 | node_type | 创建的元素 | 关键行为 |
@@ -224,17 +225,19 @@ PluginService.execute(data, parent_data)
   │
   ├── 3. get_plugin(atom_type, version)  → PLUGIN_REGISTRY 查找
   │
-  ├── 4. 变量解析 resolve_params(params, resolve_ctx, var_types)
-  │     从 parent_data 读取 global_vars / target_hosts
-  │     对参数做 ${key} 模板替换
+  ├── 4. 变量解析（bamboo-engine SPLICE 运行时已自动完成）
+  │     直接从 data.inputs 读取已解析的用户参数字段
+  │     split 类型字段补充分割（按 var_types 来自插件定义）
   │
   ├── 5. plugin_instance.execute(**resolved_params)
   │
   ├── 6. 将结果写入 data.outputs
   │     {_result, stdout, stderr, executor_output}
+  │     data.outputs 中的字段由引擎自动传播到 ContextValue
   │
-  └── 7. _promote_result(success, parent_data)
-        将 _result 立即提升到 pipeline 上下文（供排他网关条件评估）
+  └── 7. _promote_results(success, executor_data, execution_id, node_id)
+        将执行结果写入 execution.context._node_outputs（供 UI trace 展示）
+        ContextValue 由 bamboo-engine NodeOutput 自动传播，不再重复写入
 ```
 
 ### 3.3 schedule() 轮询

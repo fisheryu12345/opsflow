@@ -3,6 +3,9 @@
     <div class="plugin-picker">
       <div class="picker-search">
         <el-input v-model="searchQuery" placeholder="Search plugin name..." clearable prefix-icon="Search" size="small" />
+        <el-button size="small" :loading="scanning" @click="handleScan" class="picker-scan-btn">
+          🔄 {{ scanning ? t('message.opsflowPage.pluginVisScanning') : t('message.opsflowPage.pluginVisScan') }}
+        </el-button>
       </div>
       <div class="picker-body">
         <div class="picker-groups">
@@ -30,14 +33,14 @@
             @dblclick="confirmPlugin(plugin)"
           >
             <div class="plugin-name">
-              {{ plugin.name }}
+              {{ isEn && plugin.name_en ? plugin.name_en : plugin.name }}
               <el-tag v-if="isDeprecated(plugin.phase)"
                 :type="plugin.phase === 2 ? 'danger' : 'warning'"
                 size="small" effect="dark" class="deprecated-badge">
                 {{ deprecationWarning(plugin.phase, plugin.phase_label) }}
               </el-tag>
             </div>
-            <div class="plugin-desc">{{ plugin.description || 'No description' }}</div>
+            <div class="plugin-desc">{{ isEn && plugin.description_en ? plugin.description_en : (plugin.description || 'No description') }}</div>
             <div class="plugin-tags">
               <el-tag :type="riskTagType(plugin.risk_level)" size="small" effect="plain">
                 {{ plugin.risk_level || 'low' }}
@@ -58,12 +61,17 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { GetPluginGroups } from '../../api/plugins'
+import { ReloadPlugins } from '../../api/plugins'
 import { useOpsflowStore } from '../../stores/opsflowStore'
+import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
 interface PluginItem {
   code: string
   name: string
+  name_en?: string
   description?: string
+  description_en?: string
   risk_level: string
   phase?: number
   phase_label?: string
@@ -82,12 +90,18 @@ const searchQuery = ref('')
 const activeGroup = ref('')
 const pluginGroups = ref<Record<string, PluginItem[]>>({})
 const selectedPlugin = ref<PluginItem | null>(null)
+const scanning = ref(false)
+const { t, locale } = useI18n()
+const isEn = computed(() => String(locale.value).startsWith('en'))
 
 const filteredPlugins = computed(() => {
   const items = pluginGroups.value[activeGroup.value] || []
   if (!searchQuery.value) return items
   const q = searchQuery.value.toLowerCase()
-  return items.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
+  return items.filter(p => {
+    const displayName = isEn.value && p.name_en ? p.name_en : p.name
+    return displayName.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)
+  })
 })
 
 function isDeprecated(phase?: number): boolean {
@@ -138,6 +152,29 @@ function confirmSelected() {
   }
 }
 
+async function handleScan() {
+  scanning.value = true
+  try {
+    const res: any = await ReloadPlugins()
+    const changed = res.data?.changed ?? 0
+    if (changed > 0) {
+      ElMessage.success(t('message.opsflowPage.pluginVisScanSuccess', { count: changed }))
+      // 重新加载插件列表
+      const store = useOpsflowStore()
+      const params: any = {}
+      if (store.currentProjectId) params.project_id = store.currentProjectId
+      const res = await GetPluginGroups(params)
+      pluginGroups.value = res.data || {}
+    } else {
+      ElMessage.info(t('message.opsflowPage.pluginVisScanNone'))
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.msg || e?.message || t('message.opsflowPage.pluginVisScanFailed'))
+  } finally {
+    scanning.value = false
+  }
+}
+
 function riskTagType(risk: string): string {
   return { high: 'danger', medium: 'warning', low: 'success' }[risk] || 'info'
 }
@@ -147,7 +184,9 @@ function riskTagType(risk: string): string {
 @use '/@/styles/global' as *;
 
 .plugin-picker { display: flex; flex-direction: column; gap: 12px; min-height: 400px; }
-.picker-search { flex-shrink: 0; }
+.picker-search { flex-shrink: 0; display: flex; gap: 8px; align-items: center; }
+.picker-search .el-input { flex: 1; }
+.picker-scan-btn { flex-shrink: 0; white-space: nowrap; }
 .picker-body { display: flex; gap: 16px; flex: 1; min-height: 0; }
 .picker-groups {
   width: 160px; flex-shrink: 0; display: flex; flex-direction: column;

@@ -44,3 +44,8 @@ export function BatchSetPluginsVisibility(plugins: { code: string; project_ids: 
     data: { plugins },
   })
 }
+
+/** Scan plugin directory and register new plugins (hot reload) */
+export function ReloadPlugins() {
+  return opsflowRequest({ url: prefix + 'plugins/reload/', method: 'post' })
+}

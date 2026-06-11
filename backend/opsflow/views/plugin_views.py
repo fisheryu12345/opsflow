@@ -4,9 +4,9 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse
-from rest_framework.response import Response
 
 from opsflow.models import PluginMeta
+from opsflow.plugins.registry import refresh_plugins, loader
 
 
 def _apply_project_visibility(qs, project_id):
@@ -46,26 +46,28 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
         GET /api/opsflow/plugins/?project_id=1 → 仅返回项目1可见的插件
         """
         qs = self.get_project_filtered_queryset()
-        # 按 code 聚合版本
         version_map = {}
         for p in qs:
             if p.code not in version_map:
                 version_map[p.code] = {
                     "code": p.code,
                     "name": p.name,
+                    "name_en": p.name_en or "",
                     "group": p.group,
                     "description": p.description,
+                    "description_en": p.description_en or "",
                     "risk_level": p.risk_level,
                     "icon": p.icon or "",
                     "color": p.color or "",
                     "versions": [],
                 }
             version_map[p.code]["versions"].append(p.version)
-        data = list(version_map.values())
-        return DetailResponse(data=data)
+        return DetailResponse(data=list(version_map.values()))
 
     def retrieve(self, request, *args, **kwargs):
-        """返回单个插件详情 + 完整 form_schema（支持 ?version= 参数）"""
+        """返回单个插件详情 + 完整 form_schema（支持 ?version= 参数）
+        始终返回 name 和 name_en，前端根据 locale 选择显示。
+        """
         code = kwargs.get('code')
         version = request.query_params.get('version')
         qs = self.get_queryset().filter(code=code)
@@ -73,23 +75,23 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(version=version)
         if not qs.exists():
             return ErrorResponse(msg="Plugin not found", data=None, code=4000, status=status.HTTP_404_NOT_FOUND)
-        # 取最后一次创建的版本作为主数据
         primary = qs.last()
         all_versions = list(qs.values_list('version', flat=True))
-        data = {
+        return DetailResponse(data={
             "code": primary.code,
             "name": primary.name,
+            "name_en": primary.name_en or "",
             "group": primary.group,
             "version": primary.version,
             "description": primary.description,
+            "description_en": primary.description_en or "",
             "risk_level": primary.risk_level,
             "icon": primary.icon or "",
             "color": primary.color or "",
             "form_schema": primary.form_schema,
             "output_schema": primary.output_schema,
             "versions": all_versions,
-        }
-        return DetailResponse(data=data)
+        })
 
     @action(detail=False, methods=['get'])
     def groups(self, request):
@@ -106,7 +108,9 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                 group_map.setdefault(p.group, []).append({
                     "code": p.code,
                     "name": p.name,
+                    "name_en": p.name_en or "",
                     "description": p.description,
+                    "description_en": p.description_en or "",
                     "version": p.version,
                     "versions": [],
                     "risk_level": p.risk_level,
@@ -115,11 +119,23 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                     "phase": p.phase,
                     "phase_label": dict(PluginMeta.PHASE_CHOICES).get(p.phase, ''),
                 })
-            # 添加到版本列表
             for entry in group_map.get(p.group, []):
                 if entry["code"] == p.code and p.version not in entry["versions"]:
                     entry["versions"].append(p.version)
         return DetailResponse(data=group_map)
+
+    @action(detail=False, methods=['post'])
+    def reload(self, request):
+        """扫描插件目录，注册新插件，同步 DB
+
+        POST /api/opsflow/plugins/reload/
+        Response: {"changed": 2, "revision": 42}
+        """
+        count = refresh_plugins()
+        return DetailResponse(data={
+            "changed": count,
+            "revision": loader.get_revision(),
+        })
 
     @action(detail=False, methods=['get'])
     def variable_types(self, request):
@@ -153,19 +169,19 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
             return ErrorResponse(msg="Plugin not found", data=None, code=4000, status=status.HTTP_404_NOT_FOUND)
 
         if request.method == 'GET':
-            # 收集当前对该插件所有版本的可见性设置
             versions = PluginMeta.objects.filter(code=code)
             allowed = set()
             for v in versions:
                 allowed.update(v.allowed_projects or [])
+            is_en = request.query_params.get('lang') == 'en'
+            name = (plugin.name_en or plugin.name) if is_en else plugin.name
             return DetailResponse(data={
                     "code": code,
-                    "name": plugin.name,
+                    "name": name,
                     "group": plugin.group,
                     "allowed_projects": sorted(allowed),
                     "restricted": len(allowed) > 0,
-                },
-            )
+                })
 
         # POST: 更新可见性 — 同步到该插件所有版本
         project_ids = request.data.get('project_ids', [])
@@ -184,7 +200,6 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
         ]
         """
         qs = PluginMeta.objects.filter(is_active=True)
-        # 按 code 聚合
         seen = set()
         data = []
         for p in qs:
@@ -193,8 +208,10 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                 data.append({
                     "code": p.code,
                     "name": p.name,
+                    "name_en": p.name_en or "",
                     "group": p.group,
                     "description": p.description,
+                    "description_en": p.description_en or "",
                     "risk_level": p.risk_level,
                     "icon": p.icon or "",
                     "color": p.color or "",

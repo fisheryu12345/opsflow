@@ -8,6 +8,12 @@
         <span v-if="enabledCount < totalPlugins" class="pv-intro-note">{{ disabledCount }} {{ $t("message.opsflowPage.pluginVisHidden") }}</span>
       </div>
 
+      <div class="pv-scan-bar">
+        <el-button size="small" :loading="scanning" @click="handleScan">
+          🔄 {{ scanning ? $t('message.opsflowPage.pluginVisScanning') : $t('message.opsflowPage.pluginVisScan') }}
+        </el-button>
+      </div>
+
       <el-input v-model="searchQuery" :placeholder="$t('message.opsflowPage.pluginVisSearch')"
         clearable prefix-icon="Search" size="small" class="pv-search" />
 
@@ -18,7 +24,7 @@
         </div>
         <div v-for="plugin in plugins" :key="plugin.code" class="pv-row">
           <div class="pv-row-left">
-            <div class="pv-row-name">{{ plugin.name }}</div>
+            <div class="pv-row-name">{{ isEn && plugin.name_en ? plugin.name_en : plugin.name }}</div>
             <div class="pv-row-code">{{ plugin.code }}</div>
           </div>
           <div class="pv-row-right">
@@ -52,12 +58,13 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { GetPluginsVisibilityList, BatchSetPluginsVisibility } from '../../api/plugins'
+import { GetPluginsVisibilityList, BatchSetPluginsVisibility, ReloadPlugins } from '../../api/plugins'
 import { GetProjects } from '../../api/projects'
 
 interface PluginItem {
   code: string
   name: string
+  name_en: string
   group: string
   description: string
   risk_level: string
@@ -65,7 +72,8 @@ interface PluginItem {
   enabled: boolean  // computed: visible for THIS project?
 }
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const isEn = computed(() => String(locale.value).startsWith('en'))
 
 const props = withDefaults(defineProps<{
   visible?: boolean
@@ -77,6 +85,7 @@ const emit = defineEmits<{ (e: 'update:visible', val: boolean): void }>()
 
 const loading = ref(false)
 const saving = ref(false)
+const scanning = ref(false)
 const searchQuery = ref('')
 const allProjects = ref<{ id: number; name: string }[]>([])
 const plugins = ref<PluginItem[]>([])
@@ -129,6 +138,7 @@ async function loadData() {
       return {
         code: p.code,
         name: p.name,
+        name_en: p.name_en || '',
         group: p.group || 'General',
         description: p.description || '',
         risk_level: p.risk_level || 'low',
@@ -210,6 +220,24 @@ async function handleSave() {
   }
 }
 
+async function handleScan() {
+  scanning.value = true
+  try {
+    const res: any = await ReloadPlugins()
+    const changed = res.data?.changed ?? 0
+    if (changed > 0) {
+      ElMessage.success(t('message.opsflowPage.pluginVisScanSuccess', { count: changed }))
+      await loadData()
+    } else {
+      ElMessage.info(t('message.opsflowPage.pluginVisScanNone'))
+    }
+  } catch (e: any) {
+    ElMessage.error(t('message.opsflowPage.pluginVisScanFailed'))
+  } finally {
+    scanning.value = false
+  }
+}
+
 function handleReset() { searchQuery.value = ''; loadData(); ElMessage.info('Changes discarded') }
 
 watch(() => props.visible, (v) => { if (v) { loadData(); searchQuery.value = '' } })
@@ -222,6 +250,7 @@ watch(() => props.visible, (v) => { if (v) { loadData(); searchQuery.value = '' 
 .pv-body { max-height: 65vh; overflow-y: auto; padding: 18px 20px; }
 .pv-intro { font-size: 13px; color: #606266; margin-bottom: 14px; line-height: 1.6; }
 .pv-intro-note { color: #E6A23C; font-weight: 500; }
+.pv-scan-bar { display: flex; align-items: center; margin-bottom: 12px; }
 .pv-search { margin-bottom: 16px; }
 .pv-group { margin-bottom: 18px; }
 .pv-group-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f5f7fa; border-radius: 8px; margin-bottom: 8px; }

@@ -14,9 +14,11 @@ class PluginMeta(models.Model):
 
     code = models.CharField(max_length=64, verbose_name="Plugin Code")
     name = models.CharField(max_length=128, verbose_name="Plugin Name")
+    name_en = models.CharField(max_length=128, blank=True, default="", verbose_name="Plugin Name (EN)")
     group = models.CharField(max_length=64, verbose_name="Group")
     version = models.CharField(max_length=16, default='v1.0', verbose_name="Version")
     description = models.TextField(blank=True, verbose_name="Description")
+    description_en = models.TextField(blank=True, default="", verbose_name="Description (EN)")
     risk_level = models.CharField(max_length=16, default='low', verbose_name="Risk Level")
     icon = models.CharField(max_length=32, default='', blank=True, verbose_name="Plugin Icon")
     color = models.CharField(max_length=16, default='', blank=True, verbose_name="Plugin Theme Color")

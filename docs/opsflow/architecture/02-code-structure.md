@@ -31,8 +31,7 @@ opsflow/
 │   ├── flow_engine.py                    # FlowEngine — 流程执行引擎
 │   ├── states.py                         # NodeState / PipelineState 枚举 + 流转矩阵
 │   ├── pipeline_builder/                 # Pipeline Tree 构建器
-│   │   ├── __init__.py                   # build_bamboo_pipeline() 主入口
-│   │   ├── conditions.py                 # 边条件解析
+│   │   ├── __init__.py                   # build_bamboo_pipeline() 主入口（返回 pipeline dict）
 │   │   ├── elements.py                   # 节点元素创建 (ServiceActivity/Gateway/SubProcess)
 │   │   └── validation.py                 # 循环引用检测
 │   ├── plugin_service_adapter.py         # PluginService + OpsflowPluginComponent

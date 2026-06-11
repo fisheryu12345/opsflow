@@ -268,7 +268,8 @@ import ConditionDialog from '../gates/ConditionDialog.vue'
 import { generateConditionExpr, extractAvailableVariables as getAvailableVars } from '../../composables/useGraphCanvas'
 import type { ConditionStruct } from '../../utils/shapes'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const isEn = computed(() => String(locale.value).startsWith('en'))
 
 const props = defineProps<{
   nodeData?: any
@@ -346,7 +347,10 @@ async function loadPlugins() {
 async function loadPluginSchema(code: string) {
   try {
     const res = await GetPluginDetail(code)
-    pluginFormSchema.value = res.data?.form_schema || []
+    const schema = res.data?.form_schema || []
+    pluginFormSchema.value = isEn.value
+      ? schema.map((item: any) => ({ ...item, name: item.name_en || item.name }))
+      : schema
     outputSchema.value = res.data?.output_schema || []
     pluginVersions.value = res.data?.versions || []
     if (res.data?.versions?.length && !form.value._plugin_version) {

@@ -19,37 +19,16 @@ logger = logging.getLogger(__name__)
 PLUGIN_REGISTRY: Dict[str, Dict[str, Type[BasePlugin]]] = {}
 PLUGIN_GROUP_MAP: Dict[str, List[str]] = {}          # group → [code, ...]
 
+# 热加载器实例 — 所有读/写操作共享同一份文件快照
+from opsflow.plugins.loader import PluginLoader  # noqa: E402
+loader = PluginLoader(PLUGIN_REGISTRY, PLUGIN_GROUP_MAP)
+
 
 def discover_plugins():
     """扫描 opsflow/plugins/ 下所有模块，自动注册 BasePlugin 子类"""
-    import opsflow.plugins as plugins_pkg
-
-    count = 0
-    for importer, modname, ispkg in pkgutil.walk_packages(
-        plugins_pkg.__path__, plugins_pkg.__name__ + "."
-    ):
-        if ispkg:
-            continue
-        try:
-            module = importlib.import_module(modname)
-        except Exception as e:
-            logger.warning("加载插件模块 %s 失败: %s", modname, e)
-            continue
-
-        for attr_name in dir(module):
-            cls = getattr(module, attr_name)
-            if (isinstance(cls, type) and issubclass(cls, BasePlugin)
-                    and cls is not BasePlugin):
-                code = cls.code or cls.name
-                version = cls.version or "v1.0"
-                if code not in PLUGIN_REGISTRY:
-                    PLUGIN_REGISTRY[code] = {}
-                if version in PLUGIN_REGISTRY.get(code, {}):
-                    logger.warning("插件 code=%s version=%s 重复", code, version)
-                PLUGIN_REGISTRY.setdefault(code, {})[version] = cls
-                if code not in PLUGIN_GROUP_MAP.get(cls.group, []):
-                    PLUGIN_GROUP_MAP.setdefault(cls.group, []).append(code)
-                count += 1
+    # 使用 PluginLoader 替代 pkgutil 扫描，支持后续热加载
+    # 首次调用时快照为空，效果等同于全量扫描
+    count = loader.scan()
 
     logger.info("插件注册完成: 共 %d 个, %d 个分组, %d 个 code",
                  count, len(PLUGIN_GROUP_MAP), len(PLUGIN_REGISTRY))
@@ -147,6 +126,7 @@ def sync_plugin_meta_to_db():
             icon, color = _resolve_group_icon_color(cls)
 
             # 同步时保留已有 phase（不重置），新建时默认 PHASE_AVAILABLE
+            # name_en/description_en 仅在插件类有定义时覆盖，避免冲掉 DB 中已补齐的值
             existing = PluginMeta.objects.filter(code=code, version=version).first()
             defaults = {
                 "name": cls.name,
@@ -159,6 +139,12 @@ def sync_plugin_meta_to_db():
                 "output_schema": output_schema,
                 "is_active": True,
             }
+            cls_name_en = getattr(cls, 'name_en', None) or ''
+            if cls_name_en:
+                defaults['name_en'] = cls_name_en
+            cls_desc_en = getattr(cls, 'description_en', None) or ''
+            if cls_desc_en:
+                defaults['description_en'] = cls_desc_en
             if not existing:
                 defaults["phase"] = PluginMeta.PHASE_AVAILABLE
             PluginMeta.objects.update_or_create(
@@ -168,3 +154,17 @@ def sync_plugin_meta_to_db():
             )
             count += 1
     logger.info("PluginMeta 同步完成: %d 条", count)
+
+
+def refresh_plugins() -> int:
+    """扫描新插件 → 同步 DB → 返回新增数
+
+    启动后调用此接口实现动态热加载：
+      - scan() 检查文件系统快照，仅处理新增 .py 文件
+      - 如有新增，同步到 PluginMeta 表
+      - 所有现有 PLUGIN_REGISTRY 引用自动可见（原地修改 dict）
+    """
+    count = loader.scan()
+    if count > 0:
+        sync_plugin_meta_to_db()
+    return count

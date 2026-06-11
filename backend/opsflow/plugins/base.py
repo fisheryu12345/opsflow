@@ -16,10 +16,12 @@ class BasePlugin:
 
     # === 元信息（子类覆盖） ===
     code: str = ""               # 插件唯一标识（如 "shell"）
-    name: str = ""               # 显示名称（如 "Shell 执行"）
+    name: str = ""               # 显示名称（中文，如 "Shell 执行"）
+    name_en: str = ""            # 显示名称（英文，可选，如 "Shell Execute"）
     group: str = ""              # 分组（如 "Ansible", "ESXi"）
     version: str = "v1.0"
     description: str = ""
+    description_en: str = ""     # 描述（英文，可选）
     risk_level: str = "low"      # low / medium / high
     icon: str = ""               # 显示图标（emoji 或 Element Plus 图标名）
     color: str = ""              # 主题色 hex（如 "#409EFF"）

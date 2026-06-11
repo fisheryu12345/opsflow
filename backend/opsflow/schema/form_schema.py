@@ -34,7 +34,8 @@ class FormItem(BaseModel):
     """单个表单字段"""
     tag_code: str                      # 字段唯一标识，对应 execute() 的形参名
     type: str                          # input / select / textarea / ...
-    name: str                          # 前端标签名
+    name: str                          # 前端标签名（中文）
+    name_en: str = ""                  # 前端标签名（英文，可选，空则 fallback 到 name）
     attrs: Dict[str, Any] = {}         # placeholder, options, multiple, min, max ...
     default: Any = None
     hidden: bool = False

@@ -85,6 +85,11 @@ LOGGING = {
             'propagate': False,
             'level': "WARNING",
         },
+        'django_apscheduler.jobstores': {
+            'handlers': ["console", "error", "file"],
+            'propagate': False,
+            'level': "ERROR",
+        },
         "uvicorn.error": {
             "level": "INFO",
             "handlers": ["console", "error", "file"],

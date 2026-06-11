@@ -166,7 +166,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Fold, Reading,
@@ -183,7 +183,8 @@ import DryRunDialog from './components/dialogs/DryRunDialog.vue'
 import HelpDrawer from './components/common/HelpDrawer.vue'
 
 const store = useOpsflowStore()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const isEn = computed(() => String(locale.value).startsWith('en'))
 
 const designCanvasRef = ref<InstanceType<typeof DesignCanvas> | null>(null)
 const diffModalRef = ref<InstanceType<typeof DiffModal> | null>(null)
