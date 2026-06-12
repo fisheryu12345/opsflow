@@ -78,7 +78,7 @@
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 变量类型包 — 导入此模块触发 opsflow 自身变量类注册到 VARIABLE_REGISTRY（其他 app 的变量类型由各自 AppConfig.ready() 注册） |
+| `__init__.py` |  | 变量类型包 — 导入此模块触发所有变量类注册到 VARIABLE_REGISTRY |
 | `common.py` | 通用变量类型 — 适配自 bk_sops pipeline_plugins.variables.collections.common | `InputVariable` — 文本输入变量<br>`TextareaVariable` — 多行文本变量<br>`IntVariable` — 整数变量<br>`FloatVariable` — 浮点数变量<br>`DatetimeVariable` — 日期时间变量<br>`DateVariable` — 日期变量 |
 
 ## `management/`
@@ -238,6 +238,15 @@
 | `snapshot.py` | Dell PowerMax 快照管理 — 创建、查看、删除快照 | `CreateSnapshotPlugin`<br>`DeleteSnapshotPlugin` |
 | `storage_group.py` | Dell PowerMax 存储组管理 — 创建、查询、删除存储组 | `CreateStorageGroupPlugin`<br>`DeleteStorageGroupPlugin`<br>`ListStorageGroupsPlugin` |
 
+## `plugins\process/`
+
+| 文件 | 用途 | 核心组件 |
+|------|------|----------|
+| `__init__.py` |  |  |
+| `process_start.py` | 进程启动 — 通过 Ansible Tower 远程启动目标进程 | `ProcessStartPlugin` |
+| `process_status.py` | 进程状态检查 — 通过 Ansible Tower 检查远程进程状态 | `ProcessStatusPlugin` |
+| `process_stop.py` | 进程停止 — 通过 Ansible Tower 远程停止目标进程 | `ProcessStopPlugin` |
+
 ## `plugins\redfish/`
 
 | 文件 | 用途 | 核心组件 |
@@ -281,6 +290,7 @@
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
 | `__init__.py` |  |  |
+| `dr_service.py` | DR 拓扑服务 — Neo4j 查询 + AI Prompt + 拓扑描述 | `get_dr_group_topology()` — 直接基于 Neo4j 查询 DR 组拓扑信息<br>`neighbors_to_pipeline()` — 将拓扑数据生成为标准 pipeline 格式<br>`build_topology_description()` — 将拓扑数据转为 AI 可读的文本描述 |
 | `vector_service.py` | 向量嵌入服务 — 将知识条目转为向量存入数据库 Vector Embedding Service — Convert knowledge entries to vectors for similarity search | `VectorService` — 向量嵌入服务 — Vector Embedding Service |
 
 ## `signals/`
@@ -355,6 +365,7 @@
 | `execution_trace.py` | Execution Trace — 节点轨迹查询端点 Mixin | `ExecutionTraceMixin` — 节点轨迹查询端点混入（traces/trace_log） |
 | `template_ai.py` | Template AI — AI 生成/分析/布局端点 Mixin | `TemplateAIMixin` — AI 生成、分析、布局端点混入 |
 | `template_collect.py` | Template Collect — 收藏/取消收藏端点 Mixin | `TemplateCollectMixin` — 收藏管理端点混入 |
+| `template_dr.py` | Template DR — AI 生成 DR 切换 Pipeline 端点 | `preview_dr_topology()` — 预览 DR 组拓扑 — 返回结构化的主站/备站进程 + CALLS 关系<br>`create_dr_pipeline()` — AI 生成 DR 切换 Pipeline |
 | `template_export.py` | Template Export/Import — 导出/导入/分类端点 Mixin | `TemplateExportImportMixin` — 导出、导入、分类端点混入 |
 | `template_subprocess.py` | Template Subprocess — 子流程版本追踪端点 Mixin | `TemplateSubprocessMixin` — 子流程版本追踪端点混入 |
 | `template_variable.py` | Template Variable — 全局变量/变量浏览器/变量提升端点 Mixin | `TemplateVariableMixin` — 全局变量系统端点混入 |

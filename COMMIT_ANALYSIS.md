@@ -2,6 +2,53 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `19e3e393`
+
+> 提交日期: 2026-06-12 | 提交信息: feat: DR baseline — Process CMDB modeling, AI DR topology, CMDB i18n — 业务 DR 基础层建设
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/cmdb/management/commands/seed_dr_models.py` | 后端 | DR 种子数据命令 — Process/DrSite/DrGroup 模型定义 + AssociationType + Host/DrSite/DrGroup Mock 数据 + BELONGS_TO/CALLS 自动建立 |
+| `backend/agent/agent/process_manager.py` | 后端 | ProcessManager 类 — 定时 ss+ps 采集、CMDB API upsert、CALLS 关系自动发现、本地进程启停 |
+| `backend/opsflow/plugins/process/process_start.py` | 后端 | 进程启动原子 — 从 CMDB 获取 command，通过 Tower 远程启动 |
+| `backend/opsflow/plugins/process/process_stop.py` | 后端 | 进程停止原子 — 从 CMDB 获取 pid，通过 Tower 远程 kill |
+| `backend/opsflow/plugins/process/process_status.py` | 后端 | 进程状态检查原子 — Tower 执行 ps + 解析输出为结构化字段 |
+| `backend/opsflow/views/mixins/template_dr.py` | 后端 | DR pipeline 生成 API — AI 读取 Neo4j 拓扑生成切流 pipeline |
+| `backend/opsflow/services/dr_service.py` | 后端 | DR 拓扑服务层 — Neo4j 查询 + AI Prompt + 拓扑描述构建 |
+| `backend/cmdb/views/topology.py` | 后端 | AI 拓扑布局 API — LLM 分析行列 + 后端转像素坐标 |
+| `backend/cmdb/services/topology_service.py` | 后端 | full_topology() 返回 attrs 字段供前端渲染 |
+| `web/src/views/apps/cmdb/components/DrTopologyCanvas.vue` | 前端 | G6 力导向 DR 拓扑图 — DrSite/Host/Process 圆形节点 + SITE_CONTAINS/CALLS/FAILOVER_TO 着色边 + AI 布局按钮 |
+| `web/src/views/apps/cmdb/components/DynamicTable.vue` | 前端 | i18n 替换 — 全部中文改为 t() 调用 |
+| `web/src/views/apps/cmdb/components/TopologyCanvas.vue` | 前端 | i18n 替换 — 右键菜单 + 属性标签 |
+| `web/src/views/apps/cmdb/index.vue` | 前端 | i18n 替换 + DR 拓扑 tab + DrGroup 下拉选择器 |
+| `web/src/i18n/pages/cmdb/zh-cn.ts` | 前端 | CMDB 中文 i18n — 267 个 key |
+| `web/src/i18n/pages/cmdb/en.ts` | 前端 | CMDB 英文 i18n — 267 个 key |
+| `docs/guides/` (5 files) | 文档 | 跨 App 规范从 docs/opsflow/guides/ 迁移到 docs/guides/ |
+| `docs/superpowers/specs/2026-06-12-process-cmdb-dr-baseline-design.md` | 文档 | DR 三阶段设计规范（Process CMDB + DrSite + AI 编排） |
+| `docs/superpowers/specs/2026-06-12-ai-dr-topology-layout-design.md` | 文档 | AI 辅助 DR 拓扑布局设计 |
+
+### 解决
+
+- **问题/背景：** 主机进程信息缺失于 CMDB，无法在 DR 场景中感知进程拓扑和依赖关系；CMDB 无 i18n 支持；DR 拓扑无智能布局
+- **办法：** ProcessManager 定时采集+上报；种子数据命令建立 DR 模型；G6 力导向图展示 DR 拓扑；AI 布局基于行列分析计算节点位置；CMDB 全页面 i18n
+
+### 文档
+
+- **生成文档：**
+  - `docs/superpowers/specs/2026-06-12-process-cmdb-dr-baseline-design.md`
+  - `docs/superpowers/specs/2026-06-12-ai-dr-topology-layout-design.md`
+
+### 验证
+
+- 改动类型: feat + refactor + docs
+- 清理乱码: 无
+- 子 App index.md 更新: opsflow, cmdb（如适用）
+- 工作区状态: 干净 ✅
+
+---
+
 ## `66fa9493`
 
 > 提交日期: 2026-06-12 | 提交信息: refactor: decouple variable registration — each app registers its own variable types — 变量注册解耦，各 app 自主注册变量类型

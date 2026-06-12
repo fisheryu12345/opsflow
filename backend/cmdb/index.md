@@ -4,29 +4,20 @@
 
 ---
 
-## `cmdb/`
-
-| 文件 | 用途 | 核心组件 |
-|------|------|----------|
-| `__init__.py` |  | CMDB app package |
-| `admin.py` | Admin registration for CMDB MySQL models | `ClassificationAdmin`<br>`ModelFieldInline`<br>`ModelDefinitionAdmin`<br>`ModelFieldAdmin`<br>`AttributeGroupAdmin`<br>`AssociationTypeAdmin` |
-| `apps.py` | AppConfig for cmdb app | `CmdbConfig` |
-| `neo4j_router.py` | Django database router for Neo4j dual datasource | `CmdbNeo4jRouter` — Django 多数据库路由 cmdb 中的 Neo4j 节点模型（以 'Neo4j' 结尾的模型名）路由到 neo4j 数据库。 其他模型使用默认 MySQL 数据库。 |
-| `urls.py` |  | URL configuration for CMDB app |
-
-## `cmdb\management/`
+## `management/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
 | `__init__.py` |  | Management commands for cmdb app |
 
-## `cmdb\management\commands/`
+## `management\commands/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
 | `__init__.py` |  | Management commands package |
+| `seed_dr_models.py` | Seed DR baseline models: Process model definition + AssociationTypes + Mock data. | `Command` |
 
-## `cmdb\models/`
+## `models/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
@@ -40,7 +31,7 @@
 | `model_definition.py` | ModelDefinition & ModelField — 模型定义和字段，对标 bk-cmdb Object & Attribute | `ModelDefinition` — 模型定义 (Model/Object) 对标 bk-cmdb Object。code 作为 Neo4j Label 标识。 内置模型 (is_builtin=True) 不可删除。<br>`ModelField` — 模型字段定义 (Attribute) 对标 bk-cmdb Attribute。定义模型实例的一个属性。 |
 | `object_unique.py` | ObjectUnique — 唯一约束，对标 bk-cmdb ObjectUnique | `ObjectUnique` — 唯一约束 (ObjectUnique) 对标 bk-cmdb ObjectUnique。 keys 字段存储字段名列表，表示这些字段的组合值在实例中唯一。 |
 
-## `cmdb\serializers/`
+## `serializers/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
@@ -48,31 +39,31 @@
 | `instance_serializers.py` | Serializers for Neo4j dynamic instances | `DynamicInstanceSerializer` — 动态实例序列化器<br>`InstanceRelationSerializer` — 实例关联序列化器 |
 | `schema_serializers.py` | Serializers for MySQL schema models (CoreModel subclasses) | `ClassificationSerializer`<br>`ClassificationCreateUpdateSerializer`<br>`ModelDefinitionSerializer`<br>`ModelDefinitionCreateUpdateSerializer`<br>`ModelFieldSerializer`<br>`ModelFieldCreateUpdateSerializer` |
 
-## `cmdb\services/`
+## `services/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
 | `__init__.py` |  | Services package for CMDB app |
-| `association_service.py` | feat(job-platform): complete backend + frontend implementation | `AssociationService` — 实例关联管理 |
-| `change_tracker.py` | 123 | `track_create()` — 记录实例创建<br>`track_update()` — 记录实例更新 — 逐字段对比差异<br>`track_delete()` — 记录实例删除 |
-| `event_dispatcher.py` | 123 | `dispatch_event()` — 分发事件到所有匹配的订阅 |
-| `import_service.py` | 123 | `ImportService` — 批量导入/导出服务 |
+| `association_service.py` |  | `AssociationService` — 实例关联管理 |
+| `change_tracker.py` |  | `track_create()` — 记录实例创建<br>`track_update()` — 记录实例更新 — 逐字段对比差异<br>`track_delete()` — 记录实例删除 |
+| `event_dispatcher.py` |  | `dispatch_event()` — 分发事件到所有匹配的订阅 |
+| `import_service.py` |  | `ImportService` — 批量导入/导出服务 |
 | `neo4j_client.py` | Neo4j database client — 统一连接管理 | `Neo4jClient` — Neo4j 驱动单例管理器 |
-| `node_service.py` | 123 | `NodeService` — 统一节点 CRUD<br>`now_iso()` |
-| `sync_service.py` | 123 | `BaseCloudSync` — 云厂商资产同步基类<br>`AliyunSync` — 阿里云 ECS 同步<br>`TencentCloudSync` — 腾讯云 CVM 同步 |
-| `topology_service.py` | feat(job-platform): complete backend + frontend implementation | `TopologyService` — 拓扑查询服务 |
+| `node_service.py` |  | `NodeService` — 统一节点 CRUD<br>`now_iso()` |
+| `sync_service.py` |  | `BaseCloudSync` — 云厂商资产同步基类<br>`AliyunSync` — 阿里云 ECS 同步<br>`TencentCloudSync` — 腾讯云 CVM 同步 |
+| `topology_service.py` |  | `TopologyService` — 拓扑查询服务 |
 | `validation_service.py` | ValidationService — 字段类型校验 + 唯一约束检查 | `ValidationService` — 字段校验服务 |
 
-## `cmdb\variable_types/`
+## `variable_types/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` | CMDB 变量类型包 — 导入所有变量类触发注册到 VARIABLE_REGISTRY | 桥接导入 `query`, `topology`, `count` |
-| `query.py` | CMDB 实例查询变量 — 按条件查询 CMDB 模型实例 | `CmdbQueryVariable` — 运行时查询 CMDB 实例列表，支持 model_code + filters + limit |
-| `topology.py` | CMDB 拓扑查询变量 — 获取实例的上/下游拓扑路径 | `CmdbTopologyVariable` — 运行时查询实例的影响范围，支持 instance_id + direction + max_depth |
-| `count.py` | CMDB 计数变量 — 统计指定模型的实例数量 | `CmdbCountVariable` — 运行时统计 CMDB 某模型的实例总数 |
+| `__init__.py` |  | CMDB 变量类型包 — 导入此模块触发变量类注册到 VARIABLE_REGISTRY |
+| `count.py` | CMDB 计数变量 — 统计指定模型的实例数量 | `CmdbCountVariable` — CMDB 计数变量 — 统计指定模型的实例数量 |
+| `query.py` | CMDB 实例查询变量 — 按条件查询 CMDB 模型实例 | `CmdbQueryVariable` — CMDB 实例查询变量 — 按条件查询 CMDB 模型实例 |
+| `topology.py` | CMDB 拓扑查询变量 — 获取实例的上/下游拓扑路径 | `CmdbTopologyVariable` — CMDB 拓扑查询变量 — 获取实例的上/下游拓扑路径 |
 
-## `cmdb\views/`
+## `views/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
@@ -86,4 +77,14 @@
 | `mainline_topo.py` | MainlineTopo views — 主线拓扑定义管理 | `MainlineTopoViewSet` — 主线拓扑定义管理 |
 | `model_manage.py` | Model definition & field management views (MySQL CRUD) | `ModelDefinitionViewSet` — 模型定义管理<br>`ModelFieldViewSet` — 模型字段管理 |
 | `object_unique.py` | ObjectUnique views — 唯一约束管理 | `ObjectUniqueViewSet` — 唯一约束管理 |
-| `topology.py` | Topology views — 拓扑查询、影响分析、全局搜索 | `TopologyViewSet` — 拓扑视图（只读查询） |
+| `topology.py` | Topology views — 拓扑查询、影响分析、全局搜索、AI 布局 | `TopologyViewSet` — 拓扑视图（只读查询） |
+
+## `根目录/`
+
+| 文件 | 用途 | 核心组件 |
+|------|------|----------|
+| `__init__.py` |  | CMDB app package |
+| `admin.py` | Admin registration for CMDB MySQL models | `ClassificationAdmin`<br>`ModelFieldInline`<br>`ModelDefinitionAdmin`<br>`ModelFieldAdmin`<br>`AttributeGroupAdmin`<br>`AssociationTypeAdmin` |
+| `apps.py` | AppConfig for cmdb app | `CmdbConfig` |
+| `neo4j_router.py` | Django database router for Neo4j dual datasource | `CmdbNeo4jRouter` — Django 多数据库路由 cmdb 中的 Neo4j 节点模型（以 'Neo4j' 结尾的模型名）路由到 neo4j 数据库。 其他模型使用默认 MySQL 数据库。 |
+| `urls.py` |  | URL configuration for CMDB app |
