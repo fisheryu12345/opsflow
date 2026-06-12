@@ -1,10 +1,10 @@
-"""文件上传 — 上传本地文件到远程主机"""
+"""文件上传 — 上传本地文件到远程主机（通过 Ansible Tower）"""
 
-from opsflow.plugins.base import BasePlugin
+from opsflow.plugins.ansible.tower_backend.base_plugin import TowerBasePlugin
 from opsflow.schema.form_schema import FormItem, ValidationRule
 
 
-class UploadFilePlugin(BasePlugin):
+class UploadFilePlugin(TowerBasePlugin):
     name = "文件上传"
     code = "upload_file"
     group = "Ansible"
@@ -44,13 +44,3 @@ class UploadFilePlugin(BasePlugin):
                 attrs={"placeholder": "文件权限"},
             ),
         ]
-
-    def execute(self, src: str = "", dest: str = "", owner: str = "", mode: str = "0644", **kwargs) -> dict:
-        return {
-            "success": True,
-            "data": {
-                "message": "execution delegated",
-                "changed": False,
-                "dest_path": dest,
-            },
-        }

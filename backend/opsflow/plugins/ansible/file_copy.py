@@ -1,10 +1,10 @@
-"""文件复制 — 复制文件或目录到远程主机"""
+"""文件复制 — 复制文件或目录到远程主机（通过 Ansible Tower）"""
 
-from opsflow.plugins.base import BasePlugin
+from opsflow.plugins.ansible.tower_backend.base_plugin import TowerBasePlugin
 from opsflow.schema.form_schema import FormItem, ValidationRule
 
 
-class FileCopyPlugin(BasePlugin):
+class FileCopyPlugin(TowerBasePlugin):
     name = "文件复制"
     code = "file_copy"
     group = "Ansible"
@@ -44,13 +44,3 @@ class FileCopyPlugin(BasePlugin):
                 attrs={"placeholder": "文件权限"},
             ),
         ]
-
-    def execute(self, src: str = "", dest: str = "", owner: str = "", mode: str = "0644", **kwargs) -> dict:
-        return {
-            "success": True,
-            "data": {
-                "message": "execution delegated",
-                "changed": False,
-                "dest_path": dest,
-            },
-        }

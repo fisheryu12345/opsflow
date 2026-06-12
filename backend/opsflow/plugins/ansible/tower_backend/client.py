@@ -4,7 +4,7 @@ from typing import Optional
 from urllib.parse import urljoin
 
 import requests
-from opsflow.core.tower.base import TowerConfigError
+from opsflow.plugins.ansible.tower_backend.base import TowerConfigError
 
 logger = logging.getLogger(__name__)
 

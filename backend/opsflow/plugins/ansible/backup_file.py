@@ -1,10 +1,10 @@
-"""文件备份 — 备份远程主机上的文件或目录"""
+"""文件备份 — 备份远程主机上的文件或目录（通过 Ansible Tower）"""
 
-from opsflow.plugins.base import BasePlugin
+from opsflow.plugins.ansible.tower_backend.base_plugin import TowerBasePlugin
 from opsflow.schema.form_schema import FormItem, ValidationRule
 
 
-class BackupFilePlugin(BasePlugin):
+class BackupFilePlugin(TowerBasePlugin):
     name = "文件备份"
     code = "backup_file"
     group = "Ansible"
@@ -30,13 +30,3 @@ class BackupFilePlugin(BasePlugin):
                 attrs={"placeholder": "备份存储目录"},
             ),
         ]
-
-    def execute(self, src: str = "", backup_dir: str = "/backup", **kwargs) -> dict:
-        return {
-            "success": True,
-            "data": {
-                "message": "execution delegated",
-                "backup_path": "",
-                "size_bytes": 0,
-            },
-        }

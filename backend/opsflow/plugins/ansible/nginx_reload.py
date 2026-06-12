@@ -1,10 +1,10 @@
-"""Nginx 重载 — 验证 Nginx 配置并执行重载"""
+"""Nginx 重载 — 验证 Nginx 配置并执行重载（通过 Ansible Tower）"""
 
-from opsflow.plugins.base import BasePlugin
+from opsflow.plugins.ansible.tower_backend.base_plugin import TowerBasePlugin
 from opsflow.schema.form_schema import FormItem
 
 
-class NginxReloadPlugin(BasePlugin):
+class NginxReloadPlugin(TowerBasePlugin):
     name = "Nginx 重载"
     code = "nginx_reload"
     group = "Ansible"
@@ -31,13 +31,3 @@ class NginxReloadPlugin(BasePlugin):
                 attrs={"options": [{"label": "重载前执行配置测试", "value": True}]},
             ),
         ]
-
-    def execute(self, config_path: str = "/etc/nginx/nginx.conf", test_config: bool = True, **kwargs) -> dict:
-        return {
-            "success": True,
-            "data": {
-                "message": "execution delegated",
-                "config_valid": True,
-                "reload_success": True,
-            },
-        }

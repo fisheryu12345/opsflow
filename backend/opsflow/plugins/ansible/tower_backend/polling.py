@@ -4,7 +4,7 @@ import time
 from typing import Optional, Callable
 
 import requests
-from opsflow.core.tower.base import ADAPTIVE_POLL_SCHEDULE, TowerTimeoutError
+from opsflow.plugins.ansible.tower_backend.base import ADAPTIVE_POLL_SCHEDULE, TowerTimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -104,11 +104,7 @@ class TowerPollingMixin:
     def _emit_ws_status(user_id: Optional[int], execution_id: Optional[str],
                         node_id: Optional[str], tower_status: str,
                         bamboo_status: str, progress: int, artifacts: dict):
-        """通过 ws_push 推送 Tower 作业状态到用户组
-
-        推送到 user_{user_id} 组（统一用户通道），
-        前端 WebSocketService 收到 topic="tower" 后按 execution_id 匹配页面。
-        """
+        """通过 ws_push 推送 Tower 作业状态到用户组"""
         if not user_id or not execution_id or not node_id:
             return
         from application.ws_push import push_to_user

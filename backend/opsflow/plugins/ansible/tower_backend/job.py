@@ -3,7 +3,7 @@ import json
 import logging
 
 import requests
-from opsflow.core.tower.base import TowerConfigError, TowerJobError, TOWER_TO_BAMBOO_STATUS
+from opsflow.plugins.ansible.tower_backend.base import TowerConfigError, TowerJobError, TOWER_TO_BAMBOO_STATUS
 
 logger = logging.getLogger(__name__)
 

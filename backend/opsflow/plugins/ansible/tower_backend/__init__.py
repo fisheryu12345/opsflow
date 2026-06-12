@@ -1,9 +1,9 @@
-"""Ansible Tower (AWX) REST API 服务封装"""
+"""Ansible Tower (AWX) REST API 服务封装 — 插件后端执行引擎"""
 from typing import Optional
-from opsflow.core.tower.client import TowerClientMixin
-from opsflow.core.tower.job import TowerJobMixin
-from opsflow.core.tower.polling import TowerPollingMixin
-from opsflow.core.tower.base import TowerConfigError, TowerJobError, TowerTimeoutError
+from opsflow.plugins.ansible.tower_backend.client import TowerClientMixin
+from opsflow.plugins.ansible.tower_backend.job import TowerJobMixin
+from opsflow.plugins.ansible.tower_backend.polling import TowerPollingMixin
+from opsflow.plugins.ansible.tower_backend.base import TowerConfigError, TowerJobError, TowerTimeoutError
 
 __all__ = [
     'TowerService', 'get_tower_service',
@@ -23,12 +23,12 @@ class TowerService(TowerClientMixin, TowerJobMixin, TowerPollingMixin):
     """
 
     def __init__(self):
-        self._session: Optional[requests.Session] = None
+        self._session: Optional['requests.Session'] = None
         self._config: Optional[dict] = None
         self._load_config()
 
 
-import requests  # noqa: E402 (needed in __init__ for type hint above)
+import requests  # noqa: E402
 
 
 # 全局单例

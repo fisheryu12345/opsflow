@@ -1,10 +1,10 @@
-"""脚本执行 — 上传脚本内容并在远程主机上执行"""
+"""脚本执行 — 上传脚本内容并在远程主机上执行（通过 Ansible Tower）"""
 
-from opsflow.plugins.base import BasePlugin
+from opsflow.plugins.ansible.tower_backend.base_plugin import TowerBasePlugin
 from opsflow.schema.form_schema import FormItem, ValidationRule
 
 
-class ScriptExecPlugin(BasePlugin):
+class ScriptExecPlugin(TowerBasePlugin):
     name = "脚本执行"
     code = "script_exec"
     group = "Ansible"
@@ -37,14 +37,3 @@ class ScriptExecPlugin(BasePlugin):
                 attrs={"placeholder": "脚本参数"},
             ),
         ]
-
-    def execute(self, script_content: str = "", script_type: str = "bash", args: str = "", **kwargs) -> dict:
-        return {
-            "success": True,
-            "data": {
-                "message": "execution delegated",
-                "stdout": "",
-                "stderr": "",
-                "returncode": 0,
-            },
-        }

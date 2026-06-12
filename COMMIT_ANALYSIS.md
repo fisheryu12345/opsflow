@@ -35,6 +35,31 @@
 
 ---
 
+## `f234a766`
+
+> 提交日期: 2026-06-12 | 提交信息: feat: add AI text generation atom plugin — 新增 AI 文本生成原子插件
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/plugins/ai/ai_text_gen.py` | 后端 | AiTextGenPlugin — 新 AI 分组文本生成原子 |
+| `backend/opsflow/plugins/ai/__init__.py` | 后端 | AI 插件包标记 |
+| `docs/superpowers/specs/2026-06-12-ai-text-gen-atom-design.md` | 文档 | AI 原子设计规范 |
+
+### 解决
+
+- **问题/背景：** 流程引擎缺少 AI 文本生成能力，无法在自动化流程中调用 LLM
+- **办法：** 新增 BasePlugin 子类，复用 OPSAGENT DeepSeek 配置和现有的插件发现/注册/执行链路；考虑 bamboo-engine string inputs 特性做类型安全转换
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## `a7d29650`
 
 > 提交日期: 2026-06-10 | 提交信息: docs: add config governance standards — 新增配置治理规范（决策树+组件对照表）

@@ -4,21 +4,11 @@
 
 ---
 
-## `opsflow/`
+## `core/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
-| `apps.py` |  | `OpsflowConfig` |
-| `serializers.py` |  | `GlobalVariableField` — 全局变量字段 — 接受扁平或结构化格式，始终返回结构化格式<br>`FlowTemplateSerializer`<br>`TemplateVersionSerializer`<br>`FlowExecutionSerializer`<br>`TemplateNodeSerializer`<br>`ExecutionSchemeSerializer` |
-| `tasks.py` | 123 | `run_async()` — 在 Celery worker 中安全执行异步协程。<br>`execute_pipeline_task()` — Celery 任务 — 异步执行 Pipeline<br>`auto_retry_node_task()` — Celery 任务 — 自动重试失败节点（由 auto_retry dispatch 触发）<br>`execute_node_timeout_strategy()` — Celery 任务 — 执行节点超时策略<br>`webhook_send()` — Celery 任务 — 发送 Webhook 回调<br>`retry_schedule_execution()` — Celery 任务 — 重试调度计划执行 |
-| `urls.py` |  | refactor: migrate opsflow/core/apigw/ to open_api/ independe |
-
-## `opsflow\core/`
-
-| 文件 | 用途 | 核心组件 |
-|------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `ansible_trigger.py` | Ansible Tower HTTP 触发器 — 通过 Tower REST API 执行原子操作 | `execute_atom()` — 执行一个原子节点<br>`poll_job()` — 轮询 Tower 作业状态（外部调用用）<br>`execute_rollback()` — 执行插件回滚 — 从插件注册中心获取插件并调用 rollback 方法 |
 | `audit_logger.py` | 审计日志工具 — 记录用户操作到 OperationRecord 表 | `log_operation()` — 记录操作审计 |
 | `auto_retry.py` | 自动重试策略 — 节点 FAILED 时自动触发重试 | `AutoRetryStrategyCreator` — 批量创建自动重试策略 — 在 FlowEngine.run() 开始时调用<br>`dispatch_auto_retry()` — 检查并派发自动重试 — 在信号拦截到 FAILED 时调用 |
@@ -26,7 +16,7 @@
 | `conflict_checker.py` | 冲突检测规则引擎 — 检测节点配置中的语义冲突 | `check_config_conflicts()` — 检查 pipeline_tree 中的配置冲突 |
 | `error_codes.py` | 标准化错误码 — 全系统统一错误分类和封装 | `ErrorCodes` — 错误码常量<br>`api_success()` — 标准成功响应<br>`api_error()` — 标准错误响应 |
 | `flow_engine.py` | Flow Execution Engine — BambooDjangoRuntime + bamboo_engine.api | `FlowEngine` — 流程执行引擎 — BambooDjangoRuntime 驱动（仅异步路径） |
-| `llm_service.py` | 123 | `generate_pipeline()` — Convert natural language to Pipeline Tree JSON<br>`refine_pipeline()` — Multi-turn: modify existing Pipeline Tree based on new instruction<br>`rag_search()` — Simple text RAG search — recall relevant cases from OpsKnowledge<br>`analyze_pipeline()` — Analyze Pipeline Tree: describe purpose, steps, and potential risks |
+| `llm_service.py` |  | `generate_pipeline()` — Convert natural language to Pipeline Tree JSON<br>`refine_pipeline()` — Multi-turn: modify existing Pipeline Tree based on new instruction<br>`rag_search()` — Simple text RAG search — recall relevant cases from OpsKnowledge<br>`analyze_pipeline()` — Analyze Pipeline Tree: describe purpose, steps, and potential risks |
 | `mako_resolver.py` | Mako 模板变量解析 — 安全沙箱封装 | `MakoResolver` — 安全的类 Mako 表达式解析器<br>`resolve_with_mako()` — 通用入口 — 检测 #{...} 走 Mako 路径，否则原样返回 |
 | `node_dispatcher.py` | NodeCommandDispatcher — 节点操作调度器 | `NodeCommandDispatcher` — 节点操作调度器 |
 | `node_sync.py` | 节点同步工具 — 在 pipeline_tree JSON 与 TemplateNode/ExecutionNode 模型间同步 | `extract_nodes_from_tree()` — 从 pipeline_tree JSON 提取节点列表（标准格式，非可视化节点）<br>`sync_template_nodes()` — 将模板的 pipeline_tree 同步为 TemplateNode 行（全量删除重建）<br>`sync_execution_nodes()` — 从模板快照创建 ExecutionNode 记录 |
@@ -45,7 +35,7 @@
 | `variable_resolver.py` | 变量解析引擎 — ${key} 模板变量替换 + 跨节点数据引用 | `normalize_global_vars()` — 规范化 global_vars 为包含元数据的结构化格式<br>`get_global_vars_values()` — 从规范化（或扁平）global_vars 中提取纯值 dict<br>`count_variable_references()` — 扫描 pipeline_tree 中 `${var_key}` 的出现次数<br>`cleanup_unused_vars()` — 删除 pipeline_tree 中不再被任何节点引用的全局变量<br>`get_variable_reference_details()` — 返回变量引用明细 — 每个引用出现的节点 ID 和字段路径<br>`resolve_variables()` — 解析 ${key} 引用，返回替换后的字符串 |
 | `webhook_service.py` | Webhook 回调服务 — 执行完成/失败时发送 HTTP 回调 | `WebhookService` — Webhook 回调服务 |
 
-## `opsflow\core\layout/`
+## `core\layout/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
@@ -60,25 +50,25 @@
 | `tests.py` | Unit tests for the Sugiyama layout engine. | `test_empty_graph()`<br>`test_single_node()`<br>`test_two_nodes()`<br>`test_serial_three()` — 3 serial nodes — x strictly increasing, y centered.<br>`test_branching()` — 1 start -> exclusive_gateway -> 2 tasks -> converge -> end<br>`test_parallel_gateway()` — start -> parallel_gateway -> 3 tasks -> converge -> end |
 | `utils.py` | Utility functions for flow ID management on nodes. | `format_to_list()` — Normalize incoming/outgoing to list.<br>`add_flow_id_to_node_io()` — Add flow_id to node's incoming or outgoing list.<br>`delete_flow_id_from_node_io()` — Remove flow_id from node's incoming or outgoing list. |
 
-## `opsflow\core\layout\order/`
+## `core\layout\order/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `builder.py` | Stub for future layer graph builder. | `build_layer_graph()` — Placeholder. |
 | `order.py` | Crossing minimization via weighted-median heuristic (Sugiyama). | `ordering()` — Assign node order within each rank to minimize edge crossings. Uses the weighted<br>`init_order()` — Initialize per-rank node ordering via topological traversal from start.<br>`wmedian()` — Apply weighted-median heuristic in alternating direction.<br>`refer_node_ids()` — Get connected node IDs in adjacent layer (incoming → source, outgoing → target).<br>`median_value()` — Compute median position of reference nodes in adjacent layer.<br>`sort_layer()` — Sort nodes by weight. Nodes with weight -1 keep their original positions. e.g. l |
 
-## `opsflow\core\layout\rank/`
+## `core\layout\rank/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `feasible_tree.py` | Feasible-tree rank refinement — minimize total edge length. | `feasible_tree_ranker()` — Refine ranks by building a spanning tree of tight edges, then shifting to make m |
 | `longest_path.py` | Longest-path rank assignment — initial rank for each node. | `longest_path_ranker()` — Assign each node a rank equal to length of longest path from start node. End nod |
 | `tight_tree.py` | Tight-tree rank orchestrator — longest-path then feasible-tree refinement. | `tight_tree_ranker()` — Assign ranks using longest-path, then refine with feasible tree. |
 | `utils.py` | Rank utility functions. | `max_rank()`<br>`min_rank()`<br>`normalize_ranks()` — Shift all ranks so that min rank is 0.<br>`slack()` — Return slack (tightness) of a flow: rank(target) - rank(source) - 1. |
 
-## `opsflow\core\pipeline_builder/`
+## `core\pipeline_builder/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
@@ -86,7 +76,7 @@
 | `elements.py` |  | pipeline 构建 - 节点元素创建 |
 | `validation.py` |  | pipeline 构建 - 循环引用检测 |
 
-## `opsflow\core\tower/`
+## `core\tower/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
@@ -96,7 +86,7 @@
 | `job.py` | Ansible Tower — 作业生命周期管理 | `TowerJobMixin` — Tower 作业管理 — 启动、查询、取消、结果提取 |
 | `polling.py` | Ansible Tower — 主动轮询与状态推送 | `TowerPollingMixin` — Tower 轮询管理 — 自适应轮询、进度估算、WebSocket 推送 |
 
-## `opsflow\core\variables/`
+## `core\variables/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
@@ -104,17 +94,17 @@
 | `cmdb_variables.py` | CMDB 变量类型 — 运行时动态查询 CMDB 数据 | `CmdbQueryVariable` — CMDB 实例查询变量 — 按条件查询 CMDB 模型实例<br>`CmdbTopologyVariable` — CMDB 拓扑查询变量 — 获取实例的上/下游拓扑路径<br>`CmdbCountVariable` — CMDB 计数变量 — 统计指定模型的实例数量 |
 | `common.py` | 通用变量类型 — 适配自 bk_sops pipeline_plugins.variables.collections.common | `InputVariable` — 文本输入变量<br>`TextareaVariable` — 多行文本变量<br>`IntVariable` — 整数变量<br>`FloatVariable` — 浮点数变量<br>`DatetimeVariable` — 日期时间变量<br>`DateVariable` — 日期变量 |
 
-## `opsflow\management/`
+## `management/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | feat(opsflow): execution trace dual-tree structure |
+| `__init__.py` |  |  |
 
-## `opsflow\management\commands/`
+## `management\commands/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | feat(opsflow): execution trace dual-tree structure |
+| `__init__.py` |  |  |
 | `backfill_plugin_en.py` | 为所有插件自动补齐 name_en / description_en / form_schema name_en | `Command` |
 | `clean_node_trace_logs.py` | 清理 N 天前的节点轨迹日志文件 | `Command` |
 | `clean_opsflow_data.py` | 清理过期 OpsFlow 数据 — DB 记录 + 日志文件 | `Command` |
@@ -122,38 +112,45 @@
 | `fix_timezone_data.py` | Timezone data migration — correct existing naive Asia/Shanghai datetimes for USE_TZ=True | `Command` |
 | `index_knowledge.py` | Index all knowledge entries for vector search. 批量索引所有知识条目以供向量搜索。 | `Command` |
 | `scan_plugins.py` | 扫描插件目录并注册新插件 | `Command` |
-| `start_opsflow_scheduler.py` | feat(opsflow): add SchedulePlan with APScheduler + deployment docs | `Command` |
+| `start_opsflow_scheduler.py` |  | `Command` |
 
-## `opsflow\models/`
+## `models/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
-| `audit.py` | 123 | `OperationRecord` — 操作审计记录 — 记录所有重要用户操作<br>`OpsLog` — 审计日志 — 每一步的详细执行记录 |
-| `auth.py` | 123 | `ApiToken` — 外部 API Token — 用于第三方系统认证 |
-| `env.py` | 123 | `ProjectEnvironmentVariable` — 项目级环境变量 — 跨模板共享的配置值 |
-| `execution.py` | 123 | `FlowExecution` — 执行实例 — 一次流程运行记录<br>`ExecutionNode` — 执行节点 — 执行实例中的节点记录，从 TemplateNode 同步<br>`ExecutionScheme` — 执行方案 — 预定义的节点排除集 + 变量覆盖<br>`AutoRetryStrategy` — 节点自动重试策略 — 在信号拦截到 FAILED 时自动触发重试<br>`NodeTimeoutConfig` — 节点超时配置 — 绑定到执行实例的节点超时策略<br>`NodeExecutionTrace` — 节点执行轨迹 — 每个节点每次执行的完整记录 |
-| `knowledge.py` | 123 | `OpsKnowledge` — RAG 知识库 — 历史案例/故障/文档 |
+| `__init__.py` |  |  |
+| `audit.py` |  | `OperationRecord` — 操作审计记录 — 记录所有重要用户操作<br>`OpsLog` — 审计日志 — 每一步的详细执行记录 |
+| `auth.py` |  | `ApiToken` — 外部 API Token — 用于第三方系统认证 |
+| `env.py` |  | `ProjectEnvironmentVariable` — 项目级环境变量 — 跨模板共享的配置值 |
+| `execution.py` |  | `FlowExecution` — 执行实例 — 一次流程运行记录<br>`ExecutionNode` — 执行节点 — 执行实例中的节点记录，从 TemplateNode 同步<br>`ExecutionScheme` — 执行方案 — 预定义的节点排除集 + 变量覆盖<br>`AutoRetryStrategy` — 节点自动重试策略 — 在信号拦截到 FAILED 时自动触发重试<br>`NodeTimeoutConfig` — 节点超时配置 — 绑定到执行实例的节点超时策略<br>`NodeExecutionTrace` — 节点执行轨迹 — 每个节点每次执行的完整记录 |
+| `knowledge.py` |  | `OpsKnowledge` — RAG 知识库 — 历史案例/故障/文档 |
 | `plugin.py` |  | `PluginMeta` — 标准插件元数据 — 注册时自动同步（支持多版本） |
-| `project.py` | 123 | `OpsProject` — OpsFlow 项目 — 数据隔离单元<br>`ProjectMember` — 项目成员 — 记录哪些用户属于哪些项目 |
-| `schedule.py` | feat(job-platform): complete backend + frontend implementation | `SchedulePlan` — 调度计划 — 一次性或周期性自动执行 |
-| `template.py` | 123 | `FlowTemplate` — 编排模板 — AI 生成的或人工创建的流程定义<br>`TemplateVersion` — 模板版本历史 — 每次发布时创建<br>`TemplateNode` — 模板节点 — 从 pipeline_tree JSON 同步为独立行，支持 SQL 查询<br>`TemplateCollect` — 用户收藏的模板<br>`TemplateCategory` — 模板分类 — 可管理配置，管理员可增删 |
-| `webhook.py` | 123 | `WebhookConfig` — Webhook 回调配置 — 绑定到模板，执行完成后触发<br>`WebhookLog` — Webhook 投递日志 |
+| `project.py` |  | `OpsProject` — OpsFlow 项目 — 数据隔离单元<br>`ProjectMember` — 项目成员 — 记录哪些用户属于哪些项目 |
+| `schedule.py` |  | `SchedulePlan` — 调度计划 — 一次性或周期性自动执行 |
+| `template.py` |  | `FlowTemplate` — 编排模板 — AI 生成的或人工创建的流程定义<br>`TemplateVersion` — 模板版本历史 — 每次发布时创建<br>`TemplateNode` — 模板节点 — 从 pipeline_tree JSON 同步为独立行，支持 SQL 查询<br>`TemplateCollect` — 用户收藏的模板<br>`TemplateCategory` — 模板分类 — 可管理配置，管理员可增删 |
+| `webhook.py` |  | `WebhookConfig` — Webhook 回调配置 — 绑定到模板，执行完成后触发<br>`WebhookLog` — Webhook 投递日志 |
 
-## `opsflow\plugins/`
+## `plugins/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `base.py` | BasePlugin 基类 — 所有标准插件继承此类 | `BasePlugin` — 标准插件基类 — 每个运维原子（技能）继承此类 |
 | `loader.py` | Plugin 热加载器 — 文件快照 + 增量注册 | `PluginLoader` — 插件热加载器 |
 | `registry.py` | 插件注册中心 — 自动扫描 plugins/ 下所有 BasePlugin 子类 | `discover_plugins()` — 扫描 opsflow/plugins/ 下所有模块，自动注册 BasePlugin 子类<br>`get_plugin()` — 获取插件类，version=None 时返回最新版本<br>`get_plugin_versions()` — 返回指定 code 的所有版本列表<br>`get_all_plugins()`<br>`get_plugins_by_group()` — 返回分组的所有插件（每个 code 的最新版本）<br>`get_all_groups()` — 返回 {group_name: [{"code": ..., "name": ..., "versions": [...]}, ...]} |
 
-## `opsflow\plugins\ansible/`
+## `plugins\ai/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
+| `ai_text_gen.py` | AI Text Generation Plugin — 调用 LLM 生成文本 / AI Text Generation Atom | `AiTextGenPlugin` |
+
+## `plugins\ansible/`
+
+| 文件 | 用途 | 核心组件 |
+|------|------|----------|
+| `__init__.py` |  |  |
 | `backup_file.py` | 文件备份 — 备份远程主机上的文件或目录 | `BackupFilePlugin` |
 | `docker_deploy.py` | Docker 部署 — 部署 Docker 容器：拉取镜像、创建并启动容器 | `DockerDeployPlugin` |
 | `file_copy.py` | 文件复制 — 复制文件或目录到远程主机 | `FileCopyPlugin` |
@@ -164,7 +161,7 @@
 | `shell.py` | Shell 执行 — 在目标主机上执行 Shell 命令 | `ShellPlugin` |
 | `upload_file.py` | 文件上传 — 上传本地文件到远程主机 | `UploadFilePlugin` |
 
-## `opsflow\plugins\cmdb/`
+## `plugins\cmdb/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
@@ -172,20 +169,20 @@
 | `query.py` | CMDB 查询插件 — 在 pipeline 执行过程中查询 CMDB 数据 | `CmdbQueryPlugin` — CMDB 查询 |
 | `resource_selector.py` | CMDB 资源选择器 — 在工作流节点中选择 CMDB 资产作为执行目标 | `CmdbResourceSelector` — CMDB 资源选择器 |
 
-## `opsflow\plugins\common/`
+## `plugins\common/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `send_alert.py` | 发送告警 — 发送通知到指定渠道 | `SendAlertPlugin` |
 | `send_email.py` | 发送邮件 — 通过 SMTP 发送电子邮件通知 | `SendEmailPlugin` |
 | `test_print_time.py` | 测试打印时间 — 后台打印当前时间，用于流程引擎功能验证 | `TestPrintTimePlugin` |
 
-## `opsflow\plugins\esxi/`
+## `plugins\esxi/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `attach_disk.py` | 挂载磁盘到 ESXi 虚拟机 | `EsxiAttachDiskPlugin` |
 | `clone_vm.py` | 克隆 ESXi 虚拟机 — 从源虚拟机克隆为新虚拟机 | `EsxiCloneVmPlugin` |
 | `create_snapshot.py` | 创建 ESXi 虚拟机快照 | `EsxiCreateSnapshotPlugin` |
@@ -199,14 +196,14 @@
 | `remove_snapshot.py` | 删除 ESXi 虚拟机快照 | `EsxiRemoveSnapshotPlugin` |
 | `revert_snapshot.py` | 恢复 ESXi 虚拟机快照 | `EsxiRevertSnapshotPlugin` |
 
-## `opsflow\plugins\http/`
+## `plugins\http/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `api_call.py` | HTTP API 调用 — 发送 HTTP 请求到目标 API | `HttpApiPlugin` |
 
-## `opsflow\plugins\itsm/`
+## `plugins\itsm/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
@@ -214,40 +211,40 @@
 | `create_ticket.py` | Create ITSM Ticket — 在 OpsFlow 执行节点中创建 ITSM 工单 | `CreateItsmTicketPlugin` |
 | `update_ticket.py` | Update ITSM Ticket — 在 OpsFlow 执行节点中更新 ITSM 工单 | `UpdateItsmTicketPlugin` |
 
-## `opsflow\plugins\monitor/`
+## `plugins\monitor/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `disk_check.py` | 磁盘检查 — 检查远程主机磁盘使用率，超过阈值可触发告警 | `DiskCheckPlugin` |
 | `health_check.py` | 健康检查 — Ping + 端口检测 | `HealthCheckPlugin` |
 | `ping_test.py` | Ping 测试 — 测试目标主机的网络连通性 | `PingTestPlugin` |
 
-## `opsflow\plugins\netapp/`
+## `plugins\netapp/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `netapp_create_snapshot.py` | NetApp 存储卷快照 — 为 NetApp 存储卷创建快照 | `NetappCreateSnapshotPlugin` |
 | `netapp_create_volume.py` | NetApp 创建卷 — 在 NetApp ONTAP 上创建 FlexVol 存储卷 | `NetappCreateVolumePlugin` |
 | `netapp_delete_volume.py` | NetApp 删除卷 — 删除 NetApp 存储卷 | `NetappDeleteVolumePlugin` |
 | `netapp_get_volume.py` | NetApp 查询卷 — 查询 NetApp 存储卷详情 | `NetappGetVolumePlugin` |
 | `netapp_modify_volume.py` | NetApp 修改卷 — 修改 NetApp 卷属性 (扩容/改策略) | `NetappModifyVolumePlugin` |
 
-## `opsflow\plugins\pmax/`
+## `plugins\pmax/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `performance.py` | Dell PowerMax 性能监控 — 查询阵列和存储组性能指标 | `GetPerformancePlugin` |
 | `snapshot.py` | Dell PowerMax 快照管理 — 创建、查看、删除快照 | `CreateSnapshotPlugin`<br>`DeleteSnapshotPlugin` |
 | `storage_group.py` | Dell PowerMax 存储组管理 — 创建、查询、删除存储组 | `CreateStorageGroupPlugin`<br>`DeleteStorageGroupPlugin`<br>`ListStorageGroupsPlugin` |
 
-## `opsflow\plugins\redfish/`
+## `plugins\redfish/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `redfish_firmware_inventory.py` | Redfish 固件清单 — 通过 BMC 获取服务器固件版本清单 | `RedfishFirmwareInventoryPlugin` |
 | `redfish_get_system_info.py` | Redfish 获取系统信息 — 通过 BMC 获取服务器硬件信息 | `RedfishGetSystemInfoPlugin` |
 | `redfish_list_storage.py` | Redfish 存储清单 — 通过 BMC 获取存储控制器信息 | `RedfishListStoragePlugin` |
@@ -256,39 +253,39 @@
 | `redfish_power_on.py` | Redfish 开机 — 通过 BMC 远程开机 | `RedfishPowerOnPlugin` |
 | `redfish_set_boot_device.py` | Redfish 设置启动设备 — 通过 BMC 设置下次启动设备 | `RedfishSetBootDevicePlugin` |
 
-## `opsflow\plugins\servicenow/`
+## `plugins\servicenow/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `servicenow_create_change_request.py` | ServiceNow 创建变更 — 创建 ServiceNow 变更申请 | `ServicenowCreateChangeRequestPlugin` |
 | `servicenow_create_incident.py` | ServiceNow 创建事件 — 创建 ServiceNow 事件记录 | `ServicenowCreateIncidentPlugin` |
 | `servicenow_get_cmdb_ci.py` | ServiceNow CMDB 查询 — 查询 ServiceNow CMDB CI 信息 | `ServicenowGetCmdbCiPlugin` |
 | `servicenow_get_incident.py` | ServiceNow 查询事件 — 获取 ServiceNow 事件详情 | `ServicenowGetIncidentPlugin` |
 | `servicenow_update_incident.py` | ServiceNow 更新事件 — 更新 ServiceNow 事件记录 | `ServicenowUpdateIncidentPlugin` |
 
-## `opsflow\plugins\verify/`
+## `plugins\verify/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | feat(opsflow): beautify atomic nodes with card-style design |
+| `__init__.py` |  |  |
 | `ip_ops_verify.py` | IP 运维验证原子 — 用于验证 IP 选择器/资源选择/表格/级联功能 | `IpOpsVerifyPlugin` |
 
-## `opsflow\schema/`
+## `schema/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `form_schema.py` | 表单配置协议 — 定义插件入参的描述模型 | `ValidationType`<br>`ValidationRule`<br>`FormEvent` — 跨字段联动事件<br>`FormItem` — 单个表单字段<br>`FormGroup` — 分组/组合 — 递归包含 FormItem 或其他 FormGroup |
 
-## `opsflow\services/`
+## `services/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `vector_service.py` | 向量嵌入服务 — 将知识条目转为向量存入数据库 Vector Embedding Service — Convert knowledge entries to vectors for similarity search | `VectorService` — 向量嵌入服务 — Vector Embedding Service |
 
-## `opsflow\signals/`
+## `signals/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
@@ -300,11 +297,11 @@
 | `timeout.py` |  | 超时追踪 — 节点状态变更时更新 Redis 超时集合 |
 | `trace.py` |  | Trace management — 节点执行轨迹、日志记录、OpsLog 写入 |
 
-## `opsflow\tests/`
+## `tests/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | feat(opsflow): execution trace dual-tree structure |
+| `__init__.py` |  |  |
 | `test_auto_retry.py` | 自动重试策略测试 — AutoRetryStrategyCreator + dispatch_auto_retry | `TestAutoRetryStrategyCreator` — AutoRetryStrategyCreator.batch_create_strategy 测试<br>`TestDispatchAutoRetry` — dispatch_auto_retry 测试 |
 | `test_bamboo_builder.py` | bamboo_builder 测试 — build_bamboo_pipeline / _create_element / validate_bamboo_compatibility | `TestCreateElement` — _create_element 元素工厂<br>`TestBuildBambooPipeline` — build_bamboo_pipeline 完整构建<br>`TestValidateBambooCompatibility` — validate_bamboo_compatibility 校验<br>`TestExclusiveGatewayBuild` — 排他网关 — 元素创建 + 完整流程<br>`TestParallelGatewayBuild` — 并行网关 — 元素创建 + 完整流程 |
 | `test_conflict_checker.py` | Conflict Checker 冲突检测 — 排他网关规则专项测试 | `TestExclusiveGatewayConflictRules` — 排他网关冲突检测 — Rule 6: 出边条件表达式<br>`TestParallelGatewayConflictRules` — 并行网关冲突检测 — Rule 4: 缺少汇聚网关 |
@@ -322,25 +319,25 @@
 | `test_variable_registry.py` | 变量注册表测试 — RegisterVariableMeta 自动注册 + VariableLibrary 检索 | `TestVariableRegistry` — RegisterVariableMeta 自动注册<br>`TestVariableLibrary` — VariableLibrary 检索和解析<br>`TestLazyVariable` — LazyVariable get_value() 自定义转换 |
 | `test_variable_resolver.py` | 变量解析引擎测试 — resolve_variables / build_execution_context / get_variable_reference_details | `TestResolveVariables` — resolve_variables 核心替换逻辑<br>`TestSplitValue` — split_value 字符串分割<br>`TestDeepGet` — _deep_get 嵌套路径查找<br>`TestBuildExecutionContext` — build_execution_context 上下文构建 (mock execution)<br>`TestGetVariableReferenceDetails` — get_variable_reference_details — 变量引用明细追踪 |
 
-## `opsflow\views/`
+## `views/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `audit_views.py` | 操作审计视图 — 只读查询接口 | `OperationRecordViewSet` — 操作审计记录 — 只读 |
 | `base.py` | ViewSet 基类 — 项目隔离支持 | `ProjectFilteredViewSet` — 自动按项目过滤的 ViewSet 基类（需成员校验）<br>`ProjectReadOnlyViewSet` — 只读版 ProjectFilteredViewSet — 禁用写操作 |
 | `execution_views.py` | FlowExecution ViewSet — 执行 CRUD | `FlowExecutionViewSet` |
-| `knowledge_views.py` | 123 | `OpsKnowledgeViewSet` |
-| `log_views.py` | 123 | `OpsLogViewSet` — OpsLog 通过 execution.project 间接隔离，不直接设 project FK |
+| `knowledge_views.py` |  | `OpsKnowledgeViewSet` |
+| `log_views.py` |  | `OpsLogViewSet` — OpsLog 通过 execution.project 间接隔离，不直接设 project FK |
 | `node_views.py` | 节点视图 — 提供 TemplateNode / ExecutionNode 的只读查询接口 | `TemplateNodeViewSet` — 模板节点 — 只读，支持按 template / node_type / atom_type 过滤<br>`ExecutionNodeViewSet` — 执行节点 — 只读，支持按 execution / node_type / status 过滤 |
 | `plugin_views.py` | 标准插件 API — 对接前端 RenderForm 的插件元数据和表单配置 | `PluginViewSet` — 标准插件只读接口 — 提供插件列表、详情、分组树 |
 | `project_views.py` | OpsProject ViewSet — 项目 CRUD + 成员管理 + 我的项目 | `OpsProjectViewSet` — 项目管理 CRUD + 成员管理 |
-| `schedule_views.py` | 123 | `SchedulePlanViewSet` |
+| `schedule_views.py` |  | `SchedulePlanViewSet` |
 | `scheme_views.py` | ExecutionScheme ViewSet — 执行方案 CRUD（嵌套于模板下） | `ExecutionSchemeViewSet` — 执行方案 CRUD — 预定义节点排除集 + 变量覆盖 |
 | `template_category_views.py` | 模板分类 API | `TemplateCategoryViewSet` |
 | `template_views.py` | FlowTemplate ViewSet — 流程模板 CRUD | `FlowTemplateViewSet` |
 
-## `opsflow\views\dashboard_views/`
+## `views\dashboard_views/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
@@ -349,11 +346,11 @@
 | `stats.py` | Dashboard — 聚合统计 + 调度统计端点 | `dashboard_stats()` — Return aggregate statistics for the opsflow dashboard (including scheduler).<br>`dashboard_schedule_stats()` — Return detailed scheduler statistics for the dashboard. |
 | `trends.py` | Dashboard — 执行趋势 + 成功率趋势端点 | `dashboard_trend()` — Return execution trend data per day for the last N days (default 30).<br>`dashboard_success_rate_trend()` — 每日成功率趋势 — 按日聚合执行成功/失败数量及成功率 |
 
-## `opsflow\views\mixins/`
+## `views\mixins/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` |  | 123 |
+| `__init__.py` |  |  |
 | `execution_approval.py` | Execution Approval — 审批/拒绝端点 Mixin | `ExecutionApprovalMixin` — 审批端点混入（approve/reject/pending_approval） |
 | `execution_lifecycle.py` | Execution Lifecycle — 启动/暂停/恢复/取消端点 Mixin | `ExecutionLifecycleMixin` — 执行生命周期端点混入（start/pause/resume/cancel） |
 | `execution_node_command.py` | Execution Node Commands — 节点操作/批量/子流程重试端点 Mixin | `ExecutionNodeCommandMixin` — 节点操作端点混入（retry/skip/force_fail/batch/subprocess） |
@@ -365,3 +362,13 @@
 | `template_variable.py` | Template Variable — 全局变量/变量浏览器/变量提升端点 Mixin | `TemplateVariableMixin` — 全局变量系统端点混入 |
 | `template_version.py` | Template Version — 版本管理/发布/回滚端点 Mixin | `TemplateVersionMixin` — 版本管理、发布、回滚端点混入 |
 | `template_webhook.py` | Template Webhook — 模板 Webhook 回调配置端点 Mixin | `TemplateWebhookMixin` — 模板 Webhook CRUD + 日志查询 |
+
+## `根目录/`
+
+| 文件 | 用途 | 核心组件 |
+|------|------|----------|
+| `__init__.py` |  |  |
+| `apps.py` |  | `OpsflowConfig` |
+| `serializers.py` |  | `GlobalVariableField` — 全局变量字段 — 接受扁平或结构化格式，始终返回结构化格式<br>`FlowTemplateSerializer`<br>`TemplateVersionSerializer`<br>`FlowExecutionSerializer`<br>`TemplateNodeSerializer`<br>`ExecutionSchemeSerializer` |
+| `tasks.py` |  | `run_async()` — 在 Celery worker 中安全执行异步协程。<br>`execute_pipeline_task()` — Celery 任务 — 异步执行 Pipeline<br>`auto_retry_node_task()` — Celery 任务 — 自动重试失败节点（由 auto_retry dispatch 触发）<br>`execute_node_timeout_strategy()` — Celery 任务 — 执行节点超时策略<br>`webhook_send()` — Celery 任务 — 发送 Webhook 回调<br>`retry_schedule_execution()` — Celery 任务 — 重试调度计划执行 |
+| `urls.py` |  |  |

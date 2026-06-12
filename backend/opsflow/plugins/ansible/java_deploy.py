@@ -1,10 +1,10 @@
-"""Java 部署 — 部署 Java 应用：上传 JAR/WAR 包并重启服务"""
+"""Java 部署 — 部署 Java 应用（通过 Ansible Tower）"""
 
-from opsflow.plugins.base import BasePlugin
+from opsflow.plugins.ansible.tower_backend.base_plugin import TowerBasePlugin
 from opsflow.schema.form_schema import FormItem, ValidationRule
 
 
-class JavaDeployPlugin(BasePlugin):
+class JavaDeployPlugin(TowerBasePlugin):
     name = "Java 部署"
     code = "java_deploy"
     group = "Ansible"
@@ -44,13 +44,3 @@ class JavaDeployPlugin(BasePlugin):
                 attrs={"placeholder": "JVM 启动参数"},
             ),
         ]
-
-    def execute(self, artifact_path: str = "", target_path: str = "/opt/app", service_name: str = "", jvm_args: str = "", **kwargs) -> dict:
-        return {
-            "success": True,
-            "data": {
-                "message": "execution delegated",
-                "deploy_success": False,
-                "service_status": "",
-            },
-        }

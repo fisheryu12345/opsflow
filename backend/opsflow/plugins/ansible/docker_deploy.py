@@ -1,10 +1,10 @@
-"""Docker 部署 — 部署 Docker 容器：拉取镜像、创建并启动容器"""
+"""Docker 部署 — 部署 Docker 容器（通过 Ansible Tower）"""
 
-from opsflow.plugins.base import BasePlugin
+from opsflow.plugins.ansible.tower_backend.base_plugin import TowerBasePlugin
 from opsflow.schema.form_schema import FormItem, ValidationRule
 
 
-class DockerDeployPlugin(BasePlugin):
+class DockerDeployPlugin(TowerBasePlugin):
     name = "Docker 部署"
     code = "docker_deploy"
     group = "Ansible"
@@ -65,14 +65,3 @@ class DockerDeployPlugin(BasePlugin):
                 },
             ),
         ]
-
-    def execute(self, image: str = "", container_name: str = "", ports: dict = None,
-                env_vars: dict = None, volumes: dict = None, **kwargs) -> dict:
-        return {
-            "success": True,
-            "data": {
-                "message": "execution delegated",
-                "container_id": "",
-                "deploy_success": False,
-            },
-        }

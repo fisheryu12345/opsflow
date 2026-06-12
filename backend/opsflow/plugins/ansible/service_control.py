@@ -1,10 +1,10 @@
-"""服务控制 — 控制系统服务的启动/停止/重启/重载状态"""
+"""服务控制 — 控制系统服务的启动/停止/重启/重载状态（通过 Ansible Tower）"""
 
-from opsflow.plugins.base import BasePlugin
+from opsflow.plugins.ansible.tower_backend.base_plugin import TowerBasePlugin
 from opsflow.schema.form_schema import FormItem, ValidationRule
 
 
-class ServiceControlPlugin(BasePlugin):
+class ServiceControlPlugin(TowerBasePlugin):
     name = "服务控制"
     code = "service_control"
     group = "Ansible"
@@ -47,13 +47,3 @@ class ServiceControlPlugin(BasePlugin):
                 attrs={"options": [{"label": "设置开机自启", "value": True}]},
             ),
         ]
-
-    def execute(self, service: str = "", action: str = "status", enabled: bool = False, **kwargs) -> dict:
-        return {
-            "success": True,
-            "data": {
-                "message": "execution delegated",
-                "changed": False,
-                "status": action,
-            },
-        }
