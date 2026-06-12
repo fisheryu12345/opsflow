@@ -3,26 +3,26 @@
     <div class="cmdb-table-card">
       <div class="cmdb-table-header">
         <div class="cmdb-table-header-left">
-          <span class="cmdb-table-title">{{ modelDef?.name || '' }} 实例</span>
+          <span class="cmdb-table-title">{{ modelDef?.name || '' }} {{ t('message.instance.instances') }}</span>
           <span class="cmdb-table-subtitle">({{ modelDef?.code }})</span>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           <el-button size="small" @click="showExportDialog" :disabled="!modelDef">
-            <el-icon><Download /></el-icon> 导出
+            <el-icon><Download /></el-icon> {{ t('message.instance.exportBtn') }}
           </el-button>
           <el-button size="small" @click="showImportDialog" :disabled="!modelDef">
-            <el-icon><Upload /></el-icon> 导入
+            <el-icon><Upload /></el-icon> {{ t('message.instance.importBtn') }}
           </el-button>
-          <el-input v-model="searchText" placeholder="搜索..." size="small" style="width:180px;" clearable
+          <el-input v-model="searchText" :placeholder="t('message.instance.search')" size="small" style="width:180px;" clearable
             @keyup.enter="loadData" @clear="loadData" />
           <el-button type="primary" size="small" @click="showCreateDialog">
-            <el-icon><Plus /></el-icon> 新增
+            <el-icon><Plus /></el-icon> {{ t('message.instance.createBtn') }}
           </el-button>
         </div>
       </div>
 
       <el-table :data="items" v-loading="loading" stripe style="width:100%" size="small"
-        :empty-text="loading ? '加载中...' : '暂无数据'">
+        :empty-text="loading ? t('message.instance.loading') : t('message.instance.noData')">
         <el-table-column v-for="col in visibleColumns" :key="col.name" :prop="col.name" :label="col.label"
           :width="colWidth(col)" :min-width="120" show-overflow-tooltip>
           <template #default="{ row }">
@@ -31,12 +31,12 @@
             </span>
             <el-tag v-else-if="col.field_type === 'enum'" size="small">{{ row[col.name] }}</el-tag>
             <el-tag v-else-if="col.field_type === 'boolean'" :type="row[col.name] ? 'success' : 'info'" size="small">
-              {{ row[col.name] ? '是' : '否' }}
+              {{ row[col.name] ? t('message.instance.boolTrue') : t('message.instance.boolFalse') }}
             </el-tag>
             <span v-else>{{ row[col.name] }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column :label="t('message.instance.colActions')" width="180" fixed="right">
           <template #default="{ row }">
             <el-button size="small" text @click="showEditDialog(row)">
               <el-icon><Edit /></el-icon>
@@ -47,7 +47,7 @@
             <el-button size="small" text @click="showDetail(row)" v-if="showDetailBtn">
               <el-icon><View /></el-icon>
             </el-button>
-            <el-popconfirm title="确认删除?" @confirm="deleteRow(row)">
+            <el-popconfirm :title="t('message.instance.confirmDelete')" @confirm="deleteRow(row)">
               <template #reference>
                 <el-button size="small" text type="danger">
                   <el-icon><Delete /></el-icon>
@@ -66,7 +66,7 @@
     </div>
 
     <!-- Create/Edit Dialog -->
-    <el-dialog v-model="dialogVisible" :title="editMode === 'create' ? '新增' : '编辑'" width="600px"
+    <el-dialog v-model="dialogVisible" :title="editMode === 'create' ? t('message.dialog.create') : t('message.dialog.edit')" width="600px"
       :close-on-click-modal="false" destroy-on-close>
       <el-form :model="form" :label-width="100" size="small" v-loading="saving">
         <el-form-item v-for="f in editFields" :key="f.name" :label="f.label" :required="f.required">
@@ -74,7 +74,7 @@
           <el-input-number v-else-if="f.field_type === 'integer'" v-model="form[f.name]" :min="0" style="width:100%;" />
           <el-input-number v-else-if="f.field_type === 'float'" v-model="form[f.name]" :min="0" :precision="2" style="width:100%;" />
           <el-switch v-else-if="f.field_type === 'boolean'" v-model="form[f.name]" />
-          <el-select v-else-if="f.field_type === 'enum'" v-model="form[f.name]" placeholder="请选择" style="width:100%;">
+          <el-select v-else-if="f.field_type === 'enum'" v-model="form[f.name]" :placeholder="t('message.instance.selectPlaceholder')" style="width:100%;">
             <el-option v-for="opt in (f.options || [])" :key="opt" :label="opt" :value="opt" />
           </el-select>
           <el-date-picker v-else-if="f.field_type === 'date'" v-model="form[f.name]" type="date" style="width:100%;" />
@@ -84,39 +84,39 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :icon="Check" :loading="saving" @click="save">保存</el-button>
+        <el-button @click="dialogVisible = false">{{ t('message.instance.cancel') }}</el-button>
+        <el-button type="primary" :icon="Check" :loading="saving" @click="save">{{ t('message.instance.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- Export Dialog -->
-    <el-dialog v-model="exportDialogVisible" title="导出 Excel" width="400px" destroy-on-close>
-      <p style="margin-bottom:16px;color:#606266;">将当前模型的所有实例导出为 Excel (.xlsx) 文件。</p>
-      <el-button type="primary" :icon="Download" :loading="exporting" @click="doExport">确认导出</el-button>
+    <el-dialog v-model="exportDialogVisible" :title="t('message.instance.exportTitle')" width="400px" destroy-on-close>
+      <p style="margin-bottom:16px;color:#606266;">{{ t('message.instance.exportDesc') }}</p>
+      <el-button type="primary" :icon="Download" :loading="exporting" @click="doExport">{{ t('message.instance.exportConfirm') }}</el-button>
     </el-dialog>
 
     <!-- Import Dialog -->
-    <el-dialog v-model="importDialogVisible" title="导入 Excel" width="500px" destroy-on-close>
+    <el-dialog v-model="importDialogVisible" :title="t('message.instance.importTitle')" width="500px" destroy-on-close>
       <el-upload drag accept=".xlsx,.xls" :auto-upload="false" :on-change="onImportFileChange" :limit="1"
         style="margin-bottom:16px;">
         <el-icon :size="40" color="#409EFF"><Upload /></el-icon>
-        <div style="margin-top:8px;">拖拽或点击上传 .xlsx 文件</div>
+        <div style="margin-top:8px;">{{ t('message.instance.uploadHint') }}</div>
       </el-upload>
-      <el-button type="primary" :icon="Upload" :loading="importing" :disabled="!importFile" @click="doImport">开始导入</el-button>
+      <el-button type="primary" :icon="Upload" :loading="importing" :disabled="!importFile" @click="doImport">{{ t('message.instance.importStart') }}</el-button>
     </el-dialog>
 
     <!-- Change History Dialog -->
-    <el-dialog v-model="historyDialogVisible" title="变更历史" width="700px" destroy-on-close>
+    <el-dialog v-model="historyDialogVisible" :title="t('message.instance.changeHistory')" width="700px" destroy-on-close>
       <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
-        <el-select v-model="historyFilter.action" placeholder="操作类型" size="small" clearable style="width:120px;">
-          <el-option label="创建" value="create" />
-          <el-option label="更新" value="update" />
-          <el-option label="删除" value="delete" />
+        <el-select v-model="historyFilter.action" :placeholder="t('message.instance.actionType')" size="small" clearable style="width:120px;">
+          <el-option :label="t('message.instance.actionCreate')" value="create" />
+          <el-option :label="t('message.instance.actionUpdate')" value="update" />
+          <el-option :label="t('message.instance.actionDelete')" value="delete" />
         </el-select>
-        <el-input v-model="historyFilter.operator" placeholder="操作人" size="small" style="width:140px;" clearable />
-        <el-date-picker v-model="historyFilter.dateRange" type="daterange" range-separator="至"
-          start-placeholder="开始日期" end-placeholder="结束日期" size="small" style="width:260px;" />
-        <el-button size="small" type="primary" @click="loadChangeHistory">查询</el-button>
+        <el-input v-model="historyFilter.operator" :placeholder="t('message.instance.operator')" size="small" style="width:140px;" clearable />
+        <el-date-picker v-model="historyFilter.dateRange" type="daterange" :range-separator="t('message.instance.dateSeparator')"
+          :start-placeholder="t('message.instance.dateStart')" :end-placeholder="t('message.instance.dateEnd')" size="small" style="width:260px;" />
+        <el-button size="small" type="primary" @click="loadChangeHistory">{{ t('message.instance.query') }}</el-button>
       </div>
 
       <div v-if="historyLoading" style="text-align:center;padding:30px;">
@@ -140,16 +140,16 @@
                 <span class="history-new">{{ formatValue(ch.new_value) }}</span>
               </div>
               <div v-else-if="item.action === 'create' && item.changes.new_value" class="history-simple">
-                创建实例
+                {{ t('message.instance.actionCreate') }}
               </div>
               <div v-else-if="item.action === 'delete' && item.changes.old_value" class="history-simple">
-                删除实例
+                {{ t('message.instance.actionDelete') }}
               </div>
             </div>
           </div>
         </el-timeline-item>
       </el-timeline>
-      <el-empty v-else description="暂无变更记录" />
+      <el-empty v-else :description="t('message.instance.noChanges')" />
 
       <div class="cmdb-table-footer" v-if="historyTotal > historyPageSize">
         <el-pagination size="small" background layout="total, prev, pager, next"
@@ -162,12 +162,15 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Plus, Edit, Delete, View, Download, Upload, Timer, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import {
   getInstances, createInstance, updateInstance, deleteInstance,
   exportInstances, importInstances, getChangeHistory,
 } from '/@/api/cmdb/index'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   modelDef: any
@@ -234,17 +237,22 @@ function colWidth(col: any) {
 }
 
 function statusLabel(val: string) {
-  const map: Record<string, string> = {
-    normal: '正常', alarm: '告警', offline: '已下线',
-    maintenance: '维护中', unknown: '未知',
-    running: '运行中', stopped: '已停止', error: '异常',
-    online: '在线', offline: '离线',
-  }
-  return map[val] || val
+    const labels: Record<string, string> = {
+        normal: t('message.instance.statusNormal'),
+        alarm: t('message.instance.statusAlarm'),
+        offline: t('message.instance.statusOffline'),
+        maintenance: t('message.instance.statusMaintenance'),
+        unknown: t('message.instance.statusUnknown'),
+        running: t('message.instance.statusRunning'),
+        stopped: t('message.instance.statusStopped'),
+        error: t('message.instance.statusAbnormal'),
+        online: t('message.instance.statusOnline'),
+    }
+    return labels[val] || val || t('message.instance.statusUnknown')
 }
 
 function actionLabel(val: string) {
-  const map: Record<string, string> = { create: '创建', update: '更新', delete: '删除' }
+  const map: Record<string, string> = { create: t('message.instance.actionCreate'), update: t('message.instance.actionUpdate'), delete: t('message.instance.actionDelete') }
   return map[val] || val
 }
 
@@ -268,7 +276,7 @@ async function loadData() {
     items.value = data.items || data || []
     total.value = data.total || items.value.length
   } catch (e: any) {
-    ElMessage.error('加载失败: ' + (e?.msg || e?.message))
+    ElMessage.error(t('message.instance.loadFail') + ': ' + (e?.msg || e?.message))
   } finally {
     loading.value = false
   }
@@ -326,7 +334,7 @@ async function loadChangeHistory() {
     historyItems.value = data.items || []
     historyTotal.value = data.total || 0
   } catch (e: any) {
-    ElMessage.error('加载变更历史失败: ' + (e?.msg || e?.message))
+    ElMessage.error(t('message.instance.changeHistoryLoadFail') + ': ' + (e?.msg || e?.message))
   } finally {
     historyLoading.value = false
   }
@@ -337,16 +345,16 @@ async function save() {
   try {
     if (editMode.value === 'create') {
       await createInstance(props.modelDef.code, form.value)
-      ElMessage.success('创建成功')
+      ElMessage.success(t('message.instance.createSuccess'))
     } else {
       await updateInstance(props.modelDef.code, editingId.value, form.value)
-      ElMessage.success('更新成功')
+      ElMessage.success(t('message.instance.updateSuccess'))
     }
     dialogVisible.value = false
     await loadData()
     emit('created')
   } catch (e: any) {
-    ElMessage.error(e?.msg || e?.message || '保存失败')
+    ElMessage.error(e?.msg || e?.message || t('message.instance.saveFail'))
   } finally {
     saving.value = false
   }
@@ -355,11 +363,11 @@ async function save() {
 async function deleteRow(row: any) {
   try {
     await deleteInstance(props.modelDef.code, row.instance_id)
-    ElMessage.success('已删除')
+    ElMessage.success(t('message.instance.deleteSuccess'))
     await loadData()
     emit('deleted')
   } catch (e: any) {
-    ElMessage.error('删除失败: ' + (e?.msg || e?.message))
+    ElMessage.error(t('message.instance.deleteFail') + ': ' + (e?.msg || e?.message))
   }
 }
 
@@ -382,10 +390,10 @@ async function doExport() {
     a.download = `${props.modelDef.code}_export.xlsx`
     a.click()
     URL.revokeObjectURL(url)
-    ElMessage.success('导出成功')
+    ElMessage.success(t('message.instance.exportSuccess'))
     exportDialogVisible.value = false
   } catch (e: any) {
-    ElMessage.error('导出失败: ' + (e?.msg || e?.message))
+    ElMessage.error(t('message.instance.exportFail') + ': ' + (e?.msg || e?.message))
   } finally {
     exporting.value = false
   }
@@ -407,11 +415,11 @@ async function doImport() {
   importing.value = true
   try {
     const res = await importInstances(props.modelDef.code, importFile.value)
-    ElMessage.success('导入完成: ' + (res.data?.total || 0) + ' 条记录')
+    ElMessage.success(t('message.instance.importComplete') + ': ' + (res.data?.total || 0) + ' ' + t('message.instance.records'))
     importDialogVisible.value = false
     await loadData()
   } catch (e: any) {
-    ElMessage.error('导入失败: ' + (e?.msg || e?.message))
+    ElMessage.error(t('message.instance.importFail') + ': ' + (e?.msg || e?.message))
   } finally {
     importing.value = false
   }

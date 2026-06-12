@@ -63,6 +63,6 @@ Document each bug fix with background, effect, suggestion in the TODO list.
 ## Project Standards
 
 Key standards reference files (loaded on demand):
-- [Frontend Style Guide](docs/opsflow/guides/frontend-style-guide.md) — SCSS, Vue, i18n, TS, Buttons, Pinia
-- [Project & Engineering Standards](docs/opsflow/guides/project-standards.md) — Architecture, API response, Backend layers, Error handling
-- [Process & Governance Standards](docs/opsflow/guides/process-standards.md) — Git, Docs, Design constraints
+- [Frontend Style Guide](docs/guides/frontend-style-guide.md) — SCSS, Vue, i18n, TS, Buttons, Pinia
+- [Project & Engineering Standards](docs/guides/project-standards.md) — Architecture, API response, Backend layers, Error handling
+- [Process & Governance Standards](docs/guides/process-standards.md) — Git, Docs, Design constraints

@@ -26,7 +26,7 @@
             <el-select v-model="form.plugin_code" size="small" style="width:100%"
               filterable @change="onPluginChange" :loading="pluginsLoading">
               <el-option-group v-for="(items, group) in pluginGroups" :key="group" :label="group">
-                <el-option v-for="p in items" :key="p.code" :label="p.name + ' (' + p.versions?.join(', ') + ')'" :value="p.code" />
+                <el-option v-for="p in items" :key="p.code" :label="(isEn && p.name_en ? p.name_en : p.name) + ' (' + p.versions?.join(', ') + ')'" :value="p.code" />
               </el-option-group>
             </el-select>
           </div>
@@ -323,7 +323,7 @@ const varReferences = computed(() => {
 
 /* ---------- Plugin loading ---------- */
 const pluginsLoading = ref(false)
-const pluginGroups = ref<Record<string, { code: string; name: string }[]>>({})
+const pluginGroups = ref<Record<string, { code: string; name: string; name_en?: string }[]>>({})
 const pluginFormSchema = ref<any[]>([])
 const outputSchema = ref<any[]>([])
 const pluginVersions = ref<string[]>([])

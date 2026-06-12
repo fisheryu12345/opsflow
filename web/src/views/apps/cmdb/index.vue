@@ -6,10 +6,10 @@
       <div class="cmdb-hero-inner">
         <div class="cmdb-hero-left">
           <h1 class="cmdb-hero-title">CMDB</h1>
-          <p class="cmdb-hero-subtitle">配置管理数据库 — 模型驱动的资产与拓扑管理</p>
+          <p class="cmdb-hero-subtitle">{{ $t('message.cmdb.subtitle') }}</p>
         </div>
         <div class="cmdb-hero-center">
-          <el-input v-model="store.searchQuery" placeholder="全局搜索 IP/主机名/模型..." clearable size="default"
+          <el-input v-model="store.searchQuery" :placeholder="$t('message.cmdb.searchPlaceholder')" clearable size="default"
             class="cmdb-search-input" @keyup.enter="doGlobalSearch" @clear="store.clearSearch()">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
@@ -19,23 +19,27 @@
       <div class="cmdb-hero-tabs">
         <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'schema' }"
           @click="store.setActiveView('schema')">
-          <el-icon><Grid /></el-icon> 模型管理
+          <el-icon><Grid /></el-icon> {{ $t('message.cmdb.tabSchema') }}
         </div>
         <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'instance' }"
           @click="store.setActiveView('instance')">
-          <el-icon><Folder /></el-icon> 实例管理
+          <el-icon><Folder /></el-icon> {{ $t('message.cmdb.tabInstance') }}
         </div>
         <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'topology' }"
           @click="store.setActiveView('topology')">
-          <el-icon><Connection /></el-icon> 拓扑视图
+          <el-icon><Connection /></el-icon> {{ $t('message.cmdb.tabTopology') }}
+        </div>
+        <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'dr' }"
+          @click="switchDrTab">
+          <el-icon><Warning /></el-icon> {{ $t('message.cmdb.tabDr') }}
         </div>
         <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'sync' }"
           @click="store.setActiveView('sync')">
-          <el-icon><Upload /></el-icon> 数据同步
+          <el-icon><Upload /></el-icon> {{ $t('message.cmdb.tabSync') }}
         </div>
         <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'events' }"
           @click="store.setActiveView('events')">
-          <el-icon><Bell /></el-icon> 事件订阅
+          <el-icon><Bell /></el-icon> {{ $t('message.cmdb.tabEvents') }}
         </div>
       </div>
     </div>
@@ -50,7 +54,7 @@
           <div class="cmdb-schema-sidebar">
             <div class="cmdb-table-card">
               <div class="cmdb-table-header">
-                <span class="cmdb-table-title">模型列表</span>
+                <span class="cmdb-table-title">{{ $t('message.schema.modelList') }}</span>
                 <el-button size="small" type="primary" @click="showAddModel = true">
                   <el-icon><Plus /></el-icon>
                 </el-button>
@@ -58,8 +62,8 @@
               <el-table :data="store.modelDefinitions" v-loading="store.loading" stripe size="small" style="width:100%"
                 :row-class-name="({ row }) => row.code === store.selectedModelCode ? 'cmdb-row-active' : ''"
                 highlight-current-row @row-click="selectModel">
-                <el-table-column prop="code" label="编码" width="100" />
-                <el-table-column prop="name" label="名称" min-width="120" />
+                <el-table-column prop="code" :label="$t('message.schema.colCode')" width="100" />
+                <el-table-column prop="name" :label="$t('message.schema.colName')" min-width="120" />
                 <el-table-column width="60" align="center">
                   <template #default="{ row }">
                     <el-tag v-if="row.is_builtin" size="small" type="info">内</el-tag>
@@ -70,12 +74,12 @@
             <!-- Classification section -->
             <div class="cmdb-table-card" style="margin-top:12px;">
               <div class="cmdb-table-header">
-                <span class="cmdb-table-title">分类</span>
+                <span class="cmdb-table-title">{{ $t('message.schema.classification') }}</span>
                 <el-button size="small" text @click="showAddClass = true"><el-icon><Plus /></el-icon></el-button>
               </div>
               <el-table :data="store.classifications" size="small" stripe style="width:100%">
-                <el-table-column prop="cls_id" label="标识" width="140" />
-                <el-table-column prop="name" label="名称" min-width="100" />
+                <el-table-column prop="cls_id" :label="$t('message.schema.colIdentifier')" width="140" />
+                <el-table-column prop="name" :label="$t('message.schema.colName')" min-width="100" />
               </el-table>
             </div>
           </div>
@@ -84,35 +88,35 @@
           <div class="cmdb-schema-detail" v-if="selectedModel">
             <div class="cmdb-table-card">
               <div class="cmdb-table-header">
-                <span class="cmdb-table-title">{{ selectedModel.name }} — 字段定义</span>
+                <span class="cmdb-table-title">{{ selectedModel.name }} — {{ $t('message.schema.fieldDef') }}</span>
                 <div style="display:flex;gap:8px;">
                   <el-button size="small" @click="showAssociations = !showAssociations">
-                    <el-icon><Connection /></el-icon> 关联
+                    <el-icon><Connection /></el-icon> {{ $t('message.schema.association') }}
                   </el-button>
                   <el-button size="small" @click="addField">
-                    <el-icon><Plus /></el-icon> 添加字段
+                    <el-icon><Plus /></el-icon> {{ $t('message.schema.addField') }}
                   </el-button>
                 </div>
               </div>
               <el-table :data="modelFieldsList" size="small" stripe style="width:100%">
-                <el-table-column prop="name" label="字段名" width="120" />
-                <el-table-column prop="label" label="显示名" width="120" />
-                <el-table-column prop="field_type" label="类型" width="100">
+                <el-table-column prop="name" :label="$t('message.schema.colFieldName')" width="120" />
+                <el-table-column prop="label" :label="$t('message.schema.colDisplayName')" width="120" />
+                <el-table-column prop="field_type" :label="$t('message.schema.colType')" width="100">
                   <template #default="{ row }">
                     <el-tag size="small">{{ row.field_type }}</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="required" label="必填" width="60" align="center">
+                <el-table-column prop="required" :label="$t('message.schema.colRequired')" width="60" align="center">
                   <template #default="{ row }"><el-icon v-if="row.required" color="#F56C6C"><Star /></el-icon></template>
                 </el-table-column>
-                <el-table-column prop="is_unique" label="唯一" width="60" align="center">
+                <el-table-column prop="is_unique" :label="$t('message.schema.colUnique')" width="60" align="center">
                   <template #default="{ row }"><el-icon v-if="row.is_unique" color="#E6A23C"><Warning /></el-icon></template>
                 </el-table-column>
-                <el-table-column prop="sort_order" label="排序" width="60" />
-                <el-table-column prop="options" label="选项" min-width="120" show-overflow-tooltip>
+                <el-table-column prop="sort_order" :label="$t('message.schema.colSort')" width="60" />
+                <el-table-column prop="options" :label="$t('message.schema.colOptions')" min-width="120" show-overflow-tooltip>
                   <template #default="{ row }">{{ row.options?.join(', ') || '-' }}</template>
                 </el-table-column>
-                <el-table-column label="操作" width="80">
+                <el-table-column :label="$t('message.schema.colActions')" width="80">
                   <template #default="{ row }">
                     <el-button size="small" text type="danger" @click="deleteField(row)">
                       <el-icon><Delete /></el-icon>
@@ -125,25 +129,25 @@
             <!-- Associations section -->
             <div v-if="showAssociations" class="cmdb-table-card" style="margin-top:12px;">
               <div class="cmdb-table-header">
-                <span class="cmdb-table-title">模型关联</span>
+                <span class="cmdb-table-title">{{ $t('message.schema.modelAssoc') }}</span>
               </div>
               <el-table :data="modelAssocs" size="small" stripe style="width:100%">
-                <el-table-column prop="source_model_name" label="源模型" width="100" />
-                <el-table-column label="关系" width="120" align="center">
+                <el-table-column prop="source_model_name" :label="$t('message.schema.colSourceModel')" width="100" />
+                <el-table-column :label="$t('message.schema.colRelation')" width="120" align="center">
                   <template #default="{ row }">
                     <el-tag size="small">-{{ row.association_type_name }}-></el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="target_model_name" label="目标模型" width="100" />
-                <el-table-column prop="mapping" label="基数" width="80" />
-                <el-table-column prop="on_delete" label="级联" width="80" />
+                <el-table-column prop="target_model_name" :label="$t('message.schema.colTargetModel')" width="100" />
+                <el-table-column prop="mapping" :label="$t('message.schema.colCardinality')" width="80" />
+                <el-table-column prop="on_delete" :label="$t('message.schema.colCascade')" width="80" />
               </el-table>
             </div>
           </div>
           <div class="cmdb-schema-detail" v-else>
             <div class="cmdb-empty-detail">
               <el-icon :size="48" color="#dcdfe6"><Grid /></el-icon>
-              <p>请从左侧选择一个模型查看详情</p>
+              <p>{{ $t('message.schema.emptyDetail') }}</p>
             </div>
           </div>
         </div>
@@ -154,7 +158,7 @@
         <div class="cmdb-instance-layout">
           <div class="cmdb-instance-sidebar">
             <div class="cmdb-table-card">
-              <div class="cmdb-table-header"><span class="cmdb-table-title">选择模型</span></div>
+              <div class="cmdb-table-header"><span class="cmdb-table-title">{{ $t('message.instance.selectModel') }}</span></div>
               <div class="cmdb-model-select">
                 <div v-for="m in store.modelDefinitions" :key="m.code"
                   class="cmdb-model-item" :class="{ active: store.selectedModelCode === m.code }"
@@ -174,18 +178,18 @@
               @detail="onInstanceDetail" />
             <div v-else class="cmdb-empty-detail">
               <el-icon :size="48" color="#dcdfe6"><Folder /></el-icon>
-              <p>请从左侧选择一个模型</p>
+              <p>{{ $t('message.schema.emptySelect') }}</p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- ─── Tab 3: 拓扑视图 ─── -->
-      <div v-show="store.activeView === 'topology'" class="cmdb-section g-fade-in-up">
+      <div v-show="store.activeView === 'topology'" class="cmdb-section cmdb-section-topo g-fade-in-up">
         <div class="cmdb-topo-card">
           <div class="cmdb-topo-toolbar">
             <div class="cmdb-topo-toolbar-left">
-              <span class="cmdb-table-title">拓扑视图</span>
+              <span class="cmdb-table-title">{{ $t('message.cmdb.topoView') }}</span>
               <el-select v-model="topoBizFilter" size="small" placeholder="选择业务" style="width:200px;margin-left:12px;"
                 @change="loadTopoTree" clearable>
                 <el-option v-for="b in bizInstances" :key="b.instance_id" :label="b.name" :value="b.instance_id" />
@@ -193,55 +197,79 @@
             </div>
             <div style="display:flex;gap:8px;">
               <el-button size="small" @click="loadGlobalTopo">
-                <el-icon><Connection /></el-icon> 全局拓扑
+                <el-icon><Connection /></el-icon> {{ $t('message.cmdb.refresh') }}
               </el-button>
               <el-button size="small" type="primary" @click="showImpactDialog = true" :disabled="!topoClickedNode">
-                <el-icon><Warning /></el-icon> 影响分析
+                <el-icon><Warning /></el-icon> {{ $t('message.cmdb.impactAnalysis') }}
               </el-button>
             </div>
           </div>
           <div class="cmdb-topo-body">
             <div v-if="store.topologyLoading" class="cmdb-topo-empty">
               <el-icon :size="48" color="#409EFF" class="is-loading"><Loading /></el-icon>
-              <p>加载拓扑数据...</p>
+              <p>{{ $t('message.cmdb.loadingTopo') }}</p>
             </div>
             <TopologyCanvas v-else-if="store.topology.nodes?.length"
               :nodes="store.topology.nodes" :edges="store.topology.edges"
               @node-click="onTopoNodeClick" />
             <div v-else class="cmdb-topo-empty">
               <el-icon :size="48" color="#dcdfe6"><Connection /></el-icon>
-              <p>暂无拓扑数据</p>
+              <p>{{ $t('message.cmdb.noTopoData') }}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ─── Tab 4: 数据同步 ─── -->
+      <!-- ─── Tab 4: DR 拓扑 ─── -->
+      <div v-show="store.activeView === 'dr'" class="cmdb-section cmdb-section-topo g-fade-in-up">
+        <div class="cmdb-topo-card">
+          <div class="cmdb-topo-toolbar">
+            <div class="cmdb-topo-toolbar-left">
+              <span class="cmdb-table-title">DR {{ $t('message.cmdb.topoView') }}</span>
+              <el-select v-model="selectedDrGroup" size="small" :placeholder="$t('message.cmdb.selectDrGroup')" style="width:240px;margin-left:12px;"
+                :loading="loadingDrGroups" @change="loadDrTopology" clearable filterable>
+                <el-option v-for="g in drGroupList" :key="g.instance_id" :label="g.name" :value="g.instance_id">
+                  <span>{{ g.name }}</span>
+                  <el-tag v-if="g.status" size="small" :type="g.status === 'active' ? 'success' : 'warning'" style="margin-left:6px">{{ g.status }}</el-tag>
+                </el-option>
+              </el-select>
+            </div>
+            <el-button size="small" :loading="loadingDrTopo" @click="loadDrTopology">
+              <el-icon><Refresh /></el-icon> {{ $t('message.cmdb.refresh') }}
+            </el-button>
+          </div>
+          <div class="cmdb-topo-canvas">
+            <DrTopologyCanvas :nodes="drTopoNodes" :edges="drTopoEdges" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Tab 5: 数据同步 ─── -->
       <div v-show="store.activeView === 'sync'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-sync-grid">
           <div class="cmdb-table-card">
             <div class="cmdb-table-header">
-              <span class="cmdb-table-title">批量导入</span>
+              <span class="cmdb-table-title">{{ $t('message.cmdb.batchImport') }}</span>
             </div>
             <div style="padding:20px;">
               <el-upload drag accept=".csv,.json" :auto-upload="false" :on-change="onFileChange" style="margin-bottom:16px;">
                 <el-icon :size="40" color="#409EFF"><Upload /></el-icon>
-                <div style="margin-top:8px;">拖拽或点击上传 CSV/JSON 文件</div>
+                <div style="margin-top:8px;">{{ $t('message.cmdb.dragUpload') }}</div>
               </el-upload>
-              <el-select v-model="importModelCode" placeholder="选择目标模型" style="width:100%;margin-bottom:12px;" size="small">
+              <el-select v-model="importModelCode" :placeholder="$t('message.cmdb.selectTargetModel')" style="width:100%;margin-bottom:12px;" size="small">
                 <el-option v-for="m in store.modelDefinitions" :key="m.code" :label="m.name" :value="m.code" />
               </el-select>
               <el-button type="primary" size="small" :disabled="!importFile || !importModelCode"
-                @click="doImport">开始导入</el-button>
+                @click="doImport">{{ $t('message.cmdb.startImport') }}</el-button>
             </div>
           </div>
           <div class="cmdb-table-card">
             <div class="cmdb-table-header">
-              <span class="cmdb-table-title">云资产同步</span>
+              <span class="cmdb-table-title">{{ $t('message.cmdb.cloudSync') }}</span>
             </div>
             <div style="padding:20px;color:#909399;text-align:center;">
               <el-icon :size="40" color="#dcdfe6"><Cloudy /></el-icon>
-              <p style="margin-top:8px;">云同步功能待集成中心就绪</p>
+              <p style="margin-top:8px;">{{ $t('message.cmdb.cloudSyncPending') }}</p>
               <el-tag size="small" type="warning">TODO</el-tag>
             </div>
           </div>
@@ -252,34 +280,34 @@
       <div v-show="store.activeView === 'events'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-table-card">
           <div class="cmdb-table-header">
-            <span class="cmdb-table-title">事件订阅管理</span>
+            <span class="cmdb-table-title">{{ $t('message.cmdb.eventSubTitle') }}</span>
             <el-button size="small" type="primary" @click="showAddSubscription = true">
-              <el-icon><Plus /></el-icon> 新建订阅
+              <el-icon><Plus /></el-icon> {{ $t('message.events.newSubscription') }}
             </el-button>
           </div>
           <el-table :data="subscriptions" v-loading="subLoading" size="small" stripe style="width:100%"
-            empty-text="暂无事件订阅">
-            <el-table-column prop="name" label="名称" min-width="140" />
-            <el-table-column prop="model_code" label="模型编码" width="120">
+            :empty-text="$t('message.cmdb.noSubscription')">
+            <el-table-column prop="name" :label="$t('message.cmdb.colName')" min-width="140" />
+            <el-table-column prop="model_code" :label="$t('message.cmdb.colModelCode')" width="120">
               <template #default="{ row }">
                 <el-tag size="small">{{ row.model_code || '*' }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="event_type" label="事件类型" width="140">
+            <el-table-column prop="event_type" :label="$t('message.cmdb.colEventType')" width="140">
               <template #default="{ row }">
                 <el-tag size="small" type="warning">{{ row.event_type }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="endpoint" label="回调地址" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="is_active" label="启用" width="70" align="center">
+            <el-table-column prop="endpoint" :label="$t('message.cmdb.colCallback')" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="is_active" :label="$t('message.cmdb.colEnabled')" width="70" align="center">
               <template #default="{ row }">
                 <el-switch :model-value="row.is_active" size="small" @change="toggleSubscription(row)" />
               </template>
             </el-table-column>
-            <el-table-column prop="description" label="描述" min-width="140" show-overflow-tooltip />
-            <el-table-column label="操作" width="80" fixed="right">
+            <el-table-column prop="description" :label="$t('message.cmdb.colDescription')" min-width="140" show-overflow-tooltip />
+            <el-table-column :label="$t('message.cmdb.colActions')" width="80" fixed="right">
               <template #default="{ row }">
-                <el-popconfirm title="确认删除?" @confirm="deleteSubscription(row)">
+                <el-popconfirm :title="$t('message.instance.confirmDelete')" @confirm="deleteSubscription(row)">
                   <template #reference>
                     <el-button size="small" text type="danger">
                       <el-icon><Delete /></el-icon>
@@ -294,94 +322,94 @@
     </div>
 
     <!-- ── Add Model Dialog ── -->
-    <el-dialog v-model="showAddModel" title="新增模型" width="500px" destroy-on-close>
-      <el-form :model="newModel" label-width="100" size="small">
-        <el-form-item label="编码" required>
-          <el-input v-model="newModel.code" placeholder="如 Router, Firewall" />
+    <el-dialog v-model="showAddModel" :title="$t('message.schema.addModel')" width="500px" destroy-on-close>
+      <el-form :model="newModel" :label-width="100" size="small">
+        <el-form-item :label="$t('message.schema.colCode')" required>
+          <el-input v-model="newModel.code" :placeholder="$t('message.schema.codePlaceholder')" />
         </el-form-item>
-        <el-form-item label="名称" required>
-          <el-input v-model="newModel.name" placeholder="如 路由器, 防火墙" />
+        <el-form-item :label="$t('message.schema.colName')" required>
+          <el-input v-model="newModel.name" :placeholder="$t('message.schema.namePlaceholder')" />
         </el-form-item>
-        <el-form-item label="分类">
-          <el-select v-model="newModel.classification" placeholder="选择分类" style="width:100%;">
+        <el-form-item :label="$t('message.schema.classification')">
+          <el-select v-model="newModel.classification" :placeholder="$t('message.schema.selectClass')" style="width:100%;">
             <el-option v-for="c in store.classifications" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="描述">
+        <el-form-item :label="$t('message.schema.colDescription')">
           <el-input v-model="newModel.description" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showAddModel = false">取消</el-button>
-        <el-button type="primary" :icon="Plus" :loading="saving" @click="doAddModel">创建</el-button>
+        <el-button @click="showAddModel = false">{{ $t('message.common.cancel') }}</el-button>
+        <el-button type="primary" :icon="Plus" :loading="saving" @click="doAddModel">{{ $t('message.common.create') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ── Add Classification Dialog ── -->
-    <el-dialog v-model="showAddClass" title="新增分类" width="400px" destroy-on-close>
-      <el-form :model="newClass" label-width="80" size="small">
-        <el-form-item label="标识" required>
-          <el-input v-model="newClass.cls_id" placeholder="如 bk_network" />
+    <el-dialog v-model="showAddClass" :title="$t('message.schema.addClass')" width="400px" destroy-on-close>
+      <el-form :model="newClass" :label-width="80" size="small">
+        <el-form-item :label="$t('message.schema.colIdentifier')" required>
+          <el-input v-model="newClass.cls_id" :placeholder="$t('message.schema.identifierPlaceholder')" />
         </el-form-item>
-        <el-form-item label="名称" required>
-          <el-input v-model="newClass.name" placeholder="如 网络设备" />
+        <el-form-item :label="$t('message.schema.colName')" required>
+          <el-input v-model="newClass.name" :placeholder="$t('message.schema.classNamePlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showAddClass = false">取消</el-button>
-        <el-button type="primary" :icon="Plus" :loading="saving" @click="doAddClass">创建</el-button>
+        <el-button @click="showAddClass = false">{{ $t('message.common.cancel') }}</el-button>
+        <el-button type="primary" :icon="Plus" :loading="saving" @click="doAddClass">{{ $t('message.common.create') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ── Add Field Dialog ── -->
-    <el-dialog v-model="showAddField" title="添加字段" width="500px" destroy-on-close>
-      <el-form :model="newField" label-width="100" size="small">
-        <el-form-item label="字段名" required>
-          <el-input v-model="newField.name" placeholder="如 brand, model_name" />
+    <el-dialog v-model="showAddField" :title="$t('message.schema.addField')" width="500px" destroy-on-close>
+      <el-form :model="newField" :label-width="100" size="small">
+        <el-form-item :label="$t('message.schema.colFieldName')" required>
+          <el-input v-model="newField.name" :placeholder="$t('message.schema.fieldNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="显示名" required>
-          <el-input v-model="newField.label" placeholder="如 品牌, 型号" />
+        <el-form-item :label="$t('message.schema.colDisplayName')" required>
+          <el-input v-model="newField.label" :placeholder="$t('message.schema.displayNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="字段类型">
+        <el-form-item :label="$t('message.schema.colType')">
           <el-select v-model="newField.field_type" style="width:100%;">
             <el-option v-for="t in fieldTypes" :key="t.value" :label="t.label" :value="t.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="必填">
+        <el-form-item :label="$t('message.schema.colRequired')">
           <el-switch v-model="newField.required" />
         </el-form-item>
-        <el-form-item label="唯一">
+        <el-form-item :label="$t('message.schema.colUnique')">
           <el-switch v-model="newField.is_unique" />
         </el-form-item>
-        <el-form-item label="枚举选项" v-if="newField.field_type === 'enum'">
+        <el-form-item :label="$t('message.schema.enumOptions')" v-if="newField.field_type === 'enum'">
           <el-input v-model="newField.optionsText" type="textarea" :rows="2"
-            placeholder="每行一个选项" />
+            :placeholder="$t('message.schema.enumPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showAddField = false">取消</el-button>
-        <el-button type="primary" :icon="Plus" :loading="saving" @click="doAddField">添加</el-button>
+        <el-button @click="showAddField = false">{{ $t('message.common.cancel') }}</el-button>
+        <el-button type="primary" :icon="Plus" :loading="saving" @click="doAddField">{{ $t('message.schema.addBtn') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ── Impact Dialog ── -->
-    <el-dialog v-model="showImpactDialog" title="影响分析" width="700px" destroy-on-close>
+    <el-dialog v-model="showImpactDialog" :title="$t('message.cmdb.impactAnalysis')" width="700px" destroy-on-close>
       <div v-if="impactLoading" style="text-align:center;padding:40px;">
         <el-icon :size="36" color="#409EFF" class="is-loading"><Loading /></el-icon>
-        <p>分析中...</p>
+        <p>{{ $t('message.cmdb.analyzing') }}</p>
       </div>
       <div v-else-if="impactResult">
-        <el-alert :title="'共 ' + impactResult.total + ' 个受影响节点'" type="warning" :closable="false" style="margin-bottom:16px;" />
+        <el-alert :title="t('message.cmdb.impactCount', { count: impactResult.total })" type="warning" :closable="false" style="margin-bottom:16px;" />
         <el-table :data="impactResult.impacted || []" size="small" stripe style="width:100%">
-          <el-table-column prop="model_code" label="类型" width="100" />
-          <el-table-column prop="label" label="名称" min-width="160" />
-          <el-table-column prop="depth" label="影响深度" width="100" align="center" />
+          <el-table-column prop="model_code" :label="$t('message.cmdb.colType')" width="100" />
+          <el-table-column prop="label" :label="$t('message.cmdb.colName')" min-width="160" />
+          <el-table-column prop="depth" :label="$t('message.cmdb.colDepth')" width="100" align="center" />
         </el-table>
       </div>
     </el-dialog>
 
     <!-- ── Instance Detail Dialog ── -->
-    <el-dialog v-model="showInstanceDetail" title="实例详情" width="600px" destroy-on-close>
+    <el-dialog v-model="showInstanceDetail" :title="$t('message.instance.detailTitle')" width="600px" destroy-on-close>
       <el-descriptions v-if="detailInstance" :column="2" border size="small">
         <el-descriptions-item v-for="(val, key) in detailInstance" :key="key" :label="key">
           {{ typeof val === 'object' ? JSON.stringify(val) : val }}
@@ -390,34 +418,34 @@
     </el-dialog>
 
     <!-- ── Event Subscription Dialog ── -->
-    <el-dialog v-model="showAddSubscription" title="新建事件订阅" width="550px" destroy-on-close>
-      <el-form :model="subForm" label-width="100" size="small">
-        <el-form-item label="名称" required>
-          <el-input v-model="subForm.name" placeholder="如 通知工单系统" />
+    <el-dialog v-model="showAddSubscription" :title="$t('message.events.newSubscription')" width="550px" destroy-on-close>
+      <el-form :model="subForm" :label-width="100" size="small">
+        <el-form-item :label="$t('message.cmdb.colName')" required>
+          <el-input v-model="subForm.name" :placeholder="$t('message.cmdb.subNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="模型编码">
-          <el-select v-model="subForm.model_code" placeholder="留空=所有模型" style="width:100%;" clearable>
+        <el-form-item :label="$t('message.cmdb.colModelCode')">
+          <el-select v-model="subForm.model_code" :placeholder="$t('message.cmdb.subModelPlaceholder')" style="width:100%;" clearable>
             <el-option v-for="m in store.modelDefinitions" :key="m.code" :label="m.name + ' (' + m.code + ')'" :value="m.code" />
           </el-select>
-          <div style="font-size:11px;color:#909399;margin-top:4px;">留空表示订阅所有模型的事件</div>
+          <div style="font-size:11px;color:#909399;margin-top:4px;">{{ $t('message.cmdb.subModelHint') }}</div>
         </el-form-item>
-        <el-form-item label="事件类型" required>
+        <el-form-item :label="$t('message.cmdb.colEventType')" required>
           <el-select v-model="subForm.event_type" style="width:100%;">
-            <el-option label="实例创建" value="instance.create" />
-            <el-option label="实例更新" value="instance.update" />
-            <el-option label="实例删除" value="instance.delete" />
+            <el-option :label="$t('message.cmdb.eventCreate')" value="instance.create" />
+            <el-option :label="$t('message.cmdb.eventUpdate')" value="instance.update" />
+            <el-option :label="$t('message.cmdb.eventDelete')" value="instance.delete" />
           </el-select>
         </el-form-item>
-        <el-form-item label="回调地址" required>
+        <el-form-item :label="$t('message.cmdb.colCallback')" required>
           <el-input v-model="subForm.endpoint" placeholder="https://example.com/webhook/cmdb" />
         </el-form-item>
-        <el-form-item label="描述">
+        <el-form-item :label="$t('message.cmdb.colDescription')">
           <el-input v-model="subForm.description" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showAddSubscription = false">取消</el-button>
-        <el-button type="primary" :icon="Plus" :loading="subSaving" @click="doCreateSubscription">创建</el-button>
+        <el-button @click="showAddSubscription = false">{{ $t('message.common.cancel') }}</el-button>
+        <el-button type="primary" :icon="Plus" :loading="subSaving" @click="doCreateSubscription">{{ $t('message.common.create') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -425,6 +453,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Search, Monitor, Loading, Plus, Edit, Delete, Upload, Bell,
   Folder, Connection, Grid, Warning, Star, View, Cloudy,
@@ -432,6 +461,7 @@ import {
 import { ElMessage } from 'element-plus'
 import { useCmdbStore } from './stores/cmdbStore'
 import TopologyCanvas from './components/TopologyCanvas.vue'
+import DrTopologyCanvas from './components/DrTopologyCanvas.vue'
 import DynamicTable from './components/DynamicTable.vue'
 import {
   getInstances, createInstance, globalSearch,
@@ -440,6 +470,7 @@ import {
   eventSubscriptionsApi,
 } from '/@/api/cmdb/index'
 
+const { t } = useI18n()
 const store = useCmdbStore()
 
 // ─── Schema Tab ───
@@ -454,10 +485,14 @@ const newClass = ref({ cls_id: '', name: '' })
 const newField = ref({ name: '', label: '', field_type: 'string', required: false, is_unique: false, optionsText: '' })
 
 const fieldTypes = [
-  { label: '字符串', value: 'string' }, { label: '整数', value: 'integer' },
-  { label: '浮点数', value: 'float' }, { label: '布尔', value: 'boolean' },
-  { label: '枚举', value: 'enum' }, { label: '日期', value: 'date' },
-  { label: 'IP 地址', value: 'ip' }, { label: 'JSON', value: 'json' },
+  { label: t('message.schema.typeString'), value: 'string' },
+  { label: t('message.schema.typeInteger'), value: 'integer' },
+  { label: t('message.schema.typeFloat'), value: 'float' },
+  { label: t('message.schema.typeBoolean'), value: 'boolean' },
+  { label: t('message.schema.typeEnum'), value: 'enum' },
+  { label: t('message.schema.typeDate'), value: 'date' },
+  { label: t('message.schema.typeIp'), value: 'ip' },
+  { label: t('message.schema.typeJson'), value: 'json' },
 ]
 
 const selectedModel = computed(() =>
@@ -482,12 +517,12 @@ async function doAddModel() {
   saving.value = true
   try {
     await modelDefinitionsApi.create(newModel.value)
-    ElMessage.success('模型创建成功')
+    ElMessage.success(t('message.schema.modelCreated'))
     showAddModel.value = false
     await store.fetchModelDefinitions()
     newModel.value = { code: '', name: '', classification: null, description: '' }
   } catch (e: any) {
-    ElMessage.error(e?.msg || '创建失败')
+    ElMessage.error(e?.msg || t('message.schema.createFailed'))
   } finally {
     saving.value = false
   }
@@ -497,12 +532,12 @@ async function doAddClass() {
   saving.value = true
   try {
     await classificationsApi.create(newClass.value)
-    ElMessage.success('分类创建成功')
+    ElMessage.success(t('message.schema.classCreated'))
     showAddClass.value = false
     await store.fetchClassifications()
     newClass.value = { cls_id: '', name: '' }
   } catch (e: any) {
-    ElMessage.error(e?.msg || '创建失败')
+    ElMessage.error(e?.msg || t('message.schema.createFailed'))
   } finally {
     saving.value = false
   }
@@ -529,12 +564,12 @@ async function doAddField() {
       data.options = newField.value.optionsText.split('\n').map((s: string) => s.trim()).filter(Boolean)
     }
     await modelFieldsApi.create(data)
-    ElMessage.success('字段添加成功')
+    ElMessage.success(t('message.schema.fieldAdded'))
     showAddField.value = false
     await store.fetchModelFields()
     newField.value = { name: '', label: '', field_type: 'string', required: false, is_unique: false, optionsText: '' }
   } catch (e: any) {
-    ElMessage.error(e?.msg || '添加失败')
+    ElMessage.error(e?.msg || t('message.schema.addFieldFailed'))
   } finally {
     saving.value = false
   }
@@ -543,10 +578,10 @@ async function doAddField() {
 async function deleteField(row: any) {
   try {
     await modelFieldsApi.delete(row.id)
-    ElMessage.success('字段已删除')
+    ElMessage.success(t('message.schema.fieldDeleted'))
     await store.fetchModelFields()
   } catch (e: any) {
-    ElMessage.error('删除失败')
+    ElMessage.error(t('message.schema.deleteFailed'))
   }
 }
 
@@ -566,6 +601,85 @@ const showImpactDialog = ref(false)
 const impactResult = ref<any>(null)
 const impactLoading = ref(false)
 const bizInstances = ref<any[]>([])
+
+// ─── DR Topology Tab ───
+const loadingDrTopo = ref(false)
+const loadingDrGroups = ref(false)
+const drTopoNodes = ref<any[]>([])
+const drTopoEdges = ref<any[]>([])
+const selectedDrGroup = ref<string>('')
+const drGroupList = ref<any[]>([])
+
+function switchDrTab() {
+  store.setActiveView('dr')
+  if (!drGroupList.value.length) loadDrGroups()
+  if (!drTopoNodes.value.length) loadDrTopology()
+}
+
+async function loadDrGroups() {
+  loadingDrGroups.value = true
+  try {
+    const { request } = await import('/@/utils/service')
+    const res = await request({ url: '/api/cmdb/instances/DrGroup/', method: 'get', params: { page_size: 200 } })
+    const data = res?.data?.data || res?.data || { items: [] }
+    drGroupList.value = Array.isArray(data) ? data : (data.items || data.results || [])
+  } catch {
+    drGroupList.value = []
+  } finally {
+    loadingDrGroups.value = false
+  }
+}
+
+async function loadDrTopology() {
+  loadingDrTopo.value = true
+  try {
+    const { request } = await import('/@/utils/service')
+    const res = await request({ url: '/api/cmdb/topology/', method: 'get' })
+    const data = res?.data?.data || res?.data || { nodes: [], edges: [] }
+    let allNodes = data.nodes || []
+    let allEdges = data.edges || []
+
+    // 统一边字段名：source/target → from/to
+    allEdges = allEdges.map((e: any) => ({
+      from: e.from || e.source,
+      to: e.to || e.target,
+      type: e.type || e.label || '',
+    }))
+
+    // 全量数据传给组件，由组件根据边类型推断层级
+    let matched = allNodes
+    let finalEdges = allEdges
+
+    if (selectedDrGroup.value) {
+      const gid = selectedDrGroup.value
+      const matchedIds = new Set<string>([gid])
+      // BELONGS_TO → Process
+      for (const e of allEdges) {
+        if (e.to === gid && e.type === 'BELONGS_TO') matchedIds.add(e.from)
+      }
+      // RUNS_ON → Host
+      for (const e of allEdges) {
+        if (matchedIds.has(e.from) && e.type === 'RUNS_ON') matchedIds.add(e.to)
+      }
+      // SITE_CONTAINS → DrSite
+      for (const e of allEdges) {
+        if (matchedIds.has(e.to) && e.type === 'SITE_CONTAINS') matchedIds.add(e.from)
+      }
+      matched = allNodes.filter((n: any) => matchedIds.has(n.id))
+      finalEdges = allEdges.filter((e: any) =>
+        matchedIds.has(e.from) && matchedIds.has(e.to)
+      )
+    }
+
+    drTopoNodes.value = matched
+    drTopoEdges.value = finalEdges
+  } catch {
+    drTopoNodes.value = []
+    drTopoEdges.value = []
+  } finally {
+    loadingDrTopo.value = false
+  }
+}
 
 async function loadGlobalTopo() {
   topoBizFilter.value = ''
@@ -598,7 +712,7 @@ async function doImpactAnalysis() {
     const res = await getImpact(topoClickedNode.value.instance_id, { direction: 'downstream' })
     impactResult.value = res.data || { impacted: [], total: 0 }
   } catch (e: any) {
-    ElMessage.error('影响分析失败')
+    ElMessage.error(t('message.cmdb.impactFailed'))
   } finally {
     impactLoading.value = false
   }
@@ -614,10 +728,10 @@ function onFileChange(uploadFile: any) {
 
 async function doImport() {
   if (!importFile.value || !importModelCode.value) {
-    ElMessage.warning('请选择文件和目标模型')
+    ElMessage.warning(t('message.cmdb.selectFileAndModel'))
     return
   }
-  ElMessage.info('导入功能已就绪 — 后端 API 实现后即可使用')
+  ElMessage.info(t('message.cmdb.importReady'))
 }
 
 // ─── Event Subscriptions ───
@@ -648,22 +762,22 @@ async function doCreateSubscription() {
     const data: any = { ...subForm.value }
     if (!data.model_code) data.model_code = '*'
     await eventSubscriptionsApi.create(data)
-    ElMessage.success('订阅创建成功')
+    ElMessage.success(t('message.cmdb.subCreated'))
     showAddSubscription.value = false
     subForm.value = { name: '', model_code: '', event_type: 'instance.update', endpoint: '', description: '' }
     await fetchSubscriptions()
   } catch (e: any) {
-    ElMessage.error(e?.msg || '创建失败')
+    ElMessage.error(e?.msg || t('message.cmdb.createFailed'))
   } finally { subSaving.value = false }
 }
 
 async function deleteSubscription(row: any) {
   try {
     await eventSubscriptionsApi.delete(row.id)
-    ElMessage.success('订阅已删除')
+    ElMessage.success(t('message.cmdb.subDeleted'))
     await fetchSubscriptions()
   } catch (e: any) {
-    ElMessage.error('删除失败')
+    ElMessage.error(t('message.cmdb.deleteFailed'))
   }
 }
 
@@ -766,7 +880,8 @@ onMounted(async () => {
 .cmdb-hero-tab.active { color: #fff; border-bottom-color: #409EFF; }
 
 /* ===== Body ===== */
-.cmdb-body { flex: 1; overflow-y: auto; padding: 0 20px 24px; }
+.cmdb-body { flex: 1; overflow-y: auto; padding: 0 20px 24px; display: flex; flex-direction: column; }
+.cmdb-section[style*="display: block"] { display: flex !important; flex-direction: column; flex: 1; min-height: 0; }
 .cmdb-section { padding-top: 16px; }
 
 /* ===== Table Card ===== */
@@ -804,14 +919,17 @@ onMounted(async () => {
 .cmdb-model-item-code { font-size: 11px; color: #909399; font-family: monospace; }
 
 /* ===== Topology ===== */
+.cmdb-section.cmdb-section-topo { flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: 0; }
 .cmdb-topo-card {
   background: #fff; border-radius: 14px; box-shadow: $g-shadow-card; overflow: hidden;
+  flex: 1; display: flex; flex-direction: column; min-height: 0;
 }
 .cmdb-topo-toolbar {
   display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;
-  border-bottom: 1px solid $g-border-light;
+  border-bottom: 1px solid $g-border-light; flex-shrink: 0;
 }
 .cmdb-topo-toolbar-left { display: flex; align-items: center; }
+.cmdb-topo-canvas { flex: 1; min-height: 0; }
 .cmdb-topo-body { min-height: 560px; position: relative; }
 .cmdb-topo-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;

@@ -9,7 +9,7 @@
         <el-button :icon="Refresh" size="small" @click="resetExpand" />
       </el-button-group>
       <span class="tp-sep" />
-      <span class="tp-hint">{{ count }} 节点 · 单击展开/收起 · 右键详情</span>
+      <span class="tp-hint">{{ count }} {{ $t('message.cmdb.statNodes') }} · {{ $t('message.topology.clickHint') }}</span>
     </div>
 
     <!-- Canvas -->
@@ -27,15 +27,18 @@
           <span class="tp-ctx-v">{{ v }}</span>
         </div>
       </div>
-      <el-button size="small" text @click="ctxNode = null" style="width:100%;margin-top:6px;">关闭</el-button>
+      <el-button size="small" text @click="ctxNode = null" style="width:100%;margin-top:6px;">{{ t('message.cmdb.close') }}</el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import G6 from '@antv/g6'
 import { ZoomIn, ZoomOut, FullScreen, Refresh } from '@element-plus/icons-vue'
+
+const { t } = useI18n()
 
 const props = defineProps<{ nodes: any[]; edges: any[] }>()
 const emit = defineEmits<{ nodeClick: [n: any] }>()
@@ -46,9 +49,14 @@ const count = ref(0)
 const ctxNode = ref<any>(null)
 const ctxPos = ref({ x: 0, y: 0 })
 
-const NAMES: Record<string, string> = { Biz: '业务', Set: '集群', Module: '模块', Host: '主机', Process: '进程', biz: '业务', set: '集群', module: '模块', host: '主机', process: '进程' }
+const NAMES: Record<string, string> = {
+  Biz: t('message.topology.biz'), Set: t('message.topology.set'), Module: t('message.topology.module'),
+  Host: t('message.cmdb.typeHost'), Process: t('message.cmdb.typeProcess'),
+  biz: t('message.topology.biz'), set: t('message.topology.set'), module: t('message.topology.module'),
+  host: t('message.cmdb.typeHost'), process: t('message.cmdb.typeProcess'),
+}
 const TAG_TYPES: Record<string, string> = { Biz: 'primary', Set: 'success', Module: 'warning', Host: 'info', Process: '', biz: 'primary', set: 'success', module: 'warning', host: 'info', process: '' }
-function typeLabel(t: string) { return NAMES[t] || t || '未知' }
+function typeLabel(type: string) { return NAMES[type] || type || t('message.cmdb.typeUnknown') }
 function tagType(t: string) { return TAG_TYPES[t] || 'info' }
 
 function getType(n: any): string { return n.model_code || n.type || '' }
@@ -205,12 +213,12 @@ const ctxAttrs = computed(() => {
   if (!ctxNode.value) return {}
   const a = ctxNode.value.attrs || {}
   const L: Record<string, string> = {
-    ip: 'IP', hostname: '主机名', status: '状态', os_type: '系统',
-    cpu_cores: 'CPU', memory_mb: '内存(MB)', disk_gb: '磁盘(GB)',
-    agent_status: 'Agent', region: '区域',
-    lifecycle: '生命周期', operator: '负责人', env_type: '环境',
-    service_type: '服务类型', name: '名称', port: '端口',
-    protocol: '协议', version: '版本', description: '描述',
+    ip: t('message.cmdb.ctxIp'), hostname: t('message.cmdb.ctxHostname'), status: t('message.cmdb.ctxStatus'), os_type: t('message.cmdb.ctxOsType'),
+    cpu_cores: t('message.cmdb.ctxCpu'), memory_mb: t('message.cmdb.ctxMemory'), disk_gb: t('message.cmdb.ctxDisk'),
+    agent_status: t('message.cmdb.ctxAgent'), region: t('message.cmdb.ctxRegion'),
+    lifecycle: t('message.cmdb.ctxLifecycle'), operator: t('message.cmdb.ctxOperator'), env_type: t('message.cmdb.ctxEnv'),
+    service_type: t('message.cmdb.ctxServiceType'), name: t('message.cmdb.ctxName'), port: t('message.cmdb.ctxPort'),
+    protocol: t('message.cmdb.ctxProtocol'), version: t('message.cmdb.ctxVersion'), description: t('message.cmdb.ctxDescription'),
   }
   const r: Record<string, any> = {}
   for (const [k, v] of Object.entries(a)) r[L[k] || k] = v

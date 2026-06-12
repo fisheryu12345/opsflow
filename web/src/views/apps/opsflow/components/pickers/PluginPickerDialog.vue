@@ -83,7 +83,7 @@ const props = withDefaults(defineProps<{
 }>(), { visible: false })
 const emit = defineEmits<{
   (e: 'update:visible', val: boolean): void
-  (e: 'select', plugin: { code: string; name: string; risk_level: string; group?: string }): void
+  (e: 'select', plugin: { code: string; name: string; name_en: string; risk_level: string; group?: string }): void
 }>()
 
 const searchQuery = ref('')
@@ -136,7 +136,7 @@ function selectPlugin(plugin: any) {
 
 function confirmPlugin(plugin: any) {
   selectedPlugin.value = plugin
-  emit('select', { code: plugin.code, name: plugin.name, risk_level: plugin.risk_level || 'low', group: activeGroup.value })
+  emit('select', { code: plugin.code, name: plugin.name, name_en: plugin.name_en || '', risk_level: plugin.risk_level || 'low', group: activeGroup.value })
   emit('update:visible', false)
 }
 
@@ -145,6 +145,7 @@ function confirmSelected() {
     emit('select', {
       code: selectedPlugin.value.code,
       name: selectedPlugin.value.name,
+      name_en: selectedPlugin.value.name_en || '',
       risk_level: selectedPlugin.value.risk_level || 'low',
       group: activeGroup.value,
     })

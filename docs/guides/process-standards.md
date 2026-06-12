@@ -57,7 +57,26 @@
 
 ## Docs 目录规范
 
-每个 `docs/<app>/` 目录使用统一模板：
+### 跨 App 公共标准
+
+所有子 App 共享的开发规范存放在 `docs/guides/` 目录下：
+
+```
+docs/
+├── guides/
+│   ├── frontend-style-guide.md      # 前端规范（SCSS/Vue/i18n/TS/按钮/Pinia）
+│   ├── project-standards.md         # 工程规范（架构/API/后端分层/错误处理）
+│   ├── process-standards.md         # 流程规范（Git/文档/设计约束）
+│   ├── mock-data-guide.md           # 数据初始化指南（Django + Neo4j）
+│   ├── 注意事项.md                   # 开发注意事项（Celery/Redis/WS）
+│   ├── quick-start.md               # OpsFlow 快速入门（opsflow 专用）
+│   └── project-status.md            # 项目状态（opsflow 专用）
+├── <app-name>/              # 各 App 专有文档
+├── superpowers/specs/       # 顶层设计规范
+└── architecture/            # 跨 App 架构（如 Django 升级）
+```
+
+### 每个子 App 目录使用统一模板
 
 ```
 docs/<app-name>/
@@ -65,9 +84,12 @@ docs/<app-name>/
 ├── architecture/          # 架构设计文档
 ├── api/                   # API 端点文档
 ├── models/                # 数据模型说明
-├── guides/                # 使用指南/操作手册
+├── guides/                # 使用指南/操作手册（App 专用）
 ├── plans/                 # 设计规划/提案
 ├── debug/                 # 调试排障笔记
+├── features/              # 功能文档（新功能记录）
+├── config/                # 配置变更记录
+├── migration/             # 迁移指南
 └── reference/             # 外部参考资料
 ```
 

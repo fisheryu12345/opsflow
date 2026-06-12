@@ -71,7 +71,7 @@
 | 1 | 在 `application/components/` 下新建 `xxx.py` |
 | 2 | 文件内 `from conf.env import *`（如需要）或直接写字面量 |
 | 3 | 在 `settings.py` 组件配置区块加 `from application.components.xxx import *` |
-| 4 | 更新 `docs/opsflow/guides/project-standards.md` 中的配置索引 |
+| 4 | 更新 `docs/guides/project-standards.md` 中的配置索引 |
 
 ---
 

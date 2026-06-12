@@ -118,6 +118,11 @@ class TopologyService:
                 node = record['n']
                 nid = node.get('instance_id')
                 if nid:
+                    # Collect all properties for frontend styling
+                    attrs = dict(node)
+                    # Remove internal fields
+                    for skip in ('instance_id', '__model_code', '__created_at', '__updated_at'):
+                        attrs.pop(skip, None)
                     nodes_map[nid] = {
                         'id': nid,
                         'label': (node.get('name')
@@ -125,6 +130,7 @@ class TopologyService:
                                   or node.get('ip')
                                   or nid),
                         'model_code': node.get('__model_code'),
+                        'attrs': attrs,
                     }
 
         # 查询所有关系

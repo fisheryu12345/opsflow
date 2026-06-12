@@ -13,6 +13,15 @@ export function CreateFromAi(data: { input: string; target_hosts?: string[]; glo
   })
 }
 
+export function CreateDrPipeline(data: { dr_group_id: string; target_hosts?: string[]; global_vars?: any }) {
+  return opsflowRequest({
+    url: prefix + 'templates/create_dr_pipeline/',
+    method: 'post',
+    data,
+    timeout: 60000,
+  })
+}
+
 export function ConfirmDraft(id: number) {
   return opsflowRequest({ url: prefix + `templates/${id}/confirm_draft/`, method: 'post' })
 }

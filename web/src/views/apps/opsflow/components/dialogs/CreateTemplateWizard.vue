@@ -103,6 +103,15 @@
             </div>
             <div class="mode-card-radio" :class="{ checked: method === 'clone' }" />
           </div>
+
+          <div class="mode-card" :class="{ active: method === 'dr' }" @click="method = 'dr'">
+            <div class="mode-card-icon">🔄</div>
+            <div class="mode-card-content">
+              <div class="mode-card-title">{{ $t("message.template.drSwitch") }}</div>
+              <div class="mode-card-desc">{{ $t("message.template.drSwitchDesc") }}</div>
+            </div>
+            <div class="mode-card-radio" :class="{ checked: method === 'dr' }" />
+          </div>
         </div>
 
         <transition name="panel-fade">
@@ -141,6 +150,58 @@
                 </el-option>
               </el-option-group>
             </el-select>
+          </div>
+
+          <div v-else-if="method === 'dr'" class="extra-card">
+            <div class="extra-card-header">
+              <el-icon size="15" color="#E6A23C"><Warning /></el-icon>
+              <span>{{ $t("message.template.drSelectGroup") }}</span>
+            </div>
+            <el-select
+              v-model="drGroupId"
+              :placeholder="$t('message.template.drSelectGroup')"
+              filterable
+              style="width:100%"
+              size="default"
+              :loading="loadingDrGroups"
+              @change="onDrGroupChange"
+            >
+              <el-option v-for="g in drGroups" :key="g.instance_id" :label="g.name" :value="g.instance_id">
+                <span>{{ g.name }}</span>
+                <el-tag v-if="g.status" size="small" :type="g.status === 'active' ? 'success' : 'warning'" style="margin-left:6px">{{ g.status }}</el-tag>
+              </el-option>
+            </el-select>
+
+            <!-- 拓扑预览 -->
+            <div v-if="drTopology" class="topo-preview">
+              <div class="topo-preview-title">拓扑预览</div>
+              <div class="topo-preview-grid">
+                <div class="topo-preview-col">
+                  <div class="topo-preview-subtitle">主站进程</div>
+                  <div v-for="p in drTopology.primary" :key="p.id" class="topo-preview-node">
+                    <span class="topo-node-dot primary" />
+                    <span class="topo-node-name">{{ p.name }}</span>
+                    <span class="topo-node-host">{{ p.host }}</span>
+                  </div>
+                  <div v-if="!drTopology.primary.length" class="topo-preview-empty">无</div>
+                </div>
+                <div class="topo-preview-col">
+                  <div class="topo-preview-subtitle">备站进程</div>
+                  <div v-for="p in drTopology.standby" :key="p.id" class="topo-preview-node">
+                    <span class="topo-node-dot standby" />
+                    <span class="topo-node-name">{{ p.name }}</span>
+                    <span class="topo-node-host">{{ p.host }}</span>
+                  </div>
+                  <div v-if="!drTopology.standby.length" class="topo-preview-empty">无</div>
+                </div>
+              </div>
+              <div v-if="drTopology.calls.length" class="topo-preview-calls">
+                <div class="topo-preview-subtitle">进程调用关系 (CALLS)</div>
+                <div v-for="(c, i) in drTopology.calls" :key="i" class="topo-preview-call">
+                  {{ c.from }} → {{ c.to }}
+                </div>
+              </div>
+            </div>
           </div>
         </transition>
       </div>
@@ -187,8 +248,8 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { CircleCheck, ChatDotSquare, CopyDocument } from '@element-plus/icons-vue'
-import { CreateTemplate, CreateFromAi, ExportTemplate, ImportTemplate, GetTemplates, UpdateTemplate } from '../../api/templates'
+import { CircleCheck, ChatDotSquare, CopyDocument, Warning } from '@element-plus/icons-vue'
+import { CreateTemplate, CreateFromAi, ExportTemplate, ImportTemplate, GetTemplates, UpdateTemplate, CreateDrPipeline } from '../../api/templates'
 import { GetTemplateCategories } from '../../api/template-categories'
 import { useOpsflowStore } from '../../stores/opsflowStore'
 
@@ -222,9 +283,32 @@ const allTemplates = ref<any[]>([])
 const form = ref({ name: '', category: '', description: '', project_id: null as number | null })
 const projectList = computed(() => store.myProjects)
 
-const method = ref<'blank' | 'ai' | 'clone'>('blank')
+const method = ref<'blank' | 'ai' | 'clone' | 'dr'>('blank')
 const aiPrompt = ref('')
 const cloneTemplateId = ref<number | null>(null)
+const drGroupId = ref<string | null>(null)
+const drGroups = ref<any[]>([])
+const loadingDrGroups = ref(false)
+const drTopology = ref<any>(null)
+const loadingTopology = ref(false)
+
+async function onDrGroupChange(val: string) {
+  if (!val) { drTopology.value = null; return }
+  loadingTopology.value = true
+  try {
+    const { opsflowRequest } = await import('../../api/request')
+    const res = await opsflowRequest({
+      url: '/api/opsflow/templates/preview_dr_topology/',
+      method: 'post',
+      data: { dr_group_id: val },
+    })
+    drTopology.value = res?.data?.data || res?.data || null
+  } catch {
+    drTopology.value = null
+  } finally {
+    loadingTopology.value = false
+  }
+}
 
 const projectTemplates = computed(() => (allTemplates.value || []).filter((t: any) => !t.is_public))
 const publicTemplates = computed(() => (allTemplates.value || []).filter((t: any) => t.is_public))
@@ -237,6 +321,7 @@ const canSubmit = computed(() => {
   if (!form.value.project_id || !form.value.name.trim() || !form.value.category) return false
   if (method.value === 'ai' && !aiPrompt.value.trim()) return false
   if (method.value === 'clone' && !cloneTemplateId.value) return false
+  if (method.value === 'dr' && !drGroupId.value) return false
   return true
 })
 
@@ -259,6 +344,17 @@ async function handleCreate() {
       const res = await CreateFromAi({ input: aiPrompt.value })
       template = extractData(res)
       if (template?.template?.id) template = template.template
+      if (template?.id) {
+        await UpdateTemplate(template.id, {
+          name: form.value.name, category: form.value.category, description: form.value.description,
+        })
+        template.name = form.value.name
+        template.category = form.value.category
+        template.description = form.value.description
+      }
+    } else if (method.value === 'dr') {
+      const res = await CreateDrPipeline({ dr_group_id: drGroupId.value })
+      template = extractData(res)?.template || extractData(res)
       if (template?.id) {
         await UpdateTemplate(template.id, {
           name: form.value.name, category: form.value.category, description: form.value.description,
@@ -305,6 +401,8 @@ watch(() => props.modelValue, async (val) => {
   method.value = 'blank'
   aiPrompt.value = ''
   cloneTemplateId.value = null
+  drGroupId.value = null
+  drGroups.value = []
 
   try {
     const [catRes, tplRes] = await Promise.all([
@@ -316,6 +414,29 @@ watch(() => props.modelValue, async (val) => {
   } catch {
     categories.value = []
     allTemplates.value = []
+  }
+
+  // Load DrGroups (via CMDB instances API, use raw request to avoid project_id injection)
+  try {
+    loadingDrGroups.value = true
+    const { request } = await import('/@/utils/service')
+    const grpRes = await request({
+      url: '/api/cmdb/instances/DrGroup/',
+      method: 'get',
+      params: { page_size: 200 },
+    })
+    // CMDB API 返回格式: {code: 2000, data: {items: [...], total: N}}
+    const data = grpRes?.data?.data || grpRes?.data || grpRes || []
+    const items = Array.isArray(data) ? data : (data?.items || data?.results || [])
+    drGroups.value = items
+    if (!items.length) {
+      console.warn('[DR] No DrGroups found, raw:', grpRes)
+    }
+  } catch (e: any) {
+    console.warn('[DR] Failed to load DrGroups:', e?.response?.data || e?.message || e)
+    drGroups.value = []
+  } finally {
+    loadingDrGroups.value = false
   }
 })
 </script>
@@ -595,6 +716,77 @@ $accent-dark: #337ecc;
 }
 .wiz-create-btn:hover {
   filter: brightness(1.1);
+}
+
+/* ===== Topo Preview ===== */
+.topo-preview {
+  margin-top: 14px;
+  background: #fafbfc;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.topo-preview-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 10px;
+}
+.topo-preview-grid {
+  display: flex;
+  gap: 16px;
+}
+.topo-preview-col {
+  flex: 1;
+}
+.topo-preview-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: #909399;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e4e7ed;
+}
+.topo-preview-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.topo-node-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+}
+.topo-node-dot.primary { background: #409EFF; }
+.topo-node-dot.standby { background: #E6A23C; }
+.topo-node-name {
+  font-weight: 500;
+  color: #303133;
+}
+.topo-node-host {
+  color: #909399;
+  font-size: 11px;
+  margin-left: auto;
+}
+.topo-preview-empty {
+  color: #c0c4cc;
+  font-size: 12px;
+  padding: 4px 0;
+}
+.topo-preview-calls {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #ebeef5;
+}
+.topo-preview-call {
+  font-size: 11px;
+  color: #606266;
+  padding: 2px 0;
+  font-family: monospace;
 }
 
 /* ===== Transitions ===== */

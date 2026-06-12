@@ -16,6 +16,7 @@ from .views.dashboard_views import (
 from .views.schedule_views import SchedulePlanViewSet
 from .views.plugin_views import PluginViewSet
 from .views.node_views import TemplateNodeViewSet, ExecutionNodeViewSet
+from .views.mixins.template_dr import create_dr_pipeline, preview_dr_topology
 from .views.scheme_views import ExecutionSchemeViewSet
 from .views.audit_views import OperationRecordViewSet
 from .views.project_views import OpsProjectViewSet
@@ -58,6 +59,8 @@ urlpatterns = [
     path('templates/<int:template_pk>/schemes/', scheme_list, name='opsflow-template-scheme-list'),
     path('templates/<int:template_pk>/schemes/<int:pk>/', scheme_detail, name='opsflow-template-scheme-detail'),
     path('templates/<int:template_pk>/schemes/<int:pk>/preview/', scheme_preview, name='opsflow-template-scheme-preview'),
+    path('templates/preview_dr_topology/', preview_dr_topology, name='opsflow-template-preview-dr-topology'),
+    path('templates/create_dr_pipeline/', create_dr_pipeline, name='opsflow-template-create-dr-pipeline'),
     path('dashboard/stats/', dashboard_stats, name='opsflow-dashboard-stats'),
     path('dashboard/trend/', dashboard_trend, name='opsflow-dashboard-trend'),
     path('dashboard/schedule-stats/', dashboard_schedule_stats, name='opsflow-dashboard-schedule-stats'),
