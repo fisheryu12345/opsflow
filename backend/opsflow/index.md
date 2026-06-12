@@ -9,7 +9,6 @@
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
 | `__init__.py` |  |  |
-| `ansible_trigger.py` | Ansible Tower HTTP 触发器 — 通过 Tower REST API 执行原子操作 | `execute_atom()` — 执行一个原子节点<br>`poll_job()` — 轮询 Tower 作业状态（外部调用用）<br>`execute_rollback()` — 执行插件回滚 — 从插件注册中心获取插件并调用 rollback 方法 |
 | `audit_logger.py` | 审计日志工具 — 记录用户操作到 OperationRecord 表 | `log_operation()` — 记录操作审计 |
 | `auto_retry.py` | 自动重试策略 — 节点 FAILED 时自动触发重试 | `AutoRetryStrategyCreator` — 批量创建自动重试策略 — 在 FlowEngine.run() 开始时调用<br>`dispatch_auto_retry()` — 检查并派发自动重试 — 在信号拦截到 FAILED 时调用 |
 | `bamboo_validator.py` | Bamboo Pipeline Tree 兼容性验证器 | `validate_bamboo_compatibility()` — 校验 pipeline_tree 是否能被 bamboo-engine 执行 |
@@ -29,7 +28,6 @@
 | `scheduler_service.py` |  | `OpsflowScheduler` — APScheduler wrapper for managing SchedulePlan timed triggers |
 | `states.py` | 状态枚举与流转矩阵 — 节点生命周期 + Pipeline 级别状态 | `NodeState` — 节点状态枚举 — 每个节点的生命周期状态<br>`PipelineState` — Pipeline 级状态枚举 — FlowExecution.status<br>`validate_node_transition()` — 检查节点状态转移是否合法，返回 True/False<br>`validate_pipeline_transition()` — 检查 Pipeline 级状态转移是否合法<br>`map_bamboo_node_state()` — bamboo-engine 状态 → NodeState<br>`map_pipeline_state()` — bamboo-engine 状态 → PipelineState（用于根 pipeline 状态变更） |
 | `subprocess_dispatcher.py` | Independent Subprocess Dispatcher — runs subprocess as separate FlowExecution | `SubprocessDispatcher` — Dispatches a subprocess node as an independent FlowExecution. |
-| `tower_service.py` |  | Ansible Tower (AWX) REST API 服务 — 代码已迁移到 core/tower/ 包 |
 | `trace_logger.py` | 节点轨迹日志写入器 — 每个节点独立的 JSON Lines 日志文件 | `NodeTraceLogger` — 节点轨迹日志写入器 |
 | `variable_registry.py` | 变量注册表系统 — 适配自 bk_sops LazyVariable + VariableLibrary 模式 | `RegisterVariableMeta` — 元类 — 在子类创建时自动注册到 VariableLibrary<br>`SpliceVariable` — 支持 ${key} 模板替换的变量基类<br>`LazyVariable` — 延迟计算变量 — 在模板替换后执行 get_value()<br>`VariableLibrary` — 变量库 — 按 code 检索变量类 |
 | `variable_resolver.py` | 变量解析引擎 — ${key} 模板变量替换 + 跨节点数据引用 | `normalize_global_vars()` — 规范化 global_vars 为包含元数据的结构化格式<br>`get_global_vars_values()` — 从规范化（或扁平）global_vars 中提取纯值 dict<br>`count_variable_references()` — 扫描 pipeline_tree 中 `${var_key}` 的出现次数<br>`cleanup_unused_vars()` — 删除 pipeline_tree 中不再被任何节点引用的全局变量<br>`get_variable_reference_details()` — 返回变量引用明细 — 每个引用出现的节点 ID 和字段路径<br>`resolve_variables()` — 解析 ${key} 引用，返回替换后的字符串 |
@@ -76,22 +74,11 @@
 | `elements.py` |  | pipeline 构建 - 节点元素创建 |
 | `validation.py` |  | pipeline 构建 - 循环引用检测 |
 
-## `core\tower/`
+## `core\variable_types/`
 
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
-| `__init__.py` | Ansible Tower (AWX) REST API 服务封装 | `TowerService` — Ansible Tower (AWX) REST API 服务<br>`get_tower_service()` — 获取 TowerService 单例 |
-| `base.py` | Ansible Tower (AWX) 服务常量与异常 | `TowerConfigError` — Tower 配置错误<br>`TowerJobError` — Tower 作业执行错误<br>`TowerTimeoutError` — Tower 作业轮询超时 |
-| `client.py` | Ansible Tower — HTTP 客户端层 | `TowerClientMixin` — Tower HTTP 客户端 — 配置加载、Session 管理、统一请求 |
-| `job.py` | Ansible Tower — 作业生命周期管理 | `TowerJobMixin` — Tower 作业管理 — 启动、查询、取消、结果提取 |
-| `polling.py` | Ansible Tower — 主动轮询与状态推送 | `TowerPollingMixin` — Tower 轮询管理 — 自适应轮询、进度估算、WebSocket 推送 |
-
-## `core\variables/`
-
-| 文件 | 用途 | 核心组件 |
-|------|------|----------|
-| `__init__.py` |  | 变量类型包 — 导入此模块触发所有变量类注册到 VARIABLE_REGISTRY |
-| `cmdb_variables.py` | CMDB 变量类型 — 运行时动态查询 CMDB 数据 | `CmdbQueryVariable` — CMDB 实例查询变量 — 按条件查询 CMDB 模型实例<br>`CmdbTopologyVariable` — CMDB 拓扑查询变量 — 获取实例的上/下游拓扑路径<br>`CmdbCountVariable` — CMDB 计数变量 — 统计指定模型的实例数量 |
+| `__init__.py` |  | 变量类型包 — 导入此模块触发 opsflow 自身变量类注册到 VARIABLE_REGISTRY（其他 app 的变量类型由各自 AppConfig.ready() 注册） |
 | `common.py` | 通用变量类型 — 适配自 bk_sops pipeline_plugins.variables.collections.common | `InputVariable` — 文本输入变量<br>`TextareaVariable` — 多行文本变量<br>`IntVariable` — 整数变量<br>`FloatVariable` — 浮点数变量<br>`DatetimeVariable` — 日期时间变量<br>`DateVariable` — 日期变量 |
 
 ## `management/`
@@ -151,15 +138,26 @@
 | 文件 | 用途 | 核心组件 |
 |------|------|----------|
 | `__init__.py` |  |  |
-| `backup_file.py` | 文件备份 — 备份远程主机上的文件或目录 | `BackupFilePlugin` |
-| `docker_deploy.py` | Docker 部署 — 部署 Docker 容器：拉取镜像、创建并启动容器 | `DockerDeployPlugin` |
-| `file_copy.py` | 文件复制 — 复制文件或目录到远程主机 | `FileCopyPlugin` |
-| `java_deploy.py` | Java 部署 — 部署 Java 应用：上传 JAR/WAR 包并重启服务 | `JavaDeployPlugin` |
-| `nginx_reload.py` | Nginx 重载 — 验证 Nginx 配置并执行重载 | `NginxReloadPlugin` |
-| `script_exec.py` | 脚本执行 — 上传脚本内容并在远程主机上执行 | `ScriptExecPlugin` |
-| `service_control.py` | 服务控制 — 控制系统服务的启动/停止/重启/重载状态 | `ServiceControlPlugin` |
-| `shell.py` | Shell 执行 — 在目标主机上执行 Shell 命令 | `ShellPlugin` |
-| `upload_file.py` | 文件上传 — 上传本地文件到远程主机 | `UploadFilePlugin` |
+| `backup_file.py` | 文件备份 — 备份远程主机上的文件或目录（通过 Ansible Tower） | `BackupFilePlugin` |
+| `docker_deploy.py` | Docker 部署 — 部署 Docker 容器（通过 Ansible Tower） | `DockerDeployPlugin` |
+| `file_copy.py` | 文件复制 — 复制文件或目录到远程主机（通过 Ansible Tower） | `FileCopyPlugin` |
+| `java_deploy.py` | Java 部署 — 部署 Java 应用（通过 Ansible Tower） | `JavaDeployPlugin` |
+| `nginx_reload.py` | Nginx 重载 — 验证 Nginx 配置并执行重载（通过 Ansible Tower） | `NginxReloadPlugin` |
+| `script_exec.py` | 脚本执行 — 上传脚本内容并在远程主机上执行（通过 Ansible Tower） | `ScriptExecPlugin` |
+| `service_control.py` | 服务控制 — 控制系统服务的启动/停止/重启/重载状态（通过 Ansible Tower） | `ServiceControlPlugin` |
+| `shell.py` | Shell 执行 — 在目标主机上执行 Shell 命令（通过 Ansible Tower） | `ShellPlugin` |
+| `upload_file.py` | 文件上传 — 上传本地文件到远程主机（通过 Ansible Tower） | `UploadFilePlugin` |
+
+## `plugins\ansible\tower_backend/`
+
+| 文件 | 用途 | 核心组件 |
+|------|------|----------|
+| `__init__.py` | Ansible Tower (AWX) REST API 服务封装 — 插件后端执行引擎 | `TowerService` — Ansible Tower (AWX) REST API 服务<br>`get_tower_service()` — 获取 TowerService 单例 |
+| `base.py` | Ansible Tower (AWX) 服务常量与异常 | `TowerConfigError` — Tower 配置错误<br>`TowerJobError` — Tower 作业执行错误<br>`TowerTimeoutError` — Tower 作业轮询超时 |
+| `base_plugin.py` | TowerBasePlugin — 通过 Ansible Tower REST API 执行的插件基类 | `TowerBasePlugin` — 通过 Ansible Tower 执行的插件基类 |
+| `client.py` | Ansible Tower — HTTP 客户端层 | `TowerClientMixin` — Tower HTTP 客户端 — 配置加载、Session 管理、统一请求 |
+| `job.py` | Ansible Tower — 作业生命周期管理 | `TowerJobMixin` — Tower 作业管理 — 启动、查询、取消、结果提取 |
+| `polling.py` | Ansible Tower — 主动轮询与状态推送 | `TowerPollingMixin` — Tower 轮询管理 — 自适应轮询、进度估算、WebSocket 推送 |
 
 ## `plugins\cmdb/`
 

@@ -2,6 +2,71 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `66fa9493`
+
+> 提交日期: 2026-06-12 | 提交信息: refactor: decouple variable registration — each app registers its own variable types — 变量注册解耦，各 app 自主注册变量类型
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/core/variable_types/__init__.py` | 后端 | 移除桥接导入 `from cmdb.variable_types import *`，消除 opsflow → cmdb 硬依赖 |
+| `backend/cmdb/apps.py:ready()` | 后端 | 新增 `from cmdb import variable_types`，CMDB 自主注册变量类型 |
+
+### 解决
+
+- **问题/背景：** opsflow 通过桥接导入硬依赖 cmdb；其他子 app（itsm、monitor 等）想注册变量类型还得改 opsflow 代码
+- **办法：** 改为各 app 在各自 `apps.py:ready()` 中自主注册变量类型，opsflow 只加载自身的 common 变量
+
+### 文档
+
+- **更新文档：**
+  - `docs/cmdb/architecture/2026-06-12-variable-types-refactor.md` — 追加完整的变量注册全生命周期（启动→前端展示→模板配置→运行时解析）
+  - `docs/opsflow/architecture/2026-06-12-variable-types-refactor.md` — 追加注册解耦说明及注册链对比
+
+### 验证
+
+- 改动类型: refactor
+- 清理乱码: 无
+- 子 App index.md 更新: 无（本次不涉及新文件）
+- 工作区状态: 干净 ✅
+
+---
+
+## `dde68d11`
+
+> 提交日期: 2026-06-12 | 提交信息: refactor: rename variables/ to variable_types/ and migrate CMDB variables to cmdb app — 变量类型目录重构与 CMDB 变量领域拆分
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/cmdb/variable_types/{query,topology,count}.py` | 后端 | CMDB 变量按功能拆分为 3 个独立文件，替代原 cmdb_variables.py 单文件 |
+| `backend/opsflow/core/variables/ → variable_types/` (2 files) | 后端 | 目录重命名，variable_types 明确表达"变量类型定义"语义 |
+| `backend/opsflow/core/variable_types/__init__.py` | 后端 | 桥接导入 `from cmdb.variable_types import *` |
+| `backend/opsflow/plugins/registry.py` | 后端 | `discover_variables()` import 路径更新 |
+| `backend/opsflow/tests/test_variable_registry.py` | 后端 | import 路径更新 |
+
+### 解决
+
+- **问题/背景：** `variables/` 目录名过于泛化，初看不知道是"什么变量"；`cmdb_variables.py` 在 cmdb app 内重复 cmdb 前缀；CMDB 变量类型领域错位在 opsflow 中
+- **办法：** 目录名改为 `variable_types` 明确语义；CMDB 变量按功能拆分为 `query.py`/`topology.py`/`count.py` 三个文件；`opsflow/__init__.py` 通过 `from cmdb.variable_types import *` 桥接注册
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/architecture/2026-06-12-variable-types-refactor.md`
+  - `docs/cmdb/architecture/2026-06-12-variable-types-refactor.md`
+
+### 验证
+
+- 改动类型: refactor
+- 清理乱码: 无
+- 子 App index.md 更新: opsflow, cmdb（已在上一轮手动更新）
+- 工作区状态: 待确认 ✅
+
+---
+
 ## `245ae88c`
 
 > 提交日期: 2026-06-12 | 提交信息: feat: plugin hot-loading + i18n bilingual support — 插件热加载与中英文双语言支持
@@ -31,6 +96,49 @@
 
 - 改动类型: feat + refactor
 - 清理乱码: 有（删除 2 个 0 字节垃圾文件）
+- 工作区状态: 干净 ✅
+
+---
+
+## `4471fe88`
+
+> 提交日期: 2026-06-12 | 提交信息: refactor: unify ansible plugin execution through Tower REST API — Ansible 插件统一通过 Tower 异步调度执行
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/plugins/ansible/tower_backend/` (6 files) | 后端 | 新增 Tower 执行后端包：TowerService+TowerBasePlugin+自适应轮询+WS推送 |
+| `backend/opsflow/plugins/ansible/shell.py` | 后端 | ShellPlugin 从 BasePlugin 改为 TowerBasePlugin 异步调度 |
+| `backend/opsflow/plugins/ansible/file_copy.py` | 后端 | FileCopyPlugin → TowerBasePlugin |
+| `backend/opsflow/plugins/ansible/script_exec.py` | 后端 | ScriptExecPlugin → TowerBasePlugin |
+| `backend/opsflow/plugins/ansible/upload_file.py` | 后端 | UploadFilePlugin → TowerBasePlugin |
+| `backend/opsflow/plugins/ansible/nginx_reload.py` | 后端 | NginxReloadPlugin → TowerBasePlugin |
+| `backend/opsflow/plugins/ansible/service_control.py` | 后端 | ServiceControlPlugin → TowerBasePlugin |
+| `backend/opsflow/plugins/ansible/backup_file.py` | 后端 | BackupFilePlugin → TowerBasePlugin |
+| `backend/opsflow/plugins/ansible/java_deploy.py` | 后端 | JavaDeployPlugin → TowerBasePlugin |
+| `backend/opsflow/plugins/ansible/docker_deploy.py` | 后端 | DockerDeployPlugin → TowerBasePlugin |
+| `backend/opsflow/core/tower/` (5 files) | 后端 | 已删除，迁移至 plugins/ansible/tower_backend/ |
+| `backend/opsflow/core/ansible_trigger.py` | 后端 | 已删除，逻辑合并到 TowerBasePlugin |
+| `backend/opsflow/core/tower_service.py` | 后端 | 已删除，重导出 shim |
+| `docs/opsflow/features/2026-06-12-tower-backend-exec-engine.md` | 文档 | Tower 后端功能文档 |
+| `docs/opsflow/architecture/2026-06-12-ansible-plugin-tower-refactor.md` | 文档 | 重构架构文档 |
+
+### 解决
+
+- **问题/背景：** Ansible 插件存在双执行路径（本地 subprocess + Tower REST API），core/tower/ 独立于插件系统，同一原子需维护两套逻辑
+- **办法：** 新增 TowerBasePlugin 基类，9 个 ansible 插件统一继承；execute() 触发 Tower Job → schedule() 自适应轮询 → rollback() 取消作业；Tower 未配置时自动降级为 mock 执行
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/features/2026-06-12-tower-backend-exec-engine.md`
+  - `docs/opsflow/architecture/2026-06-12-ansible-plugin-tower-refactor.md`
+
+### 验证
+
+- 改动类型: refactor + feat
+- 清理乱码: 有（删除 1 个 0 字节垃圾文件 backend/dict）
 - 工作区状态: 干净 ✅
 
 ---

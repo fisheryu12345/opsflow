@@ -63,6 +63,15 @@
 | `topology_service.py` | feat(job-platform): complete backend + frontend implementation | `TopologyService` — 拓扑查询服务 |
 | `validation_service.py` | ValidationService — 字段类型校验 + 唯一约束检查 | `ValidationService` — 字段校验服务 |
 
+## `cmdb\variable_types/`
+
+| 文件 | 用途 | 核心组件 |
+|------|------|----------|
+| `__init__.py` | CMDB 变量类型包 — 导入所有变量类触发注册到 VARIABLE_REGISTRY | 桥接导入 `query`, `topology`, `count` |
+| `query.py` | CMDB 实例查询变量 — 按条件查询 CMDB 模型实例 | `CmdbQueryVariable` — 运行时查询 CMDB 实例列表，支持 model_code + filters + limit |
+| `topology.py` | CMDB 拓扑查询变量 — 获取实例的上/下游拓扑路径 | `CmdbTopologyVariable` — 运行时查询实例的影响范围，支持 instance_id + direction + max_depth |
+| `count.py` | CMDB 计数变量 — 统计指定模型的实例数量 | `CmdbCountVariable` — 运行时统计 CMDB 某模型的实例总数 |
+
 ## `cmdb\views/`
 
 | 文件 | 用途 | 核心组件 |
