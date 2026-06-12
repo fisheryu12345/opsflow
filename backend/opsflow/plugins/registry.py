@@ -94,9 +94,9 @@ def _form_config_to_list(form_config) -> list:
 
 
 def discover_variables():
-    """导入 variables 包触发所有变量类注册到 VARIABLE_REGISTRY"""
+    """导入 variable_types 包触发所有变量类注册到 VARIABLE_REGISTRY"""
     try:
-        from opsflow.core import variables  # noqa: F401
+        from opsflow.core import variable_types  # noqa: F401
     except Exception as e:
         logger.warning("加载变量类型失败: %s", e)
 

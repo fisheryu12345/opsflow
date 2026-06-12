@@ -3,7 +3,7 @@
 import pytest
 
 # 导入变量类型包触发注册
-from opsflow.core import variables  # noqa: F401
+from opsflow.core import variable_types  # noqa: F401
 from opsflow.core.variable_registry import VARIABLE_REGISTRY, VariableLibrary, SpliceVariable, LazyVariable
 
 
