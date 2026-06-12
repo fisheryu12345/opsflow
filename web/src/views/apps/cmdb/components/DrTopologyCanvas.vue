@@ -222,7 +222,8 @@ function init() {
     ctxPos.value = { x: Math.min(cp.x+10, w-260), y: Math.min(cp.y-10, h-200) }
   })
   g.on('canvas:click', () => { ctxNode.value = null })
-  g.data(data); g.render(); setTimeout(() => g.fitView([40,40,40,40]), 200)
+  g.data(data); g.render()
+  if (h > 100) { setTimeout(() => g.fitView([40,40,40,40]), 200) }
   count.value = g.getNodes().length; edgeCount.value = g.getEdges().length
   graph.value = g; watchSize()
 }

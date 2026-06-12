@@ -303,7 +303,7 @@ export default {
         colDispNameRequired: 'Display name is required',
         colFieldNameRequired: 'Field name is required',
         searchMenuPlaceholder: 'Search menu name',
-        formTips: '1. Red asterisk means required;<br />2. For catalog menus, component path may be empty;<br />3. For root menus, parent can be empty.',
+        formTips: '1. Red asterisk means required;\n2. For catalog menus, component path may be empty;\n3. For root menus, parent can be empty.',
         menuName: 'Menu Name',
         menuNamePlaceholder: 'Enter menu name',
         nameEn: 'Name (EN)',

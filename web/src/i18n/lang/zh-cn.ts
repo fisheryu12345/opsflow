@@ -318,7 +318,7 @@ export default {
         colDispNameRequired: '必填项',
         colFieldNameRequired: '必填项',
         searchMenuPlaceholder: '请输入菜单名称',
-        formTips: '1. 红色星号表示必填;<br />2. 如果是目录，组件地址留空即可;<br />3. 根节点菜单，父级菜单留空即可.',
+        formTips: '1. 红色星号表示必填;\n2. 如果是目录，组件地址留空即可;\n3. 根节点菜单，父级菜单留空即可.',
         menuName: '菜单名称',
         menuNamePlaceholder: '请输入菜单名称',
         nameEn: '英文名称',

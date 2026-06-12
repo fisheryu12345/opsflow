@@ -19,6 +19,7 @@ export default {
         app.use(ui);
         // 然后安装FastCrud
         app.use(FastCrud, {
+            logger: {off: {tableColumns: false}}, // 关闭 fast-crud tableColumns 兼容警告
             //i18n, //i18n配置，可选，默认使用中文，具体用法请看demo里的 src/i18n/index.js 文件
             // 此处配置公共的dictRequest（字典请求）
             async dictRequest({dict}: any) {

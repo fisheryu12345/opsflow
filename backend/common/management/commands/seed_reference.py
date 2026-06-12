@@ -287,56 +287,76 @@ class Command(BaseCommand):
                 skipped += 1
         self.stdout.write(f">>> Knowledge Base: {created} new, {skipped} existing")
 
-    # ── 3. App Menus ──
+    # ── 3. App Menus (match current DB structure) ──
 
     def _seed_app_menus(self):
         from dvadmin.system.models import Menu
-        catalog, _ = Menu.objects.get_or_create(
-            name="运维平台", web_path="/apps",
-            defaults={
-                "parent": None, "sort": 4, "icon": "iconfont icon-opsflow",
-                "is_hidden": False, "status": True,
-            },
-        )
 
-        def add_menu(name, path, component, comp_name, icon, sort, parent=catalog):
-            menu, created = Menu.objects.get_or_create(
-                name=name, parent=parent,
+        # Deduplicate: keep the oldest record for each web_path (avoid get_or_create failures)
+        seen = {}
+        for m in Menu.objects.all().order_by('id'):
+            if m.web_path:
+                if m.web_path in seen:
+                    self.stdout.write(f"  Removing duplicate menu: {m.name} (web_path={m.web_path})")
+                    m.delete()
+                else:
+                    seen[m.web_path] = m.id
+
+        # Use web_path as lookup key to avoid duplicate creation from name encoding differences
+
+        def add_catalog(name, path, icon, sort):
+            cat, _ = Menu.objects.get_or_create(
+                web_path=path, parent=None,
                 defaults={
-                    "web_path": path, "icon": icon, "sort": sort, "status": True,
-                    "component": component, "component_name": comp_name,
+                    "name": name, "icon": icon, "sort": sort,
+                    "visible": True, "is_catalog": True, "status": True,
                 },
             )
-            return menu, created
+            return cat
 
-        menus = [
-            # Group 1: OpsAgent
-            ("运维控制台", "/opsagent", "apps/opsagent/index", "opsagent", "iconfont icon-opsagent", 10),
-            ("会话历史", "/opsagent/sessions", "apps/opsagent/Sessions", "opsagentSessions", "iconfont icon-session", 11),
-            # Group 2: OpsFlow
-            ("Dashboard", "/apps/opsflow", "apps/opsflow/index", "opsflow", "iconfont icon-dashboard", 20),
-            ("编排工作台", "/apps/opsflow/designer", "apps/opsflow/designer", "opsflowDesigner", "iconfont icon-designer", 21, None),
-            # Group 3: Phase 1 modules
-            ("Portal", "/apps/portal", "apps/portal/index", "portal", "iconfont icon-portal", 40),
-            ("CMDB", "/apps/cmdb", "apps/cmdb/index", "cmdb", "iconfont icon-cmdb", 41),
-            ("ITSM", "/apps/itsm", "apps/itsm/index", "itsm", "iconfont icon-itsm", 42),
-            ("Monitor", "/apps/monitor", "apps/monitor/index", "monitor", "iconfont icon-monitor", 43),
-            ("Job Platform", "/apps/job-platform", "apps/job-platform/index", "jobPlatform", "iconfont icon-job", 44),
-            ("Integration Hub", "/apps/integration", "apps/integration/index", "integration", "iconfont icon-integration", 45),
-            ("Open API", "/apps/open-api", "apps/open-api/index", "openApi", "iconfont icon-api", 46),
-        ]
+        def add_leaf(name, path, component, cname, icon, sort, parent=None):
+            item, created = Menu.objects.update_or_create(
+                web_path=path,
+                defaults={
+                    "name": name, "icon": icon, "sort": sort, "status": True,
+                    "component": component, "component_name": cname,
+                    "parent": parent, "is_catalog": False, "visible": True,
+                },
+            )
+            if not created:
+                # Ensure parent is always synced (especially after catalog rebuild)
+                if item.parent_id != (parent.id if parent else None):
+                    item.parent = parent
+                    item.save(update_fields=['parent_id'])
+            return item
 
-        count = 0
-        for item in menus:
-            parent_arg = item[6] if len(item) > 6 else catalog
-            kwargs = {
-                "web_path": item[1], "component": item[2], "component_name": item[3],
-                "icon": item[4], "sort": item[5], "parent": parent_arg,
-            }
-            _, created = Menu.objects.get_or_create(name=item[0], defaults=kwargs)
-            if created:
-                count += 1
-        self.stdout.write(f">>> App Menus: {count} new menus registered")
+        # ── Catalog: 运维平台 (sort=4) → OpsAgent pages ──
+        cat = add_catalog("运维平台", "/apps", "iconfont icon-gongju", 4)
+        add_leaf("运维控制台", "/opsagent", "apps/opsagent/index", "opsagent", "iconfont icon-dianhua", 10, cat)
+        add_leaf("会话历史", "/opsagent/sessions", "apps/opsagent/Sessions", "opsagentSessions", "iconfont icon-LoggedinPC", 11, cat)
+
+        # ── Catalog: OpsFlow (sort=6) → OpsFlow pages ──
+        cat = add_catalog("OpsFlow", "/opsflow-catalog", "iconfont icon-diannao1", 6)
+        add_leaf("运维管理", "/opsflow_desgner", "apps/opsflow/index", "opsflow", "iconfont icon-wenducanshu-05", 1, cat)
+        add_leaf("看板大屏", "/ops_dashboard", "apps/opsflow-dashboard/index", "opsflow-dashboard", "iconfont icon-xianshimima", 2, cat)
+        add_leaf("任务执行", "/opsflow-execution", "apps/opsflow-execution/index", "opsflow-execution", "iconfont icon-diqiu", 7, cat)
+        add_leaf("项目管理", "/opsflow-project", "apps/opsflow-project/index", "opsflow-project", "iconfont icon-dianhua", 8, cat)
+        add_leaf("知识库", "/opsflow-knowledge", "apps/opsflow-knowledge/index", "opsflow-knowledge", "iconfont icon-15tupianyulan", 9, cat)
+        add_leaf("模板中心", "/opsflow-template", "apps/opsflow-template/index", "opsflow-template", "iconfont icon-shoujidiannao", 10, cat)
+
+        # ── Catalog: 配置管理 (sort=7) → CMDB page ──
+        cat = add_catalog("配置管理", "/cmdb-catalog", "iconfont icon-fuwenbenkuang", 7)
+        add_leaf("配置管理", "/cmdb", "apps/cmdb/index", "cmdb", "iconfont icon-shuxingtu", 1, cat)
+
+        # ── Standalone leaf pages (no parent) ──
+        add_leaf("门户优化", "/portal", "apps/portal/index", "portal", "iconfont icon-tongzhi2", 8)
+        add_leaf("工单系统", "/itsm", "apps/itsm/index", "itsm", "iconfont icon-barcode-qr", 9)
+        add_leaf("监控平台", "/monitor", "apps/monitor/index", "monitor", "iconfont icon-zhongduancanshuchaxun", 10)
+        add_leaf("集成中心", "/interhub", "apps/integration/index", "integration", "iconfont icon-step", 11)
+        add_leaf("作业平台", "/job-platform", "apps/job-platform/index", "job-platform", "iconfont icon-siweidaotu", 12)
+        add_leaf("统一接口", "/open-api", "apps/open-api/index", "open-api", "iconfont icon-caozuorizhi", 13)
+
+        self.stdout.write(f">>> App Menus: seeded to match DB structure")
 
     # ── 4. CMDB Models ──
 
@@ -363,7 +383,7 @@ class Command(BaseCommand):
         ]
         for code, name_d, name_s, name_t, direction in at_data:
             AssociationType.objects.get_or_create(
-                code=code,
+                asst_id=code,
                 defaults={"name_dest": name_d, "name_source": name_s, "name_target": name_t, "direction": direction},
             )
         self.stdout.write(f"  + AssociationTypes: {len(at_data)}")
@@ -407,19 +427,19 @@ class Command(BaseCommand):
         for src, dst, rel_type, cardinality, on_delete in asso_data:
             src_md = ModelDefinition.objects.filter(code=src).first()
             dst_md = ModelDefinition.objects.filter(code=dst).first()
-            assoc_type = AssociationType.objects.filter(code=rel_type).first()
+            assoc_type = AssociationType.objects.filter(asst_id=rel_type).first()
             if src_md and dst_md and assoc_type:
-                ModelAssociation.objects.get_or_create(src_model=src_md, dest_model=dst_md, defaults={
-                    "association_type": assoc_type, "cardinality": cardinality, "on_delete_target": on_delete,
+                ModelAssociation.objects.get_or_create(source_model=src_md, target_model=dst_md, defaults={
+                    "association_type": assoc_type, "mapping": cardinality, "on_delete": on_delete,
                 })
 
         # Mainline
         ml_data = [("Biz", None, 1), ("Set", "Biz", 2), ("Module", "Set", 3), ("Host", "Module", 4)]
-        for code, parent_code, level in ml_data:
+        for code, parent_code, sort_order in ml_data:
             md = ModelDefinition.objects.filter(code=code).first()
             pmd = ModelDefinition.objects.filter(code=parent_code).first() if parent_code else None
             if md:
-                MainlineTopo.objects.get_or_create(model_definition=md, defaults={"parent": pmd, "level": level})
+                MainlineTopo.objects.get_or_create(model_definition=md, defaults={"parent_model": pmd, "sort_order": sort_order})
         self.stdout.write(f"  + CMDB Mainline topology: {len(ml_data)} levels")
 
     # ── 5. Monitor Plugins ──

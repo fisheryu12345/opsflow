@@ -66,7 +66,7 @@
                 <el-table-column prop="name" :label="$t('message.schema.colName')" min-width="120" />
                 <el-table-column width="60" align="center">
                   <template #default="{ row }">
-                    <el-tag v-if="row.is_builtin" size="small" type="info">内</el-tag>
+                    <el-tag v-if="row.is_builtin" size="small" type="info">{{ $t('message.schema.builtinTag') }}</el-tag>
                   </template>
                 </el-table-column>
               </el-table>
@@ -185,12 +185,12 @@
       </div>
 
       <!-- ─── Tab 3: 拓扑视图 ─── -->
-      <div v-show="store.activeView === 'topology'" class="cmdb-section cmdb-section-topo g-fade-in-up">
+      <div v-if="store.activeView === 'topology'" class="cmdb-section cmdb-section-topo g-fade-in-up">
         <div class="cmdb-topo-card">
           <div class="cmdb-topo-toolbar">
             <div class="cmdb-topo-toolbar-left">
               <span class="cmdb-table-title">{{ $t('message.cmdb.topoView') }}</span>
-              <el-select v-model="topoBizFilter" size="small" placeholder="选择业务" style="width:200px;margin-left:12px;"
+              <el-select v-model="topoBizFilter" size="small" :placeholder="$t('message.cmdb.selectBiz')" style="width:200px;margin-left:12px;"
                 @change="loadTopoTree" clearable>
                 <el-option v-for="b in bizInstances" :key="b.instance_id" :label="b.name" :value="b.instance_id" />
               </el-select>
@@ -221,11 +221,11 @@
       </div>
 
       <!-- ─── Tab 4: DR 拓扑 ─── -->
-      <div v-show="store.activeView === 'dr'" class="cmdb-section cmdb-section-topo g-fade-in-up">
+      <div v-if="store.activeView === 'dr'" class="cmdb-section cmdb-section-topo g-fade-in-up">
         <div class="cmdb-topo-card">
           <div class="cmdb-topo-toolbar">
             <div class="cmdb-topo-toolbar-left">
-              <span class="cmdb-table-title">DR {{ $t('message.cmdb.topoView') }}</span>
+              <span class="cmdb-table-title">{{ $t('message.cmdb.drTopology') }}</span>
               <el-select v-model="selectedDrGroup" size="small" :placeholder="$t('message.cmdb.selectDrGroup')" style="width:240px;margin-left:12px;"
                 :loading="loadingDrGroups" @change="loadDrTopology" clearable filterable>
                 <el-option v-for="g in drGroupList" :key="g.instance_id" :label="g.name" :value="g.instance_id">
@@ -437,7 +437,7 @@
           </el-select>
         </el-form-item>
         <el-form-item :label="$t('message.cmdb.colCallback')" required>
-          <el-input v-model="subForm.endpoint" placeholder="https://example.com/webhook/cmdb" />
+          <el-input v-model="subForm.endpoint" :placeholder="t('message.events.callbackPlaceholder')" />
         </el-form-item>
         <el-form-item :label="$t('message.cmdb.colDescription')">
           <el-input v-model="subForm.description" type="textarea" :rows="2" />
@@ -485,14 +485,14 @@ const newClass = ref({ cls_id: '', name: '' })
 const newField = ref({ name: '', label: '', field_type: 'string', required: false, is_unique: false, optionsText: '' })
 
 const fieldTypes = [
-  { label: t('message.schema.typeString'), value: 'string' },
-  { label: t('message.schema.typeInteger'), value: 'integer' },
-  { label: t('message.schema.typeFloat'), value: 'float' },
-  { label: t('message.schema.typeBoolean'), value: 'boolean' },
-  { label: t('message.schema.typeEnum'), value: 'enum' },
-  { label: t('message.schema.typeDate'), value: 'date' },
-  { label: t('message.schema.typeIp'), value: 'ip' },
-  { label: t('message.schema.typeJson'), value: 'json' },
+  { label: t('message.cmdb.fieldTypeString'), value: 'string' },
+  { label: t('message.cmdb.fieldTypeInt'), value: 'integer' },
+  { label: t('message.cmdb.fieldTypeFloat'), value: 'float' },
+  { label: t('message.cmdb.fieldTypeBool'), value: 'boolean' },
+  { label: t('message.cmdb.fieldTypeEnum'), value: 'enum' },
+  { label: t('message.cmdb.fieldTypeDate'), value: 'date' },
+  { label: t('message.cmdb.fieldTypeIp'), value: 'ip' },
+  { label: t('message.cmdb.fieldTypeJson'), value: 'json' },
 ]
 
 const selectedModel = computed(() =>

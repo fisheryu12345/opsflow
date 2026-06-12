@@ -114,11 +114,10 @@ function init() {
   if (!containerRef.value) return
   if (graph.value) { graph.value.destroy(); graph.value = null }
 
+  const rect = containerRef.value.getBoundingClientRect()
   const data = toTree()
   if (!data) return
 
-  // Force container to have size
-  const rect = containerRef.value.getBoundingClientRect()
   const w = rect.width || containerRef.value.clientWidth || 800
   const h = rect.height || containerRef.value.clientHeight || 500
 
@@ -174,7 +173,7 @@ function init() {
 
   g.data(data)
   g.render()
-  g.fitView([40, 40, 40, 100])
+  if (h > 100) g.fitView([40, 40, 40, 100])
 
   count.value = g.getNodes().length
   graph.value = g

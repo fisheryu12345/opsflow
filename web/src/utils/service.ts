@@ -57,8 +57,8 @@ function createService() {
 			const dataAxios = response.data;
 			// 这个状态码是和后端约定的
 			const { code } = dataAxios;
-			// swagger判断
-			if (dataAxios.swagger != undefined) {
+			// swagger/openapi判断
+			if (dataAxios.swagger != undefined || dataAxios.openapi != undefined) {
 				return dataAxios;
 			}
 			// 根据 code 进行判断

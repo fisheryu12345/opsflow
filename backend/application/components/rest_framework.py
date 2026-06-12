@@ -41,6 +41,7 @@ SPECTACULAR_SETTINGS = {
         'operationsSorter': 'alpha',
         'jsonEditor': True,
     },
+    'DISABLE_ERRORS_AND_WARNINGS': True,
 }
 
 # ── simplejwt ──

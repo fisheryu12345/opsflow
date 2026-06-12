@@ -90,6 +90,11 @@ LOGGING = {
             'propagate': False,
             'level': "ERROR",
         },
+        'drf_spectacular': {
+            'handlers': ["console", "error", "file"],
+            'propagate': False,
+            'level': "ERROR",
+        },
         "uvicorn.error": {
             "level": "INFO",
             "handlers": ["console", "error", "file"],

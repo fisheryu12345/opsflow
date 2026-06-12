@@ -34,6 +34,18 @@ export const dynamicRoutes: Array<RouteRecordRaw> = [
 		],
 	},
 	{
+		path: '/home',
+		name: 'home',
+		component: () => import('/@/views/apps/portal/index.vue'),
+		meta: {
+			title: 'message.router.home',
+			isKeepAlive: true,
+			isAffix: true,
+			isHide: false,
+			icon: 'iconfont icon-shouye',
+		},
+	},
+	{
 		path: '/personal',
 		name: 'personal',
 		component: () => import('/@/views/system/personal/index.vue'),

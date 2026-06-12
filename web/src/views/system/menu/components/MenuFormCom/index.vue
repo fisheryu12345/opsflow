@@ -3,7 +3,7 @@
     <!-- Form tips / 表单提示 -->
     <div class="mf-alert">
       <el-icon size="14" style="flex-shrink:0"><InfoFilled /></el-icon>
-      <div class="mf-alert-text" v-html="$t('message.menuPage.formTips')" />
+      <div class="mf-alert-text">{{ $t('message.menuPage.formTips') }}</div>
     </div>
 
     <el-form ref="formRef" :rules="rules" :model="menuFormData" label-position="top" size="default" class="mf-form">
@@ -366,7 +366,7 @@ onMounted(async () => {
   color: $g-text-muted;
 }
 
-.mf-alert-text { flex: 1; min-width: 0; }
+.mf-alert-text { flex: 1; min-width: 0; white-space: pre-line; }
 
 /* ===== Section ===== */
 .mf-section {
