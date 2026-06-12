@@ -25,3 +25,9 @@ class CmdbConfig(AppConfig):
             logger.info("Neo4j 驱动连接池已初始化")
         except Exception as e:
             logger.warning(f"Neo4j 未就绪，跳过初始化: {e}")
+
+        # 2) 注册 CMDB 变量类型到 VariableLibrary
+        try:
+            from cmdb import variable_types  # noqa: F401
+        except Exception as e:
+            logger.warning("加载 CMDB 变量类型失败: %s", e)
