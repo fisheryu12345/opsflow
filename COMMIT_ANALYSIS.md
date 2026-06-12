@@ -2,6 +2,39 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `245ae88c`
+
+> 提交日期: 2026-06-12 | 提交信息: feat: plugin hot-loading + i18n bilingual support — 插件热加载与中英文双语言支持
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/plugins/loader.py` | 后端 | PluginLoader 热加载引擎 |
+| `backend/opsflow/management/commands/scan_plugins.py` | 后端 | 热加载触发管理命令 |
+| `backend/opsflow/management/commands/backfill_plugin_en.py` | 后端 | 旧插件英文名自动补齐 |
+| `backend/opsflow/plugins/base.py` | 后端 | BasePlugin 新增 name_en/description_en |
+| `backend/opsflow/schema/form_schema.py` | 后端 | FormItem 新增 name_en |
+| `backend/opsflow/models/plugin.py` | 后端 | PluginMeta 新增 name_en/description_en |
+| `backend/opsflow/views/plugin_views.py` | 后端 | API 精简重构 |
+| `backend/opsflow/plugins/common/send_email.py` | 后端 | 新增邮件通知原子 |
+| `backend/opsflow/plugins/esxi/*.py` (6 files) | 后端 | 新增 ESXi 快照/克隆/磁盘/配置原子 |
+| `web/src/i18n/pages/opsflow/*.ts` | 前端 | 扫描按钮 i18n key |
+| `web/src/views/apps/opsflow/*.vue` (4 files) | 前端 | locale 驱动 name_en 显示 |
+
+### 解决
+
+- **问题/背景：** 新增插件必须重启服务；插件名称/描述/表单字段中文硬编码无法切换语言
+- **办法：** PluginLoader 文件快照+增量注册实现热加载；后端 name_en 字段+前端 locale 判断实现中英文
+
+### 验证
+
+- 改动类型: feat + refactor
+- 清理乱码: 有（删除 2 个 0 字节垃圾文件）
+- 工作区状态: 干净 ✅
+
+---
+
 ## `a7d29650`
 
 > 提交日期: 2026-06-10 | 提交信息: docs: add config governance standards — 新增配置治理规范（决策树+组件对照表）
