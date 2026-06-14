@@ -298,7 +298,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" name="IntegrationHub">
 import { ref, computed, onMounted } from 'vue'
 import { connectorDefinitionApi, connectorInstanceApi, credentialApi, callLogApi, HealthCheck, ToggleInstance, DecryptCredential } from '/@/api/integration/index'
 import { ElMessage } from 'element-plus'
@@ -597,7 +597,7 @@ onMounted(async () => {
   bottom: 0;
   display: flex;
   flex-direction: column;
-  background: #f5f6fa;
+  background: $g-bg-page;
   overflow: hidden;
 }
 
@@ -696,7 +696,7 @@ onMounted(async () => {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #f5f6fa;
+  background: $g-bg-page;
 }
 .int-filter-tabs { display: flex; gap: 4px; }
 .int-tab {
@@ -707,7 +707,7 @@ onMounted(async () => {
   border-radius: 20px;
   font-size: 13px;
   font-weight: 500;
-  color: #606266;
+  color: $g-text-secondary;
   cursor: pointer;
   transition: all 0.2s;
   user-select: none;
@@ -793,13 +793,13 @@ onMounted(async () => {
 // ===== Table Card =====
 .int-table-card {
   background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  border-radius: $g-radius-card;
+  box-shadow: $g-shadow-card;
   overflow: hidden;
 }
 .int-table-card :deep(.el-table th.el-table__cell) {
-  background: #fafafa;
-  color: #606266;
+  background: $g-bg-header;
+  color: $g-text-primary;
   font-weight: 600;
   font-size: 12px;
 }
@@ -852,7 +852,7 @@ onMounted(async () => {
 .int-dialog :deep(.el-dialog__body) { @include g-dialog-body; }
 .int-dialog :deep(.el-dialog__footer) { @include g-dialog-footer; }
 .int-form .el-form-item:last-child { margin-bottom: 0; }
-.int-edit-def-name { font-weight: 600; color: #303133; }
+.int-edit-def-name { font-weight: 600; color: $g-text-primary; }
 .int-cred-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
 .int-cred-row { display: flex; align-items: center; gap: 6px; }
 

@@ -2,6 +2,30 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `21a74dc2`
+
+> 提交日期: 2026-06-15 | 提交信息: refactor: align integration hub page with frontend style guide — 集成中心页面规范合规修复
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/src/views/apps/integration/index.vue` | 前端 | 添加 `name="IntegrationHub"`；替换 4 处硬编码 CSS 为 `$g-*` 变量 |
+| `CLAUDE.md` | 配置 | 新增强制规则：所有 git 提交必须通过 /opsflow-commit 技能 |
+
+### 解决
+
+- **问题/背景：** 集成中心页面不符合前端规范（缺组件 name、硬编码 CSS 值）；缺少 git 提交治理规则
+- **办法：** 补全 name 属性；`#f5f6fa` → `$g-bg-page`、`#fafafa` → `$g-bg-header`、`#303133` → `$g-text-primary`、`#606266` → `$g-text-secondary`、硬编码阴影/圆角 → `$g-shadow-card`/`$g-radius-card`；CLAUDE.md 新增禁止绕过 opsflow-commit 的强制规则
+
+### 验证
+
+- 改动类型: refactor + chore
+- 清理乱码: 无
+- 工作区状态: 有未跟踪文件
+
+---
+
 ## `f6999f3d`
 
 > 提交日期: 2026-06-14 | 提交信息: fix: runtime node_id.field variable resolution in PluginService — 运行时节点输出变量二次解析
