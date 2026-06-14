@@ -110,17 +110,17 @@
           <el-table :data="instances" v-loading="loading" stripe style="width:100%" size="small"
             :empty-text="loading ? '加载中...' : '暂无连接器实例'">
             <el-table-column prop="name" label="实例名称" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="definition.name" label="连接器类型" min-width="140">
+            <el-table-column label="连接器类型" min-width="140">
               <template #default="{ row }">
-                <span>{{ row.definition?.name || row.definition_name || '-' }}</span>
-                <el-tag v-if="row.definition?.category === 'ai' || row.definition_category === 'ai'"
+                <span>{{ row.definition_code?.name || '-' }}</span>
+                <el-tag v-if="row.definition_code?.category === 'ai'"
                         size="small" type="warning" effect="dark" style="margin-left:6px">AI</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="definition.category" label="分类" width="100">
+            <el-table-column label="分类" width="100">
               <template #default="{ row }">
-                <el-tag :type="tagType(row.definition?.category || row.definition_category)" size="small" effect="plain">
-                  {{ categoryLabel(row.definition?.category || row.definition_category) }}
+                <el-tag :type="tagType(row.definition_code?.category)" size="small" effect="plain">
+                  {{ categoryLabel(row.definition_code?.category) }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -144,7 +144,7 @@
                 <el-button size="small" text @click="editInstance(row)">
                   <el-icon><Edit /></el-icon> 配置
                 </el-button>
-                <el-button v-if="row.definition?.category === 'ai' || row.definition_category === 'ai'"
+                <el-button v-if="row.definition_code?.category === 'ai'"
                            size="small" text type="warning" @click="testAiChat(row)">
                   <el-icon><ChatDotSquare /></el-icon> 测试
                 </el-button>
@@ -216,6 +216,44 @@
       </div>
     </div>
 
+    <!-- ===== Edit Instance Dialog ===== -->
+    <el-dialog v-model="showEditInstance" title="配置连接器实例" width="600px" top="6vh"
+      destroy-on-close class="int-dialog">
+      <el-form label-width="100px" class="int-form">
+        <el-form-item label="实例名称">
+          <el-input v-model="editForm.name" placeholder="实例名称" />
+        </el-form-item>
+        <el-form-item label="连接器类型">
+          <span class="int-edit-def-name">{{ editForm.definitionName }}</span>
+          <el-tag size="small" effect="plain" style="margin-left:8px">{{ editForm.definitionCode }}</el-tag>
+        </el-form-item>
+        <el-divider content-position="left">凭证管理</el-divider>
+        <div class="int-cred-list">
+          <div v-for="(cred, idx) in editCredentials" :key="cred.id || idx" class="int-cred-row">
+            <el-select v-model="cred.cred_type" size="small" style="width:140px;flex-shrink:0;" placeholder="类型">
+              <el-option label="Access Key" value="access_key" />
+              <el-option label="密码" value="password" />
+              <el-option label="Token" value="token" />
+              <el-option label="证书" value="certificate" />
+            </el-select>
+            <el-input v-model="cred.name" size="small" style="width:160px;flex-shrink:0;" placeholder="凭证名称" />
+            <el-input v-model="cred.encrypted_value" size="small" style="flex:1;" :type="cred.showSecret ? 'text' : 'password'"
+              :placeholder="cred.id ? '输入新值替换原凭证（留空不修改）' : '凭证值'" />
+            <el-button :icon="View" size="small" text @click="cred.showSecret = !cred.showSecret" />
+            <el-button :icon="Delete" size="small" text type="danger"
+              :loading="cred._deleting" @click="deleteCredential(cred, idx)" />
+          </div>
+        </div>
+        <el-button size="small" :icon="Plus" @click="addCredentialRow" :disabled="editForm.id === null">
+          添加凭证
+        </el-button>
+      </el-form>
+      <template #footer>
+        <el-button @click="showEditInstance = false">取消</el-button>
+        <el-button type="primary" @click="onSaveEdit" :loading="editSubmitting">保存</el-button>
+      </template>
+    </el-dialog>
+
     <!-- ===== Add Instance Dialog ===== -->
     <el-dialog v-model="showAddInstance" title="添加连接器实例" width="520px" top="8vh"
       destroy-on-close class="int-dialog">
@@ -265,7 +303,7 @@ import { ref, computed, onMounted } from 'vue'
 import { connectorDefinitionApi, connectorInstanceApi, credentialApi, callLogApi, HealthCheck, ToggleInstance, DecryptCredential } from '/@/api/integration/index'
 import { ElMessage } from 'element-plus'
 import { request } from '/@/utils/service'
-import { Search, Refresh, Plus, Connection, List, Key, Document, Edit, Finished, ChatDotSquare, View, Promotion } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Connection, List, Key, Document, Edit, Finished, ChatDotSquare, View, Promotion, Delete } from '@element-plus/icons-vue'
 
 const activeTab = ref('instances')
 const defCategoryFilter = ref('all')
@@ -280,6 +318,11 @@ const callLogs = ref<any[]>([])
 
 const showAddInstance = ref(false)
 const newInstance = ref({ definition_id: null, name: '' })
+
+const showEditInstance = ref(false)
+const editSubmitting = ref(false)
+const editForm = ref({ id: null, name: '', definitionName: '', definitionCode: '' })
+const editCredentials = ref<any[]>([])
 
 const showChatTest = ref(false)
 const chatTesting = ref(false)
@@ -376,8 +419,102 @@ async function showDecrypt(row: any) {
   }
 }
 
-function editInstance(row: any) {
-  ElMessage.info('编辑功能开发中')
+async function editInstance(row: any) {
+  editForm.value = {
+    id: row.id,
+    name: row.name || '',
+    definitionName: row.definition_code?.name || '',
+    definitionCode: row.definition_code?.code || '',
+  }
+  editCredentials.value = []
+  showEditInstance.value = true
+  await loadEditCredentials(row.id)
+}
+
+async function loadEditCredentials(instanceId: number) {
+  try {
+    const res = await credentialApi.list({ instance: instanceId })
+    editCredentials.value = (res.data || []).map((c: any) => ({
+      ...c,
+      encrypted_value: '',
+      showSecret: false,
+      _deleting: false,
+      _existing: true,  // 标记为已有记录
+    }))
+  } catch { /* ignore */ }
+}
+
+function addCredentialRow() {
+  editCredentials.value.push({
+    id: null,
+    name: '',
+    cred_type: 'access_key',
+    encrypted_value: '',
+    showSecret: false,
+    _deleting: false,
+    _existing: false,
+  })
+}
+
+async function deleteCredential(cred: any, idx: number) {
+  if (!cred.id) {
+    editCredentials.value.splice(idx, 1)
+    return
+  }
+  cred._deleting = true
+  try {
+    await credentialApi.delete(cred.id)
+    editCredentials.value.splice(idx, 1)
+    ElMessage.success('凭证已删除')
+  } catch (e: any) {
+    ElMessage.error(e?.msg || '删除失败')
+  } finally {
+    cred._deleting = false
+  }
+}
+
+async function onSaveEdit() {
+  if (!editForm.value.name) {
+    ElMessage.warning('请输入实例名称')
+    return
+  }
+  editSubmitting.value = true
+  try {
+    // 更新实例名称
+    await connectorInstanceApi.update(editForm.value.id, { name: editForm.value.name })
+
+    // 处理凭证：新建或更新已有
+    for (const cred of editCredentials.value) {
+      if (!cred.encrypted_value && cred._existing) continue  // 已有记录且未修改密码
+      if (!cred.encrypted_value) continue  // 新建但无值
+      if (!cred.name) continue
+
+      if (cred._existing) {
+        // 更新已有凭证
+        await credentialApi.update(cred.id, {
+          name: cred.name,
+          cred_type: cred.cred_type,
+          encrypted_value: cred.encrypted_value,
+        })
+      } else {
+        // 新建凭证
+        await credentialApi.create({
+          instance: editForm.value.id,
+          name: cred.name,
+          cred_type: cred.cred_type,
+          encrypted_value: cred.encrypted_value,
+        })
+      }
+    }
+
+    ElMessage.success('保存成功')
+    showEditInstance.value = false
+    await loadData()
+  } catch (e: any) {
+    ElMessage.error(e?.msg || '保存失败')
+  } finally {
+    editSubmitting.value = false
+  }
 }
 
 function createInstance(def: any) {
@@ -715,6 +852,9 @@ onMounted(async () => {
 .int-dialog :deep(.el-dialog__body) { @include g-dialog-body; }
 .int-dialog :deep(.el-dialog__footer) { @include g-dialog-footer; }
 .int-form .el-form-item:last-child { margin-bottom: 0; }
+.int-edit-def-name { font-weight: 600; color: #303133; }
+.int-cred-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.int-cred-row { display: flex; align-items: center; gap: 6px; }
 
 // ===== Chat =====
 .int-chat-area { margin-bottom: 16px; }
