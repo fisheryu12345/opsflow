@@ -49,7 +49,6 @@ class SchedulePlanViewSet(ProjectFilteredViewSet):
             snap = plan.template.snapshot or {}
             plan.template_snapshot = {
                 'pipeline_tree': snap.get('pipeline_tree') or plan.template.pipeline_tree,
-                'target_hosts': snap.get('target_hosts') or plan.template.target_hosts,
                 'global_vars': snap.get('global_vars') or plan.template.global_vars,
             }
             plan.save(update_fields=['template_snapshot'])

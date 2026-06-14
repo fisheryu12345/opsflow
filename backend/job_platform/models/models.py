@@ -89,8 +89,6 @@ class JobExecution(CoreModel):
     job = models.ForeignKey(JobDefinition, on_delete=models.SET_NULL, null=True,
                              related_name='executions', verbose_name="关联作业")
     status = models.CharField(max_length=32, choices=status_choices, default='pending', verbose_name="状态")
-    target_hosts = models.JSONField(default=list, verbose_name="目标主机",
-                                     help_text="主机 IP 或 CMDB host_id 列表")
     params = models.JSONField(default=dict, verbose_name="执行参数")
     result_summary = models.TextField(null=True, blank=True, verbose_name="结果摘要")
     result_detail = models.JSONField(default=dict, verbose_name="详细结果(按主机)")

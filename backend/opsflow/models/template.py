@@ -6,7 +6,6 @@ class FlowTemplate(models.Model):
     """编排模板 — AI 生成的或人工创建的流程定义"""
     name = models.CharField(max_length=200, verbose_name="Name")
     pipeline_tree = models.JSONField(default=dict, verbose_name="Pipeline Tree")
-    target_hosts = models.JSONField(default=list, verbose_name="Target Hosts")
     global_vars = models.JSONField(default=dict, verbose_name="Global Variables")
     is_draft = models.BooleanField(default=True, verbose_name="Is Draft")
     ai_original_tree = models.JSONField(default=dict, verbose_name="AI Original Tree")
@@ -86,7 +85,6 @@ class FlowTemplate(models.Model):
 
         self.snapshot = {
             'pipeline_tree': self.pipeline_tree,
-            'target_hosts': self.target_hosts,
             'global_vars': self.global_vars,
             'subprocess_refs': subprocess_refs,
             'snapshot_at': timezone.now().isoformat(),
@@ -95,7 +93,6 @@ class FlowTemplate(models.Model):
             template=self,
             version=self.version,
             pipeline_tree=self.pipeline_tree,
-            target_hosts=self.target_hosts,
             global_vars=self.global_vars,
             version_note=version_note,
             created_by=self.created_by if user is None else user,
@@ -115,7 +112,6 @@ class TemplateVersion(models.Model):
     )
     version = models.IntegerField(verbose_name="Version")
     pipeline_tree = models.JSONField(default=dict, verbose_name="Pipeline Tree")
-    target_hosts = models.JSONField(default=list, verbose_name="Target Hosts")
     global_vars = models.JSONField(default=dict, verbose_name="Global Variables")
     version_note = models.CharField(max_length=256, blank=True, default='', verbose_name="Version Note")
     created_by = models.ForeignKey(

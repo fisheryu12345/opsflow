@@ -68,7 +68,6 @@ def _seed_template(project, name: str, category: str, desc: str, pipeline: dict)
             "is_draft": False,
             "is_public": True,
             "pipeline_tree": pipeline,
-            "target_hosts": [],
             "global_vars": {},
             "version": 1,
         },

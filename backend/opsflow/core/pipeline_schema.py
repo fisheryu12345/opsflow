@@ -91,10 +91,6 @@ OPSFLOW_PIPELINE_SCHEMA = {
             "type": "object",
             "additionalProperties": True,
         },
-        "target_hosts": {
-            "type": "array",
-            "items": {"type": "string"},
-        },
     },
     "additionalProperties": True,
 }

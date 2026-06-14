@@ -506,7 +506,6 @@ class Command(BaseCommand):
                     "context": {"dry_run": False},
                     "template_snapshot": {
                         "pipeline_tree": t.pipeline_tree,
-                        "target_hosts": [],
                         "global_vars": {},
                         "template_version": t.version,
                     },

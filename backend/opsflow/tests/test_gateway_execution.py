@@ -22,7 +22,6 @@ def _make_atom_pipeline(nodes, edges):
     tpl = Mock()
     tpl.name = "exclusive_gw_test"
     tpl.pipeline_tree = {"nodes": nodes, "edges": edges}
-    tpl.target_hosts = []
     tpl.global_vars = {}
     tpl.project_id = None  # 避免 resolve_project_variables DB 查询
     tpl.id = None
@@ -45,7 +44,6 @@ def _make_execution(frozen_tree=None, status="running"):
     if frozen_tree is not None:
         exec_mock.template_snapshot = {
             "pipeline_tree": frozen_tree,
-            "target_hosts": [],
             "global_vars": {},
         }
     else:

@@ -459,14 +459,11 @@ class QuickExecViewSet(CustomModelViewSet):
         """快速执行脚本"""
         script_id = request.data.get('script_id')
         content = request.data.get('content', '')
-        target_hosts = request.data.get('target_hosts', [])
         params = request.data.get('params', {})
         executor = request.data.get('executor', 'ssh')
 
         if not content and not script_id:
             return ErrorResponse(msg='请提供脚本内容或引用脚本')
-        if not target_hosts:
-            return ErrorResponse(msg='请指定目标主机')
 
         # 高危检测
         cmd = content
@@ -486,7 +483,6 @@ class QuickExecViewSet(CustomModelViewSet):
             executor=executor,
             triggered_by='manual',
             variables=params,
-            target_config={'static_hosts': target_hosts},
         )
         # 创建单步骤执行
         step_exec = StepExecution.objects.create(

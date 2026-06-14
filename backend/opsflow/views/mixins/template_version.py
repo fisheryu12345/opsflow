@@ -105,7 +105,6 @@ class TemplateVersionMixin:
             return Response({'code': 4000, 'msg': f'版本 V{version_id} 不存在', 'data': None},
                             status=status.HTTP_404_NOT_FOUND)
         template.pipeline_tree = target.pipeline_tree
-        template.target_hosts = target.target_hosts
         template.global_vars = target.global_vars
         template.is_draft = False
         # ── 无用变量自动清理 ──

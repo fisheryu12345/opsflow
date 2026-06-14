@@ -172,7 +172,6 @@ class FlowEngine:
             pipeline = build_bamboo_pipeline(
                 self.template,
                 pipeline_tree=frozen_tree,
-                target_hosts=frozen.get('target_hosts'),
                 global_vars=frozen.get('global_vars'),
                 execution_id=self.execution.id,
                 excluded_nodes=self.execution.excluded_nodes,

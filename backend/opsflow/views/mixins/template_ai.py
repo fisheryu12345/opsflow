@@ -116,13 +116,12 @@ class TemplateAIMixin:
     def create_from_ai(self, request):
         """接收自然语言描述，调用 DeepSeek 生成 Pipeline Tree，保存为草稿"""
         nl_input = request.data.get('input', '')
-        target_hosts = request.data.get('target_hosts', [])
         global_vars = request.data.get('global_vars', {})
 
         if not nl_input:
             return ErrorResponse(msg='input is required', code=4000)
         try:
-            pipeline = generate_pipeline(nl_input, target_hosts, language=_get_request_language(request))
+            pipeline = generate_pipeline(nl_input, language=_get_request_language(request))
 
             # Validate the AI-generated pipeline
             result = self._validate_ai_pipeline(pipeline, nl_input)
@@ -137,7 +136,6 @@ class TemplateAIMixin:
             template = FlowTemplate.objects.create(
                 name=f"AI: {nl_input[:50]}",
                 pipeline_tree=pipeline,
-                target_hosts=target_hosts,
                 global_vars=global_vars,
                 ai_original_tree=pipeline.copy(),
                 is_draft=True,
@@ -171,13 +169,12 @@ class TemplateAIMixin:
         nl_input = request.data.get('input', '')
         nodes = request.data.get('nodes', [])
         edges = request.data.get('edges', [])
-        target_hosts = request.data.get('target_hosts', [])
         chat_history = request.data.get('chat_history', [])
 
         if not nl_input:
             return ErrorResponse(msg='input is required', code=4000)
         try:
-            pipeline = refine_pipeline(nl_input, nodes, edges, target_hosts, chat_history, language=_get_request_language(request))
+            pipeline = refine_pipeline(nl_input, nodes, edges, chat_history, language=_get_request_language(request))
 
             # Extract AI answer (non-modification scenarios: user question/analysis)
             ai_answer = pipeline.pop('_answer', None)

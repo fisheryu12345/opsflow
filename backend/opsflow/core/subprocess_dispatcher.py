@@ -82,7 +82,6 @@ class SubprocessDispatcher:
         snapshot = target.snapshot or {}
         child.template_snapshot = {
             "pipeline_tree": snapshot.get("pipeline_tree", target.pipeline_tree),
-            "target_hosts": snapshot.get("target_hosts", target.target_hosts),
             "global_vars": child_global_vars,
             "template_version": target.version,
             "parent_execution_id": self.parent.id,

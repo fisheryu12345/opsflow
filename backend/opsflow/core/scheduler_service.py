@@ -67,13 +67,11 @@ def _execute_plan(plan_id: int):
         # Use snapshot from schedule creation (isolate template changes from schedule execution)
         ss = plan.template_snapshot
         if ss and 'pipeline_tree' in ss:
-            # Structured format (new): {'pipeline_tree', 'target_hosts', 'global_vars'}
             execution = FlowExecution.objects.create(
                 template=plan.template,
                 status=FlowExecution.Status.PENDING,
                 template_snapshot={
                     'pipeline_tree': ss['pipeline_tree'],
-                    'target_hosts': ss.get('target_hosts', []),
                     'global_vars': ss.get('global_vars', {}),
                 },
                 created_by=plan.created_by,
@@ -86,7 +84,6 @@ def _execute_plan(plan_id: int):
                 status=FlowExecution.Status.PENDING,
                 template_snapshot={
                     'pipeline_tree': ss or plan.template.pipeline_tree,
-                    'target_hosts': plan.template.target_hosts or [],
                     'global_vars': plan.template.global_vars or {},
                 },
                 created_by=plan.created_by,

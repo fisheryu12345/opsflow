@@ -21,9 +21,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def _empty_pipeline(flow_template, target_hosts=None, global_vars=None):
+def _empty_pipeline(flow_template, global_vars=None):
     """返回空的 pipeline（只有 start → end）- 保持向后兼容"""
-    data = _build_data_inputs(flow_template, target_hosts, global_vars)
+    data = _build_data_inputs(flow_template, global_vars)
     start = EmptyStartEvent()
     end = EmptyEndEvent()
     start.extend(end)
@@ -191,15 +191,14 @@ def _pair_converge_gateways(effective_nodes, elem_map, out_edges, end_elem):
                 pg_elem.converge(elem_map[cg_id])
 
 
-def _build_data_inputs(flow_template, target_hosts=None, global_vars=None, execution_id=None):
+def _build_data_inputs(flow_template, global_vars=None, execution_id=None):
     """构建 bamboo-engine Data 输入，含 global_vars 展开 + 执行 ID"""
-    hosts = target_hosts if target_hosts is not None else (flow_template.target_hosts or [])
     raw_vars = global_vars if global_vars is not None else (flow_template.global_vars or {})
     vars_ = get_global_vars_values(raw_vars)
     if flow_template.project_id:
         project_env = resolve_project_variables(flow_template.project_id)
         vars_ = {**project_env, **vars_}
-    input_map = {'target_hosts': Var(type=Var.PLAIN, value=hosts)}
+    input_map = {}
     for k, v in vars_.items():
         input_map[f'${{{k}}}'] = Var(type=Var.PLAIN, value=v)
     if execution_id:
@@ -223,7 +222,7 @@ def _apply_timeout_configs(tree, effective_nodes):
             pass
 
 
-def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
+def build_bamboo_pipeline(flow_template, pipeline_tree=None,
                           global_vars=None, execution_id=None, excluded_nodes=None):
     """将 FlowTemplate 转换为 bamboo-engine 标准 Pipeline Tree dict"""
     tree = pipeline_tree if pipeline_tree is not None else flow_template.pipeline_tree
@@ -232,14 +231,14 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None, target_hosts=None,
         _filter_nodes_and_edges(tree, excluded_nodes)
 
     if not effective_nodes:
-        data = _build_data_inputs(flow_template, target_hosts, global_vars, execution_id)
+        data = _build_data_inputs(flow_template, global_vars, execution_id)
         start = EmptyStartEvent(id=visual_start_id) if visual_start_id else EmptyStartEvent()
         end = EmptyEndEvent(id=visual_end_id) if visual_end_id else EmptyEndEvent()
         start.extend(end)
         return build_tree(start, data=data)
 
     out_edges, in_edges = _build_adjacency_lists(effective_nodes, effective_edges)
-    data = _build_data_inputs(flow_template, target_hosts, global_vars, execution_id)
+    data = _build_data_inputs(flow_template, global_vars, execution_id)
     elem_map = _create_all_elements(effective_nodes, out_edges, in_edges, data, execution_id)
 
     start = EmptyStartEvent(id=visual_start_id) if visual_start_id else EmptyStartEvent()

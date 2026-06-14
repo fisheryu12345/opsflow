@@ -20,7 +20,6 @@ def _make_template(nodes, edges):
     tpl = Mock()
     tpl.name = "parallel_gw_test"
     tpl.pipeline_tree = {"nodes": nodes, "edges": edges}
-    tpl.target_hosts = []
     tpl.global_vars = {}
     tpl.project_id = None
     tpl.id = None
@@ -38,7 +37,6 @@ def _make_execution(frozen_tree, status="running"):
     )
     exec_mock.template_snapshot = {
         "pipeline_tree": frozen_tree,
-        "target_hosts": [],
         "global_vars": {},
     }
     exec_mock.context = {}

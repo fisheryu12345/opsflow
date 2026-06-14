@@ -29,16 +29,6 @@ class IpOpsVerifyPlugin(BasePlugin):
                 },
             ),
             FormItem(
-                tag_code="target_hosts",
-                type="resource_selector",
-                name="目标主机",
-                attrs={
-                    "api_endpoint": "/api/opsflow/cmdb/resources/",
-                    "group_by": "cluster",
-                    "multiple": True,
-                },
-            ),
-            FormItem(
                 tag_code="ip_table",
                 type="datatable",
                 name="IP分配表",

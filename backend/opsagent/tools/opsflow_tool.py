@@ -136,7 +136,6 @@ async def _trigger_execution(template_id: int, variable_overrides: dict) -> Tool
         context={},
         template_snapshot={
             'pipeline_tree': template.pipeline_tree,
-            'target_hosts': template.target_hosts,
             'global_vars': template.global_vars,
             'template_version': template.version,
         },

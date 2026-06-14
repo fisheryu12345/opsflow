@@ -125,7 +125,6 @@ def trigger_execution(request):
     from job_platform.models import JobExecution, Plan, Script
     plan_id = data.get('plan_id')
     script_id = data.get('script_id')
-    target_hosts = data.get('target_hosts', [])
     variables = data.get('params', {})
 
     if plan_id:
@@ -136,7 +135,6 @@ def trigger_execution(request):
         execution = JobExecution.objects.create(
             plan=plan, template=plan.template, status='pending',
             variables=variables, triggered_by='api',
-            target_config={'static_hosts': target_hosts},
         )
     elif script_id:
         try:
@@ -145,7 +143,6 @@ def trigger_execution(request):
             return ErrorResponse(msg='脚本不存在', code=4000)
         execution = JobExecution.objects.create(
             status='pending', variables=variables, triggered_by='api',
-            target_config={'static_hosts': target_hosts},
         )
     else:
         return ErrorResponse(msg='请提供 plan_id 或 script_id', code=4000)

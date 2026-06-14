@@ -185,12 +185,11 @@ def _create_element(node: dict, outgoing_edges: list, *,
             raise ValueError(f"SubProcess 节点 {nid} 引用了不存在的模板 {target_id}")
         _detect_circular_ref(target)
         frozen_snapshot = target.snapshot or {}
-        child_hosts = frozen_snapshot.get('target_hosts', target.target_hosts)
         child_vars = get_global_vars_values(frozen_snapshot.get('global_vars', target.global_vars or {}))
         variable_mapping = node.get('params', {}).get('variable_mapping', {})
         output_mapping = node.get('params', {}).get('output_mapping', {})
         child_start = EmptyStartEvent()
-        child_inputs = {'target_hosts': Var(type=Var.PLAIN, value=child_hosts)}
+        child_inputs = {}
         for k, v in child_vars.items():
             child_inputs[f'${{{k}}}'] = Var(type=Var.PLAIN, value=v)
         child_data = Data(inputs=child_inputs)

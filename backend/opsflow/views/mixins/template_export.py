@@ -18,7 +18,7 @@ class TemplateExportImportMixin:
         """导出模板为 JSON 包（含版本历史）"""
         template = self.get_object()
         versions = template.versions.values(
-            'version', 'pipeline_tree', 'target_hosts', 'global_vars',
+            'version', 'pipeline_tree', 'global_vars',
             'version_note', 'created_at',
         )
         bundle = {
@@ -27,7 +27,6 @@ class TemplateExportImportMixin:
             "template": {
                 "name": template.name,
                 "pipeline_tree": template.pipeline_tree,
-                "target_hosts": template.target_hosts,
                 "global_vars": template.global_vars,
                 "category": template.category or "",
                 "tags": template.tags or [],
@@ -50,7 +49,6 @@ class TemplateExportImportMixin:
         template = FlowTemplate.objects.create(
             name=name,
             pipeline_tree=td.get('pipeline_tree', {}),
-            target_hosts=td.get('target_hosts', []),
             global_vars=td.get('global_vars', {}),
             category=td.get('category', ''),
             tags=td.get('tags', []),

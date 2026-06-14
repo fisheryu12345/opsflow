@@ -57,7 +57,6 @@ class TestBuildBambooPipeline:
         tpl = Mock()
         tpl.name = "test"
         tpl.pipeline_tree = {"nodes": nodes or [], "edges": edges or []}
-        tpl.target_hosts = kwargs.get("target_hosts", [])
         tpl.global_vars = kwargs.get("global_vars", {})
         tpl.project_id = None
         tpl.id = None
@@ -291,7 +290,6 @@ class TestExclusiveGatewayBuild:
         tpl = Mock()
         tpl.name = "test"
         tpl.pipeline_tree = {"nodes": nodes, "edges": edges}
-        tpl.target_hosts = []
         tpl.global_vars = {}
         tpl.project_id = None
         tpl.id = None
@@ -339,7 +337,6 @@ class TestParallelGatewayBuild:
         tpl = Mock()
         tpl.name = "test_parallel"
         tpl.pipeline_tree = {"nodes": nodes, "edges": edges}
-        tpl.target_hosts = []
         tpl.global_vars = {}
         tpl.project_id = None
         tpl.id = None
@@ -368,7 +365,6 @@ class TestParallelGatewayBuild:
         tpl = Mock()
         tpl.name = "test_parallel_no_cg"
         tpl.pipeline_tree = {"nodes": nodes, "edges": edges}
-        tpl.target_hosts = []
         tpl.global_vars = {}
         tpl.project_id = None
         tpl.id = None
@@ -386,7 +382,6 @@ class TestParallelGatewayBuild:
         tpl = Mock()
         tpl.name = "test_multi_root"
         tpl.pipeline_tree = {"nodes": nodes, "edges": edges}
-        tpl.target_hosts = []
         tpl.global_vars = {}
         tpl.project_id = None
         tpl.id = None

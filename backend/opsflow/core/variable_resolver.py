@@ -262,7 +262,6 @@ def build_execution_context(execution) -> dict:
     包含:
       - global_vars: 模板全局变量
       - hook_variables: 用户提升的全局变量配置
-      - target_hosts: 目标主机列表
       - 各节点的 outputs: 已完成节点的输出
       - _system.*: 系统内置变量
       - _project.*: 项目/模板配置变量
@@ -293,8 +292,6 @@ def build_execution_context(execution) -> dict:
         project_env = resolve_project_variables(template_obj.project_id)
         # project env 作为 base，已存在的 ctx 值（模板 vars）覆盖其上
         ctx = {**project_env, **ctx}
-
-    ctx['target_hosts'] = frozen.get('target_hosts', [])
 
     # 各节点 outputs
     from opsflow.models import NodeExecutionTrace

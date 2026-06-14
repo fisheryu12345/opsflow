@@ -77,7 +77,6 @@ class FlowExecutionViewSet(
                 snapshot_tree = template.pipeline_tree
             execution.template_snapshot = {
                 'pipeline_tree': snapshot_tree,
-                'target_hosts': template.target_hosts,
                 'global_vars': template.global_vars,
                 'template_version': template.version,
             }
@@ -176,7 +175,6 @@ class FlowExecutionViewSet(
             context={'dry_run': True},
             template_snapshot={
                 'pipeline_tree': pipeline_tree,
-                'target_hosts': [],
                 'global_vars': {},
                 'template_version': template.version,
             },

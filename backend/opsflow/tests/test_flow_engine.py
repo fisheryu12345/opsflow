@@ -154,7 +154,6 @@ class TestFlowEngineRun:
         exec_mock.template.pipeline_tree = {"nodes": [], "edges": []}
         exec_mock.template_snapshot = {
             "pipeline_tree": frozen_tree or {"nodes": [], "edges": []},
-            "target_hosts": [],
             "global_vars": {},
         }
         exec_mock.context = {}

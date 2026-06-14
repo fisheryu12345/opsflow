@@ -13,10 +13,10 @@ def _get_llm_client():
     return OpenAI(api_key=api_key, base_url=base_url), model
 
 
-def generate_pipeline(nl_input: str, target_hosts: list = None, language: str = 'zh-hans') -> dict:
+def generate_pipeline(nl_input: str, language: str = 'zh-hans') -> dict:
     """Convert natural language to Pipeline Tree JSON"""
     client, model = _get_llm_client()
-    system_prompt = _build_system_prompt(target_hosts or [], language)
+    system_prompt = _build_system_prompt(language)
 
     # RAG context injection
     rag_context = rag_search(nl_input)
@@ -39,10 +39,10 @@ def generate_pipeline(nl_input: str, target_hosts: list = None, language: str = 
     return result
 
 
-def refine_pipeline(nl_input: str, nodes: list, edges: list, target_hosts: list = None, chat_history: list = None, language: str = 'zh-hans') -> dict:
+def refine_pipeline(nl_input: str, nodes: list, edges: list, chat_history: list = None, language: str = 'zh-hans') -> dict:
     """Multi-turn: modify existing Pipeline Tree based on new instruction"""
     client, model = _get_llm_client()
-    system_prompt = _build_system_prompt(target_hosts or [], language)
+    system_prompt = _build_system_prompt(language)
 
     existing = json.dumps({'nodes': nodes, 'edges': edges}, ensure_ascii=False, indent=2)
     system_prompt += f'\n\n===== Current Pipeline Tree (result of previous iterations) =====\n{existing}\n\n'
@@ -133,8 +133,8 @@ Return empty array if none found. Return only JSON."""
     return json.loads(text)
 
 
-def _build_system_prompt(target_hosts: list, language: str = "zh-hans") -> str:
-    hosts_str = ', '.join(target_hosts) if target_hosts else 'target hosts (specified by user)'
+def _build_system_prompt(language: str = "zh-hans") -> str:
+    hosts_str = 'target hosts (specified by user)'
 
     # Dynamically generate atom list from plugin registry (multi-version format)
     from opsflow.plugins.registry import get_all_plugins, get_plugin

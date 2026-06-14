@@ -91,6 +91,6 @@ class BasePlugin:
           - "lazy":    延迟计算，由 lazy_resolver 回调处理
 
         示例:
-            return {"target_hosts": "split", "threshold": "plain"}
+            return {"threshold": "plain"}
         """
         return {}

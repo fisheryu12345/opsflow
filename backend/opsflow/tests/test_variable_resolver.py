@@ -52,12 +52,6 @@ class TestResolveVariables:
         result = resolve_variables("just $money", {"money": "100"})
         assert result == "just $money"  # 没有 {} 不替换
 
-    def test_target_hosts_context(self,):
-        ctx = {"target_hosts": ["host1", "host2"]}
-        result = resolve_variables("deploy to ${target_hosts}", ctx)
-        # target_hosts 是 list, str() 后是 "['host1', 'host2']"
-        assert "host1" in result
-
     def test_partial_missing(self):
         result = resolve_variables("${a} and ${b}", {"a": 1})
         assert result == "1 and ${b}"
@@ -124,7 +118,6 @@ class TestBuildExecutionContext:
         exec_mock.template = template
         exec_mock.template_snapshot = {
             "global_vars": {},
-            "target_hosts": [],
             **snapshot_overrides,
         }
         return exec_mock
@@ -135,13 +128,6 @@ class TestBuildExecutionContext:
             mock_trace.objects.filter.return_value.exclude.return_value.values.return_value = []
             ctx = build_execution_context(exec_mock)
             assert ctx["key"] == "val"
-
-    def test_target_hosts_included(self):
-        exec_mock = self._make_mock_execution(target_hosts=["h1", "h2"])
-        with patch("opsflow.models.NodeExecutionTrace") as mock_trace:
-            mock_trace.objects.filter.return_value.exclude.return_value.values.return_value = []
-            ctx = build_execution_context(exec_mock)
-            assert ctx["target_hosts"] == ["h1", "h2"]
 
     def test_node_outputs_included(self):
         exec_mock = self._make_mock_execution()
