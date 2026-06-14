@@ -230,7 +230,7 @@ def _create_element(node: dict, outgoing_edges: list, *,
         else:
             act.component.inputs[k] = Var(type=Var.PLAIN, value=v)
 
-    # 注册 output_schema 字段的 NodeOutput，使下游节点能正确引用
+    # 注册 output_schema 字段的 NodeOutput，供条件引擎引用
     if data and plugin_cls and hasattr(plugin_cls, 'get_output_schema'):
         schema = plugin_cls.get_output_schema()
         for field in (schema or []):

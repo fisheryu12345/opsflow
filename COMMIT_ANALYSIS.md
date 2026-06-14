@@ -2,6 +2,35 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `ad7c550c`
+
+> 提交日期: 2026-06-14 | 提交信息: fix: runtime node_id.field variable resolution in PluginService — 运行时节点输出变量二次解析
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/core/plugin_service_adapter.py` | 后端 | execute() 增加二次解析: SPLICE 后对仍含 `${}` 的参数调用 resolve_variables() 二次解析 |
+| `backend/opsflow/core/pipeline_builder/elements.py` | 后端 | 回退无实际作用的点号格式 NodeOutput 注册 |
+
+### 解决
+
+- **问题/背景：** `${c1}${node_1.test1}` 中 `$c1` 正确解析但 `${node_1.test1}` 保持字面。NodeOutput.value=None 导致 SpliceVariable.get_reference() 返回空列表
+- **办法：** PluginService.execute() 中增加二次解析，调用 build_execution_context() 从 NodeExecutionTrace 读取节点 outputs 进行 resolve_variables()
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/debug/2026-06-14-node-output-runtime-resolution.md`
+
+### 验证
+
+- 改动类型: fix
+- 清理乱码: 无
+- 工作区状态: 待提交 docs ✅
+
+---
+
 ## `2a6dc6fb`
 
 > 提交日期: 2026-06-14 | 提交信息: feat: node output variable visibility + Promote + VariableBrowser CRUD — 节点输出可见性、提升为全局变量、VariableBrowser 增删改

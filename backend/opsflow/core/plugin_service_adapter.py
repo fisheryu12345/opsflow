@@ -92,6 +92,20 @@ class PluginService(Service):
         for k, v in resolved_params.items():
             if var_types.get(k) == 'split' and isinstance(v, str):
                 resolved_params[k] = [s.strip() for s in v.split(',') if s.strip()]
+        # === 二次解析：bamboo-engine SPLICE 无法解析 ${node_id.field} 引用（NodeOutput value=None） ===
+        if _execution_id:
+            try:
+                from opsflow.models import FlowExecution
+                from opsflow.core.variable_resolver import build_execution_context, resolve_variables
+                execution = FlowExecution.objects.get(id=_execution_id)
+                ctx = build_execution_context(execution)
+                for k, v in list(resolved_params.items()):
+                    if isinstance(v, str) and '${' in v:
+                        resolved = resolve_variables(v, ctx)
+                        if resolved != v:
+                            resolved_params[k] = resolved
+            except Exception:
+                logger.exception("二次变量解析失败")
         # === 变量解析结束 ===
 
         try:
