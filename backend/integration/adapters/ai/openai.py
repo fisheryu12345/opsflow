@@ -97,10 +97,15 @@ class OpenAIConnector(BaseConnector):
                 "openai package not installed. Run: pip install openai"
             )
 
+        timeout = self.config.get('timeout', 30)
+        try:
+            timeout = int(timeout)
+        except (TypeError, ValueError):
+            timeout = 30
         client = OpenAI(
             api_key=api_key,
             base_url=self.config.get('api_base', 'https://api.openai.com/v1'),
-            timeout=self.config.get('timeout', 30),
+            timeout=timeout,
             max_retries=2,
         )
         return client
@@ -110,16 +115,30 @@ class OpenAIConnector(BaseConnector):
 
         :param messages: [{"role": "user", "content": "..."}] 格式的消息列表
         :param model: 模型名，默认使用 config 中的 model
+        :param kwargs: 透传给 chat.completions.create 的参数 (temperature, max_tokens, response_format 等)
         :return: API 响应 dict
         """
         client = self.get_client()
         model = model or self.config.get('model', 'gpt-4o')
-        resp = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            max_tokens=kwargs.get('max_tokens', self.config.get('max_tokens', 4096)),
-            temperature=kwargs.get('temperature', self.config.get('temperature', 0.7)),
-        )
+        max_tokens = kwargs.pop('max_tokens', self.config.get('max_tokens', 4096))
+        temperature = kwargs.pop('temperature', self.config.get('temperature', 0.7))
+        try:
+            max_tokens = int(max_tokens)
+        except (TypeError, ValueError):
+            max_tokens = 4096
+        try:
+            temperature = float(temperature)
+        except (TypeError, ValueError):
+            temperature = 0.7
+        create_kwargs = {
+            'model': model,
+            'messages': messages,
+            'max_tokens': max_tokens,
+            'temperature': temperature,
+        }
+        # 支持 response_format（如 JSON mode）、stop、top_p 等额外参数
+        create_kwargs.update(kwargs)
+        resp = client.chat.completions.create(**create_kwargs)
         return {
             "content": resp.choices[0].message.content,
             "model": resp.model,

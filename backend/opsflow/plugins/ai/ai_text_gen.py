@@ -95,9 +95,9 @@ class AiTextGenPlugin(BasePlugin):
         except (TypeError, ValueError):
             max_tokens = 2048
 
-        from opsflow.core.llm_service import _get_llm_client
+        from integration.services.connector_service import get_ai_connector_or_raise
 
-        client, model = _get_llm_client()
+        connector = get_ai_connector_or_raise()
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
@@ -105,14 +105,15 @@ class AiTextGenPlugin(BasePlugin):
 
         start = time.time()
         try:
-            response = client.chat.completions.create(
-                model=model,
+            result = connector.chat(
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
             latency = round(time.time() - start, 2)
-            text = response.choices[0].message.content or ""
+            text = result.get("content", "") or ""
+            model = result.get("model", "unknown")
+            usage = result.get("usage", {})
             # 过滤 4 字节 UTF-8（emoji），兼容 MySQL utf8mb3
             text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
 
@@ -121,8 +122,8 @@ class AiTextGenPlugin(BasePlugin):
                 "data": {
                     "text": text,
                     "model": model,
-                    "input_tokens": response.usage.prompt_tokens if response.usage else 0,
-                    "output_tokens": response.usage.completion_tokens if response.usage else 0,
+                    "input_tokens": usage.get("prompt_tokens", 0),
+                    "output_tokens": usage.get("completion_tokens", 0),
                     "latency_seconds": latency,
                 },
             }

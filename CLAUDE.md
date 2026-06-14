@@ -28,7 +28,7 @@ cd web && npm install && npm run dev  # localhost:8080
 - **Code language:** All code strings MUST be in English. Only comments use bilingual (Chinese + English) format.
 - **No emoji in DB:** NEVER store emoji characters in MySQL backend — filter or replace them before saving. MySQL (utf8mb3) does not support 4-byte Unicode (emoji).
 - **Stray files forbidden:** NEVER run `python -c "..."` with inline code containing `{}` — bash expands them and creates stray files. Always use `python << 'EOF' ... EOF` heredoc instead.
-- **NO direct git commit/push:** Every single code submission MUST go through the `/opsflow-commit` skill. Never run `git commit`, `git push`, or `git commit --amend` outside of that skill under any circumstances.
+- **NO direct git commit/push:** Every single code submission MUST go through the `/opsflow-commit` skill. **Crucially:** the `/opsflow-commit` skill must NEVER be auto-invoked by Claude as part of a response. It is ONLY invoked when the user explicitly types `/opsflow-commit` in the chat. No programmatic triggering, no "顺便提交", no end-of-task auto-commit.
 
 ## Agent Coordination
 

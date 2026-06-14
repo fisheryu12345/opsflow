@@ -2,11 +2,14 @@ import asyncio
 import os
 import re
 import uuid
+from typing import Optional
+
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from openai import AsyncOpenAI
+
 from opsagent.cli.repl import OpsREPL
 from opsagent.core.types import AgentContext, RiskEnv
 from opsagent.models import Session
@@ -46,31 +49,49 @@ class TaskRunViewSet(viewsets.GenericViewSet):
             user_input=user_input,
         )
 
-        try:
-            from conf.env import OPSAGENT_API_KEY, OPSAGENT_BASE_URL, OPSAGENT_MODEL
-        except ImportError:
-            OPSAGENT_API_KEY = ''
-            OPSAGENT_BASE_URL = None
-            OPSAGENT_MODEL = 'gpt-4o'
+        api_key: Optional[str] = None
+        base_url: Optional[str] = None
+        model_name: Optional[str] = None
 
+        # 1) Try Integration Center AI connector first
         try:
+            from integration.services.connector_service import get_ai_connector
+            connector = get_ai_connector()
+            if connector is not None:
+                inst = connector.instance
+                cfg = inst.config if inst else {}
+                api_key = api_key or getattr(connector, '_load_credential', lambda: None)()
+                base_url = base_url or cfg.get('api_base') or os.environ.get('OPENAI_BASE_URL')
+                model_name = model_name or cfg.get('model') or os.environ.get('OPENAI_MODEL')
+        except ImportError:
+            pass
+
+        # 2) Fallback to env vars / conf.env
+        if not api_key:
+            try:
+                from conf.env import OPSAGENT_API_KEY, OPSAGENT_BASE_URL, OPSAGENT_MODEL
+            except ImportError:
+                OPSAGENT_API_KEY = ''
+                OPSAGENT_BASE_URL = None
+                OPSAGENT_MODEL = 'gpt-4o'
             api_key = os.environ.get('OPENAI_API_KEY') or OPSAGENT_API_KEY
             base_url = os.environ.get('OPENAI_BASE_URL') or OPSAGENT_BASE_URL
             model_name = os.environ.get('OPENAI_MODEL') or os.environ.get('OPENAI_MODEL_NAME') or OPSAGENT_MODEL
 
-            if not api_key:
-                raise ValueError(
-                    "No API key configured. Set OPSAGENT_API_KEY in conf/env.py, "
-                    "or OPENAI_API_KEY env var."
-                )
+        if not api_key:
+            raise ValueError(
+                "No API key configured. Set up an AI connector in Integration Center, "
+                "or set OPSAGENT_API_KEY in conf/env.py, or OPENAI_API_KEY env var."
+            )
 
-            # Strip 4-byte UTF-8 (emoji etc.) to avoid MySQL utf8mb4 connection issues
-            def _sanitize(text: str) -> str:
-                return re.sub(r'[\U00010000-\U0010FFFF]', '', text) if text else ''
+        # Strip 4-byte UTF-8 (emoji etc.) to avoid MySQL utf8mb4 connection issues
+        def _sanitize(text: str) -> str:
+            return re.sub(r'[\U00010000-\U0010FFFF]', '', text) if text else ''
 
-            client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-            client.model_name = model_name
+        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        client.model_name = model_name or 'gpt-4o'
 
+        try:
             tool_calls_log = []
 
             ctx = AgentContext(

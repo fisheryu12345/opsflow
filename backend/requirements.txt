@@ -139,4 +139,6 @@ weasyprint==68.1
 openai==2.31.0
 neo4j==6.2.0
 django_redis==7.0.0
-alibabacloud_ecs20140526==7.8.4
+alibabacloud_ecs20140526
+aliyun-python-sdk-core
+aliyun-python-sdk-ecs

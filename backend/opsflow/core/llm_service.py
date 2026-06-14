@@ -1,21 +1,25 @@
-import os
+"""LLM 服务 — 通过集成中心调用 AI 完成流程生成/分析
+
+不再直接读取 OPSAGENT_* 环境变量，统一走集成中心 AI 连接器。
+"""
+
 import json
 import re
-from openai import OpenAI
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _get_llm_client():
-    """Get OpenAI-compatible client (reuses DeepSeek config from conf/env.py)"""
-    from conf.env import OPSAGENT_API_KEY, OPSAGENT_BASE_URL, OPSAGENT_MODEL
-    api_key = os.environ.get('OPENAI_API_KEY') or OPSAGENT_API_KEY
-    base_url = os.environ.get('OPENAI_BASE_URL') or OPSAGENT_BASE_URL
-    model = os.environ.get('OPENAI_MODEL') or OPSAGENT_MODEL
-    return OpenAI(api_key=api_key, base_url=base_url), model
+    """获取集成中心的 AI 连接器（兼容旧 API，保留供 ai_text_gen 过渡使用）"""
+    from integration.services.connector_service import get_ai_connector_or_raise
+    connector = get_ai_connector_or_raise()
+    return connector
 
 
 def generate_pipeline(nl_input: str, language: str = 'zh-hans') -> dict:
     """Convert natural language to Pipeline Tree JSON"""
-    client, model = _get_llm_client()
+    connector = _get_llm_client()
     system_prompt = _build_system_prompt(language)
 
     # RAG context injection
@@ -23,8 +27,7 @@ def generate_pipeline(nl_input: str, language: str = 'zh-hans') -> dict:
     if rag_context:
         system_prompt += "\n\nReference historical cases:\n" + json.dumps(rag_context, ensure_ascii=False, indent=2)
 
-    response = client.chat.completions.create(
-        model=model,
+    result = connector.chat(
         messages=[
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': nl_input},
@@ -32,16 +35,15 @@ def generate_pipeline(nl_input: str, language: str = 'zh-hans') -> dict:
         response_format={'type': 'json_object'},
         temperature=0.1,
     )
-    text = response.choices[0].message.content
+    text = result['content']
     # MySQL does not support 4-byte UTF-8
     text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
-    result = json.loads(text)
-    return result
+    return json.loads(text)
 
 
 def refine_pipeline(nl_input: str, nodes: list, edges: list, chat_history: list = None, language: str = 'zh-hans') -> dict:
     """Multi-turn: modify existing Pipeline Tree based on new instruction"""
-    client, model = _get_llm_client()
+    connector = _get_llm_client()
     system_prompt = _build_system_prompt(language)
 
     existing = json.dumps({'nodes': nodes, 'edges': edges}, ensure_ascii=False, indent=2)
@@ -69,7 +71,6 @@ First, determine the user's intent. Important: if the user is making a request (
   7. Keep existing node IDs stable unless you have a specific reason to change them.
   8. Do NOT add `_answer` field."""
 
-
     messages = [{'role': 'system', 'content': system_prompt}]
     if chat_history:
         for msg in chat_history:
@@ -77,18 +78,14 @@ First, determine the user's intent. Important: if the user is making a request (
                 messages.append({'role': msg['role'], 'content': msg['content']})
     messages.append({'role': 'user', 'content': nl_input})
 
-    response = client.chat.completions.create(
-        model=model,
+    result = connector.chat(
         messages=messages,
         response_format={'type': 'json_object'},
         temperature=0.1,
     )
-    text = response.choices[0].message.content
+    text = result['content']
     text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
-    result = json.loads(text)
-    return result
-
-
+    return json.loads(text)
 
 
 def rag_search(query: str, top_k: int = 5) -> list:
@@ -100,7 +97,7 @@ def rag_search(query: str, top_k: int = 5) -> list:
 
 def analyze_pipeline(nodes: list, edges: list, language: str = "zh-hans") -> dict:
     """Analyze Pipeline Tree: describe purpose, steps, and potential risks"""
-    client, model = _get_llm_client()
+    connector = _get_llm_client()
 
     pipeline_str = json.dumps({'nodes': nodes, 'edges': edges}, ensure_ascii=False, indent=2)
 
@@ -122,19 +119,18 @@ Requirements:
 - suggestions: optimization recommendations
 Return empty array if none found. Return only JSON."""
 
-    response = client.chat.completions.create(
-        model=model,
+    result = connector.chat(
         messages=[{'role': 'user', 'content': prompt}],
         response_format={'type': 'json_object'},
         temperature=0.1,
     )
-    text = response.choices[0].message.content
+    text = result['content']
     text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
     return json.loads(text)
 
 
 def _build_system_prompt(language: str = "zh-hans") -> str:
-    hosts_str = 'target hosts (specified by user)'
+    hosts_str = 'specified targets'
 
     # Dynamically generate atom list from plugin registry (multi-version format)
     from opsflow.plugins.registry import get_all_plugins, get_plugin
@@ -151,7 +147,7 @@ def _build_system_prompt(language: str = "zh-hans") -> str:
             inputs_str = ', '.join(item.tag_code for item in form_config)
         except Exception as e:
             logger.warning('_build_system_prompt: plugin %s get_form_config failed: %s', code, e)
-            inputs_str = 'error' 
+            inputs_str = 'error'
         atom_lines.append(f"  - {code}: {cls.description} (params: {inputs_str})")
 
     atom_list = '\n'.join(atom_lines)
