@@ -2,15 +2,6 @@ import functools
 import os
 import warnings
 
-# 过滤 drf-spectacular schema 警告
-warnings.filterwarnings("ignore", message=".*unable to resolve type hint.*")
-warnings.filterwarnings("ignore", message=".*could not resolve field on model.*")
-warnings.filterwarnings("ignore", message=".*unable to guess serializer.*")
-warnings.filterwarnings("ignore", message=".*could not derive type.*")
-warnings.filterwarnings("ignore", message=".*enum naming encountered.*")
-warnings.filterwarnings("ignore", message=".*encountered multiple names.*")
-warnings.filterwarnings("ignore", message=".*operationId.*collisions.*")
-
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'application.settings')
 os.environ.setdefault('DJANGO_ALLOW_ASYNC_UNSAFE', 'true')
 
