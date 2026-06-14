@@ -35,6 +35,7 @@
           <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
           <el-button size="small" text :icon="ZoomOut" @click="zoomOut" />
           <el-button size="small" text :icon="FullScreen" @click="fitCanvas" />
+          <el-button size="small" text :icon="Aim" @click="autoLayout" />
         </div>
       </div>
     </div>
@@ -61,7 +62,7 @@
  */
 import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Monitor, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
+import { Monitor, ZoomIn, ZoomOut, FullScreen, Aim } from '@element-plus/icons-vue'
 import { useGraphCanvas, layoutNodes } from '../../composables/useGraphCanvas'
 import { resolveNodeShape, updateAtomNode, CARD_WIDTH, CARD_HEIGHT } from '../../utils/shapes'
 
@@ -73,9 +74,9 @@ const graphNodeCount = ref(0)
 
 const {
   graph, zoomLevel,
-  initGraph, zoomIn, zoomOut, fitCanvas,
+  initGraph, zoomIn, zoomOut, fitCanvas, getGraphData,
   enableResize, enableVisibilityRefresh,
-} = useGraphCanvas('monitor-canvas-container', { mode: 'monitor' })
+} = useGraphCanvas('monitor-canvas-container', { mode: 'monitor', interacting: true })
 
 // 本地状态 — 由父组件通过 loadNodeStatuses / setExecutionStatus 驱动
 const nodeStatuses = ref<Record<string, string>>({})
@@ -225,6 +226,23 @@ function getColor(status: string): string {
     case 'failed': return '#F56C6C'
     default: return '#909399'
   }
+}
+
+/** BFS 自动布局 + 自适应居中 */
+function autoLayout() {
+  const g = graph.value
+  if (!g) return
+  const { nodes, edges } = getGraphData()
+  if (!nodes.length) return
+  const positions = layoutNodes(nodes, edges)
+  for (const n of nodes) {
+    const pos = positions[n.id]
+    if (pos) {
+      const cell = g.getCellById(n.id)
+      if (cell?.isNode()) cell.setPosition(pos.x, pos.y)
+    }
+  }
+  g.centerContent()
 }
 
 // ── 画布加载 ──

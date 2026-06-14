@@ -17,8 +17,8 @@
                    @click="onPause">{{ $t("message.execution.pause") }}</el-button>
         <el-button type="primary" :disabled="execDetail.status !== 'paused'" :loading="resuming"
                    @click="onResume">{{ $t("message.execution.resume") }}</el-button>
-        <el-button type="danger" :disabled="selectedNodeId === null" @click="onRetry">{{ $t("message.execution.retry") }}</el-button>
-        <el-button type="info" :disabled="selectedNodeId === null" @click="onSkip">{{ $t("message.execution.skip") }}</el-button>
+        <el-button type="danger" :disabled="selectedNodeId === null || execCompleted" @click="onRetry">{{ $t("message.execution.retry") }}</el-button>
+        <el-button type="info" :disabled="selectedNodeId === null || execCompleted" @click="onSkip">{{ $t("message.execution.skip") }}</el-button>
         <el-button type="danger" :disabled="!isCancelable"
                    :loading="cancelling" @click="onCancel">{{ $t("message.execution.cancel") }}</el-button>
         <el-button type="info" @click="refresh">{{ $t("message.common.refresh") }}</el-button>
@@ -236,6 +236,7 @@ const statusTagType = computed(() => {
 })
 const isRunning = computed(() => ['pending', 'pending_approval', 'running', 'paused'].includes(execDetail.value.status))
 const isCancelable = computed(() => ['running', 'paused', 'pending', 'pending_approval'].includes(execDetail.value.status))
+const execCompleted = computed(() => ['completed', 'failed', 'cancelled'].includes(execDetail.value.status))
 const isPendingApproval = computed(() => execDetail.value.status === 'paused' && execDetail.value.current_node !== '')
 const approving = ref(false)
 const rejecting = ref(false)
@@ -518,11 +519,11 @@ onBeforeUnmount(() => {
 .detail-body { flex: 1; display: flex; overflow: hidden; }
 .canvas-panel { flex: 1; min-width: 0; overflow: hidden; }
 .side-panel {
-  width: 340px; display: flex; flex-direction: column;
+  width: 455px; display: flex; flex-direction: column;
   border-left: 1px solid #e4e7ed; background: #fafafa; height: 100%;
 }
 .side-panel-wrapper {
-  flex-shrink: 0; width: 340px; overflow: hidden;
+  flex-shrink: 0; width: 455px; overflow: hidden;
   transition: width 0.25s ease; display: flex;
 }
 .side-panel-wrapper.collapsed { width: 0; }
