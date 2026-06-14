@@ -2,7 +2,7 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-## `7b2481de`
+## `2a6dc6fb`
 
 > 提交日期: 2026-06-14 | 提交信息: feat: node output variable visibility + Promote + VariableBrowser CRUD — 节点输出可见性、提升为全局变量、VariableBrowser 增删改
 
