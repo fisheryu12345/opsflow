@@ -185,7 +185,7 @@
       </div>
 
       <!-- ─── Tab 3: 拓扑视图 ─── -->
-      <div v-if="store.activeView === 'topology'" class="cmdb-section cmdb-section-topo g-fade-in-up">
+      <div v-show="store.activeView === 'topology'" class="cmdb-section cmdb-section-topo g-fade-in-up">
         <div class="cmdb-topo-card">
           <div class="cmdb-topo-toolbar">
             <div class="cmdb-topo-toolbar-left">
@@ -196,6 +196,9 @@
               </el-select>
             </div>
             <div style="display:flex;gap:8px;">
+              <el-button size="small" :type="topoMockMode ? 'warning' : 'default'" @click="toggleTopoMock">
+                <el-icon><DataBoard /></el-icon> 演示
+              </el-button>
               <el-button size="small" @click="loadGlobalTopo">
                 <el-icon><Connection /></el-icon> {{ $t('message.cmdb.refresh') }}
               </el-button>
@@ -209,7 +212,7 @@
               <el-icon :size="48" color="#409EFF" class="is-loading"><Loading /></el-icon>
               <p>{{ $t('message.cmdb.loadingTopo') }}</p>
             </div>
-            <TopologyCanvas v-else-if="store.topology.nodes?.length"
+            <TopologyCanvas :key="topoKey" v-else-if="store.topology.nodes?.length"
               :nodes="store.topology.nodes" :edges="store.topology.edges"
               @node-click="onTopoNodeClick" />
             <div v-else class="cmdb-topo-empty">
@@ -456,7 +459,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Search, Monitor, Loading, Plus, Edit, Delete, Upload, Bell,
-  Folder, Connection, Grid, Warning, Star, View, Cloudy,
+  Folder, Connection, Grid, Warning, Star, View, Cloudy, DataBoard,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useCmdbStore } from './stores/cmdbStore'
@@ -600,6 +603,67 @@ const topoClickedNode = ref<any>(null)
 const showImpactDialog = ref(false)
 const impactResult = ref<any>(null)
 const impactLoading = ref(false)
+const topoMockMode = ref(false)
+const topoKey = ref(0)
+
+function bumpTopoKey() { topoKey.value++ }
+
+// 演示数据 — 展示 Biz→Set→Module→Host 层级效果
+const DEMO_NODES = [
+  { id:'biz_001', name:'电商平台', model_code:'Biz', attrs:{ status:'normal', operator:'平台事业部' } },
+  { id:'set_001', name:'北京站', model_code:'Set', attrs:{ status:'normal', region:'北京' } },
+  { id:'set_002', name:'上海站', model_code:'Set', attrs:{ status:'normal', region:'上海' } },
+  { id:'set_003', name:'广州站', model_code:'Set', attrs:{ status:'offline', region:'广州' } },
+  { id:'mod_001', name:'API 网关', model_code:'Module', attrs:{ status:'normal' } },
+  { id:'mod_002', name:'订单服务', model_code:'Module', attrs:{ status:'normal' } },
+  { id:'mod_003', name:'MySQL 主库', model_code:'Module', attrs:{ status:'normal' } },
+  { id:'mod_004', name:'Redis 缓存', model_code:'Module', attrs:{ status:'alarm' } },
+  { id:'mod_005', name:'API 网关', model_code:'Module', attrs:{ status:'normal' } },
+  { id:'mod_006', name:'订单服务', model_code:'Module', attrs:{ status:'normal' } },
+  { id:'mod_007', name:'API 网关', model_code:'Module', attrs:{ status:'normal' } },
+  { id:'mod_008', name:'商品服务', model_code:'Module', attrs:{ status:'normal' } },
+  { id:'host_001', name:'bj-api-01', model_code:'Host', attrs:{ status:'normal', ip:'10.0.1.10', hostname:'bj-api-01', os_type:'CentOS 7.9', cpu_cores:8, memory_mb:16384, disk_gb:500, region:'北京' } },
+  { id:'host_002', name:'bj-api-02', model_code:'Host', attrs:{ status:'normal', ip:'10.0.1.11', hostname:'bj-api-02', os_type:'CentOS 7.9', cpu_cores:8, memory_mb:16384, disk_gb:500, region:'北京' } },
+  { id:'host_003', name:'bj-order-01', model_code:'Host', attrs:{ status:'normal', ip:'10.0.1.20', hostname:'bj-order-01', os_type:'CentOS 7.9', cpu_cores:16, memory_mb:32768, disk_gb:1000, region:'北京' } },
+  { id:'host_004', name:'bj-mysql-01', model_code:'Host', attrs:{ status:'normal', ip:'10.0.1.30', hostname:'bj-mysql-01', os_type:'CentOS 7.9', cpu_cores:32, memory_mb:65536, disk_gb:2000, region:'北京' } },
+  { id:'host_005', name:'bj-redis-01', model_code:'Host', attrs:{ status:'alarm', ip:'10.0.1.40', hostname:'bj-redis-01', os_type:'CentOS 7.9', cpu_cores:8, memory_mb:32768, disk_gb:200, region:'北京' } },
+  { id:'host_006', name:'sh-api-01', model_code:'Host', attrs:{ status:'normal', ip:'10.0.2.10', hostname:'sh-api-01', os_type:'CentOS 7.9', cpu_cores:8, memory_mb:16384, disk_gb:500, region:'上海' } },
+  { id:'host_007', name:'sh-order-01', model_code:'Host', attrs:{ status:'normal', ip:'10.0.2.20', hostname:'sh-order-01', os_type:'CentOS 7.9', cpu_cores:16, memory_mb:32768, disk_gb:1000, region:'上海' } },
+  { id:'host_008', name:'gz-gw-01', model_code:'Host', attrs:{ status:'offline', ip:'10.0.3.10', hostname:'gz-gw-01', os_type:'CentOS 7.9', cpu_cores:8, memory_mb:16384, disk_gb:500, region:'广州' } },
+  { id:'host_009', name:'gz-product-01', model_code:'Host', attrs:{ status:'normal', ip:'10.0.3.20', hostname:'gz-product-01', os_type:'CentOS 7.9', cpu_cores:16, memory_mb:32768, disk_gb:1000, region:'广州' } },
+]
+const DEMO_EDGES = [
+  { from:'biz_001', to:'set_001', type:'CONTAINS' },
+  { from:'biz_001', to:'set_002', type:'CONTAINS' },
+  { from:'biz_001', to:'set_003', type:'CONTAINS' },
+  { from:'set_001', to:'mod_001', type:'CONTAINS' },
+  { from:'set_001', to:'mod_002', type:'CONTAINS' },
+  { from:'set_001', to:'mod_003', type:'CONTAINS' },
+  { from:'set_001', to:'mod_004', type:'CONTAINS' },
+  { from:'set_002', to:'mod_005', type:'CONTAINS' },
+  { from:'set_002', to:'mod_006', type:'CONTAINS' },
+  { from:'set_003', to:'mod_007', type:'CONTAINS' },
+  { from:'set_003', to:'mod_008', type:'CONTAINS' },
+  { from:'mod_001', to:'host_001', type:'CONTAINS' },
+  { from:'mod_001', to:'host_002', type:'CONTAINS' },
+  { from:'mod_002', to:'host_003', type:'CONTAINS' },
+  { from:'mod_003', to:'host_004', type:'CONTAINS' },
+  { from:'mod_004', to:'host_005', type:'CONTAINS' },
+  { from:'mod_005', to:'host_006', type:'CONTAINS' },
+  { from:'mod_006', to:'host_007', type:'CONTAINS' },
+  { from:'mod_007', to:'host_008', type:'CONTAINS' },
+  { from:'mod_008', to:'host_009', type:'CONTAINS' },
+]
+
+function toggleTopoMock() {
+  topoMockMode.value = !topoMockMode.value
+  if (topoMockMode.value) {
+    store.topology = { nodes: DEMO_NODES, edges: DEMO_EDGES }
+  } else {
+    store.fetchTopology()
+  }
+  bumpTopoKey()
+}
 const bizInstances = ref<any[]>([])
 
 // ─── DR Topology Tab ───
@@ -685,11 +749,13 @@ async function loadGlobalTopo() {
   topoBizFilter.value = ''
   topoClickedNode.value = null
   await store.fetchTopology()
+  bumpTopoKey()
 }
 
 async function loadTopoTree() {
   if (!topoBizFilter.value) {
     await store.fetchTopology()
+    bumpTopoKey()
     return
   }
   store.topologyLoading = true
@@ -699,6 +765,7 @@ async function loadTopoTree() {
   } finally {
     store.topologyLoading = false
   }
+  bumpTopoKey()
 }
 
 function onTopoNodeClick(node: any) {
@@ -880,8 +947,11 @@ onMounted(async () => {
 .cmdb-hero-tab.active { color: #fff; border-bottom-color: #409EFF; }
 
 /* ===== Body ===== */
-.cmdb-body { flex: 1; overflow-y: auto; padding: 0 20px 24px; display: flex; flex-direction: column; }
-.cmdb-section[style*="display: block"] { display: flex !important; flex-direction: column; flex: 1; min-height: 0; }
+.cmdb-body { flex: 1; overflow-y: auto; padding: 0 20px 0; display: flex; flex-direction: column; }
+.cmdb-section.cmdb-section-topo { flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: 0; }
+.cmdb-section-topo > .cmdb-topo-card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.cmdb-topo-card .cmdb-topo-toolbar { flex-shrink: 0; }
+.cmdb-topo-card .cmdb-topo-canvas { flex: 1; min-height: 0; }
 .cmdb-section { padding-top: 16px; }
 
 /* ===== Table Card ===== */
@@ -930,7 +1000,7 @@ onMounted(async () => {
 }
 .cmdb-topo-toolbar-left { display: flex; align-items: center; }
 .cmdb-topo-canvas { flex: 1; min-height: 0; }
-.cmdb-topo-body { min-height: 560px; position: relative; }
+.cmdb-topo-body { flex: 1; min-height: 0; position: relative; }
 .cmdb-topo-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 500px; gap: 16px; color: #909399;

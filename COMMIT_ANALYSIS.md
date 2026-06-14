@@ -2,6 +2,77 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `4ce858ff`
+
+> 提交日期: 2026-06-14 | 提交信息: refactor: migrate topology tree to G6 v5 custom shapes + demo data — 拓扑视图 G6 v5 重构与演示数据
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/src/views/apps/cmdb/components/TopologyCanvas.vue` | 前端 | G6 v4→v5 迁移：TreeGraph→Graph, compactBox→indented, 自定义 Rect+Badge 节点 |
+| `web/src/views/apps/cmdb/index.vue` | 前端 | 新增"演示"按钮 + 21 节点演示数据 + CSS 全高布局修复 |
+| `web/package.json` | 前端 | `@antv/g6` 4.8.25 → 5.1.1 |
+| `web/package-lock.json` | 前端 | 锁定依赖 |
+| `web/yarn.lock` | 前端 | 锁定依赖 |
+
+### 解决
+
+- **问题/背景：** G6 v4 已废弃，不支持自定义图形组合；折叠/展开在 v4 中通过 updateChild + layout() 手动触发不稳定；拓扑视图无数据时完全空白，画布高度固定 560px
+- **办法：** 迁移到 G6 v5 Graph + treeToGraphData + 自定义 Rect 扩展(Badge/状态点)；演示数据按钮填充 Biz→Set→Module→Host 层级树；CSS flex:1 全高布局
+
+### 文档
+
+- **生成文档：**
+  - `docs/cmdb/features/2026-06-14-topology-demo-data.md`
+  - `docs/cmdb/architecture/2026-06-14-topology-g6-v5-migration-refactor.md`
+  - `docs/cmdb/config/2026-06-14-g6-upgrade-config.md`
+
+### 验证
+
+- 改动类型: refactor + feat + chore
+- 清理乱码: 无
+- 工作区状态: 有未跟踪文件（docs/ 与 COMMIT_ANALYSIS.md）
+
+---
+
+## `7434406d`
+
+> 提交日期: 2026-06-12 | 提交信息: chore: cmdb i18n + G6 topology refactor + config tidying — CMDB 国际化、G6 拓扑重构、配置清理
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/src/i18n/pages/cmdb/zh-cn.ts` | 前端 | CMDB 页面全量 i18n 中文 key |
+| `web/src/i18n/pages/cmdb/en.ts` | 前端 | CMDB 页面全量 i18n 英文 key |
+| `web/src/views/apps/cmdb/components/DrTopologyCanvas.vue` | 前端 | 圆形节点 + fitView 高度保护 + i18n 替换 |
+| `web/src/views/apps/cmdb/components/TopologyCanvas.vue` | 前端 | G6 v4 TreeGraph 恢复 + i18n 右键菜单 |
+| `web/src/views/apps/cmdb/index.vue` | 前端 | v-show → v-if 修复拓扑 tab fitView 溢出 + i18n |
+| `web/src/router/route.ts` | 前端 | 新增 /home 路由指向 portal/index.vue |
+| `web/src/settings.ts` | 前端 | 关闭 fast-crud tableColumns 兼容警告 |
+| `web/src/utils/service.ts` | 前端 | API 超时配置调整 |
+| `web/package.json` | 前端 | @antv/g6 锁定 4.8.25 |
+| `backend/application/celery.py` | 后端 | Celery 配置调整 |
+| `backend/application/components/logging.py` | 后端 | 抑制 django_apscheduler.jobstores WARNING |
+| `backend/application/components/rest_framework.py` | 后端 | 移除 SPECTACULAR_SETTINGS |
+| `backend/common/management/commands/seed_reference.py` | 后端 | seed_dr_models 同步路径修正 |
+| `backend/manage.py` | 后端 | 添加 warnings.filterwarnings 抑制 drf-spectacular 干扰 |
+| `web/src/views/system/home/` | 前端 | 删除旧默认首页文件 |
+
+### 解决
+
+- **问题/背景：** CMDB 页面缺少 i18n 支持；G6 5.x 升级后不兼容回退 4.x；拓扑 tab 因 v-show 高度为 0 导致 fitView 溢出；旧首页 `/home` 指向 system/home 而非 portal
+- **办法：** 创建 cmdb i18n zh-cn/en 文件并替换全部中文；G6 版本锁定 4.8.25 并恢复 TreeGraph/Graph 的 v4 API；拓扑 tab 改用 v-if 延迟渲染；route.ts 新增 /home 路由指向 portal
+
+### 验证
+
+- 改动类型: feat + refactor + chore
+- 清理乱码: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## `19e3e393`
 
 > 提交日期: 2026-06-12 | 提交信息: feat: DR baseline — Process CMDB modeling, AI DR topology, CMDB i18n — 业务 DR 基础层建设
