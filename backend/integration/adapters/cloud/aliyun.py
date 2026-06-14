@@ -43,12 +43,14 @@ class AliyunConnector(BaseConnector):
             raise ImportError("请安装 aliyun-python-sdk-core")
 
         from integration.services.credential_service import decrypt_credential
-        cred = self.instance.credentials.first()
-        if not cred:
-            raise ValueError(f"实例 {self.instance.name} 未配置凭证")
 
-        ak = decrypt_credential(cred.encrypted_value)
-        region = self.config.get('region', 'cn-hangzhou')
+        creds = {
+            c.name: decrypt_credential(c.encrypted_value)
+            for c in self.instance.credentials.all()
+        }
+        ak = creds.get("access_key_id", "")
+        sk = creds.get("access_key_secret", "")
+        region = self.config.get("region", "cn-hangzhou")
 
-        self._client = AliyunAcsClient(ak, '', region)
+        self._client = AliyunAcsClient(ak, sk, region)
         return self._client
