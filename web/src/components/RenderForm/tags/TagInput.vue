@@ -8,6 +8,8 @@
       v-if="templateId"
       v-model="showBrowser"
       :template-id="templateId"
+      :graph-nodes="graphNodes"
+      :all-graph-nodes="allGraphNodes"
       @insert="onVarInsert"
     />
   </div>
@@ -26,7 +28,9 @@ const props = withDefaults(defineProps<{
   templateId?: number | null
   nodeId?: string
   tagCode?: string
-}>(), { modelValue: '' })
+  graphNodes?: any[]
+  allGraphNodes?: any[]
+}>(), { modelValue: '', graphNodes: () => [], allGraphNodes: () => [] })
 const emit = defineEmits(['update:modelValue'])
 
 const val = computed({

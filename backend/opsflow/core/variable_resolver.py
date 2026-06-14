@@ -309,6 +309,19 @@ def build_execution_context(execution) -> dict:
         if outputs:
             ctx[nid] = outputs
 
+    # ── 解析被提升的节点输出变量 ──
+    # 全局变量中 source_type="node_output" 的条目其值为空字符串，
+    # 需要从对应节点的实际输出中动态取值。
+    promoted_globals = normalize_global_vars(frozen.get('global_vars', {}))
+    for key, entry in promoted_globals.items():
+        if entry.get("source_type") == "node_output":
+            src_info = entry.get("source_info") or {}
+            src_node = src_info.get("node_id", "")
+            src_field = src_info.get("tag_code", "")
+            if src_node and src_field and src_node in ctx:
+                if isinstance(ctx[src_node], dict) and src_field in ctx[src_node]:
+                    ctx[key] = ctx[src_node][src_field]
+
     # ── 系统变量 (_system.*) ──
     ctx['_system'] = {
         'execution_id': execution.id,

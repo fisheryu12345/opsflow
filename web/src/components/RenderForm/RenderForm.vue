@@ -5,6 +5,7 @@
         v-if="item.type === 'combine' || item.items"
         :config="item"
         :form-data="formData"
+        :context="context"
         @update="handleUpdate"
       />
       <FormItem

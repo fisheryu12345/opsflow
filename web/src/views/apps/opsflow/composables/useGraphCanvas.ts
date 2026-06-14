@@ -211,16 +211,39 @@ export function extractNodeOutputFields(
  *
  * @param nodes 画布节点列表（从 getGraphData 获取）
  * @param store 可选的 Pinia store
+ * @param options 可选配置：currentNodeId + edges 用于上游拓扑过滤
  */
 export function extractAvailableVariables(
   nodes: { id: string; node_type: string; label: string; [key: string]: any }[],
   store?: any,
+  options?: {
+    currentNodeId?: string
+    edges?: { from: string; to: string }[]
+  },
 ): VariableOption[] {
   const result: VariableOption[] = []
 
-  // 上游节点输出
+  // 计算上游节点集合（BFS 反向遍历）
+  const upstreamIds = new Set<string>()
+  if (options?.currentNodeId && options?.edges?.length) {
+    const queue = [options.currentNodeId]
+    const visited = new Set<string>()
+    while (queue.length) {
+      const nid = queue.shift()!
+      for (const e of options.edges) {
+        if (e.to === nid && !visited.has(e.from)) {
+          visited.add(e.from)
+          queue.push(e.from)
+          upstreamIds.add(e.from)
+        }
+      }
+    }
+  }
+
+  // 上游节点输出（当 upstreamIds 非空时只返回上游节点的输出）
   for (const n of nodes) {
     if (n.node_type === 'end_event') continue
+    if (upstreamIds.size > 0 && !upstreamIds.has(n.id)) continue
     const label = n.label || n.id
     const fields = extractNodeOutputFields(n, n.node_type)
     for (const f of fields) {

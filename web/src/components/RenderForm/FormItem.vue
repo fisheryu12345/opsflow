@@ -12,9 +12,6 @@
           :form-data="formData"
           @update:model-value="onChange"
         />
-        <el-tooltip v-if="context?.templateId && config.tag_code && isPromotable" content="Promote to variable" placement="top">
-          <el-button size="small" circle text :icon="PromoteIcon" class="promote-btn" @click="onPromote" />
-        </el-tooltip>
       </div>
       <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
     </div>
@@ -23,8 +20,6 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Upload } from '@element-plus/icons-vue'
 import {
   TagInput, TagSelect, TagTextarea, TagCheckbox,
   TagRadio, TagInt, TagCodeEditor, TagDatetime,
@@ -32,7 +27,6 @@ import {
   TagVariableInput, TagMetaConfig, TagVariableMapping,
   TagResourceSelector, TagCascader,
 } from './tags'
-import { HookVariable } from '/@/views/apps/opsflow/api/templates'
 
 const TAG_MAP: Record<string, any> = {
   input: TagInput,
@@ -71,43 +65,17 @@ const isRequired = computed(() =>
 )
 const isHidden = computed(() => props.config.hidden || false)
 const col = computed(() => Math.min(props.config.col || 12, 12))
-const PromoteIcon = Upload
 
 const tagProps = computed(() => ({
   ...props.config.attrs,
   // Pass render context to tag components (templateId, nodeId, etc.)
   ...(props.context?.templateId ? { templateId: props.context.templateId } : {}),
   ...(props.context?.nodeId ? { nodeId: props.context.nodeId } : {}),
+  ...(props.context?.availableVars ? { availableVars: props.context.availableVars } : {}),
+  ...(props.context?.graphNodes ? { graphNodes: props.context.graphNodes } : {}),
+  ...(props.context?.allGraphNodes ? { allGraphNodes: props.context.allGraphNodes } : {}),
   tagCode: props.tagCode || props.config.tag_code || '',
 }))
-
-// Promote to global variable
-const hooked = ref(false)
-const isPromotable = computed(() =>
-  !!props.context?.templateId &&
-  !!props.context?.nodeId &&
-  !!(props.tagCode || props.config.tag_code) &&
-  !hooked.value
-)
-
-async function onPromote() {
-  const templateId = props.context?.templateId
-  const nodeId = props.context?.nodeId
-  const tagCode = props.tagCode || props.config.tag_code
-  if (!templateId || !nodeId || !tagCode) return
-  const varKey = `\${${tagCode}}`
-  try {
-    await HookVariable(templateId, {
-      var_key: varKey,
-      node_id: nodeId,
-      tag_code: tagCode,
-    })
-    hooked.value = true
-    ElMessage.success('Variable promoted to global')
-  } catch (e: any) {
-    ElMessage.error(e?.msg || 'Promote failed')
-  }
-}
 
 function onChange(val: any) {
   errorMsg.value = ''
@@ -146,15 +114,6 @@ function onChange(val: any) {
 .form-control-inner > :first-child {
   flex: 1;
   min-width: 0;
-}
-.promote-btn {
-  flex-shrink: 0;
-  margin-left: auto;
-  color: #909399;
-  transition: color 0.2s;
-}
-.promote-btn:hover {
-  color: #409EFF;
 }
 .error-msg {
   font-size: 11px;

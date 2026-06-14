@@ -2,6 +2,47 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## `7b2481de`
+
+> 提交日期: 2026-06-14 | 提交信息: feat: node output variable visibility + Promote + VariableBrowser CRUD — 节点输出可见性、提升为全局变量、VariableBrowser 增删改
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/views/mixins/template_variable.py` | 后端 | 修复字段 key 映射(name回退)+移除 cleanup(不自动删变量)+variable_browser API 添加 reference_count |
+| `backend/opsflow/core/variable_resolver.py` | 后端 | build_execution_context() 运行时动态解析被提升的节点输出变量 |
+| `backend/opsflow/core/pipeline_builder/elements.py` | 后端 | 注册 output_schema 字段的 NodeOutput |
+| `web/src/views/.../PropertyPanel.vue` | 前端 | Output Parameters 拆分为独立组件 + Promote 按钮 + contextWithVars 传递 + BFS 提取 |
+| `web/src/views/.../OutputParamSection.vue` | 前端 | **新组件** — Output Parameters 独立区块(97行) |
+| `web/src/views/.../VariableBrowser.vue` | 前端 | 统一变量列表 + CRUD 增删改 + Promote + 前端引用计数 + 上游过滤 + i18n |
+| `web/src/.../TagVariableInput.vue` | 前端 | el-input → el-autocomplete 内联变量建议 |
+| `web/src/components/RenderForm/*.vue` (4 files) | 前端 | 向下游传递 context/graphNodes 链接修复 |
+| `web/src/.../useGraphCanvas.ts` | 前端 | extractAvailableVariables 增加 options 上游过滤 |
+| `web/src/.../DesignCanvas.vue` | 前端 | 移除工具栏 GlobalVariablePanel 按钮(合并到 VariableBrowser) |
+| `web/src/.../GlobalVariablePanel.vue` + `HelpDrawer.vue` | 前端 | el-drawer #title→#header slot 修复弃用警告 |
+| `web/src/i18n/pages/opsflow/en.ts + zh-cn.ts` | 前端 | VariableBrowser 相关中英文键值新增 |
+
+### 解决
+
+- **问题/背景：** 流程画布中 A 节点输出无法被 B 节点引用；VariableBrowser 看不到 node_outputs；添加/删除全局变量不生效或全删；缺少 Promote 入口
+- **办法：** 修复 5 层链路(API key映射→_outputSchema 同步→FormGroup context 透传→上游 BFS 过滤→前端实时引用计数)；后端 cleanup_unused_vars 移除；VariableBrowser 合并 CRUD+Promote
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/debug/2026-06-14-node-output-variable-fixes.md`
+  - `docs/opsflow/architecture/2026-06-14-output-param-section-refactor.md`
+
+### 验证
+
+- 改动类型: feat + fix + refactor
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 待提交 docs ✅
+
+---
+
 ## `4ce858ff`
 
 > 提交日期: 2026-06-14 | 提交信息: refactor: migrate topology tree to G6 v5 custom shapes + demo data — 拓扑视图 G6 v5 重构与演示数据

@@ -37,37 +37,30 @@
               <el-option v-for="v in pluginVersions" :key="v" :label="v" :value="v" />
             </el-select>
           </div>
+        </div>
+
+        <!-- Input Parameters -->
+        <div class="panel-section" v-if="isAtom && pluginFormSchema.length">
+          <div class="section-title">{{ $t("message.properties.inputs") }}</div>
           <!-- 动态表单渲染（传递 templateId + nodeId 供 TagVariableInput 使用） -->
           <div class="prop-row-vertical">
             <RenderForm
               ref="renderFormRef"
               :schema="pluginFormSchema"
               :initial-data="form.plugin_params"
-              :context="{ templateId, nodeId: form.id, tagCode: '' }"
+              :context="contextWithVars"
               @change="onFormChange"
             />
           </div>
         </div>
 
         <!-- Output Parameters -->
-        <div class="panel-section" v-if="isAtom && outputSchema.length">
-          <div class="section-title">{{ $t("message.properties.outputParams") }}</div>
-          <div class="output-list">
-            <div v-for="out in outputSchema" :key="out.name || out.key" class="output-row">
-              <div class="output-top">
-                <code class="output-key">{{ out.name || out.key }}</code>
-                <el-tag size="mini" :type="outputTypeTag(out.type)" effect="plain">{{ out.type }}</el-tag>
-                <el-button size="small" text @click="copyRef(form.id + '.' + (out.name || out.key))">
-                  <el-icon><CopyDocument /></el-icon>
-                </el-button>
-              </div>
-              <span class="output-desc" v-if="out.description">{{ out.description }}</span>
-              <div class="output-ref-hint">
-                Reference: <code>$\{{ form.id }}.{{ out.name || out.key }}</code>
-              </div>
-            </div>
-          </div>
-        </div>
+        <OutputParamSection
+          v-if="isAtom"
+          :schema="outputSchema"
+          :node-id="form.id || ''"
+          :template-id="templateId"
+        />
 
         <!-- Variable References in this node -->
         <div class="panel-section" v-if="varReferences.length">
@@ -261,6 +254,7 @@ import { useI18n } from 'vue-i18n'
 import { Setting, Pointer, WarnTriangleFilled, CircleCheckFilled, InfoFilled, Aim, Connection, Switch, EditPen } from '@element-plus/icons-vue'
 import RenderForm from '/@/components/RenderForm/RenderForm.vue'
 import TagVariableMapping from '/@/components/RenderForm/tags/TagVariableMapping.vue'
+import OutputParamSection from './OutputParamSection.vue'
 import { GetPluginGroups, GetPluginDetail } from '../../api/plugins'
 import { GetTemplates } from '../../api/templates'
 import { useOpsflowStore } from '../../stores/opsflowStore'
@@ -286,6 +280,8 @@ const emit = defineEmits<{
 /* ── Form state (MUST be before any computed/watcher that references them) ── */
 const form = ref<any>({})
 const edgeForm = ref<any>({ condition: '' })
+/** 修订计数器 — 每次 form 属性变更时递增，驱动 contextWithVars 重算 */
+const formRevision = ref(0)
 
 /* ── Condition editor state ── */
 const conditionDialogVisible = ref(false)
@@ -300,6 +296,46 @@ const conditionRefs = computed(() => {
   const m = cond.match(/\$\{([^}]+)\}/g)
   if (m) m.forEach(r => refs.add(r.replace(/\$\{|\}/g, '')))
   return [...refs]
+})
+
+/** BFS 反向遍历 edges 计算上游节点 ID */
+function getUpstreamNodeIds(edges: { from: string; to: string }[], nodeId: string): Set<string> {
+  const ids = new Set<string>()
+  const queue = [nodeId]
+  const visited = new Set<string>()
+  while (queue.length) {
+    const nid = queue.shift()!
+    for (const e of edges) {
+      if (e.to === nid && !visited.has(e.from)) {
+        visited.add(e.from); queue.push(e.from); ids.add(e.from)
+      }
+    }
+  }
+  return ids
+}
+
+/** 传递给 RenderForm 的上下文（含可用变量列表，供 TagVariableInput 内联建议） */
+const contextWithVars = computed(() => {
+  // 依赖 formRevision — 每当 form 属性变更时重算
+  void formRevision.value
+  const base: Record<string, any> = {
+    templateId: props.templateId,
+    nodeId: form.value?.id || '',
+    tagCode: '',
+  }
+  if (form.value?.id && typeof props.getGraphData === 'function') {
+    const gd = props.getGraphData()
+    if (gd?.nodes?.length) {
+      base.availableVars = getAvailableVars(gd.nodes, opsflowStore, {
+        currentNodeId: form.value.id,
+        edges: gd.edges || [],
+      })
+      const upstreamIds = form.value.id && gd.edges?.length ? getUpstreamNodeIds(gd.edges, form.value.id) : null
+      base.graphNodes = upstreamIds ? gd.nodes.filter(n => upstreamIds.has(n.id)) : gd.nodes
+      base.allGraphNodes = gd.nodes
+    }
+  }
+  return base
 })
 
 /* ---------- Variable references detection ---------- */
@@ -364,16 +400,6 @@ async function loadPluginSchema(code: string) {
     outputSchema.value = []
     pluginVersions.value = []
   }
-}
-
-function outputTypeTag(type: string): string {
-  const map: Record<string, string> = { string: 'info', int: '', bool: 'success', object: 'warning' }
-  return map[type] || 'info'
-}
-
-function copyRef(ref: string) {
-  navigator.clipboard.writeText('${' + ref + '}')
-  ElMessage.success(t('message.opsflowPage.copied'))
 }
 
 /* ---------- Subprocess version tracking ---------- */
@@ -509,12 +535,16 @@ async function onPluginChange(code: string) {
   form.value.plugin_params = {}
   if (code) {
     await loadPluginSchema(code)
+    form.value._outputSchema = outputSchema.value
   }
+  formRevision.value++  // 驱动 contextWithVars 重算
   emitUpdate()
 }
 
 function onFormChange(data: Record<string, any>) {
   form.value.plugin_params = data
+  form.value._outputSchema = outputSchema.value  // 保持 _outputSchema 同步
+  formRevision.value++  // 驱动 contextWithVars 重算
   emitUpdate()
 }
 
@@ -525,6 +555,7 @@ function emitUpdate() {
   if (updated.plugin_code) {
     updated.atom_type = updated.plugin_code
   }
+  formRevision.value++
   emit('update', updated)
 }
 
@@ -533,7 +564,10 @@ function openConditionDialog() {
   // 实时从画布获取节点列表
   const graphData = typeof props.getGraphData === 'function' ? props.getGraphData() : null
   const nodes = graphData?.nodes || []
-  availableVars.value = getAvailableVars(nodes, opsflowStore) || []
+  availableVars.value = getAvailableVars(nodes, opsflowStore, {
+    currentNodeId: props.edgeData?.from,
+    edges: graphData?.edges || [],
+  }) || []
   conditionDialogVisible.value = true
 }
 
@@ -584,7 +618,7 @@ loadTemplates()
 @use '/@/styles/global' as *;
 
 .property-panel {
-  width: 280px;
+  width: 375px;
   background: #fff;
   border-left: 1px solid #e4e7ed;
   overflow-y: auto;
@@ -712,17 +746,6 @@ loadTemplates()
   font-family: monospace;
   font-size: 11px;
 }
-/* Output Parameters */
-.output-list { display: flex; flex-direction: column; gap: 6px; }
-.output-row {
-  background: #f8f9fb; border-radius: 6px; padding: 10px 12px;
-  display: flex; flex-direction: column; gap: 4px;
-}
-.output-top { display: flex; align-items: center; gap: 6px; }
-.output-key { font-size: 13px; font-weight: 600; color: #409EFF; font-family: monospace; }
-.output-desc { font-size: 11px; color: #909399; }
-.output-ref-hint { font-size: 11px; color: #909399; }
-.output-ref-hint code { color: #67C23A; background: #f0f9eb; padding: 1px 4px; border-radius: 3px; }
 .panel-empty {
   flex: 1;
   display: flex;

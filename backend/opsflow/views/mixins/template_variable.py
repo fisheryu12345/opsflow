@@ -5,7 +5,7 @@ from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 from rest_framework import status
 
-from opsflow.core.variable_resolver import normalize_global_vars, count_variable_references, cleanup_unused_vars
+from opsflow.core.variable_resolver import normalize_global_vars, count_variable_references
 from opsflow.plugins.registry import get_plugin
 
 
@@ -45,15 +45,11 @@ class TemplateVariableMixin:
 
         if request.method == 'POST':
             template.global_vars = request.data.get('global_vars', {})
-            # ── 无用变量自动清理 ──
-            cleaned = cleanup_unused_vars(template.pipeline_tree or {}, template.global_vars or {})
-            template.global_vars = cleaned
-            # ── 结束 ──
             template.save(update_fields=['global_vars'])
             normalized = normalize_global_vars(template.global_vars)
             return DetailResponse(data=normalized, msg='Global variables updated')
 
-        # PATCH — 合并更新
+        # PATCH — 合并更新（不执行 cleanup，PATCH 是增量操作不应删除已有变量）
         updates = request.data.get('global_vars', {})
         current = dict(template.global_vars or {})
         for key, val in updates.items():
@@ -68,10 +64,6 @@ class TemplateVariableMixin:
                 else:
                     current[key] = val
         template.global_vars = current
-        # ── 无用变量自动清理 ──
-        cleaned = cleanup_unused_vars(template.pipeline_tree or {}, template.global_vars or {})
-        template.global_vars = cleaned
-        # ── 结束 ──
         template.save(update_fields=['global_vars'])
         normalized = normalize_global_vars(template.global_vars)
         return DetailResponse(data=normalized, msg='全局变量已更新')
@@ -83,15 +75,16 @@ class TemplateVariableMixin:
 
         # 1. 全局变量
         normalized = normalize_global_vars(template.global_vars)
+        tree = template.pipeline_tree or {}
         global_vars = [
             {"key": k, "type": v["type"], "source": "global",
              "description": v.get("description", ""),
-             "value": v["value"]}
+             "value": v["value"],
+             "reference_count": count_variable_references(tree, k)}
             for k, v in normalized.items()
         ]
 
         # 2. 节点输出（从插件 output_schema 提取）
-        tree = template.pipeline_tree or {}
         node_outputs = []
         for node in tree.get('nodes', []):
             nid = node.get('id', '')
@@ -101,9 +94,9 @@ class TemplateVariableMixin:
             if plugin_code:
                 cls = get_plugin(plugin_code)
                 if cls:
-                    schema = cls.get_output_schema()
-                    for field in (schema or []):
-                        field_key = field.get('tag_code', field.get('key', ''))
+                    schema = cls.get_output_schema() or []
+                    for field in schema:
+                        field_key = field.get('tag_code', field.get('key', field.get('name', '')))
                         if field_key:
                             node_outputs.append({
                                 "key": f"{nid}.{field_key}",
@@ -112,7 +105,18 @@ class TemplateVariableMixin:
                                 "source": "node_output",
                                 "description": field.get('name', field_key),
                             })
-            # 标准 _result 输出
+                    # 未定义 output_schema 的插件 → 提供通用 stdout/stderr 字段
+                    if not any(field.get('name') or field.get('key') or field.get('tag_code') for field in schema):
+                        existing_keys = {o['key'] for o in node_outputs if o['node_id'] == nid}
+                        for fallback in ('stdout', 'stderr'):
+                            fk = f"{nid}.{fallback}"
+                            if fk not in existing_keys:
+                                node_outputs.append({
+                                    "key": fk, "node_id": nid, "node_label": label,
+                                    "source": "node_output",
+                                    "description": f"Standard {'output' if fallback == 'stdout' else 'error'}",
+                                })
+            # 标准 _result 输出（所有 atom 节点）
             if node_type in ('atom', '', None):
                 node_outputs.append({
                     "key": f"{nid}._result",

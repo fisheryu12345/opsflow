@@ -7,12 +7,14 @@
           v-if="child.type === 'combine' || child.items"
           :config="child"
           :form-data="formData"
+          :context="context"
           @update="(tagCode: string, val: any) => emit('update', tagCode, val)"
         />
         <FormItem
           v-else
           :config="child"
           :value="formData?.[child.tag_code]"
+          :context="context"
           @update="(val: any) => emit('update', child.tag_code, val)"
         />
       </template>
@@ -26,6 +28,7 @@ import FormItem from './FormItem.vue'
 defineProps<{
   config: any
   formData?: Record<string, any>
+  context?: Record<string, any>
 }>()
 
 const emit = defineEmits<{

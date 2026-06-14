@@ -1,7 +1,6 @@
 <template>
   <el-drawer
     v-model="visible"
-    :title="$t('message.helpDrawer.title')"
     size="420px"
     direction="rtl"
     :close-on-click-modal="true"

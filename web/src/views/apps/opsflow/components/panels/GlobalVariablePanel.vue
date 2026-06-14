@@ -45,8 +45,8 @@
     </div>
 
     <!-- Drawer -->
-    <el-drawer v-model="detailVisible" :title="editKey ? editKey : 'Add Variable'" size="420px" class="gv-drawer">
-      <template #title>
+    <el-drawer v-model="detailVisible" size="420px" class="gv-drawer">
+      <template #header>
         <div class="gv-drawer-title">
           <div class="gv-drawer-icon" :class="editKey ? 'icon-edit' : 'icon-add'">
             <el-icon :size="14" color="#fff">

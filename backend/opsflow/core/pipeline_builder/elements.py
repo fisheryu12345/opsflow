@@ -229,4 +229,13 @@ def _create_element(node: dict, outgoing_edges: list, *,
             act.component.inputs[k] = Var(type=Var.PLAIN, value=v)
         else:
             act.component.inputs[k] = Var(type=Var.PLAIN, value=v)
+
+    # 注册 output_schema 字段的 NodeOutput，使下游节点能正确引用
+    if data and plugin_cls and hasattr(plugin_cls, 'get_output_schema'):
+        schema = plugin_cls.get_output_schema()
+        for field in (schema or []):
+            field_key = field.get('name') or field.get('key') or ''
+            if field_key:
+                _register_node_output(data, f"{nid}_{field_key}", nid, field_key)
+
     return act

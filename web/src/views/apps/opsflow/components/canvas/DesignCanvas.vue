@@ -59,10 +59,6 @@
             <el-button size="small" circle type="success" @click="$emit('newTemplate')" :icon="Plus" />
           </el-tooltip>
           <div class="toolbar-divider" />
-          <el-tooltip :show-after="500" :content="$t('message.canvas.globalVars')" placement="bottom">
-            <el-button size="small" circle type="danger" @click="showVarPanel = !showVarPanel" :icon="Coin" data-var-toggle />
-          </el-tooltip>
-          <div class="toolbar-divider" />
           <el-tooltip :show-after="500" :content="$t('message.canvas.submitExec')" placement="bottom">
             <el-button size="small" circle @click="onSubmitExecution" :icon="VideoPlay" class="btn-exec" data-tour="submit-exec" />
           </el-tooltip>
@@ -104,13 +100,6 @@
         :get-graph-data="getGraphData"
         @update="onEdgeUpdate"
       />
-      <!-- Global Variable Panel toggle -->
-      <GlobalVariablePanel
-        ref="varPanelRef"
-        v-if="templateId && showVarPanel"
-        :template-id="templateId"
-        @update="onGlobalVarsUpdated"
-      />
       <!-- Subprocess Status Badge -->
       <SubprocessStatusBadge
         v-if="templateId"
@@ -135,11 +124,10 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, Coin, VideoPlay, CircleCheck, Monitor } from '@element-plus/icons-vue'
+import { CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, VideoPlay, CircleCheck, Monitor } from '@element-plus/icons-vue'
 // X6 CSS — v3 auto-injects CSS via JS, no need for separate CSS imports
 import { useDesignCanvas } from '../../composables/useDesignCanvas'
 import PropertyPanel from '../panels/PropertyPanel.vue'
-import GlobalVariablePanel from '../panels/GlobalVariablePanel.vue'
 import SubprocessStatusBadge from '../badges/SubprocessStatusBadge.vue'
 import ProjectSwitcher from '../common/ProjectSwitcher.vue'
 import SubmitWizardDialog from '../dialogs/SubmitWizardDialog.vue'
@@ -166,7 +154,6 @@ const emit = defineEmits<{
   dryRun: [execId: number]
 }>()
 
-const showVarPanel = ref(false)
 const showExecDialog = ref(false)
 const pipelineData = ref<{ nodes: any[]; edges: any[] }>({ nodes: [], edges: [] })
 
@@ -177,21 +164,6 @@ watch(showExecDialog, (val) => {
   }
 })
 const toolbarCollapsed = ref(false)
-const varPanelRef = ref<HTMLElement | null>(null)
-
-// Click outside GlobalVariablePanel to close
-function onDocMousedown(e: MouseEvent) {
-  if (!showVarPanel.value) return
-  const target = e.target as Node
-  // Don't close if clicking inside the panel or the toggle button
-  const panelEl = varPanelRef.value?.$el as HTMLElement | undefined
-  const toggleBtn = document.querySelector('[data-var-toggle]')
-  if (panelEl && !panelEl.contains(target) && toggleBtn && !toggleBtn.contains(target)) {
-    showVarPanel.value = false
-  }
-}
-onMounted(() => document.addEventListener('mousedown', onDocMousedown))
-onBeforeUnmount(() => document.removeEventListener('mousedown', onDocMousedown))
 
 const templateName = computed(() => {
   if (!props.templateId || !props.templates) return ''
@@ -215,10 +187,6 @@ const publicTemplates = computed(() => {
 
 function onExecCreated(execId: number) {
   emit('submitExecution', execId)
-}
-
-function onGlobalVarsUpdated() {
-  // Variables panel will re-fetch via watcher on templateId
 }
 
 function onSubprocessUpdated() {
