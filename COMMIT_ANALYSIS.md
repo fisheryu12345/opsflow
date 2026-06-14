@@ -2,7 +2,7 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-## `ad7c550c`
+## `f6999f3d`
 
 > 提交日期: 2026-06-14 | 提交信息: fix: runtime node_id.field variable resolution in PluginService — 运行时节点输出变量二次解析
 
