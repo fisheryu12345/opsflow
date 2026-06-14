@@ -58,21 +58,6 @@ EMAIL_TO = []
 OPSFLOW_SCHEDULER_AUTOSTART = True
 
 # ================================================= #
-# *************** OpsAgent LLM 配置  ************** #
-# ================================================= #
-OPSAGENT_API_KEY = ""
-OPSAGENT_BASE_URL = "https://api.deepseek.com/v1"
-OPSAGENT_MODEL = "deepseek-chat"
-
-# ================================================= #
-# *************** Ansible 配置  ******************* #
-# ================================================= #
-ANSIBLE_API_URL = ""
-ANSIBLE_API_TOKEN = ""
-ANSIBLE_TEMPLATE_ID = 1
-ANSIBLE_VERIFY_SSL = False
-
-# ================================================= #
 # *************** Neo4j 图数据库  ***************** #
 # ================================================= #
 NEO4J_PROTOCOL = "bolt"

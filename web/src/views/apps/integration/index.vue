@@ -149,6 +149,9 @@
                            size="small" text type="warning" @click="testAiChat(row)">
                   <el-icon><ChatDotSquare /></el-icon> {{ $t('message.integration.test') }}
                 </el-button>
+                <el-button size="small" text type="danger" @click="deleteInstance(row)">
+                  <el-icon><Delete /></el-icon> {{ $t('message.integration.delete') }}
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -340,7 +343,7 @@
 import { ref, computed, onMounted, markRaw } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { connectorDefinitionApi, connectorInstanceApi, credentialApi, callLogApi, HealthCheck, ToggleInstance, DecryptCredential } from '/@/api/integration/index'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { request } from '/@/utils/service'
 import { Search, Refresh, Plus, Connection, List, Key, Document, Edit, Finished, ChatDotSquare, View, Promotion, Delete } from '@element-plus/icons-vue'
 
@@ -494,7 +497,7 @@ async function loadData() {
   try {
     const [defRes, insRes, credRes, logRes] = await Promise.all([
       connectorDefinitionApi.list({ limit: 1000 }),
-      connectorInstanceApi.list(),
+      connectorInstanceApi.list({ limit: 1000 }),
       credentialApi.list(),
       callLogApi.list({ limit: 50 }),
     ])
@@ -603,6 +606,19 @@ async function deleteCredential(cred: Credential, idx: number) {
   } finally {
     cred._deleting = false
   }
+}
+
+async function deleteInstance(row: any) {
+  try {
+    await ElMessageBox.confirm(
+      t('message.integration.deleteConfirm', { name: row.name }),
+      t('message.integration.confirmDelete'),
+      { type: 'warning', confirmButtonText: t('message.integration.delete'), cancelButtonText: t('message.integration.cancel') },
+    )
+    await connectorInstanceApi.delete(row.id)
+    ElMessage.success(t('message.integration.deleteSuccess'))
+    await loadData()
+  } catch { /* cancelled */ }
 }
 
 async function onSaveEdit() {

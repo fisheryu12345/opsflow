@@ -16,25 +16,44 @@ class TowerClientMixin:
     _config: Optional[dict] = None
 
     def _load_config(self):
-        """从 Django settings / env 加载 Tower 配置"""
-        try:
-            from conf.env import (
-                ANSIBLE_API_URL, ANSIBLE_API_TOKEN,
-                ANSIBLE_TEMPLATE_ID, ANSIBLE_VERIFY_SSL,
+        """从集成中心 AWX 连接器加载 Tower 配置"""
+        cfg = self._load_config_from_integration()
+        if not cfg:
+            raise TowerConfigError(
+                "AWX 连接器未配置。请先在集成中心创建 awx 连接器实例并添加 Token 凭证。"
             )
-            self._config = {
-                "url": (ANSIBLE_API_URL or "").rstrip("/"),
-                "token": ANSIBLE_API_TOKEN or "",
-                "template_id": ANSIBLE_TEMPLATE_ID or 1,
-                "verify_ssl": bool(ANSIBLE_VERIFY_SSL) if "ANSIBLE_VERIFY_SSL" in dir() else False,
+        self._config = cfg
+
+    def _load_config_from_integration(self) -> Optional[dict]:
+        """从集成中心 AWX 连接器加载配置"""
+        try:
+            from integration.models.connector import ConnectorInstance
+            from integration.models.credential import ConnectorCredential
+            from integration.services.credential_service import decrypt_credential
+
+            inst = ConnectorInstance.objects.filter(
+                definition__code='awx', is_active=True
+            ).order_by('-id').first()
+            if not inst:
+                return None
+
+            cfg = inst.config or {}
+            token = ""
+            cred = ConnectorCredential.objects.filter(
+                instance=inst, cred_type__in=['token', 'password', 'custom']
+            ).first()
+            if cred:
+                token = decrypt_credential(cred.encrypted_value) or ""
+
+            return {
+                "url": (cfg.get('url') or cfg.get('api_url') or '').rstrip("/"),
+                "token": token,
+                "template_id": int(cfg.get('template_id', 1)),
+                "verify_ssl": bool(cfg.get('verify_ssl', False)),
             }
-        except (ImportError, AttributeError):
-            self._config = {
-                "url": "",
-                "token": "",
-                "template_id": 1,
-                "verify_ssl": False,
-            }
+        except Exception as e:
+            logger.warning("Failed to load AWX config from Integration Hub: %s", e)
+            return None
 
     def _get_session(self) -> requests.Session:
         """获取可复用的 requests Session（含重试）"""

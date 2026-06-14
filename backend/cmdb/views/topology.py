@@ -94,16 +94,15 @@ class TopologyViewSet(viewsets.GenericViewSet):
             return ErrorResponse(msg='nodes is required', code=4000)
 
         try:
-            from opsflow.core.llm_service import _get_llm_client
-            client, model = _get_llm_client()
+            from integration.services.connector_service import get_ai_connector_or_raise
+            connector = get_ai_connector_or_raise()
 
             topology = {
                 "nodes": [{"id": n["id"], "type": n.get("type", ""), "label": n.get("label", "")} for n in nodes],
                 "edges": [{"from": e.get("from", e.get("source", "")), "to": e.get("to", e.get("target", "")), "type": e.get("type", "")} for e in edges],
             }
 
-            response = client.chat.completions.create(
-                model=model,
+            result = connector.chat(
                 messages=[
                     {"role": "system", "content": DR_LAYOUT_PROMPT},
                     {"role": "user", "content": json.dumps(topology, ensure_ascii=False)},
@@ -111,7 +110,7 @@ class TopologyViewSet(viewsets.GenericViewSet):
                 response_format={"type": "json_object"},
                 temperature=0.1,
             )
-            text = response.choices[0].message.content or "{}"
+            text = result.get("content", "{}") or "{}"
             text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
             result = json.loads(text)
             raw = result.get("layout") or result.get("positions", [])

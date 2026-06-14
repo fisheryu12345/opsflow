@@ -66,22 +66,10 @@ class TaskRunViewSet(viewsets.GenericViewSet):
         except ImportError:
             pass
 
-        # 2) Fallback to env vars / conf.env
-        if not api_key:
-            try:
-                from conf.env import OPSAGENT_API_KEY, OPSAGENT_BASE_URL, OPSAGENT_MODEL
-            except ImportError:
-                OPSAGENT_API_KEY = ''
-                OPSAGENT_BASE_URL = None
-                OPSAGENT_MODEL = 'gpt-4o'
-            api_key = os.environ.get('OPENAI_API_KEY') or OPSAGENT_API_KEY
-            base_url = os.environ.get('OPENAI_BASE_URL') or OPSAGENT_BASE_URL
-            model_name = os.environ.get('OPENAI_MODEL') or os.environ.get('OPENAI_MODEL_NAME') or OPSAGENT_MODEL
-
         if not api_key:
             raise ValueError(
-                "No API key configured. Set up an AI connector in Integration Center, "
-                "or set OPSAGENT_API_KEY in conf/env.py, or OPENAI_API_KEY env var."
+                "No AI connector configured. Set up an AI connector in Integration Center, "
+                "or set OPENAI_API_KEY env var."
             )
 
         # Strip 4-byte UTF-8 (emoji etc.) to avoid MySQL utf8mb4 connection issues

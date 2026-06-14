@@ -613,9 +613,12 @@ class Command(BaseCommand):
                  {"key": "port", "title": "SSH 端口", "type": "int", "default": 22},
              ])},
             {"code": "awx", "name": "AWX / Ansible Tower", "category": "automation",
+             "version": "1.0", "provider_class": "integration.adapters.automation.awx.AWXConnector",
              "config_schema": _schema([
-                 {"key": "host", "title": "AWX 地址", "required": True},
-                 {"key": "port", "title": "端口", "type": "int", "default": 443},
+                 {"key": "api_url", "title": "API URL", "default": "https://localhost:8080/api/v2", "required": True},
+                 {"key": "verify_ssl", "title": "Verify SSL", "type": "bool", "default": False},
+                 {"key": "timeout", "title": "Timeout (s)", "type": "int", "default": 30},
+                 {"key": "template_id", "title": "默认 Template ID", "type": "int", "default": 1},
              ])},
             {"code": "saltstack", "name": "SaltStack", "category": "automation",
              "config_schema": _schema([
@@ -625,6 +628,15 @@ class Command(BaseCommand):
             {"code": "puppet", "name": "Puppet", "category": "automation",
              "config_schema": _schema([
                  {"key": "server_url", "title": "Puppet Server", "required": True},
+             ])},
+            # ─── Database ───
+            {"code": "neo4j", "name": "Neo4j 图数据库", "category": "other",
+             "version": "1.0", "provider_class": "integration.adapters.database.neo4j.Neo4jConnector",
+             "config_schema": _schema([
+                 {"key": "host", "title": "主机地址", "default": "127.0.0.1"},
+                 {"key": "port", "title": "端口", "type": "int", "default": 7687},
+                 {"key": "protocol", "title": "协议", "default": "bolt"},
+                 {"key": "user", "title": "默认用户", "default": "neo4j"},
              ])},
             # ─── CI/CD ───
             {"code": "jenkins", "name": "Jenkins", "category": "cicd",
