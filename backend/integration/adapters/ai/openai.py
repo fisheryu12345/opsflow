@@ -70,7 +70,7 @@ class OpenAIConnector(BaseConnector):
                 },
                 method="GET",
             )
-            timeout = self.config.get('timeout', 10)
+            timeout = int(self.config.get('timeout', 10))
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read().decode())

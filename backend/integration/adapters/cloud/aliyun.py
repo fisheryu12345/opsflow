@@ -23,8 +23,10 @@ class AliyunConnector(BaseConnector):
         """检查阿里云 API 可达性"""
         try:
             client = self.get_client()
-            # 调用 DescribeRegions 测试连通性
-            response = client.describe_regions()
+            # Use SDK request object pattern to call DescribeRegions for connectivity test
+            from aliyunsdkecs.request.v20140526.DescribeRegionsRequest import DescribeRegionsRequest
+            request = DescribeRegionsRequest()
+            response = client.do_action_with_exception(request)
             if response:
                 return HealthResult(is_healthy=True, message="API 可达")
             return HealthResult(is_healthy=False, message="API 返回空响应")
