@@ -26,6 +26,11 @@ from conf.env import *
 SECRET_KEY = "django-insecure--z8%exyzt7e_%i@1+#1mm=%lb5=^fx_57=1@a+_y7bg5-w%)sm"
 # 初始化plugins插件路径到环境变量中
 PLUGINS_PATH = os.path.join(BASE_DIR, "plugins")
+
+# 将 AGENT_SERVER_URL 注入 os.environ（插件通过 os.environ 读取）
+agent_server_url = locals().get("AGENT_SERVER_URL", None)
+if agent_server_url:
+    os.environ["AGENT_SERVER_URL"] = agent_server_url
 sys.path.insert(0, os.path.join(PLUGINS_PATH))
 [
     sys.path.insert(0, os.path.join(PLUGINS_PATH, ele))
@@ -81,6 +86,7 @@ INSTALLED_APPS = [
     "open_api",
     "common",
     "mock_service",
+    "agent_app",
 ]
 
 # ================================================= #

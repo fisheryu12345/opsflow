@@ -1,0 +1,35 @@
+[agent]
+agent_id = ""
+token = "pre-shared-token"
+data_dir = "/var/lib/opsflow-agent"
+
+[server]
+endpoint = "wss://opsflow-agent.example.com:8081/ws"
+api_endpoint = "https://opsflow-agent.example.com:8080"
+backup_endpoint = ""
+fingerprint_verify = true
+
+[heartbeat]
+interval = 30
+jitter = 5
+
+[collector]
+enable = true
+interval = 300
+
+[subproc]
+enable = true
+bin_dir = "/var/lib/opsflow-agent/bin"
+data_dir = "/var/lib/opsflow-agent/data"
+
+[upgrade]
+auto_upgrade = true
+check_interval = 3600
+
+[logging]
+level = "info"
+file = "/var/log/opsflow-agent/agent.log"
+max_size = 100
+max_backups = 7
+max_age = 30
+compress = true

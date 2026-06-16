@@ -82,6 +82,8 @@ urlpatterns = (
             path("api/open-api/", include("open_api.urls")),
             # Open API external URLs (third-party facing) - separate urlconf
             path("api/v2/open/", include("open_api.external_urls")),
+            # Agent URLs
+            path("api/agent/", include("agent_app.urls")),
             # OAuth2/SSO URLs
             path("api/system/oauth/", include("dvadmin.system.views.oauth")),
             re_path(r'^admin/', admin.site.urls),  # Django admin route

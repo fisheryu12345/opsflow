@@ -227,6 +227,8 @@ class JobExecutor:
         # Execute on hosts — 在目标主机上执行
         if executor_type == 'local':
             host_results = self._execute_local(command, timeout)
+        elif executor_type == 'agent':
+            host_results = self._execute_agent(targets, command, timeout)
         else:
             host_results = self._execute_on_hosts(
                 targets, command, account_name, account_password,
@@ -286,6 +288,8 @@ class JobExecutor:
         # Execute — 执行
         if executor_type == 'local':
             results = self._execute_local(command, 300)
+        elif executor_type == 'agent':
+            results = self._execute_agent(targets, command, 300)
         else:
             results = self._execute_on_hosts(targets, command, 'root', '', '', 22, 300)
 
@@ -400,6 +404,58 @@ class JobExecutor:
             return {'stdout': '', 'stderr': 'ssh client not found', 'exit_code': -1}
         except Exception as e:
             return {'stdout': '', 'stderr': str(e), 'exit_code': -1}
+
+    def _execute_agent(self, hosts: list, command: str, timeout: int = 300) -> dict:
+        """Execute command on hosts via Agent — 通过 Agent 执行命令"""
+        import requests
+        from django.conf import settings
+
+        agent_server_url = getattr(settings, 'AGENT_SERVER_URL', 'http://localhost:8080')
+        results = {}
+        overall_exit_code = 0
+
+        for host in hosts:
+            try:
+                resp = requests.post(
+                    f"{agent_server_url}/api/v1/tasks/exec",
+                    json={
+                        "target_host": host,
+                        "script_content": command,
+                        "script_type": "shell",
+                        "timeout": timeout,
+                    },
+                    timeout=timeout + 10,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    results[host] = {
+                        'stdout': data.get('stdout', ''),
+                        'stderr': data.get('stderr', ''),
+                        'exit_code': data.get('exit_code', 0),
+                    }
+                else:
+                    results[host] = {
+                        'stdout': '',
+                        'stderr': f"Agent Server returned HTTP {resp.status_code}: {resp.text}",
+                        'exit_code': -1,
+                    }
+            except Exception as e:
+                results[host] = {'stdout': '', 'stderr': str(e), 'exit_code': -1}
+                overall_exit_code = -1
+
+        summary_lines = []
+        for host, result in results.items():
+            summary_lines.append(f"[{host}] exit_code={result['exit_code']}")
+            if result['stdout']:
+                summary_lines.append(result['stdout'][:500])
+            if result['stderr']:
+                summary_lines.append(f"ERR: {result['stderr'][:200]}")
+
+        return {
+            'results': results,
+            'exit_code': overall_exit_code,
+            'summary': '\n'.join(summary_lines),
+        }
 
     def _execute_local(self, command: str, timeout: int = 300) -> dict:
         """Execute command locally — 本地执行命令"""

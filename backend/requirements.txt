@@ -67,6 +67,7 @@ openpyxl==3.1.2
 orjson==3.11.8
 ormsgpack==1.12.2
 packaging==26.0
+paramiko==5.0.0
 parso==0.8.6
 pillow==12.2.0
 prompt_toolkit==3.0.52

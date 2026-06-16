@@ -348,13 +348,17 @@ class Command(BaseCommand):
         cat = add_catalog("配置管理", "/cmdb-catalog", "iconfont icon-fuwenbenkuang", 7)
         add_leaf("配置管理", "/cmdb", "apps/cmdb/index", "cmdb", "iconfont icon-shuxingtu", 1, cat)
 
+        # ── Catalog: Agent 管理 (sort=8) → Agent pages ──
+        cat = add_catalog("Agent 管理", "/agent-catalog", "iconfont icon-wenducanshu-05", 8)
+        add_leaf("Agent 列表", "/agent", "apps/agent/index", "agent", "iconfont icon-shoujidiannao", 1, cat)
+
         # ── Standalone leaf pages (no parent) ──
-        add_leaf("门户优化", "/portal", "apps/portal/index", "portal", "iconfont icon-tongzhi2", 8)
-        add_leaf("工单系统", "/itsm", "apps/itsm/index", "itsm", "iconfont icon-barcode-qr", 9)
-        add_leaf("监控平台", "/monitor", "apps/monitor/index", "monitor", "iconfont icon-zhongduancanshuchaxun", 10)
-        add_leaf("集成中心", "/interhub", "apps/integration/index", "integration", "iconfont icon-step", 11)
-        add_leaf("作业平台", "/job-platform", "apps/job-platform/index", "job-platform", "iconfont icon-siweidaotu", 12)
-        add_leaf("统一接口", "/open-api", "apps/open-api/index", "open-api", "iconfont icon-caozuorizhi", 13)
+        add_leaf("门户优化", "/portal", "apps/portal/index", "portal", "iconfont icon-tongzhi2", 9)
+        add_leaf("工单系统", "/itsm", "apps/itsm/index", "itsm", "iconfont icon-barcode-qr", 10)
+        add_leaf("监控平台", "/monitor", "apps/monitor/index", "monitor", "iconfont icon-zhongduancanshuchaxun", 11)
+        add_leaf("集成中心", "/interhub", "apps/integration/index", "integration", "iconfont icon-step", 12)
+        add_leaf("作业平台", "/job-platform", "apps/job-platform/index", "job-platform", "iconfont icon-siweidaotu", 13)
+        add_leaf("统一接口", "/open-api", "apps/open-api/index", "open-api", "iconfont icon-caozuorizhi", 14)
 
         self.stdout.write(f">>> App Menus: seeded to match DB structure")
 
