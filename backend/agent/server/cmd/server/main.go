@@ -67,7 +67,8 @@ func main() {
 	}()
 
 	// Start file coordinator
-	fileCoord := file.NewCoordinator(cfg.Store.DataDir, wsServer)
+	fileCoord := file.NewCoordinator(cfg.Store.DataDir, wsServer,
+			fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port))
 
 	// Start REST API server (for Django to forward commands)
 	apiHandler := api.NewHandler(wsServer, fileCoord, fileCoord.ChunkHandler())

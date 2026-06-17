@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" :title="$t('message.agentPage.fileTitle')" width="500px" class="opsflow-dialog" @closed="onClosed">
+  <el-dialog v-model="visible" :title="$t('message.agentPage.fileTitle')" width="500px" class="opsflow-dialog">
     <el-form :label-width="100">
       <el-form-item :label="$t('message.agentPage.fileTarget')">
         <el-tag>{{ target?.hostname }} ({{ target?.ip }})</el-tag>

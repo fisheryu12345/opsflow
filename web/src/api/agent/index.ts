@@ -136,3 +136,35 @@ export function pushInstall(data: {
 }) {
   return request({ url: '/api/agent/agents/push_install/', method: 'post', data })
 }
+
+/** Get processes from Neo4j by host IP */
+export function getAgentProcesses(hostIp: string) {
+  return request({ url: '/api/agent/processes/', method: 'get', params: { host_ip: hostIp } })
+}
+
+/** Register app on agent */
+export function registerAgentApp(agentId: string, data: {
+  name: string
+  command: string
+  user?: string
+  stop_command?: string
+  pid_file?: string
+  auto_restart?: boolean
+}) {
+  return request({ url: '/api/agent/internal/apps/', method: 'post', data: { ...data, action: 'register', agent_id: agentId } })
+}
+
+/** Get registered apps */
+export function getAgentApps(agentId: string) {
+  return request({ url: '/api/agent/internal/apps/', method: 'get', params: { agent_id: agentId } })
+}
+
+/** Set agent config (app_users whitelist etc.) */
+export function setAgentConfig(agentId: number, data: { app_users: string[] }) {
+  return request({ url: `/api/agent/agents/${agentId}/set_config/`, method: 'post', data })
+}
+
+/** Unregister app on agent */
+export function unregisterAgentApp(agentId: string, name: string) {
+  return request({ url: '/api/agent/internal/apps/', method: 'post', data: { action: 'unregister', agent_id: agentId, name } })
+}

@@ -15,7 +15,7 @@ jitter = 5
 
 [collector]
 enable = true
-interval = 300
+interval = 30
 
 [subproc]
 enable = true

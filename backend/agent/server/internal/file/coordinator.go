@@ -78,7 +78,7 @@ func (c *Coordinator) HandlePush(task *PushTask) error {
 
 	// Step 3: Split into chunks (4MB each)
 	chunkSize := 4 * 1024 * 1024
-	chunkCount, err := c.store.SplitFile(task.FileTaskID, tmpFile, chunkSize)
+	chunkCount, _, err := c.store.SplitFile(task.FileTaskID, tmpFile, chunkSize)
 	if err != nil {
 		return fmt.Errorf("split file: %w", err)
 	}

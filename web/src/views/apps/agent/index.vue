@@ -80,9 +80,9 @@
         </el-table-column>
         <el-table-column :label="$t('message.agentPage.colActions')" min-width="210" fixed="right">
           <template #default="{ row }">
-            <el-button text size="small" @click="showDetail(row)">{{ $t('message.agentPage.actionDetail') }}</el-button>
+            <el-button text size="small" @click="showAgentDetail(row)">{{ $t('message.agentPage.actionDetail') }}</el-button>
             <el-button text size="small" @click="openExec(row)">{{ $t('message.agentPage.actionExec') }}</el-button>
-            <el-button text size="small" @click="refreshToken(row)">Token</el-button>
+            <el-button text size="small" @click="refreshToken(row)">{{ $t('message.agentPage.actionRefreshToken') }}</el-button>
             <el-button text size="small" @click="openFilePush(row)">{{ $t('message.agentPage.push') }}</el-button>
           </template>
         </el-table-column>
@@ -96,14 +96,163 @@
     <AgentInstallDialog v-model="showInstall" @installed="onInstalled" />
     <AgentExecDialog v-model="showExec" :target="execTarget" />
     <AgentFilePushDialog v-model="showFile" :target="fileTarget" />
+
+    <!-- Detail Drawer -->
+    <el-drawer v-model="showDetail" :title="$t('message.agentDetailPage.title')" size="600px">
+      <template v-if="detailAgent">
+        <!-- Basic Info -->
+        <div class="g-card ag-detail-card">
+          <div class="g-card-header">{{ $t('message.agentDetailPage.basicInfo') }}</div>
+          <div class="g-card-body ag-detail-grid">
+            <div class="ag-detail-field"><label>{{ $t('message.agentDetailPage.hostname') }}</label><span>{{ detailAgent.hostname }}</span></div>
+            <div class="ag-detail-field"><label>{{ $t('message.agentDetailPage.ip') }}</label><span>{{ detailAgent.ip }}</span></div>
+            <div class="ag-detail-field"><label>{{ $t('message.agentDetailPage.osType') }}</label><span>{{ detailAgent.os_type || '-' }}</span></div>
+            <div class="ag-detail-field"><label>{{ $t('message.agentDetailPage.osVersion') }}</label><span>{{ detailAgent.os_version || '-' }}</span></div>
+            <div class="ag-detail-field"><label>{{ $t('message.agentDetailPage.arch') }}</label><span>{{ detailAgent.arch || '-' }}</span></div>
+            <div class="ag-detail-field"><label>{{ $t('message.agentDetailPage.agentVersion') }}</label><span>{{ detailAgent.agent_version }}</span></div>
+            <div class="ag-detail-field"><label>{{ $t('message.agentDetailPage.status') }}</label><el-tag :type="detailAgent.status === 'online' ? 'success' : 'danger'" size="small">{{ statusLabel(detailAgent.status) }}</el-tag></div>
+            <div class="ag-detail-field"><label>{{ $t('message.agentDetailPage.heartbeat') }}</label><span>{{ formatTime(detailAgent.last_heartbeat) || '-' }}</span></div>
+            <div class="ag-detail-field ag-detail-field-full"><label>{{ $t('message.agentDetailPage.agentId') }}</label><span style="font-family:monospace;font-size:12px">{{ detailAgent.agent_id }}</span></div>
+          </div>
+        </div>
+
+        <!-- Processes -->
+        <div class="g-card ag-detail-card" style="margin-top:16px">
+          <div class="g-card-header">
+            <span>{{ $t('message.agentDetailPage.processes') }}</span>
+            <el-button text size="small" :icon="Refresh" @click="loadProcesses" :loading="procLoading" />
+          </div>
+          <div class="g-card-body" v-loading="procLoading">
+            <el-empty v-if="!processes.length && !procLoading" :description="$t('message.agentDetailPage.noProcesses')" />
+            <el-table v-else :data="processes" stripe size="small" max-height="400">
+              <el-table-column :label="$t('message.agentDetailPage.colName')" prop="name" min-width="100" />
+              <el-table-column :label="$t('message.agentDetailPage.colPid')" prop="pid" width="60" />
+              <el-table-column :label="$t('message.agentDetailPage.colStatus')" width="70">
+                <template #default="{ row }">
+                  <el-tag :type="row.status === 'running' ? 'success' : 'danger'" size="small">{{ $t('message.agentDetailPage.' + (row.status === 'running' ? 'appRunning' : 'appStopped')) }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column :label="$t('message.agentDetailPage.colCpu')" width="65">
+                <template #default="{ row }">{{ row.cpu_percent?.toFixed(1) }}</template>
+              </el-table-column>
+              <el-table-column :label="$t('message.agentDetailPage.colMem')" width="70">
+                <template #default="{ row }">{{ row.memory_mb?.toFixed(0) }}</template>
+              </el-table-column>
+              <el-table-column :label="$t('message.agentDetailPage.colUser')" prop="user" width="80" />
+              <el-table-column :label="$t('message.agentDetailPage.colSource')" prop="source" width="80" />
+              <el-table-column :label="$t('message.agentDetailPage.colPorts')" min-width="100">
+                <template #default="{ row }">
+                  <span v-if="row.listen_addrs" style="font-size:11px">{{ parsePorts(row.listen_addrs) }}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+
+        <!-- Config -->
+        <div class="g-card ag-detail-card" style="margin-top:16px">
+          <div class="g-card-header">
+            <span>{{ $t('message.agentDetailPage.configSection') }}</span>
+          </div>
+          <div class="g-card-body">
+            <div class="ag-detail-field">
+              <label>{{ $t('message.agentDetailPage.appUsersLabel') }}</label>
+              <el-select v-model="configAppUsers" multiple filterable allow-create default-first-option
+                :placeholder="$t('message.agentDetailPage.appUserTip')" style="width:100%" @change="onConfigChanged">
+                <el-option v-for="u in configAppUsers" :key="u" :label="u" :value="u" />
+              </el-select>
+              <div style="margin-top:8px">
+                <el-button type="primary" size="small" :loading="configSaving" @click="saveConfig" :disabled="!configDirty">{{ $t('message.agentDetailPage.saveConfig') }}</el-button>
+                <span v-if="configAppUsers.length === 0" style="font-size:11px;color:#909399;margin-left:8px">{{ $t('message.agentDetailPage.configEmptyHint') }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Registered Apps -->
+        <div class="g-card ag-detail-card" style="margin-top:16px">
+          <div class="g-card-header">
+            <span>{{ $t('message.agentDetailPage.regApps') }}</span>
+            <el-button text size="small" :icon="Plus" @click="showRegApp = true">{{ $t('message.agentDetailPage.regNewApp') }}</el-button>
+          </div>
+          <div class="g-card-body">
+            <el-empty v-if="!regApps.length" :description="$t('message.agentDetailPage.noRegApps')" />
+            <div v-else v-for="app in regApps" :key="app.name" class="ag-reg-item">
+              <div class="ag-reg-item-name">{{ app.name }}</div>
+              <el-tag :type="app.running ? 'success' : 'info'" size="small">{{ app.running ? $t('message.agentDetailPage.appRunning') : $t('message.agentDetailPage.appStopped') }}</el-tag>
+              <span style="color:#999;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ app.command }}</span>
+              <el-button text size="small" type="danger" :icon="Delete" @click="doUnregisterApp(app.name)" />
+            </div>
+          </div>
+        </div>
+      </template>
+    </el-drawer>
+
+    <!-- Register App Dialog -->
+    <el-dialog v-model="showRegApp" :title="$t('message.agentDetailPage.regNewApp')" width="500px" class="opsflow-dialog">
+      <el-form :label-width="120">
+        <el-form-item>
+          <template #label>
+            <el-tooltip :content="$t('message.agentDetailPage.appNameTip')" placement="top">
+              <span>{{ $t('message.agentDetailPage.appName') }} <span style="color:#F56C6C">*</span></span>
+            </el-tooltip>
+          </template>
+          <el-input v-model="regForm.name" />
+        </el-form-item>
+        <el-form-item>
+          <template #label>
+            <el-tooltip :content="$t('message.agentDetailPage.commandTip')" placement="top">
+              <span>{{ $t('message.agentDetailPage.command') }} <span style="color:#F56C6C">*</span></span>
+            </el-tooltip>
+          </template>
+          <el-input v-model="regForm.command" />
+        </el-form-item>
+        <el-form-item>
+          <template #label>
+            <el-tooltip :content="$t('message.agentDetailPage.appUserTip')" placement="top">
+              <span>{{ $t('message.agentDetailPage.appUser') }} <span style="color:#909399;font-size:11px">{{ $t('message.agentDetailPage.optional') }}</span></span>
+            </el-tooltip>
+          </template>
+          <el-input v-model="regForm.user" />
+        </el-form-item>
+        <el-form-item>
+          <template #label>
+            <el-tooltip :content="$t('message.agentDetailPage.stopCommandTip')" placement="top">
+              <span>{{ $t('message.agentDetailPage.stopCommand') }} <span style="color:#909399;font-size:11px">{{ $t('message.agentDetailPage.optional') }}</span></span>
+            </el-tooltip>
+          </template>
+          <el-input v-model="regForm.stop_command" />
+        </el-form-item>
+        <el-form-item>
+          <template #label>
+            <el-tooltip :content="$t('message.agentDetailPage.pidFileTip')" placement="top">
+              <span>{{ $t('message.agentDetailPage.pidFile') }} <span style="color:#909399;font-size:11px">{{ $t('message.agentDetailPage.optional') }}</span></span>
+            </el-tooltip>
+          </template>
+          <el-input v-model="regForm.pid_file" />
+        </el-form-item>
+        <el-form-item>
+          <template #label>
+            <el-tooltip :content="$t('message.agentDetailPage.autoRestartTip')" placement="top">
+              <span>{{ $t('message.agentDetailPage.autoRestart') }}</span>
+            </el-tooltip>
+          </template>
+          <el-switch v-model="regForm.auto_restart" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showRegApp = false">{{ $t('message.agentDetailPage.cancel') }}</el-button>
+        <el-button type="primary" @click="doRegisterApp">{{ $t('message.agentDetailPage.submit') }}</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts" name="AgentPage">
 import { markRaw, ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
-import { Search, Plus, UploadFilled, Refresh, Monitor, SuccessFilled, RemoveFilled, Top } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Plus, UploadFilled, Refresh, Monitor, SuccessFilled, RemoveFilled, Top, Delete } from '@element-plus/icons-vue'
 import * as agentApi from '/@/api/agent'
 import type { AgentInstance, AgentStats, DetailResponse } from '/@/api/agent'
 import AgentInstallDialog from './components/AgentInstallDialog.vue'
@@ -162,8 +311,86 @@ function loadList(): void {
   }).catch(() => { /* ignore */ }).finally(() => { loading.value = false })
 }
 
-function showDetail(row: AgentInstance): void {
-  window.open(`/apps/agent/detail/${row.id}`)
+/* ── Detail Drawer ── */
+const showDetail = ref(false)
+const detailAgent = ref<AgentInstance | null>(null)
+const processes = ref<any[]>([])
+const procLoading = ref(false)
+const regApps = ref<any[]>([])
+const showRegApp = ref(false)
+const regForm = reactive({ name: '', command: '', user: '', stop_command: '', pid_file: '', auto_restart: false })
+const configAppUsers = ref<string[]>([])
+const configSaving = ref(false)
+const configDirty = ref(false)
+
+function onConfigChanged() { configDirty.value = true }
+function saveConfig() {
+  if (!detailAgent.value?.id) return
+  configSaving.value = true
+  agentApi.setAgentConfig(detailAgent.value.id, { app_users: configAppUsers.value }).then(() => {
+    ElMessage.success(t('message.agentDetailPage.configSaved'))
+    configDirty.value = false
+  }).catch(() => { ElMessage.error(t('message.agentDetailPage.configSaveFailed')) }).finally(() => { configSaving.value = false })
+}
+
+function openDetail(row: AgentInstance): void {
+  detailAgent.value = row
+  showDetail.value = true
+  loadProcesses()
+  loadRegApps()
+  const tags = (row as any).tags || {}
+  configAppUsers.value = Array.isArray(tags.app_users) ? tags.app_users : []
+}
+
+function loadProcesses(): void {
+  if (!detailAgent.value?.ip) return
+  procLoading.value = true
+  agentApi.getAgentProcesses(detailAgent.value.ip).then((res: any) => {
+    processes.value = Array.isArray(res.data) ? res.data : Array.isArray(res) ? res : []
+  }).catch(() => { processes.value = [] }).finally(() => { procLoading.value = false })
+}
+
+function loadRegApps(): void {
+  if (!detailAgent.value?.agent_id) return
+  agentApi.getAgentApps(detailAgent.value.agent_id).then((res: any) => {
+    regApps.value = res.data?.apps || []
+  }).catch(() => { regApps.value = [] })
+}
+
+function parsePorts(addrs: any): string {
+  if (!addrs) return '-'
+  try {
+    const list = typeof addrs === 'string' ? JSON.parse(addrs) : addrs
+    return list.map((a: any) => `${a.ip}:${a.port}`).join(', ')
+  } catch { return String(addrs || '-') }
+}
+
+function doRegisterApp(): void {
+  if (!detailAgent.value?.agent_id || !regForm.name) return
+  agentApi.registerAgentApp(detailAgent.value.agent_id, { ...regForm }).then(() => {
+    ElMessage.success(t('message.agentDetailPage.registerSuccess'))
+    showRegApp.value = false
+    regForm.name = ''; regForm.command = ''; regForm.user = ''; regForm.stop_command = ''; regForm.pid_file = ''; regForm.auto_restart = false
+    loadRegApps()
+  }).catch(() => { /* ignore */ })
+}
+
+function doUnregisterApp(name: string): void {
+  if (!detailAgent.value?.agent_id) return
+  ElMessageBox.confirm(
+    t('message.agentDetailPage.unregisterConfirm', { name }),
+    t('message.agentDetailPage.unregisterTitle'),
+    { confirmButtonText: t('message.agentDetailPage.submit'), cancelButtonText: t('message.agentDetailPage.cancel'), type: 'warning' },
+  ).then(() => {
+    agentApi.unregisterAgentApp(detailAgent.value!.agent_id!, name).then(() => {
+      ElMessage.success(t('message.agentDetailPage.unregisterSuccess', { name }))
+      loadRegApps()
+    }).catch(() => { /* ignore */ })
+  }).catch(() => { /* ignore */ })
+}
+
+function showAgentDetail(row: AgentInstance): void {
+  openDetail(row)
 }
 
 function refreshToken(row: AgentInstance): void {
@@ -211,4 +438,14 @@ function formatTime(tm: string): string {
 /* Table */
 .ag-hb-time { font-size:12px; color:$g-text-muted; }
 .ag-pagination { display:flex; justify-content:flex-end; padding:12px 24px; }
+
+/* Detail */
+.ag-detail-card { margin-bottom:0; }
+.ag-detail-grid { display:flex; flex-wrap:wrap; gap:0; }
+.ag-detail-field { width:50%; padding:8px 0; border-bottom:1px solid $g-border-light; }
+.ag-detail-field-full { width:100%; }
+.ag-detail-field label { display:block; font-size:11px; color:$g-text-muted; margin-bottom:2px; }
+.ag-detail-field span { font-size:13px; color:$g-text-primary; }
+.ag-reg-item { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid $g-border-light; }
+.ag-reg-item-name { font-weight:600; min-width:80px; }
 </style>

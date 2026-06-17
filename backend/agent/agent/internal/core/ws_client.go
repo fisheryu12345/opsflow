@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"os"
 	"sync"
 	"time"
 
@@ -232,5 +233,8 @@ func (c *WSClient) writePump(ctx context.Context) {
 }
 
 func getHostname() string {
+	if hostname, err := os.Hostname(); err == nil {
+		return hostname
+	}
 	return "unknown-host"
 }

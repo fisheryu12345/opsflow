@@ -43,6 +43,52 @@ class AgentInstanceViewSet(viewsets.ModelViewSet):
         instance.save(update_fields=['credential_token'])
         return DetailResponse(data={'token': new_token}, msg="Token 已刷新")
 
+    @action(detail=True, methods=['post'])
+    def set_config(self, request, pk=None):
+        """动态下发 agent 采集配置"""
+        instance = self.get_object()
+
+        # Get old app_users for diff
+        old_tags = dict(instance.tags or {})
+        old_app_users = set(old_tags.get('app_users', []) or [])
+
+        app_users = request.data.get('app_users', [])
+        new_app_users = set(app_users or [])
+
+        tags = dict(instance.tags or {})
+        tags['app_users'] = app_users
+        instance.tags = tags
+        instance.save(update_fields=['tags'])
+
+        # Delete Neo4j Process data for removed users
+        removed_users = old_app_users - new_app_users
+        host_ip = instance.ip or ''
+        if removed_users and host_ip:
+            try:
+                from cmdb.services.neo4j_client import graph_driver
+                with graph_driver.session() as session:
+                    for user in removed_users:
+                        result = session.run(
+                            "MATCH (p:Process {host_ip: $host_ip, user: $user}) DETACH DELETE p "
+                            "RETURN count(*) AS deleted",
+                            host_ip=host_ip, user=user,
+                        )
+                        record = result.single()
+                        deleted = record['deleted'] if record else 0
+                        logger.info("Deleted %d Neo4j Process nodes for removed user '%s' on host %s",
+                                    deleted, user, host_ip)
+            except Exception as e:
+                logger.warning("Failed to delete Neo4j data for removed users %s: %s", removed_users, e)
+
+        try:
+            url = os.environ.get('AGENT_SERVER_URL', 'http://127.0.0.1:18080')
+            _requests.post(f'{url}/api/v1/agents/{instance.agent_id}/config',
+                         json={'agent_id': instance.agent_id, 'app_users': app_users}, timeout=5)
+        except Exception as e:
+            logger.warning('Failed to push config to agent %s: %s', instance.agent_id, e)
+        return DetailResponse(data={'app_users': app_users}, msg='Config sent')
+
+
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """仪表盘统计"""
@@ -497,3 +543,33 @@ class AgentUpgradeViewSet(viewsets.ModelViewSet):
     queryset = AgentUpgrade.objects.all()
     serializer_class = AgentUpgradeSerializer
     filter_fields = ['status', 'agent']
+
+
+class AgentProcessViewSet(viewsets.ViewSet):
+    """查询 Agent 上报的进程数据（从 Neo4j）"""
+
+    def list(self, request):
+        host_ip = request.query_params.get('host_ip')
+        agent_id = request.query_params.get('agent_id')
+
+        if not host_ip and agent_id:
+            agent = AgentInstance.objects.filter(agent_id=agent_id).first()
+            if agent:
+                host_ip = agent.ip
+
+        if not host_ip:
+            return ErrorResponse(msg="host_ip or agent_id with valid IP required")
+
+        try:
+            from cmdb.services.neo4j_client import graph_driver
+            with graph_driver.session() as session:
+                result = session.run(
+                    "MATCH (p:Process {host_ip: $host_ip}) "
+                    "RETURN p ORDER BY p.name, p.pid",
+                    host_ip=host_ip,
+                )
+                processes = [dict(rec['p']) for rec in result]
+            return DetailResponse(data=processes)
+        except Exception as e:
+            logger.exception("Failed to query processes from Neo4j")
+            return ErrorResponse(msg=str(e))

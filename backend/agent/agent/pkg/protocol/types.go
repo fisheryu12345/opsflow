@@ -146,3 +146,132 @@ type CollectResultBody struct {
 	Data        any    `json:"data"`
 	Timestamp   int64  `json:"timestamp"`
 }
+
+// ── Process Management Types ──────────────────────────────────────
+
+const (
+	MsgCollectProcess    MessageType = "collect_process"
+	MsgProcessControl    MessageType = "process_control"
+	MsgProcessCtrlResult MessageType = "process_control_result"
+)
+
+// ── App Registry Types ────────────────────────────────────────────
+
+const (
+	MsgAppRegister   MessageType = "app_register"
+	MsgAppUnregister MessageType = "app_unregister"
+	MsgAppList       MessageType = "app_list"
+	MsgAppListResult MessageType = "app_list_result"
+)
+
+// AppRegisterBody is the payload for MsgAppRegister.
+type AppRegisterBody struct {
+	Name        string `json:"name"`
+	Command     string `json:"command"`
+	User        string `json:"user,omitempty"`
+	StopCommand string `json:"stop_command,omitempty"`
+	PIDFile     string `json:"pid_file,omitempty"`
+	AutoRestart bool   `json:"auto_restart"`
+}
+
+// AppUnregisterBody is the payload for MsgAppUnregister.
+type AppUnregisterBody struct {
+	Name string `json:"name"`
+}
+
+// AppListBody is the response for MsgAppListResult.
+type AppListBody struct {
+	Apps     []AppEntryInfo `json:"apps"`
+}
+
+// AppEntryInfo is a single registered app in list responses.
+type AppEntryInfo struct {
+	Name        string `json:"name"`
+	Command     string `json:"command"`
+	User        string `json:"user,omitempty"`
+	StopCommand string `json:"stop_command,omitempty"`
+	PIDFile     string `json:"pid_file,omitempty"`
+	AutoRestart bool   `json:"auto_restart"`
+	Running     bool   `json:"running"`
+	PID         int    `json:"pid,omitempty"`
+}
+
+// ── SetConfig Types ────────────────────────────────────────────
+
+const MsgSetConfig MessageType = "set_config"
+
+type SetConfigBody struct {
+	AppUsers []string `json:"app_users,omitempty"`
+}
+
+// ProcessCollectBody is the payload for MsgCollectResult (collect_type="process").
+type ProcessCollectBody struct {
+	AgentID     string         `json:"agent_id"`
+	CollectType string         `json:"collect_type"`
+	Processes   []ProcessInfo  `json:"processes,omitempty"`
+	Services    []ServiceInfo  `json:"services,omitempty"`
+	Connections []NetConn      `json:"connections,omitempty"`
+	Timestamp   int64          `json:"timestamp"`
+}
+
+// ProcessInfo represents a single running process.
+type ProcessInfo struct {
+	PID         int          `json:"pid"`
+	Name        string       `json:"name"`
+	User        string       `json:"user"`
+	Cmdline     string       `json:"cmdline"`
+	CPUPercent  float64      `json:"cpu_percent"`
+	MemoryMB    float64      `json:"memory_mb"`
+	Status      string       `json:"status"`
+	ListenAddrs []ListenAddr `json:"listen_addrs,omitempty"`
+	Source      string       `json:"source"`           // systemd|agent|discovery
+	Registered  bool         `json:"registered"`
+	ServiceUnit string       `json:"service_unit,omitempty"` // systemd unit name
+}
+
+// ListenAddr represents a TCP listen address.
+type ListenAddr struct {
+	IP       string `json:"ip"`
+	Port     int    `json:"port"`
+	Protocol string `json:"protocol"` // tcp/tcp6
+}
+
+// NetConn represents an active TCP connection.
+type NetConn struct {
+	PID        int    `json:"pid,omitempty"`    // Process PID from ss -tnp
+	RemoteIP   string `json:"remote_ip"`
+	RemotePort int    `json:"remote_port"`
+	LocalPort  int    `json:"local_port"`
+	Protocol   string `json:"protocol"` // tcp/tcp6
+}
+
+// ServiceInfo represents a systemd service unit.
+type ServiceInfo struct {
+	UnitName    string `json:"unit_name"`
+	State       string `json:"state"`     // active/inactive/failed
+	SubState    string `json:"sub_state"` // running/exited/dead
+	MainPID     int    `json:"main_pid"`
+	WorkerPIDs  []int  `json:"worker_pids,omitempty"`
+	Enabled     bool   `json:"enabled"`
+	Description string `json:"description"`
+}
+
+// ProcessControlBody is the payload for MsgProcessControl.
+type ProcessControlBody struct {
+	ControlID   string `json:"control_id"`
+	Action      string `json:"action"`       // start|stop|restart|status
+	ServiceName string `json:"service_name"` // systemd unit or app name
+	PID         *int   `json:"pid,omitempty"`
+	Force       bool   `json:"force,omitempty"`
+	Timeout     int    `json:"timeout,omitempty"` // default 30s
+}
+
+// ProcessCtrlResultBody is the payload for MsgProcessCtrlResult.
+type ProcessCtrlResultBody struct {
+	ControlID string `json:"control_id"`
+	Success   bool   `json:"success"`
+	Action    string `json:"action"`
+	Message   string `json:"message,omitempty"`
+	PID       *int   `json:"pid,omitempty"`
+	Status    string `json:"status,omitempty"` // running|stopped|not_found
+}

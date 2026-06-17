@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -268,6 +269,9 @@ func (s *Server) handleRegister(agent *AgentConn, data []byte) {
 		"version", agent.Version,
 	)
 
+	// Sync to Django
+	go s.syncAgentToDjango(agent)
+
 	// Send register ack
 	ack := map[string]any{
 		"type":    "register_ack",
@@ -338,11 +342,54 @@ func (s *Server) handleCommandResult(agent *AgentConn, data []byte) {
 }
 
 func (s *Server) handleCollectResult(agent *AgentConn, data []byte) {
-	// TODO: forward to Django
-	slog.Debug("collect result received", "agent_id", agent.AgentID)
+	client := &http.Client{Timeout: 5 * time.Second}
+	req, err := http.NewRequest("POST",
+		fmt.Sprintf("%s/api/agent/internal/collect_reports/", s.cfg.Django.BaseURL),
+		bytes.NewReader(data),
+	)
+	if err != nil {
+		slog.Debug("forward collect result failed", "agent_id", agent.AgentID, "error", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		slog.Debug("forward collect result failed", "agent_id", agent.AgentID, "error", err)
+		return
+	}
+	resp.Body.Close()
+	slog.Info("collect result forwarded to Django", "agent_id", agent.AgentID)
 }
 
 // heartbeatChecker periodically checks for stale connections.
+func (s *Server) syncAgentToDjango(agent *AgentConn) {
+	client := &http.Client{Timeout: 5 * time.Second}
+	body := map[string]any{
+		"agent_id":   agent.AgentID,
+		"hostname":   agent.Hostname,
+		"ip":         agent.IP,
+		"os_type":    agent.OS,
+		"os_version": agent.OSVersion,
+		"arch":       "",
+		"agent_version": agent.Version,
+	}
+	data, _ := json.Marshal(body)
+	url := fmt.Sprintf("%s/api/agent/internal/register/", s.cfg.Django.BaseURL)
+	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
+	if err != nil {
+		slog.Debug("sync agent failed", "agent_id", agent.AgentID, "error", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		slog.Debug("sync agent failed", "agent_id", agent.AgentID, "error", err)
+		return
+	}
+	resp.Body.Close()
+	slog.Debug("agent synced to django", "agent_id", agent.AgentID)
+}
+
 func (s *Server) heartbeatChecker(ctx context.Context) {
 	timeout := time.Duration(s.cfg.WS.HeartbeatCheck) * time.Second
 	ticker := time.NewTicker(30 * time.Second)

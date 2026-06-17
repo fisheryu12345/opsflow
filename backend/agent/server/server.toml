@@ -11,17 +11,15 @@ heartbeat_check = 90
 default_interval = 30
 
 [store]
-data_dir = "/var/lib/opsflow-agent/server"
-boltdb_path = "/var/lib/opsflow-agent/server/db/agent-server.db"
+data_dir = "C:/Users/dell/Desktop/opsflow/.agent-server"
 
 [django]
-base_url = "http://localhost:8000"
+base_url = "http://127.0.0.1:8000"
 api_token = ""
 batch_size = 50
 batch_every = 2
 
 [log]
-level = "info"
-file = "/var/log/opsflow-agent/server.log"
-max_size = 100
-max_backups = 7
+level = "debug"
+file = ""
+

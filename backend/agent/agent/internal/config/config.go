@@ -37,8 +37,9 @@ type HeartbeatConfig struct {
 }
 
 type CollectorConfig struct {
-	Enable   bool `yaml:"enable"`
-	Interval int  `yaml:"interval"`
+	Enable   bool     `yaml:"enable"`
+	Interval int      `yaml:"interval"`
+	AppUsers []string `yaml:"app_users"`
 }
 
 type SubprocConfig struct {
@@ -77,7 +78,7 @@ func DefaultConfig() *Config {
 		},
 		Collector: CollectorConfig{
 			Enable:   true,
-			Interval: 300,
+			Interval: 30,
 		},
 		Subproc: SubprocConfig{
 			Enable:  true,
