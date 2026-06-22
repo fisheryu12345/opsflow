@@ -676,8 +676,11 @@ const drGroupList = ref<any[]>([])
 
 function switchDrTab() {
   store.setActiveView('dr')
+  // 仅加载 DR group 列表，不自动加载拓扑 — 用户下拉选择才加载
   if (!drGroupList.value.length) loadDrGroups()
-  if (!drTopoNodes.value.length) loadDrTopology()
+  drTopoNodes.value = []
+  drTopoEdges.value = []
+  selectedDrGroup.value = ''
 }
 
 async function loadDrGroups() {
@@ -695,6 +698,12 @@ async function loadDrGroups() {
 }
 
 async function loadDrTopology() {
+  // 未选择 DR group 时不加载任何拓扑
+  if (!selectedDrGroup.value) {
+    drTopoNodes.value = []
+    drTopoEdges.value = []
+    return
+  }
   loadingDrTopo.value = true
   try {
     const { request } = await import('/@/utils/service')
@@ -710,33 +719,28 @@ async function loadDrTopology() {
       type: e.type || e.label || '',
     }))
 
-    // 全量数据传给组件，由组件根据边类型推断层级
-    let matched = allNodes
-    let finalEdges = allEdges
-
-    if (selectedDrGroup.value) {
-      const gid = selectedDrGroup.value
-      const matchedIds = new Set<string>([gid])
-      // BELONGS_TO → Process
-      for (const e of allEdges) {
-        if (e.to === gid && e.type === 'BELONGS_TO') matchedIds.add(e.from)
-      }
-      // RUNS_ON → Host
-      for (const e of allEdges) {
-        if (matchedIds.has(e.from) && e.type === 'RUNS_ON') matchedIds.add(e.to)
-      }
-      // SITE_CONTAINS → DrSite
-      for (const e of allEdges) {
-        if (matchedIds.has(e.to) && e.type === 'SITE_CONTAINS') matchedIds.add(e.from)
-      }
-      matched = allNodes.filter((n: any) => matchedIds.has(n.id))
-      finalEdges = allEdges.filter((e: any) =>
-        matchedIds.has(e.from) && matchedIds.has(e.to)
-      )
+    const gid = selectedDrGroup.value
+    const matchedIds = new Set<string>([gid])
+    // PROTECTED_BY → Application（兼容旧 BELONGS_TO）
+    for (const e of allEdges) {
+      if (e.to === gid && (e.type === 'PROTECTED_BY' || e.type === 'BELONGS_TO')) matchedIds.add(e.from)
     }
-
-    drTopoNodes.value = matched
-    drTopoEdges.value = finalEdges
+    // HAS_PROCESS → Process
+    for (const e of allEdges) {
+      if (matchedIds.has(e.from) && e.type === 'HAS_PROCESS') matchedIds.add(e.to)
+    }
+    // RUNS_ON → Host
+    for (const e of allEdges) {
+      if (matchedIds.has(e.from) && e.type === 'RUNS_ON') matchedIds.add(e.to)
+    }
+    // SITE_CONTAINS → DrSite
+    for (const e of allEdges) {
+      if (matchedIds.has(e.to) && e.type === 'SITE_CONTAINS') matchedIds.add(e.from)
+    }
+    drTopoNodes.value = allNodes.filter((n: any) => matchedIds.has(n.id))
+    drTopoEdges.value = allEdges.filter((e: any) =>
+      matchedIds.has(e.from) && matchedIds.has(e.to)
+    )
   } catch {
     drTopoNodes.value = []
     drTopoEdges.value = []

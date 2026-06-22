@@ -76,6 +76,13 @@ ASSOCIATION_TYPES = [
         "dest_to_src_note": "主机属于站点",
         "direction": "src_to_dest",
     },
+    {
+        "asst_id": "HAS_PROCESS",
+        "name": "包含进程",
+        "src_to_dest_note": "应用包含进程",
+        "dest_to_src_note": "进程属于应用",
+        "direction": "src_to_dest",
+    },
 ]
 
 # ── Process Model Fields ─────────────────────────────────────
@@ -116,6 +123,17 @@ DRGROUP_FIELDS = [
      ["active", "failed_over", "recovering", "disconnected"], ""),
 ]
 
+# ── Application Model Fields ─────────────────────────────────
+
+APPLICATION_FIELDS = [
+    ("name", "应用名称", "string", True, "", None, ""),
+    ("host_ip", "主机 IP", "string", True, "", None, ""),
+    ("command", "启动命令", "string", False, "", None, ""),
+    ("status", "应用状态", "enum", True, "running", ["running", "stopped"], ""),
+    ("auto_restart", "自动重启", "boolean", False, False, None, ""),
+    ("registered", "已注册", "boolean", False, True, None, ""),
+]
+
 # ── DR Phase 2: Mock DrSite/DrGroup Data ─────────────────────
 
 MOCK_DRSITES = [
@@ -133,6 +151,49 @@ MOCK_DRGROUPS = [
 
 MOCK_FAILOVER = [
     ("主站-北京", "灾备站-上海"),
+]
+
+MOCK_APPLICATIONS = [
+    {"name": "nginx", "host_ip": "192.168.1.10", "command": "/usr/sbin/nginx",
+     "status": "running", "processes": ["nginx@host-web-01"]},
+    {"name": "order-service", "host_ip": "192.168.1.20", "command": "/usr/lib/jvm/java-11/bin/java -jar /opt/app/order-service.jar",
+     "status": "running", "processes": ["order-service@host-app-01"]},
+    {"name": "payment-service", "host_ip": "192.168.1.21", "command": "/usr/lib/jvm/java-11/bin/java -jar /opt/app/payment-service.jar",
+     "status": "running", "processes": ["payment-service@host-app-02"]},
+    {"name": "mysqld", "host_ip": "192.168.1.30", "command": "/usr/sbin/mysqld",
+     "status": "running", "processes": ["mysqld@host-db-01"]},
+    {"name": "redis-server", "host_ip": "192.168.1.40", "command": "/usr/bin/redis-server",
+     "status": "running", "processes": ["redis-server@host-cache-01"]},
+    {"name": "rabbitmq-server", "host_ip": "192.168.1.50", "command": "/usr/sbin/rabbitmq-server",
+     "status": "running", "processes": ["rabbitmq-server@host-mq-01"]},
+    {"name": "prometheus", "host_ip": "192.168.1.60", "command": "/usr/local/bin/prometheus",
+     "status": "running", "processes": ["prometheus@host-monitor-01"]},
+    # DR standby apps (_cont suffix convention)
+    {"name": "nginx_cont", "host_ip": "192.168.2.10", "command": "/usr/sbin/nginx",
+     "status": "stopped", "processes": ["nginx@host-dr-web-01"]},
+    {"name": "order-service_cont", "host_ip": "192.168.2.20", "command": "/usr/lib/jvm/java-11/bin/java -jar /opt/app/order-service.jar",
+     "status": "stopped", "processes": ["order-service@host-dr-app-01"]},
+    {"name": "payment-service_cont", "host_ip": "192.168.2.20", "command": "/usr/lib/jvm/java-11/bin/java -jar /opt/app/payment-service.jar",
+     "status": "stopped", "processes": ["payment-service@host-dr-app-01"]},
+    {"name": "mysqld_cont", "host_ip": "192.168.2.30", "command": "/usr/sbin/mysqld",
+     "status": "stopped", "processes": ["mysqld@host-dr-db-01"]},
+    {"name": "redis-server_cont", "host_ip": "192.168.2.30", "command": "/usr/bin/redis-server",
+     "status": "stopped", "processes": ["redis-server@host-dr-db-01"]},
+    {"name": "rabbitmq-server_cont", "host_ip": "192.168.2.50", "command": "/usr/sbin/rabbitmq-server",
+     "status": "stopped", "processes": ["rabbitmq-server@host-dr-mq-01"]},
+]
+
+MOCK_DRGROUP_APPLICATIONS = [
+    # 核心交易链路: nginx → order-service → mysqld/redis/rabbitmq
+    ("核心交易链路", "nginx", "192.168.1.10"),
+    ("核心交易链路", "order-service", "192.168.1.20"),
+    ("核心交易链路", "mysqld", "192.168.1.30"),
+    ("核心交易链路", "redis-server", "192.168.1.40"),
+    ("核心交易链路", "rabbitmq-server", "192.168.1.50"),
+    # 支付服务链路: nginx → payment-service → mysqld
+    ("支付服务链路", "nginx", "192.168.2.10"),
+    ("支付服务链路", "payment-service", "192.168.1.21"),
+    ("支付服务链路", "mysqld", "192.168.1.30"),
 ]
 
 MOCK_DRGROUP_PROCESSES = [
@@ -273,6 +334,8 @@ class Command(BaseCommand):
         self._seed_model_associations(options)
         self._seed_drsite_model(options)
         self._seed_drgroup_model(options)
+        self._seed_application_model(options)
+        self._seed_application_associations(options)
 
         if options.get("mock"):
             self.stdout.write("  Cleaning old mock data...")
@@ -460,6 +523,74 @@ class Command(BaseCommand):
                 f_count += 1
         self.stdout.write(f"  + DrGroup Fields: {f_count}")
 
+    def _seed_application_model(self, options):
+        """创建 Application 模型定义及字段"""
+        from cmdb.models import Classification, ModelDefinition, ModelField
+
+        cls_obj, _ = Classification.objects.get_or_create(
+            cls_id="bk_uncategorized",
+            defaults={"name": "未分类"},
+        )
+        md, created = ModelDefinition.objects.get_or_create(
+            code="Application",
+            defaults={
+                "name": "应用",
+                "classification": cls_obj,
+                "description": "注册应用 — 进程管理的业务层抽象",
+                "is_builtin": False,
+                "source": "custom",
+            },
+        )
+        self.stdout.write(f"  + ModelDefinition 'Application': {'created' if created else 'already exists'}")
+
+        f_count = 0
+        for name, label, ftype, required, default, enum_opts, unit in APPLICATION_FIELDS:
+            obj, created = ModelField.objects.get_or_create(
+                model_definition=md, name=name,
+                defaults={"label": label, "field_type": ftype, "required": required,
+                          "default_value": default if default != "" else None,
+                          "options": enum_opts, "unit": unit},
+            )
+            if created:
+                f_count += 1
+        self.stdout.write(f"  + Application Fields: {f_count}")
+
+    def _seed_application_associations(self, options):
+        """创建 Application 关联: HAS_PROCESS→Process, PROTECTED_BY→DrGroup, CALLS→Application"""
+        from cmdb.models import ModelDefinition, AssociationType, ModelAssociation
+
+        app_md = ModelDefinition.objects.filter(code="Application").first()
+        proc_md = ModelDefinition.objects.filter(code="Process").first()
+        drg_md = ModelDefinition.objects.filter(code="DrGroup").first()
+
+        if not app_md:
+            self.stdout.write(self.style.WARNING("  ! Application model not found"))
+            return
+
+        associations = [
+            (app_md, proc_md, "HAS_PROCESS", "1:n", "none"),
+            (app_md, drg_md, "PROTECTED_BY", "n:1", "none"),
+            (app_md, app_md, "CALLS", "n:n", "none"),
+        ]
+
+        count = 0
+        for src, dst, asst_id, mapping, on_delete in associations:
+            at = AssociationType.objects.filter(asst_id=asst_id).first()
+            if not at:
+                self.stdout.write(self.style.WARNING(f"  ! AssociationType '{asst_id}' not found"))
+                continue
+            if not dst:
+                self.stdout.write(self.style.WARNING(f"  ! Destination model not found for {asst_id}"))
+                continue
+
+            _, created = ModelAssociation.objects.get_or_create(
+                source_model=src, target_model=dst, association_type=at,
+                defaults={"mapping": mapping, "on_delete": on_delete, "is_pre": True},
+            )
+            if created:
+                count += 1
+        self.stdout.write(f"  + Application Associations: {count} created")
+
     def _clean_mock_neo4j(self):
         """清理旧的 Mock 数据"""
         from cmdb.services.neo4j_client import graph_driver
@@ -593,6 +724,61 @@ class Command(BaseCommand):
 
         self.stdout.write(f"  + CALLS relations: {calls_created}")
 
+        # 创建 Mock Application 节点 + HAS_PROCESS 关系
+        app_created = 0
+        has_proc_count = 0
+        for app in MOCK_APPLICATIONS:
+            new_aid = str(uuid4())
+            with graph_driver.session() as session:
+                try:
+                    session.run(
+                        "MERGE (a:Application {name: $name, host_ip: $host_ip}) "
+                        "ON CREATE SET a.instance_id = $iid, a.__model_code = 'Application', "
+                        "  a.__created_at = toString(datetime()), a.command = $cmd, "
+                        "  a.status = $status, a.auto_restart = false, a.registered = true "
+                        "ON MATCH SET a.__model_code = 'Application', a.status = $status "
+                        "RETURN a.instance_id",
+                        name=app["name"], host_ip=app["host_ip"], iid=new_aid,
+                        cmd=app["command"], status=app["status"],
+                    )
+                    app_created += 1
+                except Exception as e:
+                    self.stdout.write(self.style.WARNING(f"    Skip Application {app['name']}@{app['host_ip']}: {e}"))
+
+                # HAS_PROCESS → 关联 Process
+                for proc_key in app.get("processes", []):
+                    pid = created_ids.get(proc_key)
+                    if pid:
+                        try:
+                            session.run(
+                                "MATCH (a:Application {name: $name, host_ip: $host_ip}) "
+                                "MATCH (p:Process {instance_id: $pid}) "
+                                "MERGE (a)-[:HAS_PROCESS]->(p)",
+                                name=app["name"], host_ip=app["host_ip"], pid=pid,
+                            )
+                            has_proc_count += 1
+                        except Exception:
+                            pass
+
+        self.stdout.write(f"  + Applications: {app_created} nodes, {has_proc_count} HAS_PROCESS links")
+
+        # 创建 Application 级 CALLS（基于 Process CALLS 追查到 Application）
+        app_calls = 0
+        with graph_driver.session() as session:
+            result = session.run("""
+                MATCH (src_proc)-[:CALLS]->(dst_proc)
+                MATCH (src_app:Application)-[:HAS_PROCESS]->(src_proc)
+                MATCH (dst_app:Application)-[:HAS_PROCESS]->(dst_proc)
+                WHERE src_app.host_ip <> dst_app.host_ip
+                   OR (src_app.host_ip = dst_app.host_ip AND src_app.name <> dst_app.name)
+                MERGE (src_app)-[ac:CALLS]->(dst_app)
+                ON CREATE SET ac.__created_at = toString(datetime())
+                RETURN count(DISTINCT ac) AS cnt
+            """)
+            app_calls = result.single()["cnt"]
+
+        self.stdout.write(f"  + Application CALLS: {app_calls} relationships")
+
     def _seed_mock_drsites(self, options):
         """创建 Mock DrSite 实例到 Neo4j + SITE_CONTAINS + FAILOVER_TO"""
         self.stdout.write("  Creating mock DrSite data...")
@@ -658,12 +844,10 @@ class Command(BaseCommand):
         self.stdout.write(f"  + DrSites: {len(site_ids)} created")
 
     def _seed_mock_drgroups(self, options):
-        """创建 Mock DrGroup 实例 + BELONGS_TO"""
+        """创建 Mock DrGroup 实例 + PROTECTED_BY（Application→DrGroup）"""
         self.stdout.write("  Creating mock DrGroup data...")
         from cmdb.services.neo4j_client import graph_driver
-        from cmdb.services.association_service import AssociationService
 
-        asst = AssociationService()
         group_ids = {}
 
         for grp in MOCK_DRGROUPS:
@@ -685,37 +869,20 @@ class Command(BaseCommand):
                     group_ids[grp["name"]] = gid
                     self.stdout.write(f"    DrGroup: {grp['name']} → {gid[:8]}...")
 
-        # 查询 Process 节点，匹配 BELONGS_TO 和 PROTECTED_BY
-        from cmdb.services.node_service import NodeService as NS
-        proc_ns = NS("Process")
-        try:
-            all_procs = proc_ns.list({}, page_size=500).get("items", [])
-        except Exception:
-            all_procs = []
-
-        name_to_group = {}
-        for grp_name, proc_pattern in MOCK_DRGROUP_PROCESSES:
-            name_to_group.setdefault(proc_pattern, []).append(grp_name)
-
-        # 使用 Cypher MERGE 创建 BELONGS_TO 关系（幂等，重跑不报错）
+        # PROTECTED_BY: Application → DrGroup
         with graph_driver.session() as session:
-            for proc in all_procs:
-                pname = proc.get("name", "")
-                matched_groups = name_to_group.get(pname, [])
-                pid = proc.get("instance_id", "")
-                if not pid:
+            for grp_name, app_name, app_host_ip in MOCK_DRGROUP_APPLICATIONS:
+                gid = group_ids.get(grp_name)
+                if not gid:
                     continue
-                for grp_name in matched_groups:
-                    gid = group_ids.get(grp_name)
-                    if gid:
-                        try:
-                            session.run(
-                                "MATCH (p:Process {instance_id: $pid}) "
-                                "MATCH (g:DrGroup {instance_id: $gid}) "
-                                "MERGE (p)-[:BELONGS_TO]->(g)",
-                                pid=pid, gid=gid,
-                            )
-                        except Exception:
-                            pass
+                try:
+                    session.run(
+                        "MATCH (a:Application {name: $name, host_ip: $host_ip}) "
+                        "MATCH (g:DrGroup {instance_id: $gid}) "
+                        "MERGE (a)-[:PROTECTED_BY]->(g)",
+                        name=app_name, host_ip=app_host_ip, gid=gid,
+                    )
+                except Exception:
+                    pass
 
-        self.stdout.write(f"  + DrGroups: {len(group_ids)} created, BELONGS_TO relationships created")
+        self.stdout.write(f"  + DrGroups: {len(group_ids)} created, PROTECTED_BY relationships created")

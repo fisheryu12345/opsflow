@@ -3,3 +3,4 @@
 ./reference/
 ./venv/
 backend/agent/build/
+backend/logs/

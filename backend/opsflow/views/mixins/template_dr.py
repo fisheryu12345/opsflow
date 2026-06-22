@@ -39,52 +39,50 @@ def preview_dr_topology(request):
         return ErrorResponse(msg="dr_group_id is required", code=4000)
 
     topology = get_dr_group_topology(dr_group_id)
-    processes = topology.get("processes", [])
+    applications = topology.get("applications", [])
     calls = topology.get("calls", [])
 
     # 去重
     seen = set()
-    unique_processes = []
-    for p in processes:
-        pid = p.get("instance_id", "")
-        if pid and pid not in seen:
-            seen.add(pid)
-            unique_processes.append(p)
+    unique_apps = []
+    for a in applications:
+        aid = a.get("instance_id", "")
+        if aid and aid not in seen:
+            seen.add(aid)
+            unique_apps.append(a)
 
     primary = []
     standby = []
-    for p in unique_processes:
-        hid = str(p.get("host_instance_id", "") or "")
+    for a in unique_apps:
+        aname = str(a.get("name", "unknown"))
+        host_ip = str(a.get("host_ip", "") or "")
         entry = {
-            "id": p.get("instance_id", "")[:12],
-            "name": p.get("name", "unknown"),
-            "host": hid,
-            "status": p.get("status", ""),
+            "id": a.get("instance_id", "")[:12],
+            "name": aname,
+            "host": host_ip,
+            "status": a.get("status", ""),
         }
-        if "dr" in hid.lower():
+        if aname.endswith("_cont"):
+            standby.append(entry)
+        elif "dr" in host_ip.lower():
             standby.append(entry)
         else:
             primary.append(entry)
 
-    # 建立 pid → process 查找表（含 listen 端口信息）
-    proc_map = {}
-    for p in unique_processes:
-        pid = p.get("instance_id", "")
-        pname = p.get("name", "unknown")
-        addrs = p.get("listen_addresses", "[]")
-        if isinstance(addrs, str):
-            try:
-                addrs = json.loads(addrs)
-            except (json.JSONDecodeError, TypeError):
-                addrs = []
-        ports = ",".join(str(a.get("port", "")) for a in addrs if a.get("port"))
+    # 建立 app_id → app 查找表（含 listen 端口信息）
+    app_map = {}
+    for a in unique_apps:
+        aid = a.get("instance_id", "")
+        aname = a.get("name", "unknown")
+        addrs = a.get("listen_addrs", [])
+        ports = ",".join(str(addr.get("port", "")) for addr in addrs if addr.get("port"))
         port_str = f":{ports}" if ports else ""
-        full_hid = p.get("host_instance_id", "") or ""
-        host_tag = full_hid.replace("host-", "") if full_hid.startswith("host-") else full_hid.split("-")[-1][:8]
-        proc_map[pid] = f"{pname}{port_str}({host_tag})"
+        host_ip = a.get("host_ip", "") or ""
+        host_tag = host_ip.split(".")[-1] if host_ip else ""
+        app_map[aid] = f"{aname}{port_str}({host_tag})"
 
-    # 去重 CALLS — 只显示 DrGroup 内的进程间调用
-    dr_group_ids = {p.get("instance_id", "") for p in unique_processes}
+    # 去重 CALLS
+    dr_group_ids = {a.get("instance_id", "") for a in unique_apps}
     seen_calls = set()
     unique_calls = []
     for c in calls:
@@ -96,8 +94,8 @@ def preview_dr_topology(request):
         if key not in seen_calls:
             seen_calls.add(key)
             unique_calls.append({
-                "from": proc_map.get(src, src[:12]),
-                "to": proc_map.get(dst, dst[:12]),
+                "from": app_map.get(src, src[:12]),
+                "to": app_map.get(dst, dst[:12]),
             })
 
     return DetailResponse(data={
@@ -125,31 +123,30 @@ def create_dr_pipeline(request):
 
     # 1. 查询 Neo4j 拓扑
     topology = get_dr_group_topology(dr_group_id)
-    processes = topology.get("processes", [])
-    if not topology or not processes:
-        logger.warning("[DR] No processes found for DrGroup=%s, topology=%s", dr_group_id, topology)
-        return ErrorResponse(msg=f"DR 组未找到或未关联进程（共 {len(processes)} 个进程）", code=4000)
+    applications = topology.get("applications", [])
+    if not topology or not applications:
+        logger.warning("[DR] No applications found for DrGroup=%s, topology=%s", dr_group_id, topology)
+        return ErrorResponse(msg=f"DR 组未找到或未关联应用（共 {len(applications)} 个应用）", code=4000)
 
     topology_desc = build_topology_description(topology)
-    logger.info("[DR] Topology for DrGroup=%s: %d processes, topology_desc length=%d",
-                dr_group_id, len(processes), len(topology_desc))
+    logger.info("[DR] Topology for DrGroup=%s: %d applications, topology_desc length=%d",
+                dr_group_id, len(applications), len(topology_desc))
 
     # 2. 调用 LLM 生成 DR pipeline
     try:
         from opsflow.core.llm_service import _get_llm_client
-        client, model = _get_llm_client()
+        connector = _get_llm_client()
 
         messages = [
             {"role": "system", "content": DR_SYSTEM_PROMPT},
             {"role": "user", "content": f"请为以下 DR 组生成切换 Pipeline：\n\n{topology_desc}"},
         ]
-        response = client.chat.completions.create(
-            model=model,
+        result = connector.chat(
             messages=messages,
             response_format={"type": "json_object"},
             temperature=0.1,
         )
-        text = response.choices[0].message.content or "{}"
+        text = result.get('content') or "{}"
         text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
         pipeline = json.loads(text)
 

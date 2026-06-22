@@ -6,6 +6,7 @@
 import json
 import logging
 import os
+from uuid import uuid4
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -286,6 +287,13 @@ def _sync_processes_to_cmdb(agent_id: str, data: dict):
                 except Exception as e:
                     logger.warning("CALLS matching failed for agent %s: %s", agent_id, e)
 
+            # ── Application node sync from registered_apps ──
+            if host_ip:
+                try:
+                    _sync_applications(session, agent_id, host_ip, processes, now)
+                except Exception as e:
+                    logger.warning("Application sync failed for agent %s: %s", agent_id, e)
+
         logger.info("CMDB Process sync: agent=%s processes=%d host_ip=%s",
                      agent_id, len(processes), host_ip)
 
@@ -345,11 +353,91 @@ def _match_calls_topology(session, host_ip, processes, connections, now):
                 now=now, rem_port=rem_port, protocol=conn.get('protocol', 'tcp'),
             )
             created += 1
+
+            # Also create Application-level CALLS
+            try:
+                src_app = session.run(
+                    "MATCH (a:Application)-[:HAS_PROCESS]->(p:Process {host_ip: $host_ip, pid: $pid}) "
+                    "RETURN a.name AS aname, a.host_ip AS ahost LIMIT 1",
+                    host_ip=host_ip, pid=src_pid,
+                ).single()
+                dst_app = session.run(
+                    "MATCH (a:Application)-[:HAS_PROCESS]->(p:Process {host_ip: $host_ip, pid: $pid}) "
+                    "RETURN a.name AS aname, a.host_ip AS ahost LIMIT 1",
+                    host_ip=dst['host_ip'], pid=dst['pid'],
+                ).single()
+                if src_app and dst_app and (src_app['aname'] != dst_app['aname'] or src_app['ahost'] != dst_app['ahost']):
+                    session.run(
+                        "MATCH (src:Application {name: $sname, host_ip: $shost}) "
+                        "MATCH (dst:Application {name: $dname, host_ip: $dhost}) "
+                        "MERGE (src)-[r:CALLS]->(dst) "
+                        "SET r.__updated_at = $now, r.remote_port = $port",
+                        sname=src_app['aname'], shost=src_app['ahost'],
+                        dname=dst_app['aname'], dhost=dst_app['ahost'],
+                        now=now, port=rem_port,
+                    )
+            except Exception:
+                pass
         except Exception:
             pass
 
     if created:
         logger.info("CALLS topology: created %d relationships for host %s", created, host_ip)
+
+
+def _sync_applications(session, agent_id, host_ip, processes, now):
+    """从 registered_apps 同步 Application 节点 + HAS_PROCESS 关系"""
+    try:
+        from .models import AgentInstance
+    except ImportError:
+        return
+
+    agent = AgentInstance.objects.filter(agent_id=agent_id).first()
+    if not agent:
+        return
+    tags = agent.tags or {}
+    registered_apps = tags.get('registered_apps', [])
+    if not registered_apps:
+        return
+
+    for app in registered_apps:
+        app_name = app.get('name', '')
+        if not app_name:
+            continue
+
+        # Create/update Application node
+        session.run(
+            "MERGE (a:Application {name: $name, host_ip: $host_ip}) "
+            "ON CREATE SET a += $props, a.__created_at = $now, a.__model_code = 'Application' "
+            "ON MATCH SET a += $props, a.__updated_at = $now",
+            name=app_name, host_ip=host_ip,
+            props={
+                'command': app.get('command', ''),
+                'auto_restart': app.get('auto_restart', False),
+                'status': 'running',
+                'instance_id': str(uuid4()),
+            },
+            now=now,
+        )
+
+        # Link Application → Process (by matching name or cmdline)
+        app_cmd = app.get('command', '')
+        cmd_basename = os.path.basename(app_cmd.split()[0]) if app_cmd.strip() else ''
+        for proc in processes:
+            proc_name = proc.get('name', '')
+            proc_pid = proc.get('pid', 0)
+            proc_cmdline = proc.get('cmdline', '') or ''
+            if proc_name == app_name or (cmd_basename and (cmd_basename in proc_name or cmd_basename in proc_cmdline)):
+                try:
+                    session.run(
+                        "MATCH (a:Application {name: $name, host_ip: $host_ip}) "
+                        "MATCH (p:Process {host_ip: $host_ip, pid: $pid}) "
+                        "MERGE (a)-[r:HAS_PROCESS]->(p) "
+                        "SET r.__updated_at = $now",
+                        name=app_name, host_ip=host_ip, pid=proc_pid, now=now,
+                    )
+                except Exception:
+                    pass
 
 
 def _schedule_topology_rebuild():
@@ -487,9 +575,34 @@ def agent_apps(request):
             }
             if action == 'register':
                 _req.post(f"{agent_server_url}/api/v1/apps/register", json=payload, timeout=3)
+                # Sync to Neo4j: create Application node
+                try:
+                    from cmdb.services.neo4j_client import graph_driver
+                    with graph_driver.session() as session:
+                        session.run(
+                            "MERGE (a:Application {name: $name, host_ip: $host_ip}) "
+                            "ON CREATE SET a.__model_code = 'Application', a.command = $cmd, "
+                            "  a.__created_at = toString(datetime()), a.status = 'running', "
+                            "  a.auto_restart = $ar, a.registered = true "
+                            "ON MATCH SET a.__updated_at = toString(datetime()), a.status = 'running'",
+                            name=name, host_ip=agent.ip or '', cmd=command, ar=data.get('auto_restart', False),
+                        )
+                except Exception as e:
+                    logger.warning("Neo4j Application sync failed on register: %s", e)
             else:
                 _req.post(f"{agent_server_url}/api/v1/apps/unregister",
                           json={'agent_id': agent_id, 'name': name}, timeout=3)
+                # Sync to Neo4j: delete Application node + relationships
+                try:
+                    from cmdb.services.neo4j_client import graph_driver
+                    with graph_driver.session() as session:
+                        session.run(
+                            "MATCH (a:Application {name: $name, host_ip: $host_ip}) "
+                            "DETACH DELETE a",
+                            name=name, host_ip=agent.ip or '',
+                        )
+                except Exception as e:
+                    logger.warning("Neo4j Application sync failed on unregister: %s", e)
         except Exception as e:
             logger.warning("app action failed: %s", e)
 
