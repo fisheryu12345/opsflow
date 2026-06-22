@@ -6,8 +6,10 @@ from __future__ import annotations
 import json
 import logging
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 from ..models.model_definition import ModelDefinition
+from ..models.cloud_sync_log import CloudSyncLog
 from .import_service import ImportService
 
 logger = logging.getLogger(__name__)
@@ -25,22 +27,71 @@ class BaseCloudSync(ABC):
         self.model_code = model_code
         self.model_def = ModelDefinition.objects.filter(code=model_code).first()
         self.import_service = ImportService()
+        self._provider = 'unknown'
 
     @abstractmethod
     def fetch_assets(self) -> list[dict]:
         ...
 
-    def sync(self, dry_run: bool = False) -> dict:
-        assets = self.fetch_assets()
-        if not assets:
-            logger.warning(f"云同步: 未获取到资产")
-            return {'total': 0, 'created': 0, 'updated': 0, 'errors': []}
-        mapped = [self._map_fields(asset) for asset in assets]
-        if dry_run:
-            return {'preview': mapped, 'total': len(mapped)}
-        return self.import_service.import_instances(
-            self.model_code, mapped, strategy='create_or_update'
+    def sync(self, dry_run: bool = False, triggered_by: str = 'schedule') -> dict:
+        """执行同步并记录日志
+
+        Args:
+            dry_run: True 时只返回预览，不实际写入
+            triggered_by: schedule / manual / pipeline
+
+        Returns:
+            {total: N, created: N, updated: N, errors: [...]}
+        """
+        # 创建同步日志
+        log_entry = CloudSyncLog.objects.create(
+            provider=self._provider,
+            status='running',
+            triggered_by=triggered_by,
         )
+
+        try:
+            assets = self.fetch_assets()
+            if not assets:
+                logger.warning(f"云同步({self._provider}): 未获取到资产")
+                log_entry.status = 'success'
+                log_entry.finished_at = datetime.now()
+                log_entry.save(update_fields=['status', 'finished_at'])
+                return {'total': 0, 'created': 0, 'updated': 0, 'errors': []}
+
+            mapped = [self._map_fields(asset) for asset in assets]
+
+            if dry_run:
+                log_entry.status = 'success'
+                log_entry.finished_at = datetime.now()
+                log_entry.total = len(mapped)
+                log_entry.save(update_fields=['status', 'finished_at', 'total'])
+                return {'preview': mapped, 'total': len(mapped)}
+
+            result = self.import_service.import_instances(
+                self.model_code, mapped, strategy='create_or_update'
+            )
+
+            # 更新日志
+            log_entry.status = 'failed' if result.get('errors') else 'success'
+            log_entry.finished_at = datetime.now()
+            log_entry.total = result.get('total', 0)
+            log_entry.error_count = len(result.get('errors', []))
+            log_entry.errors = result.get('errors', [])
+            log_entry.save(update_fields=[
+                'status', 'finished_at', 'total', 'error_count', 'errors',
+            ])
+
+            return result
+
+        except Exception as e:
+            logger.exception(f"云同步({self._provider})异常")
+            log_entry.status = 'failed'
+            log_entry.finished_at = datetime.now()
+            log_entry.errors = [{'error': str(e)}]
+            log_entry.error_count = 1
+            log_entry.save(update_fields=['status', 'finished_at', 'errors', 'error_count'])
+            return {'total': 0, 'created': 0, 'updated': 0, 'errors': [str(e)]}
 
     def _map_fields(self, asset: dict) -> dict:
         return asset
@@ -48,6 +99,10 @@ class BaseCloudSync(ABC):
 
 class AliyunSync(BaseCloudSync):
     """阿里云 ECS 同步 — 全地域"""
+
+    def __init__(self):
+        super().__init__()
+        self._provider = 'aliyun'
 
     def fetch_assets(self) -> list[dict]:
         from opsflow.plugins.aliyun_ecs._client import get_ecs_client
@@ -57,7 +112,6 @@ class AliyunSync(BaseCloudSync):
         region = _get_connector_region()
         client = get_ecs_client(region)
 
-        # 获取所有可用地域
         regions_req = DescribeRegionsRequest()
         regions_resp = client.do_action_with_exception(regions_req)
         regions_data = json.loads(regions_resp)
@@ -98,7 +152,7 @@ class AliyunSync(BaseCloudSync):
             'Deleted': 'offline',
         }
         return {
-            'instance_id': cloud_id,  # 用阿里云 InstanceId 作为 Neo4j 主键
+            'instance_id': cloud_id,
             'cloud_instance_id': cloud_id,
             'cloud_type': 'aliyun',
             'instance_type': asset.get('InstanceType', ''),
@@ -114,6 +168,10 @@ class AliyunSync(BaseCloudSync):
 
 class TencentCloudSync(BaseCloudSync):
     """腾讯云 CVM 同步"""
+
+    def __init__(self):
+        super().__init__()
+        self._provider = 'tencent'
 
     def fetch_assets(self) -> list[dict]:
         logger.info("腾讯云同步: TODO — 待集成中心就绪")

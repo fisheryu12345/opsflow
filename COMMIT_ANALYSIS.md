@@ -50,6 +50,45 @@
 
 ---
 
+## 97397ecb
+
+> 提交日期: 2026-06-23 | 提交信息: feat: implement Cloud Asset Sync management UI and sync logging — 云资产同步管理
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/cmdb/models/cloud_sync_log.py` | 后端 | CloudSyncLog 同步日志持久化模型（provider/status/errors/triggered_by） |
+| `backend/cmdb/views/cloud_sync_views.py` | 后端 | 云同步 API 4 端点 + 卡死记录自动检测（15min 超时重置） |
+| `backend/cmdb/services/sync_service.py` | 后端 | BaseCloudSync 重构，sync() 自动写入 CloudSyncLog + try/except 兜底 |
+| `backend/cmdb/urls.py` | 后端 | 注册 cloud-sync/providers/status/trigger/history 路由 |
+| `backend/cmdb/models/__init__.py` | 后端 | 导出 CloudSyncLog |
+| `backend/opsflow/core/scheduler_service.py` | 后端 | 定时同步传入 triggered_by="schedule" |
+| `web/src/views/apps/integration/cloud-sync.vue` | 前端 | 云同步管理组件（厂商卡片+操作工具栏+同步历史表格） |
+| `web/src/views/apps/integration/index.vue` | 前端 | 集成中心新增云同步标签页 |
+| `web/src/i18n/pages/integration/en.ts` | 前端 | 云同步英文文案（18 个 key） |
+| `web/src/i18n/pages/integration/zh-cn.ts` | 前端 | 云同步中文文案（18 个 key） |
+| `docs/opsflow/features/2026-06-22-ecs-cmdb-sync.md` | 文档 | 追加 CloudSyncLog/管理页面/数据修复 更新 |
+
+### 解决
+
+- **问题/背景：** 云同步只有后端无界面，用户无法查看同步状态、触发同步或排查同步错误；daemon thread 进程重启后同步状态永远卡在 running
+- **办法：** 新增 CloudSyncLog 模型持久化同步记录；list_providers/sync_status/trigger_sync/sync_history 4 个 API；前端集成中心「云同步」标签页（厂商卡片 + 同步历史表格）；自动检测超 15 分钟卡死的 running 记录并重置
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/features/2026-06-22-ecs-cmdb-sync.md`（追加更新）
+
+### 验证
+
+- 改动类型: feat+fix
+- 清理乱码: 有（backend/reset 空文件）
+- 子 App index.md 更新: cmdb
+- 工作区状态: 干净 ✅
+
+---
+
 ## df82a1c9
 
 > 提交日期: 2026-06-17 | 提交信息: feat: implement CMDB hierarchy refactor — Service→Application→Process model

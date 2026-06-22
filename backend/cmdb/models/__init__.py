@@ -9,6 +9,7 @@ from .object_unique import ObjectUnique
 from .mainline_topo import MainlineTopo
 from .change_log import ChangeLog
 from .event_subscription import EventSubscription
+from .cloud_sync_log import CloudSyncLog
 
 __all__ = [
     'Classification',
@@ -21,4 +22,5 @@ __all__ = [
     'MainlineTopo',
     'ChangeLog',
     'EventSubscription',
+    'CloudSyncLog',
 ]

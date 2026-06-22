@@ -211,3 +211,24 @@ CMDB 选择实例 → describe_cmdb_instances API
 
 - 相关架构文档: [design](docs/superpowers/specs/2026-06-22-ecs-cmdb-sync-design.md)
 - 相关功能文档: [Application 模型层次重构](../cmdb/features/2026-06-17-application-model-hierarchy.md)
+
+---
+
+## 2026-06-23 Update
+
+> 提交: 97397ecb
+
+### 变更内容
+
+新增 **Cloud Asset Sync 管理页面**，统一的云厂商同步状态查看与手动触发入口：
+
+1. **CloudSyncLog 模型** — 持久化同步日志，记录每次同步的 provider/status/started_at/finished_at/total/errors/triggered_by
+2. **云同步 API 视图** — 4 个端点：列出厂商、同步状态、触发同步、同步历史
+3. **卡死记录自动检测** — 同步超过 15 分钟仍为 running 时自动重置为 failed（防止进程重启后永久卡死）
+4. **BaseCloudSync 重构** — `sync()` 方法自动写入 CloudSyncLog，包含 try/except 兜底
+5. **前端云同步组件** — 集成中心新增「云同步」标签页，包含厂商状态卡片（配置/状态/上次同步时间/手动同步按钮）+ 操作工具栏（全量同步/刷新）+ 同步历史表格
+6. **前端数据路径修复** — 适配 axios interceptor 解包结构，`res?.data?.data` → `res?.data`
+
+### 原因
+
+之前云同步只有后端无界面，用户无法查看同步状态、触发同步或排查错误。新增管理页面使同步过程可观测、可操作。

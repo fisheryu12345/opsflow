@@ -39,6 +39,9 @@
         <div class="int-hero-tab" :class="{ active: activeTab === 'logs' }" @click="activeTab = 'logs'">
           <el-icon><Document /></el-icon> {{ $t('message.integration.tabLogs') }}
         </div>
+        <div class="int-hero-tab" :class="{ active: activeTab === 'cloud-sync' }" @click="activeTab = 'cloud-sync'">
+          <el-icon><Cloudy /></el-icon> {{ $t('message.integration.tabCloudSync') }}
+        </div>
       </div>
     </div>
 
@@ -218,6 +221,11 @@
           </el-table>
         </div>
       </div>
+
+      <!-- ── Tab: 云同步 ── -->
+      <div v-show="activeTab === 'cloud-sync'" class="int-section g-fade-in-up">
+        <CloudSync />
+      </div>
     </div>
 
     <!-- ===== Edit Instance Dialog ===== -->
@@ -339,7 +347,8 @@ import { useI18n } from 'vue-i18n'
 import { connectorDefinitionApi, connectorInstanceApi, credentialApi, callLogApi, HealthCheck, ToggleInstance, DecryptCredential } from '/@/api/integration/index'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { request } from '/@/utils/service'
-import { Search, Refresh, Plus, Connection, List, Key, Document, Edit, Finished, ChatDotSquare, View, Promotion, Delete } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Connection, List, Key, Document, Edit, Finished, ChatDotSquare, View, Promotion, Delete, Cloudy } from '@element-plus/icons-vue'
+import CloudSync from './cloud-sync.vue'
 
 /* --- TypeScript Interfaces --- */
 interface ConnectorDef {

@@ -117,7 +117,7 @@ def _cloud_sync_job():
     """APScheduler job: 阿里云 ECS 资产全量同步"""
     try:
         from cmdb.services.sync_service import AliyunSync
-        result = AliyunSync().sync()
+        result = AliyunSync().sync(triggered_by="schedule")
         logger.info("Cloud sync: %d total, %d created, %d updated",
                     result.get('total', 0), result.get('created', 0), result.get('updated', 0))
     except Exception as e:

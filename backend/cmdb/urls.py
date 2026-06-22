@@ -21,6 +21,7 @@ from .views.instance import DynamicInstanceViewSet
 from .views.topology import TopologyViewSet
 from .views.event_subscription import EventSubscriptionViewSet
 from .views.import_export import ImportExportViewSet
+from .views.cloud_sync_views import list_providers, sync_status, trigger_sync, sync_history
 
 router = routers.SimpleRouter()
 router.register(r'classifications', ClassificationViewSet)
@@ -65,4 +66,10 @@ urlpatterns = [
              'patch': 'partial_update',
              'delete': 'destroy',
          })),
+
+    # 云资产同步管理
+    path('cloud-sync/providers/', list_providers, name='cmdb-cloud-sync-providers'),
+    path('cloud-sync/<str:provider>/status/', sync_status, name='cmdb-cloud-sync-status'),
+    path('cloud-sync/<str:provider>/trigger/', trigger_sync, name='cmdb-cloud-sync-trigger'),
+    path('cloud-sync/<str:provider>/history/', sync_history, name='cmdb-cloud-sync-history'),
 ]
