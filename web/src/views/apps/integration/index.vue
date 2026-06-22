@@ -16,13 +16,13 @@
           </el-input>
         </div>
         <div class="int-hero-stats">
-          <div class="int-stat-item"><span class="int-stat-value">{{ definitions.length }}</span><span class="int-stat-label">Definitions</span></div>
+          <div class="int-stat-item"><span class="int-stat-value">{{ definitions.length }}</span><span class="int-stat-label">{{ $t('message.integration.heroDefinitions') }}</span></div>
           <div class="int-stat-divider" />
-          <div class="int-stat-item"><span class="int-stat-value">{{ onlineCount }}</span><span class="int-stat-label">Online</span></div>
+          <div class="int-stat-item"><span class="int-stat-value">{{ onlineCount }}</span><span class="int-stat-label">{{ $t('message.integration.heroOnline') }}</span></div>
           <div class="int-stat-divider" />
-          <div class="int-stat-item"><span class="int-stat-value">{{ credentials.length }}</span><span class="int-stat-label">Credentials</span></div>
+          <div class="int-stat-item"><span class="int-stat-value">{{ credentials.length }}</span><span class="int-stat-label">{{ $t('message.integration.heroCredentials') }}</span></div>
           <div class="int-stat-divider" />
-          <div class="int-stat-item"><span class="int-stat-value">{{ callLogs.length }}</span><span class="int-stat-label">Recent Calls</span></div>
+          <div class="int-stat-item"><span class="int-stat-value">{{ callLogs.length }}</span><span class="int-stat-label">{{ $t('message.integration.heroRecentCalls') }}</span></div>
         </div>
       </div>
       <!-- Hero bottom tabs -->
@@ -50,19 +50,19 @@
         <div class="int-filter-bar">
           <div class="int-filter-tabs">
             <div class="int-tab" :class="{ active: defCategoryFilter === 'all' }" @click="defCategoryFilter = 'all'">
-              <span class="int-tab-dot" style="background:#409EFF" />All
+              <span class="int-tab-dot" style="background:#409EFF" />{{ $t('message.integration.filterAll') }}
             </div>
             <div class="int-tab" :class="{ active: defCategoryFilter === 'ai' }" @click="defCategoryFilter = 'ai'">
-              <span class="int-tab-dot" style="background:#E6A23C" />AI Services
+              <span class="int-tab-dot" style="background:#E6A23C" />{{ $t('message.integration.catAi') }}
             </div>
             <div class="int-tab" :class="{ active: defCategoryFilter === 'cloud' }" @click="defCategoryFilter = 'cloud'">
-              <span class="int-tab-dot" style="background:#409EFF" />Cloud
+              <span class="int-tab-dot" style="background:#409EFF" />{{ $t('message.integration.catCloud') }}
             </div>
             <div class="int-tab" :class="{ active: defCategoryFilter === 'notification' }" @click="defCategoryFilter = 'notification'">
-              <span class="int-tab-dot" style="background:#67C23A" />Notification
+              <span class="int-tab-dot" style="background:#67C23A" />{{ $t('message.integration.catNotification') }}
             </div>
             <div class="int-tab" :class="{ active: defCategoryFilter === 'other' }" @click="defCategoryFilter = 'other'">
-              <span class="int-tab-dot" style="background:#909399" />Other
+              <span class="int-tab-dot" style="background:#909399" />{{ $t('message.integration.catOther') }}
             </div>
           </div>
           <div class="int-filter-actions">
@@ -88,7 +88,7 @@
               <div class="int-def-code"><code>{{ def.code }}</code></div>
               <div class="int-def-desc" v-if="def.description">{{ def.description }}</div>
               <div class="int-def-footer">
-                <el-tag size="small" type="info" effect="plain">v{{ def.version }}</el-tag>
+                <el-tag size="small" type="info" effect="plain">{{ $t('message.integration.versionPrefix') }}{{ def.version }}</el-tag>
                 <el-button size="small" text @click="createInstance(def)">
                   <el-icon><Plus /></el-icon> {{ $t('message.integration.addInstance') }}
                 </el-button>
@@ -225,7 +225,7 @@
       destroy-on-close class="int-dialog">
       <el-form label-width="100px" class="int-form">
         <el-form-item :label="$t('message.integration.colName')">
-          <el-input v-model="editForm.name" placeholder="实例名称" />
+          <el-input v-model="editForm.name" :placeholder="$t('message.integration.colName')" />
         </el-form-item>
         <el-form-item :label="$t('message.integration.colType')">
           <span class="int-edit-def-name">{{ editForm.definitionName }}</span>
@@ -241,10 +241,7 @@
         <div class="int-cred-list">
           <div v-for="(cred, idx) in editCredentials" :key="cred.id || idx" class="int-cred-row">
             <el-select v-model="cred.cred_type" size="small" style="width:140px;flex-shrink:0;" :placeholder="$t('message.integration.colType')">
-              <el-option label="Access Key" value="access_key" />
-              <el-option label="密码" value="password" />
-              <el-option label="Token" value="token" />
-              <el-option label="证书" value="certificate" />
+              <el-option v-for="opt in credTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
             <el-input v-model="cred.name" size="small" style="width:160px;flex-shrink:0;" :placeholder="$t('message.integration.credName')" />
             <el-input v-model="cred.encrypted_value" size="small" style="flex:1;" :type="cred.showSecret ? 'text' : 'password'"
@@ -297,10 +294,7 @@
           <div class="int-cred-list">
             <div v-for="(cred, idx) in addCredentials" :key="idx" class="int-cred-row">
               <el-select v-model="cred.cred_type" size="small" style="width:130px;flex-shrink:0;" :placeholder="$t('message.integration.credType')">
-                <el-option label="Access Key" value="access_key" />
-                <el-option label="密码" value="password" />
-                <el-option label="Token" value="token" />
-                <el-option label="证书" value="certificate" />
+                <el-option v-for="opt in credTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
               <el-input v-model="cred.name" size="small" style="width:150px;flex-shrink:0;" :placeholder="$t('message.integration.credName')" />
               <el-input v-model="cred.encrypted_value" size="small" style="flex:1;" type="password" :placeholder="$t('message.integration.credValuePlaceholder')" />
@@ -326,7 +320,7 @@
           :placeholder="$t('message.integration.chatPlaceholder')" />
       </div>
       <div v-if="chatResponse" class="int-chat-response g-fade-in-up">
-        <div class="int-chat-response-header">{{ $t('message.integration.response') }}：</div>
+        <div class="int-chat-response-header">{{ $t('message.integration.response') }}</div>
         <pre class="int-chat-response-body">{{ chatResponse }}</pre>
       </div>
       <template #footer>
@@ -427,7 +421,7 @@ const editCredentials = ref<Credential[]>([])
 
 const showChatTest = ref(false)
 const chatTesting = ref(false)
-const chatPrompt = ref('你好，请用中文回复')
+const chatPrompt = ref(t('message.integration.defaultPrompt'))
 const chatResponse = ref('')
 const chatInstanceId = ref<number | null>(null)
 
@@ -452,6 +446,13 @@ function statusLabel(s: string) {
   }
   return map[s] || s || t('message.integration.unknown')
 }
+
+const credTypeOptions = computed(() => [
+  { value: 'access_key', label: t('message.integration.credTypeAccessKey') },
+  { value: 'password', label: t('message.integration.credTypePassword') },
+  { value: 'token', label: t('message.integration.credTypeToken') },
+  { value: 'certificate', label: t('message.integration.credTypeCertificate') },
+])
 
 function tagType(cat: string) {
   const map: Record<string, string> = { cloud: 'primary', notification: 'success', ai: 'warning', monitor: 'danger', other: 'info' }
@@ -670,7 +671,7 @@ async function onSaveEdit() {
 }
 
 function createInstance(def: ConnectorDef) {
-  newInstance.value = { definition_id: def.id, name: `${def.name} 实例` }
+  newInstance.value = { definition_id: def.id, name: t('message.integration.instanceSuffix', { name: def.name }) }
   addConfigFields.value = []
   addConfigValues.value = {}
   addCredentials.value = []
@@ -717,7 +718,7 @@ async function onAddInstance() {
 
 function testAiChat(row: ConnectorInst) {
   chatInstanceId.value = row.id
-  chatPrompt.value = '你好，请用中文回复'
+  chatPrompt.value = t('message.integration.defaultPrompt')
   chatResponse.value = ''
   showChatTest.value = true
 }
@@ -749,7 +750,7 @@ onMounted(async () => {
   // Onboarding tour message
   const key = 'opsflow_tour_integration'
   if (!localStorage.getItem(key)) {
-    ElMessage.info({ message: '🔌 集成中心 — 统一管理外部系统连接器、凭证和调用审计，支持 AI 服务对话测试', duration: 6000 })
+    ElMessage.info({ message: t('message.integration.onboardingMessage'), duration: 6000 })
     localStorage.setItem(key, 'true')
   }
 })

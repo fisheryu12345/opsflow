@@ -23,7 +23,7 @@
 
       <el-table :data="items" v-loading="loading" stripe style="width:100%" size="small"
         :empty-text="loading ? t('message.instance.loading') : t('message.instance.noData')">
-        <el-table-column v-for="col in visibleColumns" :key="col.name" :prop="col.name" :label="col.label"
+        <el-table-column v-for="col in visibleColumns" :key="col.name" :prop="col.name" :label="fieldLabel(col)"
           :width="colWidth(col)" :min-width="120" show-overflow-tooltip>
           <template #default="{ row }">
             <span v-if="col.name === 'status'" class="cmdb-status-badge" :class="'cmdb-status-' + (row[col.name] || 'unknown')">
@@ -249,6 +249,13 @@ function statusLabel(val: string) {
         online: t('message.instance.statusOnline'),
     }
     return labels[val] || val || t('message.instance.statusUnknown')
+}
+
+function fieldLabel(col: any) {
+  const key = `message.cmdb.field_${col.name}`
+  const translated = t(key)
+  // If the key doesn't exist, vue-i18n v9 returns the key itself; fall back to DB label
+  return translated !== key ? translated : col.label
 }
 
 function actionLabel(val: string) {

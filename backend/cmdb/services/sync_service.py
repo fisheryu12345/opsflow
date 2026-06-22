@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-"""CloudSyncService — 云厂商资产同步框架
+"""CloudSyncService — 云厂商资产同步框架"""
 
-提供从云厂商同步资产到 CMDB 的基础框架。
-集成中心就绪后连接到具体云厂商 SDK。
-"""
-
+import json
 import logging
 from abc import ABC, abstractmethod
 
@@ -14,6 +11,11 @@ from ..models.model_definition import ModelDefinition
 from .import_service import ImportService
 
 logger = logging.getLogger(__name__)
+
+
+def _get_connector_region() -> str:
+    """返回一个任意可用地域（仅用于 DescribeRegions 引导调用）"""
+    return 'cn-hangzhou'
 
 
 class BaseCloudSync(ABC):
@@ -26,57 +28,87 @@ class BaseCloudSync(ABC):
 
     @abstractmethod
     def fetch_assets(self) -> list[dict]:
-        """从云厂商获取资产列表（需子类实现）"""
         ...
 
     def sync(self, dry_run: bool = False) -> dict:
-        """执行同步
-
-        Args:
-            dry_run: True 时只返回预览，不实际写入
-
-        Returns:
-            {total: N, created: N, updated: N, errors: [...]}
-        """
         assets = self.fetch_assets()
         if not assets:
             logger.warning(f"云同步: 未获取到资产")
             return {'total': 0, 'created': 0, 'updated': 0, 'errors': []}
-
-        # 字段映射
         mapped = [self._map_fields(asset) for asset in assets]
-
         if dry_run:
             return {'preview': mapped, 'total': len(mapped)}
-
         return self.import_service.import_instances(
             self.model_code, mapped, strategy='create_or_update'
         )
 
     def _map_fields(self, asset: dict) -> dict:
-        """字段映射：云字段名 → CMDB ModelField.name（子类可重写）"""
         return asset
 
 
 class AliyunSync(BaseCloudSync):
-    """阿里云 ECS 同步"""
+    """阿里云 ECS 同步 — 全地域"""
 
     def fetch_assets(self) -> list[dict]:
-        """通过集成中心获取阿里云 ECS 列表"""
-        # TODO: 通过集成中心 SDK 调用阿里云 API
-        # from integration.services.aliyun import AliyunClient
-        logger.info("阿里云同步: TODO — 待集成中心就绪")
-        return []
+        from opsflow.plugins.aliyun_ecs._client import get_ecs_client
+        from aliyunsdkecs.request.v20140526.DescribeInstancesRequest import DescribeInstancesRequest
+        from aliyunsdkecs.request.v20140526.DescribeRegionsRequest import DescribeRegionsRequest
+
+        region = _get_connector_region()
+        client = get_ecs_client(region)
+
+        # 获取所有可用地域
+        regions_req = DescribeRegionsRequest()
+        regions_resp = client.do_action_with_exception(regions_req)
+        regions_data = json.loads(regions_resp)
+        all_regions = [r['RegionId'] for r in regions_data.get('Regions', {}).get('Region', []) if r.get('RegionId')]
+        logger.info("阿里云同步: 发现 %d 个可用地域", len(all_regions))
+
+        instances = []
+        for reg in all_regions:
+            reg_client = get_ecs_client(reg)
+            page_number = 1
+            page_size = 100
+            while True:
+                req = DescribeInstancesRequest()
+                req.set_PageSize(page_size)
+                req.set_PageNumber(page_number)
+                resp = reg_client.do_action_with_exception(req)
+                data = json.loads(resp)
+                page_instances = data.get('Instances', {}).get('Instance', [])
+                if not page_instances:
+                    break
+                instances.extend(page_instances)
+                total = int(data.get('TotalCount', 0))
+                if page_number * page_size >= total:
+                    break
+                page_number += 1
+
+        logger.info("阿里云同步: 全地域共 %d 台 ECS 实例", len(instances))
+        return instances
 
     def _map_fields(self, asset: dict) -> dict:
+        vpc = asset.get('VpcAttributes', {}) or {}
+        ips = vpc.get('PrivateIpAddress', {}).get('IpAddress', [])
+        cloud_id = asset.get('InstanceId', '')
+        aliyun_status = asset.get('Status', '')
+        status_map = {
+            'Running': 'normal', 'Starting': 'normal',
+            'Stopped': 'offline', 'Stopping': 'maintenance',
+            'Deleted': 'offline',
+        }
         return {
-            'ip': asset.get('VpcAttributes', {}).get('PrivateIpAddress', {}).get('IpAddress', [''])[0],
-            'hostname': asset.get('HostName'),
+            'instance_id': cloud_id,  # 用阿里云 InstanceId 作为 Neo4j 主键
+            'cloud_instance_id': cloud_id,
+            'cloud_type': 'aliyun',
+            'instance_type': asset.get('InstanceType', ''),
+            'ip': ips[0] if ips else '',
+            'hostname': asset.get('InstanceName', '') or asset.get('HostName', '') or '',
+            'region': asset.get('RegionId', ''),
+            'status': status_map.get(aliyun_status, 'unknown'),
             'os_type': 'linux',
-            'region': asset.get('RegionId'),
-            'cpu_cores': asset.get('Cpu'),
-            'memory_mb': asset.get('Memory') * 1024 if asset.get('Memory') else 0,
-            'cloud_instance_id': asset.get('InstanceId'),
+            'cpu_cores': asset.get('Cpu', 0),
+            'memory_mb': (asset.get('Memory', 0) or 0) * 1024,
         }
 
 

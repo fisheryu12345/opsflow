@@ -14,6 +14,7 @@
           v-else
           :config="child"
           :value="formData?.[child.tag_code]"
+          :form-data="formData"
           :context="context"
           @update="(val: any) => emit('update', child.tag_code, val)"
         />

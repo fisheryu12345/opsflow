@@ -1,8 +1,7 @@
 """启动 ECS 实例"""
-
 from opsflow.plugins.base import BasePlugin
 from opsflow.schema.form_schema import FormItem, ValidationRule
-
+from opsflow.plugins.aliyun_ecs._client import get_ecs_client, resolve_cmdb_region
 
 class AliyunEcsStartPlugin(BasePlugin):
     name = "启动实例"
@@ -19,29 +18,22 @@ class AliyunEcsStartPlugin(BasePlugin):
         return [
             FormItem(
                 tag_code="instance_id",
-                type="input",
-                name="实例 ID",
-                name_en="Instance ID",
-                attrs={"placeholder": "i-xxxxxxxxxxxxx"},
-                validation=[ValidationRule(type="required", error_message="请输入实例 ID")],
+                type="async_select",
+                name="实例",
+                name_en="Instance",
+                attrs={"api_endpoint": "/api/opsflow/plugins/aliyun/describe-cmdb-instances/", "placeholder": "从 CMDB 选择实例..."},
+                validation=[ValidationRule(type="required", error_message="请选择实例")],
                 col=12,
-            ),
-            FormItem(
-                tag_code="region",
-                type="input",
-                name="地域",
-                name_en="Region",
-                default="cn-hangzhou",
-                attrs={"placeholder": "如 cn-hangzhou"},
-                col=6,
             ),
         ]
 
-    def execute(self, instance_id: str, region: str = "cn-hangzhou", **kwargs) -> dict:
+    def execute(self, instance_id: str, region: str = "", **kwargs) -> dict:
+        if not region:
+            region = resolve_cmdb_region(instance_id)
+        if not region:
+            return {"success": False, "data": {}, "error": "无法确定实例地域"}
         try:
             from aliyunsdkecs.request.v20140526 import StartInstanceRequest
-
-            from opsflow.plugins.aliyun_ecs._client import get_ecs_client
             client = get_ecs_client(region)
             request = StartInstanceRequest.StartInstanceRequest()
             request.set_InstanceId(instance_id)
@@ -52,13 +44,9 @@ class AliyunEcsStartPlugin(BasePlugin):
 
     @classmethod
     def get_output_schema(cls):
-        return [
-            {"name": "instance_id", "type": "string", "description": "ECS 实例 ID"},
-            {"name": "status", "type": "string", "description": "实例状态"},
-        ]
+        return [{"name": "instance_id", "type": "string", "description": "ECS 实例 ID"}, {"name": "status", "type": "string", "description": "实例状态"}]
 
     def rollback(self, context: dict, **kwargs) -> dict:
-        """回滚：停止实例"""
         inst_id = context.get("instance_id", kwargs.get("instance_id", ""))
         if inst_id:
             return {"success": True, "data": {"action": "stop_instance", "instance_id": inst_id}}

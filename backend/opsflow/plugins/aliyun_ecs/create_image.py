@@ -45,20 +45,24 @@ class AliyunEcsCreateImagePlugin(BasePlugin):
             ),
             FormItem(
                 tag_code="region",
-                type="input",
+                type="async_select",
                 name="地域",
                 name_en="Region",
-                default="cn-hangzhou",
-                attrs={"placeholder": "如 cn-hangzhou"},
+                attrs={
+                    "api_endpoint": "/api/opsflow/plugins/aliyun/describe-regions/",
+                    "placeholder": "选择地域...",
+                },
+                validation=[ValidationRule(type="required", error_message="请选择地域")],
                 col=6,
             ),
         ]
 
     def execute(self, instance_id: str, image_name: str,
-                description: str = "", region: str = "cn-hangzhou", **kwargs) -> dict:
+                description: str = "", region: str = "", **kwargs) -> dict:
+        if not region:
+            return {"success": False, "data": {}, "error": "region 不能为空"}
         try:
             from aliyunsdkecs.request.v20140526 import CreateImageRequest
-
             from opsflow.plugins.aliyun_ecs._client import get_ecs_client
             client = get_ecs_client(region)
             request = CreateImageRequest.CreateImageRequest()
@@ -67,11 +71,9 @@ class AliyunEcsCreateImagePlugin(BasePlugin):
             if description:
                 request.set_Description(description)
             resp = client.do_action_with_exception(request)
-
             import json
             data = json.loads(resp)
             image_id = data.get("ImageId", "")
-
             return {
                 "success": True,
                 "data": {
@@ -93,7 +95,6 @@ class AliyunEcsCreateImagePlugin(BasePlugin):
         ]
 
     def rollback(self, context: dict, **kwargs) -> dict:
-        """回滚：删除刚创建的镜像"""
         img_id = context.get("image_id", "")
         if img_id:
             return {"success": True, "data": {"action": "delete_image", "image_id": img_id}}

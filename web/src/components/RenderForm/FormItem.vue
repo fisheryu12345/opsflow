@@ -25,7 +25,7 @@ import {
   TagRadio, TagInt, TagCodeEditor, TagDatetime,
   TagHostSelector, TagAsyncSelect, TagIpSelector, TagDataTable,
   TagVariableInput, TagMetaConfig, TagVariableMapping,
-  TagResourceSelector, TagCascader,
+  TagResourceSelector, TagCascader, TagSlider, TagSwitch,
 } from './tags'
 
 const TAG_MAP: Record<string, any> = {
@@ -41,8 +41,10 @@ const TAG_MAP: Record<string, any> = {
   async_select: TagAsyncSelect,
   ip_selector: TagIpSelector,
   datatable: TagDataTable,
+  switch: TagSwitch,
   resource_selector: TagResourceSelector,
   cascader: TagCascader,
+  slider: TagSlider,
   variable_input: TagVariableInput,
   meta_config: TagMetaConfig,
   variable_mapping: TagVariableMapping,

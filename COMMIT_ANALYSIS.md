@@ -2,6 +2,54 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## b4ce0afd
+
+> 提交日期: 2026-06-22 | 提交信息: feat: implement Aliyun ECS CMDB sync + refactor all 8 atoms
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/core/cloud_sync.py` | 后端 | 实时同步模块，Pipeline 执行后自动同步 ECS 到 CMDB |
+| `backend/opsflow/core/plugin_service_adapter.py` | 后端 | execute 成功后调用 cloud_sync hook |
+| `backend/opsflow/core/scheduler_service.py` | 后端 | 30 分钟周期全量同步，修复闭包序列化 |
+| `backend/cmdb/services/sync_service.py` | 后端 | AliyunSync 全地域分页查询 + 状态映射 |
+| `backend/cmdb/services/import_service.py` | 后端 | 保留 instance_id 系统字段，修复 null MERGE |
+| `backend/opsflow/plugins/aliyun_ecs/_client.py` | 后端 | resolve_cmdb_region() 工具函数 |
+| `backend/opsflow/plugins/aliyun_ecs/*.py` | 后端 | 8 个原子统一改造：region async_select + instance_id CMDB 选择 + switch |
+| `backend/opsflow/views/aliyun_views.py` | 后端 | 新增 describe_cmdb_instances API + 页面视图 |
+| `backend/opsflow/urls.py` | 后端 | 注册 cmdb-instances 等 8 个路由 |
+| `backend/common/management/commands/seed_reference.py` | 后端 | Host 模型加 cloud_instance_id 等 3 个字段 |
+| `web/src/components/RenderForm/FormGroup.vue` | 前端 | formData 传递修复 |
+| `web/src/components/RenderForm/FormItem.vue` | 前端 | TAG_MAP 注册 TagSwitch + formData |
+| `web/src/components/RenderForm/RenderForm.vue` | 前端 | formData 传递修复 |
+| `web/src/components/RenderForm/tags/TagSwitch.vue` | 前端 | 新增 switch 类型组件 |
+| `web/src/components/RenderForm/tags/TagSlider.vue` | 前端 | 新增滑块组件（自定义标签） |
+| `web/src/components/RenderForm/tags/index.ts` | 前端 | 导出 TagSwitch |
+| `web/src/views/apps/integration/index.vue` | 前端 | 集成中心页面优化 |
+| `docs/opsflow/features/` | 文档 | ECS CMDB 同步功能文档 |
+| `docs/superpowers/specs/` | 文档 | ECS CMDB 同步设计文档 |
+
+### 解决
+
+- **问题/背景：** 阿里云 ECS 实例创建/删除/启停后不会更新 CMDB，Pipeline 执行完操作后实例在 CMDB 不可见；8 个原子 region 硬编码、instance_id 手动输入、无级联选择
+- **办法：** 实时同步（cloud_sync.sync_after_execution）+ 周期同步（AliyunSync 全地域 30min）；所有原子改用 async_select 级联表单 + CMDB 实例选择 + switch 开关
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/features/2026-06-22-ecs-cmdb-sync.md`
+  - `docs/superpowers/specs/2026-06-22-ecs-cmdb-sync-design.md`
+
+### 验证
+
+- 改动类型: feat+refactor+fix
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## df82a1c9
 
 > 提交日期: 2026-06-17 | 提交信息: feat: implement CMDB hierarchy refactor — Service→Application→Process model

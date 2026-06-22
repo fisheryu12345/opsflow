@@ -104,6 +104,10 @@ class PluginService(Service):
                         resolved = resolve_variables(v, ctx)
                         if resolved != v:
                             resolved_params[k] = resolved
+                # 合并全局变量：不在 data.inputs 中的全局变量（如用户通过全局变量传递的参数）
+                for gk, gv in ctx.items():
+                    if gk not in resolved_params and not gk.startswith('_') and not isinstance(gv, dict):
+                        resolved_params[gk] = gv
             except Exception:
                 logger.exception("二次变量解析失败")
         # === 变量解析结束 ===
@@ -129,6 +133,13 @@ class PluginService(Service):
             # 将执行结果写入 execution.context（供 UI trace 展示）
             # ContextValue 由 bamboo-engine NodeOutput 自动传播
             _promote_results(success, executor_data, _execution_id, node_id=getattr(self, 'id', '') or '')
+            # ── 实时同步到 CMDB ──
+            if success and atom_type and atom_type.startswith('aliyun_'):
+                try:
+                    from opsflow.core.cloud_sync import sync_after_execution
+                    sync_after_execution(atom_type, inputs_dict, result, _execution_id)
+                except Exception:
+                    logger.exception("cloud_sync failed for %s", atom_type)
             return success
         except Exception as e:
             logger.exception("插件 %s 执行异常", atom_type)

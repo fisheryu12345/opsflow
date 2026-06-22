@@ -1,8 +1,7 @@
 """查询 ECS 实例详情"""
-
 from opsflow.plugins.base import BasePlugin
 from opsflow.schema.form_schema import FormItem, ValidationRule
-
+from opsflow.plugins.aliyun_ecs._client import get_ecs_client, resolve_cmdb_region
 
 class AliyunEcsDescribePlugin(BasePlugin):
     name = "查询实例"
@@ -10,8 +9,7 @@ class AliyunEcsDescribePlugin(BasePlugin):
     code = "aliyun_ecs_describe"
     group = "阿里云 ECS"
     version = "v1.0"
-    description = "查询阿里云 ECS 实例的详细信息（状态、IP、配置等）"
-    description_en = "Describe an Alibaba Cloud ECS instance"
+    description = "查询阿里云 ECS 实例的详细信息"
     risk_level = "low"
 
     @classmethod
@@ -19,40 +17,30 @@ class AliyunEcsDescribePlugin(BasePlugin):
         return [
             FormItem(
                 tag_code="instance_id",
-                type="input",
-                name="实例 ID",
-                name_en="Instance ID",
-                attrs={"placeholder": "i-xxxxxxxxxxxxx"},
-                validation=[ValidationRule(type="required", error_message="请输入实例 ID")],
+                type="async_select",
+                name="实例",
+                attrs={"api_endpoint": "/api/opsflow/plugins/aliyun/describe-cmdb-instances/", "placeholder": "从 CMDB 选择实例..."},
+                validation=[ValidationRule(type="required", error_message="请选择实例")],
                 col=12,
-            ),
-            FormItem(
-                tag_code="region",
-                type="input",
-                name="地域",
-                name_en="Region",
-                default="cn-hangzhou",
-                attrs={"placeholder": "如 cn-hangzhou"},
-                col=6,
             ),
         ]
 
-    def execute(self, instance_id: str, region: str = "cn-hangzhou", **kwargs) -> dict:
+    def execute(self, instance_id: str, region: str = "", **kwargs) -> dict:
+        if not region:
+            region = resolve_cmdb_region(instance_id)
+        if not region:
+            return {"success": False, "data": {}, "error": "无法确定实例地域"}
         try:
             from aliyunsdkecs.request.v20140526 import DescribeInstancesRequest
-            from aliyunsdkcore.client import AcsClient
-
-            client = self._get_client(region)
+            client = get_ecs_client(region)
             request = DescribeInstancesRequest.DescribeInstancesRequest()
             request.set_InstanceIds(f'["{instance_id}"]')
             resp = client.do_action_with_exception(request)
-
             import json
             data = json.loads(resp)
             instances = data.get("Instances", {}).get("Instance", [])
             if not instances:
                 return {"success": False, "data": {}, "error": f"实例 {instance_id} 未找到"}
-
             inst = instances[0]
             return {
                 "success": True,
@@ -71,11 +59,6 @@ class AliyunEcsDescribePlugin(BasePlugin):
             }
         except Exception as e:
             return {"success": False, "data": {}, "error": str(e)}
-
-    def _get_client(self, region: str):
-        """获取 AcsClient（允许单元测试 mock）"""
-        from opsflow.plugins.aliyun_ecs._client import get_ecs_client
-        return get_ecs_client(region)
 
     @classmethod
     def get_output_schema(cls):

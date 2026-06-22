@@ -113,6 +113,17 @@ def _execute_plan(plan_id: int):
             )
 
 
+def _cloud_sync_job():
+    """APScheduler job: 阿里云 ECS 资产全量同步"""
+    try:
+        from cmdb.services.sync_service import AliyunSync
+        result = AliyunSync().sync()
+        logger.info("Cloud sync: %d total, %d created, %d updated",
+                    result.get('total', 0), result.get('created', 0), result.get('updated', 0))
+    except Exception as e:
+        logger.exception("Cloud sync failed: %s", e)
+
+
 class OpsflowScheduler:
     """APScheduler wrapper for managing SchedulePlan timed triggers"""
 
@@ -126,6 +137,7 @@ class OpsflowScheduler:
             return
         self._register_existing_plans()
         self._register_timeout_check()
+        self._register_cloud_sync()
         self.scheduler.start()
         self._started = True
         logger.info("OpsflowScheduler started")
@@ -146,6 +158,22 @@ class OpsflowScheduler:
             misfire_grace_time=30,
         )
         logger.info("Timeout check registered (interval=%ds)", TIMEOUT_CHECK_INTERVAL)
+
+    def _register_cloud_sync(self):
+        """注册阿里云 ECS 资产同步定时任务（每 30 分钟）"""
+        from apscheduler.triggers.interval import IntervalTrigger
+
+        self.scheduler.add_job(
+            _cloud_sync_job,
+            trigger=IntervalTrigger(minutes=30),
+            id='opsflow_cloud_sync',
+            name='阿里云 ECS 资产同步',
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+            misfire_grace_time=300,
+        )
+        logger.info("Cloud sync registered (interval=30min)")
 
     def shutdown(self, wait=False):
         if self._started:

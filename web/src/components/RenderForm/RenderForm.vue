@@ -12,6 +12,7 @@
         v-else
         :config="item"
         :value="formData[item.tag_code]"
+        :form-data="formData"
         :context="context"
         :tag-code="item.tag_code"
         @update="(val: any) => handleUpdate(item.tag_code, val)"

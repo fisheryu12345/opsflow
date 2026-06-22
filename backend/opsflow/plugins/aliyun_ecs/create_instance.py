@@ -32,39 +32,54 @@ class AliyunEcsCreatePlugin(BasePlugin):
                     ),
                     FormItem(
                         tag_code="region",
-                        type="input",
+                        type="async_select",
                         name="地域",
                         name_en="Region",
-                        default="cn-hangzhou",
-                        attrs={"placeholder": "如 cn-hangzhou"},
+                        attrs={
+                            "api_endpoint": "/api/opsflow/plugins/aliyun/describe-regions/",
+                            "placeholder": "选择地域...",
+                        },
+                        validation=[ValidationRule(type="required", error_message="请选择地域")],
                         col=6,
                     ),
                     FormItem(
                         tag_code="zone_id",
-                        type="input",
+                        type="async_select",
                         name="可用区",
                         name_en="Zone ID",
-                        default="",
-                        attrs={"placeholder": "如 cn-hangzhou-g（可选）"},
+                        attrs={
+                            "api_endpoint": "/api/opsflow/plugins/aliyun/describe-zones/",
+                            "depends_on": "region",
+                            "placeholder": "选择可用区（可选）...",
+                        },
                         col=6,
                     ),
                     FormItem(
                         tag_code="image_id",
-                        type="input",
-                        name="镜像 ID",
-                        name_en="Image ID",
-                        attrs={"placeholder": "aliyun_2_1903_x64_20G_alibase_2023...",
-                               "description": "可从「查询镜像」原子获取"},
-                        validation=[ValidationRule(type="required", error_message="请输入镜像 ID")],
+                        type="async_select",
+                        name="镜像",
+                        name_en="Image",
+                        attrs={
+                            "api_endpoint": "/api/opsflow/plugins/aliyun/describe-images/",
+                            "depends_on": "region",
+                            "placeholder": "选择镜像...",
+                            "description": "选择可用镜像，切换地域后自动刷新",
+                        },
+                        validation=[ValidationRule(type="required", error_message="请选择镜像")],
                         col=6,
                     ),
                     FormItem(
                         tag_code="instance_type",
-                        type="input",
+                        type="async_select",
                         name="实例规格",
                         name_en="Instance Type",
-                        attrs={"placeholder": "ecs.g6.large"},
-                        validation=[ValidationRule(type="required", error_message="请输入实例规格")],
+                        attrs={
+                            "api_endpoint": "/api/opsflow/plugins/aliyun/describe-instance-types/",
+                            "depends_on": "region,zone_id",
+                            "placeholder": "先选地域和可用区...",
+                            "description": "选择可用实例规格，选可用区后仅显示支持的规格",
+                        },
+                        validation=[ValidationRule(type="required", error_message="请选择实例规格")],
                         col=6,
                     ),
                 ],
@@ -75,39 +90,38 @@ class AliyunEcsCreatePlugin(BasePlugin):
                 items=[
                     FormItem(
                         tag_code="security_group_id",
-                        type="input",
-                        name="安全组 ID",
-                        name_en="Security Group ID",
-                        attrs={"placeholder": "sg-xxxxxxxxxxxxx"},
-                        validation=[ValidationRule(type="required", error_message="请输入安全组 ID")],
+                        type="async_select",
+                        name="安全组",
+                        name_en="Security Group",
+                        attrs={
+                            "api_endpoint": "/api/opsflow/plugins/aliyun/describe-security-groups/",
+                            "depends_on": "region",
+                            "placeholder": "选择安全组...",
+                        },
+                        validation=[ValidationRule(type="required", error_message="请选择安全组")],
                         col=6,
                     ),
                     FormItem(
                         tag_code="vswitch_id",
-                        type="input",
-                        name="VSwitch ID",
-                        name_en="VSwitch ID",
-                        attrs={"placeholder": "vsw-xxxxxxxxxxxxx"},
-                        validation=[ValidationRule(type="required", error_message="请输入 VSwitch ID")],
+                        type="async_select",
+                        name="VSwitch",
+                        name_en="VSwitch",
+                        attrs={
+                            "api_endpoint": "/api/opsflow/plugins/aliyun/describe-vswitches/",
+                            "depends_on": "region,zone_id",
+                            "placeholder": "选择交换机（先选可用区）...",
+                        },
+                        validation=[ValidationRule(type="required", error_message="请选择 VSwitch")],
                         col=6,
                     ),
                     FormItem(
                         tag_code="internet_max_bandwidth_out",
-                        type="int",
-                        name="公网带宽 (Mbps)",
-                        name_en="Max Bandwidth Out",
+                        type="slider",
+                        name="公网带宽",
+                        name_en="Bandwidth",
                         default=0,
-                        attrs={"min": 0, "max": 200, "placeholder": "0=不分配公网"},
-                        col=6,
-                    ),
-                    FormItem(
-                        tag_code="allocate_public_ip",
-                        type="switch",
-                        name="分配公网 IP",
-                        name_en="Allocate Public IP",
-                        default=True,
-                        attrs={"active_text": "是", "inactive_text": "否"},
-                        col=6,
+                        attrs={"min": 0, "max": 20, "label-0": "无公网", "label-n": "{value} Mbps"},
+                        col=12,
                     ),
                 ],
             ),
@@ -126,17 +140,14 @@ class AliyunEcsCreatePlugin(BasePlugin):
                     ),
                     FormItem(
                         tag_code="system_disk_category",
-                        type="select",
+                        type="async_select",
                         name="系统盘类型",
                         name_en="Disk Category",
-                        default="cloud_ssd",
+                        default="cloud_essd",
                         attrs={
-                            "options": [
-                                {"label": "cloud_ssd - SSD 云盘", "value": "cloud_ssd"},
-                                {"label": "cloud_efficiency - 高效云盘", "value": "cloud_efficiency"},
-                                {"label": "cloud_essd - ESSD", "value": "cloud_essd"},
-                                {"label": "cloud - 普通云盘", "value": "cloud"},
-                            ],
+                            "api_endpoint": "/api/opsflow/plugins/aliyun/describe-disk-categories/",
+                            "depends_on": "region,instance_type",
+                            "placeholder": "选择云盘类型...",
                         },
                         col=6,
                     ),
@@ -144,13 +155,12 @@ class AliyunEcsCreatePlugin(BasePlugin):
             ),
         ]
 
-    def execute(self, instance_name: str, region: str = "cn-hangzhou",
+    def execute(self, instance_name: str, region: str = "",
                 zone_id: str = "", image_id: str = "", instance_type: str = "",
                 security_group_id: str = "", vswitch_id: str = "",
                 internet_max_bandwidth_out: int = 0,
-                allocate_public_ip: bool = True,
-                system_disk_size: int = 40,
-                system_disk_category: str = "cloud_ssd",
+                system_disk_size: int = 0,
+                system_disk_category: str = "",
                 **kwargs) -> dict:
         try:
             from aliyunsdkecs.request.v20140526 import (
@@ -167,8 +177,10 @@ class AliyunEcsCreatePlugin(BasePlugin):
             req.set_InstanceName(instance_name)
             req.set_SecurityGroupId(security_group_id)
             req.set_VSwitchId(vswitch_id)
-            req.set_SystemDiskSize(system_disk_size)
-            req.set_SystemDiskCategory(system_disk_category)
+            if system_disk_size > 0:
+                req.set_SystemDiskSize(system_disk_size)
+            if system_disk_category:
+                req.set_SystemDiskCategory(system_disk_category)
             req.set_InternetMaxBandwidthOut(internet_max_bandwidth_out)
             if zone_id:
                 req.set_ZoneId(zone_id)
@@ -179,7 +191,7 @@ class AliyunEcsCreatePlugin(BasePlugin):
             created_id = data.get("InstanceId", "")
 
             public_ip = ""
-            if allocate_public_ip and internet_max_bandwidth_out > 0 and created_id:
+            if internet_max_bandwidth_out > 0 and created_id:
                 try:
                     ip_req = AllocatePublicIpAddressRequest.AllocatePublicIpAddressRequest()
                     ip_req.set_InstanceId(created_id)

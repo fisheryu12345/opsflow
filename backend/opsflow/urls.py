@@ -17,6 +17,12 @@ from .views.schedule_views import SchedulePlanViewSet
 from .views.plugin_views import PluginViewSet
 from .views.node_views import TemplateNodeViewSet, ExecutionNodeViewSet
 from .views.mixins.template_dr import create_dr_pipeline, preview_dr_topology
+from .views.aliyun_views import (
+    describe_images, describe_instance_types,
+    describe_security_groups, describe_vswitches,
+    describe_regions, describe_zones,
+    describe_disk_categories, describe_cmdb_instances,
+)
 from .views.scheme_views import ExecutionSchemeViewSet
 from .views.audit_views import OperationRecordViewSet
 from .views.project_views import OpsProjectViewSet
@@ -72,4 +78,13 @@ urlpatterns = [
     path('dashboard/node-duration-top/', dashboard_node_duration_top, name='opsflow-dashboard-node-duration-top'),
     path('dashboard/success-rate-trend/', dashboard_success_rate_trend, name='opsflow-dashboard-success-rate-trend'),
     path('dashboard/template-stats/', dashboard_template_stats, name='opsflow-dashboard-template-stats'),
+    # Aliyun ECS 资源查询（供 async_select 表单使用）
+    path('plugins/aliyun/describe-images/', describe_images, name='aliyun-describe-images'),
+    path('plugins/aliyun/describe-instance-types/', describe_instance_types, name='aliyun-describe-instance-types'),
+    path('plugins/aliyun/describe-security-groups/', describe_security_groups, name='aliyun-describe-security-groups'),
+    path('plugins/aliyun/describe-vswitches/', describe_vswitches, name='aliyun-describe-vswitches'),
+    path('plugins/aliyun/describe-regions/', describe_regions, name='aliyun-describe-regions'),
+    path('plugins/aliyun/describe-zones/', describe_zones, name='aliyun-describe-zones'),
+    path('plugins/aliyun/describe-disk-categories/', describe_disk_categories, name='aliyun-describe-disk-categories'),
+    path('plugins/aliyun/describe-cmdb-instances/', describe_cmdb_instances, name='aliyun-describe-cmdb-instances'),
 ] + router.urls

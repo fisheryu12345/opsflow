@@ -63,8 +63,11 @@ class ImportService:
             try:
                 validated = validator.validate(record)
                 validated['__updated_at'] = now
-                if strategy == 'create_only':
-                    # 为新记录生成 instance_id
+                # 保留系统字段（模型定义中不存在的字段，但 Neo4j MERGE 需要）
+                for sys_field in ('instance_id', '__model_code', '__created_at'):
+                    if sys_field in record and sys_field not in validated:
+                        validated[sys_field] = record[sys_field]
+                if not validated.get('instance_id'):
                     validated['instance_id'] = str(uuid4())
                     validated['__model_code'] = model_code
                     validated['__created_at'] = now
@@ -76,7 +79,6 @@ class ImportService:
             return {'total': 0, 'created': 0, 'updated': 0, 'errors': errors}
 
         if strategy == 'create_or_update':
-            # 使用 MERGE 按 instance_id 或 唯一约束 更新
             cypher = (
                 f"UNWIND $records AS rec "
                 f"MERGE (n:{model_code} {{instance_id: rec.instance_id}}) "
@@ -84,7 +86,6 @@ class ImportService:
                 f"RETURN count(n) as total"
             )
         else:
-            # create_only: 直接 CREATE
             cypher = (
                 f"UNWIND $records AS rec "
                 f"CREATE (n:{model_code}) "
@@ -99,14 +100,12 @@ class ImportService:
         logger.info(f"批量导入 {model_code}: {total} 条记录, {len(errors)} 条错误")
         return {
             'total': total,
+            'created': 0,
+            'updated': 0,
             'errors': errors,
         }
 
     def import_relations(self, relations: list[dict]) -> dict:
-        """批量导入关联
-
-        relations: [{src_id, dst_id, type}, ...]
-        """
         if not relations:
             return {'total': 0, 'errors': []}
 
@@ -135,12 +134,10 @@ class ImportService:
             return {'total': 0, 'errors': [str(e)]}
 
     def parse_csv(self, csv_content: str) -> list[dict]:
-        """解析 CSV 内容为记录列表"""
         reader = csv.DictReader(io.StringIO(csv_content))
         return [dict(row) for row in reader]
 
     def parse_json(self, json_content: str) -> list[dict]:
-        """解析 JSON 内容为记录列表"""
         data = json.loads(json_content)
         if isinstance(data, list):
             return data
@@ -149,30 +146,16 @@ class ImportService:
         raise ValidationError("JSON 格式无效：应为数组或 {records: [...]}")
 
     def export_to_excel(self, model_code: str, filters: dict = None) -> io.BytesIO:
-        """导出实例到 Excel (.xlsx)
-
-        Args:
-            model_code: 模型编码
-            filters: 过滤条件
-
-        Returns:
-            BytesIO 包含 Excel 文件内容
-
-        Raises:
-            ImportError: openpyxl 未安装
-        """
         if not HAS_OPENPYXL:
             raise ImportError("openpyxl 未安装，请执行: pip install openpyxl")
 
         model_def = ModelDefinition.objects.get(code=model_code)
 
-        # 查询实例数据
         from .node_service import NodeService
         svc = NodeService(model_code)
         result = svc.list(filters or {}, page=1, page_size=999999)
         items = result.get('items', [])
 
-        # 获取字段定义（排除系统字段）
         fields = list(model_def.fields.all().order_by('sort_order', 'name'))
         system_fields = {'instance_id', '__model_code', '__created_at', '__updated_at', 'rel_id'}
 
@@ -180,19 +163,16 @@ class ImportService:
         ws = wb.active
         ws.title = model_def.name or model_code
 
-        # 写表头
         headers = [f.label or f.name for f in fields if f.name not in system_fields]
-        headers.insert(0, 'instance_id')  # 第一列是主键
+        headers.insert(0, 'instance_id')
         ws.append(headers)
 
-        # 写数据行
         for item in items:
             row = [item.get('instance_id', '')]
             for f in fields:
                 if f.name in system_fields:
                     continue
                 val = item.get(f.name)
-                # 处理不同类型
                 if val is None:
                     row.append('')
                 elif isinstance(val, (list, dict)):
@@ -201,10 +181,8 @@ class ImportService:
                     row.append(val)
             ws.append(row)
 
-        # 自动调整列宽
         for col_idx, header in enumerate(headers, 1):
             max_len = len(str(header))
-            # 粗略估算数据列宽
             for row in ws.iter_rows(min_col=col_idx, max_col=col_idx,
                                     min_row=2, max_row=min(len(items) + 1, 50)):
                 for cell in row:
@@ -218,15 +196,6 @@ class ImportService:
         return output
 
     def import_from_excel(self, model_code: str, file_content: bytes) -> dict:
-        """从 Excel 文件导入实例
-
-        Args:
-            model_code: 模型编码
-            file_content: Excel 文件二进制内容
-
-        Returns:
-            {total: N, created: N, updated: N, errors: [...]}
-        """
         if not HAS_OPENPYXL:
             raise ImportError("openpyxl 未安装，请执行: pip install openpyxl")
 
@@ -237,12 +206,10 @@ class ImportService:
         wb = openpyxl.load_workbook(io.BytesIO(file_content))
         ws = wb.active
 
-        # 解析表头（第一行）
         header_row = [cell.value for cell in ws[1]]
         if not header_row or not header_row[0]:
             raise ValidationError("Excel 文件为空或表头无效")
 
-        # 将中文表头映射回字段名
         col_mapping = {}
         for h in header_row:
             if h == 'instance_id':
@@ -255,16 +222,13 @@ class ImportService:
                         matched = True
                         break
                 if not matched:
-                    col_mapping[h] = h  # 保持原样，后续验证会处理
+                    col_mapping[h] = h
 
-        # 逐行解析
         records = []
         errors = []
         for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
-            # 跳过全空行
             if all(cell is None or str(cell).strip() == '' for cell in row):
                 continue
-
             record = {}
             for col_idx, header in enumerate(header_row):
                 if col_idx < len(row) and row[col_idx] is not None:
@@ -272,5 +236,4 @@ class ImportService:
                     record[field_name] = row[col_idx]
             records.append(record)
 
-        # 使用已有的 import_instances 逻辑
         return self.import_instances(model_code, records, strategy='create_or_update')

@@ -403,7 +403,8 @@ class Command(BaseCommand):
             "Host": {"name": "主机", "cls_id": "bk_host_manage",
                      "fields": [("ip", "IP地址"), ("hostname", "主机名"), ("os_type", "操作系统"),
                                 ("cpu_cores", "CPU核数"), ("memory_mb", "内存(MB)"), ("disk_gb", "磁盘(GB)"),
-                                ("status", "状态"), ("region", "地域")]},
+                                ("status", "状态"), ("region", "地域"),
+                                ("cloud_instance_id", "云实例ID"), ("cloud_type", "云厂商"), ("instance_type", "实例规格")]},
             "Process": {"name": "进程", "cls_id": "bk_host_manage",
                         "fields": [("name", "进程名"), ("port", "端口"), ("protocol", "协议"), ("status", "状态"), ("version", "版本")]},
         }
