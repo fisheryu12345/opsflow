@@ -229,6 +229,15 @@ def _create_element(node: dict, outgoing_edges: list, *,
         else:
             act.component.inputs[k] = Var(type=Var.PLAIN, value=v)
 
+    # -- Mechanism A: loop_config --
+    loop_config = node.get('params', {}).get('loop_config', {})
+    if loop_config.get('enable'):
+        loop_var = loop_config.get('loop_var', {})
+        if loop_var.get('name') and loop_var.get('values'):
+            act.component.inputs[loop_var['name']] = Var(type=Var.SPLICE, value='${_loop_value}')
+            if data:
+                _register_node_output(data, '_loop_value', nid, '_loop_value')
+
     # 注册 output_schema 字段的 NodeOutput，供条件引擎引用
     if data and plugin_cls and hasattr(plugin_cls, 'get_output_schema'):
         schema = plugin_cls.get_output_schema()

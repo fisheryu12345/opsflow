@@ -98,7 +98,32 @@ def _topological_connect(start, end_elem, elem_map, out_edges, in_edges, effecti
         _synth_counter[0] += 1
         return _synth_counter[0]
 
-    in_deg = {nid: len(in_edges.get(nid, [])) for nid in elem_map}
+    gateway_ids = {n['id'] for n in effective_nodes if n.get('node_type') == 'exclusive_gateway'}
+
+    # Detect gateway loopback edges: gw->target where BFS from target can reach gw
+    adj_all = {nid: [e['to'] for e in out_edges.get(nid, [])] for nid in elem_map}
+    loopback_targets = set()
+    for src_id in gateway_ids:
+        for e in out_edges.get(src_id, []):
+            visited = {e['to']}
+            q = [e['to']]
+            while q:
+                n = q.pop(0)
+                if n == e['from']:
+                    loopback_targets.add(e['to'])
+                    break
+                for nb in adj_all.get(n, []):
+                    if nb not in visited:
+                        visited.add(nb)
+                        q.append(nb)
+
+    # Calculate indegree, excluding loopback edges
+    in_deg = {}
+    for nid in elem_map:
+        incoming = in_edges.get(nid, [])
+        filtered = [e for e in incoming
+                    if not (e.get('from') in gateway_ids and nid in loopback_targets)]
+        in_deg[nid] = len(filtered)
     queue = [nid for nid in elem_map if in_deg[nid] == 0]
 
     if len(queue) == 1:
@@ -145,6 +170,10 @@ def _topological_connect(start, end_elem, elem_map, out_edges, in_edges, effecti
 
         for s in successors:
             target_id = s['to']
+            # Mechanism B: skip in-degree decrement for loopback edges
+            nt = nid if nid in gateway_ids else _get_node_type(effective_nodes, nid)
+            if nt == 'exclusive_gateway' and target_id in processed:
+                continue
             in_deg[target_id] -= 1
             if in_deg[target_id] <= 0 and target_id not in processed:
                 queue.append(target_id)
@@ -249,5 +278,18 @@ def build_bamboo_pipeline(flow_template, pipeline_tree=None,
 
     pipeline = build_tree(start, data=data)
     _apply_timeout_configs(pipeline, effective_nodes)
+
+    # -- Mechanism A: inject loop_config into pipeline dict --
+    for node in effective_nodes:
+        loop_config = node.get('params', {}).get('loop_config', {})
+        if loop_config.get('enable'):
+            nid = node['id']
+            if nid in pipeline.get('activities', {}):
+                pipeline['activities'][nid]['loop_config'] = {
+                    "enable": True,
+                    "loop_times": loop_config.get('loop_times', 1),
+                    "fail_skip": loop_config.get('fail_skip', False),
+                    "outputs_key": loop_config.get('outputs_key', 'outputs'),
+                }
 
     return pipeline

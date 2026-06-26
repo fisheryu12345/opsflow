@@ -2,6 +2,45 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## aecd282b
+
+> 提交日期: 2026-06-26 | 提交信息: feat: implement pipeline loop mechanism A+B
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/core/bamboo_validator.py` | 后端 | 新增回环边检测，环检测跳过合法回环边 |
+| `backend/opsflow/core/flow_engine.py` | 后端 | run() 传递 cycle_tolerate |
+| `backend/opsflow/core/pipeline_builder/__init__.py` | 后端 | 拓扑排序容忍回环边 + loop_config 注入 |
+| `backend/opsflow/core/pipeline_builder/elements.py` | 后端 | ServiceActivity loop_var SPLICE 绑定 |
+| `backend/opsflow/core/layout/layout_adapter.py` | 后端 | canvas_width 自适应 + 每行最多 8 节点 |
+| `backend/opsflow/core/llm_service.py` | 后端 | LLM 提示词追加 Loop Mechanisms |
+| `web/.../PropertyPanel.vue` | 前端 | Loop Configuration UI |
+| `web/.../useDesignCanvas.ts` | 前端 | AI Layout 去环-布局-恢复 + 回环边样式 |
+| `web/.../useGraphCanvas.ts` | 前端 | layoutNodes 排除回环边 + orth 路由 |
+| `web/.../useGraphValidator.ts` | 前端 | checkCycle 容忍排他网关回环边 |
+| `backend/opsflow/tests/test_bamboo_builder.py` | 测试 | 8 个循环机制测试 |
+
+### 解决
+
+- **问题/背景：** OpsFlow 基于 DAG 引擎，不支持循环。IT 运维场景需要两种循环：批量执行（同操作不同参数）和条件轮询（等待状态满足）
+- **办法：** 机制 A（节点级 loop_config）实现批量循环；机制 B（排他网关回环边）实现条件驱动轮询；前后端+校验+布局+AI 提示词全链路支持
+
+### 文档
+
+- **生成文档：**
+  - `docs/superpowers/specs/2026-06-26-loop-mechanism-design.md`
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## 26699e30
 
 > 提交日期: 2026-06-26 | 提交信息: feat: template public conversion + VariableBrowser simplify + remove output promote

@@ -97,10 +97,11 @@ export function useGraphValidator() {
     return warnings
   }
 
-  /** 环检测 — Kahn 拓扑排序（同后端 bamboo_validator） */
+  /** 环检测 — Kahn 拓扑排序（同后端 bamboo_validator，容忍排他网关回环边） */
   function checkCycle(nodes: any[], edges: any[]): string[] {
     const errors: string[] = []
     const effectiveIds = new Set(nodes.map(n => n.id))
+    const gatewayIds = new Set(nodes.filter(n => n.node_type === 'exclusive_gateway').map(n => n.id))
     const inDegree: Record<string, number> = {}
     const outEdges: Record<string, string[]> = {}
 
@@ -111,22 +112,47 @@ export function useGraphValidator() {
     for (const e of edges) {
       if (effectiveIds.has(e.from) && effectiveIds.has(e.to)) {
         outEdges[e.from].push(e.to)
-        inDegree[e.to] = (inDegree[e.to] || 0) + 1
+        if (!gatewayIds.has(e.from)) {
+          inDegree[e.to] = (inDegree[e.to] || 0) + 1
+        }
       }
     }
 
+    // BFS: 从目标节点出发是否能回到网关（形成回环）
+    function bfsReaches(start: string, target: string): boolean {
+      const visited = new Set([start])
+      const q = [start]
+      while (q.length) {
+        const node = q.shift()!
+        if (node === target) return true
+        for (const nb of outEdges[node] || []) {
+          if (!visited.has(nb)) { visited.add(nb); q.push(nb) }
+        }
+      }
+      return false
+    }
+
+    // Check if any gateway has loopback edges
+    const hasLoopback = edges.some(e =>
+      gatewayIds.has(e.from) && bfsReaches(e.to, e.from)
+    )
+    // If there are loopback edges, skip cycle check (backend handles it)
+    if (hasLoopback) return errors
+
     const queue = Object.entries(inDegree).filter(([_, d]) => d === 0).map(([id]) => id)
-    let visited = 0
+    const processed = new Set<string>()
     while (queue.length) {
       const nid = queue.shift()!
-      visited++
+      if (processed.has(nid)) continue
+      processed.add(nid)
       for (const target of outEdges[nid] || []) {
+        if (gatewayIds.has(nid)) continue
         inDegree[target]--
         if (inDegree[target] <= 0) queue.push(target)
       }
     }
 
-    if (visited !== Object.keys(inDegree).length) {
+    if (processed.size !== Object.keys(inDegree).length) {
       errors.push('流程中存在环，bamboo-engine 不支持')
     }
     return errors

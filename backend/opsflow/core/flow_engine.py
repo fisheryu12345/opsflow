@@ -222,7 +222,13 @@ class FlowEngine:
             except Exception as e:
                 logger.warning("[FlowEngine] _cleanup_pipeline_data error: %s", e)
 
-            result = pipeline_api.run_pipeline(runtime=self._runtime, pipeline=pipeline)
+            # Mechanism B: detect loop edges, pass cycle_tolerate
+            from opsflow.core.bamboo_validator import _has_loop_edges
+            has_loop = _has_loop_edges(pipeline)
+            result = pipeline_api.run_pipeline(
+                runtime=self._runtime, pipeline=pipeline,
+                cycle_tolerate=has_loop,
+            )
 
             if not result.result:
                 # 提取验证错误详情（ConnectionValidateError 含 failed_nodes + detail）

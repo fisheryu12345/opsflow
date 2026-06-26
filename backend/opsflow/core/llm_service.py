@@ -425,6 +425,160 @@ BEFORE returning your JSON, verify ALL of these:
 
 Target hosts: {hosts_str}
 
+===== Loop Mechanisms (NEW) =====
+
+You can generate pipelines with TWO types of loops:
+
+**Mechanism A: Node-level Loop (batch execution)**
+
+Add a "loop_config" field inside the "params" object of an atom node to make it repeat N times with varying parameters:
+
+{{
+  "id": "node_1", "label": "Ping All Hosts", "atom_type": "ping_test",
+  "params": {{
+    "target_ip": "",
+    "loop_config": {{
+      "enable": true,
+      "loop_times": 3,
+      "loop_var": {{
+        "name": "target_ip",
+        "values": ["10.0.0.1", "10.0.0.2", "10.0.0.3"]
+      }},
+      "fail_skip": false
+    }}
+  }}
+}}
+
+Rules for loop_config:
+- "enable": MUST be true to activate the loop
+- "loop_times": number of iterations (1-1000)
+- "loop_var.name": the parameter name to vary each iteration (MUST match one of the atom's params)
+- "loop_var.values": array of values, one per iteration. If fewer values than loop_times, values cycle (values[i % len(values)])
+- "fail_skip": true to continue on failure, false to stop the pipeline
+- Use when: "ping 5 servers", "create 10 VMs", "deploy to 3 hosts" — same operation, different targets
+
+**Mechanism B: Exclusive Gateway Loopback (polling / wait-until)**
+
+Connect an exclusive_gateway output back to a PREVIOUS node to form a retry loop. The gateway chooses:
+- Loop back if condition NOT met
+- Exit forward if condition IS met
+
+Example: "Create VM, then check its status every 10 seconds until running"
+{{
+  "nodes": [
+    {{"id": "node_1", "label": "Create Server", "node_type": "", "atom_type": "esxi_create_vm", "params": {{"vm_name": "web-01"}}}},
+    {{"id": "node_2", "label": "Check Status", "node_type": "", "atom_type": "esxi_get_state", "params": {{"vm_name": "web-01"}}}},
+    {{"id": "gw_1", "label": "Is Running?", "node_type": "exclusive_gateway"}},
+    {{"id": "node_3", "label": "Configure Server", "node_type": "", "atom_type": "shell_exec", "params": {{}}}}
+  ],
+  "edges": [
+    {{"from": "node_1", "to": "node_2", "label": "success"}},
+    {{"from": "node_2", "to": "gw_1", "label": "success"}},
+    {{"from": "gw_1", "to": "node_2", "label": "failure", "condition": "${{node_2.state}} != 'running'"}},
+    {{"from": "gw_1", "to": "node_3", "label": "success", "condition": "${{node_2.state}} == 'running'"}}
+  ]
+}}
+
+Rules for loopback edges:
+- The back-edge MUST be from an exclusive_gateway to a node that appears BEFORE the gateway in the flow
+- The back-edge condition determines when to loop (e.g. "${{node_2.status}} != 'completed'")
+- The forward-edge condition determines when to exit (e.g. "${{node_2.status}} == 'completed'")
+- At least ONE outgoing edge from the gateway must NOT be a loopback (the exit path)
+- The loopback edge will render as an orange dashed line; the system handles the cycle automatically
+- Use when: "wait until", "retry until", "poll until", "keep checking until"
+
+===== Loop Mechanism Examples =====
+
+Example A: Batch ping 3 servers (Mechanism A)
+"Ping servers 10.0.0.1, 10.0.0.2, 10.0.0.3 and send report"
+{{
+  "nodes": [
+    {{"id": "node_1", "label": "Ping Servers", "node_type": "", "atom_type": "ping_test", "params": {{"target_ip": "", "loop_config": {{"enable": true, "loop_times": 3, "loop_var": {{"name": "target_ip", "values": ["10.0.0.1", "10.0.0.2", "10.0.0.3"]}}, "fail_skip": true}}}}}},
+    {{"id": "node_2", "label": "Send Report", "node_type": "", "atom_type": "send_alert", "params": {{}}}}
+  ],
+  "edges": [
+    {{"from": "node_1", "to": "node_2", "label": "success"}}
+  ]
+}}
+
+Example B: Single-node loopback (wait for power on)
+"Create ESXi VM, check it every 10s until powered on, then configure it"
+{{
+  "nodes": [
+    {{"id": "node_1", "label": "Create VM", "node_type": "", "atom_type": "esxi_create_vm", "params": {{"vm_name": "prod-web"}}}},
+    {{"id": "node_2", "label": "Check Power", "node_type": "", "atom_type": "esxi_get_state", "params": {{"vm_name": "prod-web"}}}},
+    {{"id": "gw_1", "label": "Powered On?", "node_type": "exclusive_gateway"}},
+    {{"id": "node_3", "label": "Configure VM", "node_type": "", "atom_type": "shell_exec", "params": {{"cmd": "setup-web.sh"}}}}
+  ],
+  "edges": [
+    {{"from": "node_1", "to": "node_2", "label": "success"}},
+    {{"from": "node_2", "to": "gw_1", "label": "success"}},
+    {{"from": "gw_1", "to": "node_2", "label": "failure", "condition": "${{node_2.power}} != 'on'"}},
+    {{"from": "gw_1", "to": "node_3", "label": "success", "condition": "${{node_2.power}} == 'on'"}}
+  ]
+}}
+
+Example C: Multi-node loopback (backup + patch + reboot + check -> loop back to backup)
+"Backup disk, apply patches, reboot, check status. If not running, redo from backup step"
+{{
+  "nodes": [
+    {{"id": "node_1", "label": "Backup Disk", "node_type": "", "atom_type": "backup_file", "params": {{"path": "/data"}}}},
+    {{"id": "node_2", "label": "Apply Patches", "node_type": "", "atom_type": "shell_exec", "params": {{"cmd": "yum update -y"}}}},
+    {{"id": "node_3", "label": "Reboot", "node_type": "", "atom_type": "esxi_reboot", "params": {{}}}},
+    {{"id": "node_4", "label": "Check Status", "node_type": "", "atom_type": "esxi_get_state", "params": {{"vm_name": "target-vm"}}}},
+    {{"id": "gw_1", "label": "Running?", "node_type": "exclusive_gateway"}},
+    {{"id": "node_5", "label": "Send Report", "node_type": "", "atom_type": "send_alert", "params": {{}}}}
+  ],
+  "edges": [
+    {{"from": "node_1", "to": "node_2", "label": "success"}},
+    {{"from": "node_2", "to": "node_3", "label": "success"}},
+    {{"from": "node_3", "to": "node_4", "label": "success"}},
+    {{"from": "node_4", "to": "gw_1", "label": "success"}},
+    {{"from": "gw_1", "to": "node_1", "label": "failure", "condition": "${{node_4.state}} != 'Running'"}},
+    {{"from": "gw_1", "to": "node_5", "label": "success", "condition": "${{node_4.state}} == 'Running'"}}
+  ]
+}}
+
+IMPORTANT for multi-node loops: The loopback edge points to the FIRST node in the loop body (node_1).
+ALL nodes in the loop body (node_1 through node_4) are connected sequentially with forward edges.
+The gateway receives the last node in the loop (node_4) and decides: loop back to node_1 or exit to node_5.
+
+===== Loop Validation Rules =====
+
+- [ ] Mechanism A: loop_var.name matches an actual param name of the atom
+- [ ] Mechanism B: the loopback edge target appears BEFORE the exclusive_gateway in the flow
+- [ ] Mechanism B: at least one outgoing edge from the gateway is NOT a loopback (exit path)
+- [ ] Mechanism B: EXACTLY ONE exclusive_gateway output edge should exit the loop
+- [ ] CRITICAL — All nodes MUST be connected. Every atom node MUST have at least one incoming edge from another node or gateway. The builder auto-creates start_event and end_event internally.
+- [ ] CRITICAL — NEVER include start_event or end_event in your JSON output. Do NOT add nodes with node_type="start_event" or node_type="end_event". Do NOT use __start__ or __end__ as node IDs.
+
+WRONG (do NOT do this):
+{{
+  "nodes": [
+    {{"id": "__start__", "node_type": "start_event", ...}},  ← NEVER include this
+    {{"id": "node_1", ...}},
+    {{"id": "__end__", "node_type": "end_event", ...}}        ← NEVER include this
+  ],
+  "edges": [
+    {{"from": "node_5", "to": "__end__"}}  ← NEVER reference __end__ in edges
+  ]
+}}
+
+CORRECT (do this):
+{{
+  "nodes": [
+    {{"id": "node_1", "label": "Step 1", ...}},   ← only atom/gateway nodes
+    {{"id": "node_2", "label": "Step 2", ...}},
+    {{"id": "gw_1", "label": "Check", "node_type": "exclusive_gateway"}}
+  ],
+  "edges": [
+    {{"from": "node_1", "to": "node_2", "label": "success"}},   ← edges only between atom/gateway nodes
+    {{"from": "node_2", "to": "gw_1", "label": "success"}}
+  ]
+}}
+The first node (node_1) will be auto-connected to start_event by the builder. The last leaf node will be auto-connected to end_event.
+- [ ] CRITICAL — Loopback does NOT mean orphan: even with loopback edges, every node including the loop target must have a forward-path incoming edge. The loopback edge from the gateway provides an additional cycle path, NOT the only incoming path.
+
 Language: Respond in {"Chinese" if language.startswith("zh") else "English"}. All labels, descriptions and user-facing text should be in the specified language.
 
 Return only JSON object, no explanations."""

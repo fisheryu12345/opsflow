@@ -76,7 +76,8 @@ export function layoutNodes(
   const START_X = options?.startX ?? 50
   const START_Y = options?.startY ?? 40
 
-  // 计算入度 & 邻接表
+  // 计算入度 & 邻接表（检测回环边，排除回环边使其不参与分层）
+  const gatewayIds = new Set(nodes.filter(n => n.node_type === 'exclusive_gateway').map(n => n.id))
   const inDeg: Record<string, number> = {}
   const adj: Record<string, string[]> = {}
   for (const n of nodes) { inDeg[n.id] = 0; adj[n.id] = [] }
@@ -85,6 +86,35 @@ export function layoutNodes(
     const t = e.to || (e as any).target
     if (adj[f]) adj[f].push(t)
     if (inDeg[t] != null) inDeg[t]++
+  }
+
+  // BFS 检测回环边: 从网关出边的目标出发能否回到网关
+  const loopbackTargets = new Set<string>()
+  for (const e of edges) {
+    const f = e.from || (e as any).source
+    const t = e.to || (e as any).target
+    if (gatewayIds.has(f)) {
+      const visited = new Set([t])
+      const q = [t]
+      let reaches = false
+      while (q.length) {
+        const n = q.shift()!
+        if (n === f) { reaches = true; break }
+        for (const nb of adj[n] || []) {
+          if (!visited.has(nb)) { visited.add(nb); q.push(nb) }
+        }
+      }
+      if (reaches) loopbackTargets.add(t)
+    }
+  }
+
+  // 重建 inDegree：仅排除回环边
+  for (const n of nodes) inDeg[n.id] = 0
+  for (const e of edges) {
+    const f = e.from || (e as any).source
+    const t = e.to || (e as any).target
+    const isLoopback = gatewayIds.has(f) && loopbackTargets.has(t)
+    if (inDeg[t] != null && !isLoopback) inDeg[t]++
   }
 
   // BFS 分层

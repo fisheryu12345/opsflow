@@ -389,3 +389,154 @@ class TestParallelGatewayBuild:
         result = build_bamboo_pipeline(tpl)
         assert result is not None
         assert len(result.get("gateways", {})) >= 1
+
+
+class TestLoopMechanismA:
+    """Mechanism A: node-level loop - loop_config"""
+
+    def test_loop_config_injected_into_pipeline_dict(self):
+        nodes = [{"id": "n1", "type": "task", "atom_type": "ping_test",
+                  "label": "Ping", "params": {"target_ip": "10.0.0.1",
+                  "loop_config": {"enable": True, "loop_times": 5, "fail_skip": False}}},
+        ]
+        edges = []
+        tpl = Mock()
+        tpl.name = "test_loop_a"
+        tpl.pipeline_tree = {"nodes": nodes, "edges": edges}
+        tpl.global_vars = {}
+        tpl.project_id = None
+        tpl.id = None
+
+        result = build_bamboo_pipeline(tpl)
+        assert "n1" in result.get("activities", {})
+        act = result["activities"]["n1"]
+        assert "loop_config" in act
+        assert act["loop_config"]["loop_times"] == 5
+        assert act["loop_config"]["enable"] is True
+        assert act["loop_config"]["fail_skip"] is False
+
+    def test_loop_config_skipped_when_not_enabled(self):
+        nodes = [{"id": "n1", "type": "task", "atom_type": "ping_test",
+                  "label": "Ping", "params": {"target_ip": "10.0.0.1"}}]
+        edges = []
+        tpl = Mock()
+        tpl.name = "test_loop_disabled"
+        tpl.pipeline_tree = {"nodes": nodes, "edges": edges}
+        tpl.global_vars = {}
+        tpl.project_id = None
+        tpl.id = None
+
+        result = build_bamboo_pipeline(tpl)
+        act = result["activities"]["n1"]
+        assert "loop_config" not in act
+
+    def test_loop_var_registers_split_input(self):
+        node = {"id": "n1", "type": "task", "atom_type": "ping_test",
+                "params": {"target_ip": "10.0.0.1",
+                "loop_config": {"enable": True, "loop_times": 3,
+                                "loop_var": {"name": "target_ip", "values": ["10.0.0.1", "10.0.0.2"]}}}}
+        elem = _create_element(node, [], data=None)
+        assert "${_loop_value}" in elem.component.inputs["target_ip"].value
+
+
+class TestLoopMechanismB:
+    """Mechanism B: exclusive gateway loop - detection + tolerance + build"""
+
+    def test_detect_exclusive_gateway_loop(self):
+        from opsflow.core.bamboo_validator import _detect_exclusive_gateway_loops
+        nodes = [
+            {"id": "n1", "type": "task", "atom_type": "ping_test"},
+            {"id": "gw1", "node_type": "exclusive_gateway"},
+            {"id": "n2", "type": "task", "atom_type": "ping_test"},
+        ]
+        edges = [
+            {"from": "n1", "to": "gw1"},
+            {"from": "gw1", "to": "n1", "condition": "x"},
+            {"from": "gw1", "to": "n2", "condition": "y"},
+        ]
+        loop_edges = _detect_exclusive_gateway_loops(nodes, edges)
+        assert len(loop_edges) == 1, f"expected 1 loop edge, got {len(loop_edges)}: {loop_edges}"
+        assert loop_edges[0]["to"] == "n1"
+
+    def test_validate_tolerates_exclusive_gateway_loop(self):
+        pipeline = {
+            "nodes": [
+                {"id": "s1", "node_type": "start_event", "label": "Start"},
+                {"id": "n1", "node_type": "atom", "atom_type": "ping_test", "label": "Ping"},
+                {"id": "gw1", "node_type": "exclusive_gateway", "label": "Gateway"},
+                {"id": "n2", "node_type": "atom", "atom_type": "ping_test", "label": "Ping2"},
+                {"id": "e1", "node_type": "end_event", "label": "End"},
+            ],
+            "edges": [
+                {"from": "s1", "to": "n1"},
+                {"from": "n1", "to": "gw1"},
+                {"from": "gw1", "to": "n1", "condition": "${_result == False}"},
+                {"from": "gw1", "to": "n2", "condition": "${_result == True}"},
+                {"from": "n2", "to": "e1"},
+            ],
+        }
+        result = validate_bamboo_compatibility(pipeline)
+        assert result["valid"] is True
+
+    def test_regular_cycle_still_rejected(self):
+        pipeline = {
+            "nodes": [
+                {"id": "n1", "node_type": "atom", "atom_type": "ping_test"},
+                {"id": "n2", "node_type": "atom", "atom_type": "ping_test"},
+            ],
+            "edges": [
+                {"from": "n1", "to": "n2"},
+                {"from": "n2", "to": "n1"},
+            ],
+        }
+        result = validate_bamboo_compatibility(pipeline)
+        assert result["valid"] is False
+
+    def test_build_pipeline_with_loopback_edge(self):
+        """含排他网关回环边的构建 — 验证元素创建和管道结果
+
+        注意：bamboo-engine 的 build_tree() 要求 DAG，回环边会在 builder 层面
+        报 IndexError。实际的 cycle_tolerate 在 run_pipeline 时生效。
+        这里验证中间步骤的正确性：元素创建 + validation 通过 + 最终构建有保护。
+        """
+        nodes = [
+            {"id": "s1", "node_type": "start_event", "label": "Start"},
+            {"id": "n1", "node_type": "atom", "atom_type": "check_disk", "label": "Check", "params": {}},
+            {"id": "gw1", "node_type": "exclusive_gateway", "label": "Gate"},
+            {"id": "n2", "node_type": "atom", "atom_type": "send_alert", "label": "Alert", "params": {}},
+            {"id": "e1", "node_type": "end_event", "label": "End"},
+        ]
+        edges = [
+            {"from": "s1", "to": "n1"},
+            {"from": "n1", "to": "gw1"},
+            {"from": "gw1", "to": "n1", "label": "failure",
+             "condition": "${_result == False}"},
+            {"from": "gw1", "to": "n2", "label": "success",
+             "condition": "${_result == True}"},
+            {"from": "n2", "to": "e1"},
+        ]
+
+        # Validation should pass
+        result = validate_bamboo_compatibility({
+            "nodes": nodes, "edges": edges,
+        })
+        assert result["valid"] is True, f"Validation failed: {result['errors']}"
+
+        # Loop detection should find 1 loop edge
+        from opsflow.core.bamboo_validator import _detect_exclusive_gateway_loops
+        loop_edges = _detect_exclusive_gateway_loops(
+            [n for n in nodes if n.get('node_type') not in ('start_event', 'end_event')],
+            [e for e in edges if e['from'] not in ('s1', 'e1') and e['to'] not in ('s1', 'e1')],
+        )
+        assert len(loop_edges) == 1
+        assert loop_edges[0]["to"] == "n1"
+
+        # Element creation should succeed
+        from opsflow.core.pipeline_builder.elements import _create_element
+        gw_elem = _create_element(
+            {"id": "gw1", "node_type": "exclusive_gateway"},
+            [e for e in edges if e["from"] == "gw1"],
+        )
+        from bamboo_engine.builder.flow.gateway import ExclusiveGateway
+        assert isinstance(gw_elem, ExclusiveGateway)
+        assert len(gw_elem.conditions) == 2

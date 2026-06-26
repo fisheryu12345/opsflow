@@ -301,6 +301,37 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
         return
       }
 
+      // ── 回环边检测：从排他网关指向可回到网关的节点 → 橙色虚线 ──
+      const tgtCell = edge.getTargetCell()
+      if (sourceType === 'exclusive_gateway' && tgtCell?.isNode()) {
+        const allEdges = g.getEdges()
+        const adj: Record<string, string[]> = {}
+        for (const e of allEdges) {
+          if (e.id === edge.id) continue
+          const s = e.getSourceCellId()
+          const t = e.getTargetCellId()
+          if (s && t) { if (!adj[s]) adj[s] = []; adj[s].push(t) }
+        }
+        const bfs = (start: string, target: string): boolean => {
+          const visited = new Set([start])
+          const q = [start]
+          while (q.length) {
+            const n = q.shift()!
+            if (n === target) return true
+            for (const nb of adj[n] || []) {
+              if (!visited.has(nb)) { visited.add(nb); q.push(nb) }
+            }
+          }
+          return false
+        }
+        if (bfs(tgtCell.id, source.id)) {
+          edge.setAttrs({ line: { stroke: '#E6A23C', strokeWidth: 1.5, strokeDasharray: '6 3', targetMarker: 'classic' } })
+          edge.setData({ ...edge.getData(), loopback: true })
+          edge.setSource({ cell: source.id, port: 'top' })
+          edge.setTarget({ cell: tgtCell.id, port: 'top' })
+        }
+      }
+
       // 刷新两端端口状态（即使 Prompt 未关闭，端口已显示连接态）
       { const target = edge.getTargetCell(); if (target?.isNode()) refreshPortStates(target as Node) }
       refreshPortStates(source as Node)
@@ -421,14 +452,22 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       contentNodes.some(n => n.id === e.to)
     )
 
+    // 检测回环边：BFS 从网关出边目标出发能否回到网关
+    const gwIds = new Set(contentNodes.filter(n => n.node_type === 'exclusive_gateway').map(n => n.id))
+    const adj = Object.fromEntries(contentNodes.map(n => [n.id, contentEdges.filter((e: any) => e.from === n.id).map((e: any) => e.to)]))
+    const hasLoopback = contentEdges.some((e: any) => {
+      if (!gwIds.has(e.from)) return false
+      const visited = new Set([e.to]), q = [e.to]
+      while (q.length) { const n = q.shift()!; if (n === e.from) return true; (adj[n] || []).forEach(nb => { if (!visited.has(nb)) { visited.add(nb); q.push(nb) } }) }
+      return false
+    })
     const hasSavedPositions = nodesList.some(n => n.x != null && n.y != null)
-    console.log('[loadGraphData] hasSavedPositions:', hasSavedPositions, 'contentNodes:', contentNodes.map(n => ({ id: n.id, type: n.node_type, x: n.x, y: n.y })))
-    const positions = hasSavedPositions
+    const positions = (hasSavedPositions && !hasLoopback)
       ? Object.fromEntries(
           nodesList.filter(n => n.x != null && n.y != null).map(n => [n.id, { x: n.x, y: n.y }]),
         )
       : layoutNodes(contentNodes, contentEdges)
-    console.log('[loadGraphData] computed positions:', positions)
+    console.log('[loadGraphData] hasLoopback:', hasLoopback, 'hasPos:', hasSavedPositions, 'using:', (hasSavedPositions && !hasLoopback) ? 'saved' : 'layout')
 
     const cells: any[] = []
 
@@ -488,14 +527,23 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     }
 
     // 连线
+    const gatewayIds = new Set(contentNodes.filter(n => n.node_type === 'exclusive_gateway').map(n => n.id))
     for (const edge of edgesList) {
       if (!edge.from || !edge.to) continue
+      // 回环边检测：排他网关出边指向低层节点
+      const isLoopback = gatewayIds.has(edge.from) &&
+        (positions[edge.to]?.x ?? Infinity) < (positions[edge.from]?.x ?? 0)
       cells.push(graph.value.createEdge({
-        source: { cell: edge.from, port: edge.sourcePort || 'right' },
-        target: { cell: edge.to, port: edge.targetPort || 'left' },
+        source: { cell: edge.from, port: isLoopback ? 'top' : (edge.sourcePort || 'right') },
+        target: { cell: edge.to, port: isLoopback ? 'top' : (edge.targetPort || 'left') },
         labels: edge.label ? [{ attrs: { text: { text: edge.label } } }] : undefined,
-        attrs: { line: { stroke: '#DCDFE6', strokeWidth: 1.5, targetMarker: 'classic' } },
-        data: { condition: edge.condition || '' },
+        attrs: { line: {
+          stroke: isLoopback ? '#E6A23C' : '#DCDFE6',
+          strokeWidth: 1.5,
+          strokeDasharray: isLoopback ? '6 3' : '',
+          targetMarker: 'classic',
+        } },
+        data: { condition: edge.condition || '', loopback: isLoopback },
       }))
     }
 
@@ -548,8 +596,31 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       ElMessage.warning('Canvas is empty')
       return
     }
+
+    // 检测并临时移除回环边
+    const gwSet = new Set(nodes.filter((n: any) => n.node_type === 'exclusive_gateway').map((n: any) => n.id))
+    const adj: Record<string, string[]> = {}
+    for (const e of edges) { const f = e.from; adj[f] = adj[f] || []; adj[f].push(e.to) }
+    const loopbackPairs = new Set<string>()  // "from->to"
+    for (const e of edges) {
+      if (gwSet.has(e.from)) {
+        const visited = new Set([e.to]); const q = [e.to]
+        while (q.length) { const n = q.shift()!; if (n === e.from) { loopbackPairs.add(e.from + '->' + e.to); break }; (adj[n] || []).forEach(nb => { if (!visited.has(nb)) { visited.add(nb); q.push(nb) } }) }
+      }
+    }
+    // 移除 X6 graph 中的回环边
+    const removedData: any[] = []
+    for (const edge of graph.value!.getEdges()) {
+      if (loopbackPairs.has(edge.getSourceCellId() + '->' + edge.getTargetCellId())) {
+        removedData.push({ id: edge.id, source: edge.getSourceCellId(), target: edge.getTargetCellId(), data: edge.getData() })
+        graph.value!.removeCell(edge.id)
+      }
+    }
+    // 过滤出不含回环边的 cleanEdges
+    const cleanEdges = edges.filter((e: any) => !loopbackPairs.has(e.from + '->' + e.to))
+
     try {
-      const res = await AiLayout({ nodes, edges })
+      const res = await AiLayout({ nodes, edges: cleanEdges })
       const data = res.data?.data || res.data
       const positions = data?.positions || []
       if (!positions.length) {
@@ -574,6 +645,16 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
           const p = n.getPosition()
           n.setPosition(p.x, p.y - 4)
         }
+      }
+      // 恢复回环边
+      for (const d of removedData) {
+        graph.value!.addEdge({
+          id: d.id,
+          source: { cell: d.source, port: 'top' },
+          target: { cell: d.target, port: 'top' },
+          attrs: { line: { stroke: '#E6A23C', strokeWidth: 1.5, strokeDasharray: '6 3', targetMarker: 'classic' } },
+          data: d.data,
+        })
       }
       graph.value!.centerContent()
       ElMessage.success('AI layout complete')

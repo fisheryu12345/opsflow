@@ -210,7 +210,34 @@ def compute_layout(nodes, edges, **kwargs):
     event_size = kwargs.get("event_size", POSITION["event_size"])
     gateway_size = kwargs.get("gateway_size", POSITION["gateway_size"])
     start = kwargs.get("start", POSITION["start"])
-    canvas_width = kwargs.get("canvas_width", CANVAS_WIDTH)
+    # 自动扩展画布宽度：按最长路径深度 × 节点间距，避免长流水线换行
+    # 最长路径深度 = 流水线中连续依赖关系的最大长度
+    all_content = {**pipeline['activities'], **pipeline['gateways']}
+    max_depth = 0
+    # BFS 从所有入度为0的节点出发，计算最长路径
+    visited_depth: dict[str, int] = {}
+    def _dfs_depth(nid: str) -> int:
+        if nid in visited_depth:
+            return visited_depth[nid]
+        node = all_content.get(nid, {})
+        out = node.get('outgoing', [])
+        if isinstance(out, str):
+            out = [out] if out else []
+        if not out:
+            visited_depth[nid] = 1
+            return 1
+        max_child = 0
+        for fid in out:
+            flow = pipeline['flows'].get(fid, {})
+            tgt = flow.get('target', '')
+            if tgt and tgt in all_content:
+                max_child = max(max_child, _dfs_depth(tgt))
+        visited_depth[nid] = 1 + max_child
+        return visited_depth[nid]
+    for nid in all_content:
+        max_depth = max(max_depth, _dfs_depth(nid))
+    # 水平每行最多 8 个内容节点，超出自动换行
+    canvas_width = kwargs.get("canvas_width", max(CANVAS_WIDTH, min(max_depth, 8) * 280))
 
     draw_pipeline(
         pipeline,

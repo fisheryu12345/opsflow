@@ -7,10 +7,54 @@
 """
 
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 # 匹配 ${expr} 整体，再从 expr 中解析 node_id.key 引用
 _EXPR_PATTERN = re.compile(r'\$\{([^}]*)\}')
 _VAR_REF_PATTERN = re.compile(r'([a-zA-Z_]\w*)\.([a-zA-Z_]\w*)')
+
+
+def _detect_exclusive_gateway_loops(effective_nodes: list, effective_edges: list) -> list:
+    """检测排他网关回环边，返回回环边列表
+
+    对排他网关的每条出边，BFS 从目标节点出发，看是否能回到网关自身。
+    """
+    gateway_ids = {n['id'] for n in effective_nodes if n.get('node_type') == 'exclusive_gateway'}
+    adj = {n['id']: [] for n in effective_nodes}
+    for e in effective_edges:
+        adj.setdefault(e['from'], []).append(e['to'])
+
+    def _bfs_reaches(start: str, target: str, max_depth: int = 100) -> bool:
+        visited = {start}
+        q = [start]
+        depth = 0
+        while q and depth < max_depth:
+            node = q.pop(0)
+            if node == target:
+                return True
+            for neighbor in adj.get(node, []):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    q.append(neighbor)
+            depth += 1
+        return False
+
+    loop_edges = []
+    for e in effective_edges:
+        if e['from'] in gateway_ids and _bfs_reaches(e['to'], e['from']):
+            loop_edges.append(e)
+    return loop_edges
+
+
+def _has_loop_edges(pipeline_tree: dict) -> bool:
+    """快速判断 pipeline_tree 是否有排他网关回环边"""
+    nodes = pipeline_tree.get('nodes', []) or []
+    edges = pipeline_tree.get('edges', []) or []
+    effective_nodes = [n for n in nodes if n.get('node_type') not in ('start_event', 'end_event')]
+    effective_edges = [e for e in edges if e.get('from') and e.get('to')]
+    return bool(_detect_exclusive_gateway_loops(effective_nodes, effective_edges))
 
 
 def validate_bamboo_compatibility(pipeline_tree: dict, skip_schema=False) -> dict:
@@ -61,7 +105,11 @@ def validate_bamboo_compatibility(pipeline_tree: dict, skip_schema=False) -> dic
         if e.get('to') not in effective_ids:
             errors.append(f"边目标节点 '{e.get('to')}' 不存在")
 
-    # 检查环
+    # Check cycle (tolerate exclusive gateway loopback edges)
+    gateway_ids = {n['id'] for n in effective_nodes if n.get('node_type') == 'exclusive_gateway'}
+    loop_edges = _detect_exclusive_gateway_loops(effective_nodes, effective_edges)
+    loop_target_ids = {e['to'] for e in loop_edges}
+
     out_degree = {n['id']: [] for n in effective_nodes}
     in_degree = {n['id']: 0 for n in effective_nodes}
     for e in effective_edges:
@@ -69,19 +117,23 @@ def validate_bamboo_compatibility(pipeline_tree: dict, skip_schema=False) -> dic
         in_degree.setdefault(e['to'], 0)
         in_degree[e['to']] += 1
 
-    # 检查环（前端 save/validate 时已检测，连接时通过 validateConnection 拦截 end_event→X）
     queue = [nid for nid in effective_ids if in_degree.get(nid, 0) == 0]
     visited = 0
     while queue:
         nid = queue.pop(0)
         visited += 1
         for target in out_degree.get(nid, []):
+            if nid in gateway_ids and target in loop_target_ids:
+                continue
             in_degree[target] -= 1
             if in_degree[target] <= 0:
                 queue.append(target)
 
     if visited != len(effective_nodes):
-        errors.append('流程中存在环，bamboo-engine 不支持')
+        if loop_edges:
+            logger.info("Tolerating %d loop edges from exclusive gateways", len(loop_edges))
+        else:
+            errors.append('bamboo-engine does not support cycles')
 
     # 节点出入度合法性校验（前端 edge:connected 时已拦截超限连接 + label 检查）
     in_count: dict[str, int] = {n['id']: 0 for n in effective_nodes}

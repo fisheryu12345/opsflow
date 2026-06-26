@@ -85,6 +85,37 @@
           </div>
         </div>
 
+        <!-- Loop Config (Mechanism A) -->
+        <div class="panel-section" v-if="isAtom">
+          <div class="section-title" style="cursor:pointer;" @click="loopEnabled = !loopEnabled">
+            <el-switch v-model="loopEnabled" size="small" style="margin-right:6px" @change="onLoopChange" />
+            Loop Configuration
+          </div>
+          <template v-if="loopEnabled">
+            <div class="prop-row">
+              <span class="prop-label">Max Iterations</span>
+              <el-input-number v-model="loopTimes" :min="1" :max="1000" size="small" controls-position="right" style="width:120px" @change="emitUpdate" />
+            </div>
+            <div class="prop-row" v-if="pluginFormSchema.length > 0">
+              <span class="prop-label">Loop Variable</span>
+              <el-select v-model="loopVarName" placeholder="Select parameter..." size="small" filterable style="width:140px" @change="emitUpdate">
+                <el-option v-for="item in pluginFormSchema" :key="item.tag_code" :label="item.name || item.tag_code" :value="item.tag_code" v-if="item.type === 'input' || item.type === 'int' || item.type === 'float'" />
+              </el-select>
+            </div>
+            <div class="prop-row" v-if="loopVarName">
+              <span class="prop-label">Values</span>
+              <el-input v-model="loopVarValues" placeholder="comma,separated,values" size="small" style="width:140px" @change="emitUpdate" />
+            </div>
+            <div class="prop-row">
+              <span class="prop-label">On Failure</span>
+              <el-radio-group v-model="loopFailSkip" size="small" @change="emitUpdate">
+                <el-radio :value="false">Fail</el-radio>
+                <el-radio :value="true">Skip</el-radio>
+              </el-radio-group>
+            </div>
+          </template>
+        </div>
+
         <div class="panel-section">
           <div class="section-title">{{ $t("message.properties.executionControl") }}</div>
           <div class="prop-row">
@@ -299,6 +330,35 @@ const edgeForm = ref<any>({ condition: '' })
 const formRevision = ref(0)
 const showVarBrowser = ref(false)
 const lastFocusedEl = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
+
+// -- Loop Config (Mechanism A) --
+const loopEnabled = ref(false)
+const loopTimes = ref(1)
+const loopVarName = ref('')
+const loopVarValues = ref('')
+const loopFailSkip = ref(false)
+
+function syncLoopConfig() {
+  if (!form.value.plugin_params) form.value.plugin_params = {}
+  if (loopEnabled.value) {
+    form.value.plugin_params.loop_config = {
+      enable: true,
+      loop_times: loopTimes.value,
+      loop_var: loopVarName.value ? { name: loopVarName.value, values: loopVarValues.value.split(',').map((s: string) => s.trim()).filter(Boolean) } : undefined,
+      fail_skip: loopFailSkip.value,
+      outputs_key: 'outputs',
+    }
+  } else {
+    delete form.value.plugin_params.loop_config
+  }
+  formRevision.value++
+}
+
+// Sync loop config on any loop state change
+watch([loopEnabled, loopTimes, loopVarName, loopVarValues, loopFailSkip], () => {
+  syncLoopConfig()
+  emitUpdate()
+})
 
 function onFieldFocus(e: FocusEvent) {
   const el = e.target as HTMLElement
@@ -547,6 +607,14 @@ watch(() => props.nodeData, (val) => {
       data.plugin_params = { ...data.params }
     }
     form.value = data
+
+    // Load loop config from existing node params
+    const lc = (data.plugin_params || {}).loop_config || {}
+    loopEnabled.value = !!lc.enable
+    loopTimes.value = lc.loop_times || 1
+    loopVarName.value = lc.loop_var?.name || ''
+    loopVarValues.value = lc.loop_var?.values?.join(', ') || ''
+    loopFailSkip.value = !!lc.fail_skip
 
     if (data.plugin_code) {
       loadPluginSchema(data.plugin_code)
