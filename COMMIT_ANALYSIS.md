@@ -2,6 +2,38 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 3f8184af
+
+> 提交日期: 2026-06-26 | 提交信息: feat: add 7 more SubmitWizard types + doc
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/.../SubmitWizardDialog.vue` | 前端 | 新增 switch/checkbox/radio/cascader/slider/host_selector/ip_selector 渲染 |
+| `web/.../SubmitWizardDialog.vue` | 前端 | 修复多选下拉初始值类型（string->array） |
+| `web/.../SubmitWizardDialog.vue` | 前端 | 修复 slider 初始值为数字类型 |
+| `docs/.../2026-06-26-...md` | 文档 | 追加 FormItem 类型全景分析章节 + 更新记录 |
+
+### 解决
+
+- **问题/背景：** SubmitWizard Step 3 只覆盖了 9 种变量类型，缺少 switch/checkbox/radio/cascader/slider/host_selector/ip_selector 等 IT 运维常用类型；多选下拉和 slider 的初始值类型错误
+- **办法：** Template 中为每种类型添加 v-else-if 分支渲染对应的 Element Plus 组件；loadVars() 中根据 meta.multiple 和 type 做类型转换
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/features/2026-06-26-node-input-promote-type-aware-submitwizard.md`（追加更新）
+
+### 验证
+
+- 改动类型: feat+docs+fix
+- 清理乱码: 有（鎻愪氦 0字节）
+- 子 App index.md 更新: 无（纯前端+文档改动）
+- 工作区状态: 干净 ✅
+
+---
+
 ## b67fff40
 
 > 提交日期: 2026-06-26 | 提交信息: feat: node input promote + type-aware SubmitWizard — 原子节点输入参数提权全局变量 + SubmitWizard 类型感知渲染

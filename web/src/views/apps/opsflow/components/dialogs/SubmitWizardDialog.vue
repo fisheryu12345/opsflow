@@ -293,6 +293,93 @@
               style="width:100%"
             />
 
+            <!-- switch -->
+            <el-switch
+              v-else-if="templateVars[key]?.type === 'switch'"
+              v-model="overrides[key]"
+              :active-value="templateVars[key]?.meta?.activeValue ?? true"
+              :inactive-value="templateVars[key]?.meta?.inactiveValue ?? false"
+              size="default"
+            />
+
+            <!-- checkbox (group) -->
+            <el-checkbox-group
+              v-else-if="templateVars[key]?.type === 'checkbox'"
+              v-model="overrides[key]"
+              size="default"
+            >
+              <el-checkbox
+                v-for="opt in (templateVars[key]?.meta?.options || [])"
+                :key="opt.value"
+                :label="opt.value"
+              >
+                {{ opt.label }}
+              </el-checkbox>
+            </el-checkbox-group>
+
+            <!-- radio -->
+            <el-radio-group
+              v-else-if="templateVars[key]?.type === 'radio'"
+              v-model="overrides[key]"
+              size="default"
+            >
+              <el-radio
+                v-for="opt in (templateVars[key]?.meta?.options || [])"
+                :key="opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </el-radio>
+            </el-radio-group>
+
+            <!-- cascader -->
+            <el-cascader
+              v-else-if="templateVars[key]?.type === 'cascader'"
+              v-model="overrides[key]"
+              :options="templateVars[key]?.meta?.options || []"
+              :placeholder="defaultPlaceholder(templateVars[key])"
+              clearable
+              filterable
+              size="default"
+              style="width:100%"
+            />
+
+            <!-- slider -->
+            <div v-else-if="templateVars[key]?.type === 'slider'" style="display:flex;align-items:center;gap:12px;padding:0 4px;">
+              <el-slider
+                v-model="overrides[key]"
+                :min="templateVars[key]?.meta?.min ?? 0"
+                :max="templateVars[key]?.meta?.max ?? 100"
+                :step="templateVars[key]?.meta?.step ?? 1"
+                show-stops
+                style="flex:1"
+              />
+              <span style="font-size:12px;color:#909399;min-width:40px;white-space:nowrap;">
+                {{ overrides[key] ?? 0 }}
+              </span>
+            </div>
+
+            <!-- host_selector / ip_selector (filterable + allow-create) -->
+            <el-select
+              v-else-if="templateVars[key]?.type === 'host_selector' || templateVars[key]?.type === 'ip_selector'"
+              v-model="overrides[key]"
+              :placeholder="defaultPlaceholder(templateVars[key])"
+              :multiple="templateVars[key]?.meta?.multiple"
+              filterable
+              allow-create
+              default-first-option
+              clearable
+              size="default"
+              style="width:100%"
+            >
+              <el-option
+                v-for="opt in (templateVars[key]?.meta?.options || [])"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+
             <!-- textarea -->
             <el-input
               v-else-if="templateVars[key]?.type === 'textarea'"
@@ -650,6 +737,8 @@ function varTypeLabel(t?: string) {
     int: 'Number', float: 'Float',
     select: 'Select', async_select: 'Select',
     datetime: 'DateTime', date: 'Date', time: 'Time',
+    switch: 'Switch', checkbox: 'Checkbox', radio: 'Radio', cascader: 'Cascader',
+    slider: 'Slider', host_selector: 'Host', ip_selector: 'IP',
   }
   return m[t || ''] || t || 'Text'
 }
@@ -657,8 +746,15 @@ function varTypeLabel(t?: string) {
 function defaultPlaceholder(info: any) {
   if (!info) return ''
   if (info.type === 'select' || info.type === 'async_select') {
+    if (info.meta?.multiple) {
+      if (info.value !== undefined && info.value !== null && info.value !== '') return `Default: ${info.value}`
+      return 'Select values...'
+    }
     if (info.value !== undefined && info.value !== null && info.value !== '') return `Default: ${info.value}`
     return 'Select a value...'
+  }
+  if (info.type === 'cascader') {
+    return 'Select...'
   }
   const val = info.value
   if (val !== undefined && val !== null && val !== '') return String(val)
@@ -752,6 +848,17 @@ async function loadVars() {
         templateVars.value[key] = val
         // Initialize override with default value
         overrides.value[key] = val.value ?? (val.type === 'int' || val.type === 'float' ? undefined : '')
+        // slider：确保值为数字
+        if (val?.type === 'slider') {
+          overrides.value[key] = typeof overrides.value[key] === 'number' ? overrides.value[key] : Number(overrides.value[key]) || 0
+        }
+        // 多选下拉/host_selector/ip_selector/checkbox/cascader：初始值转为数组
+        if (val?.meta?.multiple && typeof overrides.value[key] === 'string') {
+          overrides.value[key] = overrides.value[key] ? overrides.value[key].split(',').filter(Boolean) : []
+        }
+        if ((val?.type === 'checkbox' || val?.type === 'cascader') && typeof overrides.value[key] === 'string') {
+          overrides.value[key] = overrides.value[key] ? overrides.value[key].split(',').filter(Boolean) : []
+        }
       } else {
         templateVars.value[key] = { value: val, type: 'input', description: '' }
         overrides.value[key] = val ?? ''
