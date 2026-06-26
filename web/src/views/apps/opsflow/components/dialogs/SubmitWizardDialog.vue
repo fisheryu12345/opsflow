@@ -218,10 +218,105 @@
               </div>
               <span v-if="templateVars[key]?.description" class="var-item-desc">{{ templateVars[key].description }}</span>
             </div>
-            <el-input
+
+            <!-- select / async_select (dropdown) -->
+            <el-select
+              v-if="templateVars[key]?.type === 'select' || templateVars[key]?.type === 'async_select'"
               v-model="overrides[key]"
-              :type="inputType(templateVars[key]?.type)"
-              :rows="templateVars[key]?.type === 'textarea' ? 3 : 1"
+              :placeholder="defaultPlaceholder(templateVars[key])"
+              :multiple="templateVars[key]?.meta?.multiple"
+              filterable
+              clearable
+              size="default"
+              style="width:100%"
+            >
+              <el-option
+                v-for="opt in (templateVars[key]?.meta?.options || [])"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+
+            <!-- int / float -->
+            <el-input-number
+              v-else-if="templateVars[key]?.type === 'int'"
+              v-model="overrides[key]"
+              :placeholder="defaultPlaceholder(templateVars[key])"
+              :min="templateVars[key]?.meta?.min ?? -Infinity"
+              :max="templateVars[key]?.meta?.max ?? Infinity"
+              :step="1"
+              size="default"
+              style="width:100%"
+              controls-position="right"
+            />
+            <el-input-number
+              v-else-if="templateVars[key]?.type === 'float'"
+              v-model="overrides[key]"
+              :placeholder="defaultPlaceholder(templateVars[key])"
+              :min="templateVars[key]?.meta?.min ?? -Infinity"
+              :max="templateVars[key]?.meta?.max ?? Infinity"
+              :step="0.1"
+              size="default"
+              style="width:100%"
+              controls-position="right"
+            />
+
+            <!-- datetime / date / time -->
+            <el-date-picker
+              v-else-if="templateVars[key]?.type === 'datetime'"
+              v-model="overrides[key]"
+              type="datetime"
+              :placeholder="defaultPlaceholder(templateVars[key])"
+              format="YYYY-MM-DD HH:mm:ss"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              size="default"
+              style="width:100%"
+            />
+            <el-date-picker
+              v-else-if="templateVars[key]?.type === 'date'"
+              v-model="overrides[key]"
+              type="date"
+              :placeholder="defaultPlaceholder(templateVars[key])"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              size="default"
+              style="width:100%"
+            />
+            <el-time-picker
+              v-else-if="templateVars[key]?.type === 'time'"
+              v-model="overrides[key]"
+              :placeholder="defaultPlaceholder(templateVars[key])"
+              format="HH:mm:ss"
+              value-format="HH:mm:ss"
+              size="default"
+              style="width:100%"
+            />
+
+            <!-- textarea -->
+            <el-input
+              v-else-if="templateVars[key]?.type === 'textarea'"
+              v-model="overrides[key]"
+              type="textarea"
+              :rows="3"
+              :placeholder="defaultPlaceholder(templateVars[key])"
+              size="default"
+            />
+
+            <!-- password -->
+            <el-input
+              v-else-if="templateVars[key]?.type === 'password'"
+              v-model="overrides[key]"
+              type="password"
+              show-password
+              :placeholder="defaultPlaceholder(templateVars[key])"
+              size="default"
+            />
+
+            <!-- input (default fallback) -->
+            <el-input
+              v-else
+              v-model="overrides[key]"
               :placeholder="defaultPlaceholder(templateVars[key])"
               size="default"
             />
@@ -437,7 +532,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Search, Aim, CircleCheck, InfoFilled, WarningFilled, Calendar } from '@element-plus/icons-vue'
@@ -445,6 +540,7 @@ import { GetGlobalVariables, AnalyzePipeline } from '../../api/templates'
 import { CreateExecution } from '../../api/executions'
 import { CreateSchedulePlan } from '../../api/schedule-plans'
 import { GetServicenowChangeRequests } from '../../api/servicenow'
+import { request } from '/@/utils/service'
 
 const props = defineProps<{
   modelValue: boolean
@@ -549,38 +645,125 @@ const overrides = ref<Record<string, any>>({})
 const templateVarsKeys = computed(() => Object.keys(templateVars.value))
 
 function varTypeLabel(t?: string) {
-  const m: Record<string, string> = { input: 'Text', textarea: 'Textarea', password: 'Password', int: 'Number', float: 'Float' }
+  const m: Record<string, string> = {
+    input: 'Text', textarea: 'Textarea', password: 'Password',
+    int: 'Number', float: 'Float',
+    select: 'Select', async_select: 'Select',
+    datetime: 'DateTime', date: 'Date', time: 'Time',
+  }
   return m[t || ''] || t || 'Text'
 }
 
-function inputType(t?: string) {
-  if (t === 'password') return 'password'
-  if (t === 'textarea') return 'textarea'
-  return 'text'
-}
-
 function defaultPlaceholder(info: any) {
-  const val = info?.value
+  if (!info) return ''
+  if (info.type === 'select' || info.type === 'async_select') {
+    if (info.value !== undefined && info.value !== null && info.value !== '') return `Default: ${info.value}`
+    return 'Select a value...'
+  }
+  const val = info.value
   if (val !== undefined && val !== null && val !== '') return String(val)
   return t('message.wizard.enterValue')
 }
+
+// ---------- async_select dynamic options with cascade ----------
+const asyncLoading = ref(false)
+
+function getDeps(key: string): string[] {
+  const info = templateVars.value[key]
+  return (info?.meta?.dependsOn || '').split(',').map((s: string) => s.trim()).filter(Boolean)
+}
+
+function depsResolved(key: string): boolean {
+  return getDeps(key).every(dep => {
+    const v = overrides.value[dep]
+    return v !== undefined && v !== null && v !== '' && !/^\$\{/.test(String(v))
+  })
+}
+
+async function loadAsyncOptions(key: string) {
+  const info = templateVars.value[key]
+  if (!info?.meta?.apiEndpoint) return
+  asyncLoading.value = true
+  try {
+    const url = info.meta.apiEndpoint
+    const params: any = {}
+    for (const k of Object.keys(overrides.value)) {
+      const v = overrides.value[k]
+      if (v !== undefined && v !== null && v !== '' && !/^\$\{/.test(String(v))) {
+        params[k] = v
+      }
+    }
+    const res = await request({ url, method: 'get', params })
+    const rawBody = res?.data
+    const apiData = Array.isArray(rawBody) ? rawBody : (Array.isArray(res?.data?.data) ? res.data.data : [])
+    if (!templateVars.value[key].meta) templateVars.value[key].meta = {}
+    templateVars.value[key].meta.options = apiData
+  } catch (e) {
+    console.error('[SubmitWizard] async_select load failed:', key, e)
+    if (!templateVars.value[key].meta) templateVars.value[key].meta = {}
+    templateVars.value[key].meta.options = []
+  } finally {
+    asyncLoading.value = false
+  }
+}
+
+function loadReadyAsyncOptions() {
+  const vars = templateVars.value
+  for (const key of Object.keys(vars)) {
+    if (vars[key]?.type === 'async_select' && depsResolved(key)) {
+      loadAsyncOptions(key)
+    }
+  }
+}
+
+const varsLoaded = ref(false)
+
+// 当用户选择一个依赖项的值后，重新加载依赖它的 async_select 选项
+watch(overrides, () => {
+  if (!varsLoaded.value) return
+  try {
+    const tv = templateVars.value
+    for (const key of Object.keys(tv)) {
+      if (tv[key]?.type !== 'async_select') continue
+      if (!getDeps(key).length) continue
+      if (depsResolved(key) && tv[key]?.meta) {
+        tv[key].meta.options = []
+        loadAsyncOptions(key)
+      }
+    }
+  } catch (e) {
+    console.error('[SubmitWizard] cascade watch error:', e)
+  }
+}, { deep: true })
 
 async function loadVars() {
   if (!props.templateId) return
   try {
     const res = await GetGlobalVariables(props.templateId)
     const data = res.data || {}
+    // DEBUG: log the raw variable data
+    for (const [key, val] of Object.entries(data)) {
+      console.log('[SubmitWizard] var:', key, 'type:', (val as any)?.type, 'meta:', JSON.stringify((val as any)?.meta))
+    }
     templateVars.value = {}
     overrides.value = {}
     for (const [key, val] of Object.entries(data)) {
       if (typeof val === 'object' && val !== null && 'value' in (val as any)) {
         templateVars.value[key] = val
+        // Initialize override with default value
+        overrides.value[key] = val.value ?? (val.type === 'int' || val.type === 'float' ? undefined : '')
       } else {
         templateVars.value[key] = { value: val, type: 'input', description: '' }
+        overrides.value[key] = val ?? ''
       }
     }
-  } catch {
-    // silent
+    // 等待 DOM 更新完成后再加载 async_select 选项
+    await nextTick()
+    loadReadyAsyncOptions()
+  } catch (e) {
+    console.error('[SubmitWizard] loadVars error:', e)
+  } finally {
+    varsLoaded.value = true
   }
 }
 
@@ -684,7 +867,10 @@ function buildVariableOverrides(): Record<string, any> {
   for (const key of templateVarsKeys.value) {
     const ov = overrides.value[key]
     const def = templateVars.value[key]?.value
-    if (ov !== undefined && ov !== null && ov !== def) vars[key] = ov
+    if (ov === undefined || ov === null) continue
+    // Loose comparison: treat "5" == 5 as unchanged
+    // eslint-disable-next-line eqeqeq
+    if (ov != def) vars[key] = ov
   }
   return vars
 }
@@ -768,6 +954,7 @@ function resetWizard() {
   scheduleType.value = 'manual'
   scheduledDate.value = ''
   scheduledTime.value = ''
+  varsLoaded.value = false
 }
 
 function handleClose() {
@@ -1157,18 +1344,20 @@ $border-light: #e4e7ed;
 .wiz-empty { padding: 20px 0; }
 .var-list {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 12px;
 }
 .var-item {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   background: #fff;
   border: 1px solid $g-border-card;
   border-radius: 10px;
   transition: all 0.2s;
+  width: calc(50% - 6px);
+  box-sizing: border-box;
 }
 .var-item:hover {
   border-color: #c6e2ff;
@@ -1178,22 +1367,35 @@ $border-light: #e4e7ed;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .var-item-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
 }
 .var-item-key {
   font-family: monospace;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: $g-text-primary;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.var-item-tag { font-size: 10px; }
+.var-item-tag { font-size: 10px; flex-shrink: 0; }
 .var-item-desc {
   font-size: 11px;
   color: #c0c4cc;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ===== Risk ===== */

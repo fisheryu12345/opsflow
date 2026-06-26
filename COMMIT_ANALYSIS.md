@@ -2,6 +2,44 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## b67fff40
+
+> 提交日期: 2026-06-26 | 提交信息: feat: node input promote + type-aware SubmitWizard — 原子节点输入参数提权全局变量 + SubmitWizard 类型感知渲染
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/core/variable_resolver.py` | 后端 | normalize_global_vars 添加 meta 字段 |
+| `backend/opsflow/serializers.py` | 后端 | get_global_variable_list 返回 meta |
+| `backend/opsflow/views/aliyun_views.py` | 后端 | _is_template_ref 拦截模板引用透传 + describe_disk_categories 修复 error code |
+| `backend/opsflow/views/mixins/template_variable.py` | 后端 | hook_variable 增加 promote_type=input 支持 |
+| `web/src/components/RenderForm/FormItem.vue` | 前端 | 输入框右侧添加 Promote 按钮 |
+| `web/src/views/apps/opsflow/components/panels/PropertyPanel.vue` | 前端 | promoteInput 提权函数 + context.onPromote |
+| `web/src/views/apps/opsflow/api/templates.ts` | 前端 | HookVariable 接口扩展 |
+| `web/src/views/apps/opsflow/components/dialogs/SubmitWizardDialog.vue` | 前端 | 类型感知渲染 + async_select 级联加载 + flex 2 列布局 |
+| `web/src/views/apps/opsflow/components/panels/GlobalVariablePanel.vue` | 前端 | select 选项编辑器 + show_type 保留 + 代码重构 |
+| `docs/opsflow/features/2026-06-26-node-input-promote-type-aware-submitwizard.md` | 文档 | 功能实现详细文档 |
+
+### 解决
+
+- **问题/背景：** 原子节点 input 参数无法一键提权为全局变量；SubmitWizard Step 3 所有变量统一渲染为 `<el-input>`，丢失 UI 类型信息；提权后的 async_select 变量没有级联下拉加载功能
+- **办法：** FormItem 添加 Promote 按钮 → promoteInput 提权函数 → HookVariable(promote_type=input) 存储 type/meta；SubmitWizard 根据 templateVars.type 渲染对应组件（select/async_select/int/float/datetime/date/time）；async_select 实时 API 加载 + watch 级联依赖
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/features/2026-06-26-node-input-promote-type-aware-submitwizard.md`
+
+### 验证
+
+- 改动类型: feat+fix+refactor
+- 清理乱码: 无
+- 子 App index.md 更新: opsflow
+- 工作区状态: 干净 ✅
+
+---
+
 ## b4ce0afd
 
 > 提交日期: 2026-06-22 | 提交信息: feat: implement Aliyun ECS CMDB sync + refactor all 8 atoms

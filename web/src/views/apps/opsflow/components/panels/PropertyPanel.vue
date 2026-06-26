@@ -251,12 +251,13 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessageBox, ElMessage } from 'element-plus'
 import { Setting, Pointer, WarnTriangleFilled, CircleCheckFilled, InfoFilled, Aim, Connection, Switch, EditPen } from '@element-plus/icons-vue'
 import RenderForm from '/@/components/RenderForm/RenderForm.vue'
 import TagVariableMapping from '/@/components/RenderForm/tags/TagVariableMapping.vue'
 import OutputParamSection from './OutputParamSection.vue'
 import { GetPluginGroups, GetPluginDetail } from '../../api/plugins'
-import { GetTemplates } from '../../api/templates'
+import { GetTemplates, HookVariable } from '../../api/templates'
 import { useOpsflowStore } from '../../stores/opsflowStore'
 import ConditionDialog from '../gates/ConditionDialog.vue'
 import { generateConditionExpr, extractAvailableVariables as getAvailableVars } from '../../composables/useGraphCanvas'
@@ -322,6 +323,7 @@ const contextWithVars = computed(() => {
     templateId: props.templateId,
     nodeId: form.value?.id || '',
     tagCode: '',
+    onPromote: promoteInput,
   }
   if (form.value?.id && typeof props.getGraphData === 'function') {
     const gd = props.getGraphData()
@@ -557,6 +559,62 @@ function emitUpdate() {
   }
   formRevision.value++
   emit('update', updated)
+}
+
+/** 将节点输入参数提权为全局变量 */
+async function promoteInput(config: any, currentValue: any) {
+  if (!props.templateId || !form.value?.id) return
+  const defaultVarName = config.tag_code || 'var'
+  let varKey = ''
+  try {
+    const { value } = await ElMessageBox.prompt(
+      'Enter a name for the global variable:',
+      'Promote Input to Global Variable',
+      {
+        inputValue: defaultVarName,
+        inputPlaceholder: 'Variable name (used as ${name})',
+        confirmButtonText: 'Promote',
+        cancelButtonText: 'Cancel',
+      },
+    )
+    if (!value?.trim()) return
+    varKey = value.trim()
+    // 构建 meta（提取 select/async_select 选项等）
+    const meta: Record<string, any> = {}
+    if (config.attrs?.options) meta.options = config.attrs.options
+    if (config.attrs?.multiple) meta.multiple = config.attrs.multiple
+    // async_select: 记录 API 端点信息，SubmitWizard 中实时请求
+    if (config.type === 'async_select' && config.attrs?.api_endpoint) {
+      meta.apiEndpoint = config.attrs.api_endpoint
+      if (config.attrs?.depends_on) meta.dependsOn = config.attrs.depends_on
+    }
+
+    const hookRes = await HookVariable(props.templateId, {
+      var_key: varKey,
+      var_type: config.type || 'input',
+      meta,
+      value: currentValue ?? config.default ?? '',
+      description: config.name || config.tag_code || '',
+      promote_type: 'input',
+    })
+    console.log('[Promote] HookVariable success:', varKey, hookRes)
+
+    // 自动填充 ${var_key} 引用到字段值
+    const refExpr = '${' + varKey + '}'
+    renderFormRef.value?.setField(config.tag_code, refExpr)
+    if (form.value.plugin_params) {
+      form.value.plugin_params[config.tag_code] = refExpr
+    }
+    formRevision.value++
+    ElMessage.success(`Global variable "${varKey}" created — field now references ${refExpr}`)
+  } catch (e: any) {
+    if (e?.toString()?.includes('cancel') || e?.toString()?.includes('close')) {
+      // user closed the prompt dialog, ignore
+      return
+    }
+    console.error('[Promote] HookVariable failed:', varKey, e)
+    ElMessage.error(`Promote failed: ${e?.msg || e?.message || 'Unknown error'}`)
+  }
 }
 
 /** 打开条件编辑器弹窗，同时刷新可用变量列表 */

@@ -107,7 +107,16 @@ export function GetVariableBrowser(id: number) {
   return opsflowRequest({ url: prefix + `templates/${id}/variable-browser/`, method: 'get' })
 }
 
-export function HookVariable(id: number, data: { var_key: string; node_id: string; tag_code?: string; var_type?: string; description?: string }) {
+export function HookVariable(id: number, data: {
+  var_key: string;
+  node_id?: string;
+  tag_code?: string;
+  var_type?: string;
+  description?: string;
+  promote_type?: 'output' | 'input';
+  meta?: Record<string, any>;
+  value?: any;
+}) {
   return opsflowRequest({ url: prefix + `templates/${id}/hook-variable/`, method: 'post', data })
 }
 

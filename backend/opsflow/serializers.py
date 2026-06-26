@@ -39,6 +39,7 @@ class FlowTemplateSerializer(serializers.ModelSerializer):
                 "key": key,
                 "value": entry["value"],
                 "type": entry["type"],
+                "meta": entry.get("meta", {}),
                 "show_type": entry["show_type"],
                 "description": entry.get("description", ""),
                 "source_type": entry.get("source_type", "manual"),

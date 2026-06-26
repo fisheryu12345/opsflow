@@ -3,12 +3,25 @@
 
 import json
 import logging
+import re
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
+
+# 模板变量引用模式: ${variable_name}
+TEMPLATE_VAR_PATTERN = re.compile(r'^\$\{[^}]+\}$')
+
+
+def _is_template_ref(value: str) -> bool:
+    """判断值是否为未解析的模板变量引用 ${var_name}
+
+    如果是模板引用，跳过 API 调用并返回空结果，避免将 ${...} 字符串
+    透传给第三方 SDK 导致参数校验错误。
+    """
+    return bool(value and TEMPLATE_VAR_PATTERN.match(value))
 
 
 def _get_client(region):
@@ -34,7 +47,7 @@ def _describe_all_types(client) -> dict:
 @permission_classes([AllowAny])
 def describe_images(request):
     region = request.GET.get('region', '')
-    if not region:
+    if not region or _is_template_ref(region):
         return Response({"code": 2000, "data": []})
     try:
         client = _get_client(region)
@@ -70,7 +83,7 @@ def describe_images(request):
 def describe_instance_types(request):
     region = request.GET.get('region', '')
     zone_id = request.GET.get('zone_id', '')
-    if not region:
+    if not region or _is_template_ref(region) or _is_template_ref(zone_id):
         return Response({"code": 2000, "data": []})
     try:
         client = _get_client(region)
@@ -111,7 +124,7 @@ def describe_instance_types(request):
 @permission_classes([AllowAny])
 def describe_security_groups(request):
     region = request.GET.get('region', '')
-    if not region:
+    if not region or _is_template_ref(region):
         return Response({"code": 2000, "data": []})
     try:
         client = _get_client(region)
@@ -133,7 +146,7 @@ def describe_security_groups(request):
 def describe_vswitches(request):
     region = request.GET.get('region', '')
     zone_id = request.GET.get('zone_id', '')
-    if not region:
+    if not region or _is_template_ref(region) or _is_template_ref(zone_id):
         return Response({"code": 2000, "data": []})
     try:
         client = _get_client(region)
@@ -172,7 +185,7 @@ def describe_regions(request):
 @permission_classes([AllowAny])
 def describe_zones(request):
     region = request.GET.get('region', '')
-    if not region:
+    if not region or _is_template_ref(region):
         return Response({"code": 2000, "data": []})
     try:
         client = _get_client(region)
@@ -193,7 +206,7 @@ def describe_zones(request):
 def describe_disk_categories(request):
     region = request.GET.get('region', '')
     instance_type = request.GET.get('instance_type', '')
-    if not region or not instance_type:
+    if not region or not instance_type or _is_template_ref(region) or _is_template_ref(instance_type):
         return Response({"code": 2000, "data": []})
     try:
         client = _get_client(region)
@@ -219,7 +232,7 @@ def describe_disk_categories(request):
         return Response({"code": 2000, "data": result})
     except Exception as e:
         logger.exception("describe_disk_categories failed")
-        return Response({"code": 2000, "data": [{"label": "cloud_essd - ESSD 云盘", "value": "cloud_essd"}, {"label": "cloud_ssd - SSD 云盘", "value": "cloud_ssd"}, {"label": "cloud_efficiency - 高效云盘", "value": "cloud_efficiency"}]})
+        return Response({"code": 4000, "data": [], "msg": str(e)})
 
 
 @api_view(['GET'])

@@ -28,9 +28,10 @@ def normalize_global_vars(global_vars: dict) -> dict:
     """规范化 global_vars 为包含元数据的结构化格式
 
     旧格式: {"key": "value"}
-    新格式: {"key": {"value": ..., "type": "input", "source_type": "manual",
+    新格式: {"key": {"value": ..., "type": "input", "meta": {}, "source_type": "manual",
                       "source_info": None, "show_type": True, "description": ""}}
 
+    meta 字段存储类型相关的元数据配置（如 select 类型的 options 列表）。
     始终返回结构化格式。
     """
     if not global_vars:
@@ -42,6 +43,7 @@ def normalize_global_vars(global_vars: dict) -> dict:
             entry = {
                 "value": val["value"],
                 "type": val.get("type", "input"),
+                "meta": val.get("meta", {}),
                 "show_type": val.get("show_type", True),
                 "description": val.get("description", ""),
                 "source_type": val.get("source_type", "manual"),
@@ -53,6 +55,7 @@ def normalize_global_vars(global_vars: dict) -> dict:
             entry = {
                 "value": val,
                 "type": "input",
+                "meta": {},
                 "show_type": True,
                 "description": "",
                 "source_type": "manual",

@@ -1,8 +1,10 @@
 <template>
   <div class="form-item" v-show="!isHidden" :style="{ gridColumn: `span ${col}` }">
-    <label v-if="config.name" class="form-label" :class="{ required: isRequired }">
-      {{ config.name }}
-    </label>
+    <div class="form-label-row">
+      <label v-if="config.name" class="form-label" :class="{ required: isRequired }">
+        {{ config.name }}
+      </label>
+    </div>
     <div class="form-control">
       <div class="form-control-inner">
         <component
@@ -12,6 +14,9 @@
           :form-data="formData"
           @update:model-value="onChange"
         />
+        <el-button v-if="props.context?.onPromote" text type="primary" size="small" class="promote-btn" @click.stop="props.context.onPromote(config, value)">
+          <el-icon><Upload /></el-icon>
+        </el-button>
       </div>
       <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
     </div>
@@ -20,6 +25,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { Upload } from '@element-plus/icons-vue'
 import {
   TagInput, TagSelect, TagTextarea, TagCheckbox,
   TagRadio, TagInt, TagCodeEditor, TagDatetime,
@@ -98,6 +104,12 @@ function onChange(val: any) {
   flex-direction: column;
   gap: 4px;
 }
+.form-label-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+}
 .form-label {
   font-size: 12px;
   color: #606266;
@@ -106,6 +118,10 @@ function onChange(val: any) {
 .form-label.required::after {
   content: ' *';
   color: #F56C6C;
+}
+.promote-btn {
+  flex-shrink: 0;
+  margin-left: 2px;
 }
 .form-control { width: 100%; }
 .form-control-inner {

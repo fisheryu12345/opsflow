@@ -146,31 +146,53 @@ class TemplateVariableMixin:
 
     @action(detail=True, methods=['post'], url_path='hook-variable')
     def hook_variable(self, request, pk=None):
-        """将节点参数提升为全局变量"""
+        """将节点参数提升为全局变量
+
+        promote_type="output" (默认): 节点输出提权, source_type=node_output, 运行时懒解析
+        promote_type="input":  节点输入提权, source_type=manual, 直接存储值和元数据
+        """
         template = self.get_object()
         var_key = request.data.get('var_key', '')
         node_id = request.data.get('node_id', '')
         tag_code = request.data.get('tag_code', '')
         var_type = request.data.get('var_type', 'input')
         description = request.data.get('description', '')
+        promote_type = request.data.get('promote_type', 'output')
 
-        if not var_key or not node_id:
-            return ErrorResponse(msg='var_key and node_id are required', data=None, code=4000, status=status.HTTP_400_BAD_REQUEST)
+        if not var_key:
+            return ErrorResponse(msg='var_key is required', data=None, code=4000, status=status.HTTP_400_BAD_REQUEST)
+        if promote_type == 'output' and not node_id:
+            return ErrorResponse(msg='node_id is required for output promotion', data=None, code=4000, status=status.HTTP_400_BAD_REQUEST)
 
         current = normalize_global_vars(template.global_vars)
 
-        current[var_key] = {
-            "value": "",
-            "type": var_type,
-            "show_type": True,
-            "description": description,
-            "source_type": "node_output",
-            "source_info": {
-                "node_id": node_id,
-                "tag_code": tag_code,
-            },
-            "validation": [],
-        }
+        if promote_type == 'input':
+            # 输入提权: 直接存储值, source_type=manual
+            current[var_key] = {
+                "value": request.data.get('value', ''),
+                "type": var_type,
+                "meta": request.data.get("meta", {}),
+                "show_type": True,
+                "description": description,
+                "source_type": "manual",
+                "source_info": None,
+                "validation": [],
+            }
+        else:
+            # 输出提权: 运行时懒解析, source_type=node_output
+            current[var_key] = {
+                "value": "",
+                "type": var_type,
+                "meta": request.data.get("meta", {}),
+                "show_type": True,
+                "description": description,
+                "source_type": "node_output",
+                "source_info": {
+                    "node_id": node_id,
+                    "tag_code": tag_code,
+                },
+                "validation": [],
+            }
 
         # 同步更新 hook_variables（向后兼容）
         hook_vars = dict(template.hook_variables or {})

@@ -38,6 +38,7 @@
         <div class="gv-item-desc" v-if="v.description">{{ v.description }}</div>
         <div class="gv-item-type-row" v-if="v.show_type !== false">
           <span class="gv-item-type-label">{{ v.type }}</span>
+          <span v-if="v.type === 'select' && v.meta?.options?.length" class="gv-item-opt-count">{{ v.meta.options.length }} options</span>
           <span v-if="v.reference_count === 0" class="gv-item-unused-label">unreferenced</span>
         </div>
       </div>
@@ -62,7 +63,7 @@
           <el-input v-model="editForm.key" placeholder="e.g. target_host" :disabled="!!editKey" />
         </el-form-item>
         <el-form-item label="Type">
-          <el-select v-model="editForm.type" style="width:100%">
+          <el-select v-model="editForm.type" style="width:100%" @change="onTypeChange">
             <el-option label="Text" value="input" />
             <el-option label="Textarea" value="textarea" />
             <el-option label="Select" value="select" />
@@ -71,10 +72,32 @@
             <el-option label="Password" value="password" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Value">
-          <el-input v-if="editForm.type === 'textarea'" v-model="editForm.value" type="textarea" :rows="4" />
-          <el-input v-else v-model="editForm.value" />
-        </el-form-item>
+        <!-- Select type: show options editor + value selector -->
+        <template v-if="editForm.type === 'select'">
+          <el-form-item label="Options">
+            <div class="gv-options-editor">
+              <div v-for="(opt, i) in editForm.meta.options" :key="i" class="gv-option-row">
+                <el-input v-model="opt.label" placeholder="Label" size="small" class="gv-opt-label" />
+                <el-input v-model="opt.value" placeholder="Value" size="small" class="gv-opt-value" />
+                <el-button size="small" type="danger" :icon="Delete" circle plain @click="removeOption(i)" />
+              </div>
+              <el-button size="small" type="primary" plain @click="addOption" class="gv-add-opt-btn">
+                <el-icon><Plus /></el-icon> Add option
+              </el-button>
+            </div>
+          </el-form-item>
+          <el-form-item label="Default Value">
+            <el-select v-model="editForm.value" placeholder="Select default value..." clearable style="width:100%">
+              <el-option v-for="opt in editForm.meta.options" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+          </el-form-item>
+        </template>
+        <template v-else>
+          <el-form-item label="Value">
+            <el-input v-if="editForm.type === 'textarea'" v-model="editForm.value" type="textarea" :rows="4" />
+            <el-input v-else v-model="editForm.value" />
+          </el-form-item>
+        </template>
         <el-form-item label="Desc">
           <el-input v-model="editForm.description" type="textarea" :rows="2" placeholder="Optional description" />
         </el-form-item>
@@ -114,27 +137,27 @@ import { GetGlobalVariables, UpdateGlobalVariables, PatchGlobalVariables, Unhook
 const props = defineProps<{ templateId: number | null }>()
 const emit = defineEmits<{ update: [] }>()
 
+// ── State ──
 const searchQuery = ref('')
 const variables = ref<Record<string, any>>({})
 const detailVisible = ref(false)
 const editKey = ref('')
-const editForm = ref({ key: '', value: '', type: 'input', description: '', source_type: 'manual', source_info: null as any })
 
-function sourceLabel(st: string) {
-  return { manual: 'Manual', node_output: 'Output', hook: 'Hook' }[st] || st
+const EMPTY_FORM = Object.freeze({
+  key: '', value: '', type: 'input', show_type: true,
+  meta: { options: [] as { label: string; value: string }[] },
+  description: '', source_type: 'manual', source_info: null as any,
+})
+const editForm = ref({ ...EMPTY_FORM })
+
+// ── Helpers ──
+const SOURCE_LABELS: Record<string, string> = {
+  manual: 'Manual', node_output: 'Output', hook: 'Hook',
 }
 
-const filteredVars = computed(() => {
-  const entries = Object.entries(variables.value).map(([key, val]: [string, any]) => ({
-    key, value: val?.value ?? '', type: val?.type ?? 'input',
-    source_type: val?.source_type ?? 'manual', source_info: val?.source_info ?? null,
-    description: val?.description ?? '', reference_count: val?.reference_count ?? 0,
-    show_type: val?.show_type ?? true,
-  }))
-  if (!searchQuery.value) return entries
-  const q = searchQuery.value.toLowerCase()
-  return entries.filter(v => v.key.toLowerCase().includes(q) || v.description.toLowerCase().includes(q))
-})
+function sourceLabel(st: string) {
+  return SOURCE_LABELS[st] || st
+}
 
 function displayValue(val: any): string {
   if (val === null || val === undefined) return '-'
@@ -142,22 +165,89 @@ function displayValue(val: any): string {
   return s.length > 50 ? s.slice(0, 50) + '...' : s
 }
 
+/** 将原始 API 变量映射为列表展示项 */
+function toListItem([key, val]: [string, any]) {
+  return {
+    key,
+    value: val?.value ?? '',
+    type: val?.type ?? 'input',
+    meta: val?.meta || {},
+    source_type: val?.source_type ?? 'manual',
+    source_info: val?.source_info ?? null,
+    description: val?.description ?? '',
+    reference_count: val?.reference_count ?? 0,
+    show_type: val?.show_type ?? true,
+  }
+}
+
+/** 从编辑表单构建 meta 条目 */
+function buildMeta() {
+  const f = editForm.value
+  if (f.type === 'select' && f.meta?.options?.length) {
+    const valid = f.meta.options.filter((o: any) => o.label || o.value)
+    return { options: valid }
+  }
+  if (f.type === 'async_select' && f.meta?.apiEndpoint) {
+    return {
+      apiEndpoint: f.meta.apiEndpoint,
+      dependsOn: f.meta.dependsOn || '',
+    }
+  }
+  return {}
+}
+
+// ── Computed ──
+const filteredVars = computed(() => {
+  const entries = Object.entries(variables.value).map(toListItem)
+  if (!searchQuery.value) return entries
+  const q = searchQuery.value.toLowerCase()
+  return entries.filter(v => v.key.toLowerCase().includes(q) || v.description.toLowerCase().includes(q))
+})
+
+// ── List interaction ──
 function selectVar(v: any) {
   editKey.value = v.key
   editForm.value = {
-    key: v.key, value: typeof v.value === 'object' ? JSON.stringify(v.value) : String(v.value ?? ''),
-    type: v.type || 'input', description: v.description || '',
-    source_type: v.source_type || 'manual', source_info: v.source_info || null,
+    key: v.key,
+    value: typeof v.value === 'object' ? JSON.stringify(v.value) : String(v.value ?? ''),
+    type: v.type || 'input',
+    show_type: v.show_type ?? true,
+    meta: v.meta || { options: [] },
+    description: v.description || '',
+    source_type: v.source_type || 'manual',
+    source_info: v.source_info || null,
   }
   detailVisible.value = true
 }
 
 function openAddDialog() {
   editKey.value = ''
-  editForm.value = { key: '', value: '', type: 'input', description: '', source_type: 'manual', source_info: null }
+  editForm.value = { ...EMPTY_FORM, meta: { ...EMPTY_FORM.meta } }
   detailVisible.value = true
 }
 
+// ── Options editor (select type) ──
+function onTypeChange() {
+  if (editForm.value.type === 'select') {
+    editForm.value.value = ''
+    if (!editForm.value.meta?.options) editForm.value.meta = { options: [] }
+  }
+}
+
+function addOption() {
+  if (!editForm.value.meta?.options) {
+    editForm.value.meta = { options: [] }
+  }
+  editForm.value.meta.options.push({ label: '', value: '' })
+}
+
+function removeOption(index: number) {
+  if (editForm.value.meta?.options) {
+    editForm.value.meta.options.splice(index, 1)
+  }
+}
+
+// ── CRUD ──
 async function fetchVars() {
   if (!props.templateId) return
   try {
@@ -170,8 +260,12 @@ async function onSave() {
   if (!props.templateId || !editForm.value.key) return
   const key = editForm.value.key
   const entry: any = {
-    value: editForm.value.value, type: editForm.value.type,
-    description: editForm.value.description, source_type: editForm.value.source_type,
+    value: editForm.value.value,
+    type: editForm.value.type,
+    show_type: editForm.value.show_type ?? true,
+    description: editForm.value.description,
+    source_type: editForm.value.source_type,
+    meta: buildMeta(),
   }
   if (editForm.value.source_info) entry.source_info = editForm.value.source_info
   try {
@@ -305,6 +399,9 @@ watch(() => props.templateId, fetchVars, { immediate: true })
 .gv-item-unused-label {
   font-size: 10px; color: #f5222d; font-weight: 500;
 }
+.gv-item-opt-count {
+  font-size: 10px; color: #67C23A; font-weight: 500;
+}
 
 /* ---------- Drawer ---------- */
 .gv-drawer :deep(.el-drawer__header) { padding: 16px 20px 0; margin: 0; }
@@ -316,6 +413,22 @@ watch(() => props.templateId, fetchVars, { immediate: true })
 .icon-add { background: linear-gradient(135deg, #52c41a, #73d13d); }
 .gv-form { padding: 0 20px; }
 .gv-form :deep(.el-form-item__label) { font-weight: 600; color: #606266; padding-bottom: 2px; }
+
+/* ---------- Options Editor (Select type) ---------- */
+.gv-options-editor {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gv-option-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gv-opt-label { flex: 1; }
+.gv-opt-value { flex: 1; }
+.gv-add-opt-btn { width: 100%; margin-top: 2px; }
 .gv-drawer-footer {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 4px 12px;
