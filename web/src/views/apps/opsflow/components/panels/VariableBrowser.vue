@@ -4,27 +4,52 @@
       <el-tab-pane :label="t('message.opsflowPage.varBrowserTabGlobal')" name="global">
         <div class="global-tab-header">
           <span class="global-tab-count" v-if="globalVars.length">{{ globalVars.length }} {{ globalVars.length > 1 ? 'variables' : 'variable' }}</span>
-          <el-button size="small" type="primary" :icon="Plus" @click="openAddDialog">{{ t('message.opsflowPage.varBrowserBtnAdd') }}</el-button>
         </div>
         <div v-if="globalVars.length === 0" class="tab-empty">
           <el-empty :description="t('message.opsflowPage.varBrowserEmptyGlobal')" :image-size="40" />
         </div>
-        <div v-for="v in globalVars" :key="v.key" class="var-item" @click="selectVar(v)">
-          <div class="var-item-left">
-            <div class="var-item-top">
-              <code class="var-code">{{ v.key }}</code>
-              <span class="var-desc">{{ v.description || v.type }}</span>
+        <div v-for="v in globalVars" :key="v.key">
+          <div class="var-item" :class="{ expanded: expandedVar === v.key }" @click="expandedVar = expandedVar === v.key ? null : v.key">
+            <div class="var-item-left">
+              <div class="var-item-top">
+                <code class="var-code">{{ v.key }}</code>
+                <span class="var-desc">{{ v.description || v.type }}</span>
+              </div>
+              <div v-if="v.reference_count > 0" class="var-refs">
+                <el-icon size="11"><Link /></el-icon>
+                <span>{{ v.reference_count }} {{ v.reference_count > 1 ? 'references' : 'reference' }}</span>
+              </div>
+              <div v-else class="var-noref">{{ t('message.opsflowPage.varBrowserNoRefs') }}</div>
             </div>
-            <div v-if="v.reference_count > 0" class="var-refs">
-              <el-icon size="11"><Link /></el-icon>
-              <span>{{ v.reference_count }} {{ v.reference_count > 1 ? 'references' : 'reference' }}</span>
+            <div class="var-item-actions" @click.stop>
+              <el-button size="small" type="primary" text @click.stop="insert(v.key)">
+                <el-icon><Link /></el-icon> {{ t('message.opsflowPage.varBrowserBtnInsert') }}
+              </el-button>
+              <el-button size="small" type="danger" text @click.stop="onDeleteVar(v)">
+                <el-icon><Delete /></el-icon>
+              </el-button>
             </div>
-            <div v-else class="var-noref">{{ t('message.opsflowPage.varBrowserNoRefs') }}</div>
           </div>
-          <div class="var-item-actions" @click.stop>
-            <el-button size="small" type="primary" text @click="insert(v.key)">
-              <el-icon><Link /></el-icon> {{ t('message.opsflowPage.varBrowserBtnInsert') }}
-            </el-button>
+          <!-- Info card -->
+          <div v-if="expandedVar === v.key" class="var-detail" @click.stop>
+            <div class="detail-grid">
+              <div class="detail-row"><span>Type</span><code>{{ v.type }}</code></div>
+              <div class="detail-row"><span>Value</span><code>{{ v.value }}</code></div>
+              <div class="detail-row"><span>Desc</span><span>{{ v.description || '-' }}</span></div>
+              <div class="detail-row"><span>Source</span><span>{{ v.source_type || 'manual' }}</span></div>
+              <div class="detail-row" v-if="v.source_info">
+                <span>Source Info</span><code>{{ v.source_info.node_id }}.{{ v.source_info.tag_code }}</code>
+              </div>
+              <div class="detail-row" v-if="v.meta?.apiEndpoint">
+                <span>API</span><code class="detail-mono">{{ v.meta.apiEndpoint }}</code>
+              </div>
+              <div class="detail-row" v-if="v.meta?.dependsOn">
+                <span>Depends</span><code>{{ v.meta.dependsOn }}</code>
+              </div>
+              <div class="detail-row" v-if="v.meta?.options?.length">
+                <span>Options</span><span>{{ v.meta.options.length }} items</span>
+              </div>
+            </div>
           </div>
         </div>
       </el-tab-pane>
@@ -43,9 +68,6 @@
           <div class="var-item-actions">
             <el-button size="small" type="primary" text @click="insert(v.key)">
               <el-icon><Link /></el-icon> {{ t('message.opsflowPage.varBrowserBtnInsert') }}
-            </el-button>
-            <el-button v-if="templateId" size="small" type="success" text @click="promoteNodeOutput(v)">
-              <el-icon><Upload /></el-icon> {{ t('message.opsflowPage.varBrowserBtnPromote') }}
             </el-button>
           </div>
         </div>
@@ -68,74 +90,15 @@
         </div>
       </el-tab-pane>
     </el-tabs>
-
-    <!-- Edit/Create drawer -->
-    <el-drawer v-model="detailVisible" size="420px" class="vb-drawer">
-      <template #header>
-        <div class="vb-drawer-title">
-          <div class="vb-drawer-icon" :class="editKey ? 'icon-edit' : 'icon-add'">
-            <el-icon :size="14" color="#fff">
-              <Edit v-if="editKey" />
-              <Plus v-else />
-            </el-icon>
-          </div>
-          <span>{{ editKey ? editKey : t('message.opsflowPage.varBrowserDrawerTitleNew') }}</span>
-        </div>
-      </template>
-      <el-form label-position="top" size="small" class="vb-form">
-        <el-form-item :label="t('message.opsflowPage.varBrowserDrawerKey')">
-          <el-input v-model="editForm.key" :placeholder="t('message.opsflowPage.varBrowserDrawerKeyPlaceholder')" :disabled="!!editKey" />
-        </el-form-item>
-        <el-form-item :label="t('message.opsflowPage.varBrowserDrawerType')">
-          <el-select v-model="editForm.type" style="width:100%">
-            <el-option label="Text" value="input" />
-            <el-option label="Textarea" value="textarea" />
-            <el-option label="Select" value="select" />
-            <el-option label="Number" value="int" />
-            <el-option label="Float" value="float" />
-            <el-option label="Password" value="password" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="t('message.opsflowPage.varBrowserDrawerValue')">
-          <el-input v-if="editForm.type === 'textarea'" v-model="editForm.value" type="textarea" :rows="4" />
-          <el-input v-else v-model="editForm.value" />
-        </el-form-item>
-        <el-form-item :label="t('message.opsflowPage.varBrowserDrawerDesc')">
-          <el-input v-model="editForm.description" type="textarea" :rows="2" :placeholder="t('message.opsflowPage.varBrowserDrawerDescPlaceholder')" />
-        </el-form-item>
-        <el-form-item v-if="editForm.source_info && editForm.source_type === 'node_output'" :label="t('message.opsflowPage.varBrowserDrawerSource')">
-          <el-tag type="success" size="small" effect="light">
-            <el-icon size="11" style="margin-right:3px"><Link /></el-icon>
-            {{ editForm.source_info.node_id }}.{{ editForm.source_info.tag_code }}
-          </el-tag>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="vb-drawer-footer">
-          <div class="vb-footer-left">
-            <el-button v-if="editKey" @click="onDelete" type="danger" plain>
-              <el-icon><Delete /></el-icon> {{ t('message.opsflowPage.varBrowserDrawerDelete') }}
-            </el-button>
-          </div>
-          <div class="vb-footer-right">
-            <el-button v-if="editForm.source_type === 'node_output'" @click="onUnhook" text class="vb-unhook-btn">
-              <el-icon><Link /></el-icon> {{ t('message.opsflowPage.varBrowserDrawerUnhook') }}
-            </el-button>
-            <el-button @click="detailVisible = false">{{ t('message.opsflowPage.varBrowserDrawerCancel') }}</el-button>
-            <el-button type="primary" @click="onSave">{{ t('message.opsflowPage.varBrowserDrawerSave') }}</el-button>
-          </div>
-        </div>
-      </template>
-    </el-drawer>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Link, Search, Upload, Plus, Delete, Edit } from '@element-plus/icons-vue'
+import { Link, Search, Delete } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { GetVariableBrowser, GetGlobalVariables, HookVariable, PatchGlobalVariables, UpdateGlobalVariables, UnhookVariable } from '../../api/templates'
+import { GetVariableBrowser, GetGlobalVariables, UpdateGlobalVariables } from '../../api/templates'
 import { extractNodeOutputFields } from '../../composables/useGraphCanvas'
 
 const { t } = useI18n()
@@ -143,13 +106,14 @@ const { t } = useI18n()
 const props = withDefaults(defineProps<{
   modelValue: boolean
   templateId: number | null
-  /** 画布实时节点列表 — 传入后优先用于计算 node_outputs，避免 DB 未保存的延迟 */
   graphNodes?: { id: string; node_type: string; label: string; [key: string]: any }[]
-  /** 全量节点列表（用于引用计数，需要扫描所有节点而非仅上游） */
   allGraphNodes?: { id: string; node_type: string; label: string; [key: string]: any }[]
+  /** 可选：外部提供的插入回调，优先于 clipboard */
+  onFieldInsert?: ((key: string) => void) | null
 }>(), {
   graphNodes: () => [],
   allGraphNodes: () => [],
+  onFieldInsert: null,
 })
 const emit = defineEmits<{
   'update:modelValue': [v: boolean]
@@ -162,15 +126,11 @@ const visible = computed({
 })
 
 const activeTab = ref('global')
+const expandedVar = ref<string | null>(null)
 const globalVars = ref<any[]>([])
 const nodeOutputs = ref<any[]>([])
 const projectVars = ref<any[]>([])
 const nodeSearch = ref('')
-
-/* ── CRUD state ── */
-const detailVisible = ref(false)
-const editKey = ref('')
-const editForm = ref({ key: '', value: '', type: 'input', description: '', source_type: 'manual', source_info: null as any })
 
 const filteredNodeOutputs = computed(() => {
   if (!nodeSearch.value) return nodeOutputs.value
@@ -181,127 +141,41 @@ const filteredNodeOutputs = computed(() => {
 })
 
 function insert(key: string) {
-  emit('insert', key)
+  const refStr = '${' + key + '}'
+  if (props.onFieldInsert) {
+    props.onFieldInsert(refStr)
+  } else {
+    navigator.clipboard.writeText(refStr)
+    ElMessage.success(`Copied ${refStr} — paste into any field`)
+  }
   visible.value = false
 }
 
-/* ── CRUD: select/add/save/delete/unhook ── */
-function selectVar(v: any) {
-  editKey.value = v.key
-  editForm.value = {
-    key: v.key,
-    value: typeof v.value === 'object' ? JSON.stringify(v.value) : String(v.value ?? ''),
-    type: v.type || 'input',
-    description: v.description || '',
-    source_type: v.source_type || 'manual',
-    source_info: v.source_info || null,
-  }
-  detailVisible.value = true
-}
-
-function openAddDialog() {
-  editKey.value = ''
-  editForm.value = { key: '', value: '', type: 'input', description: '', source_type: 'manual', source_info: null }
-  detailVisible.value = true
-}
-
-async function onSave() {
-  if (!props.templateId || !editForm.value.key) return
-  const key = editForm.value.key
-  const entry: any = {
-    value: editForm.value.value,
-    type: editForm.value.type,
-    description: editForm.value.description,
-    source_type: editForm.value.source_type,
-  }
-  if (editForm.value.source_info) entry.source_info = editForm.value.source_info
-  try {
-    await PatchGlobalVariables(props.templateId, { global_vars: { [key]: entry } })
-    ElMessage.success(t('message.opsflowPage.varBrowserSaved'))
-    detailVisible.value = false
-    await fetchData()
-  } catch (e: any) {
-    ElMessage.error(e?.msg || 'Save failed')
-  }
-}
-
-async function onDelete() {
-  if (!props.templateId || !editKey.value) return
-  const keyToDelete = editKey.value
-
-  // 检查引用：被引用的变量不能删除
-  const target = globalVars.value.find((v: any) => v.key === keyToDelete)
-  const refCount = target?.reference_count || 0
+/** 删除全局变量（复用原有逻辑：检查引用 + 确认 + 删除） */
+async function onDeleteVar(v: any) {
+  if (!props.templateId) return
+  const refCount = v.reference_count || 0
   if (refCount > 0) {
     await ElMessageBox.alert(
-      t('message.opsflowPage.varBrowserRefDeleteBlock', { key: keyToDelete, count: refCount }),
+      t('message.opsflowPage.varBrowserRefDeleteBlock', { key: v.key, count: refCount }),
       t('message.opsflowPage.varBrowserRefDeleteTitle'),
       { type: 'warning', confirmButtonText: 'OK' },
     )
     return
   }
-
   try {
     await ElMessageBox.confirm(
-      t('message.opsflowPage.varBrowserConfirmDelete', { key: keyToDelete }),
+      t('message.opsflowPage.varBrowserConfirmDelete', { key: v.key }),
       t('message.opsflowPage.varBrowserDrawerConfirmTitle'),
       { type: 'warning' },
     )
-    // 从 GetGlobalVariables 获取完整结构化数据（含 source_type/source_info 等字段）
     const getResp = await GetGlobalVariables(props.templateId)
     const full: Record<string, any> = getResp.data?.data || getResp.data || {}
-    delete full[keyToDelete]
+    delete full[v.key]
     await UpdateGlobalVariables(props.templateId, { global_vars: full })
     ElMessage.success(t('message.opsflowPage.varBrowserDeleted'))
-    detailVisible.value = false
     await fetchData()
   } catch { /* cancelled */ }
-}
-
-async function onUnhook() {
-  if (!props.templateId || !editKey.value) return
-  try {
-    await UnhookVariable(props.templateId, { var_key: editKey.value })
-    ElMessage.success(t('message.opsflowPage.varBrowserUnhooked'))
-    await fetchData()
-  } catch (e: any) {
-    ElMessage.error(e?.msg || 'Unhook failed')
-  }
-}
-
-/** 将节点输出提升为全局变量 */
-async function promoteNodeOutput(v: any) {
-  const parts = (v.key || '').split('.')
-  const nodeId = v.node_id || parts[0] || ''
-  const fieldName = parts[1] || ''
-  if (!nodeId || !fieldName) return
-
-  const defaultVarName = fieldName
-  try {
-    const { value } = await ElMessageBox.prompt(
-      'Enter a name for the global variable:',
-      'Promote Node Output to Global',
-      {
-        inputValue: defaultVarName,
-        inputPlaceholder: 'Variable name (used as ${name})',
-        confirmButtonText: 'Promote',
-        cancelButtonText: 'Cancel',
-      },
-    )
-    if (!value || !value.trim()) return
-    const varKey = value.trim()
-    await HookVariable(props.templateId, {
-      var_key: varKey,
-      node_id: nodeId,
-      tag_code: fieldName,
-      var_type: 'output',
-      description: v.description || fieldName,
-    })
-    ElMessage.success(`Global variable "${varKey}" created from ${v.key}`)
-    await fetchData()
-  } catch {
-    // user cancelled
-  }
 }
 
 /** 在对象中递归扫描 ${key} 的出现次数 */
@@ -416,4 +290,43 @@ watch(() => props.modelValue, (v) => { if (v) fetchData() })
 .vb-footer-right { display: flex; align-items: center; gap: 8px; }
 .vb-unhook-btn { color: #E6A23C; }
 .vb-unhook-btn:hover { color: #cf9236; }
+
+/* ── Info card ── */
+.var-item.expanded {
+  background: #ecf5ff;
+  border-bottom-color: #d9ecff;
+}
+.var-detail {
+  padding: 10px 16px 12px 28px;
+  background: #f8faff;
+  border-bottom: 1px solid #e4e7ed;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.detail-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+.detail-row span:first-child {
+  color: #909399;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+.detail-row code {
+  font-family: monospace;
+  font-size: 11px;
+  color: #409EFF;
+}
+.detail-mono {
+  font-size: 10px;
+  word-break: break-all;
+}
 </style>

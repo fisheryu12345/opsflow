@@ -40,9 +40,22 @@
         </div>
 
         <!-- Input Parameters -->
-        <div class="panel-section" v-if="isAtom && pluginFormSchema.length">
-          <div class="section-title">{{ $t("message.properties.inputs") }}</div>
-          <!-- 动态表单渲染（传递 templateId + nodeId 供 TagVariableInput 使用） -->
+        <div class="panel-section" v-if="isAtom && pluginFormSchema.length" @focusin.capture="onFieldFocus">
+          <div class="section-title-row">
+            <span class="section-title">{{ $t("message.properties.inputs") }}</span>
+            <el-button size="small" text type="primary" @click="showVarBrowser = true">
+              <el-icon><Search /></el-icon> Vars
+            </el-button>
+          </div>
+          <!-- Variable Browser -->
+          <VariableBrowser
+            v-if="templateId"
+            v-model="showVarBrowser"
+            :template-id="templateId"
+            :graph-nodes="contextWithVars.allGraphNodes"
+            :all-graph-nodes="contextWithVars.allGraphNodes"
+            :on-field-insert="onVarInsert"
+          />
           <div class="prop-row-vertical">
             <RenderForm
               ref="renderFormRef"
@@ -252,10 +265,11 @@
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { Setting, Pointer, WarnTriangleFilled, CircleCheckFilled, InfoFilled, Aim, Connection, Switch, EditPen } from '@element-plus/icons-vue'
+import { Setting, Pointer, WarnTriangleFilled, CircleCheckFilled, InfoFilled, Aim, Connection, Switch, EditPen, Search } from '@element-plus/icons-vue'
 import RenderForm from '/@/components/RenderForm/RenderForm.vue'
 import TagVariableMapping from '/@/components/RenderForm/tags/TagVariableMapping.vue'
 import OutputParamSection from './OutputParamSection.vue'
+import VariableBrowser from './VariableBrowser.vue'
 import { GetPluginGroups, GetPluginDetail } from '../../api/plugins'
 import { GetTemplates, HookVariable } from '../../api/templates'
 import { useOpsflowStore } from '../../stores/opsflowStore'
@@ -283,6 +297,34 @@ const form = ref<any>({})
 const edgeForm = ref<any>({ condition: '' })
 /** 修订计数器 — 每次 form 属性变更时递增，驱动 contextWithVars 重算 */
 const formRevision = ref(0)
+const showVarBrowser = ref(false)
+const lastFocusedEl = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
+
+function onFieldFocus(e: FocusEvent) {
+  const el = e.target as HTMLElement
+  if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+    lastFocusedEl.value = el as HTMLInputElement | HTMLTextAreaElement
+  }
+}
+
+function onVarInsert(refStr: string) {
+  const el = lastFocusedEl.value
+  if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+    const start = el.selectionStart ?? el.value.length
+    const end = el.selectionEnd ?? el.value.length
+    const newVal = el.value.substring(0, start) + refStr + el.value.substring(end)
+    // 触发原生 input 事件让 v-model 更新
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      el.tagName === 'INPUT' ? HTMLInputElement.prototype : HTMLTextAreaElement.prototype, 'value'
+    )?.set
+    nativeSetter?.call(el, newVal)
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+    ElMessage.success(`Inserted ${refStr}`)
+  } else {
+    navigator.clipboard.writeText(refStr)
+    ElMessage.success(`Copied ${refStr} — paste into any field`)
+  }
+}
 
 /* ── Condition editor state ── */
 const conditionDialogVisible = ref(false)
@@ -700,6 +742,12 @@ loadTemplates()
 .panel-section {
   padding: 12px 14px;
   border-bottom: 1px solid #f0f0f0;
+}
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
 .section-title {
   font-size: 12px;

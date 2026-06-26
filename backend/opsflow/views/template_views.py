@@ -83,9 +83,16 @@ class FlowTemplateViewSet(
         # non-superuser cannot edit public templates
         if instance.is_public and not request.user.is_superuser:
             return ErrorResponse(msg='Only superusers can edit public templates', code=4000, status=status.HTTP_403_FORBIDDEN)
-        # non-superuser cannot make template public
+        # non-superuser cannot make template public (project admin can)
         if request.data.get('is_public') and not request.user.is_superuser:
-            return ErrorResponse(msg='Only superusers can set a template as public', code=4000, status=status.HTTP_403_FORBIDDEN)
+            from opsflow.models import ProjectMember
+            if not instance.project:
+                return ErrorResponse(msg='Only superusers can set a template as public', code=4000, status=status.HTTP_403_FORBIDDEN)
+            is_admin = ProjectMember.objects.filter(
+                project=instance.project, user=request.user, role='admin'
+            ).exists()
+            if not is_admin:
+                return ErrorResponse(msg='Only superusers or project admin can set a template as public', code=4000, status=status.HTTP_403_FORBIDDEN)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
@@ -124,6 +131,39 @@ class FlowTemplateViewSet(
             filters['version'] = version
         updated = PluginMeta.objects.filter(**filters).update(phase=phase)
         return DetailResponse(data={'updated': updated})
+
+    @action(detail=True, methods=['post'], url_path='make-public')
+    def make_public(self, request, pk=None):
+        """将项目模板转换为公共模板 — 仅 project admin 或 superuser 可操作"""
+        template = self.get_object()
+        user = request.user
+
+        # 权限检查
+        if not user.is_superuser:
+            if not template.project:
+                raise exceptions.PermissionDenied('Template has no project')
+            from opsflow.models import ProjectMember
+            is_admin = ProjectMember.objects.filter(
+                project=template.project, user=user, role='admin'
+            ).exists()
+            if not is_admin:
+                raise exceptions.PermissionDenied('Only project admin can make template public')
+
+        if template.is_draft:
+            return ErrorResponse(msg='Publish the template first before making it public')
+
+        if template.is_public:
+            return ErrorResponse(msg='Template is already public')
+
+        scope = request.data.get('project_scope', ['*'])
+
+        template.is_public = True
+        template.project = None
+        template.project_scope = scope
+        template.save(update_fields=['is_public', 'project', 'project_scope'])
+
+        serializer = self.get_serializer(template)
+        return DetailResponse(data=serializer.data, msg='Template is now public')
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

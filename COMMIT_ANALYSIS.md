@@ -2,6 +2,42 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 26699e30
+
+> 提交日期: 2026-06-26 | 提交信息: feat: template public conversion + VariableBrowser simplify + remove output promote
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/views/template_views.py` | 后端 | 新增 make_public action + project admin is_public 权限 |
+| `web/.../opsflow-template/index.vue` | 前端 | Make Public 按钮 + 项目选择弹窗 |
+| `web/.../api/templates.ts` | 前端 | MakeTemplatePublic API 函数 |
+| `web/.../PropertyPanel.vue` | 前端 | 全局 Vars 按钮 + VariableBrowser + focus 焦点跟踪插入 |
+| `web/.../VariableBrowser.vue` | 前端 | 移除 Add/Drawer/CRUD；新增只读信息卡 + Delete + DOM 光标插入 |
+| `web/.../TagInput.vue, TagTextarea.vue` | 前端 | 移除内置 VariableBrowser（精简） |
+| `web/.../OutputParamSection.vue` | 前端 | 移除 Output Promote 按钮 |
+
+### 解决
+
+- **问题/背景：** 模板无法转为公共模板供跨项目使用；VariableBrowser 功能混乱（手动 Add + Drawer 编辑与 Promote 入口冲突）；Output Promote 创建别名变量无实际价值
+- **办法：** 新增 make_public API + 前端按钮弹窗；VariableBrowser 变为纯浏览/插入引用/删除工具；移除 Output Promote
+
+### 文档
+
+- **生成文档：**
+  - `docs/superpowers/specs/2026-06-26-template-public-conversion-design.md`
+  - `docs/superpowers/specs/2026-06-26-variable-browser-simplify-design.md`
+
+### 验证
+
+- 改动类型: feat+refactor
+- 清理乱码: 无
+- 子 App index.md 更新: 无（纯前端+少量后端改动）
+- 工作区状态: 干净 ✅
+
+---
+
 ## 3f8184af
 
 > 提交日期: 2026-06-26 | 提交信息: feat: add 7 more SubmitWizard types + doc

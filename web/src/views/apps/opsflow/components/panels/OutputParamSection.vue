@@ -10,9 +10,6 @@
             <el-button size="small" text @click="copyRef(nodeId + '.' + (out.name || out.key))">
               <el-icon><CopyDocument /></el-icon>
             </el-button>
-            <el-button size="small" text type="success" @click="promoteOutput(out)">
-              <el-icon><Upload /></el-icon> Promote
-            </el-button>
           </span>
         </div>
         <span class="output-desc" v-if="out.description">{{ out.description }}</span>
@@ -25,10 +22,9 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessageBox, ElMessage } from 'element-plus'
-import { CopyDocument, Upload } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { CopyDocument } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
-import { HookVariable } from '../../api/templates'
 
 const { t } = useI18n()
 
@@ -46,37 +42,6 @@ function outputTypeTag(type: string): string {
 function copyRef(ref: string) {
   navigator.clipboard.writeText('${' + ref + '}')
   ElMessage.success(t('message.opsflowPage.copied'))
-}
-
-/** 将节点输出字段提升为全局变量 */
-async function promoteOutput(out: any) {
-  const fieldName = (out.name || out.key || '').trim()
-  if (!props.nodeId || !fieldName) return
-  const defaultVarName = fieldName
-  try {
-    const { value } = await ElMessageBox.prompt(
-      'Enter a name for the global variable:',
-      'Promote Node Output to Global',
-      {
-        inputValue: defaultVarName,
-        inputPlaceholder: 'Variable name (used as ${name})',
-        confirmButtonText: 'Promote',
-        cancelButtonText: 'Cancel',
-      },
-    )
-    if (!value || !value.trim()) return
-    const varKey = value.trim()
-    await HookVariable(props.templateId, {
-      var_key: varKey,
-      node_id: props.nodeId,
-      tag_code: fieldName,
-      var_type: 'output',
-      description: out.description || fieldName,
-    })
-    ElMessage.success(`Global variable "${varKey}" created from ${props.nodeId}.${fieldName}`)
-  } catch {
-    // user cancelled
-  }
 }
 </script>
 

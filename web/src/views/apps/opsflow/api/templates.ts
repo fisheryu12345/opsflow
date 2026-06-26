@@ -120,6 +120,10 @@ export function HookVariable(id: number, data: {
   return opsflowRequest({ url: prefix + `templates/${id}/hook-variable/`, method: 'post', data })
 }
 
+export function MakeTemplatePublic(id: number, data: { project_scope: string[] }) {
+  return opsflowRequest({ url: prefix + `templates/${id}/make-public/`, method: 'post', data })
+}
+
 export function UnhookVariable(id: number, data: { var_key: string }) {
   return opsflowRequest({ url: prefix + `templates/${id}/unhook-variable/`, method: 'post', data })
 }

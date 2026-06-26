@@ -119,6 +119,9 @@
                   <el-tooltip v-if="!row.is_draft && (!row.is_public || isSuperuser)" :content="$t('message.schedule.title')" placement="top">
                     <el-button size="small" text type="warning" @click.stop="openSchedule(row)"><el-icon><Timer /></el-icon></el-button>
                   </el-tooltip>
+                  <el-tooltip v-if="!row.is_public && !row.is_draft" content="Make public" placement="top">
+                    <el-button size="small" text @click.stop="openMakePublic(row)"><el-icon><Share /></el-icon></el-button>
+                  </el-tooltip>
                   <el-tooltip :content="$t('message.template.versions')" placement="top">
                     <el-button size="small" text type="info" @click.stop="openVersions(row)"><el-icon><Clock /></el-icon></el-button>
                   </el-tooltip>
@@ -175,6 +178,9 @@
                 </el-button>
                 <el-button v-if="!item.is_draft && (!item.is_public || isSuperuser)" size="small" text type="warning" @click.stop="openSchedule(item)">
                   <el-icon><Timer /></el-icon>
+                </el-button>
+                <el-button v-if="!item.is_public && !item.is_draft" size="small" text @click.stop="openMakePublic(item)">
+                  <el-icon><Share /></el-icon>
                 </el-button>
                 <el-button size="small" text type="info" @click.stop="openVersions(item)">
                   <el-icon><Clock /></el-icon>
@@ -267,6 +273,31 @@
         <el-button type="primary" :loading="importing" :disabled="!importData" @click="handleImport" >{{ $t('message.common.import') }}</el-button>
       </template>
     </el-dialog>
+
+    <!-- Make Public dialog -->
+    <el-dialog v-model="mpVisible" title="Make Template Public" width="500px" :close-on-click-modal="false">
+      <el-form label-position="top" size="small">
+        <el-form-item label="Visible to projects">
+          <el-select v-model="mpScope" multiple placeholder="Select projects..." style="width:100%">
+            <el-option label="All Projects" value="*" />
+            <el-option
+              v-for="proj in opsflowStore.myProjects"
+              :key="proj.id"
+              :label="proj.name"
+              :value="String(proj.id)"
+              :disabled="mpScope.includes('*')"
+            />
+          </el-select>
+          <div style="font-size:11px;color:#909399;margin-top:4px;">
+            Public templates are visible to all members of selected projects. Select "All Projects" to make it globally visible.
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="mpVisible = false" plain size="small">{{ $t('message.common.cancel') }}</el-button>
+        <el-button type="primary" @click="handleMakePublic" :loading="mpLoading" size="small">Confirm</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -276,7 +307,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { Refresh, Upload, Edit, Delete, Search, List, Grid, Connection, Share, Timer, Setting, Clock, Download, UploadFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { GetTemplates, UpdateTemplate, DeleteTemplate, ConfirmDraft, GetTemplateDetail, PublishTemplate, ExportTemplate, ImportTemplate, GetTemplateCategories } from '../opsflow/api/templates'
+import { GetTemplates, UpdateTemplate, DeleteTemplate, ConfirmDraft, GetTemplateDetail, PublishTemplate, ExportTemplate, ImportTemplate, GetTemplateCategories, MakeTemplatePublic } from '../opsflow/api/templates'
 import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 import { useUserInfo } from '/@/stores/userInfo'
 import ScheduleManager from './components/ScheduleManager.vue'
@@ -343,6 +374,34 @@ const importVisible = ref(false)
 const importFiles = ref<any[]>([])
 const importData = ref<any>(null)
 const importing = ref(false)
+
+// ── Make Public ──
+const mpVisible = ref(false)
+const mpLoading = ref(false)
+const mpScope = ref<string[]>([])
+const mpRow = ref<any>(null)
+
+function openMakePublic(row: any) {
+  mpRow.value = row
+  // Default: include the template's current project (from row data or context)
+  mpScope.value = row.project ? [String(row.project)] : []
+  mpVisible.value = true
+}
+
+async function handleMakePublic() {
+  if (!mpRow.value || !mpScope.value.length) return
+  mpLoading.value = true
+  try {
+    await MakeTemplatePublic(mpRow.value.id, { project_scope: mpScope.value })
+    ElMessage.success('Template is now public')
+    mpVisible.value = false
+    await fetchData()
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.msg || e?.msg || 'Failed to make template public')
+  } finally {
+    mpLoading.value = false
+  }
+}
 
 const pubCount = computed(() => displayList.value.filter(t => !t.is_draft).length)
 const draftCount = computed(() => displayList.value.filter(t => t.is_draft).length)
