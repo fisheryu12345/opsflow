@@ -132,6 +132,16 @@ class FlowTemplateViewSet(
         updated = PluginMeta.objects.filter(**filters).update(phase=phase)
         return DetailResponse(data={'updated': updated})
 
+    @action(detail=False, methods=['get'], url_path='presets')
+    def presets(self, request):
+        """返回所有启用的模板预设提示词"""
+        from opsflow.models.template import TemplatePreset
+        qs = TemplatePreset.objects.filter(is_active=True).order_by('sort_order')
+        data = [{'id': p.id, 'name': p.name, 'name_en': p.name_en,
+                 'icon': p.icon, 'prompt': p.prompt, 'prompt_en': p.prompt_en,
+                 'category': p.category} for p in qs]
+        return DetailResponse(data=data)
+
     @action(detail=True, methods=['post'], url_path='make-public')
     def make_public(self, request, pk=None):
         """将项目模板转换为公共模板 — 仅 project admin 或 superuser 可操作"""

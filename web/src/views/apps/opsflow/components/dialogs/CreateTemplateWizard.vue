@@ -126,6 +126,20 @@
               :rows="4"
               :placeholder="$t('message.template.aiPlaceholder')"
             />
+            <div class="preset-chips" v-if="presets.length">
+              <span class="preset-chips-label">Quick start:</span>
+              <div class="preset-chips-wrap">
+              <el-tag
+                v-for="p in presets" :key="p.id"
+                class="preset-chip"
+                :style="{ cursor: 'pointer' }"
+                effect="plain"
+                @click="aiPrompt = (isEn ? (p.prompt_en || p.prompt) : p.prompt)"
+              >
+                {{ p.icon }} {{ isEn ? (p.name_en || p.name) : p.name }}
+              </el-tag>
+              </div>
+            </div>
           </div>
 
           <div v-else-if="method === 'clone'" class="extra-card">
@@ -249,12 +263,13 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { CircleCheck, ChatDotSquare, CopyDocument, Warning } from '@element-plus/icons-vue'
-import { CreateTemplate, CreateFromAi, ExportTemplate, ImportTemplate, GetTemplates, UpdateTemplate, CreateDrPipeline } from '../../api/templates'
+import { CreateTemplate, CreateFromAi, ExportTemplate, ImportTemplate, GetTemplates, UpdateTemplate, CreateDrPipeline, GetTemplatePresets } from '../../api/templates'
 import { GetTemplateCategories } from '../../api/template-categories'
 import { useOpsflowStore } from '../../stores/opsflowStore'
 
 const store = useOpsflowStore()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const isEn = computed(() => String(locale.value).startsWith('en'))
 
 const props = defineProps<{
   modelValue: boolean
@@ -285,6 +300,15 @@ const projectList = computed(() => store.myProjects)
 
 const method = ref<'blank' | 'ai' | 'clone' | 'dr'>('blank')
 const aiPrompt = ref('')
+const presets = ref<any[]>([])
+
+async function loadPresets() {
+  try {
+    const res = await GetTemplatePresets()
+    presets.value = res.data?.data || res.data || []
+  } catch { presets.value = [] }
+}
+loadPresets()
 const cloneTemplateId = ref<number | null>(null)
 const drGroupId = ref<string | null>(null)
 const drGroups = ref<any[]>([])
@@ -794,4 +818,31 @@ $accent-dark: #337ecc;
 .panel-fade-leave-active { transition: all 0.2s ease; }
 .panel-fade-enter-from { opacity: 0; transform: translateY(10px); }
 .panel-fade-leave-to { opacity: 0; }
+
+/* ── Preset Chips ── */
+.preset-chips {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.preset-chips-label {
+  font-size: 11px;
+  color: #909399;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+.preset-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.preset-chip {
+  transition: all 0.2s;
+}
+.preset-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,.1);
+}
 </style>

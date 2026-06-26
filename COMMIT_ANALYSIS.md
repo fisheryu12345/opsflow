@@ -2,6 +2,39 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 4e0cbf74
+
+> 提交日期: 2026-06-26 | 提交信息: feat: add template presets for AI quick-start
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/models/template.py` | 后端 | 新增 TemplatePreset 模型 |
+| `backend/opsflow/views/template_views.py` | 后端 | GET /templates/presets/ 端点 |
+| `backend/opsflow/management/commands/seed_template_presets.py` | 后端 | 10 个中英双语预设提示词 seed |
+| `web/.../CreateTemplateWizard.vue` | 前端 | AI 输入框下方预设标签 |
+| `web/.../api/templates.ts` | 前端 | GetTemplatePresets API |
+
+### 解决
+
+- **问题/背景：** 新用户不知道怎么写 AI 提示词，需要预制常见 IT 运维场景快速上手
+- **办法：** TemplatePreset 模型存储中英双语提示词 + API 返回 + 前端预设标签 10 个场景覆盖串行/并行/网关/循环全部机制
+
+### 文档
+
+- **生成文档：**
+  - `docs/superpowers/specs/2026-06-26-template-presets-design.md`
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 有
+- 子 App index.md 更新: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## aecd282b
 
 > 提交日期: 2026-06-26 | 提交信息: feat: implement pipeline loop mechanism A+B

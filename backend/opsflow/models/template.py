@@ -196,3 +196,24 @@ class TemplateCategory(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class TemplatePreset(models.Model):
+    """模板预设提示词 — AI 快速创建入口"""
+    name = models.CharField(max_length=64, verbose_name="Name")
+    name_en = models.CharField(max_length=128, blank=True, default='', verbose_name="English Name")
+    icon = models.CharField(max_length=8, default='📋', verbose_name="Icon")
+    prompt = models.TextField(verbose_name="Prompt")
+    prompt_en = models.TextField(blank=True, default='', verbose_name="English Prompt")
+    category = models.CharField(max_length=64, blank=True, default='', verbose_name="Category")
+    sort_order = models.IntegerField(default=0, verbose_name="Sort Order")
+    is_active = models.BooleanField(default=True, verbose_name="Is Active")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ops_template_preset'
+        ordering = ['sort_order', 'name']
+        verbose_name = "Template Preset"
+
+    def __str__(self):
+        return self.name

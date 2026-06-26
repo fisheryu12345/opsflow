@@ -128,6 +128,10 @@ export function UnhookVariable(id: number, data: { var_key: string }) {
   return opsflowRequest({ url: prefix + `templates/${id}/unhook-variable/`, method: 'post', data })
 }
 
+export function GetTemplatePresets() {
+  return opsflowRequest({ url: prefix + 'templates/presets/', method: 'get' })
+}
+
 export function GetVariableTypes() {
   return opsflowRequest({ url: prefix + 'plugins/variable_types/', method: 'get' })
 }
