@@ -38,7 +38,7 @@ class FlowEngine:
         self.execution.status = "running"
         self.execution.save(update_fields=["node_status", "status"])
 
-    def _fail_execution(self, msg, save_fields=None, do_rollback=False):
+    def _fail_execution(self, msg, save_fields=None):
         """标记执行为失败状态 — run() 中多处失败路径共享"""
         self.execution.status = "failed"
         self.execution.ended_at = timezone.now()
@@ -48,8 +48,6 @@ class FlowEngine:
         if msg:
             save_fields.append("context")
         self.execution.save(update_fields=save_fields)
-        if do_rollback:
-            self.rollback_failed_nodes()
         self._notify_completed()
 
     # -- External API --------------------------------------------------------
@@ -244,8 +242,7 @@ class FlowEngine:
                     logger.error("[FlowEngine] run_pipeline failed: %s", result.message)
                     self.execution.context['_validation_error'] = result.message
                 self._fail_execution(self.execution.context.get('_validation_error'),
-                                     save_fields=["status", "ended_at", "context"],
-                                     do_rollback=True)
+                                     save_fields=["status", "ended_at", "context"])
                 return
 
             logger.info(
@@ -258,34 +255,7 @@ class FlowEngine:
             if '_validation_error' not in self.execution.context:
                 self.execution.context['_validation_error'] = str(e)
             self._fail_execution(self.execution.context.get('_validation_error'),
-                                 save_fields=["status", "ended_at", "context"],
-                                 do_rollback=True)
-
-    # -- Rollback / Compensation -------------------------------------------
-
-    def rollback_failed_nodes(self):
-        """Pipeline 失败后，遍历所有失败节点并调用其 rollback 方法"""
-        node_status = self.execution.node_status or {}
-        failed_nodes = [nid for nid, st in node_status.items() if st in ('failed',)]
-        if not failed_nodes:
-            return
-
-        logger.info("[FlowEngine] rolling back %d failed nodes", len(failed_nodes))
-        rollback_count = 0
-        for node_id in failed_nodes:
-            try:
-                result = pipeline_api.get_execution_data_outputs(self._runtime, node_id)
-                if not (result.result and result.data):
-                    continue
-                outputs = result.data.get('outputs', {}) if isinstance(result.data, dict) else {}
-                # 检查是否有 rollback 标记（由 PluginService.rollback 处理）
-                _trigger_plugin_rollback(node_id, outputs)
-                rollback_count += 1
-            except Exception:
-                logger.exception("[FlowEngine] rollback failed for node %s", node_id)
-
-        if rollback_count:
-            logger.info("[FlowEngine] rollback completed for %d nodes", rollback_count)
+                                 save_fields=["status", "ended_at", "context"])
 
     # -- Pipeline Re-run Cleanup --------------------------------------------
 
@@ -352,10 +322,3 @@ class FlowEngine:
                 },
             )
 
-
-def _trigger_plugin_rollback(node_id, outputs):
-    """触发单个节点的插件回滚（通过 bamboo-engine API 实现重试以触发 rollback）"""
-    # 注意：bamboo-engine 的 revoke 不会触发 rollback，
-    # 真正的 rollback 需在 PluginService.rollback() 中实现。
-    # 此处记录日志供后续扩展
-    logger.info("[Rollback] node %s rollback triggered (outputs: %s)", node_id, outputs)

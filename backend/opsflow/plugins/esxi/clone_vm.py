@@ -91,10 +91,3 @@ class EsxiCloneVmPlugin(BasePlugin):
             {"name": "clone_completed", "type": "bool", "description": "克隆是否完成"},
             {"name": "powered_on", "type": "bool", "description": "克隆后是否已开机"},
         ]
-
-    def rollback(self, context: dict, **kwargs) -> dict:
-        """回滚：删除克隆出的虚拟机"""
-        new_vm = context.get("new_vm_name", "")
-        if new_vm:
-            return {"success": True, "data": {"action": "delete_clone", "vm_name": new_vm}}
-        return {"success": True, "data": {}}

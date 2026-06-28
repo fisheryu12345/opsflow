@@ -93,9 +93,3 @@ class AliyunEcsCreateImagePlugin(BasePlugin):
             {"name": "image_name", "type": "string", "description": "镜像名称"},
             {"name": "source_instance_id", "type": "string", "description": "源实例 ID"},
         ]
-
-    def rollback(self, context: dict, **kwargs) -> dict:
-        img_id = context.get("image_id", "")
-        if img_id:
-            return {"success": True, "data": {"action": "delete_image", "image_id": img_id}}
-        return {"success": True, "data": {}}

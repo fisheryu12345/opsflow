@@ -86,7 +86,3 @@ class EsxiReconfigureVmPlugin(BasePlugin):
             {"name": "changes", "type": "list", "description": "变更项列表"},
             {"name": "reconfigured", "type": "bool", "description": "是否已更新"},
         ]
-
-    def rollback(self, context: dict, **kwargs) -> dict:
-        """回滚：无（无法自动回滚硬件配置）"""
-        return {"success": True, "data": {}}

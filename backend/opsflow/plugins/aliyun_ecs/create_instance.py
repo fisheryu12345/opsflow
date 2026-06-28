@@ -222,10 +222,3 @@ class AliyunEcsCreatePlugin(BasePlugin):
             {"name": "public_ip", "type": "string", "description": "公网 IP（如有分配）"},
             {"name": "region", "type": "string", "description": "地域"},
         ]
-
-    def rollback(self, context: dict, **kwargs) -> dict:
-        """回滚：释放刚创建的实例"""
-        inst_id = context.get("instance_id", "")
-        if inst_id:
-            return {"success": True, "data": {"action": "delete_instance", "instance_id": inst_id}}
-        return {"success": True, "data": {}}

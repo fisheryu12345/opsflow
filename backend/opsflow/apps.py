@@ -105,8 +105,8 @@ class OpsflowConfig(AppConfig):
             from opsflow.plugins.registry import discover_plugins, sync_plugin_meta_to_db
             discover_plugins()
             sync_plugin_meta_to_db()
-        except (ProgrammingError, OperationalError):
-            logger.warning("跳过插件注册：数据库表尚未就绪")
+        except Exception as _e:
+            logger.debug("跳过插件注册：%s", str(_e)[:80])
 
         # 1b) 发现并注册变量类型
         try:

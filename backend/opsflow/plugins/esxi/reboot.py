@@ -70,7 +70,3 @@ class EsxiRebootPlugin(BasePlugin):
             {"name": "reboot_type", "type": "string", "description": "重启类型 (soft/hard)"},
             {"name": "reboot_requested", "type": "bool", "description": "重启请求是否已发送"},
         ]
-
-    def rollback(self, context: dict, **kwargs) -> dict:
-        """回滚：无操作（重启不可逆）"""
-        return {"success": True, "data": {}}

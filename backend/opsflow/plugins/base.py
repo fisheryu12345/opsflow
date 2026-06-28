@@ -54,15 +54,6 @@ class BasePlugin:
         """
         raise NotImplementedError
 
-    def rollback(self, context: Dict[str, Any], **kwargs) -> Dict[str, Any]:
-        """回滚操作（可选覆盖）
-
-        Args:
-            context: 原始 execute() 返回的 data
-            **kwargs: 原始入参
-        """
-        return {"success": True, "data": {}}
-
     def schedule(self, context: dict, **kwargs) -> bool | None:
         """异步回调（适用于 need_schedule=True 的插件）
 

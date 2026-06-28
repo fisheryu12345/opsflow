@@ -53,9 +53,3 @@ class AliyunEcsStopPlugin(BasePlugin):
     @classmethod
     def get_output_schema(cls):
         return [{"name": "instance_id", "type": "string", "description": "ECS 实例 ID"}, {"name": "status", "type": "string", "description": "实例状态"}]
-
-    def rollback(self, context: dict, **kwargs) -> dict:
-        inst_id = context.get("instance_id", kwargs.get("instance_id", ""))
-        if inst_id:
-            return {"success": True, "data": {"action": "start_instance", "instance_id": inst_id}}
-        return {"success": True, "data": {}}

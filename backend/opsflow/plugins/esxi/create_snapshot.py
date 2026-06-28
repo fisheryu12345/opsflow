@@ -100,10 +100,3 @@ class EsxiCreateSnapshotPlugin(BasePlugin):
             {"name": "snapshot_name", "type": "string", "description": "快照名称"},
             {"name": "snapshot_created", "type": "bool", "description": "快照是否已创建"},
         ]
-
-    def rollback(self, context: dict, **kwargs) -> dict:
-        """回滚：删除刚创建的快照"""
-        snap = context.get("snapshot_name", "")
-        if snap:
-            return {"success": True, "data": {"action": "remove_snapshot", "snapshot_name": snap}}
-        return {"success": True, "data": {}}

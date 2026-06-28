@@ -220,20 +220,6 @@ class PluginService(Service):
             logger.exception("插件 %s schedule 异常", atom_type)
             return False
 
-    def rollback(self, data, parent_data):
-        atom_type, _, _, params = _extract_params(data)
-        plugin_cls = get_plugin(atom_type)
-        if not plugin_cls:
-            return False
-
-        context = dict(data.outputs)
-        try:
-            instance = plugin_cls()
-            result = instance.rollback(context=context, **params)
-            return result.get('success', False)
-        except Exception:
-            logger.exception("插件 %s 回滚异常", atom_type)
-            return False
 
 
 # 注册唯一的 Component — ComponentMeta 元类自动处理注册

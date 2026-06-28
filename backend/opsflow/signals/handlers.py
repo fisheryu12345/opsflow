@@ -135,12 +135,6 @@ def _handle_root_state_change(execution, to_state):
         execution.ended_at = timezone.now()
         _sweep_node_status(execution, "failed")
         execution.save(update_fields=["status", "ended_at", "node_status"])
-        try:
-            from opsflow.core.flow_engine import FlowEngine
-            engine = FlowEngine(execution)
-            engine.rollback_failed_nodes()
-        except Exception:
-            logger.exception("[Signal] rollback_failed_nodes error for execution %s", execution.id)
         _try_webhook(execution, 'failed')
         logger.info("[Signal] pipeline %s failed", execution.id)
 

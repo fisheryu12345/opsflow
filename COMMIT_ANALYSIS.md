@@ -2,6 +2,47 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 4852cbce
+
+> 提交日期: 2026-06-28 | 提交信息: refactor: remove execution rollback functionality — 移除所有执行回滚代码
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| core/flow_engine.py | 后端 | 删除 rollback_failed_nodes()、_trigger_plugin_rollback()，简化 _fail_execution() |
+| core/plugin_service_adapter.py | 后端 | 删除 PluginService.rollback() 方法 |
+| signals/handlers.py | 后端 | 删除 FAILED 分支中的 rollback 触发 |
+| plugins/base.py | 后端 | 删除 BasePlugin.rollback() 默认实现 |
+| plugins/esxi/*.py (8个) | 后端 | 删除各插件 rollback() 方法 |
+| plugins/aliyun_ecs/*.py (4个) | 后端 | 删除各插件 rollback() 方法 |
+| plugins/ansible/tower_backend/base_plugin.py | 后端 | 删除 rollback() 方法及 docstring 引用 |
+| tests/test_flow_engine.py | 后端 | 删除 3 个 rollback 测试用例；修复 mock 路径 |
+| tests/test_node_timeout_strategy.py | 后端 | 修复 mock 导入路径 |
+| apps.py | 后端 | 插件注册异常捕获改为 debug 日志 |
+| docs/architecture/2026-06-28-remove-execution-rollback-refactor.md | 文档 | 新建架构重构文档 |
+| docs/superpowers/specs/2026-06-28-remove-execution-rollback-design.md | 文档 | 新建设计规范文档 |
+
+### 解决
+
+- **问题/背景：** 执行回滚功能（节点失败后的补偿操作）不再需要，涉及 FlowEngine、PluginService、信号处理器和所有插件共计 18 个文件中的 rollback 代码
+- **办法：** 删除所有执行回滚相关代码：核心引擎 rollback 调度、服务适配器 PluginService.rollback()、插件基类和所有子类的 rollback() 方法、信号处理器中的 rollback 触发、对应的测试用例。保留模板版本回滚和安全校验中的 rollback 路径检查
+
+### 文档
+
+- **生成文档：**
+  - docs/opsflow/architecture/2026-06-28-remove-execution-rollback-refactor.md
+  - docs/superpowers/specs/2026-06-28-remove-execution-rollback-design.md
+
+### 验证
+
+- 改动类型: refactor + fix (test mock paths)
+- 清理乱码: 无
+- 子 App index.md 更新: opsflow
+- 工作区状态: 待提交 ✅
+
+---
+
 ## d7c0716c
 
 > 提交日期: 2026-06-28 | 提交信息: fix: add aiSuggestions i18n key + widen AI dialog

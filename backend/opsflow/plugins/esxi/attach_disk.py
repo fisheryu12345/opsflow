@@ -96,7 +96,3 @@ class EsxiAttachDiskPlugin(BasePlugin):
             {"name": "disk_type", "type": "string", "description": "磁盘类型"},
             {"name": "disk_attached", "type": "bool", "description": "是否已挂载"},
         ]
-
-    def rollback(self, context: dict, **kwargs) -> dict:
-        """回滚：无（无法自动卸载已挂载的磁盘）"""
-        return {"success": True, "data": {}}

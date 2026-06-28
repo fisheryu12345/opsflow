@@ -6,7 +6,6 @@
 执行流程:
   1. execute() → TowerService.launch_job() → 返回 job_id
   2. schedule() → TowerService.poll_job() → 自适应轮询直到完成
-  3. rollback() → TowerService.cancel_job() → 取消运行中的作业
 """
 import logging
 
@@ -112,16 +111,6 @@ class TowerBasePlugin(BasePlugin):
         except Exception as e:
             logger.warning("[TowerBasePlugin] 轮询异常 job_id=%s: %s", tower_job_id, e)
             return None  # 网络异常时继续等待
-
-    def rollback(self, context: dict, **kwargs) -> dict:
-        """Step 3: 取消 Tower 作业（回滚时调用）"""
-        tower_job_id = context.get("tower_job_id")
-        if tower_job_id:
-            from opsflow.plugins.ansible.tower_backend import get_tower_service
-            tower = get_tower_service()
-            tower.cancel_job(tower_job_id)
-            logger.info("[TowerBasePlugin] 作业已取消 job_id=%s", tower_job_id)
-        return {"success": True, "data": {}}
 
     def _promote_schedule_result(self, context: dict, result: dict):
         """将 Tower 执行结果提升到 context 中，供后续节点引用"""

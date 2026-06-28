@@ -81,7 +81,3 @@ class EsxiRevertSnapshotPlugin(BasePlugin):
             {"name": "snapshot_name", "type": "string", "description": "已恢复的快照名称"},
             {"name": "reverted", "type": "bool", "description": "是否已恢复"},
         ]
-
-    def rollback(self, context: dict, **kwargs) -> dict:
-        """回滚：无（快照恢复不可逆）"""
-        return {"success": True, "data": {}}

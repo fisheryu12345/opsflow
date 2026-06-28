@@ -56,7 +56,3 @@ class EsxiPowerOffPlugin(BasePlugin):
         return [
             {"name": "power_state", "type": "string", "description": "电源状态"},
         ]
-
-    def rollback(self, context: dict, **kwargs) -> dict:
-        """回滚：启动虚拟机"""
-        return {"success": True, "data": {}}
