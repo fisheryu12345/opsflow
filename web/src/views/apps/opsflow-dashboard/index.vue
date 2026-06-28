@@ -361,7 +361,7 @@ onMounted(() => {
   refreshAll(); window.addEventListener('resize', onResize)
   const key = 'opsflow_tour_dashboard'
   if (!localStorage.getItem(key)) {
-    ElMessage.info({ message: '📊 仪表盘 — OpsFlow 全局概览，展示执行趋势、节点分布、项目活跃度', duration: 6000 })
+    ElMessage.info({ message: '📊 仪表盘 — OpsFlow 全局概览，展示执行趋势、节点分布、项目活跃度', duration: 1500 })
     localStorage.setItem(key, 'true')
   }
 })

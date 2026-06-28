@@ -40,7 +40,7 @@ onMounted(async () => {
 
   const key = 'opsflow_tour_execution'
   if (!localStorage.getItem(key)) {
-    ElMessage.info({ message: t('message.execution.tourMsg'), duration: 6000 })
+    ElMessage.info({ message: t('message.execution.tourMsg'), duration: 1500 })
     localStorage.setItem(key, 'true')
   }
 })

@@ -188,7 +188,7 @@ onMounted(async () => {
 
   const key = 'opsflow_tour_openapi'
   if (!localStorage.getItem(key)) {
-    ElMessage.info({ message: '🔑 Open API — 第三方应用管理与 API 访问凭证生命周期管理', duration: 6000 })
+    ElMessage.info({ message: '🔑 Open API — 第三方应用管理与 API 访问凭证生命周期管理', duration: 1500 })
     localStorage.setItem(key, 'true')
   }
 })

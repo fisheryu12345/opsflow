@@ -702,7 +702,7 @@ onMounted(async () => {
   ])
   const key = 'opsflow_tour_itsm'
   if (!localStorage.getItem(key)) {
-    ElMessage.info({ message: '🎫 ITSM — 全新 pipeline 驱动工单引擎，支持 AI 创建审批流程', duration: 6000 })
+    ElMessage.info({ message: '🎫 ITSM — 全新 pipeline 驱动工单引擎，支持 AI 创建审批流程', duration: 1500 })
     localStorage.setItem(key, 'true')
   }
 })

@@ -170,7 +170,7 @@ export function getMockNodeDurationTop() {
     { atom_type: 'java_deploy', avg_duration: 28450, count: 32, max_duration: 62000 },
     { atom_type: 'docker_deploy', avg_duration: 15320, count: 18, max_duration: 45000 },
     { atom_type: 'create_vm', avg_duration: 12180, count: 8, max_duration: 35000 },
-    { atom_type: 'shell', avg_duration: 8450, count: 128, max_duration: 60000 },
+    { atom_type: 'shell', avg_duration: 8450, count: 128, max_duration: 15000 },
     { atom_type: 'script_exec', avg_duration: 6200, count: 45, max_duration: 28000 },
     { atom_type: 'service_control', avg_duration: 3800, count: 67, max_duration: 15000 },
     { atom_type: 'api_call', avg_duration: 2400, count: 92, max_duration: 12000 },

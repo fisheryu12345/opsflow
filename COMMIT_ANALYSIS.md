@@ -2,6 +2,33 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 5ea3fd8e
+
+> 提交日期: 2026-06-28 | 提交信息: fix: correct i18n key references in opsflow sub-pages
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/src/api/opsflow/dashboard.ts` | 前端 | API 路径修正 |
+| `web/src/views/apps/{integration,itsm,open-api}/index.vue` | 前端 | i18n 键引用修正 (3 files) |
+| `web/src/views/apps/opsflow-{approval,dashboard,execution,log,template}/index.vue` | 前端 | i18n 键引用修正 (5 files) |
+| `web/src/views/apps/opsflow/components/dialogs/SubmitWizardDialog.vue` | 前端 | 条件标签修正 |
+
+### 解决
+
+- **问题/背景：** 多个子页面 i18n 键引用使用错误的前缀格式
+- **办法：** 统一修正为正确的 i18n 键路径
+
+### 验证
+
+- 改动类型: fix
+- 清理乱码: 有（1 个 garbled file）
+- 工作区状态: 干净 ✅
+- 测试: opsflow.tests 18/18 OK ✅
+
+---
+
 ## 28122657
 
 > 提交日期: 2026-06-28 | 提交信息: feat: unify IAM as identity management center + portal i18n

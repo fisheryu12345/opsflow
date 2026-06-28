@@ -1028,14 +1028,14 @@ async function handleSubmit() {
         message: execStatus === 'pending'
           ? t('message.wizard.execScheduled', { id: execId, date: scheduledDate.value, time: scheduledTime.value })
           : t('message.wizard.execScheduledPending', { id: execId, date: scheduledDate.value, time: scheduledTime.value }),
-        duration: 6000,
+        duration: 1500,
       })
     } else {
       ElMessage.success({
         message: execStatus === 'pending'
           ? t('message.wizard.execCreated', { id: execId })
           : t('message.wizard.execCreatedPending', { id: execId }),
-        duration: 6000,
+        duration: 1500,
       })
     }
 
