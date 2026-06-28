@@ -2,6 +2,40 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 5124f0b0
+
+> 提交日期: 2026-06-28 | 提交信息: feat: add loop_iteration to NodeExecutionTrace for loop/cycle iteration tracking
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/models/execution.py` | 后端 | NodeExecutionTrace 新增 loop_iteration 字段，unique_together 改为 (execution, node_id, retry_count, loop_iteration) |
+| `backend/opsflow/serializers.py` | 后端 | trace_summary 返回 loop_iteration |
+| `backend/opsflow/signals/trace.py` | 后端 | 新增 _resolve_loop_iteration() — 检查上次迭代状态为 completed/failed 时自动递增 |
+| `web/.../ExecutionDetail.vue` | 前端 | 行 key + Iteration 列 + tab 区域 overflow 滚动修复 |
+| `docs/superpowers/specs/2026-06-28-loop-trace-iteration-design.md` | 文档 | 设计规范 |
+
+### 解决
+
+- **问题/背景：** loop 场景下节点执行多次，但 NodeExecutionTrace 只有一行(retry_count=0,loop_iteration=0)，后续迭代的 outputs 被覆盖
+- **办法：** 新增 loop_iteration 字段 + _resolve_loop_iteration 按 DB 状态自动递增；Django migration 更新 unique_together
+
+### 文档
+
+- **生成文档：**
+  - `docs/superpowers/specs/2026-06-28-loop-trace-iteration-design.md`
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 无
+- 子 App index.md 更新: opsflow
+- 工作区状态: 干净 ✅
+- 测试: opsflow.tests 18/18 OK ✅
+
+---
+
 ## beabfcbb
 
 > 提交日期: 2026-06-28 | 提交信息: fix: pipeline execution bugs + PropertyPanel condition editor overhaul

@@ -1,6 +1,6 @@
 # opsflow - Module Index
 
-> Auto-updated: 2026-06-28 | Trigger commit: beabfcbb
+> Auto-updated: 2026-06-28 | Trigger commit: 5124f0b0
 
 ## `./`
 

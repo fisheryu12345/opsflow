@@ -92,11 +92,12 @@
                         <th>{{ $t("message.execution.status") }}</th>
                         <th>{{ $t("message.execution.duration") }}</th>
                         <th>{{ $t("message.execution.retry") }}</th>
+                        <th>Iteration</th>
                         <th>{{ $t("message.execution.operate") }}</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="t in traces" :key="t.node_id + '-' + t.retry_count"
+                      <tr v-for="t in traces" :key="t.node_id + '-' + t.retry_count + '-' + t.loop_iteration"
                           :class="['trace-row', traceRowClass(t.status), { 'trace-row-selected': selectedNodeId === t.node_id }]"
                           @click="selectTraceNode(t.node_id)">
                         <td class="trace-node-id" :title="t.node_label || t.node_id">
@@ -108,6 +109,12 @@
                         </td>
                         <td class="trace-duration">{{ formatDuration(t.duration_ms) }}</td>
                         <td class="trace-retry-count">{{ t.retry_count }}</td>
+                        <td class="trace-iteration">
+                          <el-tag v-if="t.loop_iteration > 0" size="small" type="warning">
+                            #{{ t.loop_iteration + 1 }}
+                          </el-tag>
+                          <span v-else>1</span>
+                        </td>
                         <td>
                           <el-button size="small" text @click.stop="viewTraceLog(t.node_id)"
                                      :loading="logLoadingNode === t.node_id">{{ $t("message.execution.logView") }}</el-button>
@@ -567,8 +574,10 @@ onBeforeUnmount(() => {
 
 /* Tabs styling */
 .trace-tabs { height: 100%; display: flex; flex-direction: column; }
-.trace-tabs :deep(.el-tabs__header) { margin: 0; padding: 0 10px; }
+.trace-tabs { height: 100%; display: flex; flex-direction: column; }
+.trace-tabs :deep(.el-tabs__header) { margin: 0; padding: 0 10px; flex-shrink: 0; }
 .trace-tabs :deep(.el-tabs__content) { flex: 1; overflow: hidden; }
+.trace-tabs :deep(.el-tab-pane) { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
 
 /* Approval banner */
 .approval-banner {

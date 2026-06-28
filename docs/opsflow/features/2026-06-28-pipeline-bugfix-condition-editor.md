@@ -105,3 +105,22 @@ function _parseConditionExpr(expr: string): ConditionStruct | null {
 | `web/.../useDesignCanvas.ts:536-551` | 边创建保留 label，仅网关出边显示 label |
 | `web/.../useDesignCanvas.ts:612-658` | aiLayout 循环边保留 label |
 | `web/.../index.vue:295-322` | onSelectTemplate 自动 layout |
+
+---
+
+## 2026-06-28 Update
+
+> 提交: 5124f0b0
+
+### 变更内容
+
+新增 loop_iteration 字段到 NodeExecutionTrace，支持循环/回环场景下的多迭代追踪：
+
+- `NodeExecutionTrace` 新增 `loop_iteration` 字段，`unique_together` 改为 `(execution, node_id, retry_count, loop_iteration)`
+- `_resolve_loop_iteration()` 检测上次迭代状态为 completed/failed 时自动递增 li
+- 前端表格新增 Iteration 列显示 `#1` `#2` `#3`
+- Traces tab 溢出滚动修复（el-tabs flex 布局）
+
+### 原因
+
+loop 场景下节点执行多次，但 NodeExecutionTrace 只有一行(retry_count=0, loop_iteration=0)，后续迭代的 outputs 被覆盖。每个迭代的输入输出无法查看。

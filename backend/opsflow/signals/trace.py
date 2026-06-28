@@ -18,11 +18,33 @@ from opsflow.signals.helpers import _get_current_retry_count, _get_node_error, _
 logger = logging.getLogger(__name__)
 
 
+def _resolve_loop_iteration(execution, node_id, retry_count) -> int:
+    """Determine loop_iteration for the current signal.
+
+    If the latest trace for (execution, node_id, rc=N) has reached a terminal
+    status (FINISHED/FAILED), the engine has started the next loop iteration.
+    Returns the new iteration number (existing li + 1).
+    Otherwise returns the existing li (normal update path).
+    Signals are processed synchronously, so there is no race condition:
+    FINISHED is fully written to DB before the next RUNNING fires.
+    """
+    from opsflow.models import NodeExecutionTrace
+
+    existing = NodeExecutionTrace.objects.filter(
+        execution=execution, node_id=node_id, retry_count=retry_count
+    ).order_by('-loop_iteration').first()
+
+    if existing and existing.status in ('completed', 'failed'):
+        return existing.loop_iteration + 1
+    return existing.loop_iteration if existing else 0
+
+
 def _record_node_trace(execution, node_id, to_state):
     """创建或更新 NodeExecutionTrace 记录"""
     from opsflow.models import NodeExecutionTrace
 
     retry_count = _get_current_retry_count(execution, node_id)
+    loop_it = _resolve_loop_iteration(execution, node_id, retry_count)
     now_iso = timezone.now().isoformat()
 
     # 从 template_snapshot 中读取 node_type / atom_type
@@ -38,6 +60,7 @@ def _record_node_trace(execution, node_id, to_state):
         execution=execution,
         node_id=node_id,
         retry_count=retry_count,
+        loop_iteration=loop_it,
         defaults={
             "status": _map_bamboo_state(to_state),
             "status_history": [{"state": _map_bamboo_state(to_state), "at": now_iso}],

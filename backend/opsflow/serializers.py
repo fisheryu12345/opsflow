@@ -133,6 +133,7 @@ class FlowExecutionDetailSerializer(FlowExecutionSerializer):
         """Return trace summary with outputs/inputs"""
         traces = NodeExecutionTrace.objects.filter(execution=obj).values(
             'node_id', 'node_label', 'node_type', 'status', 'retry_count',
+            'loop_iteration',
             'duration_ms', 'entered_at', 'exited_at', 'error',
             'outputs', 'inputs',
         ).order_by('entered_at')

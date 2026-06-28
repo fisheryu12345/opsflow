@@ -200,6 +200,12 @@ class NodeExecutionTrace(models.Model):
 
     retry_count = models.IntegerField(default=0, verbose_name="Retry Count")
     max_retries = models.IntegerField(default=0, verbose_name="Max Retries")
+    loop_iteration = models.IntegerField(
+        default=0, verbose_name="Loop Iteration",
+        help_text="Iteration index for loop/cycle scenarios. "
+                  "0 = first execution, 1 = second, etc. "
+                  "循环/回环场景的迭代序号 / 0=首次执行"
+    )
 
     log_file_path = models.CharField(max_length=500, blank=True, verbose_name="Log File Path")
 
@@ -208,10 +214,11 @@ class NodeExecutionTrace(models.Model):
 
     class Meta:
         db_table = 'ops_node_trace'
-        unique_together = [('execution', 'node_id', 'retry_count')]
+        unique_together = [('execution', 'node_id', 'retry_count', 'loop_iteration')]
         ordering = ['execution', 'entered_at']
         verbose_name = "Node Execution Trace"
         verbose_name_plural = "Node Execution Traces"
 
     def __str__(self):
-        return f"[{self.execution_id}] {self.node_id} (retry#{self.retry_count})"
+        extra = f" li#{self.loop_iteration}" if self.loop_iteration else ""
+        return f"[{self.execution_id}] {self.node_id} (retry#{self.retry_count}{extra})"
