@@ -4,11 +4,11 @@ DB 依赖的同步函数（sync_template_nodes / sync_execution_nodes）通过
 实际迁移和手工验证确认正确性。
 """
 
-import pytest
+from django.test import TestCase
 from opsflow.core.node_sync import extract_nodes_from_tree
 
 
-class TestExtractNodes:
+class TestExtractNodes(TestCase):
     """extract_nodes_from_tree — 将 pipeline_tree JSON 转换为标准节点列表"""
 
     def test_extract_basic_nodes(self):

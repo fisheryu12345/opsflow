@@ -7,18 +7,19 @@ Run with: DJANGO_SETTINGS_MODULE=application.test_settings pytest opsflow/tests/
 import json
 from unittest.mock import Mock, patch
 
-import pytest
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from opsflow.views.template_views import FlowTemplateViewSet
 
 
-@pytest.fixture
 def factory():
-    return APIRequestFactory()
 
 
-def _make_request(factory, url="/", data=None, method="post"):
+from rest_framework.test import APIRequestFactory
+def _make_request(data):
+    factory = APIRequestFactory()
+    request = factory.post('/fake/', data, format='json')
+    return request
     """Build a JSON request with force-authenticated user."""
     from dvadmin.system.models import Users
 
@@ -34,20 +35,19 @@ def _make_request(factory, url="/", data=None, method="post"):
     else:
         request = factory.get(url)
     force_authenticate(request, user=user)
-    return request
 
 
-class TestAiLayoutEndpoint:
+class TestAiLayoutEndpoint(TestCase):
     """Tests for FlowTemplateViewSet.ai_layout method."""
 
-    def test_requires_nodes(self, factory):
+    def test_requires_nodes(self):
         request = _make_request(factory, data={"nodes": [], "edges": []})
         view = FlowTemplateViewSet.as_view({"post": "ai_layout"})
         response = view(request)
         assert response.status_code == 400
         assert response.data["code"] == 4000
 
-    def test_simple_serial(self, factory):
+    def test_simple_serial(self):
         data = {
             "nodes": [
                 {"id": "n1", "node_type": "start_event"},
@@ -73,7 +73,7 @@ class TestAiLayoutEndpoint:
             assert p["x"] >= 0
             assert p["y"] >= 0
 
-    def test_branching_graph(self, factory):
+    def test_branching_graph(self):
         data = {
             "nodes": [
                 {"id": "s", "node_type": "start_event"},
@@ -99,5 +99,4 @@ class TestAiLayoutEndpoint:
         positions = response.data["data"]["positions"]
         assert len(positions) == 6
         input_ids = {n["id"] for n in data["nodes"]}
-        returned_ids = {p["id"] for p in positions}
         assert input_ids == returned_ids

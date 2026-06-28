@@ -1,6 +1,6 @@
 """状态机测试 — NodeState / PipelineState 转移矩阵"""
+from django.test import TestCase
 
-import pytest
 from opsflow.core.states import (
     NodeState,
     PipelineState,
@@ -10,7 +10,7 @@ from opsflow.core.states import (
 )
 
 
-class TestNodeState:
+class TestNodeState(TestCase):
     """节点状态转移矩阵验证"""
 
     @pytest.mark.parametrize("current,target", [
@@ -25,7 +25,7 @@ class TestNodeState:
         (NodeState.FAILED, NodeState.RUNNING),  # 重试
         (NodeState.BLOCKED, NodeState.RUNNING),
     ])
-    def test_valid_transitions(self, current, target):
+    def test_valid_transitions(self, **kwargs):
         assert validate_node_transition(current, target) is True
 
     @pytest.mark.parametrize("current,target", [
@@ -37,7 +37,7 @@ class TestNodeState:
         (NodeState.FAILED, NodeState.SKIPPED),     # failed 只能 retry
         (NodeState.FAILED, NodeState.FINISHED),
     ])
-    def test_invalid_transitions(self, current, target):
+    def test_invalid_transitions(self, **kwargs):
         assert validate_node_transition(current, target) is False
 
     def test_finished_is_terminal(self):
@@ -50,13 +50,13 @@ class TestNodeState:
         assert validate_node_transition(NodeState.SKIPPED, NodeState.SKIPPED) is False
 
     @pytest.mark.parametrize("count", [1, 5])
-    def test_retry_count_does_not_affect_transition(self, count):
+    def test_retry_count_does_not_affect_transition(self, **kwargs):
         """重试次数不影响转移合法性"""
         for _ in range(count):
             assert validate_node_transition(NodeState.PENDING, NodeState.RUNNING) is True
 
 
-class TestPipelineState:
+class TestPipelineState(TestCase):
     """Pipeline 级状态转移矩阵验证"""
 
     @pytest.mark.parametrize("current,target", [
@@ -70,7 +70,7 @@ class TestPipelineState:
         (PipelineState.PAUSED, PipelineState.CANCELLED),
         (PipelineState.FAILED, PipelineState.RUNNING),  # 重试整个 pipeline
     ])
-    def test_valid_transitions(self, current, target):
+    def test_valid_transitions(self, **kwargs):
         assert validate_pipeline_transition(current, target) is True
 
     @pytest.mark.parametrize("current,target", [
@@ -81,7 +81,7 @@ class TestPipelineState:
         (PipelineState.PAUSED, PipelineState.FAILED),
         (PipelineState.FAILED, PipelineState.COMPLETED),  # failed 只能重试
     ])
-    def test_invalid_transitions(self, current, target):
+    def test_invalid_transitions(self, **kwargs):
         assert validate_pipeline_transition(current, target) is False
 
     def test_completed_is_terminal(self):
@@ -91,7 +91,7 @@ class TestPipelineState:
         assert validate_pipeline_transition(PipelineState.CANCELLED, PipelineState.CANCELLED) is False
 
 
-class TestMapBambooNodeState:
+class TestMapBambooNodeState(TestCase):
     """bamboo-engine 状态 → NodeState 映射"""
 
     def test_maps_ready_to_pending(self):

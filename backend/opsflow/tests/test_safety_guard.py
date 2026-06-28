@@ -1,6 +1,6 @@
 """Pipeline 安全校验测试 — validate_pipeline 各种场景"""
+from django.test import TestCase
 
-import pytest
 from unittest.mock import patch
 
 # Mock 注册表 — 提供测试用的原子
@@ -12,7 +12,7 @@ MOCK_REGISTRY = {
 
 
 @patch("opsflow.core.safety_guard.PLUGIN_REGISTRY", MOCK_REGISTRY)
-class TestValidatePipeline:
+class TestValidatePipeline(TestCase):
     """validate_pipeline 核心逻辑"""
 
     def test_valid_pipeline(self):
@@ -97,7 +97,7 @@ class TestValidatePipeline:
         assert result.get("valid")  # 只有 warning, 不是 error
 
     @patch("opsflow.core.safety_guard.HIGH_RISK_ATOMS")
-    def test_high_risk_with_rollback(self, mock_high_risk):
+    def test_high_risk_with_rollback(self, **kwargs):
         """高危节点有回滚路径 → no warning"""
         mock_high_risk.return_value = {"destroy_vm"}
         result = self._validate({

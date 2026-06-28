@@ -1,15 +1,14 @@
 """FlowEngine 测试 — 状态管理 + run/retry/skip/rollback"""
 
-import pytest
+from django.test import TestCase
 from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 
-from django.test import TestCase
 
 from opsflow.core.flow_engine import FlowEngine
 
 
-class TestFlowEngineStateManagement:
+class TestFlowEngineStateManagement(TestCase):
     """FlowEngine 状态管理 — 不需要 bamboo 依赖"""
 
     def _make_execution(self, status="pending"):
@@ -68,7 +67,7 @@ class TestFlowEngineStateManagement:
             exec_mock.save.assert_called()
 
     @patch("opsflow.core.flow_engine.pipeline_api")
-    def test_resume_sets_running(self, mock_api):
+    def test_resume_sets_running(self, **kwargs):
         exec_mock = self._make_execution(status="paused")
         exec_mock.context = {"bamboo_pipeline_id": "bp_001"}
         engine = FlowEngine(exec_mock)
@@ -77,7 +76,7 @@ class TestFlowEngineStateManagement:
         assert exec_mock.status == "running"
 
     @patch("opsflow.core.flow_engine.pipeline_api")
-    def test_resume_failure_does_not_change_status(self, mock_api):
+    def test_resume_failure_does_not_change_status(self, **kwargs):
         exec_mock = self._make_execution(status="paused")
         exec_mock.context = {"bamboo_pipeline_id": "bp_001"}
         engine = FlowEngine(exec_mock)
@@ -87,7 +86,7 @@ class TestFlowEngineStateManagement:
         assert exec_mock.status == "paused"
 
     @patch("opsflow.core.flow_engine.pipeline_api")
-    def test_cancel_sets_cancelled_status(self, mock_api):
+    def test_cancel_sets_cancelled_status(self, **kwargs):
         exec_mock = self._make_execution(status="running")
         exec_mock.context = {"bamboo_pipeline_id": "bp_001"}
         engine = FlowEngine(exec_mock)
@@ -97,7 +96,7 @@ class TestFlowEngineStateManagement:
         assert exec_mock.ended_at is not None
 
     @patch("opsflow.core.flow_engine.pipeline_api")
-    def test_cancel_without_bamboo_id(self, mock_api):
+    def test_cancel_without_bamboo_id(self, **kwargs):
         exec_mock = self._make_execution(status="running")
         exec_mock.context = {}  # no bamboo_pipeline_id
         engine = FlowEngine(exec_mock)
@@ -106,7 +105,7 @@ class TestFlowEngineStateManagement:
         mock_api.revoke_pipeline.assert_not_called()
 
     @patch("opsflow.core.flow_engine.pipeline_api")
-    def test_retry_updates_node_status(self, mock_api):
+    def test_retry_updates_node_status(self, **kwargs):
         exec_mock = self._make_execution(status="running")
         exec_mock.node_status = {"n1": "failed"}
         engine = FlowEngine(exec_mock)
@@ -116,7 +115,7 @@ class TestFlowEngineStateManagement:
         assert exec_mock.status == "running"
 
     @patch("opsflow.core.flow_engine.pipeline_api")
-    def test_skip_updates_node_status(self, mock_api):
+    def test_skip_updates_node_status(self, **kwargs):
         exec_mock = self._make_execution(status="running")
         exec_mock.node_status = {"n1": "failed"}
         engine = FlowEngine(exec_mock)
@@ -125,7 +124,7 @@ class TestFlowEngineStateManagement:
         assert exec_mock.node_status["n1"] == "skipped"
 
     @patch("opsflow.core.flow_engine.pipeline_api")
-    def test_force_fail_sets_failed_status(self, mock_api):
+    def test_force_fail_sets_failed_status(self, **kwargs):
         exec_mock = self._make_execution(status="running")
         exec_mock.node_status = {"n1": "running"}
         engine = FlowEngine(exec_mock)
@@ -134,7 +133,7 @@ class TestFlowEngineStateManagement:
         assert exec_mock.node_status["n1"] == "failed"
 
     @patch("opsflow.core.flow_engine.pipeline_api")
-    def test_pause_no_bamboo_id_still_saves_status(self, mock_api):
+    def test_pause_no_bamboo_id_still_saves_status(self, **kwargs):
         exec_mock = self._make_execution(status="running")
         exec_mock.context = {}
         engine = FlowEngine(exec_mock)
@@ -142,7 +141,7 @@ class TestFlowEngineStateManagement:
         assert exec_mock.status == "paused"
 
 
-class TestFlowEngineRun:
+class TestFlowEngineRun(TestCase):
     """FlowEngine.run() — pipline 构建+执行"""
 
     def _make_execution(self, frozen_tree=None):
@@ -164,7 +163,7 @@ class TestFlowEngineRun:
     @patch("opsflow.core.flow_engine.validate_pipeline")
     @patch("opsflow.core.flow_engine.build_bamboo_pipeline")
     @patch("opsflow.core.flow_engine.pipeline_api")
-    def test_run_success_path(self, mock_api, mock_build, mock_validate):
+    def test_run_success_path(self, **kwargs):
         mock_validate.return_value = {"valid": True, "errors": [], "warnings": []}
         mock_build.return_value = (
             {"id": "bp_001", "activities": {"act1": {"type": "ServiceActivity"}}},
@@ -182,7 +181,7 @@ class TestFlowEngineRun:
         assert exec_mock.context["bamboo_pipeline_id"] == "bp_001"
 
     @patch("opsflow.core.flow_engine.validate_pipeline")
-    def test_run_validation_failure(self, mock_validate):
+    def test_run_validation_failure(self, **kwargs):
         mock_validate.return_value = {"valid": False, "errors": ["bad pipeline"],
                                        "warnings": []}
 
@@ -196,7 +195,7 @@ class TestFlowEngineRun:
     @patch("opsflow.core.flow_engine.validate_pipeline")
     @patch("opsflow.core.flow_engine.build_bamboo_pipeline")
     @patch("opsflow.core.flow_engine.pipeline_api")
-    def test_run_api_failure(self, mock_api, mock_build, mock_validate):
+    def test_run_api_failure(self, **kwargs):
         mock_validate.return_value = {"valid": True, "errors": [], "warnings": []}
         mock_build.return_value = (
             {"id": "bp_001", "activities": {"act1": {"type": "ServiceActivity"}}},
@@ -213,7 +212,7 @@ class TestFlowEngineRun:
     @patch("opsflow.core.flow_engine.validate_pipeline")
     @patch("opsflow.core.flow_engine.build_bamboo_pipeline")
     @patch("opsflow.core.flow_engine.pipeline_api")
-    def test_run_exception_handling(self, mock_api, mock_build, mock_validate):
+    def test_run_exception_handling(self, **kwargs):
         mock_validate.side_effect = Exception("unexpected error")
 
         exec_mock = self._make_execution()
@@ -233,7 +232,7 @@ class TestFlowEngineRun:
             engine.run()  # 不应抛出异常
 
 
-class TestFlowEngineRollback:
+class TestFlowEngineRollback(TestCase):
     """rollback_failed_nodes 回滚逻辑"""
 
     def test_rollback_no_failed_nodes(self):
@@ -266,7 +265,7 @@ class TestFlowEngineRollback:
             engine.rollback_failed_nodes()
 
 
-class TestFlowEngineWSNotification:
+class TestFlowEngineWSNotification(TestCase):
     """WebSocket 通知（best-effort）"""
 
     def test_notify_completed_no_channel_layer(self):

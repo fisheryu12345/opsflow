@@ -1,13 +1,13 @@
 """变量注册表测试 — RegisterVariableMeta 自动注册 + VariableLibrary 检索"""
 
-import pytest
+from django.test import TestCase
 
 # 导入变量类型包触发注册
 from opsflow.core import variable_types  # noqa: F401
 from opsflow.core.variable_registry import VARIABLE_REGISTRY, VariableLibrary, SpliceVariable, LazyVariable
 
 
-class TestVariableRegistry:
+class TestVariableRegistry(TestCase):
     """RegisterVariableMeta 自动注册"""
 
     def test_registry_contains_common_types(self):
@@ -30,7 +30,7 @@ class TestVariableRegistry:
             assert klass.type in ("general", "meta", "dynamic"), f"{code} type 无效"
 
 
-class TestVariableLibrary:
+class TestVariableLibrary(TestCase):
     """VariableLibrary 检索和解析"""
 
     def test_get_var_class_returns_class(self):
@@ -67,7 +67,7 @@ class TestVariableLibrary:
         assert klass.code == "select"
 
 
-class TestLazyVariable:
+class TestLazyVariable(TestCase):
     """LazyVariable get_value() 自定义转换"""
 
     def test_password_passthrough(self):
