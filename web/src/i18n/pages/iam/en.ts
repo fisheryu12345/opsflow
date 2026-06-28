@@ -2,7 +2,12 @@
 export default {
     iam: {
         title: 'IAM Management',
-        heroSubtitle: 'Permission requests, approval workflow, tenant & environment management',
+        heroSubtitle: 'Unified identity, permission, tenant & environment management',
+        users: 'Users',
+        roles: 'Roles',
+        menus: 'Menus',
+        depts: 'Departments',
+        operationLog: 'Audit Log',
         business: 'Businesses',
         businessGroup: 'Business Groups',
         environment: 'Deploy Environments',

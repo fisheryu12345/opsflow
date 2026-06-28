@@ -2,7 +2,12 @@
 export default {
     iam: {
         title: 'IAM 权限管理',
-        heroSubtitle: '权限申请、审批流程、租户与环境管理',
+        heroSubtitle: '统一身份、权限、租户与环境管理',
+        users: '用户管理',
+        roles: '角色管理',
+        menus: '菜单管理',
+        depts: '部门管理',
+        operationLog: '操作日志',
         business: '业务线管理',
         businessGroup: '业务群组',
         environment: '部署环境管理',

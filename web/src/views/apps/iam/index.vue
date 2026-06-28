@@ -29,6 +29,31 @@
             <EnvironmentManage />
           </div>
         </el-tab-pane>
+        <el-tab-pane v-if="isSuperuser" name="users" :label="$t('message.iam.users')">
+          <div class="iam-tab-content">
+            <UserManage />
+          </div>
+        </el-tab-pane>
+        <el-tab-pane v-if="isSuperuser" name="roles" :label="$t('message.iam.roles')">
+          <div class="iam-tab-content">
+            <RoleManage />
+          </div>
+        </el-tab-pane>
+        <el-tab-pane v-if="isSuperuser" name="menus" :label="$t('message.iam.menus')">
+          <div class="iam-tab-content">
+            <MenuManage />
+          </div>
+        </el-tab-pane>
+        <el-tab-pane v-if="isSuperuser" name="depts" :label="$t('message.iam.depts')">
+          <div class="iam-tab-content">
+            <DeptManage />
+          </div>
+        </el-tab-pane>
+        <el-tab-pane v-if="isSuperuser" name="operationLog" :label="$t('message.iam.operationLog')">
+          <div class="iam-tab-content">
+            <OperationLogManage />
+          </div>
+        </el-tab-pane>
       </el-tabs>
     </div>
   </div>
@@ -41,6 +66,11 @@ import MyRequests from './MyRequests/index.vue'
 import ApprovalDashboard from './ApprovalDashboard/index.vue'
 import BusinessManage from './BusinessManage.vue'
 import EnvironmentManage from './EnvironmentManage.vue'
+import UserManage from '/@/views/system/user/index.vue'
+import RoleManage from '/@/views/system/role/index.vue'
+import MenuManage from '/@/views/system/menu/index.vue'
+import DeptManage from '/@/views/system/dept/index.vue'
+import OperationLogManage from '/@/views/system/log/operationLog/index.vue'
 
 const activeTab = ref('requests')
 const userInfo = useUserInfo()

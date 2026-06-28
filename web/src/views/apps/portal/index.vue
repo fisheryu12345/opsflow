@@ -6,31 +6,31 @@
       <div class="portal-hero-inner">
         <div class="portal-hero-left">
           <h1 class="portal-hero-title">
-            运维工作台
+            {{ $t('message.portal.title') }}
             <span class="portal-hero-user" v-if="userInfo?.name">— {{ userInfo.name }}</span>
           </h1>
-          <p class="portal-hero-subtitle">Welcome back — 这里聚合了你的待办、系统概览和快捷操作</p>
+          <p class="portal-hero-subtitle">{{ $t('message.portal.subtitle') }}</p>
         </div>
         <div class="portal-hero-spacer" />
         <div class="portal-hero-stats">
           <div class="portal-stat-item">
             <span class="portal-stat-value" :class="{ 'text-danger': stats.alerts?.firing > 0 }">{{ stats.alerts?.firing ?? '--' }}</span>
-            <span class="portal-stat-label">告警中</span>
+            <span class="portal-stat-label">{{ $t('message.portal.alertsFiring') }}</span>
           </div>
           <div class="portal-stat-divider" />
           <div class="portal-stat-item">
             <span class="portal-stat-value">{{ stats.itsm_ticket_stats?.running ?? stats.incidents?.open ?? '--' }}</span>
-            <span class="portal-stat-label">进行中工单</span>
+            <span class="portal-stat-label">{{ $t('message.portal.activeTickets') }}</span>
           </div>
           <div class="portal-stat-divider" />
           <div class="portal-stat-item">
             <span class="portal-stat-value">{{ stats.execution_stats?.running ?? '--' }}</span>
-            <span class="portal-stat-label">执行中作业</span>
+            <span class="portal-stat-label">{{ $t('message.portal.runningJobs') }}</span>
           </div>
           <div class="portal-stat-divider" />
           <div class="portal-stat-item">
             <span class="portal-stat-value" :class="{ 'text-danger': stats.incident_stats?.overdue > 0 }">{{ stats.incident_stats?.overdue ?? '--' }}</span>
-            <span class="portal-stat-label">SLA 违例</span>
+            <span class="portal-stat-label">{{ $t('message.portal.slaViolation') }}</span>
           </div>
         </div>
       </div>
@@ -58,38 +58,38 @@
           <div class="portal-card-header">
             <div class="portal-card-header-left">
               <el-icon size="15" color="#409EFF"><List /></el-icon>
-              <span class="portal-card-title">我的待办</span>
+              <span class="portal-card-title">{{ $t('message.portal.myTasks') }}</span>
               <el-tag v-if="tasks.length > 0" size="small" type="primary" effect="plain" class="portal-card-count">{{ tasks.length }}</el-tag>
             </div>
             <el-button text size="small" @click="$router.push('/apps/itsm')">
-              查看全部 <el-icon><ArrowRight /></el-icon>
+              {{ $t('message.portal.viewAll') }} <el-icon><ArrowRight /></el-icon>
             </el-button>
           </div>
           <el-table :data="tasks" v-loading="loadingTasks" stripe style="width:100%" size="small"
-            :empty-text="loadingTasks ? '加载中...' : '暂无待办事项'"
+            :empty-text="loadingTasks ? $t('message.portal.loading') : $t('message.portal.noTasks')"
             @row-click="(row: any) => handleTaskClick(row)">
-            <el-table-column label="类型" width="90">
+            <el-table-column :label="$t('message.portal.type')" width="90">
               <template #default="{ row }">
                 <span class="portal-type-badge" :class="'portal-type-' + (row.type || 'incident')">
-                  {{ row.type === 'incident' ? '工单' : row.type === 'approval' ? '审批' : row.type === 'execution_approval' ? '流程' : '变更' }}
+                  {{ $t('message.portal.types.' + (row.type === 'incident' ? 'incident' : row.type === 'approval' ? 'approval' : row.type === 'execution_approval' ? 'executionApproval' : 'change')) }}
                 </span>
               </template>
             </el-table-column>
-            <el-table-column prop="id" label="编号" width="110" />
-            <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="priority" label="优先级" width="80">
+            <el-table-column prop="id" :label="$t('message.portal.ticketId')" width="110" />
+            <el-table-column prop="title" :label="$t('message.portal.titleLabel')" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="priority" :label="$t('message.portal.priority')" width="80">
               <template #default="{ row }">
                 <span class="portal-prio-badge" :class="'portal-prio-' + (row.priority || '').toLowerCase()" v-if="row.priority">{{ row.priority }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="status" label="状态" width="100">
+            <el-table-column prop="status" :label="$t('message.portal.status')" width="100">
               <template #default="{ row }">
                 <span class="portal-status-badge" :class="'portal-status-' + row.status">
                   <span class="portal-status-dot" />{{ row.status }}
                 </span>
               </template>
             </el-table-column>
-            <el-table-column prop="created_at" label="创建时间" width="160" />
+            <el-table-column prop="created_at" :label="$t('message.portal.createdAt')" width="160" />
           </el-table>
         </div>
 
@@ -98,12 +98,12 @@
           <div class="portal-card-header">
             <div class="portal-card-header-left">
               <el-icon size="15" color="#E6A23C"><Timer /></el-icon>
-              <span class="portal-card-title">近期活动</span>
+              <span class="portal-card-title">{{ $t('message.portal.recentActivity') }}</span>
             </div>
-            <el-button text size="small" :icon="Refresh" @click="loadRecentActivity">{{ $t("message.common.refresh") || '刷新' }}</el-button>
+            <el-button text size="small" :icon="Refresh" @click="loadRecentActivity">{{ $t("message.common.refresh") || '' }}</el-button>
           </div>
           <div class="portal-activity-list" v-loading="loadingActivity">
-            <div v-if="activities.length === 0 && !loadingActivity" class="portal-empty">暂无活动记录</div>
+            <div v-if="activities.length === 0 && !loadingActivity" class="portal-empty">{{ $t('message.portal.noActivity') }}</div>
             <div v-for="(act, ai) in activities" :key="act.type + '-' + act.id"
               class="portal-activity-item g-stagger-item"
               :style="{ animationDelay: `${ai * 0.06}s` }"
@@ -134,17 +134,17 @@
         <div class="portal-card-header">
           <div class="portal-card-header-left">
             <el-icon size="15" color="#E6A23C"><StarFilled /></el-icon>
-            <span class="portal-card-title">收藏与最近</span>
+            <span class="portal-card-title">{{ $t('message.portal.favorites') }}</span>
           </div>
           <el-button text size="small" @click="$router.push('/apps/opsflow')">
-            管理模板 <el-icon><ArrowRight /></el-icon>
+            {{ $t('message.portal.manageTemplates') }} <el-icon><ArrowRight /></el-icon>
           </el-button>
         </div>
         <div class="portal-favorites-body">
           <div class="portal-fav-section" v-if="favorites.templates?.length > 0">
             <div class="portal-fav-label">
               <el-icon size="12"><StarFilled /></el-icon>
-              收藏的流程模板
+              {{ $t('message.portal.favTemplates') }}
             </div>
             <div class="portal-fav-items">
               <div v-for="(tpl, ti) in favorites.templates" :key="'tpl-' + tpl.id"
@@ -160,14 +160,14 @@
           <div class="portal-fav-section" v-if="favorites.recent_actions?.length > 0">
             <div class="portal-fav-label">
               <el-icon size="12"><Clock /></el-icon>
-              最近操作
+              {{ $t('message.portal.recentActions') }}
             </div>
             <div class="portal-fav-items">
               <div v-for="(act, ai) in favorites.recent_actions" :key="'act-' + act.id"
                 class="portal-fav-item g-stagger-item"
                 :style="{ animationDelay: `${ai * 0.06}s` }">
                 <el-icon><Clock /></el-icon>
-                <span class="portal-fav-name">{{ act.action || '操作' }}</span>
+                <span class="portal-fav-name">{{ act.action || '' }}</span>
                 <span class="portal-fav-time">{{ formatTime(act.created_at) }}</span>
               </div>
             </div>
@@ -182,7 +182,7 @@
           <div class="portal-card-header">
             <div class="portal-card-header-left">
               <el-icon size="15" color="#67C23A"><Monitor /></el-icon>
-              <span class="portal-card-title">系统概览</span>
+              <span class="portal-card-title">{{ $t('message.portal.systemOverview') }}</span>
             </div>
           </div>
           <div class="portal-health-body">
@@ -201,27 +201,27 @@
           <div class="portal-card-header">
             <div class="portal-card-header-left">
               <el-icon size="15" color="#409EFF"><Lightning /></el-icon>
-              <span class="portal-card-title">快捷操作</span>
+              <span class="portal-card-title">{{ $t('message.portal.quickActions') }}</span>
             </div>
           </div>
           <div class="portal-actions-body">
             <el-button type="primary" size="default" class="portal-action-btn" @click="$router.push('/apps/itsm')">
-              <el-icon><Plus /></el-icon> 创建工单
+              <el-icon><Plus /></el-icon> {{ $t('message.portal.createTicket') }}
             </el-button>
             <el-button size="default" class="portal-action-btn" @click="$router.push('/apps/opsflow')">
-              <el-icon><CaretRight /></el-icon> 执行流程
+              <el-icon><CaretRight /></el-icon> {{ $t('message.portal.executePipeline') }}
             </el-button>
             <el-button size="default" class="portal-action-btn" @click="$router.push('/apps/cmdb')">
-              <el-icon><Monitor /></el-icon> 查看 CMDB
+              <el-icon><Monitor /></el-icon> {{ $t('message.portal.viewCmdb') }}
             </el-button>
             <el-button size="default" class="portal-action-btn" @click="$router.push('/apps/monitor')">
-              <el-icon><WarningFilled /></el-icon> 告警中心
+              <el-icon><WarningFilled /></el-icon> {{ $t('message.portal.alertCenter') }}
             </el-button>
             <el-button size="default" class="portal-action-btn" @click="$router.push('/apps/job-platform')">
-              <el-icon><Tools /></el-icon> 作业平台
+              <el-icon><Tools /></el-icon> {{ $t('message.portal.jobPlatform') }}
             </el-button>
             <el-button size="default" class="portal-action-btn" @click="$router.push('/open-api')">
-              <el-icon><Connection /></el-icon> API 管理
+              <el-icon><Connection /></el-icon> {{ $t('message.portal.apiManagement') }}
             </el-button>
           </div>
         </div>
@@ -232,6 +232,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { i18n } from '/@/i18n/index'
 import { GetDashboard, GetMyTasks, GetRecentActivity, GetFavorites } from '/@/api/portal/index'
 import {
   WarningFilled, List, Monitor, Clock, Plus, CaretRight,
@@ -253,13 +254,14 @@ const moduleCounts = ref<Record<string, number>>({})
 const userInfo = ref<any>(null)
 
 // Quick stats card definitions / 快捷统计卡片定义
+const t = (k: string) => i18n.global.t(k)
 const quickStats = computed(() => [
-  { key: 'alerts', value: stats.value.alerts?.firing ?? '--', label: '进行中告警', icon: WarningFilled, color: '#F56C6C', bg: '#fef0f0', danger: (stats.value.alerts?.firing ?? 0) > 0 },
-  { key: 'tickets', value: stats.value.itsm_ticket_stats?.running ?? stats.value.incidents?.open ?? '--', label: '开放工单', icon: List, color: '#E6A23C', bg: '#fdf6ec' },
-  { key: 'exec', value: stats.value.execution_stats?.running ?? '--', label: '执行中作业', icon: Monitor, color: '#67C23A', bg: '#f0f9eb' },
-  { key: 'sla', value: stats.value.incident_stats?.overdue ?? '--', label: 'SLA 违例', icon: Timer, color: '#409EFF', bg: '#ecf5ff', danger: (stats.value.incident_stats?.overdue ?? 0) > 0 },
-  { key: 'tpl', value: stats.value.opsflow_template_stats?.published ?? '--', label: '已发布模板', icon: Folder, color: '#909399', bg: '#f5f7fa' },
-  { key: 'fail', value: stats.value.execution_stats?.failed_today ?? '--', label: '今日失败', icon: Warning, color: '#F56C6C', bg: '#fef0f0', danger: (stats.value.execution_stats?.failed_today ?? 0) > 0 },
+  { key: 'alerts', value: stats.value.alerts?.firing ?? '--', label: t('message.portal.alertsFiring'), icon: WarningFilled, color: '#F56C6C', bg: '#fef0f0', danger: (stats.value.alerts?.firing ?? 0) > 0 },
+  { key: 'tickets', value: stats.value.itsm_ticket_stats?.running ?? stats.value.incidents?.open ?? '--', label: t('message.portal.activeTickets'), icon: List, color: '#E6A23C', bg: '#fdf6ec' },
+  { key: 'exec', value: stats.value.execution_stats?.running ?? '--', label: t('message.portal.runningJobs'), icon: Monitor, color: '#67C23A', bg: '#f0f9eb' },
+  { key: 'sla', value: stats.value.incident_stats?.overdue ?? '--', label: t('message.portal.slaViolation'), icon: Timer, color: '#409EFF', bg: '#ecf5ff', danger: (stats.value.incident_stats?.overdue ?? 0) > 0 },
+  { key: 'tpl', value: stats.value.opsflow_template_stats?.published ?? '--', label: t('message.portal.publishedTemplates'), icon: Folder, color: '#909399', bg: '#f5f7fa' },
+  { key: 'fail', value: stats.value.execution_stats?.failed_today ?? '--', label: t('message.portal.failedToday'), icon: Warning, color: '#F56C6C', bg: '#fef0f0', danger: (stats.value.execution_stats?.failed_today ?? 0) > 0 },
 ])
 
 function formatTime(val: string | null | undefined): string {
@@ -274,15 +276,8 @@ function formatTime(val: string | null | undefined): string {
 }
 
 function formatModuleName(key: string): string {
-  const map: Record<string, string> = {
-    itsm_tickets: 'ITSM 工单',
-    opsflow_templates: 'OpsFlow 模板',
-    opsflow_executions: 'OpsFlow 执行',
-    cmdb_hosts: 'CMDB 主机',
-    incidents: '事件工单',
-    alerts: '告警',
-  }
-  return map[key] || key
+  const t = (k: string) => i18n.global.t(k)
+  return t(`message.portal.moduleNames.${key}`) || key
 }
 
 function formatModuleIcon(key: string): string {
@@ -347,7 +342,7 @@ onMounted(async () => {
 
   const key = 'opsflow_tour_portal'
   if (!localStorage.getItem(key)) {
-    ElMessage.info({ message: '运维工作台 — 一站式总览告警、工单、作业状态，快速跳转各子系统', duration: 6000 })
+    ElMessage.info({ message: t('message.portal.tourMessage'), duration: 1500 })
     localStorage.setItem(key, 'true')
   }
 })

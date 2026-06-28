@@ -2,6 +2,40 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 28122657
+
+> 提交日期: 2026-06-28 | 提交信息: feat: unify IAM as identity management center + portal i18n
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/views/apps/iam/index.vue` | 前端 | 新增 5 个 dvadmin 系统管理 tab（Users/Roles/Menus/Depts/OperationLog） |
+| `web/i18n/pages/iam/en.ts` | 前端 | 新增 users/roles/menus/depts/operationLog 标签 |
+| `web/i18n/pages/iam/zh-cn.ts` | 前端 | 同上中文翻译 |
+| `web/views/apps/portal/index.vue` | 前端 | 28+ 处硬编码替换为 message.portal.* i18n |
+| `web/i18n/pages/portal/en.ts` | 前端 | 新建 30+ key 英文翻译 |
+| `web/i18n/pages/portal/zh-cn.ts` | 前端 | 新建 30+ key 中文翻译 |
+
+### 解决
+
+- **问题/背景：** dvadmin 和 IAM 各管一方，IAM 缺少用户/角色/菜单管理入口；Portal 全部硬编码中文无法国际化
+- **办法：** Phase 1 前端入口统一：IAM 直接嵌入 dvadmin 组件无需后端改动；Portal 全量 i18n 替换
+
+### 文档
+
+- **生成文档：** 无（纯前端改动）
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 干净 ✅
+- 测试: opsflow.tests 18/18 OK ✅
+
+---
+
 ## 5124f0b0
 
 > 提交日期: 2026-06-28 | 提交信息: feat: add loop_iteration to NodeExecutionTrace for loop/cycle iteration tracking
