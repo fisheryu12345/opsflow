@@ -82,9 +82,20 @@ class FlowTemplateViewSet(
         self.perform_create(serializer)
         return DetailResponse(data=serializer.data, msg='success')
 
+    def _check_edit_lock(self, instance, user):
+        """Check if template is locked by another user"""
+        from opsflow.models import TemplateLock
+        lock = TemplateLock.objects.filter(template=instance).first()
+        if lock and lock.user != user and not lock.is_expired():
+            raise exceptions.PermissionDenied(
+                f'Template is locked by {lock.user.username}. '
+                f'If you believe this is an error, wait 60 seconds for the lock to expire.'
+            )
+
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
+        self._check_edit_lock(instance, request.user)
         # non-superuser cannot edit public templates
         if instance.is_public and not request.user.is_superuser:
             return ErrorResponse(msg='Only superusers can edit public templates', code=4000, status=status.HTTP_403_FORBIDDEN)
@@ -171,6 +182,79 @@ class FlowTemplateViewSet(
 
         serializer = self.get_serializer(template)
         return DetailResponse(data=serializer.data, msg='Template is now public')
+
+    # ── Optimistic lock actions ──
+
+    @action(detail=True, methods=['post'])
+    def acquire_lock(self, request, pk=None):
+        """Acquire template editing lock"""
+        from opsflow.models import TemplateLock
+        from django.utils import timezone
+
+        template = self.get_object()
+        lock, created = TemplateLock.objects.get_or_create(
+            template=template,
+            defaults={'user': request.user},
+        )
+
+        if created:
+            return DetailResponse(data={
+                'template_id': template.id,
+                'locked_by': {'id': request.user.id, 'username': str(request.user)},
+            }, msg='Lock acquired')
+
+        # Same user: refresh heartbeat
+        if lock.user == request.user:
+            lock.heartbeat = timezone.now()
+            lock.save(update_fields=['heartbeat'])
+            return DetailResponse(data={
+                'template_id': template.id,
+                'locked_by': {'id': request.user.id, 'username': str(request.user)},
+            }, msg='Lock refreshed')
+
+        # Expired lock: reassign
+        if lock.is_expired():
+            lock.user = request.user
+            lock.locked_at = timezone.now()
+            lock.heartbeat = timezone.now()
+            lock.save(update_fields=['user', 'locked_at', 'heartbeat'])
+            return DetailResponse(data={
+                'template_id': template.id,
+                'locked_by': {'id': request.user.id, 'username': str(request.user)},
+            }, msg='Expired lock transferred')
+
+        # Conflict
+        return ErrorResponse(
+            msg=f'Template is being edited by {lock.user.username}',
+            code=4000,
+            status=status.HTTP_409_CONFLICT,
+            data={
+                'locked_by': {'id': lock.user.id, 'username': str(lock.user)},
+                'locked_at': lock.locked_at.isoformat() if lock.locked_at else None,
+            },
+        )
+
+    @action(detail=True, methods=['post'])
+    def release_lock(self, request, pk=None):
+        """Release template editing lock (idempotent)"""
+        from opsflow.models import TemplateLock
+        TemplateLock.objects.filter(template_id=pk, user=request.user).delete()
+        return DetailResponse(msg='Lock released')
+
+    @action(detail=True, methods=['post'])
+    def heartbeat_lock(self, request, pk=None):
+        """Heartbeat for template editing lock"""
+        from opsflow.models import TemplateLock
+        from django.utils import timezone
+        lock = TemplateLock.objects.filter(template_id=pk, user=request.user).first()
+        if not lock:
+            return ErrorResponse(msg='No active lock found', code=4000)
+        if lock.is_expired():
+            lock.delete()
+            return ErrorResponse(msg='Lock expired', code=410)
+        lock.heartbeat = timezone.now()
+        lock.save(update_fields=['heartbeat'])
+        return DetailResponse(data={'locked_at': lock.locked_at.isoformat() if lock.locked_at else ''}, msg='Heartbeat updated')
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

@@ -174,7 +174,7 @@ import {
   WarningFilled, Lightning, List, CircleCheck,
 } from '@element-plus/icons-vue'
 import { useOpsflowStore } from './stores/opsflowStore'
-import { GetTemplates, GetTemplateDetail, CreateFromAi, CreateTemplate, GetDiff, AnalyzePipeline, RefinePipeline, AiLayout, UpdateTemplate } from './api/templates'
+import { GetTemplates, GetTemplateDetail, CreateFromAi, CreateTemplate, GetDiff, AnalyzePipeline, RefinePipeline, AiLayout, UpdateTemplate, AcquireLock, ReleaseLock, HeartbeatLock } from './api/templates'
 import DesignCanvas from './components/canvas/DesignCanvas.vue'
 import DiffModal from './components/dialogs/DiffModal.vue'
 import PluginPickerDialog from './components/pickers/PluginPickerDialog.vue'
@@ -215,6 +215,57 @@ const pendingTaskNode = ref<string | null>(null)
 // Dry Run
 const showDryRunDialog = ref(false)
 const dryRunExecId = ref<number | null>(null)
+
+// Template editing lock
+const isLockedByMe = ref(false)
+let heartbeatTimer: number | null = null
+
+function startHeartbeat(tplId: number) {
+  stopHeartbeat()
+  heartbeatTimer = window.setInterval(async () => {
+    try {
+      await HeartbeatLock(tplId)
+    } catch {
+      isLockedByMe.value = false
+      ElMessage.warning(t('message.opsflowPage.lockedExpired'))
+      stopHeartbeat()
+    }
+  }, 30000)
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer !== null) {
+    clearInterval(heartbeatTimer)
+    heartbeatTimer = null
+  }
+}
+
+async function tryAcquireLock(tplId: number): Promise<boolean> {
+  try {
+    await AcquireLock(tplId)
+    isLockedByMe.value = true
+    startHeartbeat(tplId)
+    return true
+  } catch (e: any) {
+    if (e?.response?.status === 409) {
+      const data = e.response.data?.data
+      const username = data?.locked_by?.username || ''
+      await ElMessageBox.alert(
+        `${t('message.opsflowPage.lockedBy')} ${username}${t('message.opsflowPage.lockedRetry')}`,
+        t('message.opsflowPage.lockedTitle'),
+        { type: 'warning', confirmButtonText: t('message.common.confirm') }
+      )
+    } else {
+      ElMessage.warning(t('message.opsflowPage.operateFailed'))
+    }
+    return false
+  }
+}
+
+function releaseLock(tplId: number) {
+  stopHeartbeat()
+  ReleaseLock(tplId).catch(() => {})
+}
 
 function onSubmitExecution(execId: number) {
   // SubmitWizardDialog already shows its own success message
@@ -295,6 +346,16 @@ async function fetchTemplates() {
 async function onSelectTemplate(id: any) {
   selectedTemplateId.value = id
   if (!id) return
+  // Release previous lock before acquiring a new one
+  if (isLockedByMe.value) releaseLock(id)
+
+  // Acquire editing lock; block if another user is editing
+  const locked = await tryAcquireLock(id)
+  if (!locked) {
+    selectedTemplateId.value = null
+    return
+  }
+
   try {
     const res = await GetTemplateDetail(id)
     console.log('[onSelectTemplate] raw response:', res)
@@ -519,6 +580,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('project-changed', onProjectChanged)
+  if (selectedTemplateId.value) {
+    releaseLock(selectedTemplateId.value)
+  }
 })
 </script>
 

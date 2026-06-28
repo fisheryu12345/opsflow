@@ -824,6 +824,11 @@ export default {
         varBrowserConfirmDelete: 'Delete variable "{key}"?',
         varBrowserRefDeleteBlock: 'Variable "{key}" is referenced by {count} node(s).\nCannot delete a referenced variable.',
         varBrowserRefDeleteTitle: 'Cannot Delete',
+        // Template editing lock
+        lockedTitle: 'Template Locked',
+        lockedBy: 'This template is being edited by ',
+        lockedRetry: '. Please try again later.',
+        lockedExpired: 'Editing lock expired — please re-open the template',
     },
     common: {
         confirm: 'Confirm',

@@ -26,6 +26,17 @@ export function ConfirmDraft(id: number) {
   return opsflowRequest({ url: prefix + `templates/${id}/confirm_draft/`, method: 'post' })
 }
 
+// ── Template editing lock ──
+export function AcquireLock(id: number) {
+  return opsflowRequest({ url: prefix + `templates/${id}/acquire_lock/`, method: 'post' })
+}
+export function ReleaseLock(id: number) {
+  return opsflowRequest({ url: prefix + `templates/${id}/release_lock/`, method: 'post' })
+}
+export function HeartbeatLock(id: number) {
+  return opsflowRequest({ url: prefix + `templates/${id}/heartbeat_lock/`, method: 'post' })
+}
+
 export function GetDiff(id: number) {
   return opsflowRequest({ url: prefix + `templates/${id}/diff/`, method: 'get' })
 }

@@ -836,6 +836,11 @@ export default {
         varBrowserConfirmDelete: '确认删除变量 "{key}"？',
         varBrowserRefDeleteBlock: '变量 "{key}" 被 {count} 个节点引用。\n无法删除被引用的变量。',
         varBrowserRefDeleteTitle: '无法删除',
+        // Template editing lock
+        lockedTitle: '模板已被锁定',
+        lockedBy: '该模板正在被 ',
+        lockedRetry: ' 编辑，请稍后再试。',
+        lockedExpired: '编辑锁已过期，请重新打开模板',
     },
     common: {
         confirm: '确定',

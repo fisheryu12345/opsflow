@@ -217,3 +217,42 @@ class TemplatePreset(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class TemplateLock(models.Model):
+    """Template editing lock — acquired when canvas opens, released on save/exit.
+    Heartbeat-based expiry prevents deadlocks from browser crashes."""
+    template = models.ForeignKey(
+        'FlowTemplate', on_delete=models.CASCADE, unique=True,
+        related_name='edit_lock', verbose_name="Template",
+        help_text="Locked template / 被锁定的模板"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        verbose_name="Locked By",
+        help_text="User holding the lock / 持有锁的用户"
+    )
+    locked_at = models.DateTimeField(
+        auto_now_add=True, verbose_name="Locked At",
+        help_text="When the lock was acquired / 锁定时间"
+    )
+    heartbeat = models.DateTimeField(
+        auto_now=True, verbose_name="Heartbeat",
+        help_text="Last heartbeat / 最近心跳时间"
+    )
+
+    class Meta:
+        db_table = 'ops_template_lock'
+        verbose_name = "Template Lock"
+        verbose_name_plural = "Template Locks"
+
+    def is_expired(self, timeout_seconds=60) -> bool:
+        """Lock expires after timeout_seconds without heartbeat"""
+        from django.utils import timezone
+        if not self.heartbeat:
+            return True
+        delta = timezone.now() - self.heartbeat
+        return delta.total_seconds() > timeout_seconds
+
+    def __str__(self):
+        return f"Lock[{self.template_id}] by {self.user} @ {self.locked_at}"
