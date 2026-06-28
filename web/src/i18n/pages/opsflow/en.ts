@@ -781,6 +781,7 @@ export default {
         webhookDeleteFailed: 'Delete failed',
         webhookRequired: 'Name, URL, and Template are required',
         aiAnalysis: 'AI Pipeline Analysis',
+        aiSuggestions: 'Suggestions',
         aiSummary: 'Summary',
         aiSteps: 'Pipeline Steps',
         aiRisks: 'Risks',

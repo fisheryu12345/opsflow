@@ -95,7 +95,7 @@
                @confirmed="onDiffConfirmed" />
 
     <!-- AI analysis dialog / AI 分析弹窗 -->
-    <el-dialog v-model="analyzeVisible" :title="$t('message.opsflowPage.aiAnalysis')" width="740px" top="5vh" class="opsflow-dialog">
+    <el-dialog v-model="analyzeVisible" :title="$t('message.opsflowPage.aiAnalysis')" width="960px" top="5vh" class="opsflow-dialog">
       <div v-loading="analyzing" element-loading-text="AI analyzing..." class="analyze-body">
         <div v-if="analysisResult" class="analyze-content">
           <!-- Summary Hero -->

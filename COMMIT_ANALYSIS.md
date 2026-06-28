@@ -2,6 +2,32 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## d7c0716c
+
+> 提交日期: 2026-06-28 | 提交信息: fix: add aiSuggestions i18n key + widen AI dialog
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| web/src/i18n/pages/opsflow/zh-cn.ts | 前端 | 新增 opsflowPage.aiSuggestions 键 |
+| web/src/i18n/pages/opsflow/en.ts | 前端 | 新增 opsflowPage.aiSuggestions 键 |
+| web/src/views/apps/opsflow/index.vue | 前端 | AI 分析弹窗宽度 740px->960px |
+
+### 解决
+
+- **问题/背景：** aiSuggestions 在 index.vue 中被引用，但 i18n 文件中缺少该键；AI 分析弹窗内容太多放不下
+- **办法：** 补齐中英文键；弹窗宽度扩大 1/3
+
+### 验证
+
+- 改动类型: fix
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## 5ea3fd8e
 
 > 提交日期: 2026-06-28 | 提交信息: fix: correct i18n key references in opsflow sub-pages

@@ -793,6 +793,7 @@ export default {
         webhookDeleteFailed: '删除失败',
         webhookRequired: '名称、URL 和模板为必填项',
         aiAnalysis: 'AI 流程分析',
+        aiSuggestions: '建议',
         aiSummary: '摘要',
         aiSteps: '流程步骤',
         aiRisks: '风险',
