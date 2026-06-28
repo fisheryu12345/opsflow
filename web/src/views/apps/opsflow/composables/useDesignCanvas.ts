@@ -527,23 +527,25 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     }
 
     // 连线
-    const gatewayIds = new Set(contentNodes.filter(n => n.node_type === 'exclusive_gateway').map(n => n.id))
+    const gatewayIds = new Set(contentNodes.filter(n => n.node_type === 'exclusive_gateway' || n.node_type === 'conditional_parallel_gateway').map(n => n.id))
     for (const edge of edgesList) {
       if (!edge.from || !edge.to) continue
+      // Only show edge labels for exclusive/conditional-parallel gateway outputs
+      const isGatewayEdge = gatewayIds.has(edge.from)
       // 回环边检测：排他网关出边指向低层节点
-      const isLoopback = gatewayIds.has(edge.from) &&
+      const isLoopback = isGatewayEdge &&
         (positions[edge.to]?.x ?? Infinity) < (positions[edge.from]?.x ?? 0)
       cells.push(graph.value.createEdge({
         source: { cell: edge.from, port: isLoopback ? 'top' : (edge.sourcePort || 'right') },
         target: { cell: edge.to, port: isLoopback ? 'top' : (edge.targetPort || 'left') },
-        labels: edge.label ? [{ attrs: { text: { text: edge.label } } }] : undefined,
+        labels: edge.label && isGatewayEdge ? [{ attrs: { text: { text: edge.label } } }] : undefined,
         attrs: { line: {
           stroke: isLoopback ? '#E6A23C' : '#DCDFE6',
           strokeWidth: 1.5,
           strokeDasharray: isLoopback ? '6 3' : '',
           targetMarker: 'classic',
         } },
-        data: { condition: edge.condition || '', loopback: isLoopback },
+        data: { label: edge.label || '', condition: edge.condition || '', loopback: isLoopback },
       }))
     }
 
@@ -612,7 +614,9 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
     const removedData: any[] = []
     for (const edge of graph.value!.getEdges()) {
       if (loopbackPairs.has(edge.getSourceCellId() + '->' + edge.getTargetCellId())) {
-        removedData.push({ id: edge.id, source: edge.getSourceCellId(), target: edge.getTargetCellId(), data: edge.getData() })
+        const x6Labels = edge.getLabels?.() || []
+        const labelText = x6Labels[0]?.attrs?.text?.text || edge.getData()?.label || ''
+        removedData.push({ id: edge.id, source: edge.getSourceCellId(), target: edge.getTargetCellId(), data: { ...edge.getData(), label: labelText } })
         graph.value!.removeCell(edge.id)
       }
     }
@@ -652,6 +656,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
           id: d.id,
           source: { cell: d.source, port: 'top' },
           target: { cell: d.target, port: 'top' },
+          labels: d.data?.label ? [{ attrs: { text: { text: d.data.label } } }] : undefined,
           attrs: { line: { stroke: '#E6A23C', strokeWidth: 1.5, strokeDasharray: '6 3', targetMarker: 'classic' } },
           data: d.data,
         })

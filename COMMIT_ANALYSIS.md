@@ -2,6 +2,41 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## beabfcbb
+
+> 提交日期: 2026-06-28 | 提交信息: fix: pipeline execution bugs + PropertyPanel condition editor overhaul
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/core/pipeline_builder/elements.py` | 后端 | _find_predecessor_activity 处理 dict edge；_gwcond_ → {node_id}_{key} 修复 whitelist |
+| `backend/opsflow/core/flow_engine.py` | 后端 | _has_loop_edges 传入原始 frozen_tree |
+| `web/.../PropertyPanel.vue` | 前端 | Loop Config 修复（onLoopChange + v-if+v-for crash）；条件预览多行显示+Delete按钮+反解析Edit |
+| `web/.../useDesignCanvas.ts` | 前端 | 边 label 保留；label 仅网关边显示；aiLayout 循环边恢复 label |
+| `web/.../useGraphCanvas.ts` | 前端 | getGraphData 优先读 edgeData.label |
+| `web/.../index.vue` | 前端 | onSelectTemplate 自动跑 AI layout |
+
+### 解决
+
+- **问题/背景：** Pipeline 执行因回环检测格式错误、自定义条件 whitelist 拒绝、前驱查找类型错误而失败；PropertyPanel Loop Config/条件编辑器因 Vue3 v-if+v-for 顺序、conditionStruct 状态管理不当而崩溃/无法编辑
+- **办法：** 统一用 frozen_tree 格式检测回环；去掉 _gwcond_ 前缀；兼容 dict edge 前驱查找；loopVarOptions computed 替代 v-if+v-for；_parseConditionExpr 从字符串反解析；边 label 全线修复。共修复 5 个 bug
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/features/2026-06-28-pipeline-bugfix-condition-editor.md`
+
+### 验证
+
+- 改动类型: fix+refactor
+- 清理乱码: 无
+- 子 App index.md 更新: opsflow
+- 工作区状态: 干净 ✅
+- 测试: opsflow.tests 18/18 OK ✅
+
+---
+
 ## 64fcc336
 
 > 提交日期: 2026-06-28 | 提交信息: feat: implement multi-tenant architecture with Business/Environment isolation

@@ -224,7 +224,7 @@ class FlowEngine:
 
             # Mechanism B: detect loop edges, pass cycle_tolerate
             from opsflow.core.bamboo_validator import _has_loop_edges
-            has_loop = _has_loop_edges(pipeline)
+            has_loop = _has_loop_edges(frozen_tree) if frozen_tree else False
             result = pipeline_api.run_pipeline(
                 runtime=self._runtime, pipeline=pipeline,
                 cycle_tolerate=has_loop,

@@ -313,6 +313,8 @@ async function onSelectTemplate(id: any) {
         console.log('[onSelectTemplate] pipeline_tree null or not object, loading empty')
         designCanvasRef.value.loadPipeline({ nodes: [], edges: [] })
       }
+      // Apply deterministic layout on every load so positions are consistent
+      nextTick(async () => { try { await designCanvasRef.value?.aiLayout() } catch {} })
     } else {
       console.warn('[onSelectTemplate] designCanvasRef is null!')
     }
@@ -338,6 +340,8 @@ async function onGenerate() {
 
   const isFirst = chatMessages.value.filter(m => m.role === 'user').length === 0
   const isLayoutIntent = !isFirst && LAYOUT_KEYWORDS.some(k => input.includes(k))
+
+
 
   generating.value = true
 
@@ -391,7 +395,7 @@ async function onGenerate() {
       const res = await RefinePipeline({ input, nodes: canvasData.nodes, edges: canvasData.edges, chat_history: chatHistory })
       const data = res.data?.data || res.data
       const pipelineTree = data?.pipeline_tree
-      if (pipelineTree && designCanvasRef.value) {
+      if (pipelineTree && designCanvasRef.value && selectedTemplateId.value) {
         designCanvasRef.value.loadPipeline(pipelineTree)
         nextTick(() => designCanvasRef.value?.aiLayout())
         chatMessages.value.push({ role: 'ai', content: data?.message || 'Pipeline updated according to your instructions.' })

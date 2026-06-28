@@ -88,7 +88,7 @@
         <!-- Loop Config (Mechanism A) -->
         <div class="panel-section" v-if="isAtom">
           <div class="section-title" style="cursor:pointer;" @click="loopEnabled = !loopEnabled">
-            <el-switch v-model="loopEnabled" size="small" style="margin-right:6px" @change="onLoopChange" />
+            <el-switch v-model="loopEnabled" size="small" style="margin-right:6px" />
             Loop Configuration
           </div>
           <template v-if="loopEnabled">
@@ -99,7 +99,7 @@
             <div class="prop-row" v-if="pluginFormSchema.length > 0">
               <span class="prop-label">Loop Variable</span>
               <el-select v-model="loopVarName" placeholder="Select parameter..." size="small" filterable style="width:140px" @change="emitUpdate">
-                <el-option v-for="item in pluginFormSchema" :key="item.tag_code" :label="item.name || item.tag_code" :value="item.tag_code" v-if="item.type === 'input' || item.type === 'int' || item.type === 'float'" />
+                <el-option v-for="item in loopVarOptions" :key="item.tag_code" :label="item.name || item.tag_code" :value="item.tag_code" />
               </el-select>
             </div>
             <div class="prop-row" v-if="loopVarName">
@@ -244,17 +244,31 @@
         <!-- 自定义条件（结构化编辑器） -->
         <div class="prop-row-vertical" v-if="edgeForm.label === 'custom'">
           <span class="prop-label">{{ $t("message.properties.condition") }}</span>
-          <div class="condition-preview" @click="openConditionDialog">
+          <div class="condition-preview">
             <template v-if="edgeForm.condition">
-              <code class="condition-code">{{ edgeForm.condition }}</code>
-              <el-button size="small" text>
-                <el-icon><EditPen /></el-icon>
-                Edit
-              </el-button>
+              <div class="cond-rules">
+                <div v-for="(rule, idx) in conditionRules" :key="idx" class="cond-rule-item">
+                  <span v-if="idx > 0" class="cond-logic-tag">{{ conditionLogic }}</span>
+                  <span class="cond-rule-ref">$&#123;<em>{{ rule.source }}.{{ rule.field }}</em>&#125;</span>
+                  <span class="cond-rule-op">{{ rule.op }}</span>
+                  <span class="cond-rule-val">{{ rule.value }}</span>
+                </div>
+                <div class="cond-rule-raw" v-if="conditionRules.length === 0">
+                  <code>{{ edgeForm.condition }}</code>
+                </div>
+              </div>
+              <div class="cond-actions">
+                <el-button size="small" text type="danger" @click.stop="clearCondition" circle>
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+                <el-button size="small" text @click.stop="openConditionDialog" circle>
+                  <el-icon><EditPen /></el-icon>
+                </el-button>
+              </div>
             </template>
             <template v-else>
               <span class="condition-placeholder">{{ $t("message.condition.expressionPlaceholder") }}</span>
-              <el-button size="small" text>Add</el-button>
+              <el-button size="small" text @click.stop="openConditionDialog">Add</el-button>
             </template>
           </div>
           <!-- 引用变量标签 -->
@@ -282,7 +296,7 @@
     <!-- 条件编辑器弹窗 -->
     <ConditionDialog
       :visible="conditionDialogVisible"
-      :initial-struct="conditionStruct"
+      :initial-struct="edgeForm.conditionStruct"
       :available-vars="availableVars"
       :source-node-label="edgeData?.from || ''"
       :target-node-label="edgeData?.to || ''"
@@ -296,7 +310,7 @@
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { Setting, Pointer, WarnTriangleFilled, CircleCheckFilled, InfoFilled, Aim, Connection, Switch, EditPen, Search } from '@element-plus/icons-vue'
+import { Setting, Pointer, WarnTriangleFilled, CircleCheckFilled, InfoFilled, Aim, Connection, Switch, EditPen, Search, Delete } from '@element-plus/icons-vue'
 import RenderForm from '/@/components/RenderForm/RenderForm.vue'
 import TagVariableMapping from '/@/components/RenderForm/tags/TagVariableMapping.vue'
 import OutputParamSection from './OutputParamSection.vue'
@@ -325,7 +339,7 @@ const emit = defineEmits<{
 
 /* ── Form state (MUST be before any computed/watcher that references them) ── */
 const form = ref<any>({})
-const edgeForm = ref<any>({ condition: '' })
+const edgeForm = ref<any>({ condition: '', conditionStruct: null })
 /** 修订计数器 — 每次 form 属性变更时递增，驱动 contextWithVars 重算 */
 const formRevision = ref(0)
 const showVarBrowser = ref(false)
@@ -353,6 +367,13 @@ function syncLoopConfig() {
   }
   formRevision.value++
 }
+
+// Filter plugin form schema to only show input/int/float fields for loop variable
+const loopVarOptions = computed(() =>
+  pluginFormSchema.value.filter((item: any) =>
+    item.type === 'input' || item.type === 'int' || item.type === 'float'
+  )
+)
 
 // Sync loop config on any loop state change
 watch([loopEnabled, loopTimes, loopVarName, loopVarValues, loopFailSkip], () => {
@@ -388,7 +409,6 @@ function onVarInsert(refStr: string) {
 
 /* ── Condition editor state ── */
 const conditionDialogVisible = ref(false)
-const conditionStruct = ref<ConditionStruct | null>(null)
 const availableVars = ref<any[]>([])
 const opsflowStore = useOpsflowStore()
 
@@ -399,6 +419,24 @@ const conditionRefs = computed(() => {
   const m = cond.match(/\$\{([^}]+)\}/g)
   if (m) m.forEach(r => refs.add(r.replace(/\$\{|\}/g, '')))
   return [...refs]
+})
+
+const conditionRules = computed(() => {
+  const cond = edgeForm.value?.condition || ''
+  if (!cond) return []
+  const parts = cond.split(/\s+(?:AND|OR)\s+/).filter(Boolean)
+  return parts.map(p => {
+    const m = p.match(/^\$\{([^.]+)\.([^}]+)\}\s*(>=|<=|!=|==|>|<)\s*(.+)$/)
+    if (!m) return null
+    let val = m[4]
+    if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1)
+    return { source: m[1], field: m[2], op: m[3], value: val }
+  }).filter(Boolean)
+})
+
+const conditionLogic = computed(() => {
+  const cond = edgeForm.value?.condition || ''
+  return cond.includes(' OR ') ? 'OR' : 'AND'
 })
 
 /** BFS 反向遍历 edges 计算上游节点 ID */
@@ -627,14 +665,21 @@ watch(() => props.nodeData, (val) => {
   }
 }, { immediate: true, deep: true })
 
+let lastEdgeId = ''
 watch(() => props.edgeData, (val) => {
   if (val) {
-    edgeForm.value = { condition: val.condition || '', label: val.label || '' }
-    // 回填条件结构化数据
-    conditionStruct.value = val.conditionStruct || null
+    const edgeId = `${val.from}->${val.to}`
+    if (edgeId !== lastEdgeId) {
+      lastEdgeId = edgeId
+      edgeForm.value = { condition: val.condition || '', label: val.label || '' }
+    }
+    // Restore conditionStruct: prefer saved value, fall back to parent
+    if (!edgeForm.value.conditionStruct && val.conditionStruct) {
+      edgeForm.value.conditionStruct = val.conditionStruct
+    }
   } else {
-    edgeForm.value = { condition: '' }
-    conditionStruct.value = null
+    lastEdgeId = ''
+    edgeForm.value = { condition: '', conditionStruct: null }
   }
 }, { immediate: true, deep: true })
 
@@ -727,24 +772,71 @@ async function promoteInput(config: any, currentValue: any) {
   }
 }
 
+const _exprPattern = /^\${([^.]+)\.([^}]+)}\s*(>=|<=|!=|==|>|<)\s*(.+)$/
+
+function _parseConditionExpr(expr: string): ConditionStruct | null {
+  const lines = expr.split(/\s+(?:AND|OR)\s+/).filter(Boolean)
+  if (lines.length === 0) return null
+  const rules: any[] = []
+  for (const line of lines) {
+    const m = line.match(_exprPattern)
+    if (!m) return null
+    let val: string = m[4]
+    // Strip surrounding quotes for string values
+    if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1)
+    rules.push({ source: m[1], field: m[2], op: m[3], value: val, fieldLabel: m[2], fieldType: 'string' })
+  }
+  const logic = expr.includes(' OR ') ? 'OR' : 'AND'
+  return { logic, rules }
+}
+
 /** 打开条件编辑器弹窗，同时刷新可用变量列表 */
 function openConditionDialog() {
-  // 实时从画布获取节点列表
+  // Parse condition from expression string into ConditionStruct
+  if (edgeForm.value.condition && !edgeForm.value.conditionStruct) {
+    edgeForm.value.conditionStruct = _parseConditionExpr(edgeForm.value.condition)
+  }
+  // Refresh available vars from graph
   const graphData = typeof props.getGraphData === 'function' ? props.getGraphData() : null
   const nodes = graphData?.nodes || []
   availableVars.value = getAvailableVars(nodes, opsflowStore, {
     currentNodeId: props.edgeData?.from,
     edges: graphData?.edges || [],
   }) || []
+  // Always merge saved condition variables into availableVars so
+  // VariablePicker can display the existing rule's selections even when
+  // the graph's getAvailableVars doesn't include them.
+  const saved = edgeForm.value.conditionStruct
+  if (saved?.rules) {
+    const existingKeys = new Set(availableVars.value.map((v: any) => `${v.source}.${v.field}`))
+    for (const r of saved.rules) {
+      if (r.source && r.field && !existingKeys.has(`${r.source}.${r.field}`)) {
+        availableVars.value.push({
+          source: r.source,
+          field: r.field,
+          fieldLabel: r.fieldLabel || r.field,
+          fieldType: r.fieldType || 'string',
+          sourceLabel: r.source,
+          sourceType: 'node',
+        })
+      }
+    }
+  }
   conditionDialogVisible.value = true
 }
 
 /** 条件编辑器保存回调 */
 function onConditionSave(struct: ConditionStruct) {
-  conditionStruct.value = struct
+  edgeForm.value.conditionStruct = struct
   edgeForm.value.condition = struct.rules && struct.rules.length > 0
     ? generateConditionExpr(struct.rules, struct.logic)
     : ''
+  emitEdgeUpdate()
+}
+
+function clearCondition() {
+  edgeForm.value.condition = ''
+  edgeForm.value.conditionStruct = null
   emitEdgeUpdate()
 }
 
@@ -752,7 +844,7 @@ function onEdgeLabelChange(label: string) {
   edgeForm.value.label = label || ''
   if (!label || label === 'success' || label === 'failure') {
     edgeForm.value.condition = ''
-    conditionStruct.value = null
+    edgeForm.value.conditionStruct = null
   }
   emitEdgeUpdate()
 }
@@ -761,7 +853,7 @@ function emitEdgeUpdate() {
   emit('update', {
     label: edgeForm.value.label || '',
     condition: edgeForm.value.condition || '',
-    conditionStruct: conditionStruct.value || undefined,
+    conditionStruct: edgeForm.value.conditionStruct || undefined,
   })
 }
 
@@ -882,14 +974,12 @@ loadTemplates()
 /* Condition preview (new structural editor) */
 .condition-preview {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 8px;
   background: #f5f7fa;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   padding: 6px 10px;
-  cursor: pointer;
   transition: border-color 0.2s;
   min-height: 32px;
 }
@@ -904,6 +994,62 @@ loadTemplates()
   word-break: break-all;
   line-height: 1.5;
   flex: 1;
+  min-width: 80px;
+}
+.cond-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 80px;
+}
+.cond-rule-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.cond-rule-item + .cond-rule-item {
+  margin-top: 2px;
+  padding-top: 2px;
+  border-top: 1px dashed #e0e0e0;
+}
+.cond-logic-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: #E6A23C;
+  text-transform: uppercase;
+  background: #fdf6ec;
+  padding: 0 6px;
+  border-radius: 3px;
+  line-height: 18px;
+}
+.cond-rule-ref {
+  color: #409EFF;
+  font-family: monospace;
+}
+.cond-rule-ref em {
+  font-style: normal;
+  color: #303133;
+}
+.cond-rule-op {
+  color: #E6A23C;
+  font-weight: 600;
+}
+.cond-rule-val {
+  color: #67C23A;
+  font-weight: 600;
+}
+.cond-rule-raw code {
+  font-size: 11px;
+  color: #909399;
+}
+.cond-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  align-self: flex-start;
 }
 .condition-placeholder {
   font-size: 12px;

@@ -505,7 +505,7 @@ export function useGraphCanvas(containerId: string, options: GraphCanvasOptions)
           to: (target as any).cell ?? target,
           sourcePort: (source as any).port,
           targetPort: (target as any).port,
-          label: labels.length ? (labels[0].attrs?.text?.text || '') : '',
+          label: edgeData.label || (labels.length ? (labels[0].attrs?.text?.text || '') : ''),
           condition: edgeData.condition || '',
         })
       }

@@ -20,7 +20,11 @@ from opsflow.core.bamboo_validator import _EXPR_PATTERN, _VAR_REF_PATTERN
 def _find_predecessor_activity(gateway_id: str, in_edges: dict, gateway_ids: set) -> str | None:
     """BFS 回溯网关的前驱，找到第一个非网关节点 ID"""
     visited = {gateway_id}
-    q = deque(in_edges.get(gateway_id, []))
+    q = deque()
+    for e in in_edges.get(gateway_id, []):
+        pred_id = e.get('from') if isinstance(e, dict) else e
+        if pred_id:
+            q.append(pred_id)
     while q:
         nid = q.popleft()
         if nid in visited:
@@ -28,9 +32,10 @@ def _find_predecessor_activity(gateway_id: str, in_edges: dict, gateway_ids: set
         visited.add(nid)
         if nid not in gateway_ids:
             return nid
-        for pred in in_edges.get(nid, []):
-            if pred not in visited:
-                q.append(pred)
+        for e in in_edges.get(nid, []):
+            pred_id = e.get('from') if isinstance(e, dict) else e
+            if pred_id and pred_id not in visited:
+                q.append(pred_id)
     return None
 
 
@@ -62,7 +67,14 @@ def _collect_condition_refs(expr: str, data: Data, known_node_ids: set) -> str:
 
     def _register_and_return(node_id, key):
         if node_id in known_node_ids:
-            var_name = f"_gwcond_{node_id}_{key}"
+            # Use {node_id}_{key} instead of _gwcond_{node_id}_{key} so the
+            # variable name matches what bamboo-engine's _promote_results
+            # stores in the runtime context after the activity completes.
+            # The _result_{nid} pattern works because bamboo-engine auto-promotes
+            # _result. But custom output fields are promoted as {nid}_{field_key}
+            # (registered via output_schema in _create_element). Using the same
+            # naming convention ensures the whitelist check passes.
+            var_name = f"{node_id}_{key}"
             _register_node_output(data, var_name, node_id, key)
             return var_name
         return f"{node_id}.{key}"
