@@ -2,11 +2,7 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-<<<<<<< HEAD
-## ec4bb162
-=======
-## a793b890
->>>>>>> 8e58d2cb (fix: enable clearable for async_select dropdown — async_select 下拉默认启用清空按钮)
+## 8e58d2cb
 
 > 提交日期: 2026-06-28 | 提交信息: fix: enable clearable for async_select dropdown
 
@@ -15,12 +11,14 @@
 | 文件 | 类型 | 说明 |
 |------|------|------|
 | web/src/components/RenderForm/tags/TagAsyncSelect.vue | 前端 | clearable 默认值 false→true |
+| backend/opsflow/signals/handlers.py | 后端 | 新增 _check_optional_skip() + FAILED 分支集成，Optional 节点失败自动跳过 |
+| web/src/views/apps/opsflow/components/panels/PropertyPanel.vue | 前端 | Optional/max_retries 互斥，retry 开启时 optional 禁用，反之亦然 |
 | docs/opsflow/debug/2026-06-28-async-select-clearable-fix.md | 文档 | 新建调试文档 |
 
 ### 解决
 
-- **问题/背景：** async_select 下拉（如"实例"字段）选中后无法清除，因为 clearable 默认为 false
-- **办法：** 将 clearable 默认值改为 true，所有 async_select 字段自动显示 × 清空按钮
+- **问题/背景：** async_select 下拉选中后无法清除；Optional 开关只在冲突检测中有效，实际执行无 skip-on-fail 功能；前端 Optional 和 Retry 同时启用语义矛盾
+- **办法：** TagAsyncSelect clearable=true；signal handler 中拦截 FAILED 检查 optional 标志自动调 FlowEngine.skip()；前端 :disabled 双向互斥
 
 ### 文档
 
