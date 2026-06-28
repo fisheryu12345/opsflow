@@ -9,6 +9,7 @@ class EsxiPowerOnPlugin(BasePlugin):
     code = "esxi_power_on"
     group = "ESXi"
     description = "启动 ESXi 虚拟机"
+    description_en = "Power on a virtual machine on VMware ESXi"
     risk_level = "medium"
 
     @classmethod

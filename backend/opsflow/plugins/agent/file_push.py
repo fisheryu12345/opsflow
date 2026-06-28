@@ -18,7 +18,8 @@ class AgentFilePushPlugin(BasePlugin):
     name_en = "Agent File Push"
     code = "agent_file_push"
     group = "Agent"
-    description = "通过 Agent Agent 推送文件到被管控主机"
+    description = "通过 Agent 推送文件到被管控主机"
+    description_en = "Push file to managed hosts via Agent"
     risk_level = "medium"
     icon = "Upload"
     color = "#67C23A"
@@ -30,22 +31,24 @@ class AgentFilePushPlugin(BasePlugin):
                 tag_code="target_hosts",
                 type="textarea",
                 name="目标主机",
-                name_en = "Target Hosts"
-                attrs={"placeholder": "主机 IP（多个用逗号分隔）", "rows": 2},
+                name_en="Target Hosts",
+                attrs={"placeholder": "主机 IP（多个用逗号分隔）", "placeholder_en": "Host IPs (comma-separated)", "rows": 2},
                 default="",
             ),
             FormItem(
                 tag_code="source_path",
                 type="input",
                 name="源文件路径",
-                attrs={"placeholder": "控制台上的文件路径"},
+                name_en="Source File Path",
+                attrs={"placeholder": "控制台上的文件路径", "placeholder_en": "File path on the control server"},
                 default="",
             ),
             FormItem(
                 tag_code="target_path",
                 type="input",
                 name="目标路径",
-                attrs={"placeholder": "目标主机的完整路径，如 /data/app.tar.gz"},
+                name_en="Target Path",
+                attrs={"placeholder": "目标主机的完整路径，如 /data/app.tar.gz", "placeholder_en": "Full path on target host, e.g. /data/app.tar.gz"},
                 default="",
             ),
         ]

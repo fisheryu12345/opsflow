@@ -18,6 +18,7 @@ class AgentFilePullPlugin(BasePlugin):
     code = "agent_file_pull"
     group = "Agent"
     description = "通过 Agent Agent 从被管控主机拉取文件到控制台"
+    description_en = "Pull file from managed host to control server via Agent"
     risk_level = "medium"
     icon = "Download"
     color = "#67C23A"

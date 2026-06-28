@@ -10,6 +10,7 @@ class AliyunEcsDescribePlugin(BasePlugin):
     group = "阿里云 ECS"
     version = "v1.0"
     description = "查询阿里云 ECS 实例的详细信息"
+    description_en = "Describe an Alibaba Cloud ECS instance"
     risk_level = "low"
 
     @classmethod

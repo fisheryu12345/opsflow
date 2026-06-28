@@ -168,6 +168,7 @@ class ListStorageGroupsPlugin(BasePlugin):
     code = "pmax_list_storage_groups"
     group = "Pmax"
     description = "查询 PowerMax 阵列上的存储组列表"
+    description_en = "Create a PowerMax storage group"
     risk_level = "low"
 
     @classmethod

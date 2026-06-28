@@ -9,6 +9,7 @@ class NetappDeleteVolumePlugin(BasePlugin):
     code = "netapp_delete_volume"
     group = "NetApp"
     description = "删除 NetApp 存储卷"
+    description_en = "Delete a NetApp storage volume"
     risk_level = "high"
 
     @classmethod

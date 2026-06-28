@@ -9,6 +9,7 @@ class HealthCheckPlugin(BasePlugin):
     code = "health_check"
     group = "Monitor"
     description = "对目标主机执行 Ping 和端口连通性检查"
+    description_en = "Check service health status"
     risk_level = "low"
 
     @classmethod

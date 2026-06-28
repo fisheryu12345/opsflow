@@ -9,6 +9,7 @@ class DockerDeployPlugin(TowerBasePlugin):
     code = "docker_deploy"
     group = "Ansible"
     description = "部署 Docker 容器：拉取镜像、创建并启动容器"
+    description_en = "Deploy application as Docker containers on remote hosts"
     risk_level = "high"
 
     @classmethod

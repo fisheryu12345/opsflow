@@ -18,6 +18,7 @@ class CmdbQueryPlugin(BasePlugin):
     group = "CMDB"
     version = "v1.0"
     description = "查询 CMDB 模型实例、拓扑路径或关联关系"
+    description_en = "Query business, cluster, module, or host information from CMDB"
     risk_level = "low"
     icon = "Search"
     color = "#67C23A"

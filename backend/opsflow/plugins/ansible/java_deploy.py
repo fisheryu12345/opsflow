@@ -9,6 +9,7 @@ class JavaDeployPlugin(TowerBasePlugin):
     code = "java_deploy"
     group = "Ansible"
     description = "部署 Java 应用：上传 JAR/WAR 包并重启服务"
+    description_en = "Deploy Java application packages to remote hosts"
     risk_level = "high"
 
     @classmethod

@@ -9,6 +9,7 @@ class IpOpsVerifyPlugin(BasePlugin):
     code = "ip_ops_verify"
     group = "验证工具"
     description = "验证 IP 选择器/资源选择/表格/级联 四种 Tag 组件功能"
+    description_en = "Verify IP operation permissions before execution"
     risk_level = "low"
 
     @classmethod

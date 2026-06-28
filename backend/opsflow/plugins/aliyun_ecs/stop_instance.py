@@ -10,6 +10,7 @@ class AliyunEcsStopPlugin(BasePlugin):
     group = "阿里云 ECS"
     version = "v1.0"
     description = "停止一台运行中的阿里云 ECS 实例"
+    description_en = "Stop an Alibaba Cloud ECS instance"
     risk_level = "medium"
 
     @classmethod

@@ -9,6 +9,7 @@ class EsxiGetStatePlugin(BasePlugin):
     code = "esxi_get_state"
     group = "ESXi"
     description = "查询 ESXi 虚拟机状态"
+    description_en = "Get current power state of a virtual machine"
     risk_level = "low"
 
     @classmethod

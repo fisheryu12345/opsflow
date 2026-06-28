@@ -9,6 +9,7 @@ class ServicenowGetIncidentPlugin(BasePlugin):
     code = "servicenow_get_incident"
     group = "ServiceNow"
     description = "根据事件编号查询 ServiceNow 事件详情"
+    description_en = "Get incident details from ServiceNow"
     risk_level = "low"
 
     @classmethod

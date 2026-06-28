@@ -16,6 +16,7 @@ class TestPrintTimePlugin(BasePlugin):
     code = "test_print_time"
     group = "通用工具"
     description = "测试原子 — 后台打印当前时间，用于流程引擎功能验证（随机等待 1-5s）"
+    description_en = "Print current system time - for testing only"
     risk_level = "low"
 
     @classmethod

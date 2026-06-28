@@ -9,6 +9,7 @@ class NetappCreateVolumePlugin(BasePlugin):
     code = "netapp_create_volume"
     group = "NetApp"
     description = "在 NetApp ONTAP 上创建 FlexVol 存储卷"
+    description_en = "Create a NetApp storage volume"
     risk_level = "high"
 
     @classmethod

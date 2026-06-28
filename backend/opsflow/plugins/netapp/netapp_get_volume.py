@@ -9,6 +9,7 @@ class NetappGetVolumePlugin(BasePlugin):
     code = "netapp_get_volume"
     group = "NetApp"
     description = "查询 NetApp 存储卷详情"
+    description_en = "Get NetApp storage volume information"
     risk_level = "low"
 
     @classmethod

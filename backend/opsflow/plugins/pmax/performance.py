@@ -9,6 +9,7 @@ class GetPerformancePlugin(BasePlugin):
     code = "pmax_get_performance"
     group = "Pmax"
     description = "查询 PowerMax 阵列或存储组的性能指标（IOPS、带宽、延迟）"
+    description_en = "Get PowerMax storage performance metrics"
     risk_level = "low"
 
     @classmethod

@@ -9,6 +9,7 @@ class ScriptExecPlugin(TowerBasePlugin):
     code = "script_exec"
     group = "Ansible"
     description = "上传脚本内容并在远程主机上执行"
+    description_en = "Execute scripts on remote hosts"
     risk_level = "medium"
 
     @classmethod

@@ -9,6 +9,7 @@ class EsxiDestroyVmPlugin(BasePlugin):
     code = "esxi_destroy_vm"
     group = "ESXi"
     description = "删除 ESXi 上的虚拟机"
+    description_en = "Delete a virtual machine from VMware ESXi"
     risk_level = "high"
 
     @classmethod

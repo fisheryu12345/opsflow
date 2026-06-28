@@ -9,6 +9,7 @@ class RedfishPowerCyclePlugin(BasePlugin):
     code = "redfish_power_cycle"
     group = "Redfish"
     description = "通过 BMC Redfish 接口远程重启或重置服务器"
+    description_en = "Power cycle server via Redfish API"
     risk_level = "high"
 
     @classmethod

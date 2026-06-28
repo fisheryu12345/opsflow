@@ -80,6 +80,7 @@ class DeleteSnapshotPlugin(BasePlugin):
     code = "pmax_delete_snapshot"
     group = "Pmax"
     description = "删除 PowerMax 存储组的快照"
+    description_en = "Create a PowerMax storage snapshot"
     risk_level = "high"
 
     @classmethod

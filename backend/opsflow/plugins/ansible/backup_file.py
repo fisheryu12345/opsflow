@@ -9,6 +9,7 @@ class BackupFilePlugin(TowerBasePlugin):
     code = "backup_file"
     group = "Ansible"
     description = "备份远程主机上的文件或目录"
+    description_en = "Backup files or directories on remote hosts"
     risk_level = "low"
 
     @classmethod

@@ -9,6 +9,7 @@ class RedfishPowerOffPlugin(BasePlugin):
     code = "redfish_power_off"
     group = "Redfish"
     description = "通过 BMC Redfish 接口远程关闭服务器电源"
+    description_en = "Power off server via Redfish API"
     risk_level = "high"
 
     @classmethod

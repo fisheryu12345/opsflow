@@ -9,6 +9,7 @@ class NetappCreateSnapshotPlugin(BasePlugin):
     code = "netapp_create_snapshot"
     group = "NetApp"
     description = "为 NetApp 存储卷创建快照（注意：这是存储设备操作，不能用于 ESXi 虚拟机快照）"
+    description_en = "Create a NetApp storage volume snapshot"
     risk_level = "low"
 
     @classmethod

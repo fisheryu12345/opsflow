@@ -9,6 +9,7 @@ class EsxiPowerOffPlugin(BasePlugin):
     code = "esxi_power_off"
     group = "ESXi"
     description = "关闭 ESXi 虚拟机 (强制关机)"
+    description_en = "Power off a virtual machine on VMware ESXi"
     risk_level = "high"
 
     @classmethod

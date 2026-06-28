@@ -9,6 +9,7 @@ class ServicenowGetCmdbCiPlugin(BasePlugin):
     code = "servicenow_get_cmdb_ci"
     group = "ServiceNow"
     description = "查询 ServiceNow CMDB 中配置项 (CI) 的详情"
+    description_en = "Get configuration item details from ServiceNow CMDB"
     risk_level = "low"
 
     @classmethod

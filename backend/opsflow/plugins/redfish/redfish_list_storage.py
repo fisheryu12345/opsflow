@@ -9,6 +9,7 @@ class RedfishListStoragePlugin(BasePlugin):
     code = "redfish_list_storage"
     group = "Redfish"
     description = "通过 BMC Redfish 接口列出存储控制器及磁盘信息"
+    description_en = "List storage controllers and drives via Redfish API"
     risk_level = "low"
 
     @classmethod

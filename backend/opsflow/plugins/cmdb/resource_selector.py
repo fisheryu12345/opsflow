@@ -20,6 +20,7 @@ class CmdbResourceSelector(BasePlugin):
     group = "CMDB"
     version = "v1.0"
     description = "从 CMDB 选择业务/集群/模块下的主机作为执行目标"
+    description_en = "Select business resources from CMDB as execution targets"
     risk_level = "low"
     icon = "FolderOpened"
     color = "#409EFF"

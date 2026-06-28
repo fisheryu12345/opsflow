@@ -9,6 +9,7 @@ class DiskCheckPlugin(BasePlugin):
     code = "disk_check"
     group = "Monitor"
     description = "检查远程主机磁盘使用率，超过阈值可触发告警"
+    description_en = "Check disk space usage on target hosts"
     risk_level = "low"
 
     @classmethod

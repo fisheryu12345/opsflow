@@ -9,6 +9,7 @@ class PingTestPlugin(BasePlugin):
     code = "ping_test"
     group = "Monitor"
     description = "测试目标主机的网络连通性"
+    description_en = "Test network connectivity via ICMP ping"
     risk_level = "low"
 
     @classmethod

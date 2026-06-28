@@ -19,6 +19,7 @@ class ProcessStartPlugin(TowerBasePlugin):
     name_en = "Process Start"
     group = "Process"
     description = "通过 CMDB 获取进程信息，在目标主机上远程启动进程"
+    description_en = "Start a process on target host"
     risk_level = "high"
 
     @classmethod

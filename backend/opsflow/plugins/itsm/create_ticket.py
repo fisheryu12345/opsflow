@@ -19,6 +19,7 @@ class CreateItsmTicketPlugin(BasePlugin):
     code = "itsm_create_ticket"
     group = "ITSM"
     description = "在 OpsFlow 执行节点中创建 ITSM 工单，支持指定流程模板并自动填充字段"
+    description_en = "Create a new ITSM service ticket"
     risk_level = "low"
     icon = "Document"
     color = "#409EFF"

@@ -9,6 +9,7 @@ class SendAlertPlugin(BasePlugin):
     code = "send_alert"
     group = "通用工具"
     description = "发送告警/通知到邮箱、Webhook 等渠道"
+    description_en = "Send alert or notification via email, webhook, etc."
     risk_level = "low"
 
     @classmethod

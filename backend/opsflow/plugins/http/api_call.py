@@ -9,6 +9,7 @@ class HttpApiPlugin(BasePlugin):
     code = "http_api"
     group = "HTTP"
     description = "发送 HTTP 请求到指定 URL，支持 GET/POST/PUT/DELETE"
+    description_en = "Call HTTP API endpoints with custom URL, method, headers and body"
     risk_level = "low"
 
     @classmethod

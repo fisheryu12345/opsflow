@@ -9,6 +9,7 @@ class NetappModifyVolumePlugin(BasePlugin):
     code = "netapp_modify_volume"
     group = "NetApp"
     description = "修改 NetApp 卷属性 (扩容/改策略)"
+    description_en = "Modify a NetApp storage volume"
     risk_level = "high"
 
     @classmethod

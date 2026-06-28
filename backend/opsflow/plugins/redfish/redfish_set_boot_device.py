@@ -9,6 +9,7 @@ class RedfishSetBootDevicePlugin(BasePlugin):
     code = "redfish_set_boot_device"
     group = "Redfish"
     description = "通过 BMC Redfish 接口设置服务器下次启动设备"
+    description_en = "Set server boot device via Redfish API"
     risk_level = "high"
 
     @classmethod

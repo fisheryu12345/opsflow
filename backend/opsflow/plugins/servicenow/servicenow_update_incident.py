@@ -9,6 +9,7 @@ class ServicenowUpdateIncidentPlugin(BasePlugin):
     code = "servicenow_update_incident"
     group = "ServiceNow"
     description = "更新 ServiceNow 事件 (Incident) 的状态或字段"
+    description_en = "Update an incident in ServiceNow"
     risk_level = "low"
 
     @classmethod

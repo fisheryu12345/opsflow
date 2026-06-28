@@ -9,6 +9,7 @@ class EsxiCreateVmPlugin(BasePlugin):
     code = "esxi_create_vm"
     group = "ESXi"
     description = "在 ESXi/vCenter 上创建虚拟机"
+    description_en = "Create a new virtual machine on VMware ESXi"
     risk_level = "high"
 
     @classmethod

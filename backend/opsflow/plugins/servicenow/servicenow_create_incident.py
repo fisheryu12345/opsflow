@@ -9,6 +9,7 @@ class ServicenowCreateIncidentPlugin(BasePlugin):
     code = "servicenow_create_incident"
     group = "ServiceNow"
     description = "在 ServiceNow 中创建事件 (Incident) 记录"
+    description_en = "Create an incident in ServiceNow"
     risk_level = "low"
 
     @classmethod

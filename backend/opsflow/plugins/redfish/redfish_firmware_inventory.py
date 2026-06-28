@@ -9,6 +9,7 @@ class RedfishFirmwareInventoryPlugin(BasePlugin):
     code = "redfish_firmware_inventory"
     group = "Redfish"
     description = "通过 BMC Redfish 接口获取服务器固件版本清单"
+    description_en = "Get server firmware inventory via Redfish API"
     risk_level = "low"
 
     @classmethod

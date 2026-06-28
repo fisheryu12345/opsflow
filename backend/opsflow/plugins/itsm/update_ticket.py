@@ -19,6 +19,7 @@ class UpdateItsmTicketPlugin(BasePlugin):
     code = "itsm_update_ticket"
     group = "ITSM"
     description = "在 OpsFlow 执行节点中更新 ITSM 工单的状态、备注等信息"
+    description_en = "Update an existing ITSM service ticket"
     risk_level = "low"
     icon = "Edit"
     color = "#67C23A"

@@ -9,6 +9,7 @@ class RedfishGetSystemInfoPlugin(BasePlugin):
     code = "redfish_get_system_info"
     group = "Redfish"
     description = "通过 BMC Redfish 接口获取服务器硬件系统信息"
+    description_en = "Get server system information via Redfish API"
     risk_level = "low"
 
     @classmethod

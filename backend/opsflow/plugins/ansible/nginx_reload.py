@@ -9,6 +9,7 @@ class NginxReloadPlugin(TowerBasePlugin):
     code = "nginx_reload"
     group = "Ansible"
     description = "验证 Nginx 配置并执行重载"
+    description_en = "Reload Nginx configuration on remote hosts"
     risk_level = "medium"
 
     @classmethod

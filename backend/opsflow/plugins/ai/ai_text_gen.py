@@ -18,6 +18,7 @@ class AiTextGenPlugin(BasePlugin):
     name_en = "AI Text Generation"
     group = "AI"
     description = "调用 AI 模型根据提示词生成文本内容，支持变量引用和参数调节"
+    description_en = "Generate operation reports, summaries and content using AI"
     risk_level = "low"
     icon = "🤖"
     color = "#6366f1"

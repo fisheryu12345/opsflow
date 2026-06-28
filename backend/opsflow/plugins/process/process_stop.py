@@ -19,6 +19,7 @@ class ProcessStopPlugin(TowerBasePlugin):
     name_en = "Process Stop"
     group = "Process"
     description = "通过 CMDB 获取进程信息，在目标主机上远程停止进程"
+    description_en = "Stop a running process on target host"
     risk_level = "high"
 
     @classmethod

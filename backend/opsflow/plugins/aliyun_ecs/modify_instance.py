@@ -10,6 +10,7 @@ class AliyunEcsModifyPlugin(BasePlugin):
     group = "阿里云 ECS"
     version = "v1.0"
     description = "修改阿里云 ECS 实例的名称和描述等属性"
+    description_en = "Modify Alibaba Cloud ECS instance attributes"
     risk_level = "medium"
 
     @classmethod

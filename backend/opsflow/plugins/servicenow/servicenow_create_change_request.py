@@ -9,6 +9,7 @@ class ServicenowCreateChangeRequestPlugin(BasePlugin):
     code = "servicenow_create_change_request"
     group = "ServiceNow"
     description = "在 ServiceNow 中创建变更申请 (Change Request)"
+    description_en = "Create a change request in ServiceNow"
     risk_level = "medium"
 
     @classmethod

@@ -10,6 +10,7 @@ class AliyunEcsDeletePlugin(BasePlugin):
     group = "阿里云 ECS"
     version = "v1.0"
     description = "释放（销毁）一台阿里云 ECS 实例（不可恢复）"
+    description_en = "Delete an Alibaba Cloud ECS instance"
     risk_level = "high"
 
     @classmethod

@@ -22,6 +22,7 @@ class ProcessStatusPlugin(TowerBasePlugin):
     name_en = "Process Status"
     group = "Process"
     description = "检查远程进程的运行状态和资源占用"
+    description_en = "Get process status on target host"
     risk_level = "low"
 
     @classmethod

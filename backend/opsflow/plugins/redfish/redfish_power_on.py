@@ -9,6 +9,7 @@ class RedfishPowerOnPlugin(BasePlugin):
     code = "redfish_power_on"
     group = "Redfish"
     description = "通过 BMC Redfish 接口远程开启服务器电源"
+    description_en = "Power on server via Redfish API"
     risk_level = "medium"
 
     @classmethod
