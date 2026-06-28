@@ -267,6 +267,15 @@ export default {
         versionOutdated: '版本过时',
         select: '请选择...',
         selectApprovers: '选择审批人',
+        loopConfig: '循环配置',
+        maxIterations: '最大循环次数',
+        loopVariable: '循环变量',
+        loopValues: '取值列表',
+        loopValuesPlaceholder: '逗号,分隔,取值',
+        onFailure: '失败处理',
+        fail: '终止',
+        skip: '跳过',
+        selectParameter: '选择参数...',
     },
     // ===== 条件配置 =====
     condition: {

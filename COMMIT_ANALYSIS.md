@@ -43,7 +43,39 @@
 
 ---
 
-## 37849a1b
+## a5cff5d3
+
+> 提交日期: 2026-06-28 | 提交信息: fix: loop config i18n + switch click event bubble fix — Loop Configuration 区域 i18n 替换 + 滑块点击无响应修复
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| PropertyPanel.vue | 前端 | 9 处硬编码标签/placeholder/radio 替换为 $t()；移除父 div @click 改为 span @click.stop 修复事件冒泡 |
+| en.ts | 前端 | 新增 9 个 i18n keys (loopConfig/maxIterations/loopVariable/loopValues/...) |
+| zh-cn.ts | 前端 | 新增对应 9 个中文翻译 |
+| docs/opsflow/debug/2026-06-28-loop-config-i18n-switch-fix.md | 文档 | 新建调试文档 |
+
+### 解决
+
+- **问题/背景：** Loop Configuration 区域所有标签为硬编码英文，el-switch 滑块因事件冒泡双重触发导致点击无响应
+- **办法：** 父 div 移除 @click，文字改为 span @click.stop 单独控制；全部标签替换为 $t()
+
+### 文档
+
+- **生成文档：**
+  - docs/opsflow/debug/2026-06-28-loop-config-i18n-switch-fix.md
+
+### 验证
+
+- 改动类型: fix
+- 清理乱码: 无
+- 子 App index.md 更新: 无（纯前端改动）
+- 工作区状态: 待提交 ✅
+
+---
+
+## 8145f0fb
 
 > 提交日期: 2026-06-28 | 提交信息: docs: fix commit hash references in analysis log and arch doc — 修正 COMMIT_ANALYSIS.md 和架构文档中的 commit hash 引用
 

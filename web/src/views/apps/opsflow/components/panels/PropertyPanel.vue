@@ -87,30 +87,30 @@
 
         <!-- Loop Config (Mechanism A) -->
         <div class="panel-section" v-if="isAtom">
-          <div class="section-title" style="cursor:pointer;" @click="loopEnabled = !loopEnabled">
+          <div class="section-title" style="cursor:pointer;">
             <el-switch v-model="loopEnabled" size="small" style="margin-right:6px" />
-            Loop Configuration
+            <span @click.stop="loopEnabled = !loopEnabled">{{ $t("message.properties.loopConfig") }}</span>
           </div>
           <template v-if="loopEnabled">
             <div class="prop-row">
-              <span class="prop-label">Max Iterations</span>
+              <span class="prop-label">{{ $t("message.properties.maxIterations") }}</span>
               <el-input-number v-model="loopTimes" :min="1" :max="1000" size="small" controls-position="right" style="width:120px" @change="emitUpdate" />
             </div>
             <div class="prop-row" v-if="pluginFormSchema.length > 0">
-              <span class="prop-label">Loop Variable</span>
-              <el-select v-model="loopVarName" placeholder="Select parameter..." size="small" filterable style="width:140px" @change="emitUpdate">
+              <span class="prop-label">{{ $t("message.properties.loopVariable") }}</span>
+              <el-select v-model="loopVarName" :placeholder="$t('message.properties.selectParameter')" size="small" filterable style="width:140px" @change="emitUpdate">
                 <el-option v-for="item in loopVarOptions" :key="item.tag_code" :label="item.name || item.tag_code" :value="item.tag_code" />
               </el-select>
             </div>
             <div class="prop-row" v-if="loopVarName">
-              <span class="prop-label">Values</span>
-              <el-input v-model="loopVarValues" placeholder="comma,separated,values" size="small" style="width:140px" @change="emitUpdate" />
+              <span class="prop-label">{{ $t("message.properties.loopValues") }}</span>
+              <el-input v-model="loopVarValues" :placeholder="$t('message.properties.loopValuesPlaceholder')" size="small" style="width:140px" @change="emitUpdate" />
             </div>
             <div class="prop-row">
-              <span class="prop-label">On Failure</span>
+              <span class="prop-label">{{ $t("message.properties.onFailure") }}</span>
               <el-radio-group v-model="loopFailSkip" size="small" @change="emitUpdate">
-                <el-radio :value="false">Fail</el-radio>
-                <el-radio :value="true">Skip</el-radio>
+                <el-radio :value="false">{{ $t("message.properties.fail") }}</el-radio>
+                <el-radio :value="true">{{ $t("message.properties.skip") }}</el-radio>
               </el-radio-group>
             </div>
           </template>
