@@ -2,6 +2,62 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 8716aefe
+
+> 提交日期: 2026-06-28 | 提交信息: docs: fix placeholder hash in optional-skip feature doc
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| docs/opsflow/features/2026-06-28-optional-skip-on-fail.md | 文档 | `(待提交)` → `bae59bcc` |
+
+### 解决
+
+- **问题/背景：** feature 文档中有未替换的 `(待提交)` 占位符
+- **办法：** 替换为实际 commit hash bae59bcc
+
+### 验证
+
+- 改动类型: docs
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 干净 ✅
+
+---
+
+## bae59bcc
+
+> 提交日期: 2026-06-28 | 提交信息: test: add optional skip unit + integration tests — Optional 节点跳过测试 + 功能文档
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| backend/opsflow/tests/test_optional_skip.py | 测试 | 10 个测试覆盖 _check_optional_skip（7 单元）+ 信号集成（3） |
+| docs/opsflow/features/2026-06-28-optional-skip-on-fail.md | 文档 | Optional 节点失败自动跳过功能文档 |
+| docs/opsflow/debug/2026-06-28-async-select-clearable-fix.md | 文档 | 修复 merge conflict 残留 |
+| COMMIT_ANALYSIS.md | 文档 | 更新 8e58d2cb 条目补全改动描述 |
+
+### 解决
+
+- **问题/背景：** Optional skip-on-fail 代码已提交（8e58d2cb），但配套测试和功能文档缺失
+- **办法：** 补齐 10 个测试 + feature 文档
+
+### 文档
+
+- **生成文档：**
+  - docs/opsflow/features/2026-06-28-optional-skip-on-fail.md
+
+### 验证
+
+- 改动类型: test + docs
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## 8e58d2cb
 
 > 提交日期: 2026-06-28 | 提交信息: fix: enable clearable for async_select dropdown
@@ -30,7 +86,7 @@
 - 改动类型: fix
 - 清理乱码: 无
 - 子 App index.md 更新: 无（纯前端组件 + 文档）
-- 工作区状态: 待提交 ✅
+- 工作区状态: 干净 ✅
 
 ---
 
