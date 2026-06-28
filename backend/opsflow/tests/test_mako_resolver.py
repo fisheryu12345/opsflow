@@ -1,10 +1,10 @@
 """Mako 模板变量解析测试"""
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 from opsflow.core.mako_resolver import MakoResolver, resolve_with_mako
 
 
-class TestMakoResolver(TestCase):
+class TestMakoResolver(SimpleTestCase):
     def setup_method(self):
         self.resolver = MakoResolver()
 

@@ -1,5 +1,5 @@
 """节点超时策略测试 — batch_create_timeout_configs / update_node_timeout / dispatch_timeout_nodes / 策略实现"""
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 from unittest.mock import ANY, Mock, patch, MagicMock
 
@@ -24,7 +24,7 @@ def _make_execution(mock_id=1):
 # =============================================================================
 
 
-class TestBatchCreateTimeoutConfigs(TestCase):
+class TestBatchCreateTimeoutConfigs(SimpleTestCase):
     """batch_create_timeout_configs 测试"""
 
     def test_empty_tree_no_configs(self):
@@ -108,7 +108,7 @@ class TestBatchCreateTimeoutConfigs(TestCase):
 # =============================================================================
 
 
-class TestUpdateNodeTimeout(TestCase):
+class TestUpdateNodeTimeout(SimpleTestCase):
     """update_node_timeout 测试（Redis 交互）"""
 
     def test_running_adds_to_redis(self):
@@ -193,7 +193,7 @@ class TestUpdateNodeTimeout(TestCase):
 # =============================================================================
 
 
-class TestDispatchTimeoutNodes(TestCase):
+class TestDispatchTimeoutNodes(SimpleTestCase):
     """dispatch_timeout_nodes 测试"""
 
     def test_no_expired_nodes_noop(self):
@@ -250,7 +250,7 @@ class TestDispatchTimeoutNodes(TestCase):
 # =============================================================================
 
 
-class TestForcedFailStrategy(TestCase):
+class TestForcedFailStrategy(SimpleTestCase):
     """ForcedFailStrategy 测试"""
 
     def test_forced_fail_success(self):
@@ -282,7 +282,7 @@ class TestForcedFailStrategy(TestCase):
         assert result["message"] == "error"
 
 
-class TestForcedFailAndSkipStrategy(TestCase):
+class TestForcedFailAndSkipStrategy(SimpleTestCase):
     """ForcedFailAndSkipStrategy 测试"""
 
     def test_force_fail_then_skip(self):

@@ -1,5 +1,5 @@
 """Pipeline 安全校验测试 — validate_pipeline 各种场景"""
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 from unittest.mock import patch
 
@@ -12,7 +12,7 @@ MOCK_REGISTRY = {
 
 
 @patch("opsflow.core.safety_guard.PLUGIN_REGISTRY", MOCK_REGISTRY)
-class TestValidatePipeline(TestCase):
+class TestValidatePipeline(SimpleTestCase):
     """validate_pipeline 核心逻辑"""
 
     def test_valid_pipeline(self):

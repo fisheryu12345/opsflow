@@ -1,6 +1,6 @@
 """FlowEngine 测试 — 状态管理 + run/retry/skip/rollback"""
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 
@@ -8,7 +8,7 @@ from datetime import datetime
 from opsflow.core.flow_engine import FlowEngine
 
 
-class TestFlowEngineStateManagement(TestCase):
+class TestFlowEngineStateManagement(SimpleTestCase):
     """FlowEngine 状态管理 — 不需要 bamboo 依赖"""
 
     def _make_execution(self, status="pending"):
@@ -141,7 +141,7 @@ class TestFlowEngineStateManagement(TestCase):
         assert exec_mock.status == "paused"
 
 
-class TestFlowEngineRun(TestCase):
+class TestFlowEngineRun(SimpleTestCase):
     """FlowEngine.run() — pipline 构建+执行"""
 
     def _make_execution(self, frozen_tree=None):
@@ -232,7 +232,7 @@ class TestFlowEngineRun(TestCase):
             engine.run()  # 不应抛出异常
 
 
-class TestFlowEngineRollback(TestCase):
+class TestFlowEngineRollback(SimpleTestCase):
     """rollback_failed_nodes 回滚逻辑"""
 
     def test_rollback_no_failed_nodes(self):
@@ -265,7 +265,7 @@ class TestFlowEngineRollback(TestCase):
             engine.rollback_failed_nodes()
 
 
-class TestFlowEngineWSNotification(TestCase):
+class TestFlowEngineWSNotification(SimpleTestCase):
     """WebSocket 通知（best-effort）"""
 
     def test_notify_completed_no_channel_layer(self):

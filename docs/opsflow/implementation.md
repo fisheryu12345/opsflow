@@ -53,8 +53,15 @@
 
 - [x] 模板自动保存冲突提示（P2） ✅
 - [ ] CI/CD + K8s 部署支持（P2）
-- [ ] 扩充测试覆盖率（当前仅 18 个基础测试）
+- [x] 测试框架统一: 18 → 240 个测试发现 ✅
 
 ### 2026-06-28 Update
 > 提交: 6ce7605d
 - 模板冲突提示: 状态改为 ✅ — TemplateLock 悲观锁实现（心跳+过期+弹窗阻挡）
+
+### 2026-06-28 Update
+> 提交: 31664118
+- 测试框架: 14 个 pytest 文件 → Django TestCase/SimpleTestCase 统一
+- 新增 TemplateLock 测试 9 个（acquire/release/heartbeat/expiry/loop_iteration）
+- 测试发现: 18 → 240 个（python manage.py test 单命令运行）
+- pytest 已从项目移除

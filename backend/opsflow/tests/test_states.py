@@ -1,5 +1,5 @@
 """状态机测试 — NodeState / PipelineState 转移矩阵"""
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 from opsflow.core.states import (
     NodeState,
@@ -10,7 +10,7 @@ from opsflow.core.states import (
 )
 
 
-class TestNodeState(TestCase):
+class TestNodeState(SimpleTestCase):
     """节点状态转移矩阵验证"""
 
     @pytest.mark.parametrize("current,target", [
@@ -56,7 +56,7 @@ class TestNodeState(TestCase):
             assert validate_node_transition(NodeState.PENDING, NodeState.RUNNING) is True
 
 
-class TestPipelineState(TestCase):
+class TestPipelineState(SimpleTestCase):
     """Pipeline 级状态转移矩阵验证"""
 
     @pytest.mark.parametrize("current,target", [
@@ -91,7 +91,7 @@ class TestPipelineState(TestCase):
         assert validate_pipeline_transition(PipelineState.CANCELLED, PipelineState.CANCELLED) is False
 
 
-class TestMapBambooNodeState(TestCase):
+class TestMapBambooNodeState(SimpleTestCase):
     """bamboo-engine 状态 → NodeState 映射"""
 
     def test_maps_ready_to_pending(self):

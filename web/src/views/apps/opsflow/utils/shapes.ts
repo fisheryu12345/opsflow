@@ -57,16 +57,24 @@ const COLOR_PORT_BLUE = '#5F95FF'
 // ── Group → icon/color 映射（后端不存 emoji，前端维护映射表） ──
 
 const GROUP_CONFIG: Record<string, { icon: string; color: string }> = {
-  '通用工具':  { icon: '⚙', color: '#409EFF' },
-  'HTTP':      { icon: '↔', color: '#67C23A' },
-  'Ansible':   { icon: '▶', color: '#E6A23C' },
-  'Monitor':   { icon: '◉', color: '#F56C6C' },
-  'ESXi':      { icon: '☰', color: '#9B59B6' },
-  'Redfish':   { icon: '≈', color: '#00BCD4' },
-  'ServiceNow':{ icon: '✉', color: '#FF9800' },
-  'NetApp':    { icon: '◇', color: '#607D8B' },
-  'Pmax':      { icon: '▲', color: '#795548' },
+  '通用工具':  { icon: '⚙', color: '#909399' },
+  'HTTP':      { icon: '↗', color: '#E6A23C' },
+  'Ansible':   { icon: '⚙', color: '#67C23A' },
+  'Monitor':   { icon: '◉', color: '#1ABC9C' },
+  '监控':      { icon: '◉', color: '#1ABC9C' },
+  'ESXi':      { icon: '☰', color: '#20B2AA' },
+  'Redfish':   { icon: '≈', color: '#E67E22' },
+  'ServiceNow':{ icon: '✉', color: '#909399' },
+  'NetApp':    { icon: '◇', color: '#409EFF' },
+  'Pmax':      { icon: '▲', color: '#9B59B6' },
+  'PowerMax':  { icon: '▲', color: '#9B59B6' },
   '验证工具':  { icon: '✓', color: '#67C23A' },
+  'CMDB':      { icon: '🔎', color: '#409EFF' },
+  'Agent':     { icon: '⚡', color: '#409EFF' },
+  'AI':        { icon: '🤖', color: '#9B59B6' },
+  '阿里云 ECS':{ icon: '☁', color: '#FF6A00' },
+  'ITSM':      { icon: '🎫', color: '#409EFF' },
+  '进程管理':  { icon: '⚙', color: '#67C23A' },
 }
 
 const DEFAULT_COLOR = '#409EFF'

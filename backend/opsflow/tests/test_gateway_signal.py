@@ -6,7 +6,7 @@
 - 分支节点状态正常流转
 """
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 from unittest.mock import Mock, patch
 
 
@@ -15,7 +15,7 @@ from opsflow.signals.state import _update_execution_node_status, _update_state_t
 from opsflow.signals.handlers import on_post_set_state, _push_node_status_via_ws
 
 
-class TestExclusiveGatewaySignalStateUpdate(TestCase):
+class TestExclusiveGatewaySignalStateUpdate(SimpleTestCase):
     """排他网关场景下 _update_execution_node_status 和 _update_state_tree"""
 
     def _make_execution(self, context=None, node_status=None, state_tree=None):
@@ -73,7 +73,7 @@ class TestExclusiveGatewaySignalStateUpdate(TestCase):
         assert execution.node_status.get("unknown_uuid") == "completed"
 
 
-class TestExclusiveGatewaySignalHandler(TestCase):
+class TestExclusiveGatewaySignalHandler(SimpleTestCase):
     """on_post_set_state 信号处理器在排他网关场景下的行为"""
 
     def _make_on_post_set_state_args(self, node_id="bu_gw1", to_state=states.FINISHED):
@@ -184,7 +184,7 @@ class TestExclusiveGatewaySignalHandler(TestCase):
         execution.save.assert_any_call(update_fields=["current_node"])
 
 
-class TestWsNodeStatusPush(TestCase):
+class TestWsNodeStatusPush(SimpleTestCase):
     """_push_node_status_via_ws WebSocket 推送测试"""
 
     def test_skip_when_no_created_by(self):

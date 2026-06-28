@@ -100,7 +100,7 @@ class OpsflowConfig(AppConfig):
     verbose_name = 'OpsFlow - 运维编排平台'
 
     def ready(self):
-        # 1) 发现并注册标准插件
+        """注册标准插件 + 变量类型 + 自动 seed 示例模板"""
         try:
             from opsflow.plugins.registry import discover_plugins, sync_plugin_meta_to_db
             discover_plugins()

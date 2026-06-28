@@ -4,7 +4,7 @@
 并行网关特点是所有分支同时执行，最终汇聚（converge）。
 """
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 from unittest.mock import Mock, patch
 
 from opsflow.core.flow_engine import FlowEngine
@@ -100,7 +100,7 @@ PARALLEL_2_BRANCH_PIPELINE = {
 # 测试套件
 # =============================================================================
 
-class TestParallelGatewayBuild(TestCase):
+class TestParallelGatewayBuild(SimpleTestCase):
     """并行网关 pipeline 构建验证"""
 
     def test_build_3_branch_structure(self):
@@ -192,7 +192,7 @@ class TestParallelGatewayBuild(TestCase):
         assert any("入度" in e for e in validation.get("errors", []))
 
 
-class TestParallelGatewayFlowEngine(TestCase):
+class TestParallelGatewayFlowEngine(SimpleTestCase):
     """FlowEngine.run() 与并行网关集成测试"""
 
     @patch("opsflow.core.flow_engine.validate_pipeline")

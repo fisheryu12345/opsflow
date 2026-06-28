@@ -4,7 +4,7 @@
 网关条件评估在 bamboo-engine 内部完成，测试通过模拟前置节点输出来间接验证分支选择。
 """
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 from unittest.mock import Mock, patch, MagicMock
 
 from opsflow.core.flow_engine import FlowEngine
@@ -82,7 +82,7 @@ EXCLUSIVE_PIPELINE = {
 }
 
 
-class TestExclusiveGatewayPipelineBuild(TestCase):
+class TestExclusiveGatewayPipelineBuild(SimpleTestCase):
     """排他网关 pipeline 构建验证"""
 
     def test_build_pipeline_structure(self):
@@ -153,7 +153,7 @@ class TestExclusiveGatewayPipelineBuild(TestCase):
         assert any("nonexistent" in e for e in validation.get("errors", []))
 
 
-class TestExclusiveGatewayFlowEngineRun(TestCase):
+class TestExclusiveGatewayFlowEngineRun(SimpleTestCase):
     """FlowEngine.run() 与排他网关集成测试"""
 
     @patch("opsflow.core.flow_engine.validate_pipeline")
@@ -264,7 +264,7 @@ class TestExclusiveGatewayFlowEngineRun(TestCase):
             assert exec_mock.ended_at is not None
 
 
-class TestExclusiveGatewayNodeCommands(TestCase):
+class TestExclusiveGatewayNodeCommands(SimpleTestCase):
     """排他网关场景下的节点操作（retry/skip/force_fail）"""
 
     def _make_engine(self, node_status=None):

@@ -1,6 +1,6 @@
 """自动重试策略测试 — AutoRetryStrategyCreator + dispatch_auto_retry"""
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 from unittest.mock import Mock, patch
 
 from opsflow.core.auto_retry import AutoRetryStrategyCreator, dispatch_auto_retry
@@ -12,7 +12,7 @@ def _make_execution(mock_id=1):
     return exec_mock
 
 
-class TestAutoRetryStrategyCreator(TestCase):
+class TestAutoRetryStrategyCreator(SimpleTestCase):
     """AutoRetryStrategyCreator.batch_create_strategy 测试"""
 
     def test_empty_tree_no_strategies(self):
@@ -153,7 +153,7 @@ class TestAutoRetryStrategyCreator(TestCase):
             assert strategies[0].interval == 0
 
 
-class TestDispatchAutoRetry(TestCase):
+class TestDispatchAutoRetry(SimpleTestCase):
     """dispatch_auto_retry 测试"""
 
     def test_no_strategy_returns_false(self):

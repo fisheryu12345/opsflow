@@ -4,12 +4,12 @@
 验证冲突检测引擎对排他网关的各种边界条件判断是否准确。
 """
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 from opsflow.core.conflict_checker import check_config_conflicts
 
 
-class TestExclusiveGatewayConflictRules(TestCase):
+class TestExclusiveGatewayConflictRules(SimpleTestCase):
     """排他网关冲突检测 — Rule 6: 出边条件表达式"""
 
     def test_missing_condition_on_edge(self):
@@ -135,7 +135,7 @@ class TestExclusiveGatewayConflictRules(TestCase):
         assert any("no condition expression" in w for w in warnings)
 
 
-class TestParallelGatewayConflictRules(TestCase):
+class TestParallelGatewayConflictRules(SimpleTestCase):
     """并行网关冲突检测 — Rule 4: 缺少汇聚网关"""
 
     def test_parallel_gateway_with_converge(self):

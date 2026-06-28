@@ -419,22 +419,10 @@ function nodeColor(node: any, bg = false): string {
   if (nt === 'start_event') return bg ? '#67C23A22' : '#67C23A'
   if (nt === 'end_event') return bg ? '#F56C6C22' : '#F56C6C'
   if (nt.includes('gateway')) return bg ? '#E6A23C22' : '#E6A23C'
-
-  const at = node.atom_type || ''
-  const prefixColor: Record<string, string> = {
-    esxi_: '#20B2AA', netapp_: '#409EFF', pmax_: '#9B59B6',
-    servicenow_: '#909399', redfish_: '#E67E22', http_: '#E6A23C',
-    backup_: '#27AE60', docker_: '#0DB7ED', nginx_: '#2ECC71', java_: '#C0392B',
-  }
-  for (const [prefix, c] of Object.entries(prefixColor)) {
-    if (at.startsWith(prefix)) return bg ? c + '22' : c
-  }
-  const ansible = ['shell', 'file_copy', 'script_exec', 'upload_file', 'service_control', 'send_alert', 'test_print_time']
-  if (ansible.includes(at)) return bg ? '#67C23A22' : '#67C23A'
-  const monitor = ['disk_check', 'ping_test', 'health_check']
-  if (monitor.includes(at)) return bg ? '#1ABC9C22' : '#1ABC9C'
+  if (node.color) return bg ? node.color + '22' : node.color
   return bg ? '#90939922' : '#909399'
 }
+
 function nodeIcon(node: any): string {
   const nt = node.node_type || ''
   if (nt === 'start_event') return '▶'
@@ -443,26 +431,22 @@ function nodeIcon(node: any): string {
   if (nt === 'parallel_gateway') return '⨁'
   if (nt === 'converge_gateway') return '⨂'
   if (nt === 'conditional_parallel_gateway') return '◇?'
-  const sym: Record<string, string> = {
-    shell: '⚙', file_copy: '📋', script_exec: '📜', upload_file: '📤',
-    backup_file: '💾', nginx_reload: '🔄', service_control: '⏯',
-    java_deploy: '☕', docker_deploy: '🐳', send_alert: '🔔',
-    disk_check: '💿', ping_test: '📡', health_check: '❤',
-    test_print_time: '🕐', api_call: '↗',
-    esxi_create_vm: '🖥', esxi_destroy_vm: '🗑', esxi_get_state: '🔍',
-    esxi_power_on: '🔛', esxi_power_off: '🔴',
-    netapp_create_volume: '➕', netapp_delete_volume: '➖',
-    netapp_get_volume: '🔎', netapp_modify_volume: '✏', netapp_create_snapshot: '📸',
-    redfish_power_on: '🔛', redfish_power_off: '🔴', redfish_power_cycle: '🔄',
-    redfish_get_system_info: 'ℹ', redfish_firmware_inventory: '📦',
-    redfish_list_storage: '💾', redfish_set_boot_device: '💿',
-    servicenow_create_incident: '🚨', servicenow_get_incident: '🔍',
-    servicenow_update_incident: '✏', servicenow_create_change_request: '📋',
-    servicenow_get_cmdb_ci: '🔎',
-    pmax_performance: '📊', pmax_create_snapshot: '📸',
-    pmax_storage_group: '💾',
+  const at = node.atom_type || ''
+  if (at.startsWith('aliyun_ecs_') || at.startsWith('esxi_')) return '🖥'
+  if (at.startsWith('agent_')) return '⚡'
+  if (at.startsWith('netapp_') || at.startsWith('pmax_')) return '💾'
+  if (at.startsWith('redfish_')) return '💻'
+  if (at.startsWith('servicenow_') || at.startsWith('itsm_')) return '🎫'
+  if (at.startsWith('cmdb_')) return '🔍'
+  if (at.startsWith('process_')) return '▶'
+  const single: Record<string, string> = {
+    shell: '⚙', backup_file: '💾', docker_deploy: '🐳', java_deploy: '☕',
+    nginx_reload: '🔄', send_alert: '🔔', send_email: '📧', test_print_time: '🕐',
+    api_call: '↗', http_api: '↗', disk_check: '💿', ping_test: '📡',
+    health_check: '❤', ip_ops_verify: '✅',
   }
-  return sym[node.atom_type] || '⬤'
+  if (single[at]) return single[at]
+  return '⬤'
 }
 
 async function loadCategories() {

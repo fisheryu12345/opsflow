@@ -37,7 +37,7 @@ def _make_request(data):
     force_authenticate(request, user=user)
 
 
-class TestAiLayoutEndpoint(TestCase):
+class TestAiLayoutEndpoint(SimpleTestCase):
     """Tests for FlowTemplateViewSet.ai_layout method."""
 
     def test_requires_nodes(self):

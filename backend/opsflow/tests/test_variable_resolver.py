@@ -1,6 +1,6 @@
 """变量解析引擎测试 — resolve_variables / build_execution_context / get_variable_reference_details"""
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 from unittest.mock import Mock, patch
 from opsflow.core.variable_resolver import (
     resolve_variables,
@@ -11,7 +11,7 @@ from opsflow.core.variable_resolver import (
 )
 
 
-class TestResolveVariables(TestCase):
+class TestResolveVariables(SimpleTestCase):
     """resolve_variables 核心替换逻辑"""
 
     def test_simple_key_replacement(self):
@@ -57,7 +57,7 @@ class TestResolveVariables(TestCase):
         assert result == "1 and ${b}"
 
 
-class TestSplitValue(TestCase):
+class TestSplitValue(SimpleTestCase):
     """split_value 字符串分割"""
 
     def test_comma_delimiter(self):
@@ -82,7 +82,7 @@ class TestSplitValue(TestCase):
         assert split_value("a|b|c", delimiter="|") == ["a", "b", "c"]
 
 
-class TestDeepGet(TestCase):
+class TestDeepGet(SimpleTestCase):
     """_deep_get 嵌套路径查找"""
 
     def test_simple_key(self):
@@ -104,7 +104,7 @@ class TestDeepGet(TestCase):
         assert _deep_get({"a": "string"}, "a.b") is None
 
 
-class TestBuildExecutionContext(TestCase):
+class TestBuildExecutionContext(SimpleTestCase):
     """build_execution_context 上下文构建 (mock execution)"""
 
     def _make_mock_execution(self, **snapshot_overrides):
@@ -147,7 +147,7 @@ class TestBuildExecutionContext(TestCase):
             assert isinstance(ctx, dict)
 
 
-class TestGetVariableReferenceDetails(TestCase):
+class TestGetVariableReferenceDetails(SimpleTestCase):
     """get_variable_reference_details — 变量引用明细追踪"""
 
     def test_single_reference(self):

@@ -1,6 +1,6 @@
 """bamboo_builder 测试 — build_bamboo_pipeline / _create_element / validate_bamboo_compatibility"""
 
-from django.test import TestCase
+from django.test import SimpleTestCase
 from unittest.mock import Mock, patch, MagicMock
 
 from opsflow.core.pipeline_builder import (
@@ -11,7 +11,7 @@ from opsflow.core.pipeline_builder.elements import _create_element
 from opsflow.core.bamboo_validator import validate_bamboo_compatibility
 
 
-class TestCreateElement(TestCase):
+class TestCreateElement(SimpleTestCase):
     """_create_element 元素工厂"""
 
     def test_atom_creates_service_activity(self):
@@ -50,7 +50,7 @@ class TestCreateElement(TestCase):
         assert hasattr(elem, "timeout")
 
 
-class TestBuildBambooPipeline(TestCase):
+class TestBuildBambooPipeline(SimpleTestCase):
     """build_bamboo_pipeline 完整构建"""
 
     def _make_template(self, nodes=None, edges=None, **kwargs):
@@ -180,7 +180,7 @@ class TestBuildBambooPipeline(TestCase):
         assert result is not None
 
 
-class TestValidateBambooCompatibility(TestCase):
+class TestValidateBambooCompatibility(SimpleTestCase):
     """validate_bamboo_compatibility 校验"""
 
     def test_single_node_pipeline(self):
@@ -252,7 +252,7 @@ class TestValidateBambooCompatibility(TestCase):
         assert result["valid"] is False
 
 
-class TestExclusiveGatewayBuild(TestCase):
+class TestExclusiveGatewayBuild(SimpleTestCase):
     """排他网关 — 元素创建 + 完整流程"""
 
     def test_conditions_stored_on_gateway(self):
@@ -306,7 +306,7 @@ class TestExclusiveGatewayBuild(TestCase):
         assert len(result["activities"]) == 3
 
 
-class TestParallelGatewayBuild(TestCase):
+class TestParallelGatewayBuild(SimpleTestCase):
     """并行网关 — 元素创建 + 完整流程"""
 
     def test_parallel_gateway_creates_gateway(self):
@@ -391,7 +391,7 @@ class TestParallelGatewayBuild(TestCase):
         assert len(result.get("gateways", {})) >= 1
 
 
-class TestLoopMechanismA(TestCase):
+class TestLoopMechanismA(SimpleTestCase):
     """Mechanism A: node-level loop - loop_config"""
 
     def test_loop_config_injected_into_pipeline_dict(self):
@@ -439,7 +439,7 @@ class TestLoopMechanismA(TestCase):
         assert "${_loop_value}" in elem.component.inputs["target_ip"].value
 
 
-class TestLoopMechanismB(TestCase):
+class TestLoopMechanismB(SimpleTestCase):
     """Mechanism B: exclusive gateway loop - detection + tolerance + build"""
 
     def test_detect_exclusive_gateway_loop(self):
