@@ -44,6 +44,11 @@ class ModelDefinition(CoreModel):
         null=True, blank=True, related_name='models',
         verbose_name="所属分类",
     )
+    business = models.ForeignKey(
+        'iam.Business', null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Business',
+        help_text='Business line for tenant isolation / 业务线归属'
+    )
     icon = models.CharField(
         max_length=128, null=True, blank=True,
         verbose_name="图标",

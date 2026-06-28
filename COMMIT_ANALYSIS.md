@@ -2,6 +2,53 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 64fcc336
+
+> 提交日期: 2026-06-28 | 提交信息: feat: implement multi-tenant architecture with Business/Environment isolation
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/iam/models/{tenant,project,membership,rbac}.py` | 后端 | iam app 重构为 models/ 包，新增 Business/BusinessGroup/DeployEnvironment/Project/ProjectMember/BusinessMember/DeployEnvironmentPermission 7 个模型 |
+| `backend/iam/resolvers.py` | 后端 | 权限解析核心：get_visible_projects/has_project_role/can_execute_in_environment，Business 角色向下继承 |
+| `backend/iam/permissions.py` | 后端 | TenantPermission/EnvironmentGatePermission DRF Backend |
+| `backend/iam/routers.py` | 后端 | TenantDatabaseRouter 物理隔离扩展点（当前返回 default） |
+| `backend/iam/views.py` | 后端 | BusinessViewSet/DeployEnvironmentViewSet/IamProjectViewSet 管理 API |
+| `backend/iam/serializers.py` | 后端 | 全部 tenant 序列化器 |
+| `backend/iam/urls.py` | 后端 | /api/iam/businesses/ /api/iam/environments/ /api/iam/projects/ 路由 |
+| `backend/iam/management/commands/` | 后端 | seed_deploy_environments + grant_default_env_permissions 命令 |
+| `backend/opsflow/models/` | 后端 | 6 模型 FK('iam.Project')，OperationRecord+ApiToken 增强，FlowExecution.environment FK，旧 OpsProject/ProjectMember 删除 |
+| `backend/opsflow/views/base.py` | 后端 | ProjectFilteredViewSet 接入 iam.resolvers（get_visible_projects 含 Business 继承） |
+| `backend/opsflow/views/{template,execution,project,schedule,knowledge,scheme}_views.py` | 后端 | 6 ViewSet 添加 TenantPermission，执行 ViewSet 添加 EnvironmentGatePermission |
+| `backend/{cmdb,itsm,monitor,job_platform,integration,opsagent}/models/` | 后端 | 6 个子产品核心模型各添加 Business FK |
+| `web/src/views/apps/iam/index.vue` | 前端 | 全新 hero + tabs 布局，Business 和 Environment 管理 tab |
+| `web/src/views/apps/iam/{BusinessManage,EnvironmentManage}.vue` | 前端 | 业务线 CRUD + 成员管理，部署环境 CRUD + 权限管理 |
+| `web/src/views/apps/iam/{MyRequests,ApprovalDashboard}/index.vue` | 前端 | 全部硬编码英文改为 i18n，统一 opsflow 卡片+表格+弹窗样式 |
+| `web/src/i18n/pages/iam/{en,zh-cn}.ts` | 前端 | 90+ 中英文翻译 key |
+| `docs/superpowers/specs/2026-06-28-multi-tenant-design.md` | 文档 | 17 条设计决策 + 完整实现方案 |
+
+### 解决
+
+- **问题/背景：** OPSflow 仅支持 OpsProject 级别隔离，无法满足企业按业务线和部署环境细粒度控制权限的需求，且 CMDB/ITSM/Monitor 等子产品缺少统一的权限底座
+- **办法：** 新建 iam app 作为多租户基础设施；Project 从 opsflow 迁入 iam 避免循环依赖；权限解析分三层叠加；5 阶段渐进迁移不破坏现有功能；18/18 tests 全程通过
+
+### 文档
+
+- **生成文档：**
+  - `docs/superpowers/specs/2026-06-28-multi-tenant-design.md`
+  - `docs/iam/features/2026-06-28-multi-tenant-implementation.md`
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 有（.bak 残留清理）
+- 子 App index.md 更新: iam, opsflow, cmdb, itsm, monitor, job_platform, integration, opsagent
+- 工作区状态: 干净 ✅
+- 测试: opsflow.tests 18/18 OK ✅
+
+---
+
 ## 4e0cbf74
 
 > 提交日期: 2026-06-26 | 提交信息: feat: add template presets for AI quick-start

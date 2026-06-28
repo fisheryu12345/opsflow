@@ -71,6 +71,11 @@ class ConnectorInstance(CoreModel):
         ConnectorDefinition, on_delete=models.CASCADE,
         related_name='instances', verbose_name="所属定义"
     )
+    business = models.ForeignKey(
+        'iam.Business', null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Business',
+        help_text='Business line for tenant isolation / 业务线归属'
+    )
     name = models.CharField(max_length=255, verbose_name="实例名称",
                             help_text="如 生产环境阿里云、测试环境企微")
     config = models.JSONField(default=dict, verbose_name="配置（非敏感）",

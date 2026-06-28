@@ -1,10 +1,12 @@
 import logging
 
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, exceptions
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from iam.permissions import TenantPermission
+from iam.resolvers import has_project_role
 from opsflow.models import SchedulePlan, FlowExecution
 from opsflow.serializers import SchedulePlanSerializer, FlowExecutionSerializer
 from opsflow.views.base import ProjectFilteredViewSet
@@ -17,7 +19,7 @@ logger = logging.getLogger(__name__)
 class SchedulePlanViewSet(ProjectFilteredViewSet):
     queryset = SchedulePlan.objects.all()
     serializer_class = SchedulePlanSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TenantPermission]
     filterset_fields = ['template', 'status', 'schedule_type', 'is_active', 'project']
     search_fields = ['name', 'description']
     ordering = ['-created_at']
@@ -26,22 +28,24 @@ class SchedulePlanViewSet(ProjectFilteredViewSet):
     def perform_create(self, serializer):
         project_kwargs = self.resolve_project_kwargs(self.request)
         pid = project_kwargs.get('project_id')
-        if pid and pid not in self.get_user_project_ids():
-            from rest_framework import exceptions
-            raise exceptions.PermissionDenied('无权在当前项目创建资源')
+        if pid:
+            if not has_project_role(self.request.user, pid, 'editor'):
+                raise exceptions.PermissionDenied(
+                    'You need at least editor role to create schedules in this project'
+                )
         # ── 定时任务数量校验 ──
         if pid:
-            from opsflow.models import OpsProject
+            from iam.models import Project
             try:
-                project = OpsProject.objects.get(id=pid)
+                project = Project.objects.get(id=pid)
                 if project.max_schedule_plans > 0:
-                    current_count = SchedulePlan.objects.filter(project_id=project_id).count()
+                    current_count = SchedulePlan.objects.filter(project_id=pid).count()
                     if current_count >= project.max_schedule_plans:
                         from rest_framework.exceptions import ValidationError
                         raise ValidationError(
                             f'Project schedule plan limit reached ({project.max_schedule_plans})'
                         )
-            except OpsProject.DoesNotExist:
+            except Project.DoesNotExist:
                 pass
         # ── 结束 ──
         plan = serializer.save(created_by=self.request.user, **project_kwargs)

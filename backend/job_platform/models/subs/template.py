@@ -32,6 +32,11 @@ class Template(CoreModel):
                               default='draft', verbose_name='状态')
     category = models.CharField(max_length=50, null=True, blank=True, verbose_name='分类')
     tags = models.JSONField(default=list, verbose_name='标签')
+    business = models.ForeignKey(
+        'iam.Business', null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Business',
+        help_text='Business line for tenant isolation / 业务线归属'
+    )
     version = models.CharField(max_length=20, default='1.0', verbose_name='版本号')
     # 链表头尾指针 — 使用字符串引用避免循环依赖
     first_step = models.ForeignKey('job_platform.Step', null=True,

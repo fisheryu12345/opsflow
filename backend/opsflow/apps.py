@@ -80,7 +80,7 @@ def _seed_template(project, name: str, category: str, desc: str, pipeline: dict)
 
 def _auto_seed_sample_template():
     """Seed demo templates if not exists."""
-    from opsflow.models import OpsProject
+    from iam.models import Project as OpsProject
     project, _ = OpsProject.objects.get_or_create(
         name="Demo Project",
         defaults={"description": "Auto-created demo project for onboarding"},

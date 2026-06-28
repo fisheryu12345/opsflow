@@ -53,6 +53,11 @@ class MonitorStrategy(models.Model):
 
     name = models.CharField(max_length=128, verbose_name="策略名称", db_index=True)
     bk_biz_id = models.IntegerField(verbose_name="业务ID", db_index=True)
+    business = models.ForeignKey(
+        'iam.Business', null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Business',
+        help_text='Business line for tenant isolation / 业务线归属'
+    )
     scenario = models.CharField(max_length=32, verbose_name="监控场景",
                                 help_text="如 host / service / custom")
     source = models.CharField(max_length=32, default="monitor", verbose_name="来源系统")

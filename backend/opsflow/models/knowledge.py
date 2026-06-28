@@ -14,7 +14,7 @@ class OpsKnowledge(models.Model):
     content = models.TextField(verbose_name="Content")
     tags = models.JSONField(default=list, verbose_name="Tags")
     project = models.ForeignKey(
-        'OpsProject', on_delete=models.CASCADE, null=True, blank=True,
+        'iam.Project', on_delete=models.CASCADE, null=True, blank=True,
         related_name='knowledge_entries', verbose_name="Project"
     )
     source = models.CharField(

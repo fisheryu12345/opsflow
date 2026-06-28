@@ -8,6 +8,8 @@ import logging
 from rest_framework import viewsets, status, exceptions
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from iam.resolvers import has_project_role
+from iam.permissions import TenantPermission
 from opsflow.models import FlowTemplate
 from opsflow.serializers import FlowTemplateSerializer
 from opsflow.views.mixins.template_ai import TemplateAIMixin
@@ -37,7 +39,7 @@ class FlowTemplateViewSet(
 ):
     queryset = FlowTemplate.objects.all()
     serializer_class = FlowTemplateSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TenantPermission]
     filterset_fields = ['is_draft', 'created_by', 'category', 'project', 'is_public']
     search_fields = ['name']
     ordering = ['-created_at']
@@ -52,8 +54,11 @@ class FlowTemplateViewSet(
             instance = serializer.save(created_by=self.request.user, project=None)
         else:
             project_kwargs = self.resolve_project_kwargs(self.request)
-            if 'project_id' in project_kwargs and project_kwargs['project_id'] not in self.get_user_project_ids():
-                raise exceptions.PermissionDenied('No permission to create resources in this project')
+            if 'project_id' in project_kwargs:
+                if not has_project_role(self.request.user, project_kwargs['project_id'], 'editor'):
+                    raise exceptions.PermissionDenied(
+                        'You need at least editor role to create templates in this project'
+                    )
             instance = serializer.save(created_by=self.request.user, **project_kwargs)
         log_operation(self.request.user, 'create', 'template', instance.id, instance.name, request=self.request)
 
@@ -83,15 +88,11 @@ class FlowTemplateViewSet(
         # non-superuser cannot edit public templates
         if instance.is_public and not request.user.is_superuser:
             return ErrorResponse(msg='Only superusers can edit public templates', code=4000, status=status.HTTP_403_FORBIDDEN)
-        # non-superuser cannot make template public (project admin can)
+        # non-superuser: making template public requires project admin role
         if request.data.get('is_public') and not request.user.is_superuser:
-            from opsflow.models import ProjectMember
-            if not instance.project:
+            if not instance.project_id:
                 return ErrorResponse(msg='Only superusers can set a template as public', code=4000, status=status.HTTP_403_FORBIDDEN)
-            is_admin = ProjectMember.objects.filter(
-                project=instance.project, user=request.user, role='admin'
-            ).exists()
-            if not is_admin:
+            if not has_project_role(request.user, instance.project_id, 'admin'):
                 return ErrorResponse(msg='Only superusers or project admin can set a template as public', code=4000, status=status.HTTP_403_FORBIDDEN)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
@@ -150,13 +151,9 @@ class FlowTemplateViewSet(
 
         # 权限检查
         if not user.is_superuser:
-            if not template.project:
+            if not template.project_id:
                 raise exceptions.PermissionDenied('Template has no project')
-            from opsflow.models import ProjectMember
-            is_admin = ProjectMember.objects.filter(
-                project=template.project, user=user, role='admin'
-            ).exists()
-            if not is_admin:
+            if not has_project_role(user, template.project_id, 'admin'):
                 raise exceptions.PermissionDenied('Only project admin can make template public')
 
         if template.is_draft:
@@ -180,8 +177,8 @@ class FlowTemplateViewSet(
         if instance.is_public:
             if not request.user.is_superuser:
                 return ErrorResponse(msg='Only superusers can delete public templates', code=4000)
-        elif instance.created_by and instance.created_by != request.user:
-            return ErrorResponse(msg='Only the creator can delete this template', code=4000)
+        elif instance.project_id and not has_project_role(request.user, instance.project_id, 'editor'):
+            return ErrorResponse(msg='You need at least editor role to delete this template', code=4000)
         log_operation(request.user, 'delete', 'template', instance.id, instance.name, request=request)
         instance.delete()
         return DetailResponse(data=None)

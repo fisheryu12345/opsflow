@@ -14,7 +14,7 @@ class FlowTemplate(models.Model):
     description = models.CharField(max_length=500, blank=True, default='', verbose_name="Description")
     hook_variables = models.JSONField(default=dict, blank=True, verbose_name="Hook Variable Config")
     project = models.ForeignKey(
-        'OpsProject', on_delete=models.CASCADE, null=True, blank=True,
+        'iam.Project', on_delete=models.CASCADE, null=True, blank=True,
         related_name='templates', verbose_name="Project"
     )
     created_by = models.ForeignKey(

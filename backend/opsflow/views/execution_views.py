@@ -4,11 +4,14 @@
 轨迹查询已提取到 views/mixins/ 中的 Mixin 类。
 """
 
-from rest_framework import viewsets
+from rest_framework import viewsets, exceptions
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from opsflow.models import FlowExecution, OpsProject
+from opsflow.models import FlowExecution
+from iam.models import Project
+from iam.permissions import TenantPermission, EnvironmentGatePermission
+from iam.resolvers import has_project_role
 from opsflow.serializers import FlowExecutionSerializer, FlowExecutionDetailSerializer
 from opsflow.views.base import ProjectFilteredViewSet
 from opsflow.views.mixins.execution_lifecycle import ExecutionLifecycleMixin
@@ -27,8 +30,8 @@ class FlowExecutionViewSet(
 ):
     queryset = FlowExecution.objects.all()
     serializer_class = FlowExecutionSerializer
-    permission_classes = [IsAuthenticated]
-    filterset_fields = ['status', 'template', 'project', 'created_by']
+    permission_classes = [IsAuthenticated, TenantPermission, EnvironmentGatePermission]
+    filterset_fields = ['status', 'template', 'project', 'created_by', 'environment']
     ordering = ['-created_at']
     project_field = 'project'
 
@@ -46,18 +49,23 @@ class FlowExecutionViewSet(
         return self.serializer_class
 
     def perform_create(self, serializer):
-        # 设置项目归属（复用 ProjectFilteredViewSet 的项目隔离逻辑）
+        # 设置项目归属 + 权限校验
         project_id = self.request.query_params.get('project_id')
         if project_id:
-            user_project_ids = self.get_user_project_ids()
-            if int(project_id) not in user_project_ids:
-                from rest_framework import exceptions
-                raise exceptions.PermissionDenied('无权在当前项目创建资源')
-            project_kwargs = {'project_id': project_id}
+            if not has_project_role(self.request.user, int(project_id), 'editor'):
+                raise exceptions.PermissionDenied(
+                    'You need at least editor role to execute pipelines in this project'
+                )
+            project_kwargs = {'project_id': int(project_id)}
         else:
-            from opsflow.models import OpsProject
-            default = OpsProject.objects.first()
+            from iam.models import Project
+            default = Project.objects.first()
             project_kwargs = {'project': default} if default else {}
+
+        # Resolve environment from request (validated by EnvironmentGatePermission)
+        env_id = self.request.data.get('environment_id')
+        if env_id:
+            project_kwargs['environment_id'] = int(env_id)
 
         execution = serializer.save(created_by=self.request.user, **project_kwargs)
         # 为新执行初始化 state_tree
@@ -163,7 +171,7 @@ class FlowExecutionViewSet(
                 raise exceptions.PermissionDenied('无权在当前项目创建资源')
             project = None  # 用 project_id 直接设
         else:
-            project = OpsProject.objects.first()
+            project = Project.objects.first()
 
         execution = FlowExecution(
             template=template,

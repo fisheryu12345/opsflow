@@ -1,31 +1,31 @@
-"""OpsProject ViewSet — 项目 CRUD + 成员管理 + 我的项目"""
+"""Project ViewSet — 项目 CRUD + 成员管理 + 我的项目"""
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from opsflow.models import OpsProject, ProjectMember
+from iam.models import Project, ProjectMember
+from iam.resolvers import get_visible_projects
+from iam.permissions import TenantPermission
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 
 
 class OpsProjectViewSet(viewsets.ModelViewSet):
     """项目管理 CRUD + 成员管理"""
-    queryset = OpsProject.objects.all()
-    permission_classes = [IsAuthenticated]
+    queryset = Project.objects.all()
+    permission_classes = [IsAuthenticated, TenantPermission]
     search_fields = ['name', 'description']
     ordering = ['name']
 
     def get_queryset(self):
-        """只返回当前用户有权限的项目"""
+        """返回当前用户有权限的项目（含 Business 继承）"""
         qs = super().get_queryset()
         user = self.request.user
         if user.is_superuser:
             return qs
-        user_project_ids = ProjectMember.objects.filter(
-            user=user
-        ).values_list('project_id', flat=True)
-        return qs.filter(id__in=user_project_ids)
+        visible_ids = get_visible_projects(user)
+        return qs.filter(id__in=visible_ids)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -138,22 +138,26 @@ class OpsProjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def my_projects(self, request):
-        """返回当前用户的所有项目列表（供前端切换器用）"""
+        """返回当前用户的所有项目列表（含 Business 继承，供前端切换器用）"""
         user = request.user
         if user.is_superuser:
-            projects = OpsProject.objects.all()
-        else:
-            memberships = ProjectMember.objects.filter(user=user).select_related('project')
-            data = [
-                {'id': m.project.id, 'name': m.project.name, 'role': m.role}
-                for m in memberships
-            ]
+            projects = Project.objects.all()
+            data = [{'id': p.id, 'name': p.name, 'role': 'admin'} for p in projects]
             return SuccessResponse(data=data)
 
-        data = [
-            {'id': p.id, 'name': p.name, 'role': 'admin'}
-            for p in projects
-        ]
+        visible_ids = get_visible_projects(user)
+        projects = Project.objects.filter(id__in=visible_ids)
+        # Determine effective role: direct ProjectMember or inherited from Business
+        from iam.resolvers import has_project_role
+        data = []
+        for p in projects:
+            if has_project_role(user, p.id, 'admin'):
+                role = 'admin'
+            elif has_project_role(user, p.id, 'editor'):
+                role = 'editor'
+            else:
+                role = 'viewer'
+            data.append({'id': p.id, 'name': p.name, 'role': role})
         return SuccessResponse(data=data)
 
 

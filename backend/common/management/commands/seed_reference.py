@@ -786,10 +786,11 @@ class Command(BaseCommand):
     # ── 8. Migrate Projects ──
 
     def _migrate_projects(self):
-        from opsflow.models import OpsProject, FlowTemplate, FlowExecution
-        from opsflow.models import SchedulePlan, OpsKnowledge, ExecutionScheme, ProjectMember
+        from iam.models import Project, ProjectMember
+        from opsflow.models import FlowTemplate, FlowExecution
+        from opsflow.models import SchedulePlan, OpsKnowledge, ExecutionScheme
 
-        default_project, created = OpsProject.objects.get_or_create(
+        default_project, created = Project.objects.get_or_create(
             name="Default Project",
             defaults={"description": "Default project for existing data", "is_active": True},
         )
@@ -807,7 +808,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  Migrated {count} orphan {name}")
 
         # Ensure project owner is member
-        for project in OpsProject.objects.filter(owner__isnull=False):
+        for project in Project.objects.filter(owner__isnull=False):
             ProjectMember.objects.get_or_create(
                 project=project, user=project.owner,
                 defaults={"role": ProjectMember.Role.ADMIN},
@@ -819,11 +820,12 @@ class Command(BaseCommand):
     # ── 9. Sample Templates ──
 
     def _seed_sample_templates(self):
-        from opsflow.models import OpsProject, FlowTemplate, TemplateCategory
+        from iam.models import Project
+        from opsflow.models import FlowTemplate, TemplateCategory
         from opsflow.core.node_sync import sync_template_nodes
 
         # Ensure Demo Project exists (created by add_mock_data, but bootstrap may skip demo)
-        project, _ = OpsProject.objects.get_or_create(
+        project, _ = Project.objects.get_or_create(
             name="Demo Project",
             defaults={"description": "Auto-created demo project for onboarding", "is_active": True},
         )

@@ -148,6 +148,11 @@ class Alert(models.Model):
     # ── CMDB 关联 ──
     cmdb_host_id = models.CharField(max_length=64, null=True, blank=True, verbose_name="主机ID")
     cmdb_biz_id = models.CharField(max_length=64, null=True, blank=True, verbose_name="业务ID")
+    business = models.ForeignKey(
+        'iam.Business', null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Business',
+        help_text='Business line for tenant isolation / 业务线归属'
+    )
 
     # ── 分派与动作 ──
     assignee = models.CharField(max_length=128, null=True, blank=True, verbose_name="当前负责人")

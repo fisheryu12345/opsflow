@@ -31,6 +31,11 @@ class Session(models.Model):
     session_id = models.CharField(max_length=64, unique=True)
     operator = models.CharField(max_length=128, default='admin')
     environment = models.ForeignKey(EnvironmentContext, on_delete=models.SET_NULL, null=True, blank=True, related_name='sessions')
+    business = models.ForeignKey(
+        'iam.Business', null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Business',
+        help_text='Business line for tenant isolation / 业务线归属'
+    )
     mode = models.CharField(max_length=16, choices=[('repl', 'REPL'), ('oneshot', 'One-shot')])
     status = models.CharField(
         max_length=16,

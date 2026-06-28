@@ -51,6 +51,11 @@ class Ticket(CoreModel):
                                        verbose_name="当前状态")
     pipeline_id = models.CharField(max_length=128, blank=True, default='', verbose_name="Pipeline ID")
     node_status = models.JSONField(default=dict, verbose_name="节点状态快照")
+    business = models.ForeignKey(
+        'iam.Business', null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Business',
+        help_text='Business line for tenant isolation / 业务线归属'
+    )
     meta = models.JSONField(default=dict, verbose_name="扩展信息")
     state_history = models.JSONField(default=list, verbose_name="状态变更历史")
 

@@ -20,7 +20,7 @@ class SchedulePlan(models.Model):
         verbose_name="Template"
     )
     project = models.ForeignKey(
-        'OpsProject', on_delete=models.CASCADE, null=True, blank=True,
+        'iam.Project', on_delete=models.CASCADE, null=True, blank=True,
         related_name='schedule_plans', verbose_name="Project"
     )
     name = models.CharField(max_length=128, verbose_name="Schedule Name")

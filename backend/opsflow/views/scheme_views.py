@@ -2,11 +2,13 @@
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from opsflow.models import FlowTemplate, ExecutionScheme
 from opsflow.serializers import ExecutionSchemeSerializer
 from opsflow.views.base import ProjectFilteredViewSet
+from iam.permissions import TenantPermission
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 
 
@@ -14,6 +16,7 @@ class ExecutionSchemeViewSet(ProjectFilteredViewSet):
     """执行方案 CRUD — 预定义节点排除集 + 变量覆盖"""
     queryset = ExecutionScheme.objects.all()
     serializer_class = ExecutionSchemeSerializer
+    permission_classes = [IsAuthenticated, TenantPermission]
     project_field = 'project'
 
     def get_queryset(self):

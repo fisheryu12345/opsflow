@@ -23,6 +23,16 @@ class OperationRecord(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, verbose_name='Operator'
     )
+    business = models.ForeignKey(
+        'iam.Business', null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Business',
+        help_text='Business for scoping audit visibility / 审计记录归属业务线'
+    )
+    project = models.ForeignKey(
+        'iam.Project', null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Project',
+        help_text='Project for scoping audit visibility / 审计记录归属项目'
+    )
     ip_address = models.CharField(max_length=45, blank=True, verbose_name='IP Address')
     created_at = models.DateTimeField(auto_now_add=True)
 

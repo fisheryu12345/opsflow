@@ -234,7 +234,7 @@ class Command(BaseCommand):
         self.stdout.write("OpsFlow Platform — Mock Data Generator")
         self.stdout.write("=" * 60)
 
-        # ── Step 1: OpsProject ──
+        # ── Step 1: Project ──
         self._create_projects()
 
         # ── Step 2: Template Categories ──
@@ -322,9 +322,9 @@ class Command(BaseCommand):
 
     def _create_projects(self):
         self.stdout.write("\n>>> Creating Projects ...")
-        from opsflow.models import OpsProject, ProjectMember
+        from iam.models import Project, ProjectMember
         for p in SAMPLE_PROJECTS:
-            obj, created = self._get_or_create(OpsProject, name=p["name"])
+            obj, created = self._get_or_create(Project, name=p["name"])
             if created or self.force:
                 obj.owner = self.admin_user
                 obj.save(update_fields=['owner'] if not created else [])

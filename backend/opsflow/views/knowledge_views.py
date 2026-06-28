@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from opsflow.models import OpsKnowledge
 from opsflow.serializers import OpsKnowledgeSerializer
 from opsflow.views.base import ProjectFilteredViewSet
+from iam.permissions import TenantPermission
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 class OpsKnowledgeViewSet(ProjectFilteredViewSet):
     queryset = OpsKnowledge.objects.all()
     serializer_class = OpsKnowledgeSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TenantPermission]
     search_fields = ['title', 'content', 'tags']
     filterset_fields = ['source', 'project']
     ordering = ['-created_at']

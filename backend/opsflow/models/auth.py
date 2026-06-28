@@ -3,11 +3,21 @@ from django.conf import settings
 
 
 class ApiToken(models.Model):
-    """外部 API Token — 用于第三方系统认证"""
+    """外部 API Token — 用于第三方系统认证，绑定 Business + Deployment Environment"""
     name = models.CharField(max_length=64, verbose_name='Token Name')
     token = models.CharField(max_length=64, unique=True, verbose_name='Token')
     is_active = models.BooleanField(default=True, verbose_name='Is Active')
     allowed_actions = models.JSONField(default=list, blank=True, verbose_name='Allowed Actions')
+    business = models.ForeignKey(
+        'iam.Business', null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Business',
+        help_text='Token scoped to this business / Token 可操作的业务线范围'
+    )
+    environment = models.ForeignKey(
+        'iam.DeployEnvironment', null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Deploy Environment',
+        help_text='Token scoped to this environment / Token 可操作的环境'
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         null=True, blank=True, verbose_name='Creator'

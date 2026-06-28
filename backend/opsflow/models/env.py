@@ -4,7 +4,7 @@ from django.db import models
 class ProjectEnvironmentVariable(models.Model):
     """项目级环境变量 — 跨模板共享的配置值"""
     project = models.ForeignKey(
-        'OpsProject', on_delete=models.CASCADE, related_name='env_vars',
+        'iam.Project', on_delete=models.CASCADE, related_name='env_vars',
         verbose_name="Project"
     )
     key = models.CharField(max_length=128, verbose_name="Variable Key")

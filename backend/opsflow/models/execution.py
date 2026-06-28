@@ -18,7 +18,7 @@ class FlowExecution(models.Model):
         verbose_name="Template"
     )
     project = models.ForeignKey(
-        'OpsProject', on_delete=models.CASCADE, null=True, blank=True,
+        'iam.Project', on_delete=models.CASCADE, null=True, blank=True,
         related_name='executions', verbose_name="Project"
     )
     status = models.CharField(
@@ -47,6 +47,11 @@ class FlowExecution(models.Model):
     )
     is_subprocess = models.BooleanField(default=False, verbose_name="Is Independent Subprocess")
     excluded_nodes = models.JSONField(default=list, null=True, blank=True, verbose_name="Excluded Node IDs")
+    environment = models.ForeignKey(
+        'iam.DeployEnvironment', null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name="Deploy Environment",
+        help_text="Target deploy environment for this execution / 本次执行的目标部署环境"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -96,7 +101,7 @@ class ExecutionScheme(models.Model):
         verbose_name="Template"
     )
     project = models.ForeignKey(
-        'OpsProject', on_delete=models.CASCADE, null=True, blank=True,
+        'iam.Project', on_delete=models.CASCADE, null=True, blank=True,
         related_name='schemes', verbose_name="Project"
     )
     name = models.CharField(max_length=128, verbose_name="Scheme Name")
