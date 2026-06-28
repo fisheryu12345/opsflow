@@ -479,7 +479,7 @@ function openEdit(row: any) {
 
 async function goEditTemplate(row: any) {
   try { const r = await GetTemplateDetail(row.id); opsflowStore.setCurrentTemplate(r.data?.data || r.data || row) } catch { opsflowStore.setCurrentTemplate(row) }
-  router.push('/opsflow')
+  router.push('/opsflow_designer')
 }
 
 async function handleSave() {
