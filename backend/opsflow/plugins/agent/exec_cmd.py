@@ -31,8 +31,10 @@ class AgentExecCmdPlugin(BasePlugin):
                 tag_code="target_hosts",
                 type="textarea",
                 name="目标主机",
+                name_en="Target Hosts",
                 attrs={
                     "placeholder": "主机 IP（多个用逗号分隔，或从 CMDB 变量传入）",
+                    "placeholder_en": "Host IPs (comma-separated, or from CMDB variable)",
                     "rows": 2,
                 },
                 default="",
@@ -41,6 +43,7 @@ class AgentExecCmdPlugin(BasePlugin):
                 tag_code="script_type",
                 type="select",
                 name="脚本类型",
+                name_en="Script Type",
                 default="shell",
                 attrs={
                     "options": [
@@ -55,22 +58,25 @@ class AgentExecCmdPlugin(BasePlugin):
                 tag_code="script_content",
                 type="textarea",
                 name="脚本内容",
-                attrs={"placeholder": "输入要执行的命令或脚本内容", "rows": 8},
+                name_en="Script Content",
+                attrs={"placeholder": "输入要执行的命令或脚本内容", "placeholder_en": "Enter the command or script to execute", "rows": 8},
                 default="",
             ),
             FormItem(
                 tag_code="timeout",
                 type="input",
                 name="超时秒数",
+                name_en="Timeout (s)",
                 default="3600",
-                attrs={"placeholder": "命令执行超时时间（秒）"},
+                attrs={"placeholder": "命令执行超时时间（秒）", "placeholder_en": "Command execution timeout in seconds"},
             ),
             FormItem(
                 tag_code="work_dir",
                 type="input",
                 name="工作目录",
+                name_en="Work Directory",
                 default="",
-                attrs={"placeholder": "可选，命令执行的工作目录"},
+                attrs={"placeholder": "可选，命令执行的工作目录", "placeholder_en": "Optional working directory"},
             ),
         ]
 

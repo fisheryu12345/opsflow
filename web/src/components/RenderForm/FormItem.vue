@@ -2,7 +2,7 @@
   <div class="form-item" v-show="!isHidden" :style="{ gridColumn: `span ${col}` }">
     <div class="form-label-row">
       <label v-if="config.name" class="form-label" :class="{ required: isRequired }">
-        {{ config.name }}
+        {{ isEn && config.name_en ? config.name_en : config.name }}
       </label>
     </div>
     <div class="form-control">
@@ -25,6 +25,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Upload } from '@element-plus/icons-vue'
 import {
   TagInput, TagSelect, TagTextarea, TagCheckbox,
@@ -56,6 +57,9 @@ const TAG_MAP: Record<string, any> = {
   variable_mapping: TagVariableMapping,
 }
 
+const { locale } = useI18n()
+const isEn = computed(() => String(locale.value).startsWith('en'))
+
 const props = withDefaults(defineProps<{
   config: any
   value?: any
@@ -74,16 +78,22 @@ const isRequired = computed(() =>
 const isHidden = computed(() => props.config.hidden || false)
 const col = computed(() => Math.min(props.config.col || 12, 12))
 
-const tagProps = computed(() => ({
-  ...props.config.attrs,
-  // Pass render context to tag components (templateId, nodeId, etc.)
-  ...(props.context?.templateId ? { templateId: props.context.templateId } : {}),
-  ...(props.context?.nodeId ? { nodeId: props.context.nodeId } : {}),
-  ...(props.context?.availableVars ? { availableVars: props.context.availableVars } : {}),
-  ...(props.context?.graphNodes ? { graphNodes: props.context.graphNodes } : {}),
-  ...(props.context?.allGraphNodes ? { allGraphNodes: props.context.allGraphNodes } : {}),
-  tagCode: props.tagCode || props.config.tag_code || '',
-}))
+const tagProps = computed(() => {
+  const attrs = { ...props.config.attrs }
+  // Use English placeholder if in EN mode
+  if (isEn.value && attrs.placeholder_en) {
+    attrs.placeholder = attrs.placeholder_en
+  }
+  return {
+    ...attrs,
+    ...(props.context?.templateId ? { templateId: props.context.templateId } : {}),
+    ...(props.context?.nodeId ? { nodeId: props.context.nodeId } : {}),
+    ...(props.context?.availableVars ? { availableVars: props.context.availableVars } : {}),
+    ...(props.context?.graphNodes ? { graphNodes: props.context.graphNodes } : {}),
+    ...(props.context?.allGraphNodes ? { allGraphNodes: props.context.allGraphNodes } : {}),
+    tagCode: props.tagCode || props.config.tag_code || '',
+  }
+})
 
 function onChange(val: any) {
   errorMsg.value = ''
