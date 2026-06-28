@@ -53,7 +53,8 @@
 
 - [x] 模板自动保存冲突提示（P2） ✅
 - [ ] CI/CD + K8s 部署支持（P2）
-- [x] 测试框架统一: 18 → 240 个测试发现 ✅
+- [x] 测试框架统一: 18 → 252 个测试发现 ✅
+- [x] 端到端 E2E 测试: 串行/并行/排他/回环/loop 全覆盖 ✅
 
 ### 2026-06-28 Update
 > 提交: 6ce7605d
@@ -65,3 +66,8 @@
 - 新增 TemplateLock 测试 9 个（acquire/release/heartbeat/expiry/loop_iteration）
 - 测试发现: 18 → 240 个（python manage.py test 单命令运行）
 - pytest 已从项目移除
+
+### 2026-06-28 Update
+> 提交: 5f00962e
+- 端到端 E2E 测试: 6 个测试覆盖串行/并行/排他/回环(Mechanism B)/loop_config(Mechanism A)
+- 测试总数: 240 → 252
