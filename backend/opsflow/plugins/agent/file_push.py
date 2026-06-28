@@ -30,6 +30,7 @@ class AgentFilePushPlugin(BasePlugin):
                 tag_code="target_hosts",
                 type="textarea",
                 name="目标主机",
+                name_en = "Target Hosts"
                 attrs={"placeholder": "主机 IP（多个用逗号分隔）", "rows": 2},
                 default="",
             ),

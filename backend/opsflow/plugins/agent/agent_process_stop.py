@@ -28,6 +28,7 @@ class AgentProcessStopPlugin(BasePlugin):
             FormItem(tag_code="service_name", type="input", name="Service 名称",
                      attrs={"placeholder": "systemd unit 名（如 nginx.service）"}, default=""),
             FormItem(tag_code="force", type="checkbox", name="强制停止",
+            name_en = "Service Name"
                      default=False, attrs={"options": [{"label": "kill -9 强制终止", "value": True}]}),
         ]
 

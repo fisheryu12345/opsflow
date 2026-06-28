@@ -39,6 +39,7 @@ class AgentProcessStartPlugin(BasePlugin):
                 tag_code="service_name",
                 type="input",
                 name="Service 名称",
+                name_en = "Service Name"
                 attrs={"placeholder": "systemd unit 名（如 nginx.service）或应用名"},
                 default="",
             ),
