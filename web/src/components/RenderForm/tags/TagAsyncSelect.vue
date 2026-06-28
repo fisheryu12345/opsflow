@@ -52,7 +52,7 @@ const props = withDefaults(defineProps<{
   label_key: 'label',
   searchable: false,
   multiple: false,
-  clearable: false,
+  clearable: true,
   placeholder: '请选择',
   disabled: false,
 })

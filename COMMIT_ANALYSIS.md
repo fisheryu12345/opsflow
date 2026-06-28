@@ -2,6 +2,36 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## ec4bb162
+
+> 提交日期: 2026-06-28 | 提交信息: fix: enable clearable for async_select dropdown
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| web/src/components/RenderForm/tags/TagAsyncSelect.vue | 前端 | clearable 默认值 false→true |
+| docs/opsflow/debug/2026-06-28-async-select-clearable-fix.md | 文档 | 新建调试文档 |
+
+### 解决
+
+- **问题/背景：** async_select 下拉（如"实例"字段）选中后无法清除，因为 clearable 默认为 false
+- **办法：** 将 clearable 默认值改为 true，所有 async_select 字段自动显示 × 清空按钮
+
+### 文档
+
+- **生成文档：**
+  - docs/opsflow/debug/2026-06-28-async-select-clearable-fix.md
+
+### 验证
+
+- 改动类型: fix
+- 清理乱码: 无
+- 子 App index.md 更新: 无（纯前端组件 + 文档）
+- 工作区状态: 待提交 ✅
+
+---
+
 ## 4fbb2c87
 
 > 提交日期: 2026-06-28 | 提交信息: refactor: remove execution rollback functionality — 移除所有执行回滚代码
