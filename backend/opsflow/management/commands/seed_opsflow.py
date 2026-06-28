@@ -1,30 +1,13 @@
-"""
-Seed system reference data: categories, knowledge, sample templates,
-CMDB models, monitor plugins, connector definitions, menus, IAM.
+"""Seed OpsFlow reference & mock data"""
 
-Usage:
-    python manage.py seed_reference           # Add reference data (idempotent)
-    python manage.py seed_reference --force    # Force update existing records
-
-This replaces the following individual commands:
-    seed_template_categories, seed_knowledge, seed_sample_template,
-    opsflow_migrate_projects, seed_cmdb_models, seed_monitor,
-    seed_connector_definitions, add_iam_menu, add_app_menus
-"""
-
-import json
-import logging
-
-from django.core.management.base import BaseCommand, CommandError
+from iam.models import Project, ProjectMember
+from opsflow.models import (FlowTemplate, TemplateCategory, TemplateNode, TemplatePreset,
+    OpsKnowledge, SchedulePlan, FlowExecution, ExecutionScheme, PluginMeta,
+    ApiToken, ProjectEnvironmentVariable, WebhookConfig, OperationRecord)
+from opsflow.core.node_sync import sync_template_nodes
+from opsflow.plugins.registry import discover_plugins
 from django.contrib.auth import get_user_model
-from django.db.utils import IntegrityError
-
-logger = logging.getLogger(__name__)
-User = get_user_model()
-
-# ════════════════════════════════════════════════════════════
-# Phase 1: Template Categories (18 standard IT categories)
-# ════════════════════════════════════════════════════════════
+from django.core.management.base import BaseCommand
 
 TEMPLATE_CATEGORIES = [
     {"code": "server", "name": "服务器管理", "icon": "server", "sort_order": 10},
@@ -856,3 +839,412 @@ class Command(BaseCommand):
         for tpl in SAMPLE_TEMPLATES:
             _, created = _seed_one(tpl["name"], tpl["category"], tpl["description"], tpl["pipeline"])
             self.stdout.write(f"  Sample template: {'created' if created else 'found'} — {tpl['name']}")
+
+SAMPLE_PROJECTS = [
+    {"name": "电商平台", "desc": "核心电商业务系统运维项目"},
+    {"name": "支付系统", "desc": "支付网关与清算系统运维项目"},
+    {"name": "内部OA", "desc": "内部办公自动化系统运维项目"},
+    {"name": "大数据平台", "desc": "数据仓库与实时计算平台运维项目"},
+    {"name": "AI训练平台", "desc": "机器学习模型训练与推理平台运维项目"},
+]
+
+class Command(BaseCommand):
+    help = "Seed OpsFlow data"
+
+    def handle(self, *args, **options):
+        self._seed_template_categories()
+        self._seed_knowledge()
+        self._migrate_projects()
+        self._seed_sample_templates()
+        self._create_projects()
+        self._create_template_categories()
+        self._create_templates()
+        self._create_plugins()
+        self._create_schedules()
+        self._create_webhooks()
+        self._create_knowledge()
+        self._create_api_tokens()
+        self._create_env_vars()
+        self._create_executions()
+        self._create_execution_schemes()
+        self._create_audit_records()
+        self.stdout.write(self.style.SUCCESS("OpsFlow seed complete!"))
+
+    def _get_or_create(self, model_class, defaults_update=None, **lookup):
+        """Get or create a model instance. With --force, update defaults."""
+        obj, created = model_class.objects.get_or_create(defaults={}, **lookup)
+        if not created and self.force:
+            if defaults_update:
+                for k, v in defaults_update.items():
+                    setattr(obj, k, v)
+                obj.save()
+        elif created and defaults_update:
+            for k, v in defaults_update.items():
+                setattr(obj, k, v)
+            obj.save()
+        return obj, created
+
+    def _random_project(self):
+        import random
+        if not self.project_map:
+            return None
+        ids = list(self.project_map.keys())
+        return self.project_map[random.choice(ids)]
+
+    def _random_template(self):
+        from opsflow.models import FlowTemplate
+        qs = FlowTemplate.objects.all()
+        if not qs.exists():
+            return None
+        import random
+        return random.choice(list(qs))
+
+    # ── data creators ──
+
+    def _seed_template_categories(self):
+        from opsflow.models import TemplateCategory
+        created = updated = 0
+        for cat in TEMPLATE_CATEGORIES:
+            obj, is_new = TemplateCategory.objects.update_or_create(
+                code=cat["code"],
+                defaults={"name": cat["name"], "icon": cat["icon"],
+                          "sort_order": cat["sort_order"], "is_active": True},
+            )
+            if is_new:
+                created += 1
+            else:
+                updated += 1
+        self.stdout.write(f"\n>>> Template Categories: {created} new, {updated} updated")
+
+    # ── 2. Knowledge Base ──
+
+    def _seed_knowledge(self):
+        from opsflow.models import OpsKnowledge
+        created = skipped = 0
+        for entry in KNOWLEDGE_ENTRIES:
+            _, is_new = OpsKnowledge.objects.update_or_create(
+                title=entry["title"],
+                defaults={"content": entry["content"], "tags": entry["tags"], "source": entry["source"]},
+            )
+            if is_new:
+                created += 1
+            else:
+                skipped += 1
+        self.stdout.write(f">>> Knowledge Base: {created} new, {skipped} existing")
+
+    # ── 3. App Menus (match current DB structure) ──
+
+    def _migrate_projects(self):
+        from iam.models import Project, ProjectMember
+        from opsflow.models import FlowTemplate, FlowExecution
+        from opsflow.models import SchedulePlan, OpsKnowledge, ExecutionScheme
+
+        default_project, created = Project.objects.get_or_create(
+            name="Default Project",
+            defaults={"description": "Default project for existing data", "is_active": True},
+        )
+
+        # Migrate orphan data
+        migrated_total = 0
+        for model, name in [
+            (FlowTemplate, "templates"), (FlowExecution, "executions"),
+            (SchedulePlan, "schedule_plans"), (OpsKnowledge, "knowledge"),
+            (ExecutionScheme, "execution_schemes"),
+        ]:
+            count = model.objects.filter(project__isnull=True).update(project=default_project)
+            migrated_total += count
+            if count:
+                self.stdout.write(f"  Migrated {count} orphan {name}")
+
+        # Ensure project owner is member
+        for project in Project.objects.filter(owner__isnull=False):
+            ProjectMember.objects.get_or_create(
+                project=project, user=project.owner,
+                defaults={"role": ProjectMember.Role.ADMIN},
+            )
+
+        self.stdout.write(f">>> Projects: default project {'created' if created else 'found'}, "
+                          f"{migrated_total} orphan records migrated")
+
+    # ── 9. Sample Templates ──
+
+    def _seed_sample_templates(self):
+        from iam.models import Project
+        from opsflow.models import FlowTemplate, TemplateCategory
+        from opsflow.core.node_sync import sync_template_nodes
+
+        # Ensure Demo Project exists (created by add_mock_data, but bootstrap may skip demo)
+        project, _ = Project.objects.get_or_create(
+            name="Demo Project",
+            defaults={"description": "Auto-created demo project for onboarding", "is_active": True},
+        )
+
+        def _seed_one(name, category, desc, pipeline):
+            tpl, created = FlowTemplate.objects.get_or_create(
+                name=name,
+                defaults={
+                    "project": project, "category": category, "description": desc,
+                    "pipeline_tree": pipeline, "is_draft": False, "version": 1,
+                },
+            )
+            if created:
+                tpl.created_by = User.objects.filter(is_superuser=True).first()
+                tpl.save(update_fields=["created_by"] if tpl.created_by else [])
+                # Publish snapshot
+                from opsflow.models import TemplateVersion
+                TemplateVersion.objects.get_or_create(
+                    template=tpl, version=1,
+                    defaults={"created_by": tpl.created_by, "pipeline_tree": pipeline},
+                )
+                from opsflow.core.pipeline_builder import publish_pipeline_snapshot
+                publish_pipeline_snapshot(tpl)
+                sync_template_nodes(tpl, pipeline.get("nodes", []))
+                return tpl, True
+            return tpl, False
+
+        for tpl in SAMPLE_TEMPLATES:
+            _, created = _seed_one(tpl["name"], tpl["category"], tpl["description"], tpl["pipeline"])
+            self.stdout.write(f"  Sample template: {'created' if created else 'found'} — {tpl['name']}")
+
+    def _create_projects(self):
+        self.stdout.write("\n>>> Creating Projects ...")
+        from iam.models import Project, ProjectMember
+        for p in SAMPLE_PROJECTS:
+            obj, created = self._get_or_create(Project, name=p["name"])
+            if created or self.force:
+                obj.owner = self.admin_user
+                obj.save(update_fields=['owner'] if not created else [])
+            self.project_map[obj.id] = obj
+            # add project member
+            ProjectMember.objects.get_or_create(project=obj, user=self.admin_user, defaults={'role': 'admin'})
+            self.stdout.write(f"  {'+' if created else ' '} Project: {p['name']}")
+
+    def _create_template_categories(self):
+        self.stdout.write("\n>>> Creating Template Categories ...")
+        from django.db.utils import IntegrityError
+        from opsflow.models import TemplateCategory
+        existing_codes = set(TemplateCategory.objects.values_list('code', flat=True))
+        existing_names = set(TemplateCategory.objects.values_list('name', flat=True))
+        for c in SAMPLE_TEMPLATE_CATEGORIES:
+            if c["code"] in existing_codes:
+                self.stdout.write(f"    Category: {c['name']} ({c['code']}) (exists)")
+                continue
+            if c["name"] in existing_names:
+                self.stdout.write(f"    Category: {c['name']} ({c['code']}) (name exists, skip)")
+                continue
+            try:
+                obj = TemplateCategory.objects.create(code=c["code"], name=c["name"])
+                self.stdout.write(f"  + Category: {obj.name} ({obj.code})")
+            except IntegrityError as e:
+                self.stdout.write(f"    Category: {c['name']} ({c['code']}) (skip: {e})")
+
+    def _create_templates(self):
+        self.stdout.write("\n>>> Creating Templates + Nodes + Versions ...")
+        from opsflow.models import FlowTemplate, TemplateNode, TemplateVersion
+
+        for i, t in enumerate(SAMPLE_TEMPLATES):
+            proj = self._random_project()
+            obj, created = self._get_or_create(
+                FlowTemplate, name=t["name"],
+                defaults_update={
+                    "project": proj,
+                    "category": t["category_code"],
+                    "pipeline_tree": t["pipeline_tree"],
+                    "is_draft": False,
+                    "description": f"{t['name']} — auto-generated mock template",
+                    "version": 1,
+                }
+            )
+            if created:
+                obj.created_by = self.admin_user
+                obj.save(update_fields=['created_by'])
+            self.stdout.write(f"  {'+' if created else ' '} Template: {t['name']}")
+
+            # Create template nodes
+            if created or self.force:
+                for node in t["pipeline_tree"].get("nodes", []):
+                    TemplateNode.objects.get_or_create(
+                        template=obj,
+                        node_id=node["id"],
+                        defaults={"node_type": node.get("type", "task"), "label": node.get("label", "")},
+                    )
+
+            # Create version
+            TemplateVersion.objects.get_or_create(
+                template=obj, version=1,
+                defaults={
+                    "created_by": self.admin_user,
+                    "pipeline_tree": t["pipeline_tree"],
+                },
+            )
+
+    def _create_plugins(self):
+        self.stdout.write("\n>>> Creating Plugins ...")
+        from opsflow.models import PluginMeta
+        for p in SAMPLE_PLUGINS:
+            obj, created = self._get_or_create(PluginMeta, code=p["code"], name=p["name"], group=p["group"],
+                                                defaults_update={"risk_level": "low", "is_active": True})
+            self.stdout.write(f"  {'+' if created else ' '} Plugin: {p['name']}")
+
+    def _create_schedules(self):
+        self.stdout.write("\n>>> Creating Schedule Plans ...")
+        from opsflow.models import SchedulePlan
+        from opsflow.models import FlowTemplate
+        templates = list(FlowTemplate.objects.all()[:5])
+        for i, t in enumerate(templates[:3]):
+            obj, created = self._get_or_create(
+                SchedulePlan, template=t, name=f"{t.name} 每日执行",
+                defaults_update={
+                    "schedule_type": "cron",
+                    "cron_expr": "0 3 * * *",
+                    "project": self._random_project(),
+                    "created_by": self.admin_user,
+                }
+            )
+            self.stdout.write(f"  {'+' if created else ' '} Schedule: {obj.name}")
+
+    def _create_webhooks(self):
+        self.stdout.write("\n>>> Creating Webhook Configs ...")
+        from opsflow.models import WebhookConfig, FlowTemplate
+        templates = list(FlowTemplate.objects.all()[:5])
+        webhook_defs = [
+            {"name": "企业微信通知", "url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=mock-key"},
+            {"name": "钉钉机器人", "url": "https://oapi.dingtalk.com/robot/send?access_token=mock-token"},
+            {"name": "飞书机器人", "url": "https://open.feishu.cn/open-apis/bot/v2/hook/mock"},
+        ]
+        for t in templates[:3]:
+            for w in webhook_defs:
+                obj, created = self._get_or_create(
+                    WebhookConfig, template=t, name=w["name"], url=w["url"],
+                    defaults_update={"created_by": self.admin_user},
+                )
+                if created:
+                    self.stdout.write(f"  + Webhook: {w['name']} -> {t.name}")
+
+    def _create_knowledge(self):
+        self.stdout.write("\n>>> Creating Knowledge Base ...")
+        from opsflow.models import OpsKnowledge
+        for k in SAMPLE_KNOWLEDGE:
+            obj, created = self._get_or_create(
+                OpsKnowledge, title=k["title"],
+                defaults_update={"content": k["content"], "tags": k["tags"], "source": "doc"},
+            )
+            self.stdout.write(f"  {'+' if created else ' '} Knowledge: {k['title']}")
+
+    def _create_api_tokens(self):
+        self.stdout.write("\n>>> Creating API Tokens ...")
+        import uuid
+        from opsflow.models import ApiToken
+        tokens = [
+            {"name": "CMDB 同步 Token", "allowed_actions": ["cmdb.sync"]},
+            {"name": "监控告警 Token", "allowed_actions": ["monitor.push_alert"]},
+            {"name": "CI/CD Token", "allowed_actions": ["execution.create", "execution.start"]},
+        ]
+        for t in tokens:
+            obj, created = self._get_or_create(
+                ApiToken, name=t["name"],
+                defaults_update={
+                    "token": uuid.uuid4().hex[:32],
+                    "created_by": self.admin_user,
+                    "allowed_actions": t["allowed_actions"],
+                },
+            )
+            self.stdout.write(f"  {'+' if created else ' '} ApiToken: {t['name']}")
+
+    def _create_env_vars(self):
+        self.stdout.write("\n>>> Creating Environment Variables ...")
+        from opsflow.models import ProjectEnvironmentVariable
+        env_vars = [
+            {"key": "NGINX_HOME", "value": "/usr/local/nginx", "var_type": "input"},
+            {"key": "MYSQL_ROOT_PASSWORD", "value": "******", "var_type": "password"},
+            {"key": "JAVA_HOME", "value": "/usr/lib/jvm/java-11", "var_type": "input"},
+            {"key": "LOG_RETENTION_DAYS", "value": "30", "var_type": "int"},
+            {"key": "ALERT_WEBHOOK_URL", "value": "https://alert.example.com/hook", "var_type": "input"},
+        ]
+        projects = list(self.project_map.values())
+        for proj in projects[:3]:
+            for ev in env_vars:
+                obj, created = self._get_or_create(
+                    ProjectEnvironmentVariable, project=proj, key=ev["key"],
+                    defaults_update={"value": ev["value"], "var_type": ev["var_type"]},
+                )
+                if created:
+                    self.stdout.write(f"  + EnvVar: {ev['key']} -> {proj.name}")
+
+    def _create_executions(self):
+        self.stdout.write("\n>>> Creating Executions ...")
+        from opsflow.models import FlowTemplate, FlowExecution, ExecutionNode
+        from opsflow.models.execution import NodeExecutionTrace
+        templates = list(FlowTemplate.objects.all()[:6])
+        statuses = ["completed", "running", "failed", "paused", "cancelled"]
+        for i, t in enumerate(templates):
+            status = statuses[i % len(statuses)]
+            now = timezone.now()
+            started = now - datetime.timedelta(hours=random.randint(1, 72))
+            ended = now if status == "running" else started + datetime.timedelta(minutes=random.randint(5, 60))
+            exec_obj, created = FlowExecution.objects.get_or_create(
+                template=t,
+                status=status,
+                created_by=self.admin_user,
+                defaults={
+                    "project": self._random_project(),
+                    "state_tree": {},
+                    "context": {"dry_run": False},
+                    "template_snapshot": {
+                        "pipeline_tree": t.pipeline_tree,
+                        "global_vars": {},
+                        "template_version": t.version,
+                    },
+                },
+            )
+            if created:
+                # Create execution nodes
+                nodes_data = (t.pipeline_tree or {}).get("nodes", [])
+                for nd in nodes_data:
+                    ExecutionNode.objects.get_or_create(
+                        execution=exec_obj, node_id=nd["id"],
+                        defaults={"node_type": nd.get("type", "task"), "status": status if status != "running" else "completed"},
+                    )
+                self.stdout.write(f"  + Execution #{exec_obj.id} ({t.name}): {status}")
+            else:
+                self.stdout.write(f"    Execution #{exec_obj.id} ({t.name}): {status} (exists)")
+
+    def _create_execution_schemes(self):
+        self.stdout.write("\n>>> Creating Execution Schemes ...")
+        from opsflow.models import ExecutionScheme
+        from opsflow.models import FlowTemplate
+        templates = list(FlowTemplate.objects.all()[:4])
+        scheme_names = ["快速执行方案", "全量部署方案", "灰度发布方案", "回滚方案"]
+        for i, t in enumerate(templates):
+            name = scheme_names[i % len(scheme_names)]
+            obj, created = self._get_or_create(
+                ExecutionScheme, template=t, name=name,
+                defaults_update={
+                    "project": self._random_project(),
+                    "created_by": self.admin_user,
+                    "excluded_nodes": [],
+                },
+            )
+            self.stdout.write(f"  {'+' if created else ' '} Scheme: {name} -> {t.name}")
+
+    def _create_audit_records(self):
+        self.stdout.write("\n>>> Creating Operation Records ...")
+        from opsflow.models import OperationRecord, OpsLog
+        from opsflow.models import FlowTemplate
+        templates = list(FlowTemplate.objects.all()[:3])
+        actions = ["create", "update", "publish", "execute", "approve"]
+        count = 0
+        for t in templates:
+            for idx, action in enumerate(actions):
+                # Use unique detail + resource_id to avoid MultipleObjectsReturned
+                detail = {"template_name": t.name, "version": t.version, "action_index": idx}
+                op, created = OperationRecord.objects.get_or_create(
+                    action=action,
+                    resource_type="template",
+                    resource_id=str(t.id),
+                    operator=self.admin_user,
+                    defaults={"detail": detail},
+                )
+                if created:
+                    count += 1
+        self.stdout.write(f"  + Created {count} OperationRecords")
