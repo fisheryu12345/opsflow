@@ -43,7 +43,7 @@
 
 ---
 
-## a5cff5d3
+## e345baa5
 
 > 提交日期: 2026-06-28 | 提交信息: fix: loop config i18n + switch click event bubble fix — Loop Configuration 区域 i18n 替换 + 滑块点击无响应修复
 
