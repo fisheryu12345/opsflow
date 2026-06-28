@@ -2,7 +2,11 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+<<<<<<< HEAD
 ## ec4bb162
+=======
+## a793b890
+>>>>>>> 8e58d2cb (fix: enable clearable for async_select dropdown — async_select 下拉默认启用清空按钮)
 
 > 提交日期: 2026-06-28 | 提交信息: fix: enable clearable for async_select dropdown
 

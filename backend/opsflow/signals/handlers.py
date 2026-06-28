@@ -54,6 +54,42 @@ def _push_node_status_via_ws(execution, node_id):
     )
 
 
+def _check_optional_skip(execution, node_id: str) -> bool:
+    """检查节点是否标记为 Optional — 失败时自动跳过
+
+    从执行冻结快照中查找节点配置，如果节点的 optional=True 则自动跳过。
+    无 template_snapshot 时回退到模板当前 pipeline_tree。
+    """
+    try:
+        # 优先使用执行时的冻结快照
+        tree = None
+        if execution.template_snapshot:
+            tree = execution.template_snapshot.get('pipeline_tree')
+        # 回退到模板当前 pipeline_tree
+        if not tree and execution.template_id:
+            tree = execution.template.pipeline_tree
+        if not tree:
+            return False
+
+        for node in tree.get('nodes', []):
+            if node.get('id') == node_id:
+                optional = node.get('optional', False)
+                if optional:
+                    logger.info(
+                        "[Optional] Node %s is optional, will skip on failure (execution %s)",
+                        node_id, execution.id,
+                    )
+                    return True
+                return False
+        return False
+    except Exception as e:
+        logger.warning(
+            "[Optional] _check_optional_skip error for node %s (execution %s): %s",
+            node_id, execution.id, e,
+        )
+        return False
+
+
 def _try_webhook(execution, event: str):
     """尝试触发 Webhook 回调（best-effort）"""
     try:

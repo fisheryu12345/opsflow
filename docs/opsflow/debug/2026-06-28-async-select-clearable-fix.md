@@ -1,6 +1,10 @@
 # AsyncSelect 支持清空选中项
 
+<<<<<<< HEAD
 > 提交: ec4bb162 | 日期: 2026-06-28
+=======
+> 提交: a793b890 | 日期: 2026-06-28
+>>>>>>> 8e58d2cb (fix: enable clearable for async_select dropdown — async_select 下拉默认启用清空按钮)
 > 涉及 App: opsflow
 > 类型: 修复
 
