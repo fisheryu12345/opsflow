@@ -2,7 +2,7 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-## 4852cbce
+## 4fbb2c87
 
 > 提交日期: 2026-06-28 | 提交信息: refactor: remove execution rollback functionality — 移除所有执行回滚代码
 
@@ -39,6 +39,35 @@
 - 改动类型: refactor + fix (test mock paths)
 - 清理乱码: 无
 - 子 App index.md 更新: opsflow
+- 工作区状态: 待提交 ✅
+
+---
+
+## 37849a1b
+
+> 提交日期: 2026-06-28 | 提交信息: docs: fix commit hash references in analysis log and arch doc — 修正 COMMIT_ANALYSIS.md 和架构文档中的 commit hash 引用
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| COMMIT_ANALYSIS.md | 文档 | 修正上条记录中的 commit hash 为 4fbb2c87 |
+| docs/opsflow/architecture/2026-06-28-remove-execution-rollback-refactor.md | 文档 | 修正文档中 commit hash 为 4fbb2c87 |
+
+### 解决
+
+- **问题/背景：** 上轮 amend 后 commit hash 变更，遗留的 COMMIT_ANALYSIS.md 和架构文档中仍引用旧 hash 4852cbce，导致链接失效
+- **办法：** 将两处引用更新为实际的 commit hash 4fbb2c87
+
+### 文档
+
+- **生成文档：** 无（docs 类型跳过）
+
+### 验证
+
+- 改动类型: docs
+- 清理乱码: 无
+- 子 App index.md 更新: 无
 - 工作区状态: 待提交 ✅
 
 ---
