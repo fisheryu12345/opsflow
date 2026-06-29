@@ -14,6 +14,9 @@ class ApprovalPlugin(BasePlugin):
     icon = "Clock"
     color = "#9B59B6"
 
+    show_execution_controls = False
+    show_loop_config = False
+
     @classmethod
     def get_form_config(cls):
         return [

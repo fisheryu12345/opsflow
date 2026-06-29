@@ -86,7 +86,7 @@
         </div>
 
         <!-- Loop Config (Mechanism A) -->
-        <div class="panel-section" v-if="isAtom">
+        <div class="panel-section" v-if="isAtom && showLoopConfig">
           <div class="section-title" style="cursor:pointer;">
             <el-switch v-model="loopEnabled" size="small" style="margin-right:6px" />
             <span @click.stop="loopEnabled = !loopEnabled">{{ $t("message.properties.loopConfig") }}</span>
@@ -116,7 +116,7 @@
           </template>
         </div>
 
-        <div class="panel-section">
+        <div class="panel-section" v-if="showExecutionControls">
           <div class="section-title">{{ $t("message.properties.executionControl") }}</div>
           <div class="prop-row">
             <span class="prop-label">{{ $t("message.properties.maxRetries") }}</span>
@@ -345,6 +345,19 @@ const formRevision = ref(0)
 const showVarBrowser = ref(false)
 const lastFocusedEl = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
+/** 当前选中插件的元数据（从 GetPluginDetail 返回）*/
+const pluginMeta = ref<Record<string, any> | null>(null)
+
+/** 是否显示 Execution Control 区域（由插件自身控制）*/
+const showExecutionControls = computed(() => {
+  return pluginMeta.value?.show_execution_controls !== false
+})
+
+/** 是否显示 Loop Config 区域（由插件自身控制）*/
+const showLoopConfig = computed(() => {
+  return pluginMeta.value?.show_loop_config !== false
+})
+
 // -- Loop Config (Mechanism A) --
 const loopEnabled = ref(false)
 const loopTimes = ref(1)
@@ -526,6 +539,7 @@ async function loadPluginSchema(code: string) {
   try {
     const res = await GetPluginDetail(code)
     const schema = res.data?.form_schema || []
+    pluginMeta.value = res.data || null
     pluginFormSchema.value = isEn.value
       ? schema.map((item: any) => ({ ...item, name: item.name_en || item.name }))
       : schema
@@ -684,6 +698,7 @@ watch(() => props.edgeData, (val) => {
 }, { immediate: true, deep: true })
 
 async function onPluginChange(code: string) {
+  pluginMeta.value = null
   form.value.plugin_code = code
   pluginFormSchema.value = []
   outputSchema.value = []

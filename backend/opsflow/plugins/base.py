@@ -26,6 +26,8 @@ class BasePlugin:
     icon: str = ""               # 显示图标（emoji 或 Element Plus 图标名）
     color: str = ""              # 主题色 hex（如 "#409EFF"）
     _need_schedule: bool = False # True=异步回调模式（长任务轮询）
+    show_execution_controls: bool = True  # 是否显示 Execution Control 区域
+    show_loop_config: bool = True         # 是否显示 Loop Config
 
     @classmethod
     def need_schedule(cls) -> bool:

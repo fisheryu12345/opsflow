@@ -13,6 +13,9 @@ class ManualPausePlugin(BasePlugin):
     icon = "VideoPause"
     color = "#909399"
 
+    show_execution_controls = False
+    show_loop_config = False
+
     def execute(self, **kwargs):
         """立即返回成功，暂停由信号处理器触发"""
         return {"success": True, "data": {"paused": True}}

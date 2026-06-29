@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 
 from opsflow.models import PluginMeta
-from opsflow.plugins.registry import refresh_plugins, loader
+from opsflow.plugins.registry import refresh_plugins, loader, get_plugin
 
 
 def _apply_project_visibility(qs, project_id):
@@ -77,7 +77,13 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
             return ErrorResponse(msg="Plugin not found", data=None, code=4000, status=status.HTTP_404_NOT_FOUND)
         primary = qs.last()
         all_versions = list(qs.values_list('version', flat=True))
+        # 从插件类读取控制字段（不在 DB 中存储，从注册表动态获取）
+        plugin_cls = get_plugin(primary.code)
+        show_execution_controls = plugin_cls.show_execution_controls if plugin_cls and hasattr(plugin_cls, 'show_execution_controls') else True
+        show_loop_config = plugin_cls.show_loop_config if plugin_cls and hasattr(plugin_cls, 'show_loop_config') else True
         return DetailResponse(data={
+            "show_execution_controls": show_execution_controls,
+            "show_loop_config": show_loop_config,
             "code": primary.code,
             "name": primary.name,
             "name_en": primary.name_en or "",
