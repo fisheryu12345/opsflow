@@ -39,7 +39,7 @@ class EsxiReconfigureVmPlugin(BasePlugin):
                 type="input",
                 name="虚拟机名称",
                 name_en="VM Name",
-                attrs={"placeholder": "输入虚拟机名称"},
+                attrs={"placeholder": "输入虚拟机名称", "placeholder_en": "Enter VM name"},
                 validation=[ValidationRule(type="required", error_message="请输入虚拟机名称")],
                 col=12,
             ),
@@ -49,7 +49,7 @@ class EsxiReconfigureVmPlugin(BasePlugin):
                 name="CPU 核数",
                 name_en="CPU Count",
                 default=0,
-                attrs={"min": 0, "max": 256, "placeholder": "0=不修改"},
+                attrs={"min": 0, "max": 256, "placeholder": "0=不修改", "placeholder_en": "0=no change"},
                 col=6,
             ),
             FormItem(
@@ -58,7 +58,7 @@ class EsxiReconfigureVmPlugin(BasePlugin):
                 name="内存大小 (MB)",
                 name_en="Memory (MB)",
                 default=0,
-                attrs={"min": 0, "max": 1048576, "placeholder": "0=不修改"},
+                attrs={"min": 0, "max": 1048576, "placeholder": "0=不修改", "placeholder_en": "0=no change"},
                 col=6,
             ),
         ]

@@ -39,7 +39,7 @@ class EsxiRebootPlugin(BasePlugin):
                 type="input",
                 name="虚拟机名称",
                 name_en="VM Name",
-                attrs={"placeholder": "输入虚拟机名称"},
+                attrs={"placeholder": "输入虚拟机名称", "placeholder_en": "Enter VM name"},
                 validation=[ValidationRule(type="required", error_message="请输入虚拟机名称")],
                 col=12,
             ),

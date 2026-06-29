@@ -40,7 +40,7 @@ class EsxiAttachDiskPlugin(BasePlugin):
                 type="input",
                 name="虚拟机名称",
                 name_en="VM Name",
-                attrs={"placeholder": "输入虚拟机名称"},
+                attrs={"placeholder": "输入虚拟机名称", "placeholder_en": "Enter VM name"},
                 validation=[ValidationRule(type="required", error_message="请输入虚拟机名称")],
                 col=12,
             ),
@@ -73,7 +73,7 @@ class EsxiAttachDiskPlugin(BasePlugin):
                 type="input",
                 name="目标数据存储",
                 name_en="Target Datastore",
-                attrs={"placeholder": "可选，默认与虚拟机相同"},
+                attrs={"placeholder": "可选，默认与虚拟机相同", "placeholder_en": "Optional, same as VM by default"},
                 col=12,
             ),
         ]

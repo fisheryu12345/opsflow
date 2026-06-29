@@ -39,7 +39,7 @@ class EsxiRemoveSnapshotPlugin(BasePlugin):
                 type="input",
                 name="虚拟机名称",
                 name_en="VM Name",
-                attrs={"placeholder": "输入虚拟机名称"},
+                attrs={"placeholder": "输入虚拟机名称", "placeholder_en": "Enter VM name"},
                 validation=[ValidationRule(type="required", error_message="请输入虚拟机名称")],
                 col=12,
             ),
@@ -48,7 +48,7 @@ class EsxiRemoveSnapshotPlugin(BasePlugin):
                 type="input",
                 name="快照名称",
                 name_en="Snapshot Name",
-                attrs={"placeholder": "输入快照名称，留空表示删除所有快照"},
+                attrs={"placeholder": "输入快照名称，留空表示删除所有快照", "placeholder_en": "Snapshot name, leave empty to remove all"},
                 col=12,
             ),
         ]
