@@ -2,7 +2,32 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-## 12ce3418
+## e39712c8
+
+> 提交日期: 2026-06-30 | 提交信息: feat: complete i18n fields for all plugin groups (17 groups, 61 files)
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `plugins/17 groups (61 files)` | 后端 | 全量补齐 name_en/icon/color/version/output_schema + FormItem/FormGroup i18n |
+| `plugins/esxi/ (6 files)` | 后端 | 修复 attrs 字典语法 bug |
+| `tests/test_manual_pause.py` | 测试 | group 断言更新 |
+
+### 解决
+
+- **问题/背景：** 所有插件缺少 name_en/icon/color/version/output_schema；6 个 ESXi 存在语法错误
+- **办法：** 批量补齐所有字段 + 修复语法错误
+
+### 验证
+
+- 改动类型: feat + fix
+- 清理乱码: 有（空文件 dict）
+- 工作区状态: 干净 ✅
+
+---
+
+## 4b67544b
 
 > 提交日期: 2026-06-29 | 提交信息: docs: add plugin development guide + fix PluginPickerDialog i18n path
 
