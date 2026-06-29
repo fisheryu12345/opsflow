@@ -2,6 +2,36 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 0fceb102
+
+> 提交日期: 2026-06-29 | 提交信息: feat: unify all plugin groups to English + fix PluginPickerDialog i18n
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `plugins/*/__init__.py (3 files)` | 后端 | __group_name__ 统一英文（Aliyun ECS / Common Tools / Verification） |
+| `plugins/aliyun_ecs/*.py (9 files)` | 后端 | group = "Aliyun ECS" |
+| `plugins/approval/approval.py` | 后端 | group = "Process Control" |
+| `plugins/common/*.py (4 files)` | 后端 | group = "Common Tools" |
+| `plugins/verify/ip_ops_verify.py` | 后端 | group = "Verification" |
+| `PluginPickerDialog.vue` | 前端 | 全部硬编码英文替换为 $t() |
+| `i18n en/zh-cn.ts` | 前端 | 新增 searchPlugin / searchNoResult / pluginPickerHint |
+
+### 解决
+
+- **问题/背景：** 所有插件分组为中文，全局英文模式下 UI 显示中文
+- **办法：** 批量替换所有插件文件中的 group + __group_name__ 为英文
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 无
+- 子 App index.md 更新: opsflow
+- 工作区状态: 干净 ✅
+
+---
+
 ## f1b01d6b
 
 > 提交日期: 2026-06-29 | 提交信息: feat: complete i18n fields for aliyun_ecs plugins + FormGroup name_en
