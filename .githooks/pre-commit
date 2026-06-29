@@ -1,0 +1,43 @@
+#!/bin/sh
+# Pre-commit hook — Python 语法检查 + 基本格式校验
+# 安装: git config core.hooksPath .githooks
+
+echo "🔍 [pre-commit] Running checks..."
+
+# ── 1. Python 语法检查（防止 ESXi 那类 }, 缺失） ──
+staged_py=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$')
+if [ -n "$staged_py" ]; then
+    has_error=0
+    for f in $staged_py; do
+        if [ -f "$f" ]; then
+            python -m py_compile "$f" 2>/dev/null
+            if [ $? -ne 0 ]; then
+                echo "❌ Syntax error in: $f"
+                python -m py_compile "$f" 2>&1 | head -3
+                has_error=1
+            fi
+        fi
+    done
+    if [ $has_error -eq 1 ]; then
+        echo ""
+        echo "🚫 Commit aborted — fix syntax errors above first."
+        echo "   Tip: run  python -m py_compile <file>  to check."
+        exit 1
+    fi
+    echo "✅ Python syntax: $staged_py" | tr '\n' ' '
+    echo ""
+fi
+
+# ── 2. 检查新增的插件文件是否缺 name_en ──
+staged_new_py=$(git diff --cached --name-only --diff-filter=A | grep -E 'opsflow/plugins/.*\.py$' | grep -v __init__ | grep -v _client | grep -v base | grep -v loader | grep -v registry)
+if [ -n "$staged_new_py" ]; then
+    for f in $staged_new_py; do
+        if [ -f "$f" ] && grep -q "class.*Plugin" "$f" 2>/dev/null; then
+            if ! grep -q "name_en" "$f" 2>/dev/null; then
+                echo "⚠️  Warning: $f may be missing name_en"
+            fi
+        fi
+    done
+fi
+
+echo "✅ [pre-commit] All checks passed"

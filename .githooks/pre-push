@@ -1,0 +1,17 @@
+#!/bin/sh
+# Pre-push hook — 推送前跑核心测试
+# 安装: git config core.hooksPath .githooks
+
+echo "🧪 [pre-push] Running core tests..."
+cd "$(git rev-parse --show-toplevel)/backend" || exit 1
+
+# 只跑与当前改动相关的测试（opsflow 核心）
+python manage.py test opsflow.tests.test_manual_pause opsflow.tests.test_optional_skip.TestCheckOptionalSkip --failfast 2>/dev/null
+if [ $? -ne 0 ]; then
+    echo "❌ [pre-push] Tests failed — aborting push"
+    echo "   Run: cd backend && python manage.py test opsflow.tests --failfast"
+    exit 1
+fi
+
+echo "✅ [pre-push] Tests passed"
+exit 0
