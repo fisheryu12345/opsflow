@@ -2,6 +2,36 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## b91ba26c
+
+> 提交日期: 2026-06-30 | 提交信息: fix: correct SlaPolicy field name mismatch in SLA engine
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `itsm/services/sla_engine.py` | 后端 | handle_time→response_minutes, reply_time→resolve_minutes |
+| `.vscode/settings.json` + `extensions.json` | 配置 | VS Code 开发环境配置 |
+| `docs/itsm/debug/2026-06-30-sla-engine-field-mismatch-fix.md` | 文档 | 新建调试文档 |
+
+### 解决
+
+- **问题/背景：** SlaPolicy 字段为 response_minutes/resolve_minutes，引擎引用不存在的 handle_time/reply_time
+- **办法：** 修正字段名匹配模型定义
+
+### 文档
+
+- docs/itsm/debug/2026-06-30-sla-engine-field-mismatch-fix.md
+
+### 验证
+
+- 改动类型: fix
+- 清理乱码: 无
+- 子 App index.md 更新: itsm
+- 工作区状态: 干净 ✅
+
+---
+
 ## e39712c8
 
 > 提交日期: 2026-06-30 | 提交信息: feat: complete i18n fields for all plugin groups (17 groups, 61 files)
