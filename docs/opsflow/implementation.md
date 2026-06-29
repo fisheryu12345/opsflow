@@ -29,6 +29,7 @@
 | PropertyPanel 属性 | P0 | ✅ | 节点/边配置 | 插件表单/参数/条件/Loop/变量浏览器 |
 | 执行向导 (5步) | P0 | ✅ | 校验→CR→变量→风险→调度 | 完整实现 |
 | 审批节点 | P0 | ✅ | 多级审批/会签 | 暂停+恢复 |
+| 手动暂停原子 | P1 | ✅ | Pipeline 中无条件暂停 | 通用插件 `ManualPausePlugin`，PluginService 直接调 FlowEngine.pause()，前端蓝色 banner 提示，复用 Resume 按钮 |
 | 子流程 | P0 | ✅ | 嵌入/独立 | 变量映射+输出映射 |
 | 版本管理 | P0 | ✅ | 发布/回滚 | snapshot 冻结 |
 | 定时计划 | P1 | ✅ | CRUD + pause/resume | 含调度历史 |
@@ -71,3 +72,9 @@
 > 提交: 5f00962e
 - 端到端 E2E 测试: 6 个测试覆盖串行/并行/排他/回环(Mechanism B)/loop_config(Mechanism A)
 - 测试总数: 240 → 252
+
+### 2026-06-29 Update
+> 提交: 6e23a2f0
+- 手动暂停原子: 新增 ✅ — ManualPausePlugin 通用工具插件 + PluginService 直接暂停（不依赖信号）+ 前端蓝色提示横幅
+- Optional 跳过集成修复: handlers.py FAILED 分支补全 _check_optional_skip() 集成
+- 新增测试: test_manual_pause.py 5 个

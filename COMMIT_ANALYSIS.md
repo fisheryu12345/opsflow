@@ -2,6 +2,31 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## ac661951
+
+> 提交日期: 2026-06-29 | 提交信息: docs: fix placeholder hash in manual-pause feature doc
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| docs/opsflow/features/2026-06-29-manual-pause-atom.md | 文档 | `(待提交)` → `6e23a2f0` |
+| COMMIT_ANALYSIS.md | 文档 | 修正 amend 后的 hash |
+
+### 解决
+
+- **问题/背景：** amend 后 commit hash 变更
+- **办法：** 替换为实际 hash
+
+### 验证
+
+- 改动类型: docs
+- 清理乱码: 无
+- 子 App index.md 更新: opsflow
+- 工作区状态: 干净 ✅
+
+---
+
 ## 6e23a2f0
 
 > 提交日期: 2026-06-29 | 提交信息: feat: add manual_pause atom + fix optional skip integration
