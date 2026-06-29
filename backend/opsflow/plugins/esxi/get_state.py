@@ -6,11 +6,15 @@ from opsflow.schema.form_schema import FormItem, ValidationRule
 
 class EsxiGetStatePlugin(BasePlugin):
     name = "查询虚拟机状态"
+    name_en = "Get VM State"
     code = "esxi_get_state"
     group = "ESXi"
+    version = "v1.0"
     description = "查询 ESXi 虚拟机状态"
     description_en = "Get current power state of a virtual machine"
     risk_level = "low"
+    icon = "Search"
+    color = "#909399"
 
     @classmethod
     def get_form_config(cls):
@@ -19,12 +23,14 @@ class EsxiGetStatePlugin(BasePlugin):
                 tag_code="esxi_host",
                 type="async_select",
                 name="ESXi 主机",
+                name_en="ESXi Host",
                 attrs={
                     "api_endpoint": "/api/opsflow/cmdb/esxi-hosts/",
                     "value_key": "value",
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
+                    "placeholder_en": "Select ESXi host from CMDB...",
                 },
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
@@ -33,7 +39,8 @@ class EsxiGetStatePlugin(BasePlugin):
                 tag_code="vm_name",
                 type="input",
                 name="虚拟机名称",
-                attrs={"placeholder": "输入虚拟机名称"},
+                name_en="VM Name",
+                attrs={"placeholder": "输入虚拟机名称", "placeholder_en": "Enter VM name"},
                 validation=[ValidationRule(type="required", error_message="请输入虚拟机名称")],
                 col=12,
             ),

@@ -12,6 +12,9 @@ class EsxiReconfigureVmPlugin(BasePlugin):
     description = "调整 ESXi 虚拟机的 CPU 核数和内存大小（支持在线热调整）"
     description_en = "Adjust ESXi VM CPU count and memory size (hot-plug supported)"
     risk_level = "high"
+    version = "v1.0"
+    icon = "Setting"
+    color = "#E6A23C"
 
     @classmethod
     def get_form_config(cls):
@@ -27,7 +30,7 @@ class EsxiReconfigureVmPlugin(BasePlugin):
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
-                },
+                    "placeholder_en": "Select ESXi host from CMDB...",
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
             ),

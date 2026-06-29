@@ -6,11 +6,15 @@ from opsflow.schema.form_schema import FormItem, ValidationRule
 
 class EsxiDestroyVmPlugin(BasePlugin):
     name = "删除虚拟机"
+    name_en = "Delete VM"
     code = "esxi_destroy_vm"
     group = "ESXi"
+    version = "v1.0"
     description = "删除 ESXi 上的虚拟机"
     description_en = "Delete a virtual machine from VMware ESXi"
     risk_level = "high"
+    icon = "Delete"
+    color = "#F56C6C"
 
     @classmethod
     def get_form_config(cls):
@@ -19,12 +23,14 @@ class EsxiDestroyVmPlugin(BasePlugin):
                 tag_code="esxi_host",
                 type="async_select",
                 name="ESXi 主机",
+                name_en="ESXi Host",
                 attrs={
                     "api_endpoint": "/api/opsflow/cmdb/esxi-hosts/",
                     "value_key": "value",
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
+                    "placeholder_en": "Select ESXi host from CMDB...",
                 },
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
@@ -33,7 +39,8 @@ class EsxiDestroyVmPlugin(BasePlugin):
                 tag_code="vm_name",
                 type="input",
                 name="虚拟机名称",
-                attrs={"placeholder": "输入虚拟机名称"},
+                name_en="VM Name",
+                attrs={"placeholder": "输入虚拟机名称", "placeholder_en": "Enter VM name"},
                 validation=[ValidationRule(type="required", error_message="请输入虚拟机名称")],
                 col=12,
             ),

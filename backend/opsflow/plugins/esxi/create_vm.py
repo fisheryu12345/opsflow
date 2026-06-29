@@ -6,11 +6,15 @@ from opsflow.schema.form_schema import FormItem, ValidationRule
 
 class EsxiCreateVmPlugin(BasePlugin):
     name = "创建虚拟机"
+    name_en = "Create VM"
     code = "esxi_create_vm"
     group = "ESXi"
+    version = "v1.0"
     description = "在 ESXi/vCenter 上创建虚拟机"
     description_en = "Create a new virtual machine on VMware ESXi"
     risk_level = "high"
+    icon = "Plus"
+    color = "#67C23A"
 
     @classmethod
     def get_form_config(cls):
@@ -19,12 +23,14 @@ class EsxiCreateVmPlugin(BasePlugin):
                 tag_code="esxi_host",
                 type="async_select",
                 name="ESXi 主机",
+                name_en="ESXi Host",
                 attrs={
                     "api_endpoint": "/api/opsflow/cmdb/esxi-hosts/",
                     "value_key": "value",
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
+                    "placeholder_en": "Select ESXi host from CMDB...",
                 },
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
@@ -33,7 +39,8 @@ class EsxiCreateVmPlugin(BasePlugin):
                 tag_code="vm_name",
                 type="input",
                 name="虚拟机名称",
-                attrs={"placeholder": "输入虚拟机名称"},
+                name_en="VM Name",
+                attrs={"placeholder": "输入虚拟机名称", "placeholder_en": "Enter VM name"},
                 validation=[ValidationRule(type="required", error_message="请输入虚拟机名称")],
                 col=12,
             ),
@@ -41,6 +48,7 @@ class EsxiCreateVmPlugin(BasePlugin):
                 tag_code="cpu",
                 type="int",
                 name="CPU 核数",
+                name_en="CPU Count",
                 default=2,
                 attrs={"min": 1, "max": 128},
                 col=6,
@@ -49,6 +57,7 @@ class EsxiCreateVmPlugin(BasePlugin):
                 tag_code="memory_mb",
                 type="int",
                 name="内存大小 (MB)",
+                name_en="Memory (MB)",
                 default=4096,
                 attrs={"min": 512, "max": 524288},
                 col=6,
@@ -57,6 +66,7 @@ class EsxiCreateVmPlugin(BasePlugin):
                 tag_code="disk_gb",
                 type="int",
                 name="系统盘大小 (GB)",
+                name_en="System Disk (GB)",
                 default=50,
                 attrs={"min": 10, "max": 4096},
                 col=6,
@@ -65,7 +75,8 @@ class EsxiCreateVmPlugin(BasePlugin):
                 tag_code="datastore",
                 type="input",
                 name="数据存储",
-                attrs={"placeholder": "数据存储名称"},
+                name_en="Datastore",
+                attrs={"placeholder": "数据存储名称", "placeholder_en": "Datastore name"},
                 validation=[ValidationRule(type="required", error_message="请输入数据存储名称")],
                 col=12,
             ),
@@ -73,8 +84,9 @@ class EsxiCreateVmPlugin(BasePlugin):
                 tag_code="network",
                 type="input",
                 name="网络名称",
+                name_en="Network Name",
                 default="VM Network",
-                attrs={"placeholder": "虚拟机网络"},
+                attrs={"placeholder": "虚拟机网络", "placeholder_en": "VM network"},
                 col=12,
             ),
         ]

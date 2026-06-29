@@ -12,6 +12,9 @@ class EsxiRevertSnapshotPlugin(BasePlugin):
     description = "将 ESXi 虚拟机恢复到指定快照"
     description_en = "Revert an ESXi virtual machine to a specified snapshot"
     risk_level = "high"
+    version = "v1.0"
+    icon = "RefreshLeft"
+    color = "#E6A23C"
 
     @classmethod
     def get_form_config(cls):
@@ -27,7 +30,7 @@ class EsxiRevertSnapshotPlugin(BasePlugin):
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
-                },
+                    "placeholder_en": "Select ESXi host from CMDB...",
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
             ),

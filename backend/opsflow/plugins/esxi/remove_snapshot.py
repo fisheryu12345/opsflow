@@ -12,6 +12,9 @@ class EsxiRemoveSnapshotPlugin(BasePlugin):
     description = "删除 ESXi 虚拟机指定快照（支持删除所有快照）"
     description_en = "Remove a specified snapshot from an ESXi VM (or remove all snapshots)"
     risk_level = "medium"
+    version = "v1.0"
+    icon = "Delete"
+    color = "#F56C6C"
 
     @classmethod
     def get_form_config(cls):
@@ -27,7 +30,7 @@ class EsxiRemoveSnapshotPlugin(BasePlugin):
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
-                },
+                    "placeholder_en": "Select ESXi host from CMDB...",
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
             ),

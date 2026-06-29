@@ -12,6 +12,9 @@ class EsxiRebootPlugin(BasePlugin):
     description = "重启 ESXi 虚拟机（优先发送 Guest OS 软重启，失败后回退为硬重置）"
     description_en = "Reboot ESXi virtual machine (soft reboot first, fallback to hard reset)"
     risk_level = "high"
+    version = "v1.0"
+    icon = "Refresh"
+    color = "#E6A23C"
 
     @classmethod
     def get_form_config(cls):
@@ -27,7 +30,7 @@ class EsxiRebootPlugin(BasePlugin):
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
-                },
+                    "placeholder_en": "Select ESXi host from CMDB...",
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
             ),

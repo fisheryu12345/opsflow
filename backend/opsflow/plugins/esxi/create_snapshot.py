@@ -12,6 +12,9 @@ class EsxiCreateSnapshotPlugin(BasePlugin):
     description = "为 ESXi 虚拟机创建快照（支持命名和描述备注）"
     description_en = "Create a snapshot for an ESXi virtual machine with name and description"
     risk_level = "medium"
+    version = "v1.0"
+    icon = "Camera"
+    color = "#409EFF"
 
     @classmethod
     def get_form_config(cls):
@@ -27,7 +30,7 @@ class EsxiCreateSnapshotPlugin(BasePlugin):
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
-                },
+                    "placeholder_en": "Select ESXi host from CMDB...",
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
             ),

@@ -11,6 +11,9 @@ class EsxiPowerOnPlugin(BasePlugin):
     description = "启动 ESXi 虚拟机"
     description_en = "Power on a virtual machine on VMware ESXi"
     risk_level = "medium"
+    version = "v1.0"
+    icon = "VideoPlay"
+    color = "#67C23A"
 
     @classmethod
     def get_form_config(cls):
@@ -19,12 +22,14 @@ class EsxiPowerOnPlugin(BasePlugin):
                 tag_code="esxi_host",
                 type="async_select",
                 name="ESXi 主机",
+                name_en="ESXi Host",
                 attrs={
                     "api_endpoint": "/api/opsflow/cmdb/esxi-hosts/",
                     "value_key": "value",
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
+                    "placeholder_en": "Select ESXi host from CMDB...",
                 },
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
@@ -33,7 +38,8 @@ class EsxiPowerOnPlugin(BasePlugin):
                 tag_code="vm_name",
                 type="input",
                 name="虚拟机名称",
-                attrs={"placeholder": "输入虚拟机名称"},
+                name_en="VM Name",
+                attrs={"placeholder": "输入虚拟机名称", "placeholder_en": "Enter VM name"},
                 validation=[ValidationRule(type="required", error_message="请输入虚拟机名称")],
                 col=12,
             ),

@@ -12,6 +12,9 @@ class EsxiAttachDiskPlugin(BasePlugin):
     description = "为 ESXi 虚拟机挂载新虚拟磁盘（支持厚/精简置备）"
     description_en = "Attach a new virtual disk to an ESXi VM (thick/thin provision supported)"
     risk_level = "high"
+    version = "v1.0"
+    icon = "FolderAdd"
+    color = "#67C23A"
 
     @classmethod
     def get_form_config(cls):
@@ -27,6 +30,7 @@ class EsxiAttachDiskPlugin(BasePlugin):
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
+                    "placeholder_en": "Select ESXi host from CMDB...",
                 },
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,

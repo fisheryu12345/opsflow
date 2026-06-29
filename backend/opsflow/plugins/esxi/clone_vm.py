@@ -12,6 +12,9 @@ class EsxiCloneVmPlugin(BasePlugin):
     description = "从源 ESXi 虚拟机克隆为新虚拟机（支持自定义名称和数据存储）"
     description_en = "Clone an ESXi virtual machine to a new VM (custom name and datastore supported)"
     risk_level = "medium"
+    version = "v1.0"
+    icon = "CopyDocument"
+    color = "#409EFF"
 
     @classmethod
     def get_form_config(cls):
@@ -27,7 +30,7 @@ class EsxiCloneVmPlugin(BasePlugin):
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
-                },
+                    "placeholder_en": "Select ESXi host from CMDB...",
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
             ),
