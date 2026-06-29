@@ -26,7 +26,7 @@
     </div>
 
     <!-- Approval banner -->
-    <div v-if="isPendingApproval && !isManualPause" class="approval-banner">
+    <div v-if="isPendingApproval" class="approval-banner">
       <div class="approval-banner-left">
         <el-icon :size="18" color="#9B59B6"><Clock /></el-icon>
         <span class="approval-banner-text">{{ $t("message.execution.approvalRequired") }}</span>
@@ -254,7 +254,7 @@ const isRunning = computed(() => ['pending', 'pending_approval', 'running', 'pau
 const isCancelable = computed(() => ['running', 'paused', 'pending', 'pending_approval'].includes(execDetail.value.status))
 const execCompleted = computed(() => ['completed', 'failed', 'cancelled'].includes(execDetail.value.status))
 const isManualPause = computed(() => execDetail.value.status === 'paused' && execDetail.value.context?._pause_reason === 'manual_pause')
-const isPendingApproval = computed(() => execDetail.value.status === 'paused' && execDetail.value.current_node !== '' && !isManualPause.value)
+const isPendingApproval = computed(() => execDetail.value.status === 'paused' && execDetail.value.context?._pause_reason === 'approval')
 const approving = ref(false)
 const rejecting = ref(false)
 

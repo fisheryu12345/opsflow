@@ -167,15 +167,6 @@ def _create_element(node: dict, outgoing_edges: list, *,
         gw.name = nid
         return gw
 
-    # ── Approval ──
-    if node_type == 'approval':
-        act = ServiceActivity(component_code="opsflow_plugin", skippable=False, retryable=False, id=nid)
-        act.name = nid
-        act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value='approval')
-        act.component.inputs['_approvers'] = Var(type=Var.PLAIN, value=node.get('params', {}).get('approvers', []))
-        act.component.inputs['_approval_timeout'] = Var(type=Var.PLAIN, value=node.get('params', {}).get('timeout', 86400))
-        return act
-
     # ── SubProcess ──
     if node_type == 'subprocess':
         target_id = node.get('params', {}).get('target_template_id')
@@ -210,14 +201,8 @@ def _create_element(node: dict, outgoing_edges: list, *,
         sp.name = nid
         return sp
 
-    # ── Manual Pause ──
-    if node_type == 'manual_pause':
-        act = ServiceActivity(component_code="opsflow_plugin", skippable=False, retryable=False, id=nid)
-        act.name = nid
-        act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value='manual_pause')
-        return act
-
     # ── 默认：ServiceActivity 原子插件 ──
+    # atom_type 存储的是插件 code（如 "shell"、"manual_pause"、"approval"）
     atom_type = node.get('atom_type', '')
     plugin_version = node.get('_plugin_version', '')
     node_max_retries = node.get('max_retries') or node.get('params', {}).get('max_retries', 0)

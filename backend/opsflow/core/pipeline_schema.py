@@ -44,7 +44,7 @@ OPSFLOW_PIPELINE_SCHEMA = {
                             "", "atom",
                             "exclusive_gateway", "parallel_gateway",
                             "conditional_parallel_gateway", "converge_gateway",
-                            "approval", "subprocess",
+                            "subprocess",
                             "start_event", "end_event",
                         ],
                     },

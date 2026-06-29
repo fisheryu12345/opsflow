@@ -20,6 +20,7 @@ class TowerBasePlugin(BasePlugin):
     子类只需定义 code/name/description/get_form_config()，
     执行（execute）和轮询（schedule）由基类统一管理。
     """
+    code = "_tower_base"  # 基类不下发到注册表
     _need_schedule = True
 
     def execute(self, **kwargs) -> dict:

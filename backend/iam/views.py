@@ -1,11 +1,11 @@
 from django.utils import timezone
-from django.db import transaction
+from django.db import transaction, models
 from rest_framework import mixins, viewsets, status, exceptions
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from dvadmin.system.models import Role, Menu
+from dvadmin.system.models import Role, Menu, Users
 from dvadmin.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
 from iam.models import (
     PermissionRequest, UserDirectPermission,
@@ -310,3 +310,22 @@ class IamProjectViewSet(viewsets.ModelViewSet):
             return SuccessResponse(data=None, msg='Member removed')
         except ProjectMember.DoesNotExist:
             return ErrorResponse(msg='Member not found', status=404)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# User Search — 供审批原子 async_select 使用
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_users(request):
+    """搜索用户，返回 async_select 格式 {data: [{value: id, label: username}]}"""
+    q = request.query_params.get('search', '').strip()
+    users = Users.objects.filter(is_active=True)
+    if q:
+        users = users.filter(models.Q(username__icontains=q) | models.Q(name__icontains=q))
+    users = users[:50]
+    data = [{'value': u.id, 'label': f"{u.name or u.username} ({u.username})"}
+            for u in users]
+    return SuccessResponse(data=data)

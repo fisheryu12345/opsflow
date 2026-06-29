@@ -182,7 +182,7 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
             newNode.resize(CARD_WIDTH, CARD_HEIGHT)
           }
           // 统一画布节点高度（stencil 高度含 label 空间，画布 label 隐藏）
-          const GATEWAY_TYPES = ['exclusive_gateway', 'parallel_gateway', 'conditional_parallel_gateway', 'converge_gateway', 'approval']
+          const GATEWAY_TYPES = ['exclusive_gateway', 'parallel_gateway', 'conditional_parallel_gateway', 'converge_gateway']
           if (GATEWAY_TYPES.includes(data?.node_type)) {
             newNode.resize(70, 70)
           }
@@ -408,9 +408,8 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
           else if (t === 'parallel_gateway')      n.setPosition({ x: 110, y: 82 })
           else if (t === 'conditional_parallel_gateway') n.setPosition({ x: 14, y: 184 })
           else if (t === 'converge_gateway')      n.setPosition({ x: 110, y: 184 })
-          else if (t === 'approval')              n.setPosition({ x: 63, y: 284 })
-          else if (t === 'subprocess')            n.setPosition({ x: 4, y: 388 })
-          else if (t === 'atom')                  n.setPosition({ x: 4, y: 446 })
+          else if (t === 'subprocess')            n.setPosition({ x: 4, y: 284 })
+          else if (t === 'atom')                  n.setPosition({ x: 4, y: 350 })
         })
       },
     })
@@ -422,7 +421,6 @@ export function useDesignCanvas(containerId: string, emit?: (event: string, ...a
       { shape: 'ops-parallel-gateway', label: 'Parallel', width: 70, height: 92, attrs: { label: { text: 'Parallel', visibility: 'visible' } }, data: { node_type: 'parallel_gateway' } },
       { shape: 'ops-conditional-parallel-gateway', label: 'Conditional', width: 70, height: 92, attrs: { label: { text: 'Conditional', visibility: 'visible' } }, data: { node_type: 'conditional_parallel_gateway' } },
       { shape: 'ops-converge-gateway', label: 'Converge', width: 70, height: 92, attrs: { label: { text: 'Converge', visibility: 'visible' } }, data: { node_type: 'converge_gateway' } },
-      { shape: 'ops-approval', label: 'Approval', width: 70, height: 92, attrs: { label: { text: 'Approval', visibility: 'visible' } }, data: { node_type: 'approval' } },
       { shape: 'ops-subprocess-stencil', label: 'Subprocess', width: 168, height: 48, attrs: { iconLabel: { text: 'S' }, title: { text: 'Subprocess' } }, data: { node_type: 'subprocess' } } as any,
       { shape: 'ops-atom-stencil', label: 'Task Node', width: 168, height: 48, attrs: { iconLabel: { text: 'T' }, title: { text: 'Task Node' } }, data: { node_type: 'atom' } } as any,
     ]

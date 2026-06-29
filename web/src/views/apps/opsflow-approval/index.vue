@@ -54,9 +54,10 @@
               <span class="app-wait" :class="{ 'wait-urgent': isUrgent(row) }">{{ formatWait(row.paused_at) }}</span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('message.execution.colActions')" width="260" fixed="right">
+          <el-table-column :label="$t('message.execution.colActions')" width="320" fixed="right">
             <template #default="{ row }">
               <div class="app-actions">
+                <el-button size="small" :icon="View" @click.stop="handleView(row)" round>{{ $t("message.common.view") }}</el-button>
                 <el-button size="small" type="success" :icon="CircleCheck" @click.stop="handleApprove(row)"
                   :loading="actionLoading === row.id + '-approve'" round>{{ $t("message.execution.approve") }}</el-button>
                 <el-button size="small" type="danger" :icon="Close" @click.stop="handleReject(row)"
@@ -91,7 +92,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { Refresh, Search, CircleCheck, Close, Clock } from '@element-plus/icons-vue'
+import { Refresh, Search, CircleCheck, Close, Clock, View } from '@element-plus/icons-vue'
 import { GetPendingApprovals, ApproveNode, RejectNode } from '../opsflow/api/executions'
 
 import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
@@ -172,6 +173,10 @@ async function confirmReject() {
     rejectVisible.value = false; await fetchData()
   } catch (e: any) { ElMessage.error(e?.msg || t('message.opsflowPage.approvalRejectFailed')) }
   actionLoading.value = null
+}
+
+function handleView(row: any) {
+  window.open('/#/opsflow-execution?id=' + row.id, '_blank')
 }
 
 function onSearch() { page.value = 1 }

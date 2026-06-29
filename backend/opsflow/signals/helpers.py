@@ -5,8 +5,6 @@
 
 import logging
 
-from bamboo_engine import api as pipeline_api
-from pipeline.eri.runtime import BambooDjangoRuntime
 
 logger = logging.getLogger(__name__)
 
@@ -48,16 +46,3 @@ def _get_node_error(execution, node_id) -> str:
         return trace.error
     return ""
 
-
-def _is_approval_node(node_id) -> bool:
-    """通过 bamboo-engine API 检查节点是否为审批节点"""
-    try:
-        runtime = BambooDjangoRuntime()
-        result = pipeline_api.get_execution_data_inputs(runtime, node_id)
-        if result.result and result.data:
-            inputs = result.data
-            if isinstance(inputs, dict) and inputs.get('_atom_type') == 'approval':
-                return True
-    except Exception:
-        pass
-    return False

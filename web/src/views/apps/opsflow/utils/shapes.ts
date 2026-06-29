@@ -373,7 +373,6 @@ registerNodeOnce('ops-exclusive-gateway', { width: 70, height: 70, markup: diamo
 registerNodeOnce('ops-parallel-gateway', { width: 70, height: 70, markup: diamondMarkup, attrs: diamondAttrs('#409EFF', '⊞', 28), ports: diamondPorts() })
 registerNodeOnce('ops-conditional-parallel-gateway', { width: 70, height: 70, markup: diamondMarkup, attrs: diamondAttrs('#5CADFF', '◐', 26), ports: diamondPorts() })
 registerNodeOnce('ops-converge-gateway', { width: 70, height: 70, markup: diamondMarkup, attrs: diamondAttrs('#909399', '⨁', 28), ports: diamondPorts() })
-registerNodeOnce('ops-approval', { width: 70, height: 70, markup: diamondMarkup, attrs: diamondAttrs('#9B59B6', '✓', 28), ports: diamondPorts() })
 
 // ── ops-subprocess: 卡片式虚线框（与 ops-atom 一致布局，208×64） ──
 
@@ -474,10 +473,6 @@ export const DEFAULT_OUTPUT_FIELDS: Record<string, OutputField[]> = {
   parallel_gateway: [],
   conditional_parallel_gateway: [],
   converge_gateway: [],
-  approval: [
-    { key: '_result', label: '_result', type: 'boolean', description: '审批结果' },
-    { key: 'approved_by', label: 'approved_by', type: 'string', description: '审批人' },
-  ],
   subprocess: [
     { key: '_result', label: '_result', type: 'boolean', description: '子流程执行结果' },
   ],
@@ -499,7 +494,6 @@ export function resolveNodeShape(node: any): string {
     parallel_gateway: 'ops-parallel-gateway',
     conditional_parallel_gateway: 'ops-conditional-parallel-gateway',
     converge_gateway: 'ops-converge-gateway',
-    approval: 'ops-approval',
     subprocess: 'ops-subprocess',
   }
   return typeMap[node.node_type] || 'ops-atom'

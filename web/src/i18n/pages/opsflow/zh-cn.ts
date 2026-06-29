@@ -879,6 +879,7 @@ export default {
         loading: '加载中...',
         noData: '暂无数据',
         send: '发送',
+        view: '查看',
         operateSuccess: '操作成功',
         operateFailed: '操作失败',
         networkError: '网络错误',

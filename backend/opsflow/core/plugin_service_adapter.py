@@ -18,7 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 def _extract_params(data):
-    """从 data.inputs 中提取 _atom_type/_plugin_version/_max_retries 和用户参数"""
+    """从 data.inputs 中提取 _atom_type/_plugin_version/_max_retries 和用户参数
+    注意：_atom_type 实际存储的是插件 code（如 "manual_pause"、"approval"、"shell"）
+    """
     inputs = dict(data.inputs)
     atom_type = inputs.pop('_atom_type', '')
     plugin_version = inputs.pop('_plugin_version', None)
@@ -91,6 +93,26 @@ class PluginService(Service):
                 )
             except Exception:
                 logger.exception("[ManualPause] pause failed")
+            data.outputs['_result'] = True
+            return True
+
+        # ├─ Approval — 直接在 execute 中暂停，不依赖信号 ────────────────
+        if atom_type == 'approval':
+            from opsflow.core.flow_engine import FlowEngine
+            from opsflow.models import FlowExecution
+            try:
+                approvers = params.get('approvers', [])
+                execution = FlowExecution.objects.get(id=_execution_id)
+                execution.context['_pause_reason'] = 'approval'
+                execution.context['_approvers'] = approvers
+                execution.save(update_fields=['context'])
+                FlowEngine(execution).pause()
+                logger.info(
+                    "[Approval] Node paused execution %s (approval)",
+                    _execution_id,
+                )
+            except Exception:
+                logger.exception("[Approval] pause failed")
             data.outputs['_result'] = True
             return True
 

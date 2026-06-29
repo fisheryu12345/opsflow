@@ -13,7 +13,7 @@ from bamboo_engine import states
 
 from opsflow.core.trace_logger import NodeTraceLogger
 from opsflow.signals.state import _map_bamboo_state
-from opsflow.signals.helpers import _get_current_retry_count, _get_node_error, _is_approval_node
+from opsflow.signals.helpers import _get_current_retry_count, _get_node_error
 
 logger = logging.getLogger(__name__)
 
@@ -85,16 +85,6 @@ def _record_node_trace(execution, node_id, to_state):
             # 读取 outputs 和 inputs
             trace.outputs = _capture_node_outputs(execution, node_id)
             trace.inputs = _capture_node_inputs(execution, node_id)
-
-            # 审批节点完成 → 暂停 pipeline
-            if to_state == states.FINISHED and _is_approval_node(node_id):
-                from opsflow.core.flow_engine import FlowEngine
-                try:
-                    engine = FlowEngine(execution)
-                    engine.pause()
-                    logger.info("[Signal] approval node %s completed, pipeline paused", node_id)
-                except Exception:
-                    logger.exception("[Signal] pause after approval failed")
 
         if to_state == states.FAILED:
             trace.error = _get_node_error(execution, node_id)

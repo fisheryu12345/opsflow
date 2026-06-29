@@ -18,11 +18,14 @@
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import ExecutionList from './components/ExecutionList.vue'
 import ExecutionDetail from './components/ExecutionDetail.vue'
+import { GetExecutionDetail } from '../opsflow/api/executions'
 import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 
 const store = useOpsflowStore()
+const route = useRoute()
 const listRef = ref<InstanceType<typeof ExecutionList> | null>(null)
 const selectedExecution = ref<any>(null)
 
@@ -37,6 +40,20 @@ function onExecutionUpdate(exec: any) {
 onMounted(async () => {
   const { t } = useI18n()
   if (!store.myProjects.length) await store.fetchMyProjects()
+
+  // Check for execution ID from query param (e.g. from approval page "View" button)
+  const execId = route.query.id
+  if (execId) {
+    try {
+      const res = await GetExecutionDetail(Number(execId))
+      const ex = res.data?.data || res.data || res
+      if (ex && ex.id) {
+        selectedExecution.value = ex
+      }
+    } catch {
+      // fall through to list view
+    }
+  }
 
   const key = 'opsflow_tour_execution'
   if (!localStorage.getItem(key)) {

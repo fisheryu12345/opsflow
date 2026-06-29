@@ -867,6 +867,7 @@ export default {
         loading: 'Loading...',
         noData: 'No Data',
         send: 'Send',
+        view: 'View',
         operateSuccess: 'Operation successful',
         operateFailed: 'Operation failed',
         networkError: 'Network Error',
