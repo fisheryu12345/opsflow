@@ -9,6 +9,7 @@ class ShellPlugin(TowerBasePlugin):
     name_en = "Shell Execute"
     code = "shell"
     group = "Ansible"
+    version = "v1.0"
     description = "在目标主机上执行 Shell 命令"
     description_en = "Execute shell commands on remote hosts"
     risk_level = "medium"

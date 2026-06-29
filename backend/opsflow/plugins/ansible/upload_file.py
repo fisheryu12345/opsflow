@@ -9,6 +9,7 @@ class UploadFilePlugin(TowerBasePlugin):
     name_en = "File Upload"
     code = "upload_file"
     group = "Ansible"
+    version = "v1.0"
     description = "上传本地文件到远程主机"
     description_en = "Upload files to remote hosts"
     risk_level = "medium"

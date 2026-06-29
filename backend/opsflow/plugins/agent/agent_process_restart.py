@@ -14,6 +14,7 @@ class AgentProcessRestartPlugin(BasePlugin):
     name_en = "Agent Process Restart"
     code = "agent_process_restart"
     group = "Agent"
+    version = "v1.0"
     description = "通过 Agent 在目标主机上重启应用进程（支持 systemctl restart）"
     description_en = "Restart application process on target host via Agent"
     risk_level = "high"

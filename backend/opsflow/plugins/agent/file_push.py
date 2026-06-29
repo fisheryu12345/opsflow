@@ -18,6 +18,7 @@ class AgentFilePushPlugin(BasePlugin):
     name_en = "Agent File Push"
     code = "agent_file_push"
     group = "Agent"
+    version = "v1.0"
     description = "通过 Agent 推送文件到被管控主机"
     description_en = "Push file to managed hosts via Agent"
     risk_level = "medium"

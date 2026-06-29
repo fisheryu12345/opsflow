@@ -9,6 +9,7 @@ class ServiceControlPlugin(TowerBasePlugin):
     name_en = "Service Control"
     code = "service_control"
     group = "Ansible"
+    version = "v1.0"
     description = "控制系统服务的启动/停止/重启/重载状态"
     description_en = "Start, stop, or restart services on remote hosts"
     risk_level = "high"

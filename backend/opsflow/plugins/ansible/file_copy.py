@@ -9,6 +9,7 @@ class FileCopyPlugin(TowerBasePlugin):
     name_en = "File Copy"
     code = "file_copy"
     group = "Ansible"
+    version = "v1.0"
     description = "复制文件或目录到远程主机"
     description_en = "Copy files between remote hosts or from local to remote"
     risk_level = "medium"

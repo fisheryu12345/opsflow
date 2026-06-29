@@ -14,6 +14,7 @@ class AgentProcessStatusPlugin(BasePlugin):
     name_en = "Agent Process Status"
     code = "agent_process_status"
     group = "Agent"
+    version = "v1.0"
     description = "通过 Agent 查询目标主机上应用进程的运行状态"
     description_en = "Query application process status on target host via Agent"
     risk_level = "low"

@@ -18,6 +18,7 @@ class AgentExecCmdPlugin(BasePlugin):
     name_en = "Agent Remote Execute"
     code = "agent_exec_cmd"
     group = "Agent"
+    version = "v1.0"
     description = "通过 Agent 在被管控主机上执行命令或脚本（替代 SSH）"
     description_en = "Execute commands/scripts on managed hosts via Agent"
     risk_level = "medium"

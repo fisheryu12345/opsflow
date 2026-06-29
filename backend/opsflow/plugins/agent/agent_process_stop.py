@@ -14,6 +14,7 @@ class AgentProcessStopPlugin(BasePlugin):
     name_en = "Agent Process Stop"
     code = "agent_process_stop"
     group = "Agent"
+    version = "v1.0"
     description = "通过 Agent 在目标主机上停止应用进程（支持 systemd 和强制 Kill）"
     description_en = "Stop application process on target host via Agent"
     risk_level = "high"

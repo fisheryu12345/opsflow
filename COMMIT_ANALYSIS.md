@@ -2,7 +2,38 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-## cfd91ce2
+## cda6e382
+
+> 提交日期: 2026-06-29 | 提交信息: chore: add version field to agent and ansible plugins
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| plugins/agent/*.py (7 files) | 后端 | 添加 version = "v1.0" |
+| plugins/ansible/*.py (9 files) | 后端 | 添加 version = "v1.0" |
+| docs/superpowers/specs/2026-06-28-manual-pause-atom-design.md | 文档 | 新建设计规范 |
+| COMMIT_ANALYSIS.md | 文档 | 修正上条记录 hash |
+
+### 解决
+
+- **问题/背景：** Agent 和 Ansible 插件缺少 version 字段，未注册到插件注册表
+- **办法：** 16 个插件在 group 后插入 version = "v1.0"
+
+### 文档
+
+- **生成文档：** 无（chore 类型跳过）
+
+### 验证
+
+- 改动类型: chore
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 待提交 ✅
+
+---
+
+## 59fe80a2
 
 > 提交日期: 2026-06-29 | 提交信息: feat: complete i18n fields for agent/aliyun/ansible plugins
 

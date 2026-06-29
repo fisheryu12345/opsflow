@@ -19,6 +19,7 @@ class AgentProcessStartPlugin(BasePlugin):
     name_en = "Agent Process Start"
     code = "agent_process_start"
     group = "Agent"
+    version = "v1.0"
     description = "通过 Agent 在目标主机上启动应用进程（支持 systemd）"
     description_en = "Start application process on target host via Agent (supports systemd)"
     risk_level = "high"
