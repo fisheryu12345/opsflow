@@ -2,6 +2,51 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 8834b280
+
+> 提交日期: 2026-06-29 | 提交信息: feat: refactor approval as standard plugin + cleanup
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `plugins/approval/approval.py` | 后端 | **新建** ApprovalPlugin（async_select 多选审批人） |
+| `core/plugin_service_adapter.py` | 后端 | 追加 approval 分支直接 FlowEngine.pause() |
+| `core/pipeline_builder/elements.py` | 后端 | 删除 approval 特殊分支（插件自动发现替代）|
+| `core/pipeline_schema.py` | 后端 | 删除 approval 枚举值 |
+| `signals/helpers.py` | 后端 | 删除 `_is_approval_node()` |
+| `signals/trace.py` | 后端 | 删除 approval import + pause 分支 |
+| `plugins/ansible/tower_backend/base_plugin.py` | 后端 | TowerBasePlugin code='_tower_base' 防空 code 污染 |
+| `iam/views.py` + `urls.py` | 后端 | 新增 search_users API 供 async_select 使用 |
+| `utils/shapes.ts` | 前端 | 删除 ops-approval 菱形图标 + typeMap + output_fields |
+| `composables/useDesignCanvas.ts` | 前端 | 删除 stencil ops-approval + GATEWAY_TYPES 清理 |
+| `ExecutionDetail.vue` | 前端 | `_pause_reason === 'approval'` 取代 API 调用 |
+| `opsflow-execution/index.vue` | 前端 | 支持 `?id=` 参数自动加载执行详情 |
+| `opsflow-approval/index.vue` | 前端 | 新增 View 按钮跳转执行详情 |
+| `i18n en/zh-cn` | 前端 | 新增 common.view 键 |
+| `docs/features/2026-06-29-approval-refactor-plugin.md` | 文档 | 功能文档 |
+| `docs/superpowers/specs/2026-06-29-approval-as-plugin-design.md` | 文档 | 设计规范 |
+
+### 解决
+
+- **问题/背景：** approval 节点走未知插件路径（ERROR 日志），暂停依赖信号处理器；无标准插件定义
+- **办法：** 新建 ApprovalPlugin 标准插件 + PluginService 直接 pause + 清理旧代码
+
+### 文档
+
+- **生成文档：**
+  - docs/opsflow/features/2026-06-29-approval-refactor-plugin.md
+  - docs/superpowers/specs/2026-06-29-approval-as-plugin-design.md
+
+### 验证
+
+- 改动类型: feat + refactor + fix
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 待提交 ✅
+
+---
+
 ## ac661951
 
 > 提交日期: 2026-06-29 | 提交信息: docs: fix placeholder hash in manual-pause feature doc
