@@ -6,11 +6,15 @@ from opsflow.schema.form_schema import FormItem, ValidationRule
 
 class GetPerformancePlugin(BasePlugin):
     name = "查询性能指标"
+    name_en = "Get Performance Metrics"
     code = "pmax_get_performance"
     group = "Pmax"
+    version = "v1.0"
     description = "查询 PowerMax 阵列或存储组的性能指标（IOPS、带宽、延迟）"
     description_en = "Get PowerMax storage performance metrics"
     risk_level = "low"
+    icon = "Monitor"
+    color = "#409EFF"
 
     @classmethod
     def get_form_config(cls):
@@ -19,12 +23,14 @@ class GetPerformancePlugin(BasePlugin):
                 tag_code="array_id",
                 type="async_select",
                 name="阵列 ID",
+                name_en="Array ID",
                 attrs={
                     "api_endpoint": "/api/opsflow/cmdb/pmax-arrays/",
                     "value_key": "value",
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 PowerMax 阵列...",
+                    "placeholder_en": "Select PowerMax array from CMDB...",
                 },
                 validation=[ValidationRule(type="required")],
                 col=6,
@@ -33,13 +39,15 @@ class GetPerformancePlugin(BasePlugin):
                 tag_code="sg_name",
                 type="input",
                 name="存储组名称(可选)",
-                attrs={"placeholder": "留空则查询阵列整体性能"},
+                name_en="Storage Group Name (Optional)",
+                attrs={"placeholder": "留空则查询阵列整体性能", "placeholder_en": "Leave blank for array-level metrics"},
                 col=6,
             ),
             FormItem(
                 tag_code="metrics",
                 type="select",
                 name="指标类型",
+                name_en="Metrics Type",
                 default="all",
                 attrs={
                     "options": [
@@ -56,6 +64,7 @@ class GetPerformancePlugin(BasePlugin):
                 tag_code="time_range",
                 type="select",
                 name="时间范围",
+                name_en="Time Range",
                 default="last_hour",
                 attrs={
                     "options": [
@@ -66,6 +75,18 @@ class GetPerformancePlugin(BasePlugin):
                 },
                 col=12,
             ),
+        ]
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "array_id", "type": "string", "description_en": "Array ID"},
+            {"name": "sg_name", "type": "string", "description_en": "Storage group name"},
+            {"name": "read_iops", "type": "int", "description_en": "Read IOPS"},
+            {"name": "write_iops", "type": "int", "description_en": "Write IOPS"},
+            {"name": "read_mb_s", "type": "float", "description_en": "Read throughput (MB/s)"},
+            {"name": "write_mb_s", "type": "float", "description_en": "Write throughput (MB/s)"},
+            {"name": "avg_latency_ms", "type": "float", "description_en": "Average latency (ms)"},
         ]
 
     def execute(self, array_id: str, sg_name: str = "", metrics: str = "all",

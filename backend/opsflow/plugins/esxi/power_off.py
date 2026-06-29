@@ -6,6 +6,7 @@ from opsflow.schema.form_schema import FormItem, ValidationRule
 
 class EsxiPowerOffPlugin(BasePlugin):
     name = "关闭虚拟机"
+    name_en = "Power Off VM"
     code = "esxi_power_off"
     group = "ESXi"
     description = "关闭 ESXi 虚拟机 (强制关机)"
@@ -14,6 +15,7 @@ class EsxiPowerOffPlugin(BasePlugin):
     version = "v1.0"
     icon = "VideoPause"
     color = "#F56C6C"
+    show_loop_config = False
 
     @classmethod
     def get_form_config(cls):

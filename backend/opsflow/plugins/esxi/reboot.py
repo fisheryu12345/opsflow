@@ -15,6 +15,7 @@ class EsxiRebootPlugin(BasePlugin):
     version = "v1.0"
     icon = "Refresh"
     color = "#E6A23C"
+    show_loop_config = False
 
     @classmethod
     def get_form_config(cls):
@@ -31,6 +32,7 @@ class EsxiRebootPlugin(BasePlugin):
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
                     "placeholder_en": "Select ESXi host from CMDB...",
+                },
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
             ),

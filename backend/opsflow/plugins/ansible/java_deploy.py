@@ -53,3 +53,14 @@ class JavaDeployPlugin(TowerBasePlugin):
                 attrs={"placeholder": "JVM 启动参数", "placeholder_en": "JVM startup arguments"},
             ),
         ]
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "stdout", "type": "string", "description": "命令执行输出", "description_en": "Command execution output"},
+            {"name": "stderr", "type": "string", "description": "错误输出", "description_en": "Error output"},
+            {"name": "returncode", "type": "integer", "description": "返回码", "description_en": "Return code"},
+            {"name": "tower_job_id", "type": "integer", "description": "Tower 作业 ID", "description_en": "Tower job ID"},
+            {"name": "tower_status", "type": "string", "description": "Tower 作业状态", "description_en": "Tower job status"},
+            {"name": "elapsed", "type": "float", "description": "执行耗时（秒）", "description_en": "Execution elapsed (seconds)"},
+        ]

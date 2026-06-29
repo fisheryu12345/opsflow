@@ -12,6 +12,9 @@ class SendEmailPlugin(BasePlugin):
     description = "通过 SMTP 邮件服务器发送电子邮件通知"
     description_en = "Send email notifications via SMTP server"
     risk_level = "low"
+    version = "v1.0"
+    icon = "Message"
+    color = "#409EFF"
 
     @classmethod
     def get_form_config(cls):
@@ -21,7 +24,7 @@ class SendEmailPlugin(BasePlugin):
                 type="input",
                 name="SMTP 服务器",
                 name_en="SMTP Server",
-                attrs={"placeholder": "smtp.example.com"},
+                attrs={"placeholder": "smtp.example.com", "placeholder_en": "smtp.example.com"},
                 validation=[ValidationRule(type="required")],
                 col=8,
             ),
@@ -39,7 +42,7 @@ class SendEmailPlugin(BasePlugin):
                 type="input",
                 name="用户名",
                 name_en="Username",
-                attrs={"placeholder": "user@example.com"},
+                attrs={"placeholder": "user@example.com", "placeholder_en": "user@example.com"},
                 validation=[ValidationRule(type="required")],
                 col=6,
             ),
@@ -48,7 +51,7 @@ class SendEmailPlugin(BasePlugin):
                 type="input",
                 name="密码/授权码",
                 name_en="Password",
-                attrs={"type": "password", "placeholder": "SMTP 密码或授权码"},
+                attrs={"type": "password", "placeholder": "SMTP 密码或授权码", "placeholder_en": "SMTP password or auth code"},
                 validation=[ValidationRule(type="required")],
                 col=6,
             ),
@@ -75,7 +78,7 @@ class SendEmailPlugin(BasePlugin):
                 type="input",
                 name="发件人地址",
                 name_en="From Address",
-                attrs={"placeholder": "noreply@example.com"},
+                attrs={"placeholder": "noreply@example.com", "placeholder_en": "noreply@example.com"},
                 validation=[ValidationRule(type="required")],
             ),
             FormItem(
@@ -83,7 +86,7 @@ class SendEmailPlugin(BasePlugin):
                 type="textarea",
                 name="收件人",
                 name_en="Recipients",
-                attrs={"rows": 2, "placeholder": "收件人邮箱，多地址用逗号分隔"},
+                attrs={"rows": 2, "placeholder": "收件人邮箱，多地址用逗号分隔", "placeholder_en": "Recipient emails, comma-separated for multiple"},
                 validation=[ValidationRule(type="required")],
             ),
             FormItem(
@@ -98,7 +101,7 @@ class SendEmailPlugin(BasePlugin):
                 type="textarea",
                 name="邮件正文",
                 name_en="Body",
-                attrs={"rows": 6, "placeholder": "支持纯文本或 HTML（取决于 content_type 参数）"},
+                attrs={"rows": 6, "placeholder": "支持纯文本或 HTML（取决于 content_type 参数）", "placeholder_en": "Supports plain text or HTML (depends on content_type parameter)"},
                 validation=[ValidationRule(type="required")],
             ),
             FormItem(
@@ -120,7 +123,7 @@ class SendEmailPlugin(BasePlugin):
                 type="input",
                 name="抄送",
                 name_en="CC",
-                attrs={"placeholder": "可选，多地址逗号分隔"},
+                attrs={"placeholder": "可选，多地址逗号分隔", "placeholder_en": "Optional, comma-separated for multiple"},
                 col=6,
             ),
         ]
@@ -180,3 +183,14 @@ class SendEmailPlugin(BasePlugin):
             return {"success": False, "data": {}, "error": f"SMTP 错误: {str(e)}"}
         except Exception as e:
             return {"success": False, "data": {}, "error": f"发送失败: {str(e)}"}
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "from", "type": "string", "description": "发件人地址", "description_en": "Sender address"},
+            {"name": "to", "type": "string", "description": "收件人", "description_en": "Recipients"},
+            {"name": "cc", "type": "string", "description": "抄送", "description_en": "CC"},
+            {"name": "subject", "type": "string", "description": "邮件主题", "description_en": "Email subject"},
+            {"name": "recipients_count", "type": "int", "description": "收件人数量", "description_en": "Number of recipients"},
+            {"name": "sent", "type": "bool", "description": "是否已发送", "description_en": "Whether sent successfully"},
+        ]

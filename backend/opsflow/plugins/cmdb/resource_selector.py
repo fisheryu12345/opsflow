@@ -16,6 +16,7 @@ class CmdbResourceSelector(BasePlugin):
     输出可被下游节点通过 ${node_id.ip} 引用。
     """
     name = "CMDB 资源选择"
+    name_en = "CMDB Resource Selector"
     code = "cmdb_resource_selector"
     group = "CMDB"
     version = "v1.0"
@@ -31,12 +32,14 @@ class CmdbResourceSelector(BasePlugin):
             FormGroup(
                 type="combine",
                 name="资源筛选",
+                name_en="Resource Filter",
                 tag_code="resource_group",
                 items=[
                     FormItem(
                         tag_code="biz_filter",
                         type="cascader",
                         name="业务路径",
+                        name_en="Business Path",
                         attrs={
                             "api_endpoint": "/api/cmdb/topology/tree/",
                             "props": {
@@ -46,20 +49,24 @@ class CmdbResourceSelector(BasePlugin):
                                 "checkStrictly": True,
                             },
                             "placeholder": "按业务/集群/模块路径选择",
+                            "placeholder_en": "Select by business/cluster/module path",
                         },
                     ),
                     FormItem(
                         tag_code="host_filter",
                         type="input",
                         name="主机过滤",
+                        name_en="Host Filter",
                         attrs={
                             "placeholder": "可输入 IP/主机名筛选，支持逗号分隔",
+                            "placeholder_en": "Filter by IP/hostname, comma-separated",
                         },
                     ),
                     FormItem(
                         tag_code="include_relations",
                         type="select",
                         name="关联资源",
+                        name_en="Related Resources",
                         attrs={
                             "options": [
                                 {"label": "仅主机", "value": "host_only"},
@@ -67,6 +74,7 @@ class CmdbResourceSelector(BasePlugin):
                                 {"label": "含上下游", "value": "include_neighbors"},
                             ],
                             "placeholder": "选择关联资源范围",
+                            "placeholder_en": "Select related resource scope",
                         },
                         default="host_only",
                     ),
@@ -76,6 +84,7 @@ class CmdbResourceSelector(BasePlugin):
                 tag_code="output_mode",
                 type="radio",
                 name="输出模式",
+                name_en="Output Mode",
                 attrs={
                     "options": [
                         {"label": "IP 列表", "value": "ip_list"},
@@ -94,6 +103,14 @@ class CmdbResourceSelector(BasePlugin):
             "include_relations": "plain",
             "output_mode": "plain",
         }
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "hosts", "type": "array", "description": "主机详情列表", "description_en": "Host detail list"},
+            {"name": "ip_list", "type": "array", "description": "IP 地址列表", "description_en": "IP address list"},
+            {"name": "count", "type": "integer", "description": "主机数量", "description_en": "Host count"},
+        ]
 
     def execute(self, **kwargs) -> dict:
         """执行资源选择

@@ -15,6 +15,7 @@ class EsxiGetStatePlugin(BasePlugin):
     risk_level = "low"
     icon = "Search"
     color = "#909399"
+    show_loop_config = False
 
     @classmethod
     def get_form_config(cls):

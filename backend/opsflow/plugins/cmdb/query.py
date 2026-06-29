@@ -14,6 +14,7 @@ class CmdbQueryPlugin(BasePlugin):
     支持任意模型类型的实例查询、拓扑路径分析、关联关系查询。
     """
     name = "CMDB 查询"
+    name_en = "CMDB Query"
     code = "cmdb_query"
     group = "CMDB"
     version = "v1.0"
@@ -30,6 +31,7 @@ class CmdbQueryPlugin(BasePlugin):
                 tag_code="query_type",
                 type="select",
                 name="查询类型",
+                name_en="Query Type",
                 attrs={
                     "options": [
                         {"label": "实例查询", "value": "instance_query"},
@@ -43,20 +45,24 @@ class CmdbQueryPlugin(BasePlugin):
             FormGroup(
                 type="combine",
                 name="查询参数",
+                name_en="Query Parameters",
                 tag_code="query_params",
                 items=[
                     FormItem(
                         tag_code="model_code",
                         type="input",
                         name="模型编码",
-                        attrs={"placeholder": "如 Host、Biz、Set"},
+                        name_en="Model Code",
+                        attrs={"placeholder": "如 Host、Biz、Set", "placeholder_en": "e.g. Host, Biz, Set"},
                     ),
                     FormItem(
                         tag_code="filters",
                         type="textarea",
                         name="过滤条件",
+                        name_en="Filter Conditions",
                         attrs={
                             "placeholder": 'JSON 格式过滤条件，如 {"status": "normal", "region": "北京"}',
+                            "placeholder_en": 'JSON format filter, e.g. {"status": "normal"}',
                             "rows": 3,
                         },
                     ),
@@ -64,12 +70,14 @@ class CmdbQueryPlugin(BasePlugin):
                         tag_code="instance_id",
                         type="input",
                         name="实例 ID",
-                        attrs={"placeholder": "拓扑/关联查询时输入起始实例 ID"},
+                        name_en="Instance ID",
+                        attrs={"placeholder": "拓扑/关联查询时输入起始实例 ID", "placeholder_en": "Instance ID for topology/neighbor query"},
                     ),
                     FormItem(
                         tag_code="max_depth",
                         type="int",
                         name="遍历深度",
+                        name_en="Max Depth",
                         attrs={"min": 1, "max": 10},
                         default=3,
                     ),
@@ -79,6 +87,7 @@ class CmdbQueryPlugin(BasePlugin):
                 tag_code="output_format",
                 type="radio",
                 name="输出格式",
+                name_en="Output Format",
                 attrs={
                     "options": [
                         {"label": "完整数据", "value": "full"},
@@ -99,6 +108,19 @@ class CmdbQueryPlugin(BasePlugin):
             "max_depth": "plain",
             "output_format": "plain",
         }
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "items", "type": "array", "description": "查询结果列表（实例查询）", "description_en": "Query result items (instance query)"},
+            {"name": "total", "type": "integer", "description": "结果总数", "description_en": "Total result count"},
+            {"name": "model_code", "type": "string", "description": "模型编码", "description_en": "Model code"},
+            {"name": "root_id", "type": "string", "description": "拓扑根节点 ID", "description_en": "Topology root node ID"},
+            {"name": "nodes", "type": "array", "description": "拓扑/关联节点列表", "description_en": "Topology/neighbor node list"},
+            {"name": "edges", "type": "array", "description": "关联边列表", "description_en": "Association edge list"},
+            {"name": "instance_id", "type": "string", "description": "查询起始实例 ID", "description_en": "Starting instance ID"},
+            {"name": "impacted", "type": "array", "description": "影响分析结果列表", "description_en": "Impact analysis result list"},
+        ]
 
     def execute(self, **kwargs) -> dict:
         """执行 CMDB 查询"""

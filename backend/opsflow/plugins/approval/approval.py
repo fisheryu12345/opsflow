@@ -40,3 +40,9 @@ class ApprovalPlugin(BasePlugin):
         if not approvers:
             return {"success": False, "error": "请选择审批人"}
         return {"success": True, "data": {"approvers": approvers}}
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "approvers", "type": "array", "description": "审批人列表", "description_en": "List of approvers"},
+        ]

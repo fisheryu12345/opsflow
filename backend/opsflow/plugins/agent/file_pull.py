@@ -80,3 +80,9 @@ class AgentFilePullPlugin(BasePlugin):
             return {"success": False, "error": f"HTTP {resp.status_code}"}
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "results", "type": "object", "description": "拉取操作结果", "description_en": "Pull operation result"},
+        ]

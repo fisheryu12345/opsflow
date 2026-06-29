@@ -17,10 +17,11 @@ class AiTextGenPlugin(BasePlugin):
     name = "AI 文本生成"
     name_en = "AI Text Generation"
     group = "AI"
+    version = "v1.0"
     description = "调用 AI 模型根据提示词生成文本内容，支持变量引用和参数调节"
     description_en = "Generate operation reports, summaries and content using AI"
     risk_level = "low"
-    icon = "🤖"
+    icon = "MagicStick"
     color = "#6366f1"
 
     @classmethod
@@ -33,7 +34,7 @@ class AiTextGenPlugin(BasePlugin):
                 name_en="System Prompt",
                 description="设定 AI 的角色和行为模式，如「你是一个运维专家」",
                 default="你是一个专业的运维助手，请根据用户的问题给出准确、清晰的回答。",
-                attrs={"rows": 3, "placeholder": "例如：你是一个运维专家，擅长分析系统日志"},
+                attrs={"rows": 3, "placeholder": "例如：你是一个运维专家，擅长分析系统日志", "placeholder_en": "e.g. You are an operations expert skilled at analyzing system logs"},
             ),
             FormItem(
                 tag_code="prompt",
@@ -42,7 +43,7 @@ class AiTextGenPlugin(BasePlugin):
                 name_en="Prompt",
                 required=True,
                 description="告诉 AI 要生成什么内容，支持变量引用 ${node_id.field}",
-                attrs={"rows": 6, "placeholder": "例如：分析以下磁盘使用情况并给出建议：${n1._result}"},
+                attrs={"rows": 6, "placeholder": "例如：分析以下磁盘使用情况并给出建议：${n1._result}", "placeholder_en": "e.g. Analyze the following disk usage and provide suggestions: ${n1._result}"},
             ),
             FormItem(
                 tag_code="temperature",

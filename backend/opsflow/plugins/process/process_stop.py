@@ -17,10 +17,14 @@ class ProcessStopPlugin(TowerBasePlugin):
     code = "process_stop"
     name = "进程停止"
     name_en = "Process Stop"
+    version = "v1.0"
+    icon = "VideoPause"
+    color = "#E6A23C"
     group = "Process"
     description = "通过 CMDB 获取进程信息，在目标主机上远程停止进程"
     description_en = "Stop a running process on target host"
     risk_level = "high"
+    show_loop_config = False
 
     @classmethod
     def get_form_config(cls):
@@ -32,7 +36,7 @@ class ProcessStopPlugin(TowerBasePlugin):
                 name_en="Process CMDB ID",
                 required=True,
                 description="CMDB Process 实例的 instance_id",
-                attrs={"placeholder": "如 f47ac10b-58cc-4372-a567-0e02b2c3d479"},
+                attrs={"placeholder": "如 f47ac10b-58cc-4372-a567-0e02b2c3d479", "placeholder_en": "e.g. f47ac10b-58cc-4372-a567-0e02b2c3d479"},
             ),
             FormItem(
                 tag_code="force",
@@ -111,3 +115,14 @@ class ProcessStopPlugin(TowerBasePlugin):
                 "process_instance_id": "",
             },
         }
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "tower_job_id", "type": "int", "description": "Tower 任务 ID", "description_en": "Tower job ID"},
+            {"name": "tower_status", "type": "string", "description": "Tower 任务状态", "description_en": "Tower job status"},
+            {"name": "process_instance_id", "type": "string", "description": "进程实例 ID", "description_en": "Process instance ID"},
+            {"name": "stdout", "type": "string", "description": "命令输出", "description_en": "Command output"},
+            {"name": "stderr", "type": "string", "description": "错误输出", "description_en": "Error output"},
+            {"name": "returncode", "type": "int", "description": "返回码", "description_en": "Return code"},
+        ]

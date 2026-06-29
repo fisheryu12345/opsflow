@@ -1,127 +1,132 @@
-"""ServiceNow CMDB 查询 — 查询 ServiceNow CMDB CI 信息"""
-
+"""ServiceNow CMDB CI 查询"""
 from opsflow.plugins.base import BasePlugin
 from opsflow.schema.form_schema import FormItem, FormGroup, ValidationRule
 
 
-class ServicenowGetCmdbCiPlugin(BasePlugin):
+class ServiceNowGetCmbdCiPlugin(BasePlugin):
     name = "ServiceNow CMDB 查询"
+    name_en = "ServiceNow CMDB Query"
     code = "servicenow_get_cmdb_ci"
     group = "ServiceNow"
-    description = "查询 ServiceNow CMDB 中配置项 (CI) 的详情"
-    description_en = "Get configuration item details from ServiceNow CMDB"
-    risk_level = "low"
+    version = "v1.0"
+    description = "通过 REST API 查询 ServiceNow CMDB 配置项（CI）"
+    description_en = "Query ServiceNow CMDB configuration items via REST API"
+    risk_level = "medium"
+    icon = "Search"
+    color = "#1890FF"
 
     @classmethod
     def get_form_config(cls):
         return [
             FormGroup(
                 name="ServiceNow 连接",
+                name_en="ServiceNow Connection",
                 tag_code="sn_connection",
                 items=[
                     FormItem(
                         tag_code="instance_url",
-                        type="async_select",
+                        type="input",
                         name="实例地址",
-                        attrs={
-                            "api_endpoint": "/api/opsflow/cmdb/servicenow-instances/",
-                            "value_key": "value",
-                            "label_key": "label",
-                            "searchable": True,
-                            "placeholder": "从 CMDB 选择 ServiceNow 实例...",
-                        },
+                        name_en="Instance URL",
+                        attrs={"placeholder": "https://your-instance.service-now.com", "placeholder_en": "https://your-instance.service-now.com"},
                         validation=[ValidationRule(type="required")],
                     ),
                     FormItem(
                         tag_code="username",
                         type="input",
                         name="用户名",
-                        attrs={"placeholder": "ServiceNow 用户名"},
+                        name_en="Username",
+                        attrs={"placeholder": "admin", "placeholder_en": "admin"},
                         validation=[ValidationRule(type="required")],
                     ),
                     FormItem(
                         tag_code="password",
                         type="input",
                         name="密码",
-                        attrs={"placeholder": "密码或 API Token", "type": "password"},
+                        name_en="Password",
+                        attrs={"placeholder": "********", "placeholder_en": "********", "type": "password"},
                         validation=[ValidationRule(type="required")],
                     ),
                 ],
             ),
             FormGroup(
                 name="查询条件",
-                tag_code="query_criteria",
+                name_en="Query Conditions",
+                tag_code="query_conditions",
                 items=[
-                    FormItem(
-                        tag_code="ci_name",
-                        type="input",
-                        name="CI 名称",
-                        attrs={"placeholder": "配置项名称（支持通配符）"},
-                    ),
                     FormItem(
                         tag_code="ci_class",
                         type="select",
                         name="CI 类型",
-                        default="cmdb_ci_server",
+                        name_en="CI Class",
                         attrs={
                             "options": [
-                                {"label": "服务器 (Server)", "value": "cmdb_ci_server"},
-                                {"label": "网络设备 (Network)", "value": "cmdb_ci_network"},
-                                {"label": "数据库 (Database)", "value": "cmdb_ci_database"},
-                                {"label": "应用 (Application)", "value": "cmdb_ci_app"},
-                                {"label": "存储 (Storage)", "value": "cmdb_ci_storage"},
+                                {"label": "服务器 (cmdb_ci_server)", "value": "cmdb_ci_server"},
+                                {"label": "网络设备 (cmdb_ci_network)", "value": "cmdb_ci_network"},
+                                {"label": "存储设备 (cmdb_ci_storage)", "value": "cmdb_ci_storage"},
+                                {"label": "数据库 (cmdb_ci_database)", "value": "cmdb_ci_database"},
+                                {"label": "应用 (cmdb_ci_app)", "value": "cmdb_ci_app"},
+                                {"label": "虚拟机 (cmdb_ci_vm)", "value": "cmdb_ci_vm"},
                             ],
                         },
                     ),
                     FormItem(
-                        tag_code="ip_address",
+                        tag_code="query_filter",
                         type="input",
-                        name="IP 地址",
-                        attrs={"placeholder": "按 IP 查询（可选）"},
+                        name="过滤条件",
+                        name_en="Query Filter",
+                        attrs={"placeholder": "nameLIKEweb^status=1", "placeholder_en": "nameLIKEweb^status=1"},
+                    ),
+                    FormItem(
+                        tag_code="limit",
+                        type="int",
+                        name="返回数量",
+                        name_en="Limit",
+                        default=10,
+                        attrs={"min": 1, "max": 100},
                     ),
                 ],
-            ),
-            FormItem(
-                tag_code="max_results",
-                type="int",
-                name="最大结果数",
-                default=10,
-                attrs={"min": 1, "max": 100},
             ),
         ]
 
     def execute(self, instance_url: str, username: str, password: str,
-                ci_name: str = "", ci_class: str = "cmdb_ci_server",
-                ip_address: str = "", max_results: int = 10, **kwargs) -> dict:
-        # 占位实现 — 集成实际 ServiceNow API 调用
+                ci_class: str = "", query_filter: str = "", limit: int = 10,
+                **kwargs) -> dict:
         try:
-            # TODO: 使用 requests 调用 ServiceNow CMDB REST API
-            # params = {"sysparm_limit": max_results, "class": ci_class}
-            # if ci_name:
-            #     params["name"] = ci_name
-            # if ip_address:
-            #     params["ip_address"] = ip_address
-            # resp = requests.get(f"{instance_url}/api/now/cmdb/instance/{ci_class}", params=params, ...)
+            import requests
+            from requests.auth import HTTPBasicAuth
 
-            results = [
-                {
-                    "sys_id": "ci001",
-                    "name": ci_name or "web-server-01",
-                    "class": ci_class,
-                    "ip_address": ip_address or "10.0.0.1",
-                    "status": "Online",
-                    "operational_status": "Operational",
-                },
-            ]
+            url = f"{instance_url.rstrip('/')}/api/now/table/{ci_class or 'cmdb_ci'}"
+            headers = {"Accept": "application/json"}
+            params = {
+                "sysparm_limit": min(max(limit, 1), 100),
+                "sysparm_display_value": "true",
+            }
+            if query_filter:
+                params["sysparm_query"] = query_filter
+
+            resp = requests.get(url, auth=HTTPBasicAuth(username, password),
+                                headers=headers, params=params, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
 
             return {
                 "success": True,
                 "data": {
                     "instance_url": instance_url,
-                    "ci_class": ci_class,
-                    "total": len(results),
-                    "results": results,
+                    "ci_class": ci_class or "cmdb_ci",
+                    "total": len(data.get("result", [])),
+                    "results": data.get("result", []),
                 },
             }
         except Exception as e:
             return {"success": False, "data": {}, "error": str(e)}
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "instance_url", "type": "string", "description": "实例地址", "description_en": "ServiceNow instance URL"},
+            {"name": "ci_class", "type": "string", "description": "CI 类型", "description_en": "CI class"},
+            {"name": "total", "type": "int", "description": "结果总数", "description_en": "Total result count"},
+            {"name": "results", "type": "array", "description": "CI 列表", "description_en": "List of configuration items"},
+        ]

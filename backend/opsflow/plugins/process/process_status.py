@@ -20,10 +20,14 @@ class ProcessStatusPlugin(TowerBasePlugin):
     code = "process_status"
     name = "进程状态检查"
     name_en = "Process Status"
+    version = "v1.0"
+    icon = "Monitor"
+    color = "#67C23A"
     group = "Process"
     description = "检查远程进程的运行状态和资源占用"
     description_en = "Get process status on target host"
     risk_level = "low"
+    show_loop_config = False
 
     @classmethod
     def get_form_config(cls):
@@ -35,7 +39,7 @@ class ProcessStatusPlugin(TowerBasePlugin):
                 name_en="Process CMDB ID",
                 required=True,
                 description="CMDB Process 实例的 instance_id",
-                attrs={"placeholder": "如 f47ac10b-58cc-4372-a567-0e02b2c3d479"},
+                attrs={"placeholder": "如 f47ac10b-58cc-4372-a567-0e02b2c3d479", "placeholder_en": "e.g. f47ac10b-58cc-4372-a567-0e02b2c3d479"},
             ),
         ]
 

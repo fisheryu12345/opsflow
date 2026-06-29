@@ -16,11 +16,13 @@ FSM = "itsm_update_ticket"
 
 class UpdateItsmTicketPlugin(BasePlugin):
     name = "更新 ITSM 工单"
+    name_en = "Update ITSM Ticket"
     code = "itsm_update_ticket"
     group = "ITSM"
     description = "在 OpsFlow 执行节点中更新 ITSM 工单的状态、备注等信息"
     description_en = "Update an existing ITSM service ticket"
     risk_level = "low"
+    version = "v1.0"
     icon = "Edit"
     color = "#67C23A"
 
@@ -31,6 +33,7 @@ class UpdateItsmTicketPlugin(BasePlugin):
                 tag_code="ticket_id_source",
                 type="select",
                 name="工单来源",
+                name_en="Ticket Source",
                 attrs={
                     "options": [
                         {"label": "从上下文自动获取", "value": "auto"},
@@ -44,9 +47,11 @@ class UpdateItsmTicketPlugin(BasePlugin):
                 tag_code="ticket_id",
                 type="input",
                 name="工单 ID",
+                name_en="Ticket ID",
                 scope="global",
                 attrs={
                     "placeholder": "手动指定工单 ID，支持 ${var} 模板变量",
+                    "placeholder_en": "Manually specify ticket ID, supports ${var} template variables",
                 },
                 hookable=True,
             ),
@@ -54,6 +59,7 @@ class UpdateItsmTicketPlugin(BasePlugin):
                 tag_code="action",
                 type="select",
                 name="操作类型",
+                name_en="Action Type",
                 attrs={
                     "options": [
                         {"label": "更新备注", "value": "update_meta"},
@@ -69,16 +75,19 @@ class UpdateItsmTicketPlugin(BasePlugin):
                 tag_code="comment",
                 type="textarea",
                 name="备注/意见",
+                name_en="Comment",
                 scope="global",
                 attrs={
                     "rows": 4,
                     "placeholder": "备注内容或审批意见，支持 ${var} 模板变量",
+                    "placeholder_en": "Comment or approval opinion, supports ${var} template variables",
                 },
             ),
             FormItem(
                 tag_code="new_status",
                 type="select",
                 name="目标状态",
+                name_en="Target Status",
                 attrs={
                     "options": [
                         {"label": "已完成", "value": "finished"},
@@ -92,10 +101,12 @@ class UpdateItsmTicketPlugin(BasePlugin):
                 tag_code="meta_updates",
                 type="textarea",
                 name="扩展字段更新",
+                name_en="Meta Fields Update",
                 scope="global",
                 attrs={
                     "rows": 3,
                     "placeholder": 'JSON 格式，如 {"resolution": "已修复"}，支持 ${var} 模板变量',
+                    "placeholder_en": 'JSON format, e.g. {"resolution": "fixed"}, supports ${var} template variables',
                 },
             ),
         ]
@@ -107,6 +118,16 @@ class UpdateItsmTicketPlugin(BasePlugin):
             "comment": "splice",
             "meta_updates": "splice",
         }
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "ticket_id", "type": "int", "description": "工单 ID", "description_en": "Ticket ID"},
+            {"name": "sn", "type": "string", "description": "工单编号", "description_en": "Ticket serial number"},
+            {"name": "title", "type": "string", "description": "工单标题", "description_en": "Ticket title"},
+            {"name": "status", "type": "string", "description": "工单状态", "description_en": "Ticket status"},
+            {"name": "action", "type": "string", "description": "执行的操作", "description_en": "Action performed"},
+        ]
 
     def execute(self, ticket_id_source: str = "auto",
                 ticket_id: str = "",

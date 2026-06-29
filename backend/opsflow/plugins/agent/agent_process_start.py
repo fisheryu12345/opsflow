@@ -25,6 +25,7 @@ class AgentProcessStartPlugin(BasePlugin):
     risk_level = "high"
     icon = "VideoPlay"
     color = "#67C23A"
+    show_loop_config = False
 
     @classmethod
     def get_form_config(cls):

@@ -6,11 +6,15 @@ from opsflow.schema.form_schema import FormItem, FormGroup
 
 class DiskCheckPlugin(BasePlugin):
     name = "磁盘检查"
+    name_en = "Disk Check"
     code = "disk_check"
     group = "Monitor"
+    version = "v1.0"
     description = "检查远程主机磁盘使用率，超过阈值可触发告警"
     description_en = "Check disk space usage on target hosts"
     risk_level = "low"
+    icon = "DataBoard"
+    color = "#409EFF"
 
     @classmethod
     def get_form_config(cls):
@@ -19,34 +23,50 @@ class DiskCheckPlugin(BasePlugin):
                 tag_code="warning_threshold",
                 type="int",
                 name="告警阈值",
+                name_en="Warning Threshold",
                 default=80,
-                attrs={"min": 1, "max": 100, "placeholder": "磁盘使用率告警阈值(%)"},
+                attrs={"min": 1, "max": 100, "placeholder": "磁盘使用率告警阈值(%)", "placeholder_en": "Disk usage warning threshold (%)"},
             ),
             FormGroup(
                 name="目标设置",
+                name_en="Target Settings",
                 tag_code="target_settings",
                 items=[
                     FormItem(
                         tag_code="mount_point",
                         type="input",
                         name="挂载点",
+                        name_en="Mount Point",
                         default="/",
-                        attrs={"placeholder": "挂载点路径，如 / 或 /data"},
+                        attrs={"placeholder": "挂载点路径，如 / 或 /data", "placeholder_en": "Mount point path, e.g. / or /data"},
                     ),
                     FormItem(
                         tag_code="host",
                         type="async_select",
                         name="目标主机",
+                        name_en="Target Host",
                         attrs={
                             "api_endpoint": "/api/opsflow/cmdb/servers/",
                             "value_key": "value",
                             "label_key": "label",
                             "searchable": True,
                             "placeholder": "从 CMDB 选择服务器...",
+                            "placeholder_en": "Select server from CMDB...",
                         },
                     ),
                 ],
             ),
+        ]
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "usage_percent", "type": "float", "description_en": "Disk usage percentage"},
+            {"name": "total_gb", "type": "float", "description_en": "Total disk space (GB)"},
+            {"name": "used_gb", "type": "float", "description_en": "Used disk space (GB)"},
+            {"name": "avail_gb", "type": "float", "description_en": "Available disk space (GB)"},
+            {"name": "mount_point", "type": "string", "description_en": "Mount point path"},
+            {"name": "threshold", "type": "int", "description_en": "Warning threshold"},
         ]
 
     def execute(self, warning_threshold: int = 80, mount_point: str = "/",

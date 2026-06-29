@@ -25,7 +25,7 @@ class TestManualPausePlugin(SimpleTestCase):
         """元数据字段完整"""
         from opsflow.plugins.common.manual_pause import ManualPausePlugin
         self.assertEqual(ManualPausePlugin.code, 'manual_pause')
-        self.assertEqual(ManualPausePlugin.group, '通用工具')
+        self.assertEqual(ManualPausePlugin.group, 'Common Tools')
         self.assertEqual(ManualPausePlugin.risk_level, 'low')
 
 

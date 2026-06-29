@@ -6,6 +6,7 @@ from opsflow.schema.form_schema import FormItem, ValidationRule
 
 class EsxiPowerOnPlugin(BasePlugin):
     name = "启动虚拟机"
+    name_en = "Power On VM"
     code = "esxi_power_on"
     group = "ESXi"
     description = "启动 ESXi 虚拟机"
@@ -14,6 +15,7 @@ class EsxiPowerOnPlugin(BasePlugin):
     version = "v1.0"
     icon = "VideoPlay"
     color = "#67C23A"
+    show_loop_config = False
 
     @classmethod
     def get_form_config(cls):

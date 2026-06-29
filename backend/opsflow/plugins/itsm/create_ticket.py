@@ -16,11 +16,13 @@ FSM = "itsm_create_ticket"
 
 class CreateItsmTicketPlugin(BasePlugin):
     name = "创建 ITSM 工单"
+    name_en = "Create ITSM Ticket"
     code = "itsm_create_ticket"
     group = "ITSM"
     description = "在 OpsFlow 执行节点中创建 ITSM 工单，支持指定流程模板并自动填充字段"
     description_en = "Create a new ITSM service ticket"
     risk_level = "low"
+    version = "v1.0"
     icon = "Document"
     color = "#409EFF"
 
@@ -31,6 +33,7 @@ class CreateItsmTicketPlugin(BasePlugin):
                 tag_code="itsm_type",
                 type="select",
                 name="工单类型",
+                name_en="Ticket Type",
                 attrs={
                     "options": [
                         {"label": "变更申请", "value": "change"},
@@ -45,9 +48,11 @@ class CreateItsmTicketPlugin(BasePlugin):
                 tag_code="workflow_id",
                 type="select",
                 name="流程模板",
+                name_en="Workflow Template",
                 scope="global",
                 attrs={
                     "placeholder": "选择 ITSM 流程模板",
+                    "placeholder_en": "Select ITSM workflow template",
                     "options": [],
                     "remote_url": "/api/itsm/workflows/?is_draft=false&is_enabled=true",
                     "remote_label": "name",
@@ -59,14 +64,16 @@ class CreateItsmTicketPlugin(BasePlugin):
                 tag_code="title",
                 type="input",
                 name="工单标题",
+                name_en="Ticket Title",
                 scope="global",
-                attrs={"placeholder": "工单标题，支持 ${var} 模板变量"},
+                attrs={"placeholder": "工单标题，支持 ${var} 模板变量", "placeholder_en": "Ticket title, supports ${var} template variables"},
                 validation=[ValidationRule(type="required")],
             ),
             FormItem(
                 tag_code="priority",
                 type="select",
                 name="优先级",
+                name_en="Priority",
                 default="P3",
                 attrs={
                     "options": [
@@ -81,20 +88,24 @@ class CreateItsmTicketPlugin(BasePlugin):
                 tag_code="description",
                 type="textarea",
                 name="工单描述",
+                name_en="Ticket Description",
                 scope="global",
                 attrs={
                     "rows": 4,
                     "placeholder": "工单描述，支持 ${var} 模板变量",
+                    "placeholder_en": "Ticket description, supports ${var} template variables",
                 },
             ),
             FormItem(
                 tag_code="fields_data",
                 type="textarea",
                 name="额外字段",
+                name_en="Extra Fields",
                 scope="global",
                 attrs={
                     "rows": 3,
                     "placeholder": 'JSON 格式，如 {"field_key": "value"}，支持 ${var} 模板变量',
+                    "placeholder_en": 'JSON format, e.g. {"field_key": "value"}, supports ${var} template variables',
                 },
             ),
         ]
@@ -106,6 +117,16 @@ class CreateItsmTicketPlugin(BasePlugin):
             "description": "splice",
             "fields_data": "splice",
         }
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "ticket_id", "type": "int", "description": "工单 ID", "description_en": "Ticket ID"},
+            {"name": "sn", "type": "string", "description": "工单编号", "description_en": "Ticket serial number"},
+            {"name": "title", "type": "string", "description": "工单标题", "description_en": "Ticket title"},
+            {"name": "status", "type": "string", "description": "工单状态", "description_en": "Ticket status"},
+            {"name": "workflow", "type": "string", "description": "流程模板名称", "description_en": "Workflow template name"},
+        ]
 
     def execute(self, itsm_type: str, title: str,
                 workflow_id: int = None, priority: str = "P3",

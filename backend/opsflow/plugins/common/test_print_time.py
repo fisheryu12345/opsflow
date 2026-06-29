@@ -13,11 +13,15 @@ from opsflow.schema.form_schema import FormItem, ValidationRule
 
 class TestPrintTimePlugin(BasePlugin):
     name = "测试打印时间"
+    name_en = "Test Print Time"
     code = "test_print_time"
     group = "Common Tools"
     description = "测试原子 — 后台打印当前时间，用于流程引擎功能验证（随机等待 1-5s）"
     description_en = "Print current system time - for testing only"
     risk_level = "low"
+    version = "v1.0"
+    icon = "Timer"
+    color = "#909399"
 
     @classmethod
     def get_form_config(cls):
@@ -26,13 +30,15 @@ class TestPrintTimePlugin(BasePlugin):
                 tag_code="message",
                 type="input",
                 name="附加消息",
-                attrs={"placeholder": "可选附加消息"},
+                name_en="Additional Message",
+                attrs={"placeholder": "可选附加消息", "placeholder_en": "Optional additional message"},
                 default="hello",
             ),
             FormItem(
                 tag_code="fail",
                 type="checkbox",
                 name="模拟失败",
+                name_en="Simulate Failure",
                 default=False,
                 attrs={"options": [{"label": "模拟执行失败（测试条件分支）", "value": True}]},
             ),

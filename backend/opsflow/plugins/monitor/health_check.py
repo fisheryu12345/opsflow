@@ -6,11 +6,15 @@ from opsflow.schema.form_schema import FormItem, ValidationRule, FormGroup
 
 class HealthCheckPlugin(BasePlugin):
     name = "健康检查"
+    name_en = "Health Check"
     code = "health_check"
     group = "Monitor"
+    version = "v1.0"
     description = "对目标主机执行 Ping 和端口连通性检查"
     description_en = "Check service health status"
     risk_level = "low"
+    icon = "Connection"
+    color = "#409EFF"
 
     @classmethod
     def get_form_config(cls):
@@ -19,23 +23,27 @@ class HealthCheckPlugin(BasePlugin):
                 tag_code="host",
                 type="async_select",
                 name="目标地址",
+                name_en="Target Address",
                 attrs={
                     "api_endpoint": "/api/opsflow/cmdb/servers/",
                     "value_key": "value",
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择服务器...",
+                    "placeholder_en": "Select server from CMDB...",
                 },
                 validation=[ValidationRule(type="required")],
             ),
             FormGroup(
                 name="检查选项",
+                name_en="Check Options",
                 tag_code="check_options",
                 items=[
                     FormItem(
                         tag_code="ping_count",
                         type="int",
                         name="Ping 次数",
+                        name_en="Ping Count",
                         default=4,
                         attrs={"min": 1, "max": 10},
                     ),
@@ -43,6 +51,7 @@ class HealthCheckPlugin(BasePlugin):
                         tag_code="check_port",
                         type="checkbox",
                         name="端口检查",
+                        name_en="Port Check",
                         default=False,
                         attrs={"options": [{"label": "启用端口检查", "value": True}]},
                     ),
@@ -50,6 +59,7 @@ class HealthCheckPlugin(BasePlugin):
                         tag_code="port",
                         type="int",
                         name="目标端口",
+                        name_en="Target Port",
                         default=80,
                         attrs={"min": 1, "max": 65535},
                         hidden=False,
@@ -57,6 +67,13 @@ class HealthCheckPlugin(BasePlugin):
                     ),
                 ],
             ),
+        ]
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "ping", "type": "object", "description_en": "Ping check result"},
+            {"name": "port", "type": "object", "description_en": "Port check result"},
         ]
 
     def execute(self, host: str, ping_count: int = 4, check_port: bool = False,

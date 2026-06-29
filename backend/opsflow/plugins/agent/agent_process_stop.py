@@ -20,6 +20,7 @@ class AgentProcessStopPlugin(BasePlugin):
     risk_level = "high"
     icon = "VideoPause"
     color = "#F56C6C"
+    show_loop_config = False
 
     @classmethod
     def get_form_config(cls):
@@ -69,5 +70,10 @@ class AgentProcessStopPlugin(BasePlugin):
 
     @classmethod
     def get_output_schema(cls):
-        return [{"name": "stdout", "type": "string"}, {"name": "stderr", "type": "string"},
-                {"name": "exit_code", "type": "integer"}, {"name": "service", "type": "string"}]
+        return [
+            {"name": "stdout", "type": "string", "description": "命令执行输出", "description_en": "Command execution output"},
+            {"name": "stderr", "type": "string", "description": "错误输出", "description_en": "Error output"},
+            {"name": "exit_code", "type": "integer", "description": "退出码", "description_en": "Exit code"},
+            {"name": "service", "type": "string", "description": "Service 名称", "description_en": "Service name"},
+            {"name": "host", "type": "string", "description": "目标主机", "description_en": "Target host"},
+        ]

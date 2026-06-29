@@ -83,3 +83,9 @@ class AgentFilePushPlugin(BasePlugin):
             return {"success": False, "error": f"HTTP {resp.status_code}"}
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "results", "type": "object", "description": "各主机的推送结果", "description_en": "Push results per host"},
+        ]

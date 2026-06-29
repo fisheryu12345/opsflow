@@ -31,6 +31,7 @@ class EsxiRemoveSnapshotPlugin(BasePlugin):
                     "searchable": True,
                     "placeholder": "从 CMDB 选择 ESXi 主机...",
                     "placeholder_en": "Select ESXi host from CMDB...",
+                },
                 validation=[ValidationRule(type="required", error_message="请选择 ESXi 主机")],
                 col=12,
             ),

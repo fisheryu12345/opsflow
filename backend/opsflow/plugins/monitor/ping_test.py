@@ -6,11 +6,15 @@ from opsflow.schema.form_schema import FormItem, ValidationRule
 
 class PingTestPlugin(BasePlugin):
     name = "Ping 测试"
+    name_en = "Ping Test"
     code = "ping_test"
     group = "Monitor"
+    version = "v1.0"
     description = "测试目标主机的网络连通性"
     description_en = "Test network connectivity via ICMP ping"
     risk_level = "low"
+    icon = "Connection"
+    color = "#409EFF"
 
     @classmethod
     def get_form_config(cls):
@@ -19,12 +23,14 @@ class PingTestPlugin(BasePlugin):
                 tag_code="target_host",
                 type="async_select",
                 name="目标地址",
+                name_en="Target Address",
                 attrs={
                     "api_endpoint": "/api/opsflow/cmdb/servers/",
                     "value_key": "value",
                     "label_key": "label",
                     "searchable": True,
                     "placeholder": "从 CMDB 选择服务器...",
+                    "placeholder_en": "Select server from CMDB...",
                 },
                 validation=[ValidationRule(type="required")],
             ),
@@ -32,9 +38,18 @@ class PingTestPlugin(BasePlugin):
                 tag_code="count",
                 type="int",
                 name="Ping 次数",
+                name_en="Ping Count",
                 default=4,
-                attrs={"min": 1, "max": 10, "placeholder": "4"},
+                attrs={"min": 1, "max": 10, "placeholder": "4", "placeholder_en": "4"},
             ),
+        ]
+
+    @classmethod
+    def get_output_schema(cls):
+        return [
+            {"name": "packet_loss", "type": "float", "description_en": "Packet loss percentage"},
+            {"name": "latency_ms", "type": "float", "description_en": "Average latency (ms)"},
+            {"name": "output", "type": "string", "description_en": "Raw ping output"},
         ]
 
     def execute(self, target_host: str, count: int = 4, **kwargs) -> dict:
