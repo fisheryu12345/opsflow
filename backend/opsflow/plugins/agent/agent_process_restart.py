@@ -24,9 +24,11 @@ class AgentProcessRestartPlugin(BasePlugin):
     def get_form_config(cls):
         return [
             FormItem(tag_code="target_host", type="input", name="目标主机",
-                     attrs={"placeholder": "目标主机 IP"}, default=""),
+                     name_en="Target Host",
+                     attrs={"placeholder": "目标主机 IP", "placeholder_en": "Target host IP"}, default=""),
             FormItem(tag_code="service_name", type="input", name="Service 名称",
-                     attrs={"placeholder": "systemd unit 名（如 nginx.service）"}, default=""),
+                     name_en="Service Name",
+                     attrs={"placeholder": "systemd unit 名（如 nginx.service）", "placeholder_en": "systemd unit name (e.g. nginx.service)"}, default=""),
         ]
 
     def execute(self, target_host: str = "", service_name: str = "", **kwargs) -> dict:

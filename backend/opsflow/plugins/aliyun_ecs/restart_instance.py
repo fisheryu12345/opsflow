@@ -12,6 +12,8 @@ class AliyunEcsRebootPlugin(BasePlugin):
     description = "重启一台运行中的阿里云 ECS 实例"
     description_en = "Restart an Alibaba Cloud ECS instance"
     risk_level = "medium"
+    icon = "Refresh"
+    color = "#E6A23C"
 
     @classmethod
     def get_form_config(cls):
@@ -20,7 +22,8 @@ class AliyunEcsRebootPlugin(BasePlugin):
                 tag_code="instance_id",
                 type="async_select",
                 name="实例",
-                attrs={"api_endpoint": "/api/opsflow/plugins/aliyun/describe-cmdb-instances/", "placeholder": "从 CMDB 选择实例..."},
+                name_en="Instance",
+                attrs={"api_endpoint": "/api/opsflow/plugins/aliyun/describe-cmdb-instances/", "placeholder": "从 CMDB 选择实例...", "placeholder_en": "Select instance from CMDB..."},
                 validation=[ValidationRule(type="required", error_message="请选择实例")],
                 col=12,
             ),
@@ -28,8 +31,9 @@ class AliyunEcsRebootPlugin(BasePlugin):
                 tag_code="force_reboot",
                 type="switch",
                 name="强制重启",
+                name_en="Force Reboot",
                 default=False,
-                attrs={"active_text": "是", "inactive_text": "否"},
+                attrs={"active_text": "是", "inactive_text": "否", "active_text_en": "Yes", "inactive_text_en": "No"},
                 col=6,
             ),
         ]

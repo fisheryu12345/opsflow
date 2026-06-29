@@ -13,6 +13,8 @@ class AliyunEcsCreateImagePlugin(BasePlugin):
     description = "基于一台 ECS 实例创建自定义镜像"
     description_en = "Create a custom image from an ECS instance"
     risk_level = "medium"
+    icon = "Picture"
+    color = "#409EFF"
 
     @classmethod
     def get_form_config(cls):
@@ -22,7 +24,7 @@ class AliyunEcsCreateImagePlugin(BasePlugin):
                 type="input",
                 name="源实例 ID",
                 name_en="Source Instance ID",
-                attrs={"placeholder": "i-xxxxxxxxxxxxx"},
+                attrs={"placeholder": "i-xxxxxxxxxxxxx", "placeholder_en": "i-xxxxxxxxxxxxx"},
                 validation=[ValidationRule(type="required", error_message="请输入源实例 ID")],
                 col=12,
             ),
@@ -31,7 +33,7 @@ class AliyunEcsCreateImagePlugin(BasePlugin):
                 type="input",
                 name="镜像名称",
                 name_en="Image Name",
-                attrs={"placeholder": "my-image-20260614"},
+                attrs={"placeholder": "my-image-20260614", "placeholder_en": "my-image-20260614"},
                 validation=[ValidationRule(type="required", error_message="请输入镜像名称")],
                 col=12,
             ),
@@ -40,7 +42,7 @@ class AliyunEcsCreateImagePlugin(BasePlugin):
                 type="textarea",
                 name="描述",
                 name_en="Description",
-                attrs={"placeholder": "可选镜像描述"},
+                attrs={"placeholder": "可选镜像描述", "placeholder_en": "Optional image description"},
                 col=12,
             ),
             FormItem(
@@ -51,6 +53,7 @@ class AliyunEcsCreateImagePlugin(BasePlugin):
                 attrs={
                     "api_endpoint": "/api/opsflow/plugins/aliyun/describe-regions/",
                     "placeholder": "选择地域...",
+                    "placeholder_en": "Select region...",
                 },
                 validation=[ValidationRule(type="required", error_message="请选择地域")],
                 col=6,

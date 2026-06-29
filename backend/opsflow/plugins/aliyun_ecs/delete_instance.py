@@ -12,6 +12,8 @@ class AliyunEcsDeletePlugin(BasePlugin):
     description = "释放（销毁）一台阿里云 ECS 实例（不可恢复）"
     description_en = "Delete an Alibaba Cloud ECS instance"
     risk_level = "high"
+    icon = "Delete"
+    color = "#F56C6C"
 
     @classmethod
     def get_form_config(cls):
@@ -21,7 +23,7 @@ class AliyunEcsDeletePlugin(BasePlugin):
                 type="async_select",
                 name="实例",
                 name_en="Instance",
-                attrs={"api_endpoint": "/api/opsflow/plugins/aliyun/describe-cmdb-instances/", "placeholder": "从 CMDB 选择实例..."},
+                attrs={"api_endpoint": "/api/opsflow/plugins/aliyun/describe-cmdb-instances/", "placeholder": "从 CMDB 选择实例...", "placeholder_en": "Select instance from CMDB..."},
                 validation=[ValidationRule(type="required", error_message="请选择实例")],
                 col=12,
             ),
@@ -31,7 +33,7 @@ class AliyunEcsDeletePlugin(BasePlugin):
                 name="强制释放",
                 name_en="Force Delete",
                 default=False,
-                attrs={"active_text": "是", "inactive_text": "否"},
+                attrs={"active_text": "是", "inactive_text": "否", "active_text_en": "Yes", "inactive_text_en": "No"},
                 col=6,
             ),
         ]

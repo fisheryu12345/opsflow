@@ -2,6 +2,36 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## cfd91ce2
+
+> 提交日期: 2026-06-29 | 提交信息: feat: complete i18n fields for agent/aliyun/ansible plugins
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| plugins/agent/*.py (5 files) | 后端 | FormItem 添加 name_en + placeholder_en |
+| plugins/aliyun_ecs/*.py (8 files) | 后端 | FormItem 添加 name_en + placeholder_en，类补齐 icon + color |
+| plugins/ansible/*.py (9 files) | 后端 | 类补齐 name_en + icon + color，FormItem 添加 name_en + placeholder_en |
+
+### 解决
+
+- **问题/背景：** Agent/Aliyun/Aliyun ECS/Ansible 三类插件共 22 个文件缺少英文标签（name_en/placeholder_en）和前端展示图标（icon/color），导致英文模式下标签缺失、节点图标空白
+- **办法：** 逐文件补齐 FormItem 的 name_en 和 placeholder_en；类级别补齐 name_en、icon、color
+
+### 文档
+
+- **生成文档：** 无（非功能新增，跳过）
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 待提交 ✅
+
+---
+
 ## 8716aefe
 
 > 提交日期: 2026-06-28 | 提交信息: docs: fix placeholder hash in optional-skip feature doc

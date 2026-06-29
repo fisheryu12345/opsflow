@@ -12,6 +12,8 @@ class AliyunEcsStopPlugin(BasePlugin):
     description = "停止一台运行中的阿里云 ECS 实例"
     description_en = "Stop an Alibaba Cloud ECS instance"
     risk_level = "medium"
+    icon = "VideoPause"
+    color = "#E6A23C"
 
     @classmethod
     def get_form_config(cls):
@@ -20,7 +22,8 @@ class AliyunEcsStopPlugin(BasePlugin):
                 tag_code="instance_id",
                 type="async_select",
                 name="实例",
-                attrs={"api_endpoint": "/api/opsflow/plugins/aliyun/describe-cmdb-instances/", "placeholder": "从 CMDB 选择实例..."},
+                name_en="Instance",
+                attrs={"api_endpoint": "/api/opsflow/plugins/aliyun/describe-cmdb-instances/", "placeholder": "从 CMDB 选择实例...", "placeholder_en": "Select instance from CMDB..."},
                 validation=[ValidationRule(type="required", error_message="请选择实例")],
                 col=12,
             ),
@@ -28,6 +31,7 @@ class AliyunEcsStopPlugin(BasePlugin):
                 tag_code="force_stop",
                 type="switch",
                 name="强制停止",
+                name_en="Force Stop",
                 default=False,
                 attrs={"active_text": "是", "inactive_text": "否"},
                 col=6,

@@ -6,11 +6,14 @@ from opsflow.schema.form_schema import FormItem, ValidationRule
 
 class ScriptExecPlugin(TowerBasePlugin):
     name = "脚本执行"
+    name_en = "Script Execute"
     code = "script_exec"
     group = "Ansible"
     description = "上传脚本内容并在远程主机上执行"
     description_en = "Execute scripts on remote hosts"
     risk_level = "medium"
+    icon = "Cpu"
+    color = "#67C23A"
 
     @classmethod
     def get_form_config(cls):
@@ -19,22 +22,25 @@ class ScriptExecPlugin(TowerBasePlugin):
                 tag_code="script_content",
                 type="input",
                 name="脚本内容",
-                attrs={"placeholder": "脚本内容", "type": "textarea"},
+                name_en="Script Content",
+                attrs={"placeholder": "脚本内容", "placeholder_en": "Script content", "type": "textarea"},
                 validation=[ValidationRule(type="required", error_message="请输入脚本内容")],
             ),
             FormItem(
                 tag_code="script_type",
                 type="input",
                 name="脚本类型",
+                name_en="Script Type",
                 default="bash",
                 col=6,
-                attrs={"placeholder": "脚本类型: bash/python/powershell"},
+                attrs={"placeholder": "脚本类型: bash/python/powershell", "placeholder_en": "Script type: bash/python/powershell"},
             ),
             FormItem(
                 tag_code="args",
                 type="input",
                 name="脚本参数",
+                name_en="Script Arguments",
                 col=6,
-                attrs={"placeholder": "脚本参数"},
+                attrs={"placeholder": "脚本参数", "placeholder_en": "Script arguments"},
             ),
         ]

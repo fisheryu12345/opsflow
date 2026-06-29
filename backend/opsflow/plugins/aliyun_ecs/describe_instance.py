@@ -12,6 +12,8 @@ class AliyunEcsDescribePlugin(BasePlugin):
     description = "查询阿里云 ECS 实例的详细信息"
     description_en = "Describe an Alibaba Cloud ECS instance"
     risk_level = "low"
+    icon = "Search"
+    color = "#909399"
 
     @classmethod
     def get_form_config(cls):
@@ -20,7 +22,8 @@ class AliyunEcsDescribePlugin(BasePlugin):
                 tag_code="instance_id",
                 type="async_select",
                 name="实例",
-                attrs={"api_endpoint": "/api/opsflow/plugins/aliyun/describe-cmdb-instances/", "placeholder": "从 CMDB 选择实例..."},
+                name_en="Instance",
+                attrs={"api_endpoint": "/api/opsflow/plugins/aliyun/describe-cmdb-instances/", "placeholder": "从 CMDB 选择实例...", "placeholder_en": "Select instance from CMDB..."},
                 validation=[ValidationRule(type="required", error_message="请选择实例")],
                 col=12,
             ),

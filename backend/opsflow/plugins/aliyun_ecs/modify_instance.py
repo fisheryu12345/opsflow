@@ -12,6 +12,8 @@ class AliyunEcsModifyPlugin(BasePlugin):
     description = "修改阿里云 ECS 实例的名称和描述等属性"
     description_en = "Modify Alibaba Cloud ECS instance attributes"
     risk_level = "medium"
+    icon = "Edit"
+    color = "#409EFF"
 
     @classmethod
     def get_form_config(cls):
@@ -20,7 +22,8 @@ class AliyunEcsModifyPlugin(BasePlugin):
                 tag_code="instance_id",
                 type="async_select",
                 name="实例",
-                attrs={"api_endpoint": "/api/opsflow/plugins/aliyun/describe-cmdb-instances/", "placeholder": "从 CMDB 选择实例..."},
+                name_en="Instance",
+                attrs={"api_endpoint": "/api/opsflow/plugins/aliyun/describe-cmdb-instances/", "placeholder": "从 CMDB 选择实例...", "placeholder_en": "Select instance from CMDB..."},
                 validation=[ValidationRule(type="required", error_message="请选择实例")],
                 col=12,
             ),
@@ -28,14 +31,16 @@ class AliyunEcsModifyPlugin(BasePlugin):
                 tag_code="instance_name",
                 type="input",
                 name="新名称",
-                attrs={"placeholder": "输入新名称（留空不修改）"},
+                name_en="New Name",
+                attrs={"placeholder": "输入新名称（留空不修改）", "placeholder_en": "New name (leave empty to keep current)"},
                 col=12,
             ),
             FormItem(
                 tag_code="description",
                 type="textarea",
                 name="新描述",
-                attrs={"placeholder": "输入新描述（留空不修改）"},
+                name_en="New Description",
+                attrs={"placeholder": "输入新描述（留空不修改）", "placeholder_en": "New description (leave empty to keep current)"},
                 col=12,
             ),
         ]

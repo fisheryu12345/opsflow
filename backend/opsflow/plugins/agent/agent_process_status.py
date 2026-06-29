@@ -24,9 +24,11 @@ class AgentProcessStatusPlugin(BasePlugin):
     def get_form_config(cls):
         return [
             FormItem(tag_code="target_host", type="input", name="目标主机",
-                     attrs={"placeholder": "目标主机 IP"}, default=""),
+                     name_en="Target Host",
+                     attrs={"placeholder": "目标主机 IP", "placeholder_en": "Target host IP"}, default=""),
             FormItem(tag_code="service_name", type="input", name="Service 名称",
-                     attrs={"placeholder": "systemd unit 名或进程名"}, default=""),
+                     name_en="Service Name",
+                     attrs={"placeholder": "systemd unit 名或进程名", "placeholder_en": "systemd unit name or process name"}, default=""),
         ]
 
     @classmethod

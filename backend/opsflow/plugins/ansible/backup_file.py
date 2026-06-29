@@ -6,11 +6,14 @@ from opsflow.schema.form_schema import FormItem, ValidationRule
 
 class BackupFilePlugin(TowerBasePlugin):
     name = "文件备份"
+    name_en = "Backup File"
     code = "backup_file"
     group = "Ansible"
     description = "备份远程主机上的文件或目录"
     description_en = "Backup files or directories on remote hosts"
     risk_level = "low"
+    icon = "FolderDelete"
+    color = "#909399"
 
     @classmethod
     def get_form_config(cls):

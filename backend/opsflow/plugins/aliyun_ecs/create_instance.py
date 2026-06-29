@@ -13,12 +13,15 @@ class AliyunEcsCreatePlugin(BasePlugin):
     description = "创建一台阿里云 ECS 实例（可选分配公网 IP）"
     description_en = "Create an Alibaba Cloud ECS instance with optional public IP"
     risk_level = "high"
+    icon = "Plus"
+    color = "#E6A23C"
 
     @classmethod
     def get_form_config(cls):
         return [
             FormGroup(
                 name="基础配置",
+                name_en="Basic Config",
                 tag_code="basic",
                 items=[
                     FormItem(
@@ -26,7 +29,7 @@ class AliyunEcsCreatePlugin(BasePlugin):
                         type="input",
                         name="实例名称",
                         name_en="Instance Name",
-                        attrs={"placeholder": "my-ecs-instance"},
+                        attrs={"placeholder": "my-ecs-instance", "placeholder_en": "my-ecs-instance"},
                         validation=[ValidationRule(type="required", error_message="请输入实例名称")],
                         col=12,
                     ),
@@ -38,6 +41,7 @@ class AliyunEcsCreatePlugin(BasePlugin):
                         attrs={
                             "api_endpoint": "/api/opsflow/plugins/aliyun/describe-regions/",
                             "placeholder": "选择地域...",
+                            "placeholder_en": "Select region...",
                         },
                         validation=[ValidationRule(type="required", error_message="请选择地域")],
                         col=6,
@@ -51,6 +55,7 @@ class AliyunEcsCreatePlugin(BasePlugin):
                             "api_endpoint": "/api/opsflow/plugins/aliyun/describe-zones/",
                             "depends_on": "region",
                             "placeholder": "选择可用区（可选）...",
+                            "placeholder_en": "Select zone (optional)...",
                         },
                         col=6,
                     ),
@@ -63,6 +68,7 @@ class AliyunEcsCreatePlugin(BasePlugin):
                             "api_endpoint": "/api/opsflow/plugins/aliyun/describe-images/",
                             "depends_on": "region",
                             "placeholder": "选择镜像...",
+                            "placeholder_en": "Select image...",
                             "description": "选择可用镜像，切换地域后自动刷新",
                         },
                         validation=[ValidationRule(type="required", error_message="请选择镜像")],
@@ -77,6 +83,7 @@ class AliyunEcsCreatePlugin(BasePlugin):
                             "api_endpoint": "/api/opsflow/plugins/aliyun/describe-instance-types/",
                             "depends_on": "region,zone_id",
                             "placeholder": "先选地域和可用区...",
+                            "placeholder_en": "Select region and zone first...",
                             "description": "选择可用实例规格，选可用区后仅显示支持的规格",
                         },
                         validation=[ValidationRule(type="required", error_message="请选择实例规格")],
@@ -86,6 +93,7 @@ class AliyunEcsCreatePlugin(BasePlugin):
             ),
             FormGroup(
                 name="网络配置",
+                name_en="Network Config",
                 tag_code="network",
                 items=[
                     FormItem(
@@ -97,6 +105,7 @@ class AliyunEcsCreatePlugin(BasePlugin):
                             "api_endpoint": "/api/opsflow/plugins/aliyun/describe-security-groups/",
                             "depends_on": "region",
                             "placeholder": "选择安全组...",
+                            "placeholder_en": "Select security group...",
                         },
                         validation=[ValidationRule(type="required", error_message="请选择安全组")],
                         col=6,
@@ -110,6 +119,7 @@ class AliyunEcsCreatePlugin(BasePlugin):
                             "api_endpoint": "/api/opsflow/plugins/aliyun/describe-vswitches/",
                             "depends_on": "region,zone_id",
                             "placeholder": "选择交换机（先选可用区）...",
+                            "placeholder_en": "Select VSwitch (select zone first)...",
                         },
                         validation=[ValidationRule(type="required", error_message="请选择 VSwitch")],
                         col=6,
@@ -127,13 +137,14 @@ class AliyunEcsCreatePlugin(BasePlugin):
             ),
             FormGroup(
                 name="存储配置",
+                name_en="Storage Config",
                 tag_code="storage",
                 items=[
                     FormItem(
                         tag_code="system_disk_size",
                         type="int",
                         name="系统盘大小 (GB)",
-                        name_en="System Disk Size",
+                        name_en="System Disk Size (GB)",
                         default=40,
                         attrs={"min": 20, "max": 500},
                         col=6,
@@ -148,6 +159,7 @@ class AliyunEcsCreatePlugin(BasePlugin):
                             "api_endpoint": "/api/opsflow/plugins/aliyun/describe-disk-categories/",
                             "depends_on": "region,instance_type",
                             "placeholder": "选择云盘类型...",
+                            "placeholder_en": "Select disk category...",
                         },
                         col=6,
                     ),
