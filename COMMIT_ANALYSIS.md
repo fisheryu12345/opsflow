@@ -2,6 +2,34 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 11d3ddf1
+
+> 提交日期: 2026-06-29 | 提交信息: feat: add show_execution_controls/show_loop_config to BasePlugin
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `plugins/base.py` | 后端 | BasePlugin 新增 show_execution_controls + show_loop_config 类属性 |
+| `plugins/common/manual_pause.py` | 后端 | ManualPausePlugin 覆写两者为 False |
+| `plugins/approval/approval.py` | 后端 | ApprovalPlugin 覆写两者为 False |
+| `views/plugin_views.py` | 后端 | retrieve() 动态读取插件类属性返回 |
+| `PropertyPanel.vue` | 前端 | Loop Config + Execution Control 由 computed 动态控制 |
+
+### 解决
+
+- **问题/背景：** approval/manual_pause 不需要重试/超时/循环配置，后续控制流插件也需要同样控制
+- **办法：** BasePlugin 类属性 + API 动态返回 + 前端 computed 读取，后续插件只需覆写两行
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 待提交 ✅
+
+---
+
 ## 8834b280
 
 > 提交日期: 2026-06-29 | 提交信息: feat: refactor approval as standard plugin + cleanup
