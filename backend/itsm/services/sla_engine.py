@@ -37,8 +37,8 @@ class SlaEngine:
 
         # 计算截止时间
         now = timezone.now()
-        handle_deadline = now + timedelta(minutes=policy.handle_time) if policy.handle_time else None
-        reply_deadline = now + timedelta(minutes=policy.reply_time) if policy.reply_time else None
+        handle_deadline = now + timedelta(minutes=policy.response_minutes) if policy.response_minutes else None
+        reply_deadline = now + timedelta(minutes=policy.resolve_minutes) if policy.resolve_minutes else None
 
         sla_task, created = SlaTask.objects.update_or_create(
             ticket=ticket,

@@ -1,5 +1,12 @@
 {
     "recommendations": [
-        "alibaba-cloud.tongyi-lingma"
+        "alibaba-cloud.tongyi-lingma",
+        "vue.volar",
+        "vue.vscode-typescript-vue-plugin",
+        "ms-python.python",
+        "ms-python.flake8",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "sdras.vue-vscode-snippets"
     ]
 }
