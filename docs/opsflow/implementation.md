@@ -75,6 +75,18 @@
 
 ### 2026-06-29 Update
 > 提交: 6e23a2f0
-- 手动暂停原子: 新增 ✅ — ManualPausePlugin 通用工具插件 + PluginService 直接暂停（不依赖信号）+ 前端蓝色提示横幅
-- Optional 跳过集成修复: handlers.py FAILED 分支补全 _check_optional_skip() 集成
-- 新增测试: test_manual_pause.py 5 个
+- 手动暂停原子: 新增 ✅ — ManualPausePlugin + PluginService 直接暂停 + 蓝色横幅
+- Optional 跳过修复: handlers.py FAILED 分支补全
+
+### 2026-06-29 Update
+> 提交: 8834b280
+- Approval 重构: 标准插件 + IAM 用户搜索 API + stencil 清理
+
+### 2026-06-30 Update
+> 提交: e39712c8
+- 全插件组中英文补齐: 17 组 61 文件（name_en/icon/color/version/output_schema/i18n）
+- ESXi 6 文件语法修复 + git hooks + VS Code 配置
+
+### 2026-06-30 Update
+> 提交: b91ba26c
+- ITSM SLA 引擎 bug 修复
