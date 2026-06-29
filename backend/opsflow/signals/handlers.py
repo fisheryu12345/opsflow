@@ -122,6 +122,15 @@ def on_post_set_state(sender, node_id, to_state, version, root_id, parent_id, lo
             from opsflow.core.auto_retry import dispatch_auto_retry
             if dispatch_auto_retry(execution, node_id):
                 return
+            # ── Optional 节点失败自动跳过 ──
+            if _check_optional_skip(execution, node_id):
+                from opsflow.core.flow_engine import FlowEngine
+                logger.info(
+                    "[Optional] Skipping optional node %s (execution %s)",
+                    node_id, execution.id,
+                )
+                FlowEngine(execution).skip(node_id)
+                return
 
         signal_steps = [
             _update_execution_node_status,

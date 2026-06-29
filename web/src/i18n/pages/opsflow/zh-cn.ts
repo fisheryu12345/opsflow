@@ -852,6 +852,10 @@ export default {
         lockedRetry: ' 编辑，请稍后再试。',
         lockedExpired: '编辑锁已过期，请重新打开模板',
     },
+    manualPause: {
+        title: '已暂停于手动暂停节点',
+        description: '点击 Resume 按钮继续执行',
+    },
     common: {
         confirm: '确定',
         name: '名称',

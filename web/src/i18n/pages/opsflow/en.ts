@@ -840,6 +840,10 @@ export default {
         lockedRetry: '. Please try again later.',
         lockedExpired: 'Editing lock expired — please re-open the template',
     },
+    manualPause: {
+        title: 'Paused at Manual Pause node',
+        description: 'Click Resume to continue',
+    },
     common: {
         confirm: 'Confirm',
         name: 'Name',

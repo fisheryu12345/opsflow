@@ -2,6 +2,42 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 13c0882d
+
+> 提交日期: 2026-06-29 | 提交信息: feat: add manual_pause atom + fix optional skip integration
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `plugins/common/manual_pause.py` | 后端 | **新建** ManualPausePlugin，零参数，execute() 立即返回 success |
+| `core/pipeline_builder/elements.py` | 后端 | 注册 manual_pause 节点类型 |
+| `core/plugin_service_adapter.py` | 后端 | 拦截 manual_pause 原子直接 FlowEngine.pause() |
+| `signals/handlers.py` | 后端 | 补全 FAILED 分支中 _check_optional_skip() 集成 |
+| `tests/test_manual_pause.py` | 测试 | 5 个测试（PluginService 暂停 + ManualPausePlugin 元数据）|
+| `ExecutionDetail.vue` | 前端 | 新增 isManualPause 计算属性 + 蓝色暂停提示横幅 |
+| `en.ts` / `zh-cn.ts` | 前端 | 新增 manualPause.title/description 共 4 个 key |
+| `docs/opsflow/features/2026-06-29-manual-pause-atom.md` | 文档 | 新建功能文档 |
+
+### 解决
+
+- **问题/背景：** Pipeline 缺乏「执行到此处暂停」的能力，只能借审批原子变通且语义不符；Optional 跳过集成代码在之前的 hook 提交中漏掉了 FAILED 分支
+- **办法：** 新建 manual_pause 原子（PluginService 直接暂停不走信号）；补全 handlers.py 中的 _check_optional_skip 集成
+
+### 文档
+
+- **生成文档：**
+  - docs/opsflow/features/2026-06-29-manual-pause-atom.md
+
+### 验证
+
+- 改动类型: feat + fix
+- 清理乱码: 有（空文件 `0`）
+- 子 App index.md 更新: 无
+- 工作区状态: 待提交 ✅
+
+---
+
 ## cda6e382
 
 > 提交日期: 2026-06-29 | 提交信息: chore: add version field to agent and ansible plugins

@@ -210,6 +210,13 @@ def _create_element(node: dict, outgoing_edges: list, *,
         sp.name = nid
         return sp
 
+    # ── Manual Pause ──
+    if node_type == 'manual_pause':
+        act = ServiceActivity(component_code="opsflow_plugin", skippable=False, retryable=False, id=nid)
+        act.name = nid
+        act.component.inputs['_atom_type'] = Var(type=Var.PLAIN, value='manual_pause')
+        return act
+
     # ── 默认：ServiceActivity 原子插件 ──
     atom_type = node.get('atom_type', '')
     plugin_version = node.get('_plugin_version', '')

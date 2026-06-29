@@ -26,7 +26,7 @@
     </div>
 
     <!-- Approval banner -->
-    <div v-if="isPendingApproval" class="approval-banner">
+    <div v-if="isPendingApproval && !isManualPause" class="approval-banner">
       <div class="approval-banner-left">
         <el-icon :size="18" color="#9B59B6"><Clock /></el-icon>
         <span class="approval-banner-text">{{ $t("message.execution.approvalRequired") }}</span>
@@ -39,6 +39,15 @@
         <el-button size="small" type="danger" :loading="rejecting" @click="onReject">
           <el-icon><Close /></el-icon> Reject
         </el-button>
+      </div>
+    </div>
+
+    <!-- Manual Pause banner -->
+    <div v-if="isManualPause" class="manual-pause-banner">
+      <div class="manual-pause-banner-left">
+        <el-icon :size="18" color="#909399"><VideoPause /></el-icon>
+        <span class="manual-pause-banner-text">{{ $t("message.manualPause.title") }}</span>
+        <span class="manual-pause-banner-hint">{{ $t("message.execution.resume") }} {{ $t("message.manualPause.description") }}</span>
       </div>
     </div>
 
@@ -201,7 +210,7 @@
 import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, onActivated, onBeforeUnmount, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Refresh, Monitor, Document, Close, DArrowLeft, DArrowRight, CircleCheck, Clock, WarningFilled, Upload, Download } from '@element-plus/icons-vue'
+import { ArrowLeft, Refresh, Monitor, Document, Close, DArrowLeft, DArrowRight, CircleCheck, Clock, WarningFilled, Upload, Download, VideoPause } from '@element-plus/icons-vue'
 import { GetExecutionDetail, StartExecution, PauseExecution, ResumeExecution, RetryNode, SkipNode, CancelExecution, GetExecutionTraces, GetNodeTraceLog, ApproveNode, RejectNode, GetEngineStates } from '../../opsflow/api/executions'
 import { GetTemplateDetail } from '../../opsflow/api/templates'
 import { GetLogs } from '../../opsflow/api/logs'
@@ -244,7 +253,8 @@ const statusTagType = computed(() => {
 const isRunning = computed(() => ['pending', 'pending_approval', 'running', 'paused'].includes(execDetail.value.status))
 const isCancelable = computed(() => ['running', 'paused', 'pending', 'pending_approval'].includes(execDetail.value.status))
 const execCompleted = computed(() => ['completed', 'failed', 'cancelled'].includes(execDetail.value.status))
-const isPendingApproval = computed(() => execDetail.value.status === 'paused' && execDetail.value.current_node !== '')
+const isManualPause = computed(() => execDetail.value.status === 'paused' && execDetail.value.context?._pause_reason === 'manual_pause')
+const isPendingApproval = computed(() => execDetail.value.status === 'paused' && execDetail.value.current_node !== '' && !isManualPause.value)
 const approving = ref(false)
 const rejecting = ref(false)
 
@@ -588,6 +598,15 @@ onBeforeUnmount(() => {
 .approval-banner-left { display: flex; align-items: center; gap: 10px; }
 .approval-banner-text { font-size: 14px; font-weight: 600; color: #8E44AD; }
 .approval-banner-actions { display: flex; gap: 8px; }
+/* Manual Pause banner */
+.manual-pause-banner {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 20px; background: #f0f9ff;
+  border-bottom: 1px solid #d0e8f5; flex-shrink: 0;
+}
+.manual-pause-banner-left { display: flex; align-items: center; gap: 10px; }
+.manual-pause-banner-text { font-size: 14px; font-weight: 600; color: #606266; }
+.manual-pause-banner-actions { display: flex; gap: 8px; }
 .trace-tabs :deep(.el-tab-pane) { height: 100%; overflow: hidden; }
 .trace-tabs :deep(.el-tabs__nav-scroll) { padding: 0; }
 .log-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; font-size: 12px; }

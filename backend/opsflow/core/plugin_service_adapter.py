@@ -76,6 +76,24 @@ class PluginService(Service):
         if atom_type == 'subprocess_independent':
             return self._execute_independent_subprocess(data, parent_data, params, _execution_id)
 
+        # ├─ Manual Pause — 直接在 execute 中暂停，不依赖信号 ────────────
+        if atom_type == 'manual_pause':
+            from opsflow.core.flow_engine import FlowEngine
+            from opsflow.models import FlowExecution
+            try:
+                execution = FlowExecution.objects.get(id=_execution_id)
+                execution.context['_pause_reason'] = 'manual_pause'
+                execution.save(update_fields=['context'])
+                FlowEngine(execution).pause()
+                logger.info(
+                    "[ManualPause] Node paused execution %s (manual_pause)",
+                    _execution_id,
+                )
+            except Exception:
+                logger.exception("[ManualPause] pause failed")
+            data.outputs['_result'] = True
+            return True
+
         plugin_cls = get_plugin(atom_type, version=plugin_version)
         if not plugin_cls:
             data.outputs['_result'] = False
