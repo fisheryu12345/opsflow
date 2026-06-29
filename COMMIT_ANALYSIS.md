@@ -2,6 +2,37 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 70d2b08a
+
+> 提交日期: 2026-06-29 | 提交信息: docs: add plugin development guide + fix PluginPickerDialog i18n path
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `docs/opsflow/guides/plugin-development-guide.md` | 文档 | **新建** 原子开发规范指南（BasePlugin 字段/FormItem/FormGroup/execute 协议/output_schema/async_select/执行流程） |
+| `backend/.gitignore` | 配置 | 取消注释 conf/* 规则 |
+| `PluginPickerDialog.vue` | 前端 | i18n 路径 opsflowPage.* 修正为 plugin.* |
+
+### 解决
+
+- **问题/背景：** 缺少统一的原子开发文档；PluginPickerDialog i18n key 路径错误
+- **办法：** 以 create_instance.py 为例编写完整开发指南；修正 i18n key 路径
+
+### 文档
+
+- **生成文档：**
+  - docs/opsflow/guides/plugin-development-guide.md
+
+### 验证
+
+- 改动类型: docs + fix
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## 0fceb102
 
 > 提交日期: 2026-06-29 | 提交信息: feat: unify all plugin groups to English + fix PluginPickerDialog i18n

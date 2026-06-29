@@ -1,8 +1,8 @@
 <template>
-  <el-dialog :model-value="props.visible" @update:model-value="emit('update:visible', $event)" :title="$t('message.opsflowPage.selectPlugin')" width="700px" top="8vh" :close-on-click-modal="false" destroy-on-close>
+  <el-dialog :model-value="props.visible" @update:model-value="emit('update:visible', $event)" :title="$t('message.plugin.selectPlugin')" width="700px" top="8vh" :close-on-click-modal="false" destroy-on-close>
     <div class="plugin-picker">
       <div class="picker-search">
-        <el-input v-model="searchQuery" :placeholder="$t('message.opsflowPage.searchPlugin')" clearable prefix-icon="Search" size="small" />
+        <el-input v-model="searchQuery" :placeholder="$t('message.plugin.searchPlugin')" clearable prefix-icon="Search" size="small" />
         <el-button size="small" :loading="scanning" @click="handleScan" class="picker-scan-btn">
           🔄 {{ scanning ? t('message.opsflowPage.pluginVisScanning') : t('message.opsflowPage.pluginVisScan') }}
         </el-button>
@@ -47,7 +47,7 @@
               </el-tag>
             </div>
           </div>
-          <el-empty v-if="!filteredPlugins.length" :description="searchQuery ? $t('message.opsflowPage.searchNoResult') : $t('message.opsflowPage.pluginPickerHint')" :image-size="40" />
+          <el-empty v-if="!filteredPlugins.length" :description="searchQuery ? $t('message.plugin.searchNoResult') : $t('message.plugin.pluginPickerHint')" :image-size="40" />
         </div>
       </div>
     </div>
