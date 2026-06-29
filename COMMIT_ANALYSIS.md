@@ -2,29 +2,7 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-## 4b67544b
-
-> 提交日期: 2026-06-29 | 提交信息: chore: add env config files with layered config
-
-### 改动
-
-| 文件 | 类型 | 说明 |
-|------|------|------|
-| `conf/env.py` | 配置 | 分层入口 |
-| `conf/env_base.py` | 配置 | 共享基础配置 |
-| `conf/env_dev.py` | 配置 | 开发环境 |
-| `conf/env_uat.py` | 配置 | UAT 环境 |
-| `conf/env_prod.py` | 配置 | 生产环境 |
-
-### 验证
-
-- 改动类型: chore
-- 清理乱码: 无
-- 工作区状态: 干净 ✅
-
----
-
-## b5558a36
+## 12ce3418
 
 > 提交日期: 2026-06-29 | 提交信息: docs: add plugin development guide + fix PluginPickerDialog i18n path
 
