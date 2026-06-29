@@ -2,7 +2,7 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-## 13c0882d
+## 6e23a2f0
 
 > 提交日期: 2026-06-29 | 提交信息: feat: add manual_pause atom + fix optional skip integration
 
