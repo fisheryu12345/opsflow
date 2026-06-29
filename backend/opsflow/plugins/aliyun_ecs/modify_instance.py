@@ -8,6 +8,7 @@ class AliyunEcsModifyPlugin(BasePlugin):
     name_en = "Modify Instance"
     code = "aliyun_ecs_modify"
     group = "阿里云 ECS"
+    group_en = "Aliyun ECS"
     version = "v1.0"
     description = "修改阿里云 ECS 实例的名称和描述等属性"
     description_en = "Modify Alibaba Cloud ECS instance attributes"
@@ -66,4 +67,4 @@ class AliyunEcsModifyPlugin(BasePlugin):
 
     @classmethod
     def get_output_schema(cls):
-        return [{"name": "instance_id", "type": "string", "description": "ECS 实例 ID"}, {"name": "instance_name", "type": "string", "description": "修改后的实例名称"}, {"name": "description", "type": "string", "description": "修改后的描述"}]
+        return [{"name": "instance_id", "type": "string", "description": "ECS 实例 ID", "description_en": "ECS instance ID"}, {"name": "instance_name", "type": "string", "description": "修改后的实例名称", "description_en": "Modified instance name"}, {"name": "description", "type": "string", "description": "修改后的描述", "description_en": "Modified description"}]

@@ -8,6 +8,7 @@ class AliyunEcsDescribePlugin(BasePlugin):
     name_en = "Describe Instance"
     code = "aliyun_ecs_describe"
     group = "阿里云 ECS"
+    group_en = "Aliyun ECS"
     version = "v1.0"
     description = "查询阿里云 ECS 实例的详细信息"
     description_en = "Describe an Alibaba Cloud ECS instance"
@@ -67,13 +68,13 @@ class AliyunEcsDescribePlugin(BasePlugin):
     @classmethod
     def get_output_schema(cls):
         return [
-            {"name": "instance_id", "type": "string", "description": "ECS 实例 ID"},
-            {"name": "instance_name", "type": "string", "description": "实例名称"},
-            {"name": "status", "type": "string", "description": "实例状态"},
-            {"name": "private_ip", "type": "string", "description": "私网 IP"},
-            {"name": "public_ip", "type": "string", "description": "公网 IP"},
-            {"name": "os_name", "type": "string", "description": "操作系统"},
-            {"name": "instance_type", "type": "string", "description": "实例规格"},
-            {"name": "region_id", "type": "string", "description": "地域 ID"},
-            {"name": "creation_time", "type": "string", "description": "创建时间"},
+            {"name": "instance_id", "type": "string", "description": "ECS 实例 ID", "description_en": "ECS instance ID"},
+            {"name": "instance_name", "type": "string", "description": "实例名称", "description_en": "Instance name"},
+            {"name": "status", "type": "string", "description": "实例状态", "description_en": "Instance status"},
+            {"name": "private_ip", "type": "string", "description": "私网 IP", "description_en": "Private IP"},
+            {"name": "public_ip", "type": "string", "description": "公网 IP", "description_en": "Public IP"},
+            {"name": "os_name", "type": "string", "description": "操作系统", "description_en": "Operating system"},
+            {"name": "instance_type", "type": "string", "description": "实例规格", "description_en": "Instance type"},
+            {"name": "region_id", "type": "string", "description": "地域 ID", "description_en": "Region ID"},
+            {"name": "creation_time", "type": "string", "description": "创建时间", "description_en": "Creation time"},
         ]

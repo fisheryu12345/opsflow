@@ -1,6 +1,6 @@
 <template>
   <div class="form-group" :style="{ gridColumn: 'span 12' }">
-    <div v-if="config.name" class="group-title">{{ config.name }}</div>
+    <div v-if="config.name" class="group-title">{{ isEn && config.name_en ? config.name_en : config.name }}</div>
     <div class="group-body">
       <template v-for="(child, idx) in config.items" :key="child.tag_code || idx">
         <FormGroup
@@ -24,7 +24,12 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import FormItem from './FormItem.vue'
+
+const { locale } = useI18n()
+const isEn = computed(() => locale.value === 'en')
 
 defineProps<{
   config: any

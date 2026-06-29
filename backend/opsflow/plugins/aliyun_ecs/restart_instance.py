@@ -8,6 +8,7 @@ class AliyunEcsRebootPlugin(BasePlugin):
     name_en = "Reboot Instance"
     code = "aliyun_ecs_restart"
     group = "阿里云 ECS"
+    group_en = "Aliyun ECS"
     version = "v1.0"
     description = "重启一台运行中的阿里云 ECS 实例"
     description_en = "Restart an Alibaba Cloud ECS instance"
@@ -56,4 +57,4 @@ class AliyunEcsRebootPlugin(BasePlugin):
 
     @classmethod
     def get_output_schema(cls):
-        return [{"name": "instance_id", "type": "string", "description": "ECS 实例 ID"}, {"name": "status", "type": "string", "description": "实例状态"}]
+        return [{"name": "instance_id", "type": "string", "description": "ECS 实例 ID", "description_en": "ECS instance ID"}, {"name": "status", "type": "string", "description": "实例状态", "description_en": "Instance status"}]

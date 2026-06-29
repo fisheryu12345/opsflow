@@ -12,7 +12,7 @@
             </el-button>
           </span>
         </div>
-        <span class="output-desc" v-if="out.description">{{ out.description }}</span>
+        <span class="output-desc" v-if="out.description || out.description_en">{{ isEn && out.description_en ? out.description_en : out.description }}</span>
         <div class="output-ref-hint">
           Reference: <code>$\{{ nodeId }}.{{ out.name || out.key }}</code>
         </div>
@@ -22,11 +22,14 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { CopyDocument } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+const isEn = computed(() => locale.value === 'en')
 
 const props = defineProps<{
   schema: any[]

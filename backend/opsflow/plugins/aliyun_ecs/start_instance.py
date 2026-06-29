@@ -8,6 +8,7 @@ class AliyunEcsStartPlugin(BasePlugin):
     name_en = "Start Instance"
     code = "aliyun_ecs_start"
     group = "阿里云 ECS"
+    group_en = "Aliyun ECS"
     version = "v1.0"
     description = "启动一台已停止的阿里云 ECS 实例"
     description_en = "Start an Alibaba Cloud ECS instance"
@@ -46,4 +47,4 @@ class AliyunEcsStartPlugin(BasePlugin):
 
     @classmethod
     def get_output_schema(cls):
-        return [{"name": "instance_id", "type": "string", "description": "ECS 实例 ID"}, {"name": "status", "type": "string", "description": "实例状态"}]
+        return [{"name": "instance_id", "type": "string", "description": "ECS 实例 ID", "description_en": "ECS instance ID"}, {"name": "status", "type": "string", "description": "实例状态", "description_en": "Instance status"}]

@@ -133,6 +133,7 @@ export interface OutputField {
   label: string
   type: 'string' | 'number' | 'boolean'
   description?: string
+  description_en?: string
 }
 
 export interface ValidationResult {

@@ -50,6 +50,7 @@ class FormGroup(BaseModel):
     """分组/组合 — 递归包含 FormItem 或其他 FormGroup"""
     type: str = "combine"
     name: str
+    name_en: str = ""                  # 前端标签名（英文，可选）
     tag_code: str
     items: List[Union['FormItem', 'FormGroup']]
 

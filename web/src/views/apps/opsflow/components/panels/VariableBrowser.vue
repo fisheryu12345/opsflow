@@ -13,7 +13,7 @@
             <div class="var-item-left">
               <div class="var-item-top">
                 <code class="var-code">{{ v.key }}</code>
-                <span class="var-desc">{{ v.description || v.type }}</span>
+                <span class="var-desc">{{ isEn && v.description_en ? v.description_en : (v.description || v.type) }}</span>
               </div>
               <div v-if="v.reference_count > 0" class="var-refs">
                 <el-icon size="11"><Link /></el-icon>
@@ -35,7 +35,7 @@
             <div class="detail-grid">
               <div class="detail-row"><span>Type</span><code>{{ v.type }}</code></div>
               <div class="detail-row"><span>Value</span><code>{{ v.value }}</code></div>
-              <div class="detail-row"><span>Desc</span><span>{{ v.description || '-' }}</span></div>
+              <div class="detail-row"><span>Desc</span><span>{{ isEn && v.description_en ? v.description_en : (v.description || '-') }}</span></div>
               <div class="detail-row"><span>Source</span><span>{{ v.source_type || 'manual' }}</span></div>
               <div class="detail-row" v-if="v.source_info">
                 <span>Source Info</span><code>{{ v.source_info.node_id }}.{{ v.source_info.tag_code }}</code>
@@ -101,7 +101,8 @@ import { ElMessageBox, ElMessage } from 'element-plus'
 import { GetVariableBrowser, GetGlobalVariables, UpdateGlobalVariables } from '../../api/templates'
 import { extractNodeOutputFields } from '../../composables/useGraphCanvas'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const isEn = computed(() => locale.value === 'en')
 
 const props = withDefaults(defineProps<{
   modelValue: boolean
@@ -206,7 +207,7 @@ function computeNodeOutputs(nodes: any[]): any[] {
     const nid = n.id || ''
     const label = n.label || nid
     for (const f of extractNodeOutputFields(n, n.node_type || '')) {
-      result.push({ key: `${nid}.${f.key}`, node_id: nid, node_label: label, source: 'node_output', description: f.description || f.key })
+      result.push({ key: `${nid}.${f.key}`, node_id: nid, node_label: label, source: 'node_output', description: f.description || f.key, description_en: f.description_en || '' })
     }
   }
   return result

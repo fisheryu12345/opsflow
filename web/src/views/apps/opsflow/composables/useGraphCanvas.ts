@@ -220,6 +220,7 @@ export function extractNodeOutputFields(
       label: f.name || f.key,
       type: f.type || 'string',
       description: f.description || '',
+      description_en: f.description_en || '',
     }))
   }
   // 按原子类型返回（插件定义的 output_schema 未同步到前端时的兜底）

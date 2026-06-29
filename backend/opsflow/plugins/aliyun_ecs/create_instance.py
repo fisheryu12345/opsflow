@@ -9,6 +9,7 @@ class AliyunEcsCreatePlugin(BasePlugin):
     name_en = "Create Instance"
     code = "aliyun_ecs_create"
     group = "阿里云 ECS"
+    group_en = "Aliyun ECS"
     version = "v1.0"
     description = "创建一台阿里云 ECS 实例（可选分配公网 IP）"
     description_en = "Create an Alibaba Cloud ECS instance with optional public IP"
@@ -229,8 +230,8 @@ class AliyunEcsCreatePlugin(BasePlugin):
     @classmethod
     def get_output_schema(cls):
         return [
-            {"name": "instance_id", "type": "string", "description": "新建的 ECS 实例 ID"},
-            {"name": "instance_name", "type": "string", "description": "实例名称"},
-            {"name": "public_ip", "type": "string", "description": "公网 IP（如有分配）"},
-            {"name": "region", "type": "string", "description": "地域"},
+            {"name": "instance_id", "type": "string", "description": "新建的 ECS 实例 ID", "description_en": "Created ECS instance ID"},
+            {"name": "instance_name", "type": "string", "description": "实例名称", "description_en": "Instance name"},
+            {"name": "public_ip", "type": "string", "description": "公网 IP（如有分配）", "description_en": "Public IP (if assigned)"},
+            {"name": "region", "type": "string", "description": "地域", "description_en": "Region"},
         ]

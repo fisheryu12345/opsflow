@@ -345,6 +345,17 @@ const formRevision = ref(0)
 const showVarBrowser = ref(false)
 const lastFocusedEl = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
+/** 递归替换 schema 中所有 name 为 name_en（支持嵌套 FormGroup）*/
+function _mapSchemaNames(schema: any[]): any[] {
+  return schema.map((item: any) => {
+    const mapped = { ...item, name: item.name_en || item.name }
+    if (mapped.items && Array.isArray(mapped.items)) {
+      mapped.items = _mapSchemaNames(mapped.items)
+    }
+    return mapped
+  })
+}
+
 /** 当前选中插件的元数据（从 GetPluginDetail 返回）*/
 const pluginMeta = ref<Record<string, any> | null>(null)
 
@@ -540,11 +551,17 @@ async function loadPluginSchema(code: string) {
     const res = await GetPluginDetail(code)
     const schema = res.data?.form_schema || []
     pluginMeta.value = res.data || null
-    pluginFormSchema.value = isEn.value
-      ? schema.map((item: any) => ({ ...item, name: item.name_en || item.name }))
-      : schema
+    pluginFormSchema.value = schema
     outputSchema.value = res.data?.output_schema || []
     pluginVersions.value = res.data?.versions || []
+    // 自动设置节点标签为插件名称
+    if (code) {
+      const pluginName = isEn.value && res.data?.name_en ? res.data.name_en : (res.data?.name || '')
+      if (pluginName && (!form.value.label || form.value.label.startsWith('Task') || form.value.label === '选择插件' || form.value.label === '')) {
+        form.value.label = pluginName
+        emitUpdate()
+      }
+    }
     if (res.data?.versions?.length && !form.value._plugin_version) {
       form.value._plugin_version = res.data.versions[res.data.versions.length - 1]
     }

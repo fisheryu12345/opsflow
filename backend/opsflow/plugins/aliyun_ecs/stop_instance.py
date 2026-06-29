@@ -8,6 +8,7 @@ class AliyunEcsStopPlugin(BasePlugin):
     name_en = "Stop Instance"
     code = "aliyun_ecs_stop"
     group = "阿里云 ECS"
+    group_en = "Aliyun ECS"
     version = "v1.0"
     description = "停止一台运行中的阿里云 ECS 实例"
     description_en = "Stop an Alibaba Cloud ECS instance"
@@ -56,4 +57,4 @@ class AliyunEcsStopPlugin(BasePlugin):
 
     @classmethod
     def get_output_schema(cls):
-        return [{"name": "instance_id", "type": "string", "description": "ECS 实例 ID"}, {"name": "status", "type": "string", "description": "实例状态"}]
+        return [{"name": "instance_id", "type": "string", "description": "ECS 实例 ID", "description_en": "ECS instance ID"}, {"name": "status", "type": "string", "description": "实例状态", "description_en": "Instance status"}]

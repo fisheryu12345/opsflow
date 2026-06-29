@@ -9,6 +9,7 @@ class AliyunEcsCreateImagePlugin(BasePlugin):
     name_en = "Create Image"
     code = "aliyun_ecs_create_image"
     group = "阿里云 ECS"
+    group_en = "Aliyun ECS"
     version = "v1.0"
     description = "基于一台 ECS 实例创建自定义镜像"
     description_en = "Create a custom image from an ECS instance"
@@ -92,7 +93,7 @@ class AliyunEcsCreateImagePlugin(BasePlugin):
     @classmethod
     def get_output_schema(cls):
         return [
-            {"name": "image_id", "type": "string", "description": "创建的镜像 ID"},
-            {"name": "image_name", "type": "string", "description": "镜像名称"},
-            {"name": "source_instance_id", "type": "string", "description": "源实例 ID"},
+            {"name": "image_id", "type": "string", "description": "创建的镜像 ID", "description_en": "Created image ID"},
+            {"name": "image_name", "type": "string", "description": "镜像名称", "description_en": "Image name"},
+            {"name": "source_instance_id", "type": "string", "description": "源实例 ID", "description_en": "Source instance ID"},
         ]
