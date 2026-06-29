@@ -7,7 +7,7 @@ from opsflow.schema.form_schema import FormItem, ValidationRule
 class SendAlertPlugin(BasePlugin):
     name = "发送告警"
     code = "send_alert"
-    group = "通用工具"
+    group = "Common Tools"
     description = "发送告警/通知到邮箱、Webhook 等渠道"
     description_en = "Send alert or notification via email, webhook, etc."
     risk_level = "low"

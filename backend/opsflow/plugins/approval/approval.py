@@ -7,7 +7,7 @@ class ApprovalPlugin(BasePlugin):
     name = "审批"
     name_en = "Approval"
     code = "approval"
-    group = "流程控制"
+    group = "Process Control"
     description = "暂停流程并等待指定审批人审批"
     description_en = "Pause pipeline and wait for specified approvers"
     risk_level = "low"

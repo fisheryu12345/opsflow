@@ -1,8 +1,8 @@
 <template>
-  <el-dialog :model-value="props.visible" @update:model-value="emit('update:visible', $event)" title="Select Plugin" width="700px" top="8vh" :close-on-click-modal="false" destroy-on-close>
+  <el-dialog :model-value="props.visible" @update:model-value="emit('update:visible', $event)" :title="$t('message.opsflowPage.selectPlugin')" width="700px" top="8vh" :close-on-click-modal="false" destroy-on-close>
     <div class="plugin-picker">
       <div class="picker-search">
-        <el-input v-model="searchQuery" placeholder="Search plugin name..." clearable prefix-icon="Search" size="small" />
+        <el-input v-model="searchQuery" :placeholder="$t('message.opsflowPage.searchPlugin')" clearable prefix-icon="Search" size="small" />
         <el-button size="small" :loading="scanning" @click="handleScan" class="picker-scan-btn">
           🔄 {{ scanning ? t('message.opsflowPage.pluginVisScanning') : t('message.opsflowPage.pluginVisScan') }}
         </el-button>
@@ -40,20 +40,20 @@
                 {{ deprecationWarning(plugin.phase, plugin.phase_label) }}
               </el-tag>
             </div>
-            <div class="plugin-desc">{{ isEn && plugin.description_en ? plugin.description_en : (plugin.description || 'No description') }}</div>
+            <div class="plugin-desc">{{ isEn && plugin.description_en ? plugin.description_en : (plugin.description || $t('message.common.noData')) }}</div>
             <div class="plugin-tags">
               <el-tag :type="riskTagType(plugin.risk_level)" size="small" effect="plain">
                 {{ plugin.risk_level || 'low' }}
               </el-tag>
             </div>
           </div>
-          <el-empty v-if="!filteredPlugins.length" :description="searchQuery ? 'No matching plugins' : 'Select a group'" :image-size="40" />
+          <el-empty v-if="!filteredPlugins.length" :description="searchQuery ? $t('message.opsflowPage.searchNoResult') : $t('message.opsflowPage.pluginPickerHint')" :image-size="40" />
         </div>
       </div>
     </div>
     <template #footer>
-      <el-button @click="emit('update:visible', false)" >Cancel</el-button>
-      <el-button type="primary" @click="confirmSelected"  :disabled="!selectedPlugin">Confirm</el-button>
+      <el-button @click="emit('update:visible', false)" >{{ $t('message.common.cancel') }}</el-button>
+      <el-button type="primary" @click="confirmSelected"  :disabled="!selectedPlugin">{{ $t('message.common.confirm') }}</el-button>
     </template>
   </el-dialog>
 </template>

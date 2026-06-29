@@ -8,7 +8,7 @@ class SendEmailPlugin(BasePlugin):
     name = "发送邮件"
     name_en = "Send Email"
     code = "send_email"
-    group = "通用工具"
+    group = "Common Tools"
     description = "通过 SMTP 邮件服务器发送电子邮件通知"
     description_en = "Send email notifications via SMTP server"
     risk_level = "low"

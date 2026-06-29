@@ -6,7 +6,7 @@ class ManualPausePlugin(BasePlugin):
     name = "暂停"
     name_en = "Pause"
     code = "manual_pause"
-    group = "通用工具"
+    group = "Common Tools"
     description = "暂停流程执行，等待用户手动恢复"
     description_en = "Pause pipeline execution and wait for manual resume"
     risk_level = "low"

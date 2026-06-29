@@ -7,7 +7,7 @@ from opsflow.schema.form_schema import FormItem
 class IpOpsVerifyPlugin(BasePlugin):
     name = "IP运维验证"
     code = "ip_ops_verify"
-    group = "验证工具"
+    group = "Verification"
     description = "验证 IP 选择器/资源选择/表格/级联 四种 Tag 组件功能"
     description_en = "Verify IP operation permissions before execution"
     risk_level = "low"

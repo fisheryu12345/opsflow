@@ -1,1 +1,1 @@
-__group_name__ = "验证工具"
+__group_name__ = "Verification"

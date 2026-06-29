@@ -2,6 +2,36 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## f1b01d6b
+
+> 提交日期: 2026-06-29 | 提交信息: feat: complete i18n fields for aliyun_ecs plugins + FormGroup name_en
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `plugins/aliyun_ecs/*.py (8 files)` | 后端 | 每个插件加 group_en + output_schema description_en（共 27 条） |
+| `schema/form_schema.py` | 后端 | FormGroup 模型新增 name_en 字段 |
+| `FormGroup.vue` | 前端 | 标题支持 name_en 中英切换 |
+| `OutputParamSection.vue` | 前端 | description_en 中英切换 |
+| `VariableBrowser.vue` | 前端 | description_en 中英切换 |
+| `useGraphCanvas.ts` | 前端 | extractNodeOutputFields 映射 description_en |
+| `types/index.ts` | 前端 | OutputField 接口加 description_en |
+
+### 解决
+
+- **问题/背景：** aliyun_ecs 插件缺 group_en / description_en，英文模式下组名和输出描述仍显示中文；FormGroup 标题不支持 name_en 切换
+- **办法：** 后端补齐 8 个插件 + Pydantic 模型加 name_en；前端 OutputParamSection/VariableBrowser/FormGroup/useGraphCanvas/types 全链路支持
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 无
+- 子 App index.md 更新: opsflow
+- 工作区状态: 待提交 ✅
+
+---
+
 ## 11d3ddf1
 
 > 提交日期: 2026-06-29 | 提交信息: feat: add show_execution_controls/show_loop_config to BasePlugin
