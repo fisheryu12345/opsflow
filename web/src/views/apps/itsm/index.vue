@@ -211,15 +211,16 @@
               </div>
               <!-- Version panel -->
               <div v-if="expandedWfId === wf.id" class="itsm-wf-versions">
-                <div class="itsm-wf-ver-title">版本历史</div>
-                <div v-if="wfVersions[wf.id]?.loading" class="itsm-wf-ver-loading">加载中...</div>
-                <div v-else-if="!wfVersions[wf.id]?.list?.length" class="itsm-wf-ver-empty">暂无版本</div>
-                <div v-else v-for="ver in wfVersions[wf.id].list" :key="ver.id" class="itsm-wf-ver-row">
-                  <span class="itsm-wf-ver-num">v{{ ver.version }}</span>
-                  <span class="itsm-wf-ver-time">{{ ver.create_datetime }}</span>
-                  <el-button size="small" text type="warning" @click="onRollbackVersion(ver)">回滚</el-button>
-                  <el-button size="small" text type="danger" @click="onDeleteVersion(ver)">删除</el-button>
-                </div>
+                <div v-if="wfVersions[wf.id]?.loading" class="itsm-wf-ver-empty">加载中...</div>
+                <div v-else-if="!wfVersions[wf.id]?.list?.length" class="itsm-wf-ver-empty">暂无历史版本</div>
+                <template v-else>
+                  <div v-for="ver in wfVersions[wf.id]?.list || []" :key="ver.id" class="itsm-wf-ver-row">
+                    <span class="itsm-wf-ver-num">v{{ ver.version }}</span>
+                    <span class="itsm-wf-ver-time">{{ ver.create_datetime }}</span>
+                    <el-button size="small" text type="warning" @click="onRollbackClick(ver)">回滚</el-button>
+                    <el-button size="small" text type="danger" @click="onDeleteVersion(ver)">删除</el-button>
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -381,7 +382,7 @@
           <span v-for="(s, idx) in aiResult.states?.filter((s: any) => s.type !== 'START' && s.type !== 'END') || []" :key="idx" class="itsm-ai-node">
             <span class="itsm-ai-node-badge" :class="'node-' + (s.type || '').toLowerCase()">{{ s.type }}</span>
             {{ s.name }}
-            <el-icon v-if="idx < (aiResult.states?.filter((s: any) => s.type !== 'START' && s.type !== 'END').length || 1) - 1"><ArrowRight /></el-icon>
+            <el-icon v-if="idx < ((aiResult.states?.filter((s: any) => s.type !== 'START' && s.type !== 'END') || []).length || 1) - 1"><ArrowRight /></el-icon>
           </span>
         </div>
       </div>
@@ -490,6 +491,18 @@
       </template>
     </el-dialog>
 
+    <!-- ===== 版本回滚确认对话框 ===== -->
+    <el-dialog v-model="showRollbackDialog" title="版本回滚确认" width="440px" top="25vh" destroy-on-close>
+      <div style="padding: 8px 0; font-size: 14px;">
+        <p style="margin-bottom: 12px;">确定回滚到 <b>v{{ rollbackTarget?.version }}</b> 吗？</p>
+        <p style="color: #909399; font-size: 12px; margin-bottom: 0;">将用此版本快照重建流程并生成新版本。</p>
+      </div>
+      <template #footer>
+        <el-button @click="showRollbackDialog = false">取消</el-button>
+        <el-button type="warning" :loading="rollbackLoading" @click="confirmRollback">确定回滚</el-button>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -530,6 +543,8 @@ function onOpenDesigner(wfId?: number) {
   designerWorkflowId.value = wfId || 0
   designerMode.value = true
 }
+function arrowCount(aiResult: any): number { return ((aiResult.states?.filter((s: any) => s.type !== 'START' && s.type !== 'END') || []).length || 1) - 1 }
+
 function onCloseDesigner() {
   designerMode.value = false
   loadWorkflows()
@@ -724,7 +739,11 @@ const aiLoading = ref(false)
 const aiResult = ref<any>(null)
 const savingWf = ref(false)
 const expandedWfId = ref(null)
-const wfVersions = ref({})
+const wfVersions: any = ref({})
+// Rollback dialog state
+const showRollbackDialog = ref(false)
+const rollbackTarget = ref<any>(null)
+const rollbackLoading = ref(false)
 
 async function loadWorkflows() {
   loadingWf.value = true
@@ -749,7 +768,7 @@ async function onDeployWorkflow(wf: any) {
 }
 
 async function onToggleVersions(wf: any) {
-  if (expandedWfId.value === wf.id) { expandedWfId.value = null; return }
+  if (expandedWfId.value === Number(wf.id)) { expandedWfId.value = null; return }
   expandedWfId.value = wf.id
   const cache = wfVersions.value[wf.id]
   if (!cache) wfVersions.value[wf.id] = { list: [], loading: true }
@@ -761,12 +780,23 @@ async function onToggleVersions(wf: any) {
   } catch { wfVersions.value[wf.id].list = [] }
   wfVersions.value[wf.id].loading = false
 }
-async function onRollbackVersion(ver: any) {
+function onRollbackClick(ver: any) {
+  rollbackTarget.value = ver
+  showRollbackDialog.value = true
+}
+async function confirmRollback() {
+  if (!rollbackTarget.value) return
+  rollbackLoading.value = true
   try {
-    await RollbackVersion(ver.id)
-    ElMessage.success("已回滚并创建新版本")
-    onToggleVersions({ id: ver.workflow })
-  } catch { ElMessage.error("回滚失败") }
+    await RollbackVersion(rollbackTarget.value.id)
+    ElMessage.success('已回滚并创建新版本')
+    showRollbackDialog.value = false
+    // Refresh the version list for this workflow
+    const wfId = rollbackTarget.value.workflow
+    wfVersions.value[wfId] = { list: [], loading: true }
+    await onToggleVersions({ id: wfId })
+  } catch { ElMessage.error('回滚失败') }
+  finally { rollbackLoading.value = false }
 }
 async function onDeleteVersion(ver: any) {
   try {
