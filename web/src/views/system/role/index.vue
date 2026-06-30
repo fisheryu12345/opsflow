@@ -228,9 +228,9 @@ const colPerm = (field: string, type: 'is_query' | 'is_create' | 'is_update'): b
 /* ===================== Action Column Width ===================== */
 const actionColWidth = computed(() => {
   let count = 1; // 查看
-  if (auth('role:Update')) count++;
-  if (auth('role:Delete')) count++;
-  if (auth('role:Permission')) count++;
+  count++; // Update
+  count++; // Delete
+  count++; // Permission
   return 60 + count * 55;
 });
 

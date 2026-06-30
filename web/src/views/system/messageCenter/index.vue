@@ -84,7 +84,7 @@
         </div>
         <div class="toolbar-right">
           <el-button
-            v-if="tabActive === 'send' && auth('messageCenter:Create')"
+            v-if="tabActive === 'send'"
             type="primary"
             @click="openAddDialog"
           >
