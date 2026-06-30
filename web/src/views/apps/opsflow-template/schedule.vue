@@ -8,7 +8,6 @@
           <h1 class="sc-hero-title">{{ $t('message.schedule.title') }}</h1>
           <p class="sc-hero-subtitle">{{ $t('message.schedule.schSubtitle') }}</p>
         </div>
-        <ProjectSwitcher :dark="true" />
         <div class="sc-hero-center">
           <el-input
             v-model="searchQuery"
@@ -100,7 +99,6 @@ import {
 import ScheduleTable from './components/ScheduleTable.vue'
 import ScheduleForm from './components/ScheduleForm.vue'
 
-import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const { t } = useI18n()
 const list = ref<any[]>([])
 const loading = ref(false)
@@ -170,7 +168,7 @@ async function handleDelete(row: any) {
 
 function onSearch() { /* computed auto-filters */ }
 
-// Re-fetch schedules when project switches via ProjectSwitcher
+// Re-fetch schedules when project switches via global ProjectSwitcher
 function onProjectChanged() {
   fetchList()
 }

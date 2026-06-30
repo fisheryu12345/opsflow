@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""View sets for ITSM assignment models"""
+"""View sets for ITSM assignment models — project-scoped with multi-tenant isolation"""
 
 from dvadmin.utils.viewset import CustomModelViewSet
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse
@@ -14,14 +14,24 @@ from itsm.serializers.assign_serializers import (
     AssignRuleSerializer, EscalationLevelSerializer,
     TicketTransferLogSerializer,
 )
+from itsm.views.workflow_views import ItsmProjectViewSet
 
 
 class SkillGroupViewSet(CustomModelViewSet):
-    """技能组管理"""
+    """技能组管理 — business-scoped (非 project 维度，保持 CustomModelViewSet)"""
     model = SkillGroup
     queryset = SkillGroup.objects.all()
     serializer_class = SkillGroupSerializer
     search_fields = ['name', 'code']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if user.is_superuser:
+            return qs
+        from iam.resolvers import get_visible_businesses
+        biz_ids = get_visible_businesses(user)
+        return qs.filter(business_id__in=biz_ids)
 
     @action(methods=['POST'], detail=True)
     def add_member(self, request, pk=None):
@@ -42,16 +52,16 @@ class SkillGroupViewSet(CustomModelViewSet):
         return DetailResponse(msg='成员已移除')
 
 
-class OnDutyScheduleViewSet(CustomModelViewSet):
-    """值班排班管理"""
+class OnDutyScheduleViewSet(ItsmProjectViewSet):
+    """值班排班管理 — project-scoped"""
     model = OnDutySchedule
     queryset = OnDutySchedule.objects.all()
     serializer_class = OnDutyScheduleSerializer
     filter_fields = ['group', 'duty_date', 'duty_type']
 
 
-class AssignRuleViewSet(CustomModelViewSet):
-    """分派规则管理"""
+class AssignRuleViewSet(ItsmProjectViewSet):
+    """分派规则管理 — project-scoped"""
     model = AssignRule
     queryset = AssignRule.objects.all()
     serializer_class = AssignRuleSerializer
@@ -59,8 +69,8 @@ class AssignRuleViewSet(CustomModelViewSet):
     ordering = ['priority']
 
 
-class EscalationLevelViewSet(CustomModelViewSet):
-    """升级级别管理"""
+class EscalationLevelViewSet(ItsmProjectViewSet):
+    """升级级别管理 — project-scoped"""
     model = EscalationLevel
     queryset = EscalationLevel.objects.all()
     serializer_class = EscalationLevelSerializer
@@ -68,7 +78,7 @@ class EscalationLevelViewSet(CustomModelViewSet):
 
 
 class TicketTransferLogViewSet(CustomModelViewSet):
-    """转派记录查询"""
+    """转派记录查询 — 级联 ticket，保持 CustomModelViewSet"""
     model = TicketTransferLog
     queryset = TicketTransferLog.objects.all()
     serializer_class = TicketTransferLogSerializer

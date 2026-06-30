@@ -9,6 +9,10 @@ from itsm.models.incident import ServiceCategory
 
 class AssignRule(CoreModel):
     """分派规则 — IF category+priority+itsm_type THEN target_group+assign_mode"""
+    project = models.ForeignKey(
+        'iam.Project', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='itsm_assign_rules', verbose_name='Project',
+    )
     ASSIGN_MODE_CHOICES = (
         ('to_group', '分派到组（待认领）'),
         ('to_onduty', '分派到当前值班人'),

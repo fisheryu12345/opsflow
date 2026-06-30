@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 class AssignEngine:
     """ITSM 工单自动分派引擎"""
 
-    def __init__(self, ticket):
+    def __init__(self, ticket, project_id=None):
         self.ticket = ticket
+        self.project_id = project_id or (ticket.project_id if ticket else None)
 
     def auto_assign(self):
         """执行自动分派，返回分派结果 dict"""
@@ -113,10 +114,13 @@ class AssignEngine:
         return {'user': user, 'group': target_group, 'rule': rule}
 
     def _match_rule(self):
-        """按优先级匹配 AssignRule"""
+        """按优先级匹配 AssignRule — project-scoped"""
         from itsm.models.assign_rule import AssignRule
 
-        rules = AssignRule.objects.filter(is_active=True).order_by('priority')
+        rules = AssignRule.objects.filter(is_active=True)
+        if self.project_id:
+            rules = rules.filter(project_id=self.project_id)
+        rules = rules.order_by('priority')
         for rule in rules:
             if rule.match_itsm_type and rule.match_itsm_type != self.ticket.itsm_type:
                 continue

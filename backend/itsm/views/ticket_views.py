@@ -2,9 +2,13 @@
 """ITSM Ticket views — 工单管理、提交、审批、状态管理、文件上传"""
 
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 
 from dvadmin.utils.viewset import CustomModelViewSet
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+
+from opsflow.views.base import ProjectFilteredViewSet
+from iam.permissions import TenantPermission, EnvironmentGatePermission
 
 from itsm.models import Ticket, TicketStatus, SignTask, WorkflowVersion
 from itsm.serializers import (
@@ -13,20 +17,30 @@ from itsm.serializers import (
 )
 from itsm.services.pipeline_wrapper import PipelineWrapper
 from itsm.services.opsflow_trigger import OpsflowTriggerService
+from itsm.views.workflow_views import ItsmProjectViewSet
 
 
-class TicketViewSet(CustomModelViewSet):
-    """工单管理"""
+class TicketViewSet(ItsmProjectViewSet):
+    """工单管理 — project-scoped with environment gate"""
     model = Ticket
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
-    create_serializer_class = TicketCreateSerializer
     filter_fields = ['itsm_type', 'current_status', 'priority', 'creator']
     search_fields = ['sn', 'title']
     ordering = ['-create_datetime']
+    permission_classes = [IsAuthenticated, TenantPermission, EnvironmentGatePermission]
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return TicketCreateSerializer
+        return TicketSerializer
 
     def perform_create(self, serializer):
         instance = serializer.save(creator=self.request.user)
+        # Auto-fill business from project's business
+        if instance.project and instance.project.business_id:
+            instance.business = instance.project.business
+            instance.save(update_fields=['business'])
         instance.do_after_create()
         return instance
 
@@ -46,7 +60,7 @@ class TicketViewSet(CustomModelViewSet):
             # 提交后尝试自动分派
             try:
                 from itsm.services.assign_engine import AssignEngine
-                engine = AssignEngine(instance)
+                engine = AssignEngine(instance, project_id=instance.project_id)
                 engine.auto_assign()
             except Exception as assign_err:
                 import logging
@@ -163,6 +177,7 @@ class TicketViewSet(CustomModelViewSet):
         from itsm.services.assign_engine import AssignEngine
 
         instance = self.get_object()
+        # project_id is already validated by TenantPermission
         user_id = request.data.get('user_id')
         group_id = request.data.get('group_id')
         reason = request.data.get('reason', '')
@@ -191,7 +206,7 @@ class TicketViewSet(CustomModelViewSet):
         from itsm.services.assign_engine import AssignEngine
 
         instance = self.get_object()
-        engine = AssignEngine(instance)
+        engine = AssignEngine(instance, project_id=instance.project_id)
         result = engine.auto_assign()
         if result:
             return DetailResponse(data=result, msg='自动分派完成')

@@ -59,7 +59,7 @@
     </div>
 
     <!-- Create/Edit Dialog -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑委托' : '新建委托'" width="520px" top="8vh" class="itsm-dialog">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑委托' : '新建委托'" width="520px" top="8vh" class="itsm-dialog" append-to-body>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="被委托人" prop="delegate_to">
           <el-select v-model="form.delegate_to" filterable remote :remote-method="searchUsers"
@@ -99,7 +99,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Check } from '@element-plus/icons-vue'
 import { delegationApi, ToggleDelegation } from '/@/api/itsm/index'
 import { GetList } from '/@/views/system/user/api'
 

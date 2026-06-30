@@ -41,6 +41,10 @@ class Ticket(CoreModel):
         ('P3', 'P3 中'),
         ('P4', 'P4 低'),
     )
+    project = models.ForeignKey(
+        'iam.Project', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='itsm_tickets', verbose_name='Project',
+    )
     sn = models.CharField(max_length=64, unique=True, default=generate_sn, verbose_name="单据号")
     title = models.CharField(max_length=255, verbose_name="工单标题")
     workflow_version = models.ForeignKey('itsm.WorkflowVersion', on_delete=models.CASCADE,

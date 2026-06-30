@@ -8,7 +8,6 @@
           <h1 class="wh-hero-title">{{ $t("message.opsflowPage.webhookTitle") }}</h1>
           <p class="wh-hero-subtitle">{{ $t("message.opsflowPage.webhookSubtitle") }}</p>
         </div>
-        <ProjectSwitcher :dark="true" />
         <div class="wh-hero-center">
           <el-input
             v-model="searchQuery"
@@ -199,7 +198,6 @@ import {
   GetWebhooks, CreateWebhook, UpdateWebhook, DeleteWebhook, GetWebhookLogs,
 } from '../opsflow/api/webhooks'
 
-import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const { t } = useI18n()
 const loading = ref(false)
 const saving = ref(false)

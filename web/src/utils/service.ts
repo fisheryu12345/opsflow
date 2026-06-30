@@ -40,7 +40,15 @@ function createService() {
 	});
 	// 请求拦截
 	service.interceptors.request.use(
-		(config) => config,
+		(config) => {
+			// 多租户: 自动注入 project_id（从全局 store 读取）
+			// Read project_id from localStorage (synced by stores/project.ts)
+			const pid = localStorage.getItem('opsflow_active_project_id');
+			if (pid) {
+				config.params = { ...(config.params || {}), project_id: Number(pid) };
+			}
+			return config;
+		},
 		(error) => {
 			// 发送失败
 			console.log(error);

@@ -7,6 +7,10 @@ from dvadmin.utils.models import CoreModel, table_prefix
 
 class SkillGroup(CoreModel):
     """技能组 — 如网络组、数据库组、应用组等"""
+    business = models.ForeignKey(
+        'iam.Business', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='itsm_skill_groups', verbose_name='Business',
+    )
     name = models.CharField(max_length=128, verbose_name="技能组名称")
     code = models.CharField(max_length=64, unique=True, verbose_name="技能组编码")
     leader = models.ForeignKey(
@@ -31,6 +35,10 @@ class SkillGroup(CoreModel):
 
 class OnDutySchedule(CoreModel):
     """值班排班 — 每天每组的 primary/backup"""
+    project = models.ForeignKey(
+        'iam.Project', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='itsm_schedules', verbose_name='Project',
+    )
     DUTY_CHOICES = (
         ('primary', '主班'),
         ('backup', '备班'),

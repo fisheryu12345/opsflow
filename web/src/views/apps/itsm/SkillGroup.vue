@@ -34,7 +34,7 @@
       </el-table>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="editingItem ? $t('message.common.edit') : $t('message.common.create')" width="520px" top="10vh" destroy-on-close>
+    <el-dialog v-model="dialogVisible" :title="editingItem ? $t('message.common.edit') : $t('message.common.create')" width="520px" top="10vh" destroy-on-close append-to-body>
       <el-form ref="formRef" :model="form" label-width="80px" size="small">
         <el-form-item :label="$t('message.skillGroup.name')" prop="name" :rules="[{ required: true, message: t('message.skillGroup.name') }]">
           <el-input v-model="form.name" />
@@ -60,7 +60,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="membersVisible" :title="$t('message.skillGroup.memberTitle', { name: editingGroupName })" width="480px" top="10vh" destroy-on-close>
+    <el-dialog v-model="membersVisible" :title="$t('message.skillGroup.memberTitle', { name: editingGroupName })" width="480px" top="10vh" destroy-on-close append-to-body>
       <div class="sg-member-list">
         <div v-for="m in form.members" :key="m.id" class="sg-member-row">
           <span>{{ m.name }} ({{ m.username }})</span>

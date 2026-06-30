@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 """ITSM views - Incident, Change, ServiceRequest, Problem, ServiceCategory, SlaPolicy
 
-CRUD + 状态转换动作
+CRUD + 状态转换动作 — project-scoped with multi-tenant isolation
 """
 
 from rest_framework.decorators import action
 from django.utils import timezone
 
-from dvadmin.utils.viewset import CustomModelViewSet
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 
 from ..models.incident import Incident, Change, ServiceRequest, Problem, ServiceCategory, SlaPolicy
@@ -19,22 +18,26 @@ from ..serializers import (
     ServiceCategorySerializer, ServiceCategoryCreateUpdateSerializer,
     SlaPolicySerializer,
 )
+from .workflow_views import ItsmProjectViewSet
 
 
-class ServiceCategoryViewSet(CustomModelViewSet):
-    """服务分类 CRUD"""
+class ServiceCategoryViewSet(ItsmProjectViewSet):
+    """服务分类 CRUD — project-scoped"""
     model = ServiceCategory
     queryset = ServiceCategory.objects.all()
     serializer_class = ServiceCategorySerializer
-    create_serializer_class = ServiceCategoryCreateUpdateSerializer
-    update_serializer_class = ServiceCategoryCreateUpdateSerializer
     filter_fields = ['is_active', 'parent']
     search_fields = ['name', 'code']
     ordering = ['sort_order', 'name']
 
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return ServiceCategoryCreateUpdateSerializer
+        return ServiceCategorySerializer
 
-class SlaPolicyViewSet(CustomModelViewSet):
-    """SLA 策略 CRUD"""
+
+class SlaPolicyViewSet(ItsmProjectViewSet):
+    """SLA 策略 CRUD — project-scoped"""
     model = SlaPolicy
     queryset = SlaPolicy.objects.all()
     serializer_class = SlaPolicySerializer
@@ -42,16 +45,19 @@ class SlaPolicyViewSet(CustomModelViewSet):
     ordering = ['priority']
 
 
-class IncidentViewSet(CustomModelViewSet):
-    """事件工单管理"""
+class IncidentViewSet(ItsmProjectViewSet):
+    """事件工单管理 — project-scoped"""
     model = Incident
     queryset = Incident.objects.all()
     serializer_class = IncidentSerializer
-    create_serializer_class = IncidentCreateUpdateSerializer
-    update_serializer_class = IncidentCreateUpdateSerializer
     filter_fields = ['status', 'priority', 'source', 'category', 'assignee']
     search_fields = ['title', 'incident_id', 'description']
     ordering = ['-create_datetime']
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return IncidentCreateUpdateSerializer
+        return IncidentSerializer
 
     @action(methods=['POST'], detail=True)
     def assign(self, request, pk=None):
@@ -87,16 +93,19 @@ class IncidentViewSet(CustomModelViewSet):
         return DetailResponse(msg='已关闭')
 
 
-class ChangeViewSet(CustomModelViewSet):
-    """变更申请管理"""
+class ChangeViewSet(ItsmProjectViewSet):
+    """变更申请管理 — project-scoped"""
     model = Change
     queryset = Change.objects.all()
     serializer_class = ChangeSerializer
-    create_serializer_class = ChangeCreateUpdateSerializer
-    update_serializer_class = ChangeCreateUpdateSerializer
     filter_fields = ['status', 'change_type', 'risk_level']
     search_fields = ['title', 'change_id']
     ordering = ['-create_datetime']
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return ChangeCreateUpdateSerializer
+        return ChangeSerializer
 
     @action(methods=['POST'], detail=True)
     def approve(self, request, pk=None):
@@ -115,8 +124,8 @@ class ChangeViewSet(CustomModelViewSet):
         return DetailResponse(msg='已驳回')
 
 
-class ServiceRequestViewSet(CustomModelViewSet):
-    """服务请求管理"""
+class ServiceRequestViewSet(ItsmProjectViewSet):
+    """服务请求管理 — project-scoped"""
     model = ServiceRequest
     queryset = ServiceRequest.objects.all()
     serializer_class = ServiceRequestSerializer
@@ -125,13 +134,16 @@ class ServiceRequestViewSet(CustomModelViewSet):
     ordering = ['-create_datetime']
 
 
-class ProblemViewSet(CustomModelViewSet):
-    """问题管理"""
+class ProblemViewSet(ItsmProjectViewSet):
+    """问题管理 — project-scoped"""
     model = Problem
     queryset = Problem.objects.all()
     serializer_class = ProblemSerializer
-    create_serializer_class = ProblemCreateUpdateSerializer
-    update_serializer_class = ProblemCreateUpdateSerializer
     filter_fields = ['status', 'priority', 'known_error']
     search_fields = ['title', 'problem_id']
     ordering = ['-create_datetime']
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return ProblemCreateUpdateSerializer
+        return ProblemSerializer

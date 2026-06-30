@@ -59,12 +59,13 @@ class EscalationService:
         if not group_id:
             return False
 
-        # 找下一级 EscalationLevel
+        # 找下一级 EscalationLevel — project-scoped
         from itsm.models.escalation import EscalationLevel
         next_level = current_level + 1
         try:
             level_config = EscalationLevel.objects.get(
-                group_id=group_id, level=next_level
+                group_id=group_id, level=next_level,
+                project_id=ticket.project_id,
             )
         except EscalationLevel.DoesNotExist:
             return False  # 没有配置更高级别

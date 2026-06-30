@@ -14,6 +14,10 @@ logger = logging.getLogger(__name__)
 
 class ServiceCategory(CoreModel):
     """服务分类 — 服务目录的一级/二级分类"""
+    project = models.ForeignKey(
+        'iam.Project', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='itsm_categories', verbose_name='Project',
+    )
     name = models.CharField(max_length=128, verbose_name="分类名称")
     code = models.CharField(max_length=64, unique=True, verbose_name="分类编码")
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True,
@@ -39,6 +43,10 @@ class ServiceCategory(CoreModel):
 
 class SlaPolicy(CoreModel):
     """SLA 策略定义"""
+    project = models.ForeignKey(
+        'iam.Project', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='itsm_sla_policies', verbose_name='Project',
+    )
     priority_choices = (
         ('P1', 'P1 危急'),
         ('P2', 'P2 高'),
@@ -62,6 +70,10 @@ class SlaPolicy(CoreModel):
 
 class Incident(CoreModel):
     """事件工单 (Incident)"""
+    project = models.ForeignKey(
+        'iam.Project', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='itsm_incidents', verbose_name='Project',
+    )
     incident_status_choices = (
         ('new', '新建'),
         ('assigned', '待分派'),
@@ -112,6 +124,10 @@ class Incident(CoreModel):
 
 class Change(CoreModel):
     """变更申请 (Change)"""
+    project = models.ForeignKey(
+        'iam.Project', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='itsm_changes', verbose_name='Project',
+    )
     change_type_choices = (
         ('standard', '标准变更'),
         ('normal', '普通变更'),
@@ -158,6 +174,10 @@ class Change(CoreModel):
 
 class ServiceRequest(CoreModel):
     """服务请求 (Service Request)"""
+    project = models.ForeignKey(
+        'iam.Project', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='itsm_requests', verbose_name='Project',
+    )
     status_choices = (
         ('pending', '待处理'),
         ('in_progress', '处理中'),
@@ -190,6 +210,10 @@ class ServiceRequest(CoreModel):
 
 class Problem(CoreModel):
     """问题管理 (Problem)"""
+    project = models.ForeignKey(
+        'iam.Project', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='itsm_problems', verbose_name='Project',
+    )
     status_choices = (
         ('new', '新建'),
         ('investigating', '调查中'),

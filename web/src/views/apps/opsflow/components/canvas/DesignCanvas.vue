@@ -3,9 +3,6 @@
     <div class="canvas-body">
       <div class="canvas-toolbar-float" :class="{ collapsed: toolbarCollapsed }" :style="{ left: stencilCollapsed ? '32px' : '220px' }">
         <template v-if="!toolbarCollapsed">
-          <el-tooltip :show-after="500" :content="$t('message.project.switchProject')" placement="bottom">
-            <ProjectSwitcher />
-          </el-tooltip>
           <div class="toolbar-divider" />
           <el-tooltip :show-after="500" :content="$t('message.canvas.selectTemplate')" placement="bottom">
             <el-select
@@ -129,7 +126,6 @@ import { CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrow
 import { useDesignCanvas } from '../../composables/useDesignCanvas'
 import PropertyPanel from '../panels/PropertyPanel.vue'
 import SubprocessStatusBadge from '../badges/SubprocessStatusBadge.vue'
-import ProjectSwitcher from '../common/ProjectSwitcher.vue'
 import SubmitWizardDialog from '../dialogs/SubmitWizardDialog.vue'
 import { ConfirmDraft } from '../../api/templates'
 import { DryRunExecution } from '../../api/executions'

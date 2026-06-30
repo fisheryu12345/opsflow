@@ -7,6 +7,10 @@ from dvadmin.utils.models import CoreModel, table_prefix
 
 class EscalationLevel(CoreModel):
     """升级级别 — 每组可配置 L1→L2→L3 超时与动作"""
+    project = models.ForeignKey(
+        'iam.Project', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='itsm_escalations', verbose_name='Project',
+    )
     ACTION_CHOICES = (
         ('notify_only', '仅通知'),
         ('transfer_to_leader', '转给组长'),

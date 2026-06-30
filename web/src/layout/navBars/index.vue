@@ -7,11 +7,12 @@
 			</div>
 			<Horizontal v-if="isLayoutTransverse" :menu-list="horizontalMenuList" />
 			<div class="navbars-right-area">
+				<GlobalProjectSwitcher />
 				<User />
 			</div>
 		</template>
 		<template v-else>
-			<!-- Default layout: Collapse btn + TagsView + User -->
+			<!-- Default layout: Collapse btn + ProjectSwitcher + TagsView + User -->
 			<SvgIcon
 				class="navbars-collapse-icon"
 				:name="themeConfig.isCollapse ? 'ele-Expand' : 'ele-Fold'"
@@ -22,6 +23,7 @@
 				<TagsView />
 			</div>
 			<div class="navbars-right-area">
+			<GlobalProjectSwitcher />
 				<User />
 			</div>
 		</template>
@@ -42,6 +44,7 @@ const User = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/use
 const Logo = defineAsyncComponent(() => import('/@/layout/logo/index.vue'));
 const Horizontal = defineAsyncComponent(() => import('/@/layout/navMenu/horizontal.vue'));
 const TagsView = defineAsyncComponent(() => import('/@/layout/navBars/tagsView/tagsView.vue'));
+const GlobalProjectSwitcher = defineAsyncComponent(() => import('/@/layout/navBars/GlobalProjectSwitcher.vue'));
 
 // 定义变量内容
 const storesThemeConfig = useThemeConfig();

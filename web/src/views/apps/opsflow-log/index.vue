@@ -8,7 +8,6 @@
           <h1 class="log-hero-title">{{ $t('message.opsflowPage.auditLogTitle') }}</h1>
           <p class="log-hero-subtitle">{{ $t('message.opsflowPage.auditLogSubtitle') }}</p>
         </div>
-        <ProjectSwitcher :dark="true" />
         <div class="log-hero-center">
           <el-input v-model="searchQuery" :placeholder="$t('message.opsflowPage.auditSearchPlaceholder')" clearable size="default"
             class="log-search-input" @keyup.enter="onSearch" @clear="onSearch">
@@ -118,7 +117,6 @@ import { ref, computed, onMounted } from 'vue'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { GetLogs } from '../opsflow/api/logs'
 
-import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const { t } = useI18n()
 const loading = ref(false)
 const list = ref<any[]>([])

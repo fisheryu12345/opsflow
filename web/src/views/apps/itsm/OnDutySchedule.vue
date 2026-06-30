@@ -33,7 +33,7 @@
       </el-table>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="editingItem ? t('message.onDuty.title') : t('message.common.create')" width="420px" top="15vh" destroy-on-close>
+    <el-dialog v-model="dialogVisible" :title="editingItem ? t('message.onDuty.title') : t('message.common.create')" width="420px" top="15vh" destroy-on-close append-to-body>
       <el-form :model="form" label-width="80px" size="small">
         <el-form-item :label="$t('message.onDuty.group')" :rules="[{ required: true, message: '必选' }]">
           <el-select v-model="form.group" filterable style="width:100%">
@@ -50,8 +50,8 @@
         </el-form-item>
         <el-form-item :label="$t('message.onDuty.dutyType')">
           <el-radio-group v-model="form.duty_type">
-            <el-radio label="primary">{{ $t('message.onDuty.primary') }}</el-radio>
-            <el-radio label="backup">{{ $t('message.onDuty.backup') }}</el-radio>
+            <el-radio value="primary">{{ $t('message.onDuty.primary') }}</el-radio>
+            <el-radio value="backup">{{ $t('message.onDuty.backup') }}</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>

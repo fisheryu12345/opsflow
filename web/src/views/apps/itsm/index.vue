@@ -88,7 +88,7 @@
             </div>
           </div>
           <div class="itsm-filter-actions">
-            <el-button size="small" @click="showCreateTicket = true">
+            <el-button size="small" @click="onOpenCreateTicket">
               <el-icon><Plus /></el-icon> 新建工单
             </el-button>
             <el-button :icon="Refresh" size="small" text @click="loadTickets" :loading="loadingTickets">刷新</el-button>
@@ -222,7 +222,7 @@
         <div class="itsm-table-card">
           <div class="itsm-table-header">
             <span class="itsm-table-title">事件工单</span>
-            <el-button type="primary" size="small" @click="showCreateIncident = true">
+            <el-button type="primary" size="small" @click="onOpenCreateTicket">
               <el-icon><Plus /></el-icon> 新建工单
             </el-button>
           </div>
@@ -311,15 +311,43 @@
           </div>
           <el-table :data="slaPolicies" v-loading="loadingSla" stripe style="width:100%" size="small"
             :empty-text="loadingSla ? '加载中...' : '暂无 SLA 策略'">
-            <el-table-column prop="name" label="策略名称" min-width="200" />
+            <el-table-column prop="name" label="策略名称" min-width="160" />
             <el-table-column prop="priority" label="优先级" width="80" />
             <el-table-column prop="response_minutes" label="响应时限(min)" width="140" />
             <el-table-column prop="resolve_minutes" label="解决时限(min)" width="140" />
             <el-table-column prop="is_active" label="启用" width="80" align="center">
-              <template #default="{ row }"><el-switch v-model="row.is_active" size="small" /></template>
+              <template #default="{ row }"><el-switch v-model="row.is_active" size="small" @change="onSlaToggle(row)" /></template>
+            </el-table-column>
+            <el-table-column label="操作" width="80" fixed="right">
+              <template #default="{ row }">
+                <el-button size="small" text @click="onSlaEdit(row)">编辑</el-button>
+              </template>
             </el-table-column>
           </el-table>
         </div>
+
+        <!-- SLA Edit Dialog -->
+        <el-dialog v-model="showSlaEdit" title="编辑 SLA 策略" width="440px" top="15vh" destroy-on-close append-to-body>
+          <el-form :model="slaForm" label-width="120px" size="small">
+            <el-form-item label="策略名称"><el-input v-model="slaForm.name" /></el-form-item>
+            <el-form-item label="优先级" v-if="!slaForm.id">
+              <el-select v-model="slaForm.priority" style="width:100%">
+                <el-option label="P1" value="P1" /><el-option label="P2" value="P2" />
+                <el-option label="P3" value="P3" /><el-option label="P4" value="P4" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="优先级" v-else>
+              <span style="font-weight:600">{{ slaForm.priority }}</span>
+            </el-form-item>
+            <el-form-item label="响应时限(分钟)"><el-input-number v-model="slaForm.response_minutes" :min="1" :max="10080" style="width:160px" /></el-form-item>
+            <el-form-item label="解决时限(分钟)"><el-input-number v-model="slaForm.resolve_minutes" :min="1" :max="43200" style="width:160px" /></el-form-item>
+            <el-form-item label="启用"><el-switch v-model="slaForm.is_active" /></el-form-item>
+          </el-form>
+          <template #footer>
+            <el-button @click="showSlaEdit = false">取消</el-button>
+            <el-button type="primary" :loading="savingSla" @click="onSlaSave">保存</el-button>
+          </template>
+        </el-dialog>
       </div>
 
       <!-- ==================== TAB: 审批委托 ==================== -->
@@ -514,7 +542,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, shallowRef, computed } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, shallowRef, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Designer from './designer/index.vue'
 import Dashboard from './Dashboard.vue'
@@ -589,8 +617,7 @@ async function loadTickets() {
 }
 
 async function loadDeployedVersions() {
-  const res = await workflowVersionApi.list()
-  deployedVersions.value = res?.results || res?.data || res || []
+  try { const res = await workflowVersionApi.list(); deployedVersions.value = res?.results || res?.data || res || [] } catch { deployedVersions.value = [] }
 }
 
 // ===== 工单分派（技能组筛选 + 单用户选择） =====
@@ -643,6 +670,7 @@ async function confirmAssignTicket() {
   } catch { ElMessage.error('分派失败') }
 }
 
+function onOpenCreateTicket() { if (!categoryOptions.value.length) loadCategories(); showCreateTicket.value = true }
 async function onCreateTicket() {
   if (!newTicket.workflow_version || !newTicket.title) {
     ElMessage.warning('请填写完整信息')
@@ -915,7 +943,6 @@ async function onSaveAIWorkflow() {
 // ===== Incidents (legacy) =====
 const loadingIncidents = ref(false)
 const incidents = ref<any[]>([])
-const showCreateIncident = ref(false)
 
 async function loadIncidents() {
   loadingIncidents.value = true
@@ -958,6 +985,32 @@ async function loadSla() {
   try { const res = await slaPolicyApi.list(); slaPolicies.value = res?.results || res?.data || res || [] } finally { loadingSla.value = false }
 }
 
+// ===== SLA Edit =====
+const showSlaEdit = ref(false)
+const savingSla = ref(false)
+const slaForm = ref<any>({ name: '', priority: 'P3', response_minutes: 60, resolve_minutes: 480, is_active: true })
+
+function onSlaEdit(row: any) {
+  slaForm.value = { ...row }
+  showSlaEdit.value = true
+}
+
+async function onSlaSave() {
+  savingSla.value = true
+  try {
+    const { id, name, response_minutes, resolve_minutes, is_active } = slaForm.value
+    await slaPolicyApi.update(id, { name, response_minutes, resolve_minutes, is_active })
+    ElMessage.success('保存成功')
+    showSlaEdit.value = false
+    await loadSla()
+  } catch { ElMessage.error('保存失败') }
+  savingSla.value = false
+}
+
+async function onSlaToggle(row: any) {
+  try { await slaPolicyApi.update(row.id, { is_active: row.is_active }) } catch { row.is_active = !row.is_active }
+}
+
 // ===== Utility =====
 function statusLabel(s: string) {
   const m: Record<string, string> = { draft: '草稿', assigned: '已分派', receiving: '待认领', running: '处理中', escalated: '已升级', suspended: '挂起', finished: '已完成', terminated: '已终止', failed: '失败', success: '成功', firing: '触发中', acknowledged: '已确认', resolved: '已恢复' }
@@ -965,16 +1018,29 @@ function statusLabel(s: string) {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    loadTickets(), loadWorkflows(), loadDeployedVersions(),
-    loadIncidents(), loadChanges(), loadSla(),
-  ])
+  await loadAllData()
+
+  // 多租户: 监听全局项目切换事件，重新加载所有数据
+  window.addEventListener('project-changed', loadAllData)
+
   const key = 'opsflow_tour_itsm'
   if (!localStorage.getItem(key)) {
     ElMessage.info({ message: '🎫 ITSM — 全新 pipeline 驱动工单引擎，支持 AI 创建审批流程', duration: 1500 })
     localStorage.setItem(key, 'true')
   }
 })
+
+// 卸载时移除事件监听
+onBeforeUnmount(() => {
+  window.removeEventListener('project-changed', loadAllData)
+})
+
+async function loadAllData() {
+  await Promise.all([
+    loadTickets(), loadWorkflows(), loadDeployedVersions(),
+    loadIncidents(), loadChanges(), loadSla(),
+  ])
+}
 </script>
 
 <style lang="scss" scoped>
@@ -1010,7 +1076,7 @@ onMounted(async () => {
 .itsm-stat-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
 
 .itsm-hero-tabs {
-  position: relative; z-index: 1; display: flex; gap: 0; padding: 0 24px; margin-top: -4px;
+  position: relative; z-index: 1; display: flex; gap: 0; padding: 0 24px; margin-top: -4px; 
 }
 .itsm-hero-tab {
   display: flex; align-items: center; gap: 6px; padding: 10px 20px;

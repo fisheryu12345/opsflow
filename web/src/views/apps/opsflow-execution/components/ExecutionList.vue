@@ -8,7 +8,6 @@
           <h1 class="exec-hero-title">{{ $t('message.execution.title') }}</h1>
           <p class="exec-hero-subtitle">{{ $t('message.execution.subtitle') }}</p>
         </div>
-        <ProjectSwitcher :dark="true" />
         <div class="exec-hero-center">
           <el-input v-model="searchQuery" :placeholder="$t('message.execution.searchPlaceholder')" clearable size="default"
             class="exec-search-input" @keyup.enter="onSearch" @clear="onSearch">
@@ -135,7 +134,6 @@ import { Refresh, Search, View, VideoPlay, VideoPause, Close } from '@element-pl
 import { ElMessage } from 'element-plus'
 import { GetExecutions, StartExecution as StartExec, PauseExecution, CancelExecution } from '../../opsflow/api/executions'
 import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
-import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const emit = defineEmits<{ viewDetail: [execution: any] }>()
 
 const store = useOpsflowStore()

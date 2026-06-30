@@ -8,7 +8,6 @@
           <h1 class="tpl-hero-title">{{ $t('message.template.title') }}</h1>
           <p class="tpl-hero-subtitle">{{ $t('message.template.tplSubtitle') }}</p>
         </div>
-        <ProjectSwitcher :dark="true" />
         <div class="tpl-hero-center">
           <el-input v-model="filterName" :placeholder="$t('message.template.searchPlaceholder')" clearable size="default"
             class="tpl-search-input" @keyup.enter="onFilter" @clear="onFilter">
@@ -313,7 +312,6 @@ import { useUserInfo } from '/@/stores/userInfo'
 import ScheduleManager from './components/ScheduleManager.vue'
 import VersionDialog from './components/VersionDialog.vue'
 
-import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const router = useRouter()
 const opsflowStore = useOpsflowStore()
 const { t } = useI18n()
@@ -526,7 +524,7 @@ function openView(row: any) { viewRow.value = row; viewVisible.value = true }
 function openSchedule(row: any) { scheduleTemplateId.value = row.id; scheduleTemplateName.value = row.name; scheduleVisible.value = true }
 function openVersions(row: any) { versionTemplateId.value = row.id; versionTemplateName.value = row.name; versionCurrentVer.value = row.version || 1; versionVisible.value = true }
 
-// Re-fetch templates when project switches via ProjectSwitcher
+// Re-fetch templates when project switches via global ProjectSwitcher
 function onProjectChanged() {
   fetchData()
 }

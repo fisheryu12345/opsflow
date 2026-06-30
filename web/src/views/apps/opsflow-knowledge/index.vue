@@ -8,7 +8,6 @@
           <h1 class="kb-hero-title">{{ $t('message.opsflowPage.knowledgeTitle') }}</h1>
           <p class="kb-hero-subtitle">{{ $t('message.opsflowPage.knowledgeSubtitle') }}</p>
         </div>
-        <ProjectSwitcher :dark="true" />
         <div class="kb-hero-center">
           <el-input
             v-model="searchQuery"
@@ -171,7 +170,6 @@ import { Refresh, Plus, Search, Edit, Delete, Clock, Notification, Document } fr
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { GetKnowledgeList, CreateKnowledge, UpdateKnowledge, DeleteKnowledge } from '../opsflow/api/knowledge'
 
-import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const loading = ref(false)
 const saving = ref(false)
 const list = ref<any[]>([])

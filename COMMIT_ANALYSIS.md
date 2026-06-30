@@ -1,3 +1,53 @@
+## c46945dd
+
+> 提交日期: 2026-06-30 | 提交信息: feat: ITSM multi-tenant alignment + global project selector + bug fixes
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| backend/itsm/models/* (6 files) | 后端 | 12个模型加 project/business FK — Workflow/Ticket/Incident/Change/ServiceRequest/Problem/ServiceCategory/SlaPolicy/AssignRule/EscalationLevel/OnDutySchedule/SkillGroup |
+| backend/itsm/migrations/0010_add_project_business_fk.py | 后端 | Migration: 12 字段新增 |
+| backend/itsm/views/workflow_views.py | 后端 | 新增 ItsmProjectViewSet 基类 (ProjectFilteredViewSet+TenantPermission+dvadmin响应+NULL兼容+dept_belong_id allow_null) |
+| backend/itsm/views/ticket_views.py | 后端 | TicketViewSet 切 ItsmProjectViewSet + EnvironmentGatePermission + business自动填充 |
+| backend/itsm/views/views.py | 后端 | Incident/Change/ServiceRequest/Problem/ServiceCategory/SlaPolicy 6个ViewSet切换 |
+| backend/itsm/views/assign_views.py | 后端 | AssignRule/Escalation/OnDuty 切换; SkillGroup 加 business queryset过滤 |
+| backend/itsm/services/* (3 files) | 后端 | AssignEngine/SlaEngine/EscalationService 加 project_id 租户过滤 |
+| backend/dvadmin/utils/serializers.py | 后端 | dept_belong_id IntegerField 加 allow_null=True |
+| backend/itsm/serializers/assign_serializers.py | 后端 | 补 leader_name/target_group_name/match_category_name/group_name/user_name |
+| backend/itsm/serializers/delegation.py | 后端 | DelegationCreateUpdateSerializer user设read_only; 补user_name/delegate_to_name |
+| backend/itsm/serializers/workflow_serializers.py | 后端 | WorkflowVersionSerializer 加 workflow_name |
+| backend/itsm/management/commands/seed_itsm.py | 后端 | 完整种子数据重写 (Workflows/SkillGroups/AssignRules/Escalations/OnDuty+duty) |
+| backend/itsm/tests/test_services.py | 测试 | 补齐测试 |
+| web/src/stores/project.ts | 前端 | **新建** 全局 Project Pinia store (currentProjectId/myProjects/fetchMyProjects) |
+| web/src/layout/navBars/GlobalProjectSwitcher.vue | 前端 | **新建** 导航栏全局项目选择器 (loading/disabled/暗色模式) |
+| web/src/layout/navBars/index.vue | 前端 | 嵌入 GlobalProjectSwitcher 到 navbars-right-area (classic/transverse/defaults) |
+| web/src/utils/service.ts | 前端 | 全局 request 拦截器从 localStorage 自动注入 project_id |
+| web/src/views/apps/opsflow/stores/opsflowStore.ts | 前端 | 项目状态委托给全局 stores/project.ts |
+| web/src/views/apps/opsflow*/index.vue (8 files) | 前端 | 移除本地 ProjectSwitcher 组件+import |
+| web/src/layout/navBars/breadcrumb/setings.vue | 前端 | 移除布局切换卡片(defaults/classic/transverse/columns) |
+| web/src/views/apps/itsm/index.vue | 前端 | 流程模板删除+图标; SLA编辑弹窗; 事件新建工单; 监听project-changed; onBeforeUnmount |
+| web/src/views/apps/itsm/*.vue (5 files) | 前端 | 所有dialog加 append-to-body; Delegation补Check import; OnDuty el-radio label→value |
+| docs/superpowers/specs/2026-06-30-itsm-multi-tenant-alignment.md | 文档 | **新建** ITSM多租户对齐完整设计规范 |
+
+### 解决
+
+- **问题/背景:** ITSM模块完全未接入IAM多租户体系; 缺少全局项目选择器; dept_belong_id null校验失败; 流程模板无删除; SLA无编辑; 弹窗被遮罩覆盖等18个bug/功能缺口
+- **办法:** 5阶段实施: Model层加FK→View层切ProjectFilteredViewSet→Service层加租户过滤→前端全局ProjectSelector→ITSM页面接入+seeder+修复
+
+### 文档
+
+- **生成文档:**
+  - docs/superpowers/specs/2026-06-30-itsm-multi-tenant-alignment.md
+
+### 验证
+
+- 改动类型: feat + fix + refactor
+- 清理乱码: 无
+- 工作区状态: 干净 ✅
+- 测试: itsm.tests 通过 ✅
+
+---
 ## 0d0a3be9
 
 > 提交日期: 2026-06-30 | 提交信息: feat: ITSM assignment redesign + drag-drop form designer + i18n

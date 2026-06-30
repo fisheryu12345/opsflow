@@ -24,7 +24,7 @@
       </el-table>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="editingItem ? '编辑升级级别' : '新建升级级别'" width="520px" top="10vh" destroy-on-close>
+    <el-dialog v-model="dialogVisible" :title="editingItem ? '编辑升级级别' : '新建升级级别'" width="520px" top="10vh" destroy-on-close append-to-body>
       <el-form :model="form" label-width="100px" size="small">
         <el-form-item label="级别名称" prop="name">
           <el-input v-model="form.name" placeholder="如 L1" />

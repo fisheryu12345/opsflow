@@ -8,7 +8,6 @@
           <h1 class="app-hero-title">{{ $t("message.opsflowPage.approvalTitle") }}</h1>
           <p class="app-hero-subtitle">{{ $t("message.opsflowPage.approvalSubtitle") }}</p>
         </div>
-        <ProjectSwitcher :dark="true" />
         <div class="app-hero-center">
           <el-input v-model="searchQuery" :placeholder="$t('message.opsflowPage.approvalSearchPlaceholder')" clearable size="default"
             class="app-search-input" @keyup.enter="onSearch" @clear="onSearch">
@@ -95,7 +94,6 @@ import { ElMessage } from 'element-plus'
 import { Refresh, Search, CircleCheck, Close, Clock, View } from '@element-plus/icons-vue'
 import { GetPendingApprovals, ApproveNode, RejectNode } from '../opsflow/api/executions'
 
-import ProjectSwitcher from '/@/views/apps/opsflow/components/common/ProjectSwitcher.vue'
 const { t } = useI18n()
 const loading = ref(false)
 const actionLoading = ref<string | null>(null)

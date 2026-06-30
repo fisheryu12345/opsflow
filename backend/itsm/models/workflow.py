@@ -22,6 +22,10 @@ class Workflow(CoreModel):
     is_enabled = models.BooleanField(default=False, verbose_name="是否启用")
     is_draft = models.BooleanField(default=True, verbose_name="草稿状态")
     is_revocable = models.BooleanField(default=True, verbose_name="是否可撤销")
+    project = models.ForeignKey(
+        'iam.Project', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='itsm_workflows', verbose_name='Project',
+    )
     notify_rule = models.CharField(max_length=64, default='', blank=True, verbose_name="通知规则")
     description = models.TextField(blank=True, default='', verbose_name="流程描述")
 

@@ -11,6 +11,7 @@
 import logging
 from datetime import datetime, timedelta
 
+from django.db import models
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -29,8 +30,12 @@ class SlaEngine:
         """工单进入处理状态时启动 SLA 计时"""
         from itsm.models import SlaTask, SlaPolicy
 
-        # 查找匹配的 SLA 策略
-        policy = SlaPolicy.objects.filter(priority=ticket.priority, is_active=True).first()
+        # 查找匹配的 SLA 策略 — project-scoped
+        policy = SlaPolicy.objects.filter(
+            priority=ticket.priority, is_active=True,
+        ).filter(
+            models.Q(project_id=ticket.project_id) | models.Q(project_id__isnull=True)
+        ).first()
         if not policy:
             logger.warning(f'No SLA policy for priority {ticket.priority}')
             return None
