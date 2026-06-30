@@ -33,8 +33,18 @@
 | 管理前端 | P1 | ✅ | Business/Environment/Project 管理页面 | BusinessManage/EnvironmentManage + i18n (中英各 90+ key) |
 | grant_default_env_permissions | P1 | ✅ | 批量授权 dev+staging | management command |
 | seed_deploy_environments | P1 | ✅ | 初始化环境 | management command |
+| my_permissions 端点 | P0 | ✅ | 返回用户 ITSM 权限 (role + pages + permissions) | GET /api/iam/my_permissions/?project_id=X — 查 ProjectMember/BusinessMember 确定 role → 返回 visible pages + itsm:* perm keys |
+| ITSM Role 自动同步 | P0 | ✅ | IAM 成员变更自动分配/移除 dvadmin Role | signals.py — BusinessMember/ProjectMember post_save/post_delete → _sync_dvadmin_role() |
+| seed_itsm_permissions | P1 | ✅ | ITSM 权限种子数据 | management command — 11 itsm:* MenuButton + 3 Role (admin/editor/viewer) + 角色权限 |
 
 ## TODO
 
 - [ ] 物理隔离实际启用（创建独立库 → 设 db_alias → migrate）
-- [ ] 补充测试用例
+- [x] 补充测试用例 ✅
+
+### 2026-06-30 Update
+> 提交: 80f9ed95
+- my_permissions 端点: 新增 — 统一 ITSM 权限查询，支持 ProjectMember + BusinessMember 继承
+- ITSM Role 同步: 新增 — signals.py 自动同步 dvadmin Role
+- seed_itsm_permissions: 新增 — 一键种子 ITSM 权限体系
+- 测试用例: 补充 — test_my_permissions.py (5 cases) + test_signals.py (3 cases)

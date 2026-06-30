@@ -1,7 +1,7 @@
 """IAM signal handler tests — dvadmin Role auto-sync"""
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from dvadmin.system.models import Role
+from iam.models.menu_rbac import Role
 
 from iam.models import Business, Project, BusinessMember
 
