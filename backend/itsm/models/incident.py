@@ -21,6 +21,11 @@ class ServiceCategory(CoreModel):
     icon = models.CharField(max_length=128, null=True, blank=True, verbose_name="图标")
     sort_order = models.IntegerField(default=0, verbose_name="排序")
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    default_group = models.ForeignKey(
+        'itsm.SkillGroup', on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name="默认分派技能组",
+    )
+    auto_assign = models.BooleanField(default=False, verbose_name="自动分派")
 
     class Meta:
         db_table = table_prefix + "itsm_service_category"
@@ -44,7 +49,6 @@ class SlaPolicy(CoreModel):
     priority = models.CharField(max_length=8, choices=priority_choices, unique=True, verbose_name="优先级")
     response_minutes = models.IntegerField(default=60, verbose_name="响应时限(分钟)")
     resolve_minutes = models.IntegerField(default=480, verbose_name="解决时限(分钟)")
-    escalate_minutes = models.IntegerField(default=30, verbose_name="升级时限(分钟)")
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
 
     class Meta:

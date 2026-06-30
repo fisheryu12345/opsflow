@@ -52,6 +52,23 @@ export function DeployWorkflow(id: string, message?: string) {
   return request({ url: `${prefix}/workflows/${id}/deploy/`, method: 'post', data: { message } })
 }
 
+// Designer sync operations
+export function StateSync(workflowId: number, states: any[]) {
+  return request({ url: `${prefix}/states/sync/`, method: 'post', data: { workflow_id: workflowId, states } })
+}
+export function TransitionSync(workflowId: number, transitions: any[]) {
+  return request({ url: `${prefix}/transitions/sync/`, method: 'post', data: { workflow_id: workflowId, transitions } })
+}
+export function FieldBatchUpdate(stateId: number, fields: any[]) {
+  return request({ url: `${prefix}/fields/batch_update/`, method: 'post', data: { state_id: stateId, fields } })
+}
+export function UploadTicketFile(id: number, file: File, fieldKey?: string) {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (fieldKey) formData.append('field_key', fieldKey)
+  return request({ url: `${prefix}/tickets/${id}/upload-file/`, method: 'post', data: formData, headers: { 'Content-Type': 'multipart/form-data' } })
+}
+
 // Ticket operations
 export function SubmitTicket(id: string) {
   return request({ url: `${prefix}/tickets/${id}/submit/`, method: 'post' })
@@ -70,6 +87,12 @@ export function ResumeTicket(id: string) {
 }
 export function CloseTicket(id: string) {
   return request({ url: `${prefix}/tickets/${id}/close/`, method: 'post' })
+}
+export function AssignTicket(id: string, userId: number, groupId?: number, reason?: string) {
+  return request({ url: `${prefix}/tickets/${id}/assign/`, method: 'post', data: { user_id: userId, group_id: groupId, reason } })
+}
+export function AutoAssignTicket(id: string) {
+  return request({ url: `${prefix}/tickets/${id}/auto_assign/`, method: 'post' })
 }
 export function GetTicketStatus(id: string) {
   return request({ url: `${prefix}/tickets/${id}/status/`, method: 'get' })
@@ -99,4 +122,18 @@ export function ToggleDelegation(id: string) {
 }
 export function GetMyDelegations() {
   return request({ url: `${prefix}/delegations/my_delegations/`, method: 'get' })
+}
+
+// ===== Assignment Management (分派体系) =====
+export const skillGroupApi = createCrudApi('skill-groups')
+export const onDutyScheduleApi = createCrudApi('on-duty-schedules')
+export const assignRuleApi = createCrudApi('assign-rules')
+export const escalationLevelApi = createCrudApi('escalation-levels')
+export const transferLogApi = createCrudApi('transfer-logs')
+
+export function AddSkillGroupMember(groupId: number, userId: number) {
+  return request({ url: `${prefix}/skill-groups/${groupId}/add_member/`, method: 'post', data: { user_id: userId } })
+}
+export function RemoveSkillGroupMember(groupId: number, userId: number) {
+  return request({ url: `${prefix}/skill-groups/${groupId}/remove_member/`, method: 'post', data: { user_id: userId } })
 }

@@ -20,6 +20,11 @@ from .views.workflow_views import (
 from .views.ticket_views import TicketViewSet
 from .views.dashboard import DashboardViewSet
 from .views.delegation import DelegationViewSet
+from .views.assign_views import (
+    SkillGroupViewSet, OnDutyScheduleViewSet,
+    AssignRuleViewSet, EscalationLevelViewSet,
+    TicketTransferLogViewSet,
+)
 
 router = routers.SimpleRouter()
 # Existing ITSM routes
@@ -43,6 +48,13 @@ router.register(r'dashboard', DashboardViewSet, basename='dashboard')
 
 # Delegation (审批委托)
 router.register(r'delegations', DelegationViewSet)
+
+# Assignment management
+router.register(r'skill-groups', SkillGroupViewSet)
+router.register(r'on-duty-schedules', OnDutyScheduleViewSet)
+router.register(r'assign-rules', AssignRuleViewSet)
+router.register(r'escalation-levels', EscalationLevelViewSet)
+router.register(r'transfer-logs', TicketTransferLogViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

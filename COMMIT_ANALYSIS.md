@@ -1,3 +1,50 @@
+## 0d0a3be9
+
+> 提交日期: 2026-06-30 | 提交信息: feat: ITSM assignment redesign + drag-drop form designer + i18n
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| backend/itsm/models/skill_group.py | 后端 | 新增 SkillGroup + OnDutySchedule |
+| backend/itsm/models/assign_rule.py | 后端 | 新增 AssignRule 路由规则 |
+| backend/itsm/models/escalation.py | 后端 | 新增 EscalationLevel 升级级别 |
+| backend/itsm/models/transfer_log.py | 后端 | 新增 TicketTransferLog 转派审计 |
+| backend/itsm/services/assign_engine.py | 后端 | 新增 AssignEngine 自动分派引擎 |
+| backend/itsm/services/escalation_service.py | 后端 | 新增 EscalationService 多级升级 |
+| backend/itsm/management/commands/start_itsm_scheduler.py | 后端 | 新增独立 APScheduler 进程 |
+| backend/itsm/models/ticket.py | 后端 | 新增 category FK, 扩展 STATUS_CHOICES |
+| backend/itsm/models/field.py | 后端 | LAYOUT_CHOICES 扩展 COL_8/COL_4/COL_3 |
+| backend/itsm/models/incident.py | 后端 | ServiceCategory 扩展, SlaPolicy 移除 escalate_minutes |
+| backend/itsm/views/dashboard.py | 后端 | 看板状态筛选改为 assigned/receiving/running |
+| backend/itsm/tasks.py | 后端 | 修复 auto_resolve 用 set_status() |
+| web/src/views/apps/itsm/designer/ | 前端 | 新增三栏可视化拖拽 FormDesigner.vue |
+| web/src/views/apps/itsm/SkillGroup.vue | 前端 | 新增技能组管理 CRUD |
+| web/src/views/apps/itsm/OnDutySchedule.vue | 前端 | 新增值班排班管理 |
+| web/src/views/apps/itsm/AssignRule.vue | 前端 | 新增分派规则管理 |
+| web/src/views/apps/itsm/EscalationLevel.vue | 前端 | 新增升级级别管理 |
+| web/src/views/apps/itsm/TeamDashboard.vue | 前端 | 新增团队看板 |
+| web/src/i18n/pages/itsm/ | 前端 | 新增 ITSM i18n 中文/英文翻译 |
+
+### 解决
+
+- **问题/背景:** ITSM 分派系统缺失,表单字段编辑体验差,无 i18n 支持
+- **办法:** 完整的技能组+排班+路由规则+多级升级体系;三栏拖拽可视化表单设计器;i18n 翻译文件+管理页面改造
+
+### 修复
+
+- escalation_service escalated_at 存为 ISO 字符串, 第二次升级检测 TypeError → 用 parse_datetime 解析
+- assign_engine user=None 时 user.id crash → if/else 守卫 + 事务前检查
+- tasks.py raw update() 绕过 set_status() → 逐条遍历调 set_status + revoke_pipeline
+
+### 验证
+
+- 改动类型: feat + fix
+- 清理乱码: 删除 index.vue.bak
+- 工作区状态: 干净 ✅
+
+---
+
 # Commit Analysis Log
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->

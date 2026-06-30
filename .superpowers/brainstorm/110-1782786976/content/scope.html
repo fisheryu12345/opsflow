@@ -1,0 +1,33 @@
+<h2>ITSM 分派流程 — 需要优化的方向</h2>
+<p class="subtitle">当前分派有两个独立路径，但它们互不相通。你觉得哪个方面最需要改进？</p>
+
+<div class="options">
+  <div class="option" data-choice="manual" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>手动分派体验优化</h3>
+      <p>现在"我的工单"的"分派"按钮只是存到 meta 字段，工单流转时根本不会读它。需要让手动分派真正决定谁处理下一个节点。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="auto" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>智能路由</h3>
+      <p>根据 IT 运维场景自动分派：按分类（网络/数据库/应用/安全）、按技能组、按值班轮转、按 SLA 优先级。减少人工操作。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="escalation" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>升级/转派机制</h3>
+      <p>P1 工单 30 分钟无人处理自动升级到主管；处理人发现无法解决时转派给其他团队。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="all" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>以上全部</h3>
+      <p>从手动分派 → 智能路由 → 升级转派，一次性覆盖完整的 IT 运维分派场景。</p>
+    </div>
+  </div>
+</div>

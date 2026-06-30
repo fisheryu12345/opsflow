@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Workflow serializers"""
 
+from rest_framework import serializers
 from dvadmin.utils.serializers import CustomModelSerializer
 from itsm.models import Workflow, WorkflowVersion, State, Transition, Field
 
@@ -19,6 +20,8 @@ class WorkflowCreateSerializer(CustomModelSerializer):
 
 
 class WorkflowVersionSerializer(CustomModelSerializer):
+    workflow_name = serializers.CharField(source='workflow.name', read_only=True, default='')
+
     class Meta:
         model = WorkflowVersion
         fields = '__all__'

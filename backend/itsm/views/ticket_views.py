@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""ITSM Ticket views — 工单管理、提交、审批、状态管理"""
+"""ITSM Ticket views — 工单管理、提交、审批、状态管理、文件上传"""
 
 from rest_framework.decorators import action
 
@@ -32,7 +32,7 @@ class TicketViewSet(CustomModelViewSet):
 
     @action(methods=['POST'], detail=True)
     def submit(self, request, pk=None):
-        """提交工单 — 启动 pipeline"""
+        """提交工单 — 启动 pipeline + 自动分派"""
         instance = self.get_object()
         if instance.current_status != 'draft':
             return ErrorResponse(msg='工单已提交，不能重复提交')
@@ -42,6 +42,18 @@ class TicketViewSet(CustomModelViewSet):
             instance.pipeline_id = pipeline_id
             instance.current_status = 'running'
             instance.save(update_fields=['pipeline_id', 'current_status'])
+
+            # 提交后尝试自动分派
+            try:
+                from itsm.services.assign_engine import AssignEngine
+                engine = AssignEngine(instance)
+                engine.auto_assign()
+            except Exception as assign_err:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "Auto-assign failed for ticket %s: %s", instance.sn, assign_err
+                )
+
             return DetailResponse(data={
                 'pipeline_id': pipeline_id,
                 'ticket_id': instance.id,
@@ -71,6 +83,36 @@ class TicketViewSet(CustomModelViewSet):
             return DetailResponse(msg='节点提交成功')
         except Exception as e:
             return ErrorResponse(msg=f'节点提交失败: {str(e)}')
+
+    @action(methods=['POST'], detail=True, parser_classes=[])  # DRF auto-detects MultiPartParser
+    def upload_file(self, request, pk=None):
+        """上传工单附件（FILE 类型字段使用）"""
+        instance = self.get_object()
+        file = request.FILES.get('file')
+        field_key = request.data.get('field_key', '')
+        if not file:
+            return ErrorResponse(msg='请选择文件')
+        try:
+            from django.core.files.storage import default_storage
+            import os
+            path = f'itsm/{instance.id}/{field_key}/{file.name}'
+            saved_path = default_storage.save(path, file)
+            url = default_storage.url(saved_path)
+            meta = dict(instance.meta or {})
+            uploads = meta.setdefault('_uploads', [])
+            uploads.append({
+                'field_key': field_key,
+                'file_name': file.name,
+                'file_size': file.size,
+                'path': saved_path,
+                'url': url,
+            })
+            instance.meta = meta
+            instance.save(update_fields=['meta'])
+            return DetailResponse(data={'url': url, 'name': file.name, 'size': file.size},
+                                  msg='文件上传成功')
+        except Exception as e:
+            return ErrorResponse(msg=f'文件上传失败: {str(e)}')
 
     @action(methods=['POST'], detail=True)
     def approve(self, request, pk=None):
@@ -115,6 +157,46 @@ class TicketViewSet(CustomModelViewSet):
         instance.set_status('terminated', request.user.username)
         return DetailResponse(msg='工单已关闭')
 
+    @action(methods=['POST'], detail=True)
+    def assign(self, request, pk=None):
+        """分派工单 — 手动分派/转派给指定用户"""
+        from itsm.services.assign_engine import AssignEngine
+
+        instance = self.get_object()
+        user_id = request.data.get('user_id')
+        group_id = request.data.get('group_id')
+        reason = request.data.get('reason', '')
+        if not user_id:
+            return ErrorResponse(msg='user_id required')
+        try:
+            from dvadmin.system.models import Users
+            user = Users.objects.get(id=user_id)
+            group = None
+            if group_id:
+                from itsm.models.skill_group import SkillGroup
+                try:
+                    group = SkillGroup.objects.get(id=group_id)
+                except SkillGroup.DoesNotExist:
+                    pass
+            AssignEngine.manual_assign(instance, user, group, reason)
+            return DetailResponse(msg='工单已分派')
+        except Users.DoesNotExist:
+            return ErrorResponse(msg='用户不存在')
+        except Exception as e:
+            return ErrorResponse(msg=f'分派失败: {str(e)}')
+
+    @action(methods=['POST'], detail=True)
+    def auto_assign(self, request, pk=None):
+        """触发自动分派，由 AssignEngine 按规则决定"""
+        from itsm.services.assign_engine import AssignEngine
+
+        instance = self.get_object()
+        engine = AssignEngine(instance)
+        result = engine.auto_assign()
+        if result:
+            return DetailResponse(data=result, msg='自动分派完成')
+        return ErrorResponse(msg='无匹配规则，未分派')
+
     @action(methods=['GET'], detail=True)
     def status(self, request, pk=None):
         """获取工单状态详情"""
@@ -145,7 +227,6 @@ class TicketViewSet(CustomModelViewSet):
             )
             action_name = '通过' if result == 'true' else '拒绝'
 
-            # P0: ITSM 审批通过后自动触发 OpsFlow 自愈流程
             if result == 'true':
                 trigger_result = OpsflowTriggerService.on_ticket_approved(instance)
                 if trigger_result.get('triggered'):

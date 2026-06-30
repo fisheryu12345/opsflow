@@ -196,7 +196,7 @@
           <div class="prop-row-vertical">
             <span class="prop-label">{{ $t("message.properties.approvers") }}</span>
             <el-select v-model="form.approvers" multiple filterable size="small" style="width:100%"
-              :placeholder="$t('message.properties.selectApprovers')" @change="emitUpdate">
+              :loading="usersLoading" :placeholder="$t('message.properties.selectApprovers')" @change="emitUpdate">
               <el-option v-for="u in userList" :key="u" :label="u" :value="u" />
             </el-select>
           </div>
@@ -321,6 +321,7 @@ import { useOpsflowStore } from '../../stores/opsflowStore'
 import ConditionDialog from '../gates/ConditionDialog.vue'
 import { generateConditionExpr, extractAvailableVariables as getAvailableVars } from '../../composables/useGraphCanvas'
 import type { ConditionStruct } from '../../utils/shapes'
+import { request } from '/@/utils/service'
 
 const { t, locale } = useI18n()
 const isEn = computed(() => String(locale.value).startsWith('en'))
@@ -533,7 +534,18 @@ const pluginRiskMap = ref<Record<string, string>>({})
 const renderFormRef = ref<InstanceType<typeof RenderForm> | null>(null)
 const publishedTemplates = ref<any[]>([])
 const templatesLoading = ref(false)
-const userList = ref<string[]>(['admin', 'operator'])
+const userList = ref<string[]>([])
+const usersLoading = ref(false)
+
+async function loadAllUsers() {
+  usersLoading.value = true
+  try {
+    const res: any = await request({ url: '/api/system/user/', method: 'get', params: { page_size: 10000 } })
+    const users = (res as any).data?.results || (res as any).data || []
+    userList.value = users.map((u: any) => u.username)
+  } catch { userList.value = [] }
+  usersLoading.value = false
+}
 
 async function loadPlugins() {
   pluginsLoading.value = true
@@ -635,6 +647,9 @@ const isApproval = computed(() => form.value.node_type === 'approval')
 const nodeTypeLabel = computed(() => typeLabels[form.value.node_type] || form.value.node_type || 'Atom')
 const gatewayDescription = computed(() => gatewayDescriptions[form.value.node_type] || '')
 const gatewayIcon = computed(() => gatewayIcons[form.value.node_type] || InfoFilled)
+
+// 加载用户列表（审批节点选择处理人用）
+watch(isApproval, (v) => { if (v && !userList.value.length) loadAllUsers() }, { immediate: true })
 
 const riskLevelText = computed(() => {
   const risk = form.value.risk_level || pluginRiskMap.value[form.value.plugin_code] || ''

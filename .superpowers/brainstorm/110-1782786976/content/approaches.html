@@ -1,0 +1,60 @@
+<h2>ITSM 分派优化 — 方案对比</h2>
+<p class="subtitle">基于现有体系（ServiceCategory + Role + DistributeType），三种实现路径</p>
+
+<div class="options">
+  <div class="option" data-choice="light" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#67C23A">1</div>
+    <div class="content">
+      <h3>轻量增强 — 优先完善现有机制</h3>
+      <p><strong>改动最小</strong>，复用现有模型</p>
+      <ul style="font-size:12px;padding-left:16px;margin:6px 0">
+        <li>手动分派写入 TicketStatus.processors，真正生效</li>
+        <li>Designer 暴露 distribute_type + ORGANIZATION 类型</li>
+        <li>category → service_group 映射配置在 ServiceCategory 加字段</li>
+        <li>升级用现有 SlaPolicy.escalate_minutes</li>
+        <li>转派记录到 ticket.state_history + meta.transfer_log</li>
+      </ul>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros" style="width:100%"><h4>优点</h4><ul><li>1-2 天可完成</li><li>无 migration</li><li>兼容已有工单</li></ul></div>
+        <div class="cons" style="width:100%"><h4>缺点</h4><ul><li>升级只有单级</li><li>无排班/负载均衡</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="medium" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#409EFF">2</div>
+    <div class="content">
+      <h3>中等增强 — 新增 SkillGroup + OnDuty</h3>
+      <p><strong>推荐</strong>，覆盖完整场景</p>
+      <ul style="font-size:12px;padding-left:16px;margin:6px 0">
+        <li>新增 SkillGroup（技能组）+ OnDutySchedule（排班）模型</li>
+        <li>ServiceCategory 关联默认 SkillGroup</li>
+        <li>新引擎: category → skill_group → on-duty member 自动分派</li>
+        <li>EscalationLevel 模型：L1→L2→L3 可配置阈值+通知</li>
+        <li>TransferLog 模型记录完整转派审计</li>
+        <li>手动分派仍然是"覆盖"机制</li>
+      </ul>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros" style="width:100%"><h4>优点</h4><ul><li>完整 IT 运维场景覆盖</li><li>可扩展排班/负载</li><li>多级升级</li></ul></div>
+        <div class="cons" style="width:100%"><h4>缺点</h4><ul><li>3-5 天开发</li><li>需要 migration</li><li>需要初始数据配置</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="heavy" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#E6A23C">3</div>
+    <div class="content">
+      <h3>全面体系 — +值班日历+负载均衡+自动路由引擎</h3>
+      <p>大而全，适合中大型运维团队</p>
+      <ul style="font-size:12px;padding-left:16px;margin:6px 0">
+        <li>方案2 全部 + 值班日历(周/月视图)</li>
+        <li>实时负载均衡（按待办数量/工单权重）</li>
+        <li>自动路由引擎（RuleEngine: IF category=X AND priority=P1 THEN group=A）</li>
+        <li>SLA 联动升级（超时自动升级+通知）</li>
+        <li>Dashboard 展示团队负载/分派统计</li>
+      </ul>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros" style="width:100%"><h4>优点</h4><ul><li>最自动化</li><li>适合大规模团队</li></ul></div>
+        <div class="cons" style="width:100%"><h4>缺点</h4><ul><li>1-2 周开发</li><li>配置复杂</li><li>可能过度设计</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

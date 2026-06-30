@@ -1,0 +1,53 @@
+<h2>分派引擎流程 — AssignEngine</h2>
+<p class="subtitle">工单创建/提交时自动触发，也可手动重新分派</p>
+
+<div style="font-family:monospace;font-size:12px;line-height:2.2;padding:20px;background:#f5f7fa;border-radius:8px">
+① 触发：<br>
+&nbsp;&nbsp;Ticket.submit() 或 Ticket.assign() 或 API 创建<br><br>
+
+② 路由匹配（优先级从低到高）：<br>
+&nbsp;&nbsp;┌─ this.ticket.itsm_type === rule.match_itsm_type<br>
+&nbsp;&nbsp;├─ this.ticket.category === rule.match_category<br>
+&nbsp;&nbsp;├─ this.ticket.priority === rule.match_priority<br>
+&nbsp;&nbsp;└─ 匹配 → 使用 rule.target_group<br><br>
+
+③ 若无规则匹配，回退：<br>
+&nbsp;&nbsp;this.ticket.category?.default_group → fallback<br><br>
+
+④ 确定人选 (assign_mode)：<br>
+&nbsp;&nbsp;to_group → 全组均可认领 (RECEIVING 状态)<br>
+&nbsp;&nbsp;to_onduty → 查 OnDutySchedule，今天主班优先<br>
+&nbsp;&nbsp;least_busy → 统计各成员当前待办工单数，选最少者<br><br>
+
+⑤ 执行分派：<br>
+&nbsp;&nbsp;TicketStatus.status = 'RECEIVING' 或 'RUNNING'<br>
+&nbsp;&nbsp;Ticket.assignee = selected_user<br>
+&nbsp;&nbsp;Log → TicketTransferLog(transfer_type='auto_assign')<br>
+&nbsp;&nbsp;Notify → 通知被分派人<br>
+</div>
+
+<div class="section" style="margin-top:20px">
+  <h3>SLA 联动升级流程</h3>
+  <div style="font-family:monospace;font-size:12px;line-height:2.2;padding:20px;background:#fef0f0;border-radius:8px">
+① APScheduler 每分钟扫描：<br>
+&nbsp;&nbsp;Ticket WHERE status='running'/assigned'<br>
+&nbsp;&nbsp;AND sla_status IN ('warning','normal')<br>
+&nbsp;&nbsp;AND now() &gt; sla_deadline<br><br>
+
+② 超时 → 执行当前 EscalationLevel：<br>
+&nbsp;&nbsp;notify_only → 发通知给 notify_users<br>
+&nbsp;&nbsp;transfer_to_leader → 转给 group.leader<br>
+&nbsp;&nbsp;transfer_to_next_level → 升级到下一级<br><br>
+
+③ 记录转派：<br>
+&nbsp;&nbsp;TicketTransferLog(transfer_type='auto_escalation')<br>
+&nbsp;&nbsp;更新 Ticket.assignee<br>
+&nbsp;&nbsp;更新 Ticket.sla_status = 'escalated'<br><br>
+
+④ 递归触发：<br>
+&nbsp;&nbsp;升级到下一级后，重新设置该级的超时计时<br>
+&nbsp;&nbsp;再次超时 → 再往上升
+  </div>
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:#606266">引擎流程和升级流程有没有需要调整的地方？</p>

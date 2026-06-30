@@ -30,7 +30,10 @@ class Field(CoreModel):
     )
     LAYOUT_CHOICES = (
         ('COL_12', '整行'),
+        ('COL_8', '2/3'),
         ('COL_6', '半行'),
+        ('COL_4', '1/3'),
+        ('COL_3', '1/4'),
     )
     VALIDATE_CHOICES = (
         ('optional', '可选'),

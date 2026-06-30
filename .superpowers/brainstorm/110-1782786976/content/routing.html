@@ -1,0 +1,33 @@
+<h2>工单分类 → 团队的路由方式</h2>
+<p class="subtitle">当前的 itsm_type（incident/change/request/problem）和优先级之外，还需要什么维度来决定分派给谁？</p>
+
+<div class="options">
+  <div class="option" data-choice="category" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>按服务分类 (Category)</h3>
+      <p>例如 网络故障→网络组，数据库变更→数据库组，应用报错→应用组。每个分类绑定一个默认处理团队。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="skill" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>按技能组 + 负载</h3>
+      <p>工单自动匹配技能组，按当前组内待办数量做负载均衡分派到具体个人。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="mixed" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>混合模式</h3>
+      <p>创建时报修分类决定技能组，组内再根据排班/空闲状态分到个人。同时支持人工干预调整。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="manual" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>仅手动分派</h3>
+      <p>不搞自动路由，保留当前手动选择处理人的方式，但要让它实际生效（写入节点处理器）。</p>
+    </div>
+  </div>
+</div>

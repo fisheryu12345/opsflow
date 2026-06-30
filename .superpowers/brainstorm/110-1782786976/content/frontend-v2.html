@@ -1,0 +1,75 @@
+<h2>前端界面改动</h2>
+
+<div class="section">
+  <h3>1. ITSM 列表页 — 工单行显示处理人 + 分派交互优化</h3>
+  <div style="background:#f5f7fa;padding:12px;border-radius:8px;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;background:#eee;padding:6px 10px;border-radius:4px;font-size:12px;font-weight:600">
+      <span>编号</span><span>标题</span><span>分类</span><span>优先级</span><span style="color:#409EFF">处理人</span><span>操作</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:8px 10px;font-size:12px;border-bottom:1px solid #eee">
+      <span>ITSM001</span><span>服务器磁盘满</span><span>事件</span><span>P1</span><span style="color:#409EFF"><strong>张三（网络组）</strong></span><span>详情 转派 升级</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:8px 10px;font-size:12px">
+      <span>ITSM002</span><span>数据库备份失败</span><span>事件</span><span>P2</span><span style="color:#909399">待分派</span><span>详情 分派</span>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#606266">
+    - 列表新增 <strong>处理人</strong> 列（显示姓名 + 技能组）<br>
+    - 已分派显示橙色"转派"按钮，待分派显示蓝色"分派"按钮<br>
+    - 点击分派弹出带技能组选择的用户选择器
+  </p>
+</div>
+
+<div class="section">
+  <h3>2. 分派对话框 — 支持按技能组筛选</h3>
+  <div style="background:#f5f7fa;padding:16px;border-radius:8px;margin-bottom:16px;max-width:380px">
+    <div style="font-size:12px">选择处理人：</div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <div style="flex:1;border:1px solid #ddd;border-radius:4px;padding:4px 8px;font-size:12px;background:#fff">
+        📋 按技能组筛选 ▾
+      </div>
+    </div>
+    <div style="border:1px solid #ddd;border-radius:4px;margin-top:4px;padding:8px;font-size:12px;background:#fff">
+      <div style="padding:4px;border-radius:4px;background:#ecf5ff">☑ 网络组 · 3人在线</div>
+      <div style="padding:4px">☐ 数据库组 · 2人在线</div>
+      <div style="padding:4px">☐ 应用组 · 5人在线</div>
+      <div style="padding:4px">☐ 安全组 · 1人在线</div>
+    </div>
+    <div style="border:1px solid #ddd;border-radius:4px;margin-top:8px;padding:4px 8px;font-size:12px;background:#fff">
+      <div style="display:flex;justify-content:space-between;padding:4px"><span>张三</span><span>网络组</span><span>待办:2</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px"><span>李四</span><span>网络组</span><span>待办:5</span></div>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+      <div style="padding:4px 12px;border-radius:4px;font-size:12px;background:#eee">取消</div>
+      <div style="padding:4px 12px;border-radius:4px;font-size:12px;background:#409EFF;color:#fff">确认分派</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>3. 新增管理页面</h3>
+  <div style="display:flex;gap:16px;flex-wrap:wrap">
+    <div style="flex:1;min-width:140px;background:#f0f9eb;padding:10px;border-radius:8px">
+      <strong>技能组管理</strong><br>
+      <span style="font-size:11px;color:#606266">CRUD 技能组 + 组成员管理</span>
+    </div>
+    <div style="flex:1;min-width:140px;background:#ecf5ff;padding:10px;border-radius:8px">
+      <strong>排班管理</strong><br>
+      <span style="font-size:11px;color:#606266">日历视图设置值班/备班</span>
+    </div>
+    <div style="flex:1;min-width:140px;background:#fdf6ec;padding:10px;border-radius:8px">
+      <strong>路由规则</strong><br>
+      <span style="font-size:11px;color:#606266">IF-THEN 规则配置</span>
+    </div>
+    <div style="flex:1;min-width:140px;background:#fef0f0;padding:10px;border-radius:8px">
+      <strong>升级级别</strong><br>
+      <span style="font-size:11px;color:#606266">L1/L2/L3 超时配置</span>
+    </div>
+    <div style="flex:1;min-width:140px;background:#f5f7fa;padding:10px;border-radius:8px">
+      <strong>团队看板</strong><br>
+      <span style="font-size:11px;color:#606266">待办分布 + 负载统计</span>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:#606266">前端界面部分有没有需要调整的？比如管理页面放在 ITSM 的 tab 里还是独立？</p>

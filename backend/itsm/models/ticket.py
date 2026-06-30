@@ -20,7 +20,10 @@ class Ticket(CoreModel):
     """ITSM 工单 — pipeline 驱动的运行实例"""
     STATUS_CHOICES = (
         ('draft', '草稿'),
+        ('assigned', '已分派'),
+        ('receiving', '待认领'),
         ('running', '处理中'),
+        ('escalated', '已升级'),
         ('suspended', '挂起'),
         ('finished', '已完成'),
         ('terminated', '已终止'),
@@ -43,6 +46,10 @@ class Ticket(CoreModel):
     workflow_version = models.ForeignKey('itsm.WorkflowVersion', on_delete=models.CASCADE,
                                          related_name='tickets', verbose_name="流程版本")
     itsm_type = models.CharField(max_length=32, choices=ITSM_TYPE_CHOICES, default='change', verbose_name="服务类型")
+    category = models.ForeignKey(
+        'itsm.ServiceCategory', on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name="工单分类",
+    )
     priority = models.CharField(max_length=16, choices=PRIORITY_CHOICES, default='P3',
                                  verbose_name="优先级")
     urgency = models.CharField(max_length=16, blank=True, default='', verbose_name="紧急程度")

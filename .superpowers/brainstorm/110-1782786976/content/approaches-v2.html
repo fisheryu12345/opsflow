@@ -1,0 +1,50 @@
+<h2>ITSM 分派优化 — 方案对比（重新审视）</h2>
+<p class="subtitle">三个方案的范围和投入差异比较大，你觉得方案3值得投入吗？还是优先选方案2先落地</p>
+
+<div class="options">
+  <div class="option" data-choice="light" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#67C23A">1</div>
+    <div class="content">
+      <h3>轻量增强</h3>
+      <p><strong>1-2 天</strong></p>
+      <ul style="font-size:12px">
+        <li>手动分派真正生效</li>
+        <li>暴露现有 distribute_type</li>
+        <li>category→service_group 映射</li>
+        <li>简单升级</li>
+        <li>无新模型，无 migration</li>
+      </ul>
+    </div>
+  </div>
+  <div class="option" data-choice="medium" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#409EFF">2</div>
+    <div class="content">
+      <h3>中等增强（推荐）</h3>
+      <p><strong>3-5 天</strong></p>
+      <ul style="font-size:12px">
+        <li>SkillGroup + 自动分派引擎</li>
+        <li>值班排班 OnDutySchedule</li>
+        <li>多级升级 L1→L2→L3</li>
+        <li>转派审计日志</li>
+        <li>手动分派仍然是"覆盖"</li>
+      </ul>
+    </div>
+  </div>
+  <div class="option" data-choice="heavy" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#E6A23C">3</div>
+    <div class="content">
+      <h3>全面体系</h3>
+      <p><strong>1-2 周</strong></p>
+      <ul style="font-size:12px">
+        <li>方案2 全部</li>
+        <li>值班日历(周/月视图)</li>
+        <li>负载均衡路由</li>
+        <li>RuleEngine 规则引擎</li>
+        <li>SLA 联动升级</li>
+        <li>团队负载面板</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:#909399">你刚才选了3，但我担心方案3可能会过度设计导致做不出来。要不要方案2先落地，后续再迭代？还是说方案3的哪些功能是必须要的？</p>

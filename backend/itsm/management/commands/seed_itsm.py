@@ -102,7 +102,6 @@ class Command(BaseCommand):
                     "name": sla["name"],
                     "response_minutes": sla["response"],
                     "resolve_minutes": sla["resolve"],
-                    "escalate_minutes": sla["escalate"],
                 },
             )
             sla_map[sla["priority"]] = obj

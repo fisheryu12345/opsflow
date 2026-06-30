@@ -1,0 +1,58 @@
+<h2>ITSM 分派体系 — 核心数据模型</h2>
+<p class="subtitle">在现有 ServiceCategory + State + Ticket 基础上新增/扩展</p>
+
+<div class="section">
+  <h3>1. SkillGroup (技能组)</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <tr style="background:#f5f7fa"><th>字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td>name</td><td>varchar</td><td>技能组名称，如"网络组""数据库组"</td></tr>
+    <tr><td>leader</td><td>FK→Users</td><td>主管（升级目标）</td></tr>
+    <tr><td>members</td><td>M2M→Users</td><td>组内成员</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h3>2. ServiceCategory 扩展</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <tr style="background:#f5f7fa"><th>新增字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td>default_group</td><td>FK→SkillGroup</td><td>该分类默认分派技能组</td></tr>
+    <tr><td>auto_assign</td><td>boolean</td><td>是否自动分派(true)或仅手动(false)</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h3>3. OnDutySchedule (排班)</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <tr style="background:#f5f7fa"><th>字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td>group</td><td>FK→SkillGroup</td><td>所属技能组</td></tr>
+    <tr><td>user</td><td>FK→Users</td><td>值班人</td></tr>
+    <tr><td>duty_date</td><td>date</td><td>值班日期</td></tr>
+    <tr><td>duty_type</td><td>choice</td><td>primary / backup</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h3>4. TicketTransferLog (转派审计)</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <tr style="background:#f5f7fa"><th>字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td>ticket</td><td>FK→Ticket</td><td>关联工单</td></tr>
+    <tr><td>from_user</td><td>FK→Users</td><td>转出人</td></tr>
+    <tr><td>to_user</td><td>FK→Users</td><td>转入人</td></tr>
+    <tr><td>reason</td><td>text</td><td>转派原因</td></tr>
+    <tr><td>transfer_type</td><td>choice</td><td>manual / auto_escalation</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h3>5. EscalationLevel (升级级别)</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <tr style="background:#f5f7fa"><th>字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td>name</td><td>varchar</td><td>级别名，如"L1""L2"</td></tr>
+    <tr><td>level</td><td>int (1,2,3)</td><td>升级顺序</td></tr>
+    <tr><td>timeout_minutes</td><td>int</td><td>超时阈值</td></tr>
+    <tr><td>notify_users</td><td>M2M→Users</td><td>触发时通知谁</td></tr>
+    <tr><td>auto_transfer_to</td><td>FK→Users</td><td>超时后自动转给谁</td></tr>
+  </table>
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:#606266">这些模型你看下有没有问题或要调整的地方？</p>

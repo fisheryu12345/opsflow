@@ -38,7 +38,16 @@ def auto_resolve_expired_tickets():
         current_status='draft',
         create_datetime__lt=cutoff,
     )
-    count = expired.update(current_status='terminated')
+    count = 0
+    for ticket in expired:
+        try:
+            if ticket.pipeline_id:
+                from itsm.services.pipeline_wrapper import PipelineWrapper
+                PipelineWrapper.revoke_pipeline(ticket.pipeline_id)
+            ticket.set_status('terminated', 'system')
+            count += 1
+        except Exception as e:
+            logger.warning('Auto-close ticket %s failed: %s', ticket.sn, e)
     if count:
-        logger.info(f'Auto-closed {count} expired draft tickets')
+        logger.info('Auto-closed %d expired draft tickets', count)
     return {'closed': count}

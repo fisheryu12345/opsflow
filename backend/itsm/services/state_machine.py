@@ -67,18 +67,5 @@ def check_sla_compliance(incident) -> str:
 
 
 def auto_escalate(incident) -> bool:
-    """自动升级 — 超时未处理返回 True"""
-    if incident.status in ('closed', 'resolved', 'escalated'):
-        return False
-    sla_policy = incident.sla_policy
-    if not sla_policy:
-        return False
-    now = timezone.now()
-    created = incident.create_datetime
-    elapsed = (now - created).total_seconds()
-    if elapsed > sla_policy.escalate_minutes * 60 and incident.status in ('new', 'assigned'):
-        incident.status = 'escalated'
-        incident.save(update_fields=['status'])
-        logger.info(f"工单 {incident.incident_id} 已自动升级")
-        return True
+    """自动升级 — 超时未处理返回 True（已废弃，由 EscalationService 替代）"""
     return False

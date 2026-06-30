@@ -1,0 +1,31 @@
+<h2>升级/转派机制</h2>
+<p class="subtitle">当处理人无法解决或超时未处理时，工单应该如何流转？</p>
+
+<div style="background:#f0f5ff;padding:12px 16px;border-radius:8px;margin-bottom:16px;border-left:3px solid #409EFF">
+  <strong>升级 (Escalation):</strong> 超时未处理 → 通知主管 / 自动转给上级<br>
+  <strong>转派 (Transfer):</strong> 处理人发现不属于自己范围 → 转给其他团队
+</div>
+
+<div class="options">
+  <div class="option" data-choice="simple" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>简单升级</h3>
+      <p>按优先级设超时阈值：P1→30min, P2→2h, P3→8h, P4→24h。超时后自动转给团队主管。转派由当前处理人手动选择下一位。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="multi" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>多级升级链</h3>
+      <p>L1→L2→L3 逐级升级。每级有各自的超时阈值和通知策略。转派记录完整审计日志。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="minimal" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>先不做，仅手动转派</h3>
+      <p>自动升级后续再做。当前只支持：处理人手动转派给其他人/团队，记录转派历史。</p>
+    </div>
+  </div>
+</div>

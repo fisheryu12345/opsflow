@@ -1,0 +1,49 @@
+<h2>方案三：全面 IT 运维分派体系 — 架构总览</h2>
+<p class="subtitle">分层架构，每层职责清晰</p>
+
+<div style="font-family:monospace;font-size:12px;line-height:1.8;padding:16px;background:#f5f7fa;border-radius:8px">
+  ┌─────────────────────────────────────────────────┐<br>
+  │  <strong>接入层</strong> — 工单入口（手动创建/API/告警联动）    │<br>
+  │    Ticket.create → submit → pipeline.run        │<br>
+  └────────────────┬────────────────────────────────┘<br>
+                   ↓<br>
+  ┌─────────────────────────────────────────────────┐<br>
+  │  <strong>路由决策层</strong> — AssignEngine                │<br>
+  │  ① RuleEngine 匹配路由规则（category→group）    │<br>
+  │  ② 值班检查 → 当前主班/备班                     │<br>
+  │  ③ 负载评估 → 选待办最少的成员                  │<br>
+  │  ④ 执行分派 → 写入 Ticket + 创建 SignTask       │<br>
+  └────────────────┬────────────────────────────────┘<br>
+                   ↓<br>
+  ┌─────────────────────────────────────────────────┐<br>
+  │  <strong>执行层</strong> — 处理人流转                     │<br>
+  │    手动转派 / 自动升级 / SLA联动                 │<br>
+  │    TransferLog 全审计                            │<br>
+  └────────────────┬────────────────────────────────┘<br>
+                   ↓<br>
+  ┌─────────────────────────────────────────────────┐<br>
+  │  <strong>监控层</strong> — 团队面板 + 负载仪表盘           │<br>
+  │    Celery 定时任务 → 超时检测 → 升级触发        │<br>
+  │    值班日历 → 排班管理界面                      │<br>
+  └─────────────────────────────────────────────────┘<br>
+</div>
+
+<div class="section">
+  <h3>涉及的新增/修改模块</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <tr style="background:#f5f7fa"><th style="text-align:left;padding:6px;border:1px solid #e4e7ed">模块</th><th style="text-align:left;padding:6px;border:1px solid #e4e7ed">类型</th><th style="text-align:left;padding:6px;border:1px solid #e4e7ed">说明</th></tr>
+    <tr><td style="padding:6px;border:1px solid #e4e7ed">SkillGroup</td><td style="padding:6px;border:1px solid #e4e7ed">新增 model</td><td style="padding:6px;border:1px solid #e4e7ed">技能组 + 组长 + 成员</td></tr>
+    <tr><td style="padding:6px;border:1px solid #e4e7ed">OnDutySchedule</td><td style="padding:6px;border:1px solid #e4e7ed">新增 model</td><td style="padding:6px;border:1px solid #e4e7ed">排班（日期+主备班）</td></tr>
+    <tr><td style="padding:6px;border:1px solid #e4e7ed">EscalationLevel</td><td style="padding:6px;border:1px solid #e4e7ed">新增 model</td><td style="padding:6px;border:1px solid #e4e7ed">L1→L2→L3 升级配置</td></tr>
+    <tr><td style="padding:6px;border:1px solid #e4e7ed">AssignRule (路由规则)</td><td style="padding:6px;border:1px solid #e4e7ed">新增 model</td><td style="padding:6px;border:1px solid #e4e7ed">IF category+priority THEN group</td></tr>
+    <tr><td style="padding:6px;border:1px solid #e4e7ed">TicketTransferLog</td><td style="padding:6px;border:1px solid #e4e7ed">新增 model</td><td style="padding:6px;border:1px solid #e4e7ed">转派审计</td></tr>
+    <tr><td style="padding:6px;border:1px solid #e4e7ed">AssignEngine</td><td style="padding:6px;border:1px solid #e4e7ed">新增 service</td><td style="padding:6px;border:1px solid #e4e7ed">自动分派核心引擎</td></tr>
+    <tr><td style="padding:6px;border:1px solid #e4e7ed">EscalationService</td><td style="padding:6px;border:1px solid #e4e7ed">新增 service</td><td style="padding:6px;border:1px solid #e4e7ed">升级检测 + 执行</td></tr>
+    <tr><td style="padding:6px;border:1px solid #e4e7ed">SlaPolicy 扩展</td><td style="padding:6px;border:1px solid #e4e7ed">已有模型改</td><td style="padding:6px;border:1px solid #e4e7ed">关联 escalation_level</td></tr>
+    <tr><td style="padding:6px;border:1px solid #e4e7ed">ServiceCategory 扩展</td><td style="padding:6px;border:1px solid #e4e7ed">已有模型改</td><td style="padding:6px;border:1px solid #e4e7ed">+auto_assign + 默认group</td></tr>
+    <tr><td style="padding:6px;border:1px solid #e4e7ed">Ticket</td><td style="padding:6px;border:1px solid #e4e7ed">已有模型改</td><td style="padding:6px;border:1px solid #e4e7ed">meta 扩展存路由快照</td></tr>
+    <tr><td style="padding:6px;border:1px solid #e4e7ed">看板面板</td><td style="padding:6px;border:1px solid #e4e7ed">新增 vue</td><td style="padding:6px;border:1px solid #e4e7ed">技能组负载 + 待办统计</td></tr>
+  </table>
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:#606266">整体架构这样分层是否合理？先确认架构方向，我再逐个展开细节。</p>

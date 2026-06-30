@@ -70,7 +70,7 @@ class DashboardViewSet(ViewSet):
 
         # 我的待办: running 工单中当前用户有审批/处理任务的
         pending_tickets = Ticket.objects.filter(
-            current_status='running',
+            current_status__in=ACTIVE_STATUSES,
             status_records__status='RUNNING',
             status_records__processors__icontains=user.username,
         ).distinct().count()
@@ -78,7 +78,7 @@ class DashboardViewSet(ViewSet):
         # 超时工单: running 超过 7 天的工单（简易判定）
         week_ago = timezone.now() - timedelta(days=7)
         overdue_count = Ticket.objects.filter(
-            current_status='running',
+            current_status__in=ACTIVE_STATUSES,
             create_datetime__lt=week_ago,
         ).count()
 
@@ -110,7 +110,7 @@ class DashboardViewSet(ViewSet):
         """当前用户的待办审批/处理任务"""
         user = request.user
         running_statuses = TicketStatus.objects.filter(
-            ticket__current_status='running',
+            ticket__current_status__in=ACTIVE_STATUSES,
             status='RUNNING',
         ).select_related('ticket')
 
@@ -169,7 +169,7 @@ class DashboardViewSet(ViewSet):
         """超时工单列表 — running 超过 7 天"""
         week_ago = timezone.now() - timedelta(days=7)
         qs = Ticket.objects.filter(
-            current_status='running',
+            current_status__in=ACTIVE_STATUSES,
             create_datetime__lt=week_ago,
         ).order_by('create_datetime')[:20]
         return [{
