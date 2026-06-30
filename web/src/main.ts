@@ -15,7 +15,6 @@ import piniaPersist from 'pinia-plugin-persist';
 // @ts-ignore
 import fastCrud from './settings.ts';
 import pinia from './stores';
-import {RegisterPermission} from '/@/plugin/permission/index';
 // @ts-ignore
 import eIconPicker, { iconList, analyzingIconForIconfont } from 'e-icon-picker';
 import 'e-icon-picker/icon/default-icon/symbol.js'; //基本彩色图标库

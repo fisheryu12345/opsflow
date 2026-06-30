@@ -9,7 +9,7 @@
         </span>
       </div>
       <div class="mbc-toolbar-right">
-        <el-button v-auth="'btn:Create'" type="primary" size="small" @click="openAddDialog">
+        <el-button type="primary" size="small" @click="openAddDialog">
           <el-icon><Plus /></el-icon> {{ $t('message.menuPage.btnAdd') }}
         </el-button>
       </div>
@@ -52,7 +52,7 @@
       </el-table-column>
       <el-table-column :label="$t('message.menuPage.actions')" width="160" fixed="right">
         <template #default="{ row }">
-          <el-button v-auth="'btn:Update'" size="small" text @click="openEditDialog(row)">
+          <el-button size="small" text @click="openEditDialog(row)">
             <el-icon><Edit /></el-icon> {{ $t('message.menuPage.edit') }}
           </el-button>
           <el-popconfirm
@@ -60,7 +60,7 @@
             @confirm="handleDelete(row)"
           >
             <template #reference>
-              <el-button v-auth="'btn:Delete'" size="small" text type="danger">
+              <el-button size="small" text type="danger">
                 <el-icon><Delete /></el-icon> {{ $t('message.menuPage.delete') }}
               </el-button>
             </template>

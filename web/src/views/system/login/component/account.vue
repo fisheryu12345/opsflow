@@ -79,7 +79,6 @@ import * as loginApi from '/@/views/system/login/api';
 import { useUserInfo } from '/@/stores/userInfo';
 import { DictionaryStore } from '/@/stores/dictionary';
 import { SystemConfigStore } from '/@/stores/systemConfig';
-import { BtnPermissionStore } from '/@/plugin/permission/store.permission';
 import { Md5 } from 'ts-md5';
 import { errorMessage } from '/@/utils/message';
 

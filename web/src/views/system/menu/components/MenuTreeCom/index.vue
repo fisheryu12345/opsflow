@@ -43,19 +43,19 @@
 
     <!-- Action buttons / 操作按钮 -->
     <div class="mtc-actions">
-      <el-button size="small" type="primary" v-auth="'menu:Create'" @click="handleUpdateMenu('create')">
+      <el-button size="small" type="primary" @click="handleUpdateMenu('create')">
         <el-icon><Plus /></el-icon>
       </el-button>
-      <el-button size="small" v-auth="'menu:Update'" @click="handleUpdateMenu('update')" :disabled="!treeSelectMenu.id">
+      <el-button size="small" @click="handleUpdateMenu('update')" :disabled="!treeSelectMenu.id">
         <el-icon><Edit /></el-icon>
       </el-button>
-      <el-button size="small" v-auth="'menu:MoveUp'" @click="handleSort('up')" :disabled="!treeSelectMenu.id">
+      <el-button size="small" @click="handleSort('up')" :disabled="!treeSelectMenu.id">
         <el-icon><Top /></el-icon>
       </el-button>
-      <el-button size="small" v-auth="'menu:MoveDown'" @click="handleSort('down')" :disabled="!treeSelectMenu.id">
+      <el-button size="small" @click="handleSort('down')" :disabled="!treeSelectMenu.id">
         <el-icon><Bottom /></el-icon>
       </el-button>
-      <el-button size="small" type="danger" v-auth="'menu:Delete'" @click="handleDeleteMenu()" :disabled="!treeSelectMenu.id">
+      <el-button size="small" type="danger" @click="handleDeleteMenu()" :disabled="!treeSelectMenu.id">
         <el-icon><Delete /></el-icon>
       </el-button>
     </div>

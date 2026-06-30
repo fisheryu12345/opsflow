@@ -78,7 +78,7 @@
             <!-- Toolbar -->
             <div class="dept-toolbar">
               <div class="dept-toolbar-left">
-                <el-button v-auth="'user:Create'" type="primary" size="small" :icon="Plus" @click="handleAddUser">
+                <el-button type="primary" size="small" :icon="Plus" @click="handleAddUser">
                   {{ $t('message.menuPage.deptAddUser') }}
                 </el-button>
                 <el-button size="small" :icon="Refresh" @click="handleRefreshAll">{{ $t('message.menuPage.deptRefresh') }}</el-button>
@@ -131,9 +131,9 @@
               </el-table-column>
               <el-table-column :label="$t('message.menuPage.deptColActions')" width="235" fixed="right" align="center">
                 <template #default="{ row }">
-                  <el-button v-auth="'user:Update'" text size="small" style="padding:0 4px" @click="handleEditUser(row)">{{ $t('message.menuPage.deptEditUser') }}</el-button>
-                  <el-button v-auth="'user:Delete'" text type="danger" size="small" style="padding:0 4px" @click="handleDeleteUser(row)">{{ $t('message.menuPage.deptDeleteUser') }}</el-button>
-                  <el-button v-auth="'user:ResetPassword'" text type="warning" size="small" style="padding:0 4px" @click="handleResetPwdOpen(row)">{{ $t('message.menuPage.deptResetPwd') }}</el-button>
+                  <el-button text size="small" style="padding:0 4px" @click="handleEditUser(row)">{{ $t('message.menuPage.deptEditUser') }}</el-button>
+                  <el-button text type="danger" size="small" style="padding:0 4px" @click="handleDeleteUser(row)">{{ $t('message.menuPage.deptDeleteUser') }}</el-button>
+                  <el-button text type="warning" size="small" style="padding:0 4px" @click="handleResetPwdOpen(row)">{{ $t('message.menuPage.deptResetPwd') }}</el-button>
                 </template>
               </el-table-column>
             </el-table>
