@@ -479,7 +479,6 @@ function formatShortTime(dateStr: string | undefined | null): string {
 
 /* ===================== Init ===================== */
 onMounted(() => {
-  genderOptions.value = ;
   fetchUserInfo();
   fetchMessages();
 });

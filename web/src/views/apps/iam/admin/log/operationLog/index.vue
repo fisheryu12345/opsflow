@@ -1,65 +1,15 @@
 <template>
   <div class="oplog-page">
-    <!-- ===== Hero Section ===== -->
-    <div class="oplog-hero">
-      <div class="oplog-hero-bg" />
-      <div class="oplog-hero-inner">
-        <div class="oplog-hero-left">
-          <h1 class="oplog-hero-title">{{ $t('message.operationLogPage.title') }}</h1>
-          <p class="oplog-hero-subtitle">Operation Log</p>
-        </div>
-        <div class="oplog-hero-stats">
-          <div class="oplog-stat-item">
-            <span class="oplog-stat-value">{{ total }}</span>
-            <span class="oplog-stat-label">Total</span>
-          </div>
-          <div class="oplog-stat-divider" />
-          <div class="oplog-stat-item">
-            <span class="oplog-stat-value" style="color:#67C23A">{{ successCount }}</span>
-            <span class="oplog-stat-label">Success</span>
-          </div>
-          <div class="oplog-stat-divider" />
-          <div class="oplog-stat-item">
-            <span class="oplog-stat-value" style="color:#F56C6C">{{ failCount }}</span>
-            <span class="oplog-stat-label">Failure</span>
-          </div>
-          <div class="oplog-stat-divider" />
-          <div class="oplog-stat-item">
-            <span class="oplog-stat-value" style="color:#E6A23C">{{ todayCount }}</span>
-            <span class="oplog-stat-label">Today</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== Body ===== -->
     <div class="oplog-body">
       <!-- ===== Search / Filter Bar ===== -->
       <div class="oplog-filter-bar">
-        <el-form :model="searchForm" inline size="small" @keyup.enter="onSearch">
-          <el-form-item :label="$t('message.operationLogPage.filterModular')">
-            <el-input v-model="searchForm.request_modular" :placeholder="$t('message.operationLogPage.filterModularPlaceholder')" clearable style="width:140px" />
-          </el-form-item>
-          <el-form-item :label="$t('message.operationLogPage.filterPath')">
-            <el-input v-model="searchForm.request_path" :placeholder="$t('message.operationLogPage.filterPathPlaceholder')" clearable style="width:180px" />
-          </el-form-item>
-          <el-form-item :label="$t('message.operationLogPage.filterMethod')">
-            <el-input v-model="searchForm.request_method" :placeholder="$t('message.operationLogPage.filterMethodPlaceholder')" clearable style="width:120px" />
-          </el-form-item>
-          <el-form-item :label="$t('message.operationLogPage.filterIp')">
-            <el-input v-model="searchForm.request_ip" :placeholder="$t('message.operationLogPage.filterIpPlaceholder')" clearable style="width:150px" />
-          </el-form-item>
-          <el-form-item :label="$t('message.operationLogPage.filterCreator')">
-            <el-input v-model="searchForm.creator_name" :placeholder="$t('message.operationLogPage.filterCreatorPlaceholder')" clearable style="width:120px" />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" :icon="Search" @click="onSearch">{{ $t('message.operationLogPage.search') }}</el-button>
-            <el-button :icon="Refresh" @click="onReset">{{ $t('message.operationLogPage.reset') }}</el-button>
-          </el-form-item>
-        </el-form>
-        <div class="oplog-filter-actions">
-          <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">{{ $t('message.operationLogPage.refresh') }}</el-button>
-        </div>
+        <el-input v-model="searchForm.request_modular" placeholder="模块" clearable size="small" style="width:120px" @keyup.enter="onSearch" />
+        <el-input v-model="searchForm.request_path" placeholder="请求地址" clearable size="small" style="width:180px" @keyup.enter="onSearch" />
+        <el-input v-model="searchForm.request_method" placeholder="方法" clearable size="small" style="width:90px" @keyup.enter="onSearch" />
+        <el-input v-model="searchForm.request_ip" placeholder="IP" clearable size="small" style="width:130px" @keyup.enter="onSearch" />
+        <el-input v-model="searchForm.creator_name" placeholder="操作人" clearable size="small" style="width:120px" @keyup.enter="onSearch" />
+        <el-button type="primary" :icon="Search" size="small" @click="onSearch">搜索</el-button>
+        <el-button :icon="Refresh" size="small" @click="onReset" class="btn-reset">重置</el-button>
       </div>
 
       <!-- ===== Table Card ===== -->
@@ -143,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -166,26 +116,6 @@ const searchForm = ref({
   request_method: '',
   request_ip: '',
   creator_name: '',
-})
-
-// ── Computed ──
-const successCount = computed(() => list.value.filter((l: any) => {
-  const code = Number(l.response_code)
-  return code >= 200 && code < 300
-}).length)
-
-const failCount = computed(() => list.value.filter((l: any) => {
-  const code = Number(l.response_code)
-  return (code >= 400 && code < 600) || (!l.response_code && l.response_code !== 0)
-}).length)
-
-const todayCount = computed(() => {
-  const today = new Date()
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-  return list.value.filter((l: any) => {
-    if (!l.create_datetime) return false
-    return l.create_datetime.startsWith(todayStr)
-  }).length
 })
 
 // ── Methods ──
@@ -298,33 +228,10 @@ onMounted(() => {
 @use '/@/styles/global' as *;
 
 .oplog-page {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   display: flex; flex-direction: column;
   background: $g-bg-page; overflow: hidden;
+  min-height: 400px;
 }
-
-/* ===== Hero ===== */
-.oplog-hero {
-  position: relative; flex-shrink: 0; overflow: hidden;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-}
-.oplog-hero-bg {
-  position: absolute; inset: 0; opacity: 0.06;
-  background-image: radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-.oplog-hero-inner {
-  position: relative; z-index: 1; padding: 14px 24px;
-  display: flex; flex-direction: row; align-items: center; gap: 16px;
-}
-.oplog-hero-left { flex: 0 0 auto; }
-.oplog-hero-title { margin: 0; font-size: 22px; font-weight: 800; color: #fff; white-space: nowrap; }
-.oplog-hero-subtitle { margin: 0; font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap; }
-.oplog-hero-stats { flex: 0 0 auto; display: flex; align-items: center; margin-left: auto; }
-.oplog-stat-item { text-align: center; padding: 0 18px; }
-.oplog-stat-value { display: block; font-size: 20px; font-weight: 700; color: #fff; line-height: 1.2; }
-.oplog-stat-label { font-size: 10px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-.oplog-stat-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.1); }
 
 /* ===== Body ===== */
 .oplog-body {
@@ -333,14 +240,11 @@ onMounted(() => {
 
 /* ===== Filter Bar ===== */
 .oplog-filter-bar {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  padding: 14px 0 10px; gap: 12px;
-  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 12px 0; position: sticky; top: 0; z-index: 10;
   background: $g-bg-page;
 }
-.oplog-filter-bar :deep(.el-form-item) { margin-bottom: 4px; }
-.oplog-filter-bar :deep(.el-form-item__label) { font-size: 12px; color: $g-text-secondary; }
-.oplog-filter-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; padding-top: 2px; }
+.btn-reset { min-width: 56px; }
 
 /* ===== Table Card ===== */
 .oplog-table-card {
