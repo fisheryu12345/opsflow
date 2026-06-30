@@ -29,7 +29,7 @@
 | 身份同步 Tab | P1 | ✅ | 集成中心身份同步管理 | identity-sync.vue 卡片+历史模式，复用 cloud-sync 模板 |
 
 ### 2026-06-30 Update (Identity Sync)
-> 提交: 6e98e98a
+> 提交: a8358e14
 - 连接器适配器: LDAPConnector(ldap3) + SAMLConnector，注册为 category=auth
 - Seed 数据: ldap/saml 连接器定义加入 seed_opsflow.py
 - 前端: 集成中心新增身份同步 Tab + 字段映射组件

@@ -54,14 +54,14 @@
 - [ ] IAM 权限全链路测试：申请→审批→赋权→前端按钮显隐
 
 ### 2026-07-01 Update
-> 提交: 6e98e98a
+> 提交: a8358e14
 - RBAC 模型迁移: Role/Menu/MenuButton → iam/models/menu_rbac.py，19 文件 import 替换
 - 企业级 RBAC 闭环: 角色模板 + 统一授权 UI + 审批增强 + v-can 指令 + 全 App 权限 Key
 - 清理: ApiWhiteList/Area/Dictionary 模型 + fixtures + 旧权限指令(14 文件)
 - 已知问题: 权限全链路测试未完成
 
 ### 2026-06-30 Update (Identity Sync)
-> 提交: 6e98e98a
+> 提交: a8358e14
 - 身份同步引擎: 新增 — DeptMapping/UserMapping 模型 + Differ 对比算法 + LDAPSyncProvider + LDAPBackend
 - 连接器适配器: 新增 — LDAPConnector + SAMLConnector（复用集成中心体系）
 - 前端: 新增 — 集成中心身份同步 Tab + SAML SSO 登录按钮

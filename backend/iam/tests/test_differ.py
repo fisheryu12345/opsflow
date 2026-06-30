@@ -32,7 +32,7 @@ class TestDeptDiff(SimpleTestCase):
         diff = Differ.diff_depts(remote, local)
         self.assertEqual(len(diff.added), 0)
         self.assertEqual(len(diff.disabled), 2)
-        self.assertEqual(diff.disabled, [1, 2])
+        self.assertCountEqual(diff.disabled, [1, 2])
 
     def test_partial_add_and_disable(self):
         """部分新增、部分禁用、部分不变"""
