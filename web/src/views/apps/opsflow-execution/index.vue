@@ -24,6 +24,8 @@ import ExecutionDetail from './components/ExecutionDetail.vue'
 import { GetExecutionDetail } from '../opsflow/api/executions'
 import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
+
 const store = useOpsflowStore()
 const route = useRoute()
 const listRef = ref<InstanceType<typeof ExecutionList> | null>(null)

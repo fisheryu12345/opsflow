@@ -3,6 +3,13 @@
     <div class="canvas-body">
       <div class="canvas-toolbar-float" :class="{ collapsed: toolbarCollapsed }" :style="{ left: stencilCollapsed ? '32px' : '220px' }">
         <template v-if="!toolbarCollapsed">
+          <!-- Back button / 返回 -->
+          <template v-if="showBack">
+            <el-button text size="small" @click="$emit('back')">
+              <el-icon><ArrowLeft /></el-icon> 返回
+            </el-button>
+            <div class="toolbar-divider" />
+          </template>
           <div class="toolbar-divider" />
           <el-tooltip :show-after="500" :content="$t('message.canvas.selectTemplate')" placement="bottom">
             <el-select
@@ -121,7 +128,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, VideoPlay, CircleCheck, Monitor } from '@element-plus/icons-vue'
+import { CopyDocument, Upload, DataAnalysis, Plus, Operation, DArrowLeft, DArrowRight, Fold, Expand, ZoomIn, ZoomOut, FullScreen, VideoPlay, CircleCheck, Monitor, ArrowLeft } from '@element-plus/icons-vue'
 // X6 CSS — v3 auto-injects CSS via JS, no need for separate CSS imports
 import { useDesignCanvas } from '../../composables/useDesignCanvas'
 import PropertyPanel from '../panels/PropertyPanel.vue'
@@ -134,6 +141,7 @@ import { useGraphValidator } from '../../composables/useGraphValidator'
 const props = defineProps<{
   templates?: any[]
   templateId?: number | null
+  showBack?: boolean
 }>()
 
 const { t } = useI18n()
@@ -148,6 +156,7 @@ const emit = defineEmits<{
   nodeNeedPlugin: [nodeId: string]
   submitExecution: [execId: number]
   dryRun: [execId: number]
+  back: []
 }>()
 
 const showExecDialog = ref(false)

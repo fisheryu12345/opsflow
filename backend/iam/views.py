@@ -329,3 +329,98 @@ def search_users(request):
     data = [{'value': u.id, 'label': f"{u.name or u.username} ({u.username})"}
             for u in users]
     return SuccessResponse(data=data)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# My Permissions — 用户查看自己当前权限
+# ═══════════════════════════════════════════════════════════════════════════
+
+ITSM_PAGE_DEFS = [
+    ('tickets', 'My Tickets', '我的工单'),
+    ('workflows', 'Workflow Templates', '流程模板'),
+    ('incidents', 'Incidents', '事件'),
+    ('changes', 'Changes', '变更'),
+    ('sla', 'SLA Policies', 'SLA'),
+    ('delegation', 'Delegation', '委托'),
+    ('dashboard', 'Dashboard', '看板'),
+    ('team-dashboard', 'Team Dashboard', '团队看板'),
+    # editor+
+    ('skill-groups', 'Skill Groups', '技能组'),
+    ('on-duty', 'On-Duty Schedule', '排班'),
+    # admin only
+    ('assign-rules', 'Assign Rules', '路由'),
+    ('escalation', 'Escalation Levels', '升级'),
+]
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_permissions(request):
+    """Return current user's ITSM permissions for a given project."""
+    project_id = request.query_params.get('project_id')
+    if not project_id:
+        return ErrorResponse(msg='project_id required')
+
+    try:
+        project_id = int(project_id)
+    except (ValueError, TypeError):
+        return ErrorResponse(msg='project_id must be an integer')
+
+    user = request.user
+
+    # Determine IAM role on this project
+    from iam.resolvers import ROLE_ORDER
+    role = 'viewer'
+    try:
+        pm = ProjectMember.objects.filter(project_id=project_id, user=user).first()
+        if pm:
+            role = pm.role
+        else:
+            # Check BusinessMember inheritance
+            project = Project.objects.only('business_id').get(id=project_id)
+            if project.business_id:
+                bm = BusinessMember.objects.filter(
+                    business_id=project.business_id, user=user
+                ).first()
+                if bm:
+                    role = bm.role
+    except Project.DoesNotExist:
+        return ErrorResponse(msg='Project not found', status=404)
+
+    # Determine visible pages
+    is_admin = role == 'admin'
+    is_editor = role == 'editor'
+    pages = []
+    for key, label_en, label_zh in ITSM_PAGE_DEFS:
+        visible = True
+        if key in ('skill-groups', 'on-duty'):
+            visible = is_admin or is_editor
+        elif key in ('assign-rules', 'escalation'):
+            visible = is_admin
+        pages.append({'key': key, 'label_en': label_en, 'label_zh': label_zh, 'visible': visible})
+
+    # Collect dvadmin permission keys for ITSM
+    perm_keys = set()
+    if user.is_superuser:
+        # Superuser: return all ITSM permissions
+        from dvadmin.system.models import MenuButton
+        perm_keys = set(MenuButton.objects.filter(
+            value__startswith='itsm:'
+        ).values_list('value', flat=True))
+    else:
+        # Get permission keys from user's dvadmin Roles
+        for r in user.role.filter(status=1):
+            for mbp in r.role_menu_button.select_related('menu_button').all():
+                if mbp.menu_button and mbp.menu_button.value.startswith('itsm:'):
+                    perm_keys.add(mbp.menu_button.value)
+        # Also check UserDirectPermission
+        for dp in UserDirectPermission.objects.filter(user=user).select_related('menu_button'):
+            if dp.menu_button and dp.menu_button.value.startswith('itsm:'):
+                perm_keys.add(dp.menu_button.value)
+
+    return DetailResponse(data={
+        'role': role,
+        'project_id': project_id,
+        'pages': pages,
+        'permissions': sorted(perm_keys),
+    })

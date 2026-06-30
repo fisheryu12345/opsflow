@@ -1,7 +1,7 @@
 <template>
   <div class="tpl-page">
     <!-- Hero Section -->
-    <div class="tpl-hero">
+    <div v-if="!embedded" class="tpl-hero">
       <div class="tpl-hero-bg" />
       <div class="tpl-hero-inner">
         <div class="tpl-hero-left">
@@ -311,6 +311,8 @@ import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 import { useUserInfo } from '/@/stores/userInfo'
 import ScheduleManager from './components/ScheduleManager.vue'
 import VersionDialog from './components/VersionDialog.vue'
+
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
 
 const router = useRouter()
 const opsflowStore = useOpsflowStore()

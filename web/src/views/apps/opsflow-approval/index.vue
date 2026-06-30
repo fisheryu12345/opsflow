@@ -1,7 +1,7 @@
 <template>
   <div class="app-page">
     <!-- Hero Section -->
-    <div class="app-hero">
+    <div v-if="!embedded" class="app-hero">
       <div class="app-hero-bg" />
       <div class="app-hero-inner">
         <div class="app-hero-left">
@@ -93,6 +93,8 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Refresh, Search, CircleCheck, Close, Clock, View } from '@element-plus/icons-vue'
 import { GetPendingApprovals, ApproveNode, RejectNode } from '../opsflow/api/executions'
+
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
 
 const { t } = useI18n()
 const loading = ref(false)

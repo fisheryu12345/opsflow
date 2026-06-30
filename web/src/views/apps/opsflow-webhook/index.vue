@@ -1,7 +1,7 @@
 <template>
   <div class="wh-page">
     <!-- Hero Section -->
-    <div class="wh-hero">
+    <div v-if="!embedded" class="wh-hero">
       <div class="wh-hero-bg" />
       <div class="wh-hero-inner">
         <div class="wh-hero-left">
@@ -197,6 +197,8 @@ import { GetTemplates } from '../opsflow/api/templates'
 import {
   GetWebhooks, CreateWebhook, UpdateWebhook, DeleteWebhook, GetWebhookLogs,
 } from '../opsflow/api/webhooks'
+
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
 
 const { t } = useI18n()
 const loading = ref(false)

@@ -7,7 +7,7 @@ from iam.views import (
     PermissionRequestViewSet, UserDirectPermissionViewSet,
     BusinessGroupViewSet, BusinessViewSet,
     DeployEnvironmentViewSet, IamProjectViewSet,
-    search_users,
+    search_users, my_permissions,
 )
 
 router = DefaultRouter()
@@ -22,4 +22,5 @@ router.register(r'projects', IamProjectViewSet, basename='iam-project')
 
 urlpatterns = router.urls + [
     path('users/search/', search_users, name='user-search'),
+    path('my_permissions/', my_permissions, name='my-permissions'),
 ]

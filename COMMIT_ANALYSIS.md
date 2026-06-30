@@ -1,3 +1,42 @@
+## 80f9ed95
+
+> 提交日期: 2026-06-30 | 提交信息: feat: OPSflow UI tab consolidation — 合并6+子页面为单一路由 tab 页面
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| web/src/views/apps/opsflow/index.vue | 前端 | 重写为统一 tab 容器 — hero + 8 tabs + 7 子页面嵌入 |
+| web/src/views/apps/opsflow-*/index.vue (7 files) | 前端 | 新增 embedded prop, 嵌入时隐藏 hero |
+| web/src/views/apps/opsflow/DesignCanvas.vue | 前端 | 新增 showBack prop + back emit, 返回按钮集成到 toolbar |
+| backend/opsflow/management/commands/seed_opsflow.py | 后端 | 菜单种子从 6 独立 leaf 合并为 /opsflow |
+| web/src/views/apps/itsm/index.vue | 前端 | 修复 showCreateTicket const ref 赋值错误 |
+| backend/iam/views.py | 后端 | 新增 my_permissions 端点 (95 lines) |
+| backend/iam/signals.py | 后端 | 新增信号处理, IAM member 变更自动同步 dvadmin Role |
+| backend/iam/apps.py | 后端 | ready() 中注册 iam.signals |
+| backend/iam/urls.py | 后端 | 注册 /my_permissions/ 路由 |
+| backend/iam/management/commands/seed_itsm_permissions.py | 后端 | ITSM 权限种子命令 |
+
+### 解决
+
+- **问题/背景:** OPSflow 6+ 个独立路由导致菜单臃肿; ITSM 新建工单按钮报 TypeError; IAM 缺少统一权限查询
+- **办法:** OPSflow 合并为 ITSM 式单路由 tab 页面; 修复 ref 赋值; 新增 my_permissions + 角色同步信号
+
+### 文档
+
+- **生成文档:**
+  - docs/opsflow/features/2026-06-30-opsflow-tab-consolidation.md
+  - docs/itsm/debug/2026-06-30-fix-showCreateTicket-const.md
+  - docs/iam/features/2026-06-30-iam-my-permissions.md
+
+### 验证
+
+- 改动类型: feat + fix
+- 清理乱码: 无
+- 工作区状态: 干净 ✓
+
+---
+
 ## c46945dd
 
 > 提交日期: 2026-06-30 | 提交信息: feat: ITSM multi-tenant alignment + global project selector + bug fixes

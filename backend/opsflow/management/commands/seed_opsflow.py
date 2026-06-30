@@ -313,19 +313,12 @@ class Command(BaseCommand):
                     item.save(update_fields=['parent_id'])
             return item
 
-        # ── Catalog: 运维平台 (sort=4) → OpsAgent pages ──
+        # ── Catalog: 运维平台 (sort=4) → OpsAgent + OPSflow pages ──
         cat = add_catalog("运维平台", "/apps", "iconfont icon-gongju", 4)
         add_leaf("运维控制台", "/opsagent", "apps/opsagent/index", "opsagent", "iconfont icon-dianhua", 10, cat)
         add_leaf("会话历史", "/opsagent/sessions", "apps/opsagent/Sessions", "opsagentSessions", "iconfont icon-LoggedinPC", 11, cat)
-
-        # ── Catalog: OpsFlow (sort=6) → OpsFlow pages ──
-        cat = add_catalog("OpsFlow", "/opsflow-catalog", "iconfont icon-diannao1", 6)
-        add_leaf("运维管理", "/opsflow_desgner", "apps/opsflow/index", "opsflow", "iconfont icon-wenducanshu-05", 1, cat)
-        add_leaf("看板大屏", "/ops_dashboard", "apps/opsflow-dashboard/index", "opsflow-dashboard", "iconfont icon-xianshimima", 2, cat)
-        add_leaf("任务执行", "/opsflow-execution", "apps/opsflow-execution/index", "opsflow-execution", "iconfont icon-diqiu", 7, cat)
-        add_leaf("项目管理", "/opsflow-project", "apps/opsflow-project/index", "opsflow-project", "iconfont icon-dianhua", 8, cat)
-        add_leaf("知识库", "/opsflow-knowledge", "apps/opsflow-knowledge/index", "opsflow-knowledge", "iconfont icon-15tupianyulan", 9, cat)
-        add_leaf("模板中心", "/opsflow-template", "apps/opsflow-template/index", "opsflow-template", "iconfont icon-shoujidiannao", 10, cat)
+        # OPSflow — unified tab page (replaces 6 separate routes)
+        add_leaf("运维管理", "/opsflow", "apps/opsflow/index", "opsflow", "iconfont icon-diannao1", 12, cat)
 
         # ── Catalog: 配置管理 (sort=7) → CMDB page ──
         cat = add_catalog("配置管理", "/cmdb-catalog", "iconfont icon-fuwenbenkuang", 7)

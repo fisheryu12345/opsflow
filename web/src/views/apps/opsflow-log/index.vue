@@ -1,7 +1,7 @@
 <template>
   <div class="log-page">
     <!-- Hero Section -->
-    <div class="log-hero">
+    <div v-if="!embedded" class="log-hero">
       <div class="log-hero-bg" />
       <div class="log-hero-inner">
         <div class="log-hero-left">
@@ -116,6 +116,8 @@ import { ElMessage } from 'element-plus'
 import { ref, computed, onMounted } from 'vue'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { GetLogs } from '../opsflow/api/logs'
+
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
 
 const { t } = useI18n()
 const loading = ref(false)

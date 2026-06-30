@@ -1,7 +1,7 @@
 <template>
   <div class="sc-page">
     <!-- Hero Section -->
-    <div class="sc-hero">
+    <div v-if="!embedded" class="sc-hero">
       <div class="sc-hero-bg" />
       <div class="sc-hero-inner">
         <div class="sc-hero-left">
@@ -98,6 +98,8 @@ import {
 } from '../opsflow/api/schedule-plans'
 import ScheduleTable from './components/ScheduleTable.vue'
 import ScheduleForm from './components/ScheduleForm.vue'
+
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
 
 const { t } = useI18n()
 const list = ref<any[]>([])

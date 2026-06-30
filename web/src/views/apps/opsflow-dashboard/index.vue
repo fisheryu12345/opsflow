@@ -1,7 +1,7 @@
 <template>
   <div class="db-page">
     <!-- Hero Section -->
-    <div class="db-hero">
+    <div v-if="!embedded" class="db-hero">
       <div class="db-hero-bg" />
       <div class="db-hero-inner">
         <div class="db-hero-left">
@@ -190,6 +190,8 @@ import {
   GetDashboardTopTemplates, GetDashboardUserActivity,
   GetDashboardStatusDistribution, GetDashboardNodeTypeDistribution,
 } from '../opsflow/api/dashboard'
+
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
 
 const { t } = useI18n()
 const loading = ref(false)

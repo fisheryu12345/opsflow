@@ -13,3 +13,6 @@ from django.apps import AppConfig
 class IamConfig(AppConfig):
     name = 'iam'
     verbose_name = 'IAM — Multi-Tenant & Permissions / 多租户权限管理'
+
+    def ready(self):
+        import iam.signals  # noqa: register signal handlers

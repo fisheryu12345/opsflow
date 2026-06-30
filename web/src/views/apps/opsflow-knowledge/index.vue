@@ -1,7 +1,7 @@
 <template>
   <div class="kb-page">
     <!-- Hero Section -->
-    <div class="kb-hero">
+    <div v-if="!embedded" class="kb-hero">
       <div class="kb-hero-bg" />
       <div class="kb-hero-inner">
         <div class="kb-hero-left">
@@ -169,6 +169,8 @@ import { ref, computed, onMounted, reactive } from 'vue'
 import { Refresh, Plus, Search, Edit, Delete, Clock, Notification, Document } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { GetKnowledgeList, CreateKnowledge, UpdateKnowledge, DeleteKnowledge } from '../opsflow/api/knowledge'
+
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
 
 const loading = ref(false)
 const saving = ref(false)

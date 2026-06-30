@@ -43,16 +43,16 @@
         <div class="itsm-hero-tab" :class="{ active: activeTab === 'delegation' }" @click="activeTab = 'delegation'">
           <el-icon><User /></el-icon> 委托
         </div>
-        <div class="itsm-hero-tab" :class="{ active: activeTab === 'skill-groups' }" @click="activeTab = 'skill-groups'">
+        <div v-if="canEdit" class="itsm-hero-tab" :class="{ active: activeTab === 'skill-groups' }" @click="activeTab = 'skill-groups'">
           <el-icon><Collection /></el-icon> 技能组
         </div>
-        <div class="itsm-hero-tab" :class="{ active: activeTab === 'on-duty' }" @click="activeTab = 'on-duty'">
+        <div v-if="canEdit" class="itsm-hero-tab" :class="{ active: activeTab === 'on-duty' }" @click="activeTab = 'on-duty'">
           <el-icon><Clock /></el-icon> 排班
         </div>
-        <div class="itsm-hero-tab" :class="{ active: activeTab === 'assign-rules' }" @click="activeTab = 'assign-rules'">
+        <div v-if="isAdmin" class="itsm-hero-tab" :class="{ active: activeTab === 'assign-rules' }" @click="activeTab = 'assign-rules'">
           <el-icon><Setting /></el-icon> 路由
         </div>
-        <div class="itsm-hero-tab" :class="{ active: activeTab === 'escalation' }" @click="activeTab = 'escalation'">
+        <div v-if="isAdmin" class="itsm-hero-tab" :class="{ active: activeTab === 'escalation' }" @click="activeTab = 'escalation'">
           <el-icon><WarningFilled /></el-icon> 升级
         </div>
         <div class="itsm-hero-tab" :class="{ active: activeTab === 'team-dashboard' }" @click="activeTab = 'team-dashboard'">
@@ -88,7 +88,7 @@
             </div>
           </div>
           <div class="itsm-filter-actions">
-            <el-button size="small" @click="onOpenCreateTicket">
+            <el-button v-if="canEdit" size="small" @click="onOpenCreateTicket">
               <el-icon><Plus /></el-icon> 新建工单
             </el-button>
             <el-button :icon="Refresh" size="small" text @click="loadTickets" :loading="loadingTickets">刷新</el-button>
@@ -171,7 +171,7 @@
             </div>
           </div>
           <div class="itsm-filter-actions">
-            <el-button size="small" type="primary" @click="showAICreate = true">
+            <el-button v-if="canEdit" size="small" type="primary" @click="showAICreate = true">
               <el-icon><MagicStick /></el-icon> AI 创建
             </el-button>
             <el-button :icon="Refresh" size="small" text @click="loadWorkflows" :loading="loadingWf">刷新</el-button>
@@ -196,16 +196,16 @@
                 <el-button v-if="!wf.is_draft" size="small" text @click="onCreateTicketFromWf(wf)">
                   <el-icon><Plus /></el-icon> 建单
                 </el-button>
-                <el-button v-if="wf.is_draft" size="small" text type="success" @click="onDeployWorkflow(wf)">
+                <el-button v-if="wf.is_draft && canEdit" size="small" text type="success" @click="onDeployWorkflow(wf)">
                   <el-icon><Upload /></el-icon> 部署
                 </el-button>
-                <el-button size="small" text @click="onOpenDesigner(wf.id)">
+                <el-button v-if="canEdit" size="small" text @click="onOpenDesigner(wf.id)">
                   <el-icon><Setting /></el-icon> 设计
                 </el-button>
                 <el-button size="small" text @click="onOpenVersions(wf)">
                   <el-icon><Clock /></el-icon> 版本
                 </el-button>
-                <el-button size="small" text type="danger" @click="onDeleteWorkflow(wf)">
+                <el-button v-if="isAdmin" size="small" text type="danger" @click="onDeleteWorkflow(wf)">
                   <el-icon><Delete /></el-icon> 删除
                 </el-button>
               </div>
@@ -356,19 +356,19 @@
       </div>
 
       <!-- ==================== TAB: 技能组 ==================== -->
-      <div v-show="activeTab === 'skill-groups'" class="itsm-section g-fade-in-up">
+      <div v-if="canEdit" v-show="activeTab === 'skill-groups'" class="itsm-section g-fade-in-up">
         <SkillGroup />
       </div>
       <!-- ==================== TAB: 排班 ==================== -->
-      <div v-show="activeTab === 'on-duty'" class="itsm-section g-fade-in-up">
+      <div v-if="canEdit" v-show="activeTab === 'on-duty'" class="itsm-section g-fade-in-up">
         <OnDutySchedule />
       </div>
       <!-- ==================== TAB: 路由规则 ==================== -->
-      <div v-show="activeTab === 'assign-rules'" class="itsm-section g-fade-in-up">
+      <div v-if="isAdmin" v-show="activeTab === 'assign-rules'" class="itsm-section g-fade-in-up">
         <AssignRule />
       </div>
       <!-- ==================== TAB: 升级级别 ==================== -->
-      <div v-show="activeTab === 'escalation'" class="itsm-section g-fade-in-up">
+      <div v-if="isAdmin" v-show="activeTab === 'escalation'" class="itsm-section g-fade-in-up">
         <EscalationLevel />
       </div>
       <!-- ==================== TAB: 团队看板 ==================== -->
@@ -544,6 +544,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, shallowRef, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useProjectStore } from '/@/stores/project'
 import Designer from './designer/index.vue'
 import Dashboard from './Dashboard.vue'
 import Delegation from './Delegation.vue'
@@ -568,6 +569,12 @@ import {
   AIGenerateWorkflow,
   AssignTicket, RollbackVersion,
 } from '/@/api/itsm/index'
+
+// ===== Permission (IAM role) =====
+const projectStore = useProjectStore()
+const currentRole = computed(() => projectStore.currentProject?.role || 'viewer')
+const isAdmin = computed(() => currentRole.value === 'admin')
+const canEdit = computed(() => currentRole.value !== 'viewer')  // editor or admin
 
 // ===== Tab state =====
 const activeTab = ref('tickets')
