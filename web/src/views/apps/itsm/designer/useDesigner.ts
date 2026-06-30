@@ -370,57 +370,67 @@ export function useDesigner(containerId: string, workflowId?: number) {
     return errs
   }
 
-  // ── 自动布局 ──
-  function autoLayout() {
+  // ── 自动布局 (调用后端 Sugiyama 布局引擎) ──
+  async function autoLayout() {
     const g = graph.value
     if (!g) return
     const cells = g.getCells()
-    const nodes = cells.filter(c => c.isNode())
-    const edges = cells.filter(c => c.isEdge())
-    const startNode = nodes.find(n => n.getData()?.type === 'START')
-    if (!startNode) return
-    const endNode = nodes.find(n => n.getData()?.type === 'END')
-    const edgeMap = new Map<string, { from: string; to: string }[]>()
-    edges.forEach((e: any) => {
-      const src = e.getSourceCellId()
-      const tgt = e.getTargetCellId()
-      if (src && tgt) {
-        if (!edgeMap.has(src)) edgeMap.set(src, [])
-        edgeMap.get(src)!.push({ from: src, to: tgt })
-      }
-    })
-    const visited = new Set<string>()
-    const layers: string[][] = []
-    const queue = [startNode.id]
-    visited.add(startNode.id)
-    while (queue.length > 0) {
-      const layer: string[] = []
-      const next: string[] = []
-      for (const id of queue) {
-        layer.push(id)
-        for (const e of (edgeMap.get(id) || [])) {
-          if (!visited.has(e.to) && e.to !== endNode?.id) { visited.add(e.to); next.push(e.to) }
-        }
-      }
-      if (layer.length > 0) layers.push(layer)
-      queue.length = 0
-      queue.push(...next)
+    const nodeList = cells.filter(c => c.isNode())
+    const edgeList = cells.filter(c => c.isEdge())
+
+    if (!nodeList.length) return
+
+    const wfId = workflow.value?.id
+    if (!wfId) {
+      ElMessage.warning('请先保存流程后再使用自动布局')
+      return
     }
-    if (endNode) layers.push([endNode.id])
-    const startX = 80, startY = 60, layerGap = 200, nodeGap = 80
-    layers.forEach((layer, li) => {
-      const totalW = (layer.length - 1) * nodeGap
-      layer.forEach((nodeId, ni) => {
-        const node = g.getCellById(nodeId)
-        if (node && node.isNode()) {
-          node.setPosition(
-            Math.max(startX + ni * nodeGap - totalW / 2 + (layer.length > 1 ? nodeGap / 2 : 0), 30),
-            startY + li * layerGap,
-          )
-        }
-      })
+
+    // 收集节点数据 (id + type + name)
+    const nodesData = nodeList.map(n => {
+      const d = n.getData() || {}
+      return { id: d.id || n.id, type: d.type, name: d.name || '' }
     })
-    g.centerContent()
+
+    // 收集边数据 (from_state → to_state)
+    const edgesData = edgeList.map((e: any) => {
+      const d = e.getData() || {}
+      const src = e.getSourceCellId?.() || ''
+      const tgt = e.getTargetCellId?.() || ''
+      // Extract state IDs from X6 cell IDs (format: node_<id>)
+      const fromId = d.from_state || d._from_state || (src.startsWith('node_') ? src.slice(5) : src)
+      const toId = d.to_state || d._to_state || (tgt.startsWith('node_') ? tgt.slice(5) : tgt)
+      return { id: d.id || e.id, from_state: String(fromId), to_state: String(toId) }
+    })
+
+    try {
+      const { workflowApi } = await import('/@/api/itsm/index')
+      // Use a dedicated request for layout since workflowApi doesn't have a layout method
+      const { request } = await import('/@/utils/service')
+      const res: any = await request({
+        url: `/api/itsm/workflows/${wfId}/layout/`,
+        method: 'post',
+        data: { nodes: nodesData, edges: edgesData },
+      })
+      const positions = (res as any).data?.positions || (res as any).positions || []
+      if (!positions.length) {
+        ElMessage.warning('Layout returned no positions')
+        return
+      }
+
+      // Apply positions: map state ID → X6 cell ID (node_<id>)
+      for (const pos of positions) {
+        const cell = g.getCellById(`node_${pos.id}`)
+        if (cell && cell.isNode()) {
+          cell.setPosition({ x: pos.x, y: pos.y })
+        }
+      }
+      g.centerContent()
+      ElMessage.success('Auto layout complete')
+    } catch (e: any) {
+      console.error('Layout failed:', e)
+      ElMessage.error(e?.msg || 'Layout computation failed')
+    }
   }
 
   function destroy() {

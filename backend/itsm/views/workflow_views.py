@@ -82,6 +82,17 @@ def _filter_model_fields(model, data: dict) -> dict:
     return result
 
 
+# ITSM node type → opsflow layout NodeType mapping
+ITSM_NODE_TYPE_MAP = {
+    'START': 'start_event',
+    'END': 'end_event',
+    'EXCLUSIVE': 'exclusive_gateway',
+    'ROUTER_P': 'parallel_gateway',
+    'CONDITIONAL': 'conditional_parallel_gateway',
+    'COVERAGE': 'converge_gateway',
+}
+
+
 class WorkflowViewSet(ItsmProjectViewSet):
     """流程模板管理 — project-scoped with multi-tenant isolation"""
     model = Workflow
@@ -95,6 +106,51 @@ class WorkflowViewSet(ItsmProjectViewSet):
         if self.action in ('create', 'update', 'partial_update'):
             return WorkflowCreateSerializer
         return WorkflowSerializer
+
+    @action(methods=['POST'], detail=True)
+    def layout(self, request, pk=None):
+        """计算流程布局 — 使用 opsflow Sugiyama 布局引擎"""
+        from opsflow.core.layout import compute_layout
+
+        instance = self.get_object()
+        nodes_data = request.data.get('nodes', [])
+        edges_data = request.data.get('edges', [])
+
+        if not nodes_data:
+            return ErrorResponse(msg='nodes required')
+
+        # Map ITSM node types → opsflow node_type
+        layout_nodes = []
+        for n in nodes_data:
+            itsm_type = n.get('type', '')
+            node_type = ITSM_NODE_TYPE_MAP.get(itsm_type, '')  # default = ServiceActivity
+            layout_nodes.append({
+                'id': str(n.get('id', '')),
+                'node_type': node_type,
+                'name': n.get('name', ''),
+            })
+
+        layout_edges = []
+        for e in edges_data:
+            layout_edges.append({
+                'id': str(e.get('id', '')),
+                'source': str(e.get('from_state') or e.get('from', '')),
+                'target': str(e.get('to_state') or e.get('to', '')),
+            })
+
+        try:
+            positions = compute_layout(
+                layout_nodes, layout_edges,
+                activity_size=(280, 72),   # ITSM node card size
+                event_size=(56, 56),
+                gateway_size=(70, 70),
+                start=(80, 80),
+                canvas_width=2800,
+            )
+        except Exception as e:
+            return ErrorResponse(msg=f'Layout computation failed: {str(e)}')
+
+        return DetailResponse(data={'positions': positions}, msg='Layout computed')
 
     @action(methods=['POST'], detail=True)
     def deploy(self, request, pk=None):
