@@ -213,7 +213,7 @@ const { t, locale } = useI18n()
 const isEn = computed(() => String(locale.value).startsWith('en'))
 
 // ===== Tab mode state =====
-const activeTab = ref<string>('templates')
+const activeTab = ref<string>('dashboard')
 const canvasMode = ref(false)
 
 // Sync activeTab with URL query param
@@ -509,29 +509,30 @@ onBeforeUnmount(() => {
 .opsflow-hero-inner {
   position: relative; z-index: 1;
   display: flex; justify-content: space-between; align-items: center;
-  padding: 24px 32px 18px;
+  padding: 14px 24px;
 }
 .opsflow-hero-left {
-  h1 { font-size: 24px; font-weight: 700; color: #fff; margin: 0; letter-spacing: 0.5px; }
-  p { font-size: 13px; color: rgba(255,255,255,0.55); margin: 4px 0 0; }
+  h1 { font-size: 22px; font-weight: 800; color: #fff; margin: 0; letter-spacing: 0.5px; }
+  p { font-size: 11px; color: rgba(255,255,255,0.5); margin: 2px 0 0; }
 }
 .opsflow-hero-stats {
-  display: flex; align-items: center; gap: 16px;
+  display: flex; align-items: center; gap: 12px;
 }
 .opsflow-stat-item {
   display: flex; flex-direction: column; align-items: center;
-  span:first-child { font-size: 20px; font-weight: 700; color: #fff; }
-  span:last-child { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  span:first-child { font-size: 18px; font-weight: 700; color: #fff; }
+  span:last-child { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 2px; }
 }
 .opsflow-stat-divider {
-  width: 1px; height: 32px; background: rgba(255,255,255,0.12);
+  width: 1px; height: 24px; background: rgba(255,255,255,0.1);
 }
 
 /* Hero tabs */
 .opsflow-hero-tabs {
   position: relative; z-index: 1;
-  display: flex; gap: 2px;
+  display: flex; gap: 0;
   padding: 0 24px;
+  margin-top: -4px;
   background: rgba(0,0,0,0.15);
 }
 .opsflow-hero-tab {

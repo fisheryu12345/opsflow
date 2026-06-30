@@ -1,3 +1,37 @@
+# Commit Analysis Log
+
+<!-- 每次提交在最前面插入新条目，时间倒序排列 -->
+
+## 42309410
+
+> 提交日期: 2026-06-30 | 提交信息: feat: opsflow default tab dashboard — 默认 tab 改为 dashboard，Hero 样式压缩
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/src/views/apps/opsflow/index.vue` | 前端 | 默认 tab 从 templates 改为 dashboard |
+| `web/src/views/apps/opsflow/index.vue` | 前端 | Hero 区域样式压缩 (padding/font-size/gap) |
+
+### 解决
+
+- **问题/背景：** Tab 合并后用户进入 /opsflow 默认显示"模板中心"，但仪表盘作为首页入口更合理；合并后的 Hero 区域视觉松散
+- **办法：** 切换默认 tab 至 dashboard；压缩 Hero 内边距和字号
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/features/2026-06-30-opsflow-tab-consolidation.md` (追加更新)
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 有 (`,+`, `false)` )
+- 子 App index.md 更新: 无需 (纯前端)
+- 工作区状态: 干净 ✅
+
+---
+
 ## 80f9ed95
 
 > 提交日期: 2026-06-30 | 提交信息: feat: OPSflow UI tab consolidation — 合并6+子页面为单一路由 tab 页面

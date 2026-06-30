@@ -110,3 +110,19 @@ menu seed (/opsflow) → Menu(DB) → /api/system/menu/web_router/
 - 点击"设计器" tab → 进入全屏画布模式
 - 画布 toolbar 左侧"返回"按钮 → 回到 tab 视图
 - URL query 支持: `/opsflow?tab=executions`
+
+---
+
+## 2026-06-30 Update
+
+> 提交: 42309410
+
+### 变更内容
+
+1. **默认 tab 改为 dashboard** — `activeTab` 默认值从 `'templates'` 改为 `'dashboard'`，用户进入 `/opsflow` 时首先看到仪表盘
+2. **Hero 区域样式压缩** — padding 从 `24px 32px 18px` 改为 `14px 24px`；标题字号从 24→22px；统计区域紧凑化；tabs 间距压缩
+
+### 原因
+
+- Dashboard 作为首页入口更符合用户预期（先看概览再深入到模板或执行）
+- Hero 区域在此前 tab 合并后视觉过于松散（原有 6 个独立页面的 hero 合并为单个后内容密度下降），调整后更紧凑
