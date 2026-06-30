@@ -2,6 +2,7 @@
 	<el-config-provider :size="getGlobalComponentSize" :locale="getGlobalI18n">
 		<!-- v-show="themeConfig.lockScreenTime > 1" -->
 		<router-view v-show="themeConfig.lockScreenTime > 1" />
+		<RequestPermission />
 		<LockScreen v-if="themeConfig.isLockScreen" />
 		<Setings ref="setingsRef" v-show="themeConfig.lockScreenTime > 1" />
 		<CloseFull v-if="!themeConfig.isLockScreen" />
@@ -25,6 +26,7 @@ import setIntroduction from '/@/utils/setIconfont';
 const LockScreen = defineAsyncComponent(() => import('/@/layout/lockScreen/index.vue'));
 const Setings = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/setings.vue'));
 const CloseFull = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/closeFull.vue'));
+const RequestPermission = defineAsyncComponent(() => import('/@/components/RequestPermission.vue'));
 
 // 定义变量内容
 const { messages, locale } = useI18n();

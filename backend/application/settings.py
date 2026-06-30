@@ -93,7 +93,7 @@ INSTALLED_APPS = [
 # ******************** 骨架配置 ******************* #
 # ================================================= #
 MIDDLEWARE = [
-    "dvadmin.utils.middleware.HealthCheckMiddleware",
+    "dvadmin.utils.middleware.HealthCheckMiddleware",  # K8s 健康检查 /healthz + /readiness
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

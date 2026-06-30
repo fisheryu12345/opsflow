@@ -53,7 +53,7 @@
     <!-- Review Dialog -->
     <el-dialog v-model="reviewVisible"
       :title="reviewAction === 'approve' ? $t('message.iam.approveRequest') : $t('message.iam.rejectRequest')"
-      width="440px" class="opsflow-dialog" destroy-on-close top="12vh">
+      width="440px" class="opsflow-dialog" destroy-on-close top="12vh" append-to-body>
       <div class="iam-review-info">
         <div class="iam-review-row"><span class="iam-review-label">{{ $t('message.iam.applicant') }}</span>{{ reviewRequest?.user_name }}</div>
         <div class="iam-review-row"><span class="iam-review-label">{{ $t('message.iam.type') }}</span>{{ reviewRequest?.request_type_label }}</div>

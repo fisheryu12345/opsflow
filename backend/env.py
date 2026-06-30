@@ -24,7 +24,7 @@ DATABASE_NAME = os.path.join(BASE_DIR, "db.sqlite3")
 # DATABASE_PASSWORD = "Yp520zll"
 
 # 表前缀
-TABLE_PREFIX = "dvadmin_"
+TABLE_PREFIX = "opsflow_"
 # ================================================= #
 # ******** redis配置，无redis 可不进行配置  ******** #
 # ================================================= #

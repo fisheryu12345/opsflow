@@ -101,7 +101,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Check } from '@element-plus/icons-vue'
 import { delegationApi, ToggleDelegation } from '/@/api/itsm/index'
-import { GetList } from '/@/views/system/user/api'
+import { GetList } from '/@/views/apps/iam/admin/user/api'
 
 // ===== Data =====
 const loading = ref(false)

@@ -15,26 +15,6 @@ def is_tenants_mode():
 # ================================================= #
 # ******************** 初始化 ******************** #
 # ================================================= #
-def _get_all_dictionary():
-    from dvadmin.system.models import Dictionary
-
-    queryset = Dictionary.objects.filter(status=True, is_value=False)
-    data = []
-    for instance in queryset:
-        data.append(
-            {
-                "id": instance.id,
-                "value": instance.value,
-                "children": list(
-                    Dictionary.objects.filter(parent=instance.id)
-                    .filter(status=1)
-                    .values("label", "value", "type", "color")
-                ),
-            }
-        )
-    return {ele.get("value"): ele for ele in data}
-
-
 def _get_all_system_config():
     data = {}
     from dvadmin.system.models import SystemConfig
@@ -67,17 +47,7 @@ def init_dictionary():
     初始化字典配置
     :return:
     """
-    try:
-        if is_tenants_mode():
-            from django_tenants.utils import tenant_context, get_tenant_model
-
-            for tenant in get_tenant_model().objects.filter():
-                with tenant_context(tenant):
-                    settings.DICTIONARY_CONFIG[connection.tenant.schema_name] = _get_all_dictionary()
-        else:
-            settings.DICTIONARY_CONFIG = _get_all_dictionary()
-    except Exception as e:
-        print("请先进行数据库迁移!")
+    settings.DICTIONARY_CONFIG = {}
     return
 
 
@@ -103,18 +73,7 @@ def init_system_config():
 
 
 def refresh_dictionary():
-    """
-    刷新字典配置
-    :return:
-    """
-    if is_tenants_mode():
-        from django_tenants.utils import tenant_context, get_tenant_model
-
-        for tenant in get_tenant_model().objects.filter():
-            with tenant_context(tenant):
-                settings.DICTIONARY_CONFIG[connection.tenant.schema_name] = _get_all_dictionary()
-    else:
-        settings.DICTIONARY_CONFIG = _get_all_dictionary()
+    settings.DICTIONARY_CONFIG = {}
 
 
 def refresh_system_config():

@@ -55,7 +55,7 @@
               :placeholder="item.placeholder"
               clearable
           >
-            <el-option v-for="item in dictionary(item.setting) || []" :key="item.value" :label="item.label" :value="item.value"> </el-option>
+            <el-option v-for="item in  || []" :key="item.value" :label="item.label" :value="item.value"> </el-option>
           </el-select>
           <!--    checkbox      -->
           <el-checkbox-group
@@ -64,7 +64,7 @@
               v-model="formData[item.key]"
               :placeholder="item.placeholder"
           >
-            <el-checkbox v-for="item in dictionary(item.setting) || []" :key="item.value" :label="item.value" :value="item.value">
+            <el-checkbox v-for="item in  || []" :key="item.value" :label="item.value" :value="item.value">
               {{ item.label }}
             </el-checkbox>
           </el-checkbox-group>
@@ -76,7 +76,7 @@
               :placeholder="item.placeholder"
               clearable
           >
-            <el-radio v-for="item in dictionary(item.setting) || []" :key="item.value" :label="item.value" :value="item.value">
+            <el-radio v-for="item in  || []" :key="item.value" :label="item.value" :value="item.value">
               {{ item.label }}
             </el-radio>
           </el-radio-group>
@@ -241,7 +241,7 @@
 
 <script setup lang="ts">
 import * as api from '../api';
-import { dictionary } from '/@/utils/dictionary';
+
 import { getBaseURL } from '/@/utils/baseUrl';
 import { ref, reactive, watch, nextTick,inject  } from 'vue';
 import type { FormInstance, FormRules, TableInstance } from 'element-plus';

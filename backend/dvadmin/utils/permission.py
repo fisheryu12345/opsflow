@@ -13,7 +13,6 @@ from django.db.models import F
 from rest_framework.permissions import BasePermission
 
 from iam.models.menu_rbac import RoleMenuButtonPermission
-from dvadmin.system.models import ApiWhiteList
 
 
 def ValidationApi(reqApi, validApi):
@@ -74,11 +73,8 @@ class CustomPermission(BasePermission):
             method = request.method  # 当前请求方法
             methodList = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']
             method = methodList.index(method)
-            # ***接口白名单***
-            api_white_list = ApiWhiteList.objects.values(permission__api=F('url'), permission__method=F('method'))
-            api_white_list = [
-                str(item.get('permission__api').replace('{id}', '([a-zA-Z0-9-]+)')) + ":" + str(
-                    item.get('permission__method')) + '$' for item in api_white_list if item.get('permission__api')]
+            # 接口白名单（已移除ApiWhiteList模型，使用空列表）
+            api_white_list = []
             # ********#
             if not hasattr(request.user, "role"):
                 return False

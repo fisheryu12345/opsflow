@@ -24,7 +24,6 @@ from rest_framework_simplejwt.views import (
 from application import dispatch
 from application import settings
 # from dvadmin.system import admin
-from dvadmin.system.views.dictionary import InitDictionaryViewSet
 from dvadmin.system.views.login import (
     LoginView,
     CaptchaView,
@@ -35,7 +34,6 @@ from dvadmin.system.views.login import (
 from dvadmin.system.views.system_config import InitSettingsViewSet
 # =========== 初始化系统配置 =================
 dispatch.init_system_config()
-dispatch.init_dictionary()
 # =========== 初始化系统配置 =================
 
 urlpatterns = (
@@ -51,7 +49,6 @@ urlpatterns = (
                 r"^api-auth/", include("rest_framework.urls", namespace="rest_framework")
             ),
             path("api/captcha/", CaptchaView.as_view()),
-            path("api/init/dictionary/", InitDictionaryViewSet.as_view()),
             path("api/init/settings/", InitSettingsViewSet.as_view()),
             path("apiLogin/", ApiLogin.as_view()),
 

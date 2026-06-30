@@ -26,6 +26,7 @@ from .views.aliyun_views import (
 from .views.scheme_views import ExecutionSchemeViewSet
 from .views.audit_views import OperationRecordViewSet
 from .views.project_views import OpsProjectViewSet
+from .views.clause_views import PrivacyView, TermsServiceView
 
 router = DefaultRouter()
 router.register(r'templates', FlowTemplateViewSet, basename='opsflow-template')
@@ -60,6 +61,8 @@ scheme_preview = ExecutionSchemeViewSet.as_view({
 })
 
 urlpatterns = [
+    path('clause/privacy.html', PrivacyView.as_view()),
+    path('clause/terms_service.html', TermsServiceView.as_view()),
     path('projects/<int:pk>/members/', project_members, name='opsflow-project-members'),
     path('projects/<int:pk>/members/<int:member_id>/', project_remove_member, name='opsflow-project-remove-member'),
     path('templates/<int:template_pk>/schemes/', scheme_list, name='opsflow-template-scheme-list'),

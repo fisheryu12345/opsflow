@@ -16,7 +16,7 @@ DATABASE_USER = "trade"
 DATABASE_PASSWORD = "312711936!@#GHS"
 
 # 表前缀
-TABLE_PREFIX = "dvadmin_"
+TABLE_PREFIX = "opsflow_"
 
 # ================================================= #
 # *************** Redis 配置  ********************* #

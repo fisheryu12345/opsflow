@@ -19,7 +19,7 @@
       </el-table-column>
       <el-table-column :label="$t('message.iam.target')" min-width="140">
         <template #default="{ row }">
-          {{ row.target_role_name || row.target_menu_name || row.target_menu_button_name || '-' }}
+          {{ row.request_type === 'project_role' ? (row.target_project_name || '') + ' — ' + (row.target_project_role || '') : (row.target_role_name || row.target_menu_name || '-') }}
         </template>
       </el-table-column>
       <el-table-column :label="$t('message.iam.status')" width="90">
@@ -47,31 +47,64 @@
     </div>
 
     <!-- Create Dialog -->
-    <el-dialog v-model="createVisible" :title="$t('message.iam.newRequest')" width="480px"
-      class="opsflow-dialog" destroy-on-close top="12vh">
-      <el-form label-width="90px" size="small">
-        <el-form-item :label="$t('message.iam.requestType')">
+    <el-dialog v-model="createVisible" title="New Request" width="1080px"
+      class="opsflow-dialog" destroy-on-close top="8vh" append-to-body>
+      <el-form label-width="100px" size="small">
+        <el-form-item label="Request Type">
           <el-radio-group v-model="form.request_type">
-            <el-radio label="role">{{ $t('message.iam.joinRole') }}</el-radio>
-            <el-radio label="menu">{{ $t('message.iam.accessMenu') }}</el-radio>
+            <el-radio-button value="role">申请角色</el-radio-button>
+            <el-radio-button value="menu">申请菜单</el-radio-button>
+            <el-radio-button value="project_role">申请项目角色</el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item :label="$t('message.iam.target')" v-if="form.request_type === 'role'">
-          <el-select v-model="form.target_role" :placeholder="$t('message.iam.selectRole')"
-            filterable style="width:100%" size="small">
+        <el-form-item label="Target Role" v-if="form.request_type === 'role'">
+          <el-select v-model="form.target_role" placeholder="Select role"
+            filterable style="width:100%">
             <el-option v-for="r in availableRoles" :key="r.id" :label="r.name" :value="r.id" />
           </el-select>
         </el-form-item>
-        <el-form-item :label="$t('message.iam.target')" v-if="form.request_type === 'menu'">
-          <el-select v-model="form.target_menu" :placeholder="$t('message.iam.selectMenu')"
-            filterable style="width:100%" size="small">
-            <el-option v-for="m in availableMenus" :key="m.id" :label="m.name" :value="m.id" />
+        <el-form-item label="Target Menu" v-if="form.request_type === 'menu'">
+          <el-select v-model="form.target_menu" placeholder="Select menu"
+            filterable style="width:100%" @change="onMenuChange">
+            <el-option-group v-for="group in menuGroups" :key="group.label" :label="group.label">
+              <el-option v-for="m in group.children" :key="m.id" :label="m.name" :value="m.id" />
+            </el-option-group>
           </el-select>
         </el-form-item>
-        <el-form-item :label="$t('message.iam.reason')">
-          <el-input v-model="form.reason" type="textarea" :rows="3"
-            :placeholder="$t('message.iam.reasonPlaceholder')" />
-          <span class="iam-form-tip">{{ $t('message.iam.reasonTip') }}</span>
+        <el-form-item v-if="form.request_type === 'menu' && form.target_menu">
+          <template #label>
+            <span>Buttons <el-tag size="small" type="warning" style="margin-left:4px">{{ form.selected_buttons?.length || 0 }}/{{ menuButtons.length }}</el-tag></span>
+          </template>
+          <div v-if="menuButtons.length">
+            <div style="margin-bottom:6px">
+              <el-button size="small" text @click="form.selected_buttons = menuButtons.map(b => b.id)">Select All</el-button>
+              <el-button size="small" text @click="form.selected_buttons = []">Deselect All</el-button>
+            </div>
+            <el-checkbox-group v-model="form.selected_buttons" class="iam-btn-grid">
+              <el-checkbox v-for="b in menuButtons" :key="b.id" :label="b.id" border>
+                <el-tooltip :content="b.value" placement="top" :show-after="300">
+                  <span class="iam-btn-name">{{ b.name }}</span>
+                </el-tooltip>
+              </el-checkbox>
+            </el-checkbox-group>
+          </div>
+          <span v-else-if="!loadingButtons" style="color:#C0C4CC;font-size:12px">No buttons under this menu</span>
+          <span v-if="loadingButtons" style="color:#409EFF;font-size:12px">Loading...</span>
+        </el-form-item>
+        <el-form-item label="Target Project" v-if="form.request_type === 'project_role'">
+          <el-select v-model="form.target_project" placeholder="Select project" filterable style="width:100%">
+            <el-option v-for="p in myProjects" :key="p.id" :label="p.name" :value="p.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Project Role" v-if="form.request_type === 'project_role'">
+          <el-select v-model="form.target_project_role" placeholder="Select role" style="width:100%">
+            <el-option label="Admin" value="admin" />
+            <el-option label="Editor" value="editor" />
+            <el-option label="Viewer" value="viewer" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Reason" required>
+          <el-input v-model="form.reason" type="textarea" :rows="3" placeholder="Describe why you need this permission" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -85,14 +118,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Plus, Tickets } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { i18n } from '/@/i18n/index'
+import { useProjectStore } from '/@/stores/project'
 import { GetRequests, CreateRequest } from '/@/api/iam/requests'
 import { GetAvailableRoles, GetAvailableMenus } from '/@/api/iam/permissions'
 
 const t = i18n.global.t
+const projectStore = useProjectStore()
+const myProjects = ref<any[]>([])
 
 const requests = ref<any[]>([])
 const loading = ref(false)
@@ -103,10 +139,43 @@ const createVisible = ref(false)
 const submitting = ref(false)
 const availableRoles = ref<any[]>([])
 const availableMenus = ref<any[]>([])
-const form = ref<any>({ request_type: 'role', target_role: null, target_menu: null, reason: '' })
+const menuGroups = computed(() => {
+  const items = availableMenus.value
+  // Menus with no parent are top-level
+  const top = items.filter((m: any) => !m.parent)
+  // Standalone menus (no children) shown directly under "All"
+  const withKids = top.filter((m: any) => items.some((c: any) => c.parent === m.id))
+  const withoutKids = top.filter((m: any) => !items.some((c: any) => c.parent === m.id))
+  const groups = withKids.map((m: any) => ({
+    label: m.name,
+    children: items.filter((c: any) => c.parent === m.id),
+  }))
+  if (withoutKids.length) {
+    groups.unshift({ label: 'Direct Access', children: withoutKids })
+  }
+  return groups
+})
+const form = ref<any>({ request_type: 'role', target_role: null, target_menu: null, target_project: null, target_project_role: null, selected_buttons: [], reason: '' })
+const menuButtons = ref<any[]>([])
+const loadingButtons = ref(false)
+
+async function onMenuChange(menuId: number | null) {
+  form.value.selected_buttons = []
+  menuButtons.value = []
+  if (!menuId) return
+  loadingButtons.value = true
+  try {
+    const { request } = await import('/@/utils/service')
+    const res: any = await request({ url: '/api/iam/menu_button/', params: { menu: menuId } })
+    menuButtons.value = (res as any).results || (res as any).data || []
+    // Default: select all buttons
+    form.value.selected_buttons = menuButtons.value.map((b: any) => b.id)
+  } catch { menuButtons.value = [] }
+  loadingButtons.value = false
+}
 
 function requestTypeTag(type: string) {
-  const map: Record<string, string> = { role: 'success', menu: 'primary', menu_button: 'warning' }
+  const map: Record<string, string> = { role: 'success', menu: 'primary', menu_button: 'warning', project_role: 'danger' }
   return map[type] || 'info'
 }
 function statusTag(status: string) {
@@ -125,7 +194,8 @@ async function fetchRequests() {
 }
 
 async function showCreateDialog() {
-  form.value = { request_type: 'role', target_role: null, target_menu: null, reason: '' }
+  myProjects.value = projectStore.myProjects
+  form.value = { request_type: 'role', target_role: null, target_menu: null, target_project: projectStore.currentProjectId, target_project_role: null, selected_buttons: [], reason: '' }
   createVisible.value = true
   try {
     const [r, m] = await Promise.all([GetAvailableRoles(), GetAvailableMenus()])
@@ -136,8 +206,10 @@ async function showCreateDialog() {
 
 async function onCreate() {
   if (!form.value.reason) { ElMessage.warning(t('message.iam.errors.reasonRequired')); return }
-  if (form.value.request_type === 'role' && !form.value.target_role) { ElMessage.warning(t('message.iam.errors.roleRequired')); return }
-  if (form.value.request_type === 'menu' && !form.value.target_menu) { ElMessage.warning(t('message.iam.errors.menuRequired')); return }
+  if (form.value.request_type === 'role' && !form.value.target_role) { ElMessage.warning('请选择角色'); return }
+  if (form.value.request_type === 'menu' && !form.value.target_menu) { ElMessage.warning('请选择菜单'); return }
+  if (form.value.request_type === 'project_role' && !form.value.target_project) { ElMessage.warning('请选择项目'); return }
+  if (form.value.request_type === 'project_role' && !form.value.target_project_role) { ElMessage.warning('请选择项目角色'); return }
   submitting.value = true
   try {
     await CreateRequest(form.value)
@@ -153,6 +225,37 @@ onMounted(() => fetchRequests())
 
 <style lang="scss" scoped>
 @use '/@/styles/global' as *;
+
+.iam-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 10px;
+  background: #fafafa;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+}
+.iam-btn-grid :deep(.el-checkbox) {
+  margin-right: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fff;
+  transition: all 0.15s;
+}
+.iam-btn-grid :deep(.el-checkbox:hover) {
+  border-color: #409EFF;
+  background: #f0f5ff;
+}
+.iam-btn-grid :deep(.el-checkbox.is-checked) {
+  background: #ecf5ff;
+  border-color: #409EFF;
+}
+.iam-btn-name {
+  font-size: 13px; color: #303133; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 .iam-section {
   background: $g-bg-card;

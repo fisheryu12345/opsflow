@@ -8,8 +8,8 @@ from django.core.management.base import BaseCommand
 
 
 SEED_COMMANDS = [
-    # Layer 1: IAM + dvadmin (base infrastructure)
-    ('iam', 'seed_deploy_environments'),
+    # Layer 1: IAM foundation (admin user, roles, menus, permissions, envs, templates)
+    ('iam', 'init_iam'),
     # Layer 2: Sub-product seed commands
     ('opsflow', 'seed_opsflow'),
     ('opsflow', 'seed_template_presets'),

@@ -509,7 +509,7 @@ const tableSelectorConfig = computed(() => ({
     ],
   },
   role: {
-    url: '/api/system/role/',
+    url: '/api/iam/role/',
     label: 'name',
     value: 'id',
     isMultiple: true,

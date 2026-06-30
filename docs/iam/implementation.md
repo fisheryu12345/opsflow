@@ -1,6 +1,6 @@
 # IAM — 开发进度跟踪
 
-> 最后更新: 2026-06-28 | 参考目标: docs/opsflow_target.md
+> 最后更新: 2026-07-01 | 参考目标: docs/opsflow_target.md
 
 ## 成熟度评估
 
@@ -8,7 +8,7 @@
 |------|:----:|
 | 当前成熟度 | ⭐⭐⭐⭐⭐ (5/5) |
 | 目标成熟度 | ⭐⭐⭐⭐⭐ (5/5) |
-| 状态 | ✅ 目标达成（Phase 1-2 多租户基础设施完成） |
+| 状态 | ✅ 企业级 RBAC 闭环完成（模型迁移+申请/审批+角色模板+统一授权UI+v-can指令） |
 
 ## 功能点清单
 
@@ -35,12 +35,28 @@
 | seed_deploy_environments | P1 | ✅ | 初始化环境 | management command |
 | my_permissions 端点 | P0 | ✅ | 返回用户 ITSM 权限 (role + pages + permissions) | GET /api/iam/my_permissions/?project_id=X — 查 ProjectMember/BusinessMember 确定 role → 返回 visible pages + itsm:* perm keys |
 | ITSM Role 自动同步 | P0 | ✅ | IAM 成员变更自动分配/移除 dvadmin Role | signals.py — BusinessMember/ProjectMember post_save/post_delete → _sync_dvadmin_role() |
-| seed_itsm_permissions | P1 | ✅ | ITSM 权限种子数据 | management command — 11 itsm:* MenuButton + 3 Role (admin/editor/viewer) + 角色权限 |
+| seed_itsm_permissions | P1 | ✅ | ITSM 权限种子数据 | management command — 11 itsm:* MenuButton + 3 Role |
+| RBAC 模型迁移 | P0 | ✅ | Role/Menu/MenuButton → IAM | iam/models/menu_rbac.py，19 文件 import 替换，旧 dvadmin 模型移除 |
+| 统一授权 UI | P0 | ✅ | Role 权限配置面板 | RolePermissionPanel.vue — 菜单树+按钮勾选+一键保存 |
+| 角色模板 | P0 | ✅ | 预定义角色模板 | RoleTemplate 模型 + apply_to_role() + 7 个系统模板 |
+| 审批增强 | P0 | ✅ | business admin 可审批 + project_role | PermissionRequest 扩展 target_project/target_project_role，approve 自动创建 ProjectMember |
+| 权限申请 UI | P0 | ✅ | 菜单+按钮 checkbox 选择 | MyRequests 扩展 project_role 类型 + 项目选择器 + 按钮分组 grid |
+| v-can 指令 | P0 | ✅ | 无权限自动拦截+弹出申请 | directive/iamPermission.ts + RequestPermission.vue 全局弹窗 |
+| 全 App 权限 Key | P0 | ✅ | ITSM+OPSflow+CMDB 权限注册 | seed_iam_permissions + init_iam 一键初始化 |
+| 通知 | P1 | ✅ | 审批结果站内信 | _notify_user → MessageCenter |
+| 旧权限体系清理 | P0 | ✅ | 删除 v-auth/v-permission/btnPermission | 14 个文件删除 + 7 个页面 v-auth 剥离 |
 
 ## TODO
 
 - [ ] 物理隔离实际启用（创建独立库 → 设 db_alias → migrate）
-- [x] 补充测试用例 ✅
+- [ ] IAM 权限全链路测试：申请→审批→赋权→前端按钮显隐
+
+### 2026-07-01 Update
+> 提交: (pending push)
+- RBAC 模型迁移: Role/Menu/MenuButton → iam/models/menu_rbac.py，19 文件 import 替换
+- 企业级 RBAC 闭环: 角色模板 + 统一授权 UI + 审批增强 + v-can 指令 + 全 App 权限 Key
+- 清理: ApiWhiteList/Area/Dictionary 模型 + fixtures + 旧权限指令(14 文件)
+- 已知问题: 权限全链路测试未完成
 
 ### 2026-06-30 Update
 > 提交: 80f9ed95

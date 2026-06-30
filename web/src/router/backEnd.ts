@@ -13,7 +13,6 @@ import { useMenuApi } from '/@/api/menu/index';
 import { handleMenu } from '../utils/menu';
 import {SystemConfigStore} from "/@/stores/systemConfig";
 import {useDeptInfoStore} from "/@/stores/modules/dept";
-import {DictionaryStore} from "/@/stores/dictionary";
 import {useFrontendMenuStore} from "/@/stores/frontendMenu";
 import {toRaw} from "vue";
 const menuApi = useMenuApi();
@@ -127,16 +126,10 @@ export async function setAddRoute() {
  * @returns 返回后端路由菜单数据
  */
 export function getBackEndControlRoutes() {
-	//获取所有的按钮权限
-		// 获取系统配置
 	SystemConfigStore().getSystemConfigs()
-	// 获取所有部门信息
 	useDeptInfoStore().requestDeptInfo()
-	// 获取字典信息
-	DictionaryStore().getSystemDictionarys()
 	return menuApi.getSystemMenu();
 }
-
 /**
  * 重新请求后端路由菜单接口
  * @description 用于菜单管理界面刷新菜单（未进行测试）

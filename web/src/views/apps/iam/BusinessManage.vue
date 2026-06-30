@@ -37,7 +37,7 @@
     <!-- Create/Edit Dialog -->
     <el-dialog v-model="dialogVisible"
       :title="editing ? $t('message.iam.editBusiness') : $t('message.iam.createBusiness')"
-      width="460px" class="opsflow-dialog" destroy-on-close top="12vh">
+      width="460px" class="opsflow-dialog" destroy-on-close top="12vh" append-to-body>
       <el-form :model="form" label-width="100px" size="small">
         <el-form-item :label="$t('message.iam.name')" required>
           <el-input v-model="form.name" maxlength="128" />
@@ -66,7 +66,7 @@
 
     <!-- Members Dialog -->
     <el-dialog v-model="memberDialogVisible" :title="$t('message.iam.members')"
-      width="460px" class="opsflow-dialog" destroy-on-close top="12vh">
+      width="460px" class="opsflow-dialog" destroy-on-close top="12vh" append-to-body>
       <div v-for="m in members" :key="m.id" class="iam-member-row">
         <span class="iam-member-name">{{ m.username }}{{ m.user_name ? ' (' + m.user_name + ')' : '' }}</span>
         <el-tag size="small" :type="m.role === 'admin' ? 'danger' : m.role === 'editor' ? 'warning' : 'info'">

@@ -96,7 +96,6 @@ export interface ThemeConfigStates {
 	themeConfig: ThemeConfigState;
 }
 
-export interface DictionaryStates {
 	data: any;
 }
 export interface ConfigStates {

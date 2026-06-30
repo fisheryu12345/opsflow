@@ -38,7 +38,7 @@
     <!-- Create/Edit Dialog -->
     <el-dialog v-model="dialogVisible"
       :title="editing ? $t('message.iam.editEnv') : $t('message.iam.createEnv')"
-      width="400px" class="opsflow-dialog" destroy-on-close top="12vh">
+      width="400px" class="opsflow-dialog" destroy-on-close top="12vh" append-to-body>
       <el-form :model="form" label-width="100px" size="small">
         <el-form-item :label="$t('message.iam.name')" required>
           <el-input v-model="form.name" maxlength="64" />
@@ -61,7 +61,7 @@
 
     <!-- Permissions Dialog -->
     <el-dialog v-model="permDialogVisible" :title="$t('message.iam.permissions')"
-      width="480px" class="opsflow-dialog" destroy-on-close top="12vh">
+      width="480px" class="opsflow-dialog" destroy-on-close top="12vh" append-to-body>
       <div v-for="p in permissions" :key="p.id" class="iam-perm-row">
         <span class="iam-perm-name">{{ p.username }}{{ p.user_name ? ' (' + p.user_name + ')' : '' }}</span>
         <el-tag size="small" :type="p.can_execute ? 'success' : 'info'">

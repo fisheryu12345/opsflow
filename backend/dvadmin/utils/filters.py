@@ -20,7 +20,6 @@ from django_filters.utils import get_model_field
 from rest_framework.filters import BaseFilterBackend
 
 from iam.models.menu_rbac import RoleMenuButtonPermission
-from dvadmin.system.models import Dept, ApiWhiteList
 
 
 def get_dept(dept_id: int, dept_all_list=None, dept_list=None):
@@ -56,31 +55,6 @@ class DataLevelPermissionsFilter(BaseFilterBackend):
     """
 
     def filter_queryset(self, request, queryset, view):
-        """
-        接口白名单是否认证数据权限
-        """
-        api = request.path  # 当前请求接口
-        method = request.method  # 当前请求方法
-        methodList = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
-        method = methodList.index(method)
-        # ***接口白名单***
-        api_white_list = ApiWhiteList.objects.filter(enable_datasource=False).values(
-            permission__api=F("url"), permission__method=F("method")
-        )
-        api_white_list = [
-            str(item.get("permission__api").replace("{id}", ".*?"))
-            + ":"
-            + str(item.get("permission__method"))
-            for item in api_white_list
-            if item.get("permission__api")
-        ]
-        for item in api_white_list:
-            new_api = f"{api}:{method}"
-            matchObj = re.match(item, new_api, re.M | re.I)
-            if matchObj is None:
-                continue
-            else:
-                return queryset
         """
         判断是否为超级管理员:
         如果不是超级管理员,则进入下一步权限判断

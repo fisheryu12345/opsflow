@@ -25,7 +25,7 @@ class MessageCenterSerializer(CustomModelSerializer):
         roles = instance.target_role.all()
         # You can do what ever you want in here
         # `parsed_query` param is passed to BookSerializer to allow further querying
-        from dvadmin.system.views.role import RoleSerializer
+        from iam.views.role import RoleSerializer
         serializer = RoleSerializer(
             roles,
             many=True,

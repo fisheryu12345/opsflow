@@ -16,6 +16,7 @@ class PermissionRequestSerializer(CustomModelSerializer):
     target_role_name = serializers.CharField(source='target_role.name', read_only=True, default=None)
     target_menu_name = serializers.CharField(source='target_menu.name', read_only=True, default=None)
     target_menu_button_name = serializers.CharField(source='target_menu_button.name', read_only=True, default=None)
+    target_project_name = serializers.CharField(source='target_project.name', read_only=True, default=None)
     request_type_label = serializers.SerializerMethodField()
     status_label = serializers.SerializerMethodField()
 
@@ -34,7 +35,7 @@ class PermissionRequestSerializer(CustomModelSerializer):
 class PermissionRequestCreateSerializer(CustomModelSerializer):
     class Meta:
         model = PermissionRequest
-        fields = ['request_type', 'target_role', 'target_menu', 'target_menu_button', 'reason']
+        fields = ['request_type', 'target_role', 'target_menu', 'target_menu_button', 'target_project', 'target_project_role', 'selected_buttons', 'reason']
 
 
 class PermissionRequestReviewSerializer(serializers.Serializer):

@@ -5,6 +5,7 @@ with existing code that references iam.models.PermissionRequest etc.
 """
 
 from iam.models.rbac import PermissionRequest, UserDirectPermission
+from iam.models.role_template import RoleTemplate
 from iam.models.menu_rbac import (
     Role, Menu, MenuButton, MenuField, FieldPermission,
     RoleMenuPermission, RoleMenuButtonPermission,
@@ -17,6 +18,8 @@ __all__ = [
     # RBAC (existing)
     'PermissionRequest',
     'UserDirectPermission',
+    # RBAC (templates)
+    'RoleTemplate',
     # RBAC (migrated from dvadmin)
     'Role',
     'Menu',

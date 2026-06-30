@@ -77,7 +77,6 @@ import { formatAxis } from '/@/utils/formatTime';
 import { NextLoading } from '/@/utils/loading';
 import * as loginApi from '/@/views/system/login/api';
 import { useUserInfo } from '/@/stores/userInfo';
-import { DictionaryStore } from '/@/stores/dictionary';
 import { SystemConfigStore } from '/@/stores/systemConfig';
 import { Md5 } from 'ts-md5';
 import { errorMessage } from '/@/utils/message';
@@ -187,8 +186,7 @@ export default defineComponent({
 			//登录成功获取用户信息,获取系统字典数据
 			getUserInfo();
 			//获取所有字典
-			DictionaryStore().getSystemDictionarys();
-
+			
 			// 初始化登录成功时间问候语
 			let currentTimeInfo = currentTime.value;
 			// 登录成功，跳到转首页

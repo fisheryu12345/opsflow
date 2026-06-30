@@ -256,7 +256,7 @@ import { useRouter } from 'vue-router';
 import { useUserInfo } from '/@/stores/userInfo';
 import { getBaseURL } from '/@/utils/baseUrl';
 import { formatAxis } from '/@/utils/formatTime';
-import { dictionary } from '/@/utils/dictionary';
+
 import { successMessage } from '/@/utils/message';
 import * as api from './api';
 
@@ -479,7 +479,7 @@ function formatShortTime(dateStr: string | undefined | null): string {
 
 /* ===================== Init ===================== */
 onMounted(() => {
-  genderOptions.value = dictionary('gender');
+  genderOptions.value = ;
   fetchUserInfo();
   fetchMessages();
 });

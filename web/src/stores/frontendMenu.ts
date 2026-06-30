@@ -142,7 +142,7 @@ export const useFrontendMenuStore = defineStore('frontendMenu',{
     actions:{
         async requestMenu(){
            return  request({
-                url: '/api/system/menu/web_router/',
+                url: '/api/iam/menu/web_router/',
                 method: 'get',
                 params:{},
             }).then((res:any)=>{

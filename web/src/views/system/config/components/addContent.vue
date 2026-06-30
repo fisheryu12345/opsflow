@@ -14,7 +14,7 @@
 			</el-form-item>
 			<el-form-item label="表单类型" prop="form_item_type">
 				<el-select v-model="form.form_item_type" placeholder="请选择" clearable>
-					<el-option :label="item.label" :value="item.value" :key="index" v-for="(item, index) in dictionary('config_form_type')"></el-option>
+					<el-option :label="item.label" :value="item.value" :key="index" v-for="(item, index) in "></el-option>
 				</el-select>
 			</el-form-item>
 			<el-form-item
@@ -52,7 +52,7 @@ import associationTable from './components/associationTable.vue';
 import {ref, reactive, onMounted, inject} from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { successMessage } from '/@/utils/message';
-import { dictionary } from '/@/utils/dictionary';
+
 let form: any = reactive({
 	parent: null,
 	title: null,

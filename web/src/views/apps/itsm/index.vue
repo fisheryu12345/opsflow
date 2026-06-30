@@ -205,7 +205,7 @@
                 <el-button size="small" text @click="onOpenVersions(wf)">
                   <el-icon><Clock /></el-icon> 版本
                 </el-button>
-                <el-button v-if="isAdmin" size="small" text type="danger" @click="onDeleteWorkflow(wf)">
+                <el-button v-can.admin="'itsm:workflow:delete'" size="small" text type="danger" @click="onDeleteWorkflow(wf)">
                   <el-icon><Delete /></el-icon> 删除
                 </el-button>
               </div>
@@ -483,6 +483,7 @@
     </el-dialog>
 
     <!-- ===== 工单分派对话框 ===== -->
+    <RequestPermission ref="requestPermRef" />
     <el-dialog v-model="assignTicketVisible" title="分派工单" width="440px" top="25vh" destroy-on-close>
       <el-form label-position="top">
         <el-form-item label="技能组筛选">
@@ -546,6 +547,7 @@ import { ref, reactive, onMounted, onBeforeUnmount, shallowRef, computed } from 
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useProjectStore } from '/@/stores/project'
 import Designer from './designer/index.vue'
+import RequestPermission from '/@/components/RequestPermission.vue'
 import Dashboard from './Dashboard.vue'
 import Delegation from './Delegation.vue'
 import SkillGroup from './SkillGroup.vue'
@@ -557,7 +559,7 @@ import {
   WarningFilled, Edit, Message, QuestionFilled, Clock,
   Plus, Refresh, User, Finished, CircleClose, Select, Close,
   List, Setting, MagicStick, ArrowRight, Check, Collection, DataAnalysis,
-  Search, Delete, Upload,
+  Search, Delete, Upload, Lock,
 } from '@element-plus/icons-vue'
 import {
   incidentApi, changeApi, slaPolicyApi,
@@ -575,6 +577,12 @@ const projectStore = useProjectStore()
 const currentRole = computed(() => projectStore.currentProject?.role || 'viewer')
 const isAdmin = computed(() => currentRole.value === 'admin')
 const canEdit = computed(() => currentRole.value !== 'viewer')  // editor or admin
+
+// Permission request dialog
+const requestPermRef = ref<InstanceType<typeof RequestPermission> | null>(null)
+function requestAccess(key: string, label: string) {
+  requestPermRef.value?.open(key, label)
+}
 
 // ===== Tab state =====
 const activeTab = ref('tickets')
