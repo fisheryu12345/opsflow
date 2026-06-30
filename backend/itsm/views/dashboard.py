@@ -17,6 +17,8 @@ from dvadmin.utils.json_response import DetailResponse
 
 from itsm.models import Ticket, TicketStatus, SignTask
 
+ACTIVE_STATUSES = ['assigned', 'receiving', 'running']
+
 logger = logging.getLogger(__name__)
 
 

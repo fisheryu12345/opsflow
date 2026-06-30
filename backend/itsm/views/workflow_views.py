@@ -69,6 +69,49 @@ class WorkflowVersionViewSet(CustomModelViewSet):
     filter_fields = ['workflow']
     ordering = ['-create_datetime']
 
+    @action(methods=['POST'], detail=True)
+    def rollback(self, request, pk=None):
+        old_version = self.get_object()
+        workflow = old_version.workflow
+        message = request.data.get('message', 'Rollback to v' + old_version.version)
+        workflow.states.all().delete()
+        workflow.transitions.all().delete()
+        Field.objects.filter(state__workflow=workflow).delete()
+        state_id_map = {}
+        for sid, sdata in old_version.states.items():
+            ns = State.objects.create(
+                workflow=workflow, name=sdata.get('name', ''),
+                type=sdata.get('type', 'NORMAL'),
+                processors_type=sdata.get('processors_type', 'PERSON'),
+                processors=sdata.get('processors', ''),
+                is_multi=sdata.get('is_multi', False),
+                is_sequential=sdata.get('is_sequential', False),
+                finish_condition=sdata.get('finish_condition', {}),
+                is_allow_skip=sdata.get('is_allow_skip', False),
+                fields=sdata.get('fields', []), extras=sdata.get('extras', {}),
+                is_builtin=sdata.get('is_builtin', False),
+            )
+            state_id_map[int(sid)] = ns.id
+        for tid, tdata in old_version.transitions.items():
+            Transition.objects.create(
+                workflow=workflow, name=tdata.get('name', ''),
+                from_state_id=state_id_map.get(tdata.get('from_state_id')),
+                to_state_id=state_id_map.get(tdata.get('to_state_id')),
+                condition=tdata.get('condition', ''),
+                direction=tdata.get('direction', 'forward'),
+            )
+        for fid, fdata in old_version.fields.items():
+            sid = state_id_map.get(fdata.get('state_id'))
+            if sid:
+                Field.objects.create(
+                    state_id=sid, key=fdata.get('key', ''),
+                    name=fdata.get('name', ''), type=fdata.get('type', 'STRING'),
+                    required=fdata.get('required', False),
+                    layout=fdata.get('layout', 'COL_12'),
+                    choice=fdata.get('choice', []), default=fdata.get('default', []),
+                )
+        new_version = workflow.create_version(operator=request.user, message=message)
+        return DetailResponse(data=WorkflowVersionSerializer(new_version).data, msg='Rolled back v'+old_version.version+', created v'+new_version.version)
 
 class StateViewSet(CustomModelViewSet):
     """节点管理"""

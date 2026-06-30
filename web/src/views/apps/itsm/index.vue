@@ -194,7 +194,7 @@
               </div>
               <div class="itsm-wf-actions">
                 <el-button v-if="!wf.is_draft" size="small" text @click="onCreateTicketFromWf(wf)">
-                  发起工单
+                  <el-icon><Plus /></el-icon> 建单
                 </el-button>
                 <el-button v-if="wf.is_draft" size="small" text type="success" @click="onDeployWorkflow(wf)">
                   <el-icon><Upload /></el-icon> 部署
@@ -202,9 +202,24 @@
                 <el-button size="small" text @click="onOpenDesigner(wf.id)">
                   <el-icon><Setting /></el-icon> 设计
                 </el-button>
+                <el-button size="small" text @click="onToggleVersions(wf)">
+                  <el-icon><Clock /></el-icon> 版本
+                </el-button>
                 <el-button size="small" text type="danger" @click="onDeleteWorkflow(wf)">
                   <el-icon><Delete /></el-icon> 删除
                 </el-button>
+              </div>
+              <!-- Version panel -->
+              <div v-if="expandedWfId === wf.id" class="itsm-wf-versions">
+                <div class="itsm-wf-ver-title">版本历史</div>
+                <div v-if="wfVersions[wf.id]?.loading" class="itsm-wf-ver-loading">加载中...</div>
+                <div v-else-if="!wfVersions[wf.id]?.list?.length" class="itsm-wf-ver-empty">暂无版本</div>
+                <div v-else v-for="ver in wfVersions[wf.id].list" :key="ver.id" class="itsm-wf-ver-row">
+                  <span class="itsm-wf-ver-num">v{{ ver.version }}</span>
+                  <span class="itsm-wf-ver-time">{{ ver.create_datetime }}</span>
+                  <el-button size="small" text type="warning" @click="onRollbackVersion(ver)">回滚</el-button>
+                  <el-button size="small" text type="danger" @click="onDeleteVersion(ver)">删除</el-button>
+                </div>
               </div>
             </div>
           </div>
@@ -503,7 +518,7 @@ import {
   DeployWorkflow, SubmitTicket, ApproveTicketNode, RejectTicketNode,
   CloseTicket, GetTicketStatus,
   AIGenerateWorkflow,
-  AssignTicket,
+  AssignTicket, RollbackVersion,
 } from '/@/api/itsm/index'
 
 // ===== Tab state =====
@@ -708,6 +723,8 @@ const aiType = ref('change')
 const aiLoading = ref(false)
 const aiResult = ref<any>(null)
 const savingWf = ref(false)
+const expandedWfId = ref(null)
+const wfVersions = ref({})
 
 async function loadWorkflows() {
   loadingWf.value = true
@@ -731,6 +748,35 @@ async function onDeployWorkflow(wf: any) {
   }
 }
 
+async function onToggleVersions(wf: any) {
+  if (expandedWfId.value === wf.id) { expandedWfId.value = null; return }
+  expandedWfId.value = wf.id
+  const cache = wfVersions.value[wf.id]
+  if (!cache) wfVersions.value[wf.id] = { list: [], loading: true }
+  else if (cache.list.length) return
+  else wfVersions.value[wf.id].loading = true
+  try {
+    const res = await workflowVersionApi.list({ workflow: wf.id })
+    wfVersions.value[wf.id].list = res?.results || res?.data || []
+  } catch { wfVersions.value[wf.id].list = [] }
+  wfVersions.value[wf.id].loading = false
+}
+async function onRollbackVersion(ver: any) {
+  try {
+    await RollbackVersion(ver.id)
+    ElMessage.success("已回滚并创建新版本")
+    onToggleVersions({ id: ver.workflow })
+  } catch { ElMessage.error("回滚失败") }
+}
+async function onDeleteVersion(ver: any) {
+  try {
+    await workflowVersionApi.delete(ver.id)
+    ElMessage.success("版本已删除")
+    const wfId = ver.workflow
+    if (wfVersions.value[wfId]) wfVersions.value[wfId].loading = true
+    onToggleVersions({ id: wfId })
+  } catch { ElMessage.error("删除失败") }
+}
 async function onDeleteWorkflow(wf: any) {
   try {
     await ElMessageBox.confirm(
@@ -935,7 +981,7 @@ onMounted(async () => {
   display: flex; justify-content: space-between; align-items: center;
   padding: 0 0 12px; gap: 16px; position: sticky; top: 0; z-index: 10; background: #f5f6fa;
 }
-.itsm-filter-tabs { display: flex; gap: 4px; }
+.itsm-filter-tabs { display: flex; gap: 2px; }
 .itsm-tab {
   display: flex; align-items: center; gap: 6px; padding: 7px 16px;
   border-radius: 20px; font-size: 13px; font-weight: 500; color: #606266;
@@ -1027,7 +1073,8 @@ onMounted(async () => {
 .itsm-wf-name { font-weight: 600; font-size: 15px; color: $g-text-primary; margin-bottom: 6px; }
 .itsm-wf-desc { font-size: 12px; color: $g-text-secondary; line-height: 1.5; flex: 1; margin-bottom: 10px; }
 .itsm-wf-meta { font-size: 11px; color: $g-text-muted; display: flex; justify-content: space-between; margin-bottom: 10px; }
-.itsm-wf-actions { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid $g-border-light; }
+.itsm-wf-actions { display: flex; gap: 0px; padding-top: 8px; border-top: 1px solid $g-border-light; flex-wrap: nowrap; font-size: 11px; }
+.itsm-wf-actions .el-button { padding: 2px 6px; height: auto; font-size: 12px; }
 .itsm-wf-empty { grid-column: 1 / -1; }
 
 /* ===== Dialog ===== */
@@ -1041,7 +1088,7 @@ onMounted(async () => {
 }
 .itsm-ai-preview-header { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: $g-text-primary; }
 .itsm-ai-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.itsm-ai-node { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
+.itsm-ai-node { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; }
 .itsm-ai-node-badge {
   font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 3px;
 }
@@ -1068,5 +1115,5 @@ onMounted(async () => {
 .itsm-timeline-body { flex: 1; }
 .itsm-timeline-name { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
 .itsm-timeline-meta { font-size: 11px; color: $g-text-muted; margin-top: 2px; }
-.itsm-timeline-actions { flex-shrink: 0; display: flex; gap: 4px; }
+.itsm-timeline-actions { flex-shrink: 0; display: flex; gap: 2px; }
 </style>

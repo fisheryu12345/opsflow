@@ -45,6 +45,10 @@ export const workflowVersionApi = createCrudApi('workflow-versions')
 export const stateApi = createCrudApi('states')
 export const transitionApi = createCrudApi('transitions')
 export const fieldApi = createCrudApi('fields')
+// Rollback workflow version
+export function RollbackVersion(id: string, message?: string) {
+  return request({ url: prefix + '/workflow-versions/' + id + '/rollback/', method: 'post', data: { message } })
+}
 export const ticketApi = createCrudApi('tickets')
 
 // Workflow deploy
