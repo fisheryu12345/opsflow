@@ -45,6 +45,8 @@
 | 全 App 权限 Key | P0 | ✅ | ITSM+OPSflow+CMDB 权限注册 | seed_iam_permissions + init_iam 一键初始化 |
 | 通知 | P1 | ✅ | 审批结果站内信 | _notify_user → MessageCenter |
 | 旧权限体系清理 | P0 | ✅ | 删除 v-auth/v-permission/btnPermission | 14 个文件删除 + 7 个页面 v-auth 剥离 |
+| 身份同步引擎 | P1 | ✅ | LDAP/AD 部门+用户同步 | DeptMapping/UserMapping + Differ + LDAPSyncProvider + LDAPBackend + SAML ACS |
+| LDAP/SAML 连接器 | P1 | ✅ | 集成中心身份源适配器 | LDAPConnector + SAMLConnector (health_check/search) |
 
 ## TODO
 
@@ -52,12 +54,22 @@
 - [ ] IAM 权限全链路测试：申请→审批→赋权→前端按钮显隐
 
 ### 2026-07-01 Update
-> 提交: (pending push)
+> 提交: 6e98e98a
 - RBAC 模型迁移: Role/Menu/MenuButton → iam/models/menu_rbac.py，19 文件 import 替换
 - 企业级 RBAC 闭环: 角色模板 + 统一授权 UI + 审批增强 + v-can 指令 + 全 App 权限 Key
 - 清理: ApiWhiteList/Area/Dictionary 模型 + fixtures + 旧权限指令(14 文件)
 - 已知问题: 权限全链路测试未完成
 
+### 2026-06-30 Update (Identity Sync)
+> 提交: 6e98e98a
+- 身份同步引擎: 新增 — DeptMapping/UserMapping 模型 + Differ 对比算法 + LDAPSyncProvider + LDAPBackend
+- 连接器适配器: 新增 — LDAPConnector + SAMLConnector（复用集成中心体系）
+- 前端: 新增 — 集成中心身份同步 Tab + SAML SSO 登录按钮
+- 文档: 生成 — 设计方案、功能文档、配置指南
+
+### 2026-07-01 Update
+> 提交: (pending push)
+- ...
 ### 2026-06-30 Update
 > 提交: 80f9ed95
 - my_permissions 端点: 新增 — 统一 ITSM 权限查询，支持 ProjectMember + BusinessMember 继承

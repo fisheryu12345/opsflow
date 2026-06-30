@@ -47,7 +47,7 @@
 		<!-- SSO/OAuth2 login buttons -->
 		<el-form-item class="login-animation4">
 			<el-divider><span style="font-size:12px;color:#909399;">第三方登录</span></el-divider>
-			<div style="display:flex;gap:12px;width:100%;justify-content:center;">
+			<div style="display:flex;gap:12px;width:100%;justify-content:center;flex-wrap:wrap;">
 				<el-button size="small" round @click="oauthLogin('oidc')" title="OIDC">
 					<el-icon><ele-Promotion /></el-icon> OIDC
 				</el-button>
@@ -56,6 +56,9 @@
 				</el-button>
 				<el-button size="small" round @click="oauthLogin('dingtalk')" title="钉钉">
 					<el-icon><ele-Bell /></el-icon> 钉钉
+				</el-button>
+				<el-button size="small" round @click="samlLogin(1)" title="SAML SSO" v-if="hasSaml">
+					<el-icon><ele-Connection /></el-icon> SAML
 				</el-button>
 			</div>
 		</el-form-item>
@@ -180,6 +183,11 @@ export default defineComponent({
 		const oauthLogin = (provider: string) => {
 			window.location.href = loginApi.getOAuthLoginUrl(provider);
 		};
+		// SAML SSO login redirect
+		const hasSaml = ref(true);
+		const samlLogin = (instanceId) => {
+			window.location.href = loginApi.getSamlLoginUrl(instanceId);
+		};
 
 		// 登录成功后的跳转
 		const loginSuccess = async () => {
@@ -222,6 +230,8 @@ export default defineComponent({
 			formRef,
 			rules,
 			...toRefs(state),
+			hasSaml,
+			samlLogin,
 		};
 	},
 });

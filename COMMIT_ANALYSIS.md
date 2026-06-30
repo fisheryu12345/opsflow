@@ -2,6 +2,47 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## f2b67052
+
+> 提交日期: 2026-06-30 | 提交信息: feat: LDAP/AD identity sync engine + SAML SSO — 身份同步引擎与认证集成
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/iam/sync/` | 后端 | 身份同步引擎（DeptMapping/UserMapping/Differ/Provider/Backend） |
+| `backend/integration/adapters/auth/ldap.py` | 后端 | LDAPConnector 适配器（health_check + search） |
+| `backend/integration/adapters/auth/saml.py` | 后端 | SAMLConnector 适配器（metadata 验证） |
+| `backend/application/` | 配置 | 路由注册 + auth 认证链 |
+| `backend/opsflow/seed_opsflow.py` | 配置 | 注册 ldap/saml 连接器定义 |
+| `backend/requirements.txt` | 配置 | 新增 ldap3, python3-saml 依赖 |
+| `web/src/views/apps/integration/` | 前端 | 新增身份同步 Tab（identity-sync.vue） |
+| `web/src/views/system/login/` | 前端 | SAML SSO 登录按钮 |
+| `web/src/i18n/` | 前端 | 身份同步中英文文案 |
+| `docs/` | 文档 | 配置指南 + 设计文档 + 功能文档 |
+
+### 解决
+
+- **问题/背景：** 企业需要从 LDAP/AD/SAML 同步组织架构和用户数据到系统，支持 LDAP Bind 认证和 SAML SSO 登录
+- **办法：** 复用集成中心连接器体系，新增 iam/sync 同步引擎（映射模型+Diff算法+同步执行器+认证后端），新增身份同步前端 Tab
+
+### 文档
+
+- **生成文档：**
+  - `docs/superpowers/specs/2026-06-30-identity-sync-design.md`
+  - `docs/iam/features/2026-06-30-identity-sync-engine.md`
+  - `docs/integration/features/2026-06-30-ldap-saml-connectors.md`
+  - `docs/guides/identity-sync-setup.md`
+
+### 验证
+
+- 改动类型: feat + chore
+- 清理乱码: 有 (`,+`, `false)`)
+- 子 App index.md 更新: iam, integration
+- 工作区状态: 待提交 ✅
+
+---
+
 ## 42309410
 
 > 提交日期: 2026-06-30 | 提交信息: feat: opsflow default tab dashboard — 默认 tab 改为 dashboard，Hero 样式压缩
@@ -171,6 +212,47 @@
 # Commit Analysis Log
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
+
+## f2b67052
+
+> 提交日期: 2026-06-30 | 提交信息: feat: LDAP/AD identity sync engine + SAML SSO — 身份同步引擎与认证集成
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/iam/sync/` | 后端 | 身份同步引擎（DeptMapping/UserMapping/Differ/Provider/Backend） |
+| `backend/integration/adapters/auth/ldap.py` | 后端 | LDAPConnector 适配器（health_check + search） |
+| `backend/integration/adapters/auth/saml.py` | 后端 | SAMLConnector 适配器（metadata 验证） |
+| `backend/application/` | 配置 | 路由注册 + auth 认证链 |
+| `backend/opsflow/seed_opsflow.py` | 配置 | 注册 ldap/saml 连接器定义 |
+| `backend/requirements.txt` | 配置 | 新增 ldap3, python3-saml 依赖 |
+| `web/src/views/apps/integration/` | 前端 | 新增身份同步 Tab（identity-sync.vue） |
+| `web/src/views/system/login/` | 前端 | SAML SSO 登录按钮 |
+| `web/src/i18n/` | 前端 | 身份同步中英文文案 |
+| `docs/` | 文档 | 配置指南 + 设计文档 + 功能文档 |
+
+### 解决
+
+- **问题/背景：** 企业需要从 LDAP/AD/SAML 同步组织架构和用户数据到系统，支持 LDAP Bind 认证和 SAML SSO 登录
+- **办法：** 复用集成中心连接器体系，新增 iam/sync 同步引擎（映射模型+Diff算法+同步执行器+认证后端），新增身份同步前端 Tab
+
+### 文档
+
+- **生成文档：**
+  - `docs/superpowers/specs/2026-06-30-identity-sync-design.md`
+  - `docs/iam/features/2026-06-30-identity-sync-engine.md`
+  - `docs/integration/features/2026-06-30-ldap-saml-connectors.md`
+  - `docs/guides/identity-sync-setup.md`
+
+### 验证
+
+- 改动类型: feat + chore
+- 清理乱码: 有 (`,+`, `false)`)
+- 子 App index.md 更新: iam, integration
+- 工作区状态: 待提交 ✅
+
+---
 
 ## b91ba26c
 

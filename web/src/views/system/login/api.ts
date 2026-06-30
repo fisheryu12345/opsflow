@@ -23,3 +23,8 @@ export function getUserInfo() {
 export function getOAuthLoginUrl(provider: string) {
     return `/api/system/oauth/login/${provider}/`;
 }
+
+/** SAML SSO 登录 — 获取 IdP 跳转 URL */
+export function getSamlLoginUrl(instanceId: number) {
+    return `/api/iam/sync/saml/login/${instanceId}/`;
+}

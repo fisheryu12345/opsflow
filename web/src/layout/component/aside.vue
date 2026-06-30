@@ -2,7 +2,7 @@
 	<div class="h100 layout-aside-wrap" v-show="!isTagsViewCurrenFull">
 		<!-- 自动隐藏触发区域：侧边栏隐藏时，左侧边缘悬浮条，hover 1s 后展开 -->
 		<div
-			v-if="autoHide && !isHovering"
+			v-if="autoHide"
 			class="layout-aside-trigger"
 			@mouseenter="onTriggerEnter"
 			@mouseleave="onTriggerLeave"
@@ -49,7 +49,6 @@ const state = reactive<AsideState>({
 
 // ── Auto-hide 状态 ──
 const autoHide = ref(false);
-const isHovering = ref(false);
 let leaveTimer: ReturnType<typeof setTimeout> | null = null;
 let hoverTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -59,7 +58,7 @@ const setCollapseStyle = computed(() => {
 	const asideBrTheme = ['#FFFFFF', '#FFF', '#fff', '#ffffff'];
 	const asideBrColor = asideBrTheme.includes(menuBar) ? 'layout-el-aside-br-color' : '';
 	// autoHide 时宽度缩为 0
-	if (autoHide.value && state.clientWidth > 1000 && layout !== 'columns') {
+	if (autoHide.value && document.body.clientWidth > 1000 && layout !== 'columns') {
 		return [asideBrColor, 'layout-aside-pc-0'];
 	}
 	// 判断是否是手机端
@@ -132,40 +131,34 @@ const onAsideEnterLeave = (bool: Boolean) => {
 	if (!bool) mittBus.emit('restoreDefault');
 	stores.setColumnsMenuHover(bool);
 };
-// ── Auto-hide: 鼠标进入侧边栏 ──
+// ── Auto-hide: 鼠标进入侧边栏，立刻显示 ──
 const onAsideEnter = () => {
 	if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
 	if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
-	isHovering.value = false;
 	autoHide.value = false;
-		themeConfig.value.isCollapse = false;
 };
-// ── Auto-hide: 鼠标离开侧边栏 ──
+// ── Auto-hide: 鼠标离开侧边栏，3s 后收起 ──
 const onAsideLeave = () => {
-	const { layout } = themeConfig.value;
-	if (layout === 'columns') return;
-	// 3s 后自动隐藏（无论是 220px 还是 64px 都收起至 0）
+	const { layout, isCollapse } = themeConfig.value;
+	// only expanded (220px) triggers auto-hide; collapsed (64px) stays
+	if (layout === 'columns' || isCollapse) return;
 	leaveTimer = setTimeout(() => {
 		autoHide.value = true;
 		leaveTimer = null;
 	}, 3000);
 };
-// ── Auto-hide: 触发区域 hover 开始 ──
+// ── Auto-hide: 触发区域 hover 开始，持续 1s 后显示折叠栏 ──
 const onTriggerEnter = () => {
 	if (hoverTimer) clearTimeout(hoverTimer);
-	isHovering.value = false;
-	// 持续 hover 1s 后展开
 	hoverTimer = setTimeout(() => {
-		themeConfig.value.isCollapse = false;
+		themeConfig.value.isCollapse = true;
 		autoHide.value = false;
-		isHovering.value = false;
 		hoverTimer = null;
-		}, 1000);
+	}, 1000);
 };
-// ── Auto-hide: 触发区域 hover 离开 ──
+// ── Auto-hide: 触发区域 hover 离开，取消展开 ──
 const onTriggerLeave = () => {
 	if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
-	isHovering.value = true; // 触发区域消失
 };
 // 页面加载前
 onBeforeMount(() => {

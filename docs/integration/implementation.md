@@ -24,6 +24,16 @@
 | 协议适配扩展 | P2 | 📅 | REST/SOAP/SNMP/gRPC 统一抽象 | — |
 | 前端页面 | P1 | ✅ | 连接器管理界面 | ConnectorManager + CredentialPanel + RunMonitor 视图 |
 | 多租户隔离 | P2 | ✅ | Business FK | ConnectorInstance 已加 business FK |
+| LDAP 连接器适配器 | P1 | ✅ | LDAP/AD 目录连接测试与搜索 | LDAPConnector (health_check + search + _bind), 复用 ConnectorCredential 存储 Bind DN+密码 |
+| SAML 连接器适配器 | P1 | ✅ | SAML IdP metadata 验证 | SAMLConnector (health_check + metadata 验证) |
+| 身份同步 Tab | P1 | ✅ | 集成中心身份同步管理 | identity-sync.vue 卡片+历史模式，复用 cloud-sync 模板 |
+
+### 2026-06-30 Update (Identity Sync)
+> 提交: 6e98e98a
+- 连接器适配器: LDAPConnector(ldap3) + SAMLConnector，注册为 category=auth
+- Seed 数据: ldap/saml 连接器定义加入 seed_opsflow.py
+- 前端: 集成中心新增身份同步 Tab + 字段映射组件
+- 文档: LDAP/SAML 配置指南 + 功能文档
 
 ## TODO
 

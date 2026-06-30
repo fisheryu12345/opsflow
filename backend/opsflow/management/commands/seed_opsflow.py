@@ -731,6 +731,29 @@ class Command(BaseCommand):
              "config_schema": _schema([
                  {"key": "instance_url", "title": "Instance URL", "required": True},
              ])},
+            # ─── Identity / Auth ───
+            {"code": "ldap", "name": "LDAP / Active Directory", "category": "auth",
+             "version": "1.0", "provider_class": "integration.adapters.auth.ldap.LDAPConnector",
+             "config_schema": _schema([
+                 {"key": "host", "title": "服务器地址", "default": "ldap.example.com", "required": True},
+                 {"key": "port", "title": "端口", "type": "int", "default": 389},
+                 {"key": "use_ssl", "title": "启用 SSL", "type": "bool", "default": False},
+                 {"key": "base_dn", "title": "Base DN", "default": "dc=example,dc=com", "required": True},
+                 {"key": "user_search_filter", "title": "用户搜索过滤", "default": "(objectClass=person)"},
+                 {"key": "dept_search_filter", "title": "部门搜索过滤", "default": "(objectClass=organizationalUnit)"},
+                 {"key": "username_attr", "title": "用户名属性", "default": "sAMAccountName"},
+                 {"key": "sync_cron", "title": "同步定时（cron）", "default": "0 2 * * *"},
+                 {"key": "field_mapping", "title": "字段映射 JSON", "default": '{"username":"sAMAccountName","name":"displayName","email":"mail","mobile":"telephoneNumber"}'},
+             ])},
+            {"code": "saml", "name": "SAML Identity Provider", "category": "auth",
+             "version": "1.0", "provider_class": "integration.adapters.auth.saml.SAMLConnector",
+             "config_schema": _schema([
+                 {"key": "entity_id", "title": "IdP Entity ID", "required": True},
+                 {"key": "metadata_url", "title": "IdP Metadata URL"},
+                 {"key": "attr_username", "title": "用户名属性", "default": "nameId"},
+                 {"key": "attr_name", "title": "姓名属性", "default": "displayName"},
+                 {"key": "attr_email", "title": "邮箱属性", "default": "email"},
+             ])},
         ]
         c_count = 0
         for c in connectors:

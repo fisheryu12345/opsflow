@@ -63,6 +63,8 @@ urlpatterns = (
             path("api/opsflow/", include("opsflow.urls")),
             # IAM URLs
             path("api/iam/", include("iam.urls")),
+            # IAM Identity Sync URLs
+            path("api/iam/sync/", include("iam.sync.urls")),
             # Integration Hub URLs
             path("api/integration/", include("integration.urls")),
             # CMDB URLs

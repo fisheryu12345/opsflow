@@ -113,20 +113,6 @@ export const handleMenu = (menuData: Array<any>) => {
         strict: true,
     })
     const dynamicRoutes = [
-        {
-            path: '/home', name: 'home',
-            component: dynamicImport(dynamicViewsModules, '/system/home/index'),
-            meta: {
-                title: 'message.router.home',
-                isLink: '',
-                isHide: false,
-                isKeepAlive: true,
-                isAffix: true,
-                isIframe: false,
-                roles: ['admin'],
-                icon: 'iconfont icon-shouye'
-            }
-        },
         ...data
     ]
     return {frameIn:dynamicRoutes,frameOut:frameOutRoutes}

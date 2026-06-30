@@ -4,7 +4,10 @@ auth.py — 登录方式 / JWT / OAuth2/SSO / 验证码 配置
 from conf.env import *
 
 # ── 认证后端 ──
-AUTHENTICATION_BACKENDS = ["dvadmin.utils.backends.CustomBackend"]
+AUTHENTICATION_BACKENDS = [
+    "dvadmin.utils.backends.CustomBackend",   # 本地密码登录
+    "iam.sync.backends.LDAPBackend",          # LDAP/AD Bind 认证
+]
 
 # ── 验证码 ──
 CAPTCHA_IMAGE_SIZE = (160, 46)

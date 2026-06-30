@@ -42,6 +42,9 @@
         <div class="int-hero-tab" :class="{ active: activeTab === 'cloud-sync' }" @click="activeTab = 'cloud-sync'">
           <el-icon><Cloudy /></el-icon> {{ $t('message.integration.tabCloudSync') }}
         </div>
+        <div class="int-hero-tab" :class="{ active: activeTab === 'identity-sync' }" @click="activeTab = 'identity-sync'">
+          <el-icon><User /></el-icon> {{ $t('message.integration.tabIdentitySync') }}
+        </div>
       </div>
     </div>
 
@@ -226,6 +229,11 @@
       <div v-show="activeTab === 'cloud-sync'" class="int-section g-fade-in-up">
         <CloudSync />
       </div>
+
+      <!-- ── Tab: 身份同步 ── -->
+      <div v-show="activeTab === 'identity-sync'" class="int-section g-fade-in-up">
+        <IdentitySync />
+      </div>
     </div>
 
     <!-- ===== Edit Instance Dialog ===== -->
@@ -347,8 +355,9 @@ import { useI18n } from 'vue-i18n'
 import { connectorDefinitionApi, connectorInstanceApi, credentialApi, callLogApi, HealthCheck, ToggleInstance, DecryptCredential } from '/@/api/integration/index'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { request } from '/@/utils/service'
-import { Search, Refresh, Plus, Connection, List, Key, Document, Edit, Finished, ChatDotSquare, View, Promotion, Delete, Cloudy } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Connection, List, Key, Document, Edit, Finished, ChatDotSquare, View, Promotion, Delete, Cloudy, User } from '@element-plus/icons-vue'
 import CloudSync from './cloud-sync.vue'
+import IdentitySync from './identity-sync.vue'
 
 /* --- TypeScript Interfaces --- */
 interface ConnectorDef {
