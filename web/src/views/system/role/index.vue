@@ -23,7 +23,7 @@
           <span>{{ $t('message.rolePage.roleManagement') }}</span>
         </div>
         <div class="sys-card-extra">
-          <el-button v-if="auth('role:Create')" type="primary" :icon="Plus" @click="handleAdd">{{ $t('message.rolePage.addRole') }}</el-button>
+          <el-button type="primary" :icon="Plus" @click="handleAdd">{{ $t('message.rolePage.addRole') }}</el-button>
         </div>
       </div>
 
@@ -78,9 +78,9 @@
           <el-table-column :label="$t('message.rolePage.actions')" :width="actionColWidth" fixed="right" align="center">
             <template #default="{ row }">
               <el-button text size="small" style="padding:0 4px" @click="handleView(row)">{{ $t('message.rolePage.view') }}</el-button>
-              <el-button v-if="auth('role:Update')" text size="small" style="padding:0 4px" @click="handleEdit(row)">{{ $t('message.rolePage.edit') }}</el-button>
-              <el-button v-if="auth('role:Delete')" text type="danger" size="small" style="padding:0 4px" @click="handleDelete(row)">{{ $t('message.rolePage.delete') }}</el-button>
-              <el-button v-if="auth('role:Permission')" text size="small" style="padding:0 4px" @click="handlePermissionOpen(row)">{{ $t('message.rolePage.permission') }}</el-button>
+              <el-button text size="small" style="padding:0 4px" @click="handleEdit(row)">{{ $t('message.rolePage.edit') }}</el-button>
+              <el-button text type="danger" size="small" style="padding:0 4px" @click="handleDelete(row)">{{ $t('message.rolePage.delete') }}</el-button>
+              <el-button text size="small" style="padding:0 4px" @click="handlePermissionOpen(row)">{{ $t('message.rolePage.permission') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -177,7 +177,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { Plus, Search, Refresh, User, Tickets, Check, Close } from '@element-plus/icons-vue';
 import { GetList, GetObj, AddObj, UpdateObj, DelObj, GetPermission } from './api';
-import { auth } from '/@/utils/authFunction';
+
 import { successMessage } from '/@/utils/message';
 import PermissionComNew from './components/PermissionComNew/index.vue';
 

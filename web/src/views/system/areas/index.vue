@@ -63,7 +63,7 @@
               <el-button :icon="Refresh" @click="handleReset">重置</el-button>
             </el-form-item>
           </el-form>
-          <el-button v-if="auth('area:Create')" type="primary" @click="handleAdd">
+          <el-button type="primary" @click="handleAdd">
             <el-icon><Plus /></el-icon>新增地区
           </el-button>
         </div>
@@ -100,7 +100,7 @@
           <el-table-column label="操作" fixed="right" width="200" align="center">
             <template #default="{ row }">
               <el-button
-                v-if="auth('area:Update')"
+               
                 type="primary"
                 link
                 size="small"
@@ -109,7 +109,7 @@
                 <el-icon><Edit /></el-icon>编辑
               </el-button>
               <el-button
-                v-if="auth('area:Delete')"
+               
                 type="danger"
                 link
                 size="small"
@@ -186,7 +186,7 @@ import {
   CircleCheck,
   CircleClose,
 } from '@element-plus/icons-vue';
-import { auth } from '/@/utils/authFunction';
+
 import * as api from './api';
 
 /** Area data item from the API */

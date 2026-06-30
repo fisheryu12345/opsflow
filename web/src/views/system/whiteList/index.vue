@@ -21,7 +21,7 @@
           <span>接口白名单</span>
         </div>
         <div class="sys-card-extra">
-          <el-button v-if="auth('api_white_list:Create')" type="primary" size="small" :icon="Plus" @click="handleAdd">新增</el-button>
+          <el-button type="primary" size="small" :icon="Plus" @click="handleAdd">新增</el-button>
         </div>
       </div>
 
@@ -63,8 +63,8 @@
           </el-table-column>
           <el-table-column label="操作" width="150" fixed="right" align="center">
             <template #default="scope">
-              <el-button v-if="auth('api_white_list:Update')" text size="small" style="padding:0 4px" @click="handleEdit(scope.row)">编辑</el-button>
-              <el-button v-if="auth('api_white_list:Delete')" text type="danger" size="small" style="padding:0 4px" @click="handleDelete(scope.row)">删除</el-button>
+              <el-button text size="small" style="padding:0 4px" @click="handleEdit(scope.row)">编辑</el-button>
+              <el-button text type="danger" size="small" style="padding:0 4px" @click="handleDelete(scope.row)">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -109,7 +109,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { Plus, Lock, Tickets, Check, Close } from '@element-plus/icons-vue';
-import { auth } from '/@/utils/authFunction';
+
 import { successMessage } from '/@/utils/message';
 import { request } from '/@/utils/service';
 import * as api from './api';

@@ -24,7 +24,7 @@
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
-          <el-button v-if="auth('dictionary:Create')" type="primary" size="default" @click="openAddDialog">
+          <el-button type="primary" size="default" @click="openAddDialog">
             <el-icon><Plus /></el-icon>
             {{ $t('message.dictionaryPage.add') }}
           </el-button>
@@ -64,7 +64,7 @@
           <el-table-column :label="$t('message.dictionaryPage.columnActions')" width="240" fixed="right">
             <template #default="{ row }">
               <el-button
-                v-if="auth('dictionary:Update')"
+               
                 size="small"
                 text
                 type="primary"
@@ -74,7 +74,7 @@
                 {{ $t('message.dictionaryPage.actionConfig') }}
               </el-button>
               <el-button
-                v-if="auth('dictionary:Update')"
+               
                 size="small"
                 text
                 type="primary"
@@ -89,7 +89,7 @@
               >
                 <template #reference>
                   <el-button
-                    v-if="auth('dictionary:Delete')"
+                   
                     size="small"
                     text
                     type="danger"
@@ -195,7 +195,7 @@ import { useI18n } from 'vue-i18n'
 import { Search, Plus, Notebook, Setting, Edit, Delete } from '@element-plus/icons-vue'
 import * as api from './api'
 import type { DictItem } from './api'
-import { auth } from '/@/utils/authFunction'
+
 import { successMessage } from '/@/utils/message'
 
 const { t } = useI18n()

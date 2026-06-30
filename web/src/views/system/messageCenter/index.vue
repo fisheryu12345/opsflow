@@ -164,7 +164,7 @@
                 <el-icon><View /></el-icon> {{ $t('message.messageCenter.view') }}
               </el-button>
               <el-button
-                v-if="auth('messageCenter:Delete')"
+               
                 text
                 type="danger"
                 size="small"
@@ -314,7 +314,7 @@ import {
   Promotion, Message, User, Clock, Select, CloseBold,
   DataBoard, Tickets, View, Plus, Search, Delete,
 } from '@element-plus/icons-vue';
-import { auth } from '/@/utils/authFunction';
+
 import * as api from './api';
 
 const { t } = useI18n();

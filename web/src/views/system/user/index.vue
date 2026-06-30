@@ -62,9 +62,9 @@
           <!-- Toolbar -->
           <div class="user-toolbar">
             <div class="user-toolbar-left">
-              <el-button v-if="auth('user:Create')" type="primary" size="small" :icon="Plus" @click="openAddDialog">{{ $t('message.userPage.addUser') }}</el-button>
-              <el-button v-if="auth('user:Export')" size="small" :icon="Download" @click="handleExport">{{ $t('message.userPage.export') }}</el-button>
-              <importExcel v-if="auth('user:Import')" api="api/system/user/">{{ $t('message.userPage.import') }}</importExcel>
+              <el-button type="primary" size="small" :icon="Plus" @click="openAddDialog">{{ $t('message.userPage.addUser') }}</el-button>
+              <el-button size="small" :icon="Download" @click="handleExport">{{ $t('message.userPage.export') }}</el-button>
+              <importExcel api="api/system/user/">{{ $t('message.userPage.import') }}</importExcel>
             </div>
             <div class="user-toolbar-right">
               <el-input v-model="searchForm.username" :placeholder="$t('message.userPage.placeholderAccount')" clearable size="small" style="width:130px" @keyup.enter="handleSearch" />
@@ -103,9 +103,9 @@
             </el-table-column>
             <el-table-column :label="$t('message.userPage.actions')" width="250" fixed="right" align="center">
               <template #default="{ row }">
-                <el-button v-if="auth('user:Update')" text size="small" style="padding:0 4px" @click="openEditDialog(row)">{{ $t('message.userPage.edit') }}</el-button>
-                <el-button v-if="auth('user:Delete')" text type="danger" size="small" style="padding:0 4px" @click="handleDelete(row)">{{ $t('message.userPage.delete') }}</el-button>
-                <el-button v-if="auth('user:ResetPassword')" text type="warning" size="small" style="padding:0 4px" @click="openResetPwdDialog(row)">{{ $t('message.userPage.resetPwd') }}</el-button>
+                <el-button text size="small" style="padding:0 4px" @click="openEditDialog(row)">{{ $t('message.userPage.edit') }}</el-button>
+                <el-button text type="danger" size="small" style="padding:0 4px" @click="handleDelete(row)">{{ $t('message.userPage.delete') }}</el-button>
+                <el-button text type="warning" size="small" style="padding:0 4px" @click="openResetPwdDialog(row)">{{ $t('message.userPage.resetPwd') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -163,7 +163,7 @@ import { Md5 } from 'ts-md5';
 import { Plus, Search, Refresh, Download, User, OfficeBuilding, Male, Female, QuestionFilled } from '@element-plus/icons-vue';
 import SvgIcon from '/@/components/SvgIcon/index.vue';
 import importExcel from '/@/components/importExcel/index.vue';
-import { auth } from '/@/utils/authFunction';
+
 import { dictionary } from '/@/utils/dictionary';
 import { successMessage, successNotification } from '/@/utils/message';
 import { request } from '/@/utils/service';
