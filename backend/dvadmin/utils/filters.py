@@ -19,7 +19,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.utils import get_model_field
 from rest_framework.filters import BaseFilterBackend
 
-from dvadmin.system.models import Dept, ApiWhiteList, RoleMenuButtonPermission
+from iam.models.menu_rbac import RoleMenuButtonPermission
+from dvadmin.system.models import Dept, ApiWhiteList
 
 
 def get_dept(dept_id: int, dept_all_list=None, dept_list=None):

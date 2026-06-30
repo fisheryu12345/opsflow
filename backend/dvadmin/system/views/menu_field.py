@@ -4,7 +4,7 @@ from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from dvadmin.system.models import  Role, MenuField
+from iam.models.menu_rbac import Role, MenuField
 from dvadmin.utils.models import get_custom_app_models
 from dvadmin.utils.viewset import CustomModelViewSet
 from dvadmin.utils.serializers import CustomModelSerializer

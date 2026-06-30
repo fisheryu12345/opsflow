@@ -16,7 +16,7 @@ from dvadmin.utils.import_export_mixin import ExportSerializerMixin, ImportSeria
 from dvadmin.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
 from dvadmin.utils.permission import CustomPermission
 from dvadmin.utils.models import get_custom_app_models
-from dvadmin.system.models import FieldPermission, MenuField
+from iam.models.menu_rbac import FieldPermission, MenuField
 from django_restql.mixins import QueryArgumentsMixin
 
 

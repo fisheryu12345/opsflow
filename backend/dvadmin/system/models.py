@@ -8,26 +8,18 @@ from application import dispatch
 from dvadmin.utils.models import CoreModel, table_prefix, get_custom_app_models
 
 
-class Role(CoreModel):
-    name = models.CharField(max_length=64, verbose_name="角色名称", help_text="角色名称")
-    key = models.CharField(max_length=64, unique=True, verbose_name="权限字符", help_text="权限字符")
-    sort = models.IntegerField(default=1, verbose_name="角色顺序", help_text="角色顺序")
-    status = models.BooleanField(default=True, verbose_name="角色状态", help_text="角色状态")
-
-    class Meta:
-        db_table = table_prefix + "system_role"
-        verbose_name = "角色表"
-        verbose_name_plural = verbose_name
-        ordering = ("sort",)
+# Role/Menu/MenuButton/RoleMenuPermission/RoleMenuButtonPermission 已迁移至 iam.models.menu_rbac
+# 以下 models 仅保留 Users/Post/Dept 及 dvadmin 框架模型
 
 
 class CustomUserManager(UserManager):
 
     def create_superuser(self, username, email=None, password=None, **extra_fields):
+        from iam.models.menu_rbac import Role as IamRole
         user = super(CustomUserManager, self).create_superuser(username, email, password, **extra_fields)
         user.set_password(password)
         try:
-            user.role.add(Role.objects.get(name="管理员"))
+            user.role.add(IamRole.objects.get(name="管理员"))
             user.save(using=self._db)
             return user
         except ObjectDoesNotExist:
@@ -59,7 +51,7 @@ class Users(CoreModel, AbstractUser):
     )
     post = models.ManyToManyField(to="Post", blank=True, verbose_name="关联岗位", db_constraint=False,
                                   help_text="关联岗位")
-    role = models.ManyToManyField(to="Role", blank=True, verbose_name="关联角色", db_constraint=False,
+    role = models.ManyToManyField(to="iam.Role", blank=True, verbose_name="关联角色", db_constraint=False,
                                   help_text="关联角色")
     dept = models.ForeignKey(
         to="Dept",
@@ -145,181 +137,6 @@ class Dept(CoreModel):
         verbose_name = "部门表"
         verbose_name_plural = verbose_name
         ordering = ("sort",)
-
-
-class Menu(CoreModel):
-    parent = models.ForeignKey(
-        to="Menu",
-        on_delete=models.CASCADE,
-        verbose_name="上级菜单",
-        null=True,
-        blank=True,
-        db_constraint=False,
-        help_text="上级菜单",
-    )
-    icon = models.CharField(max_length=64, verbose_name="菜单图标", null=True, blank=True, help_text="菜单图标")
-    name = models.CharField(max_length=64, verbose_name="菜单名称", help_text="菜单名称")
-    name_en = models.CharField(max_length=128, verbose_name="菜单名称(英文)", null=True, blank=True, help_text="菜单名称(英文)")
-    sort = models.IntegerField(default=1, verbose_name="显示排序", null=True, blank=True, help_text="显示排序")
-    ISLINK_CHOICES = (
-        (0, "否"),
-        (1, "是"),
-    )
-    is_link = models.BooleanField(default=False, verbose_name="是否外链", help_text="是否外链")
-    link_url = models.CharField(max_length=255, verbose_name="链接地址", null=True, blank=True, help_text="链接地址")
-    is_catalog = models.BooleanField(default=False, verbose_name="是否目录", help_text="是否目录")
-    web_path = models.CharField(max_length=128, verbose_name="路由地址", null=True, blank=True, help_text="路由地址")
-    component = models.CharField(max_length=128, verbose_name="组件地址", null=True, blank=True, help_text="组件地址")
-    component_name = models.CharField(max_length=50, verbose_name="组件名称", null=True, blank=True,
-                                      help_text="组件名称")
-    status = models.BooleanField(default=True, blank=True, verbose_name="菜单状态", help_text="菜单状态")
-    cache = models.BooleanField(default=False, blank=True, verbose_name="是否页面缓存", help_text="是否页面缓存")
-    visible = models.BooleanField(default=True, blank=True, verbose_name="侧边栏中是否显示",
-                                  help_text="侧边栏中是否显示")
-    is_iframe = models.BooleanField(default=False, blank=True, verbose_name="框架外显示", help_text="框架外显示")
-    is_affix = models.BooleanField(default=False, blank=True, verbose_name="是否固定", help_text="是否固定")
-
-    @classmethod
-    def get_all_parent(cls, id: int, all_list=None, nodes=None):
-        """
-        递归获取给定ID的所有层级
-        :param id: 参数ID
-        :param all_list: 所有列表
-        :param nodes: 递归列表
-        :return: nodes
-        """
-        if not all_list:
-            all_list = Menu.objects.values("id", "name", "parent")
-        if nodes is None:
-            nodes = []
-        for ele in all_list:
-            if ele.get("id") == id:
-                parent_id = ele.get("parent")
-                if parent_id is not None:
-                    cls.get_all_parent(parent_id, all_list, nodes)
-                nodes.append(ele)
-        return nodes
-    class Meta:
-        db_table = table_prefix + "system_menu"
-        verbose_name = "菜单表"
-        verbose_name_plural = verbose_name
-        ordering = ("sort",)
-
-class MenuField(CoreModel):
-    model = models.CharField(max_length=64, verbose_name='表名')
-    menu = models.ForeignKey(to='Menu', on_delete=models.CASCADE, verbose_name='菜单', db_constraint=False)
-    field_name = models.CharField(max_length=64, verbose_name='模型表字段名')
-    title = models.CharField(max_length=64, verbose_name='字段显示名')
-    class Meta:
-        db_table = table_prefix + "system_menu_field"
-        verbose_name = "菜单字段表"
-        verbose_name_plural = verbose_name
-        ordering = ("id",)
-
-class FieldPermission(CoreModel):
-    role = models.ForeignKey(to='Role', on_delete=models.CASCADE, verbose_name='角色', db_constraint=False)
-    field = models.ForeignKey(to='MenuField', on_delete=models.CASCADE,related_name='menu_field', verbose_name='字段', db_constraint=False)
-    is_query = models.BooleanField(default=1, verbose_name='是否可查询')
-    is_create = models.BooleanField(default=1, verbose_name='是否可创建')
-    is_update = models.BooleanField(default=1, verbose_name='是否可更新')
-
-    class Meta:
-        db_table = table_prefix + "system_field_permission"
-        verbose_name = "字段权限表"
-        verbose_name_plural = verbose_name
-        ordering = ("id",)
-
-
-class MenuButton(CoreModel):
-    menu = models.ForeignKey(
-        to="Menu",
-        db_constraint=False,
-        related_name="menuPermission",
-        on_delete=models.CASCADE,
-        verbose_name="关联菜单",
-        help_text="关联菜单",
-    )
-    name = models.CharField(max_length=64, verbose_name="名称", help_text="名称")
-    value = models.CharField(unique=True, max_length=64, verbose_name="权限值", help_text="权限值")
-    api = models.CharField(max_length=200, verbose_name="接口地址", help_text="接口地址")
-    METHOD_CHOICES = (
-        (0, "GET"),
-        (1, "POST"),
-        (2, "PUT"),
-        (3, "DELETE"),
-    )
-    method = models.IntegerField(default=0, verbose_name="接口请求方法", null=True, blank=True,
-                                 help_text="接口请求方法")
-
-    class Meta:
-        db_table = table_prefix + "system_menu_button"
-        verbose_name = "菜单权限表"
-        verbose_name_plural = verbose_name
-        ordering = ("-name",)
-
-
-class RoleMenuPermission(CoreModel):
-    role = models.ForeignKey(
-        to="Role",
-        db_constraint=False,
-        related_name="role_menu",
-        on_delete=models.CASCADE,
-        verbose_name="关联角色",
-        help_text="关联角色",
-    )
-    menu = models.ForeignKey(
-        to="Menu",
-        db_constraint=False,
-        related_name="role_menu",
-        on_delete=models.CASCADE,
-        verbose_name="关联菜单",
-        help_text="关联菜单",
-    )
-
-    class Meta:
-        db_table = table_prefix + "role_menu_permission"
-        verbose_name = "角色菜单权限表"
-        verbose_name_plural = verbose_name
-        # ordering = ("-create_datetime",)
-
-
-class RoleMenuButtonPermission(CoreModel):
-    role = models.ForeignKey(
-        to="Role",
-        db_constraint=False,
-        related_name="role_menu_button",
-        on_delete=models.CASCADE,
-        verbose_name="关联角色",
-        help_text="关联角色",
-    )
-    menu_button = models.ForeignKey(
-        to="MenuButton",
-        db_constraint=False,
-        related_name="menu_button_permission",
-        on_delete=models.CASCADE,
-        verbose_name="关联菜单按钮",
-        help_text="关联菜单按钮",
-        null=True,
-        blank=True
-    )
-    DATASCOPE_CHOICES = (
-        (0, "仅本人数据权限"),
-        (1, "本部门及以下数据权限"),
-        (2, "本部门数据权限"),
-        (3, "全部数据权限"),
-        (4, "自定数据权限"),
-    )
-    data_range = models.IntegerField(default=0, choices=DATASCOPE_CHOICES, verbose_name="数据权限范围",
-                                     help_text="数据权限范围")
-    dept = models.ManyToManyField(to="Dept", blank=True, verbose_name="数据权限-关联部门", db_constraint=False,
-                                  help_text="数据权限-关联部门")
-
-    class Meta:
-        db_table = table_prefix + "role_menu_button_permission"
-        verbose_name = "角色按钮权限表"
-        verbose_name_plural = verbose_name
-        ordering = ("-create_datetime",)
-
 
 class Dictionary(CoreModel):
     TYPE_LIST = (
@@ -577,7 +394,7 @@ class MessageCenter(CoreModel):
                                          help_text="目标用户")
     target_dept = models.ManyToManyField(to=Dept, blank=True, db_constraint=False,
                                          verbose_name="目标部门", help_text="目标部门")
-    target_role = models.ManyToManyField(to=Role, blank=True, db_constraint=False,
+    target_role = models.ManyToManyField(to="iam.Role", blank=True, db_constraint=False,
                                          verbose_name="目标角色", help_text="目标角色")
 
     class Meta:

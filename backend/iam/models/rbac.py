@@ -1,6 +1,7 @@
 from django.db import models
 
-from dvadmin.system.models import Users, Role, Menu, MenuButton
+from iam.models.menu_rbac import Role, Menu, MenuButton
+from dvadmin.system.models import Users
 from dvadmin.utils.models import CoreModel, table_prefix
 
 

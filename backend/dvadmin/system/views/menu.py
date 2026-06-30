@@ -10,7 +10,7 @@ from django.db import models
 from rest_framework import serializers
 from rest_framework.decorators import action
 
-from dvadmin.system.models import Menu, RoleMenuPermission
+from iam.models.menu_rbac import Menu, RoleMenuPermission
 from dvadmin.system.views.menu_button import MenuButtonSerializer
 from dvadmin.utils.json_response import SuccessResponse, ErrorResponse
 from dvadmin.utils.serializers import CustomModelSerializer

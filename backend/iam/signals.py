@@ -30,7 +30,7 @@ def _sync_dvadmin_role(user):
     and ProjectMembers, then assigns the corresponding dvadmin Role.
     Lower roles are removed.
     """
-    from dvadmin.system.models import Role
+    from iam.models.menu_rbac import Role
 
     # Find the highest IAM role across all memberships
     highest = 'viewer'

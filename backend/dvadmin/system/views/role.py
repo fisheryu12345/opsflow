@@ -10,7 +10,8 @@ from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from dvadmin.system.models import Role, Menu, MenuButton, Dept
+from iam.models.menu_rbac import Role, Menu, MenuButton
+from dvadmin.system.models import Dept
 from dvadmin.system.views.dept import DeptSerializer
 from dvadmin.system.views.menu import MenuSerializer
 from dvadmin.system.views.menu_button import MenuButtonSerializer

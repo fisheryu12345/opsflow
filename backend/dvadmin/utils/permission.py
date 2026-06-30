@@ -12,7 +12,8 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import F
 from rest_framework.permissions import BasePermission
 
-from dvadmin.system.models import ApiWhiteList, RoleMenuButtonPermission
+from iam.models.menu_rbac import RoleMenuButtonPermission
+from dvadmin.system.models import ApiWhiteList
 
 
 def ValidationApi(reqApi, validApi):

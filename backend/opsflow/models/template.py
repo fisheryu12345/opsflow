@@ -222,8 +222,8 @@ class TemplatePreset(models.Model):
 class TemplateLock(models.Model):
     """Template editing lock — acquired when canvas opens, released on save/exit.
     Heartbeat-based expiry prevents deadlocks from browser crashes."""
-    template = models.ForeignKey(
-        'FlowTemplate', on_delete=models.CASCADE, unique=True,
+    template = models.OneToOneField(
+        'FlowTemplate', on_delete=models.CASCADE,
         related_name='edit_lock', verbose_name="Template",
         help_text="Locked template / 被锁定的模板"
     )

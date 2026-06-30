@@ -8,7 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.db import connection
 from django.db.models import Q
 from application import dispatch
-from dvadmin.system.models import Users, Role, Dept
+from iam.models.menu_rbac import Role
+from dvadmin.system.models import Users, Dept
 from dvadmin.system.views.role import RoleSerializer
 from dvadmin.utils.json_response import ErrorResponse, DetailResponse, SuccessResponse
 from dvadmin.utils.serializers import CustomModelSerializer

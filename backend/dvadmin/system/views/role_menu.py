@@ -5,7 +5,7 @@ from django.db.models import F
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from dvadmin.system.models import RoleMenuPermission, Menu, MenuButton
+from iam.models.menu_rbac import RoleMenuPermission, Menu, MenuButton
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet

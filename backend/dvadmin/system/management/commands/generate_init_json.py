@@ -10,7 +10,8 @@ django.setup()
 from django.core.management.base import BaseCommand
 
 from application.settings import BASE_DIR
-from dvadmin.system.models import Menu, Users, Dept, Role, ApiWhiteList, Dictionary, SystemConfig
+from iam.models.menu_rbac import Menu, Role
+from dvadmin.system.models import Users, Dept, ApiWhiteList, Dictionary, SystemConfig
 from dvadmin.system.fixtures.initSerializer import UsersInitSerializer, DeptInitSerializer, RoleInitSerializer, \
     MenuInitSerializer, ApiWhiteListInitSerializer, DictionaryInitSerializer, SystemConfigInitSerializer, \
     RoleMenuInitSerializer, RoleMenuButtonInitSerializer

@@ -143,7 +143,7 @@ def _resolve_role(processors: str, ticket=None) -> list:
             role_names = [role_names]
         # Try to find users by role
         results = []
-        from dvadmin.system.models import Role
+        from iam.models.menu_rbac import Role
         for name in role_names:
             roles = Role.objects.filter(name__icontains=name)
             for role in roles:

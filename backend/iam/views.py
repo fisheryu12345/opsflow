@@ -5,7 +5,8 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from dvadmin.system.models import Role, Menu, Users
+from iam.models.menu_rbac import Role, Menu
+from dvadmin.system.models import Users
 from dvadmin.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
 from iam.models import (
     PermissionRequest, UserDirectPermission,
@@ -403,7 +404,7 @@ def my_permissions(request):
     perm_keys = set()
     if user.is_superuser:
         # Superuser: return all ITSM permissions
-        from dvadmin.system.models import MenuButton
+        from iam.models.menu_rbac import MenuButton
         perm_keys = set(MenuButton.objects.filter(
             value__startswith='itsm:'
         ).values_list('value', flat=True))

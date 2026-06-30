@@ -15,9 +15,9 @@ class MainlineTopo(CoreModel):
     对标 bk-cmdb 主线概念。定义模型的拓扑层级关系。
     如 Biz → Set → Module → Host，每层通过 parent_model 关联。
     """
-    model_definition = models.ForeignKey(
+    model_definition = models.OneToOneField(
         'cmdb.ModelDefinition', on_delete=models.CASCADE,
-        unique=True, related_name='mainline_topo',
+        related_name='mainline_topo',
         verbose_name="模型",
     )
     parent_model = models.ForeignKey(

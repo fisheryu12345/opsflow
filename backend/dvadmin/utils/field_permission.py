@@ -3,7 +3,7 @@ from django.db.models import F
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from dvadmin.system.models import FieldPermission, MenuField
+from iam.models.menu_rbac import FieldPermission, MenuField
 from dvadmin.utils.json_response import DetailResponse
 from dvadmin.utils.models import get_custom_app_models
 
