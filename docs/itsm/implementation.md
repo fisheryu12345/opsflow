@@ -52,7 +52,20 @@
 - [ ] Monitor 告警 → 创建工单
 - [ ] 变更日历前端
 
-### 2026-06-30 Update
+### 2026-06-30 Update #2
+> 提交: 6377ca67
+- 多租户对齐: 12个模型加 project/business FK + 0010 migration → ItsmProjectViewSet 基类 (ProjectFilteredViewSet+TenantPermission+dvadmin响应+NULL兼容+dept_belong_id allow_null) → 6个ViewSet全切换 → AssignEngine/SlaEngine/EscalationService 加 project_id 租户过滤 → ✅
+- 全局项目选择器: stores/project.ts (全局Pinia) + GlobalProjectSwitcher.vue (导航栏) + service.ts 自动注入 project_id + 8个opsflow子页面清理本地ProjectSwitcher → ✅
+- SLA 编辑: index.vue 新增 SLA 编辑弹窗 (name/response_minutes/resolve_minutes/is_active) + onSlaToggle 保存后端 → ✅
+- 委托修复: DelegationCreateUpdateSerializer user 设 read_only + user_name/delegate_to_name 序列化字段 → ✅
+- 序列化器名补全: SkillGroup(leader_name)/OnDuty(group_name/user_name)/AssignRule(target_group_name/match_category_name)/Escalation(group_name) → ✅
+- dept_belong_id: CustomModelSerializer allow_null=True 根因修复 → ✅
+- 对话框遮罩: 5个子页面 el-dialog 加 append-to-body → ✅
+- 布局切换删除: setings.vue 移除4个layout切换卡片 → ✅
+- 种子数据: 完整重写 seed_itsm.py (Workflows/SkillGroups/AssignRules/Escalations/OnDuty) → ✅
+- Bug 修复: workflow_name 保存/creator FK/流程模板删除+图标/事件新建工单/Check import/el-radio label→value/Delegation Check import → ✅
+
+### 2026-06-30 Update #1
 > 提交: 840aa4ea~ba3112f
 - 分派体系: SkillGroup/OnDutySchedule/AssignRule/EscalationLevel/TicketTransferLog 模型 + AssignEngine + EscalationService → ✅
 - 可视化表单设计器: FormDesigner.vue 三栏拖拽设计器 → ✅
