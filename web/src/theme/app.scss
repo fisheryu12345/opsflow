@@ -142,6 +142,21 @@ body,
 		width: 1px !important;
 		transition: width 0.3s ease;
 	}
+	.layout-aside-pc-0 {
+		width: 0px !important;
+		overflow: hidden !important;
+		transition: width 0.3s ease;
+	}
+	.layout-aside-trigger {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 12px;
+		height: 100vh;
+		z-index: 99999;
+		cursor: default;
+	}
+
 	// 手机端左侧导航样式
 	.layout-aside-mobile {
 		position: fixed;

@@ -357,33 +357,20 @@ onMounted(async () => {
   background: $g-bg-page; overflow: hidden;
 }
 
-/* ===== Hero — dark gradient (matching opsflow-dashboard) ===== */
-.portal-hero {
-  position: relative; flex-shrink: 0; overflow: hidden;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-}
-.portal-hero-bg {
-  position: absolute; inset: 0; opacity: 0.06;
-  background-image:
-    radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px),
-    radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-.portal-hero-inner {
-  position: relative; z-index: 1;
-  padding: 22px 32px;
-  display: flex; align-items: center; gap: 20px;
-}
+/* ===== Hero — dark gradient (matching ITSM pattern) ===== */
+.portal-hero { @include g-hero-container; }
+.portal-hero-bg { @include g-hero-bg-dots; }
+.portal-hero-inner { @include g-hero-inner; }
 .portal-hero-left { flex: 0 0 auto; }
-.portal-hero-title { margin: 0; font-size: 24px; font-weight: 800; color: #fff; white-space: nowrap; }
-.portal-hero-user { font-weight: 400; font-size: 18px; color: rgba(255,255,255,0.55); }
-.portal-hero-subtitle { margin: 4px 0 0; font-size: 12px; color: rgba(255,255,255,0.45); white-space: nowrap; }
+.portal-hero-title { @include g-hero-title; white-space: nowrap; }
+.portal-hero-user { font-weight: 400; font-size: 16px; color: rgba(255,255,255,0.55); }
+.portal-hero-subtitle { @include g-hero-subtitle; white-space: nowrap; }
 .portal-hero-spacer { flex: 1; }
-.portal-hero-stats { flex: 0 0 auto; display: flex; align-items: center; }
-.portal-stat-item { text-align: center; padding: 0 18px; }
-.portal-stat-value { display: block; font-size: 20px; font-weight: 700; color: #fff; line-height: 1.2; }
-.portal-stat-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; letter-spacing: 0.3px; }
-.portal-stat-divider { width: 1px; height: 26px; background: rgba(255,255,255,0.1); }
+.portal-hero-stats { flex: 0 0 auto; display: flex; align-items: center; gap: 0; }
+.portal-stat-item { text-align: center; padding: 0 14px; }
+.portal-stat-value { @include g-hero-stat-value; }
+.portal-stat-label { @include g-hero-stat-label; }
+.portal-stat-divider { @include g-hero-stat-divider; }
 
 /* ===== Body ===== */
 .portal-body {

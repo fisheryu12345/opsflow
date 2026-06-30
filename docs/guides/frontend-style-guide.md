@@ -65,6 +65,66 @@ All OPSflow Vue components should follow these conventions for visual consistenc
 
 ---
 
+## Hero Section 规范（全线统一）
+
+所有 App 页面顶部 hero banner 必须使用 `g-hero-*` mixin，禁止硬编码 hero 字号/间距/颜色。
+
+### 标准 Hero 模板
+
+```scss
+.my-hero       { @include g-hero-container; }
+.my-hero-bg    { @include g-hero-bg-dots; }
+.my-hero-inner { @include g-hero-inner; }
+.my-hero-title { @include g-hero-title; }
+.my-hero-subtitle { @include g-hero-subtitle; }
+```
+
+### 统计项
+
+```scss
+.my-hero-stats { flex: 0 0 auto; display: flex; align-items: center; }
+.my-stat-value   { @include g-hero-stat-value; }
+.my-stat-label   { @include g-hero-stat-label; }
+.my-stat-divider { @include g-hero-stat-divider; }
+```
+
+### Tab 式 Hero
+
+```scss
+.my-hero-tabs { @include g-hero-tabs; }
+.my-hero-tab  { @include g-hero-tab; }
+```
+
+### Hero Token 对照表
+
+| Token | 值 | 对应 Mixin |
+|-------|-----|-----------|
+| `$g-hero-title-size` | **22px** / 800 weight | `g-hero-title` |
+| `$g-hero-subtitle-size` / `$g-hero-subtitle-color` | **11px** / `rgba(255,255,255,0.5)` | `g-hero-subtitle` |
+| `$g-hero-stat-value-size` / `$g-hero-stat-value-weight` | **18px** / 700 | `g-hero-stat-value` |
+| `$g-hero-stat-label-size` / `$g-hero-stat-label-color` | **10px** / `rgba(255,255,255,0.45)` | `g-hero-stat-label` |
+| `$g-hero-divider-height` / `$g-hero-divider-color` | **24px** / `rgba(255,255,255,0.1)` | `g-hero-stat-divider` |
+| `$g-hero-inner-padding` | **14px 24px** | `g-hero-inner` |
+| `$g-hero-inner-gap` | **16px** | `g-hero-inner` |
+| `$g-hero-dot-opacity` / `$g-hero-dot-size` | **0.06** / **40px** | `g-hero-bg-dots` |
+
+### 渐变背景
+
+- 默认深蓝：变量 `$g-gradient-hero`（`#1a1a2e → #16213e → #0f3460`），mixin `g-hero-container`
+- 绿色变体（job-platform 等）：`$g-gradient-hero-green`
+
+### 约束规则
+
+| # | 规则 | 说明 |
+|---|------|------|
+| 1 | **必须用 mixin** | hero 标题/副标题/统计值/分隔线的字号和颜色禁止硬编码，一律 `@include g-hero-*` |
+| 2 | **禁止扩高** | hero-inner padding 统一 `14px 24px`（portal/opsflow-* 已拉齐），禁止额外扩高 |
+| 3 | **统计分隔线** | 统一 `$g-hero-divider-height: 24px`，stat-item padding `0 14px` |
+| 4 | **tabs 上拉** | 有 tabs 的 hero 需要 `margin-top: -4px` 吸附到 hero 底部 |
+| 5 | **已对齐页面** | portal / opsflow / opsflow-dashboard / itsm / integration / cmdb / job-platform / iam / opsflow-log / opsflow-knowledge / opsflow-approval / opsflow-webhook / opsflow-template / open-api |
+
+---
+
 ## Vue 组件结构规范
 
 所有 `.vue` 文件**必须**遵循以下三段式结构：

@@ -61,3 +61,97 @@
   font-weight: 600;
   color: $g-text-primary;
 }
+
+// ===== Hero Section (dark gradient — app banner) =====
+// Usage:
+//   .my-hero { @include g-hero; }
+//   .my-hero-inner { @include g-hero-inner; }
+//   .my-hero-title { @include g-hero-title; }
+//   ...
+// Or compose the whole block:
+//   .my-hero { @include g-hero-container; }
+@mixin g-hero-container {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: $g-gradient-hero;
+}
+
+@mixin g-hero-bg-dots {
+  position: absolute;
+  inset: 0;
+  opacity: $g-hero-dot-opacity;
+  background-image:
+    radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px),
+    radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px);
+  background-size: #{$g-hero-dot-size} #{$g-hero-dot-size};
+  pointer-events: none;
+}
+
+@mixin g-hero-inner {
+  position: relative;
+  z-index: 1;
+  padding: $g-hero-inner-padding;
+  display: flex;
+  align-items: center;
+  gap: $g-hero-inner-gap;
+}
+
+@mixin g-hero-title {
+  margin: 0;
+  font-size: $g-hero-title-size;
+  font-weight: $g-hero-title-weight;
+  color: #fff;
+}
+
+@mixin g-hero-subtitle {
+  margin: 2px 0 0;
+  font-size: $g-hero-subtitle-size;
+  color: $g-hero-subtitle-color;
+}
+
+@mixin g-hero-stat-value {
+  display: block;
+  font-size: $g-hero-stat-value-size;
+  font-weight: $g-hero-stat-value-weight;
+  color: #fff;
+  line-height: 1.2;
+}
+
+@mixin g-hero-stat-label {
+  font-size: $g-hero-stat-label-size;
+  color: $g-hero-stat-label-color;
+  margin-top: 2px;
+}
+
+@mixin g-hero-stat-divider {
+  width: 1px;
+  height: $g-hero-divider-height;
+  background: $g-hero-divider-color;
+}
+
+@mixin g-hero-tabs {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 0;
+  padding: 0 24px;
+  margin-top: -4px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+@mixin g-hero-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all $g-transition-default;
+  white-space: nowrap;
+
+  &:hover { color: rgba(255, 255, 255, 0.9); background: rgba(255, 255, 255, 0.05); }
+  &.active { color: #fff; border-bottom-color: $g-color-primary; background: rgba(64, 158, 255, 0.12); }
+}

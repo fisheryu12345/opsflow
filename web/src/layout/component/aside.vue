@@ -1,8 +1,20 @@
 <template>
-	<div class="h100" v-show="!isTagsViewCurrenFull">
-		<el-aside class="layout-aside" :class="setCollapseStyle">
+	<div class="h100 layout-aside-wrap" v-show="!isTagsViewCurrenFull">
+		<!-- 自动隐藏触发区域：侧边栏隐藏时，左侧边缘悬浮条，hover 1s 后展开 -->
+		<div
+			v-if="autoHide && !isHovering"
+			class="layout-aside-trigger"
+			@mouseenter="onTriggerEnter"
+			@mouseleave="onTriggerLeave"
+		/>
+		<el-aside
+			class="layout-aside"
+			:class="setCollapseStyle"
+			@mouseenter="onAsideEnter"
+			@mouseleave="onAsideLeave"
+		>
 			<Logo v-if="setShowLogo" />
-			<el-scrollbar class="flex-auto" ref="layoutAsideScrollbarRef" @mouseenter="onAsideEnterLeave(true)" @mouseleave="onAsideEnterLeave(false)">
+			<el-scrollbar class="flex-auto" ref="layoutAsideScrollbarRef">
 				<Vertical :menuList="state.menuList" />
 			</el-scrollbar>
 		</el-aside>
@@ -10,7 +22,7 @@
 </template>
 
 <script setup lang="ts" name="layoutAside">
-import { defineAsyncComponent, reactive, computed, watch, onBeforeMount, ref } from 'vue';
+import { defineAsyncComponent, reactive, computed, watch, onBeforeMount, onBeforeUnmount, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import pinia from '/@/stores/index';
 import { useRoutesList } from '/@/stores/routesList';
@@ -35,11 +47,21 @@ const state = reactive<AsideState>({
 	clientWidth: 0,
 });
 
+// ── Auto-hide 状态 ──
+const autoHide = ref(false);
+const isHovering = ref(false);
+let leaveTimer: ReturnType<typeof setTimeout> | null = null;
+let hoverTimer: ReturnType<typeof setTimeout> | null = null;
+
 // 设置菜单展开/收起时的宽度
 const setCollapseStyle = computed(() => {
 	const { layout, isCollapse, menuBar } = themeConfig.value;
 	const asideBrTheme = ['#FFFFFF', '#FFF', '#fff', '#ffffff'];
 	const asideBrColor = asideBrTheme.includes(menuBar) ? 'layout-el-aside-br-color' : '';
+	// autoHide 时宽度缩为 0
+	if (autoHide.value && state.clientWidth > 1000 && layout !== 'columns') {
+		return [asideBrColor, 'layout-aside-pc-0'];
+	}
 	// 判断是否是手机端
 	if (state.clientWidth <= 1000) {
 		if (isCollapse) {
@@ -97,7 +119,7 @@ const filterRoutesFun = <T extends RouteItem>(arr: T[]): T[] => {
 			item = Object.assign({}, item);
 			if (item.children) item.children = filterRoutesFun(item.children);
 			return item;
-		});
+});
 };
 // 设置菜单导航是否固定（移动端）
 const initMenuFixed = (clientWidth: number) => {
@@ -110,6 +132,41 @@ const onAsideEnterLeave = (bool: Boolean) => {
 	if (!bool) mittBus.emit('restoreDefault');
 	stores.setColumnsMenuHover(bool);
 };
+// ── Auto-hide: 鼠标进入侧边栏 ──
+const onAsideEnter = () => {
+	if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
+	if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+	isHovering.value = false;
+	autoHide.value = false;
+		themeConfig.value.isCollapse = false;
+};
+// ── Auto-hide: 鼠标离开侧边栏 ──
+const onAsideLeave = () => {
+	const { layout } = themeConfig.value;
+	if (layout === 'columns') return;
+	// 3s 后自动隐藏（无论是 220px 还是 64px 都收起至 0）
+	leaveTimer = setTimeout(() => {
+		autoHide.value = true;
+		leaveTimer = null;
+	}, 3000);
+};
+// ── Auto-hide: 触发区域 hover 开始 ──
+const onTriggerEnter = () => {
+	if (hoverTimer) clearTimeout(hoverTimer);
+	isHovering.value = false;
+	// 持续 hover 1s 后展开
+	hoverTimer = setTimeout(() => {
+		themeConfig.value.isCollapse = false;
+		autoHide.value = false;
+		isHovering.value = false;
+		hoverTimer = null;
+		}, 1000);
+};
+// ── Auto-hide: 触发区域 hover 离开 ──
+const onTriggerLeave = () => {
+	if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+	isHovering.value = true; // 触发区域消失
+};
 // 页面加载前
 onBeforeMount(() => {
 	initMenuFixed(document.body.clientWidth);
@@ -118,21 +175,26 @@ onBeforeMount(() => {
 	// 因为切换布局时有的监听需要使用，取消了监听，某些操作将不生效
 	mittBus.on('setSendColumnsChildren', (res: MittMenu) => {
 		state.menuList = res.children;
-	});
+});
 	mittBus.on('setSendClassicChildren', (res: MittMenu) => {
 		let { layout, isClassicSplitMenu } = themeConfig.value;
 		if (layout === 'classic' && isClassicSplitMenu) {
 			state.menuList = [];
 			state.menuList = res.children;
 		}
-	});
+});
 	mittBus.on('setSendClassicChildren', () => {
 		setFilterRoutes();
-	});
+});
 	mittBus.on('layoutMobileResize', (res: LayoutMobileResize) => {
 		initMenuFixed(res.clientWidth);
 		closeLayoutAsideMobileMode();
-	});
+});
+});
+// 组件卸载时清理定时器
+onBeforeUnmount(() => {
+		if (leaveTimer) clearTimeout(leaveTimer);
+		if (hoverTimer) clearTimeout(hoverTimer);
 });
 // 监听 themeConfig 配置文件的变化，更新菜单 el-scrollbar 的高度
 watch(themeConfig.value, (val) => {
