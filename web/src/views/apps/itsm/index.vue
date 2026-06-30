@@ -202,25 +202,12 @@
                 <el-button size="small" text @click="onOpenDesigner(wf.id)">
                   <el-icon><Setting /></el-icon> 设计
                 </el-button>
-                <el-button size="small" text @click="onToggleVersions(wf)">
+                <el-button size="small" text @click="onOpenVersions(wf)">
                   <el-icon><Clock /></el-icon> 版本
                 </el-button>
                 <el-button size="small" text type="danger" @click="onDeleteWorkflow(wf)">
                   <el-icon><Delete /></el-icon> 删除
                 </el-button>
-              </div>
-              <!-- Version panel -->
-              <div v-if="expandedWfId === wf.id" class="itsm-wf-versions">
-                <div v-if="wfVersions[wf.id]?.loading" class="itsm-wf-ver-empty">加载中...</div>
-                <div v-else-if="!wfVersions[wf.id]?.list?.length" class="itsm-wf-ver-empty">暂无历史版本</div>
-                <template v-else>
-                  <div v-for="ver in wfVersions[wf.id]?.list || []" :key="ver.id" class="itsm-wf-ver-row">
-                    <span class="itsm-wf-ver-num">v{{ ver.version }}</span>
-                    <span class="itsm-wf-ver-time">{{ ver.create_datetime }}</span>
-                    <el-button size="small" text type="warning" @click="onRollbackClick(ver)">回滚</el-button>
-                    <el-button size="small" text type="danger" @click="onDeleteVersion(ver)">删除</el-button>
-                  </div>
-                </template>
               </div>
             </div>
           </div>
@@ -382,7 +369,7 @@
           <span v-for="(s, idx) in aiResult.states?.filter((s: any) => s.type !== 'START' && s.type !== 'END') || []" :key="idx" class="itsm-ai-node">
             <span class="itsm-ai-node-badge" :class="'node-' + (s.type || '').toLowerCase()">{{ s.type }}</span>
             {{ s.name }}
-            <el-icon v-if="idx < ((aiResult.states?.filter((s: any) => s.type !== 'START' && s.type !== 'END') || []).length || 1) - 1"><ArrowRight /></el-icon>
+            <el-icon v-if="Number(idx) < arrowCount(aiResult)"><ArrowRight /></el-icon>
           </span>
         </div>
       </div>
@@ -488,6 +475,26 @@
       <template #footer>
         <el-button @click="assignTicketVisible = false">取消</el-button>
         <el-button type="primary" :disabled="!assignUserId" @click="confirmAssignTicket">确认分派</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ===== 版本历史对话框 ===== -->
+    <el-dialog v-model="showVersionDialog" :title="'版本历史 — ' + (versionDialogWf?.name || '')" width="520px" top="10vh" destroy-on-close @closed="onVersionDialogClosed">
+      <div v-loading="versionLoading" style="min-height: 80px;">
+        <div v-if="!versionLoading && !versionList.length" style="text-align:center;padding:24px;color:#909399;">暂无历史版本</div>
+        <div v-for="ver in versionList" :key="ver.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;">
+          <div>
+            <el-tag size="small" type="info" style="margin-right:8px;">v{{ ver.version }}</el-tag>
+            <span style="font-size:12px;color:#909399;">{{ ver.create_datetime }}</span>
+          </div>
+          <div>
+            <el-button size="small" text type="warning" @click="onRollbackClick(ver)">回滚</el-button>
+            <el-button size="small" text type="danger" @click="onDeleteVersion(ver)">删除</el-button>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showVersionDialog = false">关闭</el-button>
       </template>
     </el-dialog>
 
@@ -738,8 +745,11 @@ const aiType = ref('change')
 const aiLoading = ref(false)
 const aiResult = ref<any>(null)
 const savingWf = ref(false)
-const expandedWfId = ref(null)
-const wfVersions: any = ref({})
+// Version dialog state
+const showVersionDialog = ref(false)
+const versionDialogWf = ref<any>(null)
+const versionList = ref<any[]>([])
+const versionLoading = ref(false)
 // Rollback dialog state
 const showRollbackDialog = ref(false)
 const rollbackTarget = ref<any>(null)
@@ -767,18 +777,20 @@ async function onDeployWorkflow(wf: any) {
   }
 }
 
-async function onToggleVersions(wf: any) {
-  if (expandedWfId.value === Number(wf.id)) { expandedWfId.value = null; return }
-  expandedWfId.value = wf.id
-  const cache = wfVersions.value[wf.id]
-  if (!cache) wfVersions.value[wf.id] = { list: [], loading: true }
-  else if (cache.list.length) return
-  else wfVersions.value[wf.id].loading = true
+async function onOpenVersions(wf: any) {
+  versionDialogWf.value = wf
+  versionList.value = []
+  versionLoading.value = true
+  showVersionDialog.value = true
   try {
     const res = await workflowVersionApi.list({ workflow: wf.id })
-    wfVersions.value[wf.id].list = res?.results || res?.data || []
-  } catch { wfVersions.value[wf.id].list = [] }
-  wfVersions.value[wf.id].loading = false
+    versionList.value = res?.results || res?.data || []
+  } catch { versionList.value = [] }
+  finally { versionLoading.value = false }
+}
+function onVersionDialogClosed() {
+  versionDialogWf.value = null
+  versionList.value = []
 }
 function onRollbackClick(ver: any) {
   rollbackTarget.value = ver
@@ -791,10 +803,13 @@ async function confirmRollback() {
     await RollbackVersion(rollbackTarget.value.id)
     ElMessage.success('已回滚并创建新版本')
     showRollbackDialog.value = false
-    // Refresh the version list for this workflow
-    const wfId = rollbackTarget.value.workflow
-    wfVersions.value[wfId] = { list: [], loading: true }
-    await onToggleVersions({ id: wfId })
+    // Refresh the version list in the dialog
+    if (versionDialogWf.value) {
+      versionLoading.value = true
+      const res = await workflowVersionApi.list({ workflow: versionDialogWf.value.id })
+      versionList.value = res?.results || res?.data || []
+      versionLoading.value = false
+    }
   } catch { ElMessage.error('回滚失败') }
   finally { rollbackLoading.value = false }
 }
@@ -802,9 +817,13 @@ async function onDeleteVersion(ver: any) {
   try {
     await workflowVersionApi.delete(ver.id)
     ElMessage.success("版本已删除")
-    const wfId = ver.workflow
-    if (wfVersions.value[wfId]) wfVersions.value[wfId].loading = true
-    onToggleVersions({ id: wfId })
+    // Refresh the version list in the dialog
+    if (versionDialogWf.value) {
+      versionLoading.value = true
+      const res = await workflowVersionApi.list({ workflow: versionDialogWf.value.id })
+      versionList.value = res?.results || res?.data || []
+      versionLoading.value = false
+    }
   } catch { ElMessage.error("删除失败") }
 }
 async function onDeleteWorkflow(wf: any) {
