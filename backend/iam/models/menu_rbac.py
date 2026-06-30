@@ -17,7 +17,7 @@ class Role(CoreModel):
     status = models.BooleanField(default=True, verbose_name="角色状态")
 
     class Meta:
-        db_table = table_prefix + "system_role"  # matches old table (will rename to iam_role later)
+        db_table = table_prefix + "iam_role"
         verbose_name = "角色"
         verbose_name_plural = verbose_name
         ordering = ("sort",)
@@ -63,7 +63,7 @@ class Menu(CoreModel):
         return nodes
 
     class Meta:
-        db_table = table_prefix + "system_menu"
+        db_table = table_prefix + "iam_menu"
         verbose_name = "菜单"
         verbose_name_plural = verbose_name
         ordering = ("sort",)
@@ -80,7 +80,7 @@ class MenuField(CoreModel):
     title = models.CharField(max_length=64, verbose_name='字段显示名')
 
     class Meta:
-        db_table = table_prefix + "system_menu_field"
+        db_table = table_prefix + "iam_menu_field"
         verbose_name = "菜单字段"
         verbose_name_plural = verbose_name
         ordering = ("id",)
@@ -96,7 +96,7 @@ class FieldPermission(CoreModel):
     is_update = models.BooleanField(default=True, verbose_name='是否可更新')
 
     class Meta:
-        db_table = table_prefix + "system_field_permission"
+        db_table = table_prefix + "iam_field_permission"
         verbose_name = "字段权限"
         verbose_name_plural = verbose_name
         ordering = ("id",)
@@ -120,7 +120,7 @@ class MenuButton(CoreModel):
     method = models.IntegerField(default=0, verbose_name="接口请求方法", null=True, blank=True)
 
     class Meta:
-        db_table = table_prefix + "system_menu_button"
+        db_table = table_prefix + "iam_menu_button"
         verbose_name = "菜单按钮"
         verbose_name_plural = verbose_name
         ordering = ("-name",)
@@ -141,7 +141,7 @@ class RoleMenuPermission(CoreModel):
     )
 
     class Meta:
-        db_table = table_prefix + "role_menu_permission"
+        db_table = table_prefix + "iam_role_menu_permission"
         verbose_name = "角色菜单权限"
         verbose_name_plural = verbose_name
 
@@ -170,6 +170,6 @@ class RoleMenuButtonPermission(CoreModel):
                                   blank=True, db_constraint=False)
 
     class Meta:
-        db_table = table_prefix + "role_menu_button_permission"
+        db_table = table_prefix + "iam_role_menu_button_permission"
         verbose_name = "角色按钮权限"
         verbose_name_plural = verbose_name

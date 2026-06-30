@@ -55,7 +55,7 @@
               :placeholder="item.placeholder"
               clearable
           >
-            <el-option v-for="item in  || []" :key="item.value" :label="item.label" :value="item.value"> </el-option>
+            <el-option v-for="opt in item.data_options || []" :key="opt.value" :label="opt.label" :value="opt.value"> </el-option>
           </el-select>
           <!--    checkbox      -->
           <el-checkbox-group
@@ -64,8 +64,8 @@
               v-model="formData[item.key]"
               :placeholder="item.placeholder"
           >
-            <el-checkbox v-for="item in  || []" :key="item.value" :label="item.value" :value="item.value">
-              {{ item.label }}
+            <el-checkbox v-for="opt in item.data_options || []" :key="opt.value" :label="opt.value" :value="opt.value">
+              {{ opt.label }}
             </el-checkbox>
           </el-checkbox-group>
           <!--    radio      -->
@@ -76,8 +76,8 @@
               :placeholder="item.placeholder"
               clearable
           >
-            <el-radio v-for="item in  || []" :key="item.value" :label="item.value" :value="item.value">
-              {{ item.label }}
+            <el-radio v-for="opt in item.data_options || []" :key="opt.value" :label="opt.value" :value="opt.value">
+              {{ opt.label }}
             </el-radio>
           </el-radio-group>
           <!--    switch      -->

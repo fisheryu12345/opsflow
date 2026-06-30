@@ -38,8 +38,11 @@
         <div v-if="isSuperuser" class="iam-hero-tab" :class="{ active: activeTab === 'depts' }" @click="activeTab = 'depts'">
           <el-icon><Connection /></el-icon> 部门
         </div>
-        <div v-if="isSuperuser" class="iam-hero-tab" :class="{ active: activeTab === 'operationLog' }" @click="activeTab = 'operationLog'">
-          <el-icon><Document /></el-icon> 日志
+        <div class="iam-hero-tab" :class="{ active: activeTab === 'operationLog' }" @click="activeTab = 'operationLog'">
+          <el-icon><Document /></el-icon> 操作日志
+        </div>
+        <div v-if="isSuperuser" class="iam-hero-tab" :class="{ active: activeTab === 'loginLog' }" @click="activeTab = 'loginLog'">
+          <el-icon><Connection /></el-icon> 登录日志
         </div>
       </div>
     </div>
@@ -84,7 +87,8 @@
       <div v-if="isSuperuser" v-show="activeTab === 'users'" class="iam-section g-fade-in-up"><UserManage /></div>
       <div v-if="isSuperuser" v-show="activeTab === 'menus'" class="iam-section g-fade-in-up"><MenuManage /></div>
       <div v-if="isSuperuser" v-show="activeTab === 'depts'" class="iam-section g-fade-in-up"><DeptManage /></div>
-      <div v-if="isSuperuser" v-show="activeTab === 'operationLog'" class="iam-section g-fade-in-up"><OperationLogManage /></div>
+      <div v-show="activeTab === 'operationLog'" class="iam-section g-fade-in-up"><OperationLogManage /></div>
+      <div v-if="isSuperuser" v-show="activeTab === 'loginLog'" class="iam-section g-fade-in-up"><LoginLogManage /></div>
     </div>
   </div>
 </template>
@@ -104,6 +108,7 @@ import UserManage from './admin/user/index.vue'
 import MenuManage from './admin/menu/index.vue'
 import DeptManage from './admin/dept/index.vue'
 import OperationLogManage from './admin/log/operationLog/index.vue'
+import LoginLogManage from './admin/log/loginLog/index.vue'
 
 const projectStore = useProjectStore()
 const permData = ref<any>(null)
