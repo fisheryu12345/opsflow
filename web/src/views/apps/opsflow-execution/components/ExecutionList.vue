@@ -106,13 +106,13 @@
                   <el-button size="small" circle text :icon="View" @click.stop="emit('viewDetail', row)" />
                 </el-tooltip>
                 <el-tooltip v-if="row.status === 'pending'" :content="$t('message.execution.start')" placement="top">
-                  <el-button size="small" circle text type="success" :icon="VideoPlay" :loading="startingId === row.id" @click.stop="onStart(row)" />
+                  <el-button size="small" circle text type="success" v-can.edit :icon="VideoPlay" :loading="startingId === row.id" @click.stop="onStart(row)" />
                 </el-tooltip>
                 <el-tooltip v-if="row.status === 'pending_approval' || row.status === 'pending'" :content="$t('message.execution.cancel')" placement="top">
-                  <el-button size="small" circle text type="danger" :icon="Close" :loading="cancellingId === row.id" @click.stop="onCancel(row)" />
+                  <el-button size="small" circle text type="danger" v-can.admin :icon="Close" :loading="cancellingId === row.id" @click.stop="onCancel(row)" />
                 </el-tooltip>
                 <el-tooltip v-if="row.status === 'running'" :content="$t('message.execution.pause')" placement="top">
-                  <el-button size="small" circle text type="warning" :icon="VideoPause" :loading="pausingId === row.id" @click.stop="onPause(row)" />
+                  <el-button size="small" circle text type="warning" v-can.admin :icon="VideoPause" :loading="pausingId === row.id" @click.stop="onPause(row)" />
                 </el-tooltip>
               </div>
             </template>

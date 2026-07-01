@@ -31,14 +31,86 @@ from iam.serializers import (
 def _notify_user(user, action: str, req: 'PermissionRequest'):
     """Send in-app notification for permission request result."""
     try:
-        from dvadmin.system.models import MessageCenter
+        from dvadmin.system.models import MessageCenter, MessageCenterTargetUser
         if action == 'approved':
             title = f"权限申请已通过 - Permission Approved"
-            content = f"项目 [{req.target_project.name if req.target_project else '-'}] {req.get_target_project_role_display() if req.target_project_role else ''} 已获批"
+            content = f"项目 [{req.target_project.name if req.target_project else '-'}] {req.get_target_project_role_display() if req.target_project_role else ''} 已获批" # pyright: ignore[reportAttributeAccessIssue]
         else:
             title = f"权限申请已拒绝 - Permission Rejected"
             content = f"项目 [{req.target_project.name if req.target_project else '-'}] 申请已拒绝。原因: {req.review_comment or '无'}"
-        MessageCenter.objects.create(title=title, content=content, target_user=user)
+        msg = MessageCenter.objects.create(title=title, content=content)
+        MessageCenterTargetUser.objects.create(messagecenter=msg, users=user)
+    except Exception:
+        pass  # Non-blocking
+
+
+def _notify_approvers(req: 'PermissionRequest'):
+    """Send in-app notification to all potential approvers when a new request is submitted."""
+    try:
+        from dvadmin.system.models import MessageCenter, MessageCenterTargetUser, Users
+
+        # Collect unique approver IDs (exclude requester to avoid duplicate notifications)
+        approver_ids = set()
+
+        # 1. All superusers can approve any request type
+        for uid in Users.objects.filter(is_superuser=True).values_list('id', flat=True):
+            approver_ids.add(uid)
+
+        # 2. For project_role, also notify Business Admins of the target project's Business
+        if req.request_type == 'project_role' and req.target_project is not None:
+            from iam.models.membership import BusinessMember
+            # Traverse BusinessMember → Business → Project via ORM to avoid FK _id fields
+            project_pk = req.target_project.pk
+            for uid in BusinessMember.objects.filter(
+                role='admin', business__projects__id=project_pk
+            ).values_list('user_id', flat=True):
+                approver_ids.add(uid)
+
+        # Remove the requester from approvers (no self-notification)
+        if req.user:
+            approver_ids.discard(req.user.pk)
+
+        # Build notification content
+        user_display = req.user.name or req.user.username
+
+        # Map request_type to display label
+        request_type_label = req.get_request_type_display() # pyright: ignore[reportAttributeAccessIssue]
+
+        # Map target_project_role to display label (Pyright: get_FOO_display is runtime-generated)
+        role_display = ''
+        if req.target_project_role:
+            for val, label in PermissionRequest.PROJECT_ROLE_CHOICES:
+                if val == req.target_project_role:
+                    role_display = label
+                    break
+
+        if req.request_type == 'project_role' and req.target_project:
+            detail = f"项目 [{req.target_project.name}] {role_display}"
+        elif req.request_type == 'role' and req.target_role:
+            detail = f"角色 [{req.target_role.name}]"
+        elif req.request_type == 'menu' and req.target_menu:
+            detail = f"菜单 [{req.target_menu.name}]"
+        elif req.request_type == 'menu_button' and req.target_menu_button:
+            detail = f"按钮 [{req.target_menu_button.name}]"
+        else:
+            detail = req.reason[:50] if req.reason else '-'
+
+        # ── 1) Send submission confirmation to the requester ──
+        confirm_title = "权限申请已提交 - Request Submitted"
+        confirm_content = f"您的{request_type_label}权限申请已提交，等待审批。\n申请内容：{detail}\n理由：{req.reason or '无'}"
+        confirm_msg = MessageCenter.objects.create(title=confirm_title, content=confirm_content)
+        MessageCenterTargetUser.objects.create(messagecenter=confirm_msg, users=req.user)
+
+        # ── 2) Notify all approvers ──
+        if approver_ids:
+            title = "新的权限申请 - New Permission Request"
+            content = (
+                f"用户 {user_display} 提交了{request_type_label}权限申请：{detail}。"
+                f"理由：{req.reason or '无'}"
+            )
+            for uid in approver_ids:
+                msg = MessageCenter.objects.create(title=title, content=content)
+                MessageCenterTargetUser.objects.create(messagecenter=msg, users_id=uid)
     except Exception:
         pass  # Non-blocking
 
@@ -69,7 +141,8 @@ class PermissionRequestViewSet(mixins.CreateModelMixin,
         return qs
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        req = serializer.save(user=self.request.user)
+        _notify_approvers(req)
 
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
@@ -439,9 +512,9 @@ def my_permissions(request):
         else:
             # Check BusinessMember inheritance
             project = Project.objects.only('business_id').get(id=project_id)
-            if project.business_id:
+            if project.business_id: # pyright: ignore[reportAttributeAccessIssue]
                 bm = BusinessMember.objects.filter(
-                    business_id=project.business_id, user=user
+                    business_id=project.business_id, user=user # pyright: ignore[reportAttributeAccessIssue]
                 ).first()
                 if bm:
                     role = bm.role

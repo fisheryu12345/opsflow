@@ -125,7 +125,7 @@ class DeptViewSet(CustomModelViewSet):
         data = serializer.data
         return SuccessResponse(data=data)
 
-    @action(methods=["GET"], detail=False, permission_classes=[IsAuthenticated], extra_filter_class=[])
+    @action(methods=["GET"], detail=False, permission_classes=[IsAuthenticated])
     def dept_lazy_tree(self, request, *args, **kwargs):
         parent = self.request.query_params.get('parent')
         is_superuser = request.user.is_superuser
@@ -151,7 +151,7 @@ class DeptViewSet(CustomModelViewSet):
             queryset = Dept.objects.filter(id__in=dept_list).values('id', 'name', 'parent')
         return DetailResponse(data=queryset, msg="获取成功")
 
-    @action(methods=["GET"], detail=False, permission_classes=[IsAuthenticated], extra_filter_class=[])
+    @action(methods=["GET"], detail=False, permission_classes=[IsAuthenticated])
     def all_dept(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         data = queryset.filter(status=True).order_by('sort').values('name', 'id', 'parent')

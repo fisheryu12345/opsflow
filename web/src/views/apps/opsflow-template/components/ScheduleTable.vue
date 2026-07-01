@@ -64,19 +64,19 @@
       <template #default="{ row }">
         <div class="action-btns">
           <el-tooltip :content="$t('message.common.edit')" placement="top">
-            <el-button size="small" text @click="emit('edit', row)" :icon="Edit" />
+            <el-button size="small" text v-can.edit @click="emit('edit', row)" :icon="Edit" />
           </el-tooltip>
           <el-tooltip v-if="row.status === 'active'" :content="$t('message.execution.pause')" placement="top">
-            <el-button size="small" text type="warning" @click="emit('pause', row)" :icon="VideoPause" />
+            <el-button size="small" text type="warning" v-can.admin @click="emit('pause', row)" :icon="VideoPause" />
           </el-tooltip>
           <el-tooltip v-if="row.status === 'paused'" :content="$t('message.execution.resume')" placement="top">
-            <el-button size="small" text type="success" @click="emit('resume', row)" :icon="VideoPlay" />
+            <el-button size="small" text type="success" v-can.edit @click="emit('resume', row)" :icon="VideoPlay" />
           </el-tooltip>
           <el-tooltip :content="$t('message.schedule.schTriggerNow')" placement="top">
-            <el-button size="small" text @click="emit('trigger', row)" :icon="Lightning" />
+            <el-button size="small" text v-can.edit @click="emit('trigger', row)" :icon="Lightning" />
           </el-tooltip>
           <el-tooltip :content="$t('message.common.delete')" placement="top">
-            <el-button size="small" text type="danger" @click="emit('delete', row)" :icon="Delete" />
+            <el-button size="small" text type="danger" v-can.admin @click="emit('delete', row)" :icon="Delete" />
           </el-tooltip>
         </div>
       </template>

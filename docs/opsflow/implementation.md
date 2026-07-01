@@ -1,6 +1,6 @@
 # OpsFlow — 开发进度跟踪
 
-> 最后更新: 2026-06-28 | 参考目标: docs/opsflow_target.md
+> 最后更新: 2026-07-01 | 参考目标: docs/opsflow_target.md
 
 ## 成熟度评估
 
@@ -44,6 +44,7 @@
 | 变量浏览器 | P2 | ✅ | 引用/插入 | DOM 光标 |
 | 多轮对话 | P2 | ✅ | 自然语言修改 | 上下文+layout 识别 |
 | 多租户隔离 | P2 | ✅ | Project 过滤 | iam.TenantPermission |
+| 按钮级权限锁 | P2 | ✅ | v-can.edit / v-can.admin | 所有 opsflow 页面按钮 + tab 可见性控制 |
 | 节点持久化同步 | P2 | ✅ | ↔ TemplateNode | sync 服务 |
 | loop_iteration 追踪 | P2 | ✅ | 循环多行记录 | _resolve_loop_iteration |
 | 条件编辑器 | P2 | ✅ | 结构化条件 | 排他网关条件编辑 |

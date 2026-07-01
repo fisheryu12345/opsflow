@@ -48,7 +48,7 @@
         </div>
         <div class="pj-filter-actions">
           <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">{{ $t("message.common.refresh") }}</el-button>
-          <el-button type="primary" :icon="Plus" @click="showForm(null)" size="small">{{ $t("message.opsflowPage.projectsNew") }}</el-button>
+          <el-button type="primary" v-can.admin :icon="Plus" @click="showForm(null)" size="small">{{ $t("message.opsflowPage.projectsNew") }}</el-button>
         </div>
       </div>
 
@@ -100,7 +100,7 @@
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false" >{{ $t("message.common.cancel") }}</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving" >{{ formId ? $t('message.opsflowPage.projectsUpdate') : $t('message.opsflowPage.projectsCreate') }}</el-button>
+        <el-button type="primary" v-can.admin @click="handleSave" :loading="saving" >{{ formId ? $t('message.opsflowPage.projectsUpdate') : $t('message.opsflowPage.projectsCreate') }}</el-button>
       </template>
     </el-dialog>
 
@@ -126,10 +126,10 @@
             </div>
 
             <div class="pj-overview-actions">
-              <el-button size="small" :icon="Edit" @click="showForm(detail); detailVisible = false">{{ $t("message.common.edit") }}</el-button>
+              <el-button size="small" v-can.admin :icon="Edit" @click="showForm(detail); detailVisible = false">{{ $t("message.common.edit") }}</el-button>
               <el-popconfirm title="Delete this project?" @confirm="handleDelete(detail)">
                 <template #reference>
-                  <el-button size="small" type="danger" :icon="Delete">{{ $t("message.common.delete") }}</el-button>
+                  <el-button size="small" type="danger" v-can.admin :icon="Delete">{{ $t("message.common.delete") }}</el-button>
                 </template>
               </el-popconfirm>
             </div>
@@ -149,7 +149,7 @@
               </el-table-column>
               <el-table-column label width="60" align="center">
                 <template #default="{ row }">
-                  <el-button v-if="row.user_id !== currentUserId" size="small" text type="danger" @click="removeMember(row)">✕</el-button>
+                  <el-button v-if="row.user_id !== currentUserId" size="small" text type="danger" v-can.admin @click="removeMember(row)">✕</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -162,7 +162,7 @@
                 <el-option label="Editor" value="editor" />
                 <el-option label="Viewer" value="viewer" />
               </el-select>
-              <el-button size="small" type="primary" @click="addMember" :disabled="!newMemberIds.length">{{ $t("message.opsflowPage.projectsAdd") }}</el-button>
+              <el-button size="small" type="primary" v-can.admin @click="addMember" :disabled="!newMemberIds.length">{{ $t("message.opsflowPage.projectsAdd") }}</el-button>
             </div>
           </el-tab-pane>
 
@@ -172,7 +172,7 @@
               <span class="pj-tab-title">{{ $t("message.opsflowPage.projectsPluginsFor") }}</span>
             </div>
             <p class="pj-tab-desc">{{ $t("message.opsflowPage.projectsPluginsDesc") }}</p>
-            <el-button size="small" :icon="Setting" @click="showPluginVisibility = true" type="primary">
+            <el-button size="small" v-can.admin :icon="Setting" @click="showPluginVisibility = true" type="primary">
               {{ $t("message.opsflowPage.projectsManagePlugins") }}
             </el-button>
           </el-tab-pane>

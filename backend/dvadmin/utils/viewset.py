@@ -11,7 +11,6 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.viewsets import ModelViewSet
 
-from dvadmin.utils.filters import DataLevelPermissionsFilter
 from dvadmin.utils.import_export_mixin import ExportSerializerMixin, ImportSerializerMixin
 from dvadmin.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
 from dvadmin.utils.permission import CustomPermission
@@ -36,13 +35,12 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
     update_serializer_class = None
     filter_fields = '__all__'
     search_fields = ()
-    extra_filter_class = [DataLevelPermissionsFilter]
     permission_classes = [CustomPermission]
     import_field_dict = {}
     export_field_label = {}
 
     def filter_queryset(self, queryset):
-        for backend in set(set(self.filter_backends) | set(self.extra_filter_class or [])):
+        for backend in set(set(self.filter_backends) | set(getattr(self, 'extra_filter_class', []) or [])):
             queryset = backend().filter_queryset(self.request, queryset, self)
         return queryset
 

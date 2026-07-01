@@ -48,7 +48,7 @@
         </div>
         <div class="wh-filter-actions">
           <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">{{ $t("message.common.refresh") }}</el-button>
-          <el-button type="primary" :icon="Plus" @click="showForm(null)" size="small">{{ $t("message.opsflowPage.webhookAdd") }}</el-button>
+          <el-button type="primary" v-can.edit :icon="Plus" @click="showForm(null)" size="small">{{ $t("message.opsflowPage.webhookAdd") }}</el-button>
         </div>
       </div>
 
@@ -124,7 +124,7 @@
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false" >{{ $t("message.common.cancel") }}</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving" >{{ formId ? $t('message.opsflowPage.webhookUpdate') : $t('message.opsflowPage.webhookCreate') }}</el-button>
+        <el-button type="primary" v-can.edit @click="handleSave" :loading="saving" >{{ formId ? $t('message.opsflowPage.webhookUpdate') : $t('message.opsflowPage.webhookCreate') }}</el-button>
       </template>
     </el-dialog>
 
@@ -176,10 +176,10 @@
         </div>
 
         <div class="wh-detail-actions">
-          <el-button size="small" :icon="Edit" @click="showForm(detail); detailVisible = false">{{ $t("message.common.edit") }}</el-button>
+          <el-button size="small" v-can.edit :icon="Edit" @click="showForm(detail); detailVisible = false">{{ $t("message.common.edit") }}</el-button>
           <el-popconfirm title="Delete this webhook?" @confirm="handleDelete(detail)">
             <template #reference>
-              <el-button size="small" type="danger" :icon="Delete">{{ $t("message.common.delete") }}</el-button>
+              <el-button size="small" type="danger" v-can.admin :icon="Delete">{{ $t("message.common.delete") }}</el-button>
             </template>
           </el-popconfirm>
         </div>

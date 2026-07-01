@@ -125,25 +125,25 @@
       </div>
       <!-- Hero tabs -->
       <div class="opsflow-hero-tabs">
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'designer' }" @click="onEnterDesigner">
+        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'designer' }" @click="onEnterDesigner" v-if="opsflowCanEdit">
           <el-icon><EditPen /></el-icon> 设计器
         </div>
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'templates' }" @click="activeTab = 'templates'">
+        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'templates' }" @click="activeTab = 'templates'" v-if="opsflowCanEdit">
           <el-icon><Document /></el-icon> 模板中心
         </div>
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'executions' }" @click="activeTab = 'executions'">
+        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'executions' }" @click="activeTab = 'executions'" v-if="opsflowCanEdit">
           <el-icon><VideoPlay /></el-icon> 任务执行
         </div>
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'approvals' }" @click="activeTab = 'approvals'">
+        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'approvals' }" @click="activeTab = 'approvals'" v-if="opsflowCanEdit">
           <el-icon><Clock /></el-icon> 审批
         </div>
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'knowledge' }" @click="activeTab = 'knowledge'">
+        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'knowledge' }" @click="activeTab = 'knowledge'" v-if="opsflowCanEdit">
           <el-icon><Collection /></el-icon> 知识库
         </div>
         <div class="opsflow-hero-tab" :class="{ active: activeTab === 'logs' }" @click="activeTab = 'logs'">
           <el-icon><List /></el-icon> 执行日志
         </div>
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'webhooks' }" @click="activeTab = 'webhooks'">
+        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'webhooks' }" @click="activeTab = 'webhooks'" v-if="opsflowCanEdit">
           <el-icon><Link /></el-icon> Webhook
         </div>
         <div class="opsflow-hero-tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">
@@ -154,22 +154,22 @@
 
     <!-- Body -->
     <div class="opsflow-body-wrap">
-      <div v-show="activeTab === 'templates'" class="opsflow-section g-fade-in-up">
+      <div v-show="activeTab === 'templates'" class="opsflow-section g-fade-in-up" v-if="opsflowCanEdit">
         <OpsflowTemplate embedded />
       </div>
-      <div v-show="activeTab === 'executions'" class="opsflow-section g-fade-in-up">
+      <div v-show="activeTab === 'executions'" class="opsflow-section g-fade-in-up" v-if="opsflowCanEdit">
         <OpsflowExecution embedded />
       </div>
-      <div v-show="activeTab === 'approvals'" class="opsflow-section g-fade-in-up">
+      <div v-show="activeTab === 'approvals'" class="opsflow-section g-fade-in-up" v-if="opsflowCanEdit">
         <OpsflowApproval embedded />
       </div>
-      <div v-show="activeTab === 'knowledge'" class="opsflow-section g-fade-in-up">
+      <div v-show="activeTab === 'knowledge'" class="opsflow-section g-fade-in-up" v-if="opsflowCanEdit">
         <OpsflowKnowledge embedded />
       </div>
       <div v-show="activeTab === 'logs'" class="opsflow-section g-fade-in-up">
         <OpsflowLog embedded />
       </div>
-      <div v-show="activeTab === 'webhooks'" class="opsflow-section g-fade-in-up">
+      <div v-show="activeTab === 'webhooks'" class="opsflow-section g-fade-in-up" v-if="opsflowCanEdit">
         <OpsflowWebhook embedded />
       </div>
       <div v-show="activeTab === 'dashboard'" class="opsflow-section g-fade-in-up">
@@ -191,6 +191,7 @@ import {
   EditPen, Document, VideoPlay, Clock, Collection, Link, DataAnalysis,
 } from '@element-plus/icons-vue'
 import { useOpsflowStore } from './stores/opsflowStore'
+import { request } from '/@/utils/service'
 import { GetTemplates, GetTemplateDetail, CreateFromAi, CreateTemplate, GetDiff, AnalyzePipeline, RefinePipeline, AiLayout, UpdateTemplate, AcquireLock, ReleaseLock, HeartbeatLock } from './api/templates'
 import DesignCanvas from './components/canvas/DesignCanvas.vue'
 import DiffModal from './components/dialogs/DiffModal.vue'
@@ -215,6 +216,8 @@ const isEn = computed(() => String(locale.value).startsWith('en'))
 // ===== Tab mode state =====
 const activeTab = ref<string>('dashboard')
 const canvasMode = ref(false)
+const opsflowPerms = ref<string[]>([])
+const opsflowCanEdit = computed(() => opsflowPerms.value.length > 0)
 
 // Sync activeTab with URL query param
 watch(activeTab, (val) => {
@@ -452,11 +455,24 @@ function onProjectChanged() {
 
 onMounted(async () => {
   await store.fetchMyProjects()
+  // Load opsflow-specific button permissions for tab control
+  try {
+    const permRes = await request({ url: '/api/opsflow/projects/my_opsflow_permissions/', method: 'get' })
+    opsflowPerms.value = permRes.data || []
+  } catch { /* fallback: viewer */ }
   // Read initial tab from URL query param
   const tabParam = route.query.tab as string
   if (tabParam && ['designer', 'templates', 'executions', 'approvals', 'knowledge', 'logs', 'webhooks', 'dashboard'].includes(tabParam)) {
-    if (tabParam === 'designer') { canvasMode.value = true }
-    else { activeTab.value = tabParam }
+    if (tabParam === 'designer') {
+      if (opsflowCanEdit) { canvasMode.value = true }
+    } else {
+      const EDITOR_TABS = ['templates', 'executions', 'approvals', 'knowledge', 'webhooks']
+      if (EDITOR_TABS.includes(tabParam) && !opsflowCanEdit) {
+        activeTab.value = 'dashboard'
+      } else {
+        activeTab.value = tabParam
+      }
+    }
   }
   // Auto-load designer if template passed from template management
   const pending = store.currentTemplate

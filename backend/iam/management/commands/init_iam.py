@@ -11,31 +11,36 @@ from django.utils import timezone
 MENU_TREE = [
     {
         'name': 'Dashboard', 'name_en': 'Dashboard', 'icon': 'HomeFilled',
-        'web_path': '/dashboard', 'component': 'views/apps/dashboard/index',
+        'web_path': '/dashboard', 'component': 'apps/dashboard/index',
         'component_name': 'dashboard', 'sort': 1,
     },
     {
         'name': 'OPSflow', 'name_en': 'OPSflow', 'icon': 'Operation',
-        'web_path': '/opsflow', 'component': 'views/apps/opsflow/index',
+        'web_path': '/opsflow', 'component': 'apps/opsflow/index',
         'component_name': 'opsflow', 'sort': 10,
     },
     {
         'name': 'ITSM', 'name_en': 'ITSM', 'icon': 'Setting',
-        'web_path': '/itsm', 'component': 'views/apps/itsm/index',
+        'web_path': '/itsm', 'component': 'apps/itsm/index',
         'component_name': 'itsm', 'sort': 20,
     },
     {
         'name': 'CMDB', 'name_en': 'CMDB', 'icon': 'Monitor',
-        'web_path': '/cmdb', 'component': 'views/apps/cmdb/index',
+        'web_path': '/cmdb', 'component': 'apps/cmdb/index',
         'component_name': 'cmdb', 'sort': 30,
     },
     {
+        'name': 'Message Center', 'name_en': '消息中心', 'icon': 'Bell',
+        'web_path': '/messageCenter', 'component': 'system/messageCenter/index',
+        'component_name': 'messageCenter', 'sort': 35,
+    },
+    {
         'name': 'IAM', 'name_en': 'IAM', 'icon': 'Lock',
-        'web_path': '/iam', 'component': 'views/apps/iam/index',
+        'web_path': '/iam', 'component': 'apps/iam/index',
         'component_name': 'iam', 'sort': 40,
         'children': [
             {'name': 'Roles', 'name_en': 'Roles', 'icon': 'Avatar',
-             'web_path': '/iam?tab=roles', 'component': 'views/apps/iam/index',
+             'web_path': '/iam?tab=roles', 'component': 'apps/iam/index',
              'component_name': 'iam-roles', 'sort': 1, 'is_catalog': False},
         ],
     },
@@ -61,6 +66,7 @@ class Command(BaseCommand):
         self._init_depts()
         self._init_roles()
         self._init_menus()
+        self._init_message_center_buttons()
         self._init_admin_user()
         self._init_itsm_opsflow_cmdb_perms()
         self._init_environments()
@@ -89,11 +95,45 @@ class Command(BaseCommand):
                 self.stdout.write(f"  + Menu: {m['name']}")
         # Grant all core menus to every role (regular users need to see navigation)
         from iam.models.menu_rbac import Role, RoleMenuPermission as RMP
-        core_menus = Menu.objects.filter(name__in=['Dashboard', 'OPSflow', 'ITSM', 'CMDB', 'IAM'])
+        core_menus = Menu.objects.filter(name__in=['Dashboard', 'OPSflow', 'ITSM', 'CMDB', 'Message Center', 'IAM'])
         for role in Role.objects.filter(status=1):
             for menu in core_menus:
                 RMP.objects.get_or_create(role=role, menu=menu)
         self.stdout.write(f"  Menus: {Menu.objects.count()}, granted to {Role.objects.count()} roles")
+
+    def _init_message_center_buttons(self):
+        """Create message center MenuButton entries and grant basic read to all roles."""
+        from iam.models.menu_rbac import Menu, MenuButton, Role, RoleMenuButtonPermission
+        mc_menu = Menu.objects.filter(web_path='/messageCenter').first()
+        if not mc_menu:
+            self.stdout.write("  ! Message Center menu not found, skip buttons")
+            return
+
+        BUTTON_DEFS = [
+            ('查询', 'messageCenter:Search', '/api/system/message_center/', 0),
+            ('详情', 'messageCenter:Retrieve', '/api/system/message_center/{id}/', 0),
+            ('新增', 'messageCenter:Create', '/api/system/message_center/', 1),
+            ('编辑', 'messageCenter:Update', '/api/system/message_center/{id}/', 2),
+            ('删除', 'messageCenter:Delete', '/api/system/message_center/{id}/', 3),
+        ]
+        created_count = 0
+        for name, value, api, method in BUTTON_DEFS:
+            btn, created = MenuButton.objects.get_or_create(
+                value=value,
+                defaults={'menu': mc_menu, 'name': name, 'api': api, 'method': method},
+            )
+            if created:
+                created_count += 1
+        if created_count:
+            self.stdout.write(f"  + Created {created_count} Message Center buttons")
+
+        # Grant Search + Retrieve (read) to all active roles
+        read_buttons = MenuButton.objects.filter(
+            menu=mc_menu, value__in=['messageCenter:Search', 'messageCenter:Retrieve'])
+        for role in Role.objects.filter(status=1):
+            for btn in read_buttons:
+                RoleMenuButtonPermission.objects.get_or_create(role=role, menu_button=btn)
+        self.stdout.write(f"  Granted read buttons to {Role.objects.filter(status=1).count()} roles")
 
     def _init_admin_user(self):
         from django.contrib.auth import get_user_model

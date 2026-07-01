@@ -107,19 +107,19 @@
               <template #default="{ row }">
                 <div class="tpl-actions">
                   <el-tooltip :content="$t('message.template.editInDesigner')" placement="top">
-                    <el-button size="small" text @click.stop="goEditTemplate(row)"><el-icon><Edit /></el-icon></el-button>
+                    <el-button size="small" text v-can.edit @click.stop="goEditTemplate(row)"><el-icon><Edit /></el-icon></el-button>
                   </el-tooltip>
-                  <el-tooltip v-if="!row.is_public || isSuperuser" :content="$t('message.template.modifyInfo')" placement="top">
-                    <el-button size="small" text @click.stop="openEdit(row)"><el-icon><Setting /></el-icon></el-button>
+                  <el-tooltip v-if="!row.is_public" :content="$t('message.template.modifyInfo')" placement="top">
+                    <el-button size="small" text v-can.edit @click.stop="openEdit(row)"><el-icon><Setting /></el-icon></el-button>
                   </el-tooltip>
-                  <el-tooltip v-if="!row.is_public || isSuperuser" :content="row.is_draft ? $t('message.template.publish') : $t('message.template.newVersion')" placement="top">
-                    <el-button size="small" text type="success" :loading="publishingId === row.id" @click.stop="handlePublish(row)"><el-icon><Upload /></el-icon></el-button>
+                  <el-tooltip v-if="!row.is_public" :content="row.is_draft ? $t('message.template.publish') : $t('message.template.newVersion')" placement="top">
+                    <el-button size="small" text type="success" v-can.edit :loading="publishingId === row.id" @click.stop="handlePublish(row)"><el-icon><Upload /></el-icon></el-button>
                   </el-tooltip>
-                  <el-tooltip v-if="!row.is_draft && (!row.is_public || isSuperuser)" :content="$t('message.schedule.title')" placement="top">
-                    <el-button size="small" text type="warning" @click.stop="openSchedule(row)"><el-icon><Timer /></el-icon></el-button>
+                  <el-tooltip v-if="!row.is_draft && !row.is_public" :content="$t('message.schedule.title')" placement="top">
+                    <el-button size="small" text type="warning" v-can.edit @click.stop="openSchedule(row)"><el-icon><Timer /></el-icon></el-button>
                   </el-tooltip>
                   <el-tooltip v-if="!row.is_public && !row.is_draft" content="Make public" placement="top">
-                    <el-button size="small" text @click.stop="openMakePublic(row)"><el-icon><Share /></el-icon></el-button>
+                    <el-button size="small" text v-can.admin @click.stop="openMakePublic(row)"><el-icon><Share /></el-icon></el-button>
                   </el-tooltip>
                   <el-tooltip :content="$t('message.template.versions')" placement="top">
                     <el-button size="small" text type="info" @click.stop="openVersions(row)"><el-icon><Clock /></el-icon></el-button>
@@ -127,9 +127,9 @@
                   <el-tooltip :content="$t('message.common.export')" placement="top">
                     <el-button size="small" text @click.stop="handleExport(row)"><el-icon><Download /></el-icon></el-button>
                   </el-tooltip>
-                  <el-popconfirm v-if="!row.is_public || isSuperuser" :title="$t('message.template.confirmDelete')" @confirm.stop="handleDelete(row)">
+                  <el-popconfirm v-if="!row.is_public" :title="$t('message.template.confirmDelete')" @confirm.stop="handleDelete(row)">
                     <template #reference>
-                      <el-button size="small" text type="danger" @click.stop><el-icon><Delete /></el-icon></el-button>
+                      <el-button size="small" text type="danger" v-can.admin @click.stop><el-icon><Delete /></el-icon></el-button>
                     </template>
                   </el-popconfirm>
                 </div>
@@ -163,22 +163,22 @@
                 <span v-if="!item.is_draft" class="tpl-stat-chip">V{{ item.version || 1 }}</span>
               </div>
               <div class="tpl-card-actions" @click.stop>
-                <el-button size="small" text @click.stop="goEditTemplate(item)">
+                <el-button size="small" text v-can.edit @click.stop="goEditTemplate(item)">
                   <el-icon><Edit /></el-icon>
                 </el-button>
-                <el-button v-if="!item.is_public || isSuperuser" size="small" text @click.stop="openEdit(item)">
+                <el-button v-if="!item.is_public" size="small" text v-can.edit @click.stop="openEdit(item)">
                   <el-icon><Setting /></el-icon>
                 </el-button>
-                <el-button v-if="(!item.is_public || isSuperuser) && item.is_draft" size="small" text type="success" :loading="publishingId === item.id" @click.stop="handlePublish(item)">
+                <el-button v-if="(!item.is_public) && item.is_draft" size="small" text type="success" v-can.edit :loading="publishingId === item.id" @click.stop="handlePublish(item)">
                   <el-icon><Upload /></el-icon>
                 </el-button>
-                <el-button v-if="(!item.is_public || isSuperuser) && !item.is_draft" size="small" text type="success" :loading="publishingId === item.id" @click.stop="handlePublish(item)">
+                <el-button v-if="(!item.is_public) && !item.is_draft" size="small" text type="success" v-can.edit :loading="publishingId === item.id" @click.stop="handlePublish(item)">
                   <el-icon><Upload /></el-icon>
                 </el-button>
-                <el-button v-if="!item.is_draft && (!item.is_public || isSuperuser)" size="small" text type="warning" @click.stop="openSchedule(item)">
+                <el-button v-if="!item.is_draft && !item.is_public" size="small" text type="warning" v-can.edit @click.stop="openSchedule(item)">
                   <el-icon><Timer /></el-icon>
                 </el-button>
-                <el-button v-if="!item.is_public && !item.is_draft" size="small" text @click.stop="openMakePublic(item)">
+                <el-button v-if="!item.is_public && !item.is_draft" size="small" text v-can.admin @click.stop="openMakePublic(item)">
                   <el-icon><Share /></el-icon>
                 </el-button>
                 <el-button size="small" text type="info" @click.stop="openVersions(item)">
@@ -187,8 +187,8 @@
                 <el-button size="small" text @click.stop="handleExport(item)">
                   <el-icon><Download /></el-icon>
                 </el-button>
-                <el-popconfirm v-if="!item.is_public || isSuperuser" :title="$t('message.template.confirmDelete')" @confirm.stop="handleDelete(item)">
-                  <template #reference><el-button size="small" text type="danger"><el-icon><Delete /></el-icon></el-button></template>
+                <el-popconfirm v-if="!item.is_public" :title="$t('message.template.confirmDelete')" @confirm.stop="handleDelete(item)">
+                  <template #reference><el-button size="small" text type="danger" v-can.admin><el-icon><Delete /></el-icon></el-button></template>
                 </el-popconfirm>
               </div>
             </div>
@@ -212,7 +212,7 @@
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false" >{{ $t('message.common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleSave" >{{ $t('message.common.save') }}</el-button>
+        <el-button type="primary" v-can.edit @click="handleSave" >{{ $t('message.common.save') }}</el-button>
       </template>
     </el-dialog>
 
@@ -247,8 +247,8 @@
           </div>
         </div>
         <div class="tpl-view-actions">
-          <el-button size="small" :icon="Edit" @click="goEditTemplate(viewRow); viewVisible = false">{{ $t('message.common.edit') }}</el-button>
-          <el-button size="small" :icon="Upload" @click="handlePublish(viewRow)">{{ $t('message.template.publish') }}</el-button>
+          <el-button size="small" v-can.edit :icon="Edit" @click="goEditTemplate(viewRow); viewVisible = false">{{ $t('message.common.edit') }}</el-button>
+          <el-button size="small" v-can.edit :icon="Upload" @click="handlePublish(viewRow)">{{ $t('message.template.publish') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -269,7 +269,7 @@
       </el-upload>
       <template #footer>
         <el-button @click="importVisible = false" >{{ $t('message.common.cancel') }}</el-button>
-        <el-button type="primary" :loading="importing" :disabled="!importData" @click="handleImport" >{{ $t('message.common.import') }}</el-button>
+        <el-button type="primary" v-can.edit :loading="importing" :disabled="!importData" @click="handleImport" >{{ $t('message.common.import') }}</el-button>
       </template>
     </el-dialog>
 
@@ -294,7 +294,7 @@
       </el-form>
       <template #footer>
         <el-button @click="mpVisible = false" plain size="small">{{ $t('message.common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleMakePublic" :loading="mpLoading" size="small">Confirm</el-button>
+        <el-button type="primary" v-can.admin @click="handleMakePublic" :loading="mpLoading" size="small">Confirm</el-button>
       </template>
     </el-dialog>
   </div>

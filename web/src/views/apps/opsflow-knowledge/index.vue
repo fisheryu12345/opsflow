@@ -71,7 +71,7 @@
         </div>
         <div class="kb-filter-actions">
           <el-button :icon="Refresh" @click="fetchData" :loading="loading" text size="small">{{ $t('message.common.refresh') }}</el-button>
-          <el-button type="primary" :icon="Plus" @click="openCreate" size="small">{{ $t('message.opsflowPage.knowledgeNewEntry') }}</el-button>
+          <el-button type="primary" v-can.edit :icon="Plus" @click="openCreate" size="small">{{ $t('message.opsflowPage.knowledgeNewEntry') }}</el-button>
         </div>
       </div>
 
@@ -133,7 +133,7 @@
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false">{{ $t('message.common.cancel') }}</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">
+        <el-button type="primary" v-can.edit :loading="saving" @click="handleSave">
           {{ isEditing ? $t('message.opsflowPage.knowledgeUpdate') : $t('message.opsflowPage.knowledgeCreate') }}
         </el-button>
       </template>
@@ -155,8 +155,8 @@
         </div>
         <div class="kb-detail-content">{{ viewRow.content }}</div>
         <div class="kb-detail-actions">
-          <el-button size="small" :icon="Edit" @click="openEdit(viewRow); viewVisible = false">{{ $t('message.common.edit') }}</el-button>
-          <el-button size="small" type="danger" :icon="Delete" @click="handleDelete(viewRow); viewVisible = false">{{ $t('message.common.delete') }}</el-button>
+          <el-button size="small" v-can.edit :icon="Edit" @click="openEdit(viewRow); viewVisible = false">{{ $t('message.common.edit') }}</el-button>
+          <el-button size="small" type="danger" v-can.admin :icon="Delete" @click="handleDelete(viewRow); viewVisible = false">{{ $t('message.common.delete') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -178,7 +178,6 @@ const list = ref<any[]>([])
 const total = ref(0)
 const searchQuery = ref('')
 const filterSource = ref('')
-const useMock = ref(false)
 
 const formVisible = ref(false)
 const isEditing = ref(false)
@@ -190,7 +189,7 @@ const { t } = useI18n()
 const viewVisible = ref(false)
 const viewRow = ref<any>(null)
 
-const emptyText = computed(() => useMock.value ? t('message.common.noData') : t('message.opsflowPage.knowledgeEmptyText'))
+const emptyText = computed(() => t('message.opsflowPage.knowledgeEmptyText'))
 
 const runbookCount = computed(() => list.value.filter(i => i.source === 'runbook').length)
 const incidentCount = computed(() => list.value.filter(i => i.source === 'incident').length)
@@ -223,41 +222,14 @@ async function fetchData() {
     if (filterSource.value) params.source = filterSource.value
     const res = await GetKnowledgeList(params)
     const items = res.data?.data || res.data?.results || res.data || []
-    if (items.length > 0) {
-      list.value = items
-      total.value = res.data?.total || res.data?.count || items.length
-      useMock.value = false
-    } else {
-      fallbackMock()
-    }
+    list.value = items
+    total.value = res.data?.total || res.data?.count || items.length
   } catch {
-    fallbackMock()
+    list.value = []
+    total.value = 0
   }
   loading.value = false
 }
-
-function fallbackMock() {
-  let items = [...mockData.value]
-  if (filterSource.value) items = items.filter(i => i.source === filterSource.value)
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    items = items.filter(i => i.title.toLowerCase().includes(q) || i.content.toLowerCase().includes(q))
-  }
-  list.value = items
-  total.value = items.length
-  useMock.value = true
-}
-
-const mockData = computed<any[]>(() => [
-  { id: 1, title: 'Nginx Common Issue Troubleshooting', content: 'Common causes of Nginx startup failure:\n1. Port already in use (netstat -tlnp | grep 80)\n2. Config syntax error (nginx -t)\n3. SELinux blocking (setenforce 0 to test)\n\nSteps:\n- Check systemctl status nginx\n- View /var/log/nginx/error.log\n- Verify upstream backend is alive', tags: ['nginx', 'web', 'troubleshooting'], source: 'runbook', created_at: '2026-05-28 14:30:00' },
-  { id: 2, title: 'Disk Space Alert Response', content: 'Standard procedure when disk usage exceeds 90%:\n1. Find large files: du -sh /* | sort -rh | head -10\n2. Clean logs: journalctl --vacuum-size=500M\n3. Clean Docker: docker system prune -af\n4. Expand cloud disk if above cannot resolve', tags: ['disk', 'monitor', 'ops'], source: 'runbook', created_at: '2026-05-27 09:15:00' },
-  { id: 3, title: 'Database Connection Pool Exhaustion', content: 'Emergency response when MySQL connections hit max_connections:\n1. Check connections: SHOW PROCESSLIST;\n2. Kill idle: SELECT CONCAT(\'KILL \', id, \';\') FROM information_schema.PROCESSLIST WHERE COMMAND=\'Sleep\' AND TIME>300;\n3. Increase pool temporarily: SET GLOBAL max_connections=500;\n4. Investigate application-level connection leak', tags: ['mysql', 'database', 'incident'], source: 'incident', created_at: '2026-05-25 16:42:00' },
-  { id: 4, title: 'K8s Node NotReady Troubleshooting', content: 'Steps to diagnose a NotReady Kubernetes node:\nkubectl get nodes\nkubectl describe node <name>\n# Check kubelet status\nssh <node> systemctl status kubelet\n# View kubelet logs\njournalctl -u kubelet -n 100 --no-pager\n# Restart kubelet\nsystemctl restart kubelet', tags: ['k8s', 'container', 'troubleshooting'], source: 'runbook', created_at: '2026-05-24 11:00:00' },
-  { id: 5, title: 'Redis Memory Optimization', content: 'Redis memory best practices:\n1. Set maxmemory and eviction policy\n2. Use compressed data structures (ziplist, intset)\n3. Split large keys (max 10MB per key)\n4. Run MEMORY PURGE periodically\n5. Monitor RSS vs used_memory ratio in INFO memory', tags: ['redis', 'cache', 'optimization'], source: 'doc', created_at: '2026-05-22 08:30:00' },
-  { id: 6, title: 'SSL Certificate Emergency Replacement', content: 'Steps to replace an expiring SSL certificate:\n1. Generate new cert or download from CA\n2. Upload to /etc/ssl/certs/\n3. Update Nginx/Traefik config\n4. Reload: nginx -s reload\n5. Verify: openssl s_client -connect example.com:443', tags: ['ssl', 'security', 'certificate'], source: 'runbook', created_at: '2026-05-20 15:20:00' },
-  { id: 7, title: 'Cross-DC Network Latency Incident', content: 'Latency between DC-A and DC-B spiked from 2ms to 200ms.\nRoot cause: Fiber optic cable damaged by construction.\n\nActions:\n1. Confirm backup link bandwidth sufficient\n2. Notify construction team for repair\n3. Switch back to primary after repair', tags: ['network', 'incident'], source: 'incident', created_at: '2026-05-18 22:10:00' },
-  { id: 8, title: 'Ansible Tower Usage Guide', content: 'Ansible Tower daily operations:\n1. Job Template creation and configuration\n2. Credential management (SSH Key / Vault)\n3. Workflow template design\n4. Notification setup (Email / Webhook)\n5. RBAC and audit logging', tags: ['ansible', 'tower', 'automation'], source: 'doc', created_at: '2026-05-15 10:00:00' },
-])
 
 async function onSearch() { fetchData() }
 
@@ -298,7 +270,7 @@ async function handleSave() {
 async function handleDelete(row: any) {
   try {
     await ElMessageBox.confirm(t('message.opsflowPage.knowledgeDeleteConfirm'), t('message.common.confirm'), { type: 'warning' })
-    useMock.value ? fallbackMock() : await DeleteKnowledge(row.id)
+    await DeleteKnowledge(row.id)
     ElMessage.success(t('message.opsflowPage.knowledgeDeleted')); await fetchData()
   } catch { /* cancelled */ }
 }

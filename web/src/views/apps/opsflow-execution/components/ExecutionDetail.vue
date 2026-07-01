@@ -11,15 +11,15 @@
         </el-tag>
       </div>
       <div class="detail-header-actions">
-        <el-button type="success" :disabled="execDetail.status !== 'pending'" :loading="starting"
+        <el-button type="success" v-can.edit :disabled="execDetail.status !== 'pending'" :loading="starting"
                    @click="onStart">{{ $t("message.execution.start") }}</el-button>
-        <el-button type="warning" :disabled="execDetail.status !== 'running'" :loading="pausing"
+        <el-button type="warning" v-can.admin :disabled="execDetail.status !== 'running'" :loading="pausing"
                    @click="onPause">{{ $t("message.execution.pause") }}</el-button>
-        <el-button type="primary" :disabled="execDetail.status !== 'paused'" :loading="resuming"
+        <el-button type="primary" v-can.edit :disabled="execDetail.status !== 'paused'" :loading="resuming"
                    @click="onResume">{{ $t("message.execution.resume") }}</el-button>
-        <el-button type="danger" :disabled="selectedNodeId === null || execCompleted" @click="onRetry">{{ $t("message.execution.retry") }}</el-button>
-        <el-button type="info" :disabled="selectedNodeId === null || execCompleted" @click="onSkip">{{ $t("message.execution.skip") }}</el-button>
-        <el-button type="danger" :disabled="!isCancelable"
+        <el-button type="danger" v-can.edit :disabled="selectedNodeId === null || execCompleted" @click="onRetry">{{ $t("message.execution.retry") }}</el-button>
+        <el-button type="info" v-can.edit :disabled="selectedNodeId === null || execCompleted" @click="onSkip">{{ $t("message.execution.skip") }}</el-button>
+        <el-button type="danger" v-can.admin :disabled="!isCancelable"
                    :loading="cancelling" @click="onCancel">{{ $t("message.execution.cancel") }}</el-button>
         <el-button type="info" @click="refresh">{{ $t("message.common.refresh") }}</el-button>
       </div>
@@ -33,10 +33,10 @@
         <el-tag size="small" type="warning" effect="light" round>{{ execDetail.current_node || 'approval node' }}</el-tag>
       </div>
       <div class="approval-banner-actions">
-        <el-button size="small" type="success" :loading="approving" @click="onApprove">
+        <el-button size="small" type="success" v-can.edit :loading="approving" @click="onApprove">
           <el-icon><CircleCheck /></el-icon> Approve
         </el-button>
-        <el-button size="small" type="danger" :loading="rejecting" @click="onReject">
+        <el-button size="small" type="danger" v-can.admin :loading="rejecting" @click="onReject">
           <el-icon><Close /></el-icon> Reject
         </el-button>
       </div>

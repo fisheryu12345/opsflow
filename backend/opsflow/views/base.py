@@ -68,7 +68,7 @@ class ProjectFilteredViewSet(viewsets.ModelViewSet):
         project_id = self.request.query_params.get('project_id')
         if project_id:
             if int(project_id) not in user_project_ids:
-                raise exceptions.PermissionDenied('No access to this project')
+                return qs.none()
             base_q = Q(**{self.project_field + '_id': project_id})
             base_q = self._add_public_q(base_q, project_id=project_id)
             return qs.filter(base_q)

@@ -57,9 +57,9 @@
             <template #default="{ row }">
               <div class="app-actions">
                 <el-button size="small" :icon="View" @click.stop="handleView(row)" round>{{ $t("message.common.view") }}</el-button>
-                <el-button size="small" type="success" :icon="CircleCheck" @click.stop="handleApprove(row)"
+                <el-button size="small" type="success" v-can.edit :icon="CircleCheck" @click.stop="handleApprove(row)"
                   :loading="actionLoading === row.id + '-approve'" round>{{ $t("message.execution.approve") }}</el-button>
-                <el-button size="small" type="danger" :icon="Close" @click.stop="handleReject(row)"
+                <el-button size="small" type="danger" v-can.admin :icon="Close" @click.stop="handleReject(row)"
                   :loading="actionLoading === row.id + '-reject'" round>{{ $t("message.execution.reject") }}</el-button>
               </div>
             </template>
@@ -81,7 +81,7 @@
       </el-form>
       <template #footer>
         <el-button @click="rejectVisible = false" >{{ $t('message.common.cancel') }}</el-button>
-        <el-button type="danger" @click="confirmReject" >{{ $t("message.opsflowPage.approvalConfirmReject") }}</el-button>
+        <el-button type="danger" v-can.admin @click="confirmReject" >{{ $t("message.opsflowPage.approvalConfirmReject") }}</el-button>
       </template>
     </el-dialog>
   </div>

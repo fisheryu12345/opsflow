@@ -2,6 +2,48 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 5ad24b89
+
+> 提交日期: 2026-07-01 | 提交信息: feat: opsflow v-can permission locks + dvadmin cleanup — OpsFlow 按钮权限锁和废弃代码清理
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/dvadmin/utils/filters.py` | 后端 | 删除废弃 DataLevelPermissionsFilter（129 行 → 14 行） |
+| `backend/dvadmin/utils/viewset.py` | 后端 | 移除 extra_filter_class，filter_queryset 用 getattr 安全读取 |
+| `backend/dvadmin/system/views/dept.py` | 后端 | 去除 @action 上多余的 extra_filter_class=[] 参数 |
+| `backend/iam/management/commands/init_iam.py` | 后端 | 修复 6 个菜单 component 路径（去掉 views/ 前缀） |
+| `backend/iam/views/permission_views.py` | 后端 | 消息中心申请确认通知和 M2M 写入修复 |
+| `backend/opsflow/views/base.py` | 后端 | PermissionDenied → qs.none() 静默无权限 |
+| `backend/opsflow/views/project_views.py` | 后端 | 新增 my_opsflow_permissions 接口 |
+| `web/src/stores/permission.ts` | 前端 | 修复 currentRole null 时 canEdit 误判 |
+| `web/src/views/apps/opsflow/index.vue` | 前端 | Tab 级别权限控制 + my_opsflow_permissions 集成 |
+| `web/src/views/apps/opsflow-*/*.vue` (8 个文件) | 前端 | v-can.edit/v-can.admin 按钮权限锁 |
+| `web/src/views/apps/opsflow-knowledge/index.vue` | 前端 | 删除 mock 数据回退 |
+
+### 解决
+
+- **问题/背景：** 消息中心普通用户白屏、OpsFlow 页面无前端权限锁导致 viewer 看到所有 tab 和按钮、dvadmin 废弃 DataLevelPermissionsFilter 导致 NameError
+- **办法：** 删除 DataLevelPermissionsFilter 整套废弃代码，修复 init_iam component 路径并新增消息中心按钮，新增 my_opsflow_permissions 接口，给所有 opsflow 页面加 v-can 权限锁和 tab 可见性控制，删除知识库 mock 数据回退
+
+### 文档
+
+- **生成文档：**
+  - `docs/iam/features/2026-07-01-message-center-button-permissions.md`
+  - `docs/iam/architecture/2026-07-01-remove-data-level-permissions-filter-refactor.md`
+  - `docs/opsflow/features/2026-07-01-opsflow-vcan-permission-locks.md`
+
+### 验证
+
+- 改动类型: feat + fix + refactor
+- 清理乱码: 无
+- 前端构建: ✓ built in 5.6s
+- 后端检查: System check identified no issues (0 silenced)
+- 工作区状态: 待提交文档
+
+---
+
 ## f2b67052
 
 > 提交日期: 2026-06-30 | 提交信息: feat: LDAP/AD identity sync engine + SAML SSO — 身份同步引擎与认证集成
@@ -162,6 +204,7 @@
 - 测试: itsm.tests 通过 ✅
 
 ---
+
 ## 0d0a3be9
 
 > 提交日期: 2026-06-30 | 提交信息: feat: ITSM assignment redesign + drag-drop form designer + i18n
@@ -195,281 +238,11 @@
 - **问题/背景:** ITSM 分派系统缺失,表单字段编辑体验差,无 i18n 支持
 - **办法:** 完整的技能组+排班+路由规则+多级升级体系;三栏拖拽可视化表单设计器;i18n 翻译文件+管理页面改造
 
-### 修复
-
-- escalation_service escalated_at 存为 ISO 字符串, 第二次升级检测 TypeError → 用 parse_datetime 解析
-- assign_engine user=None 时 user.id crash → if/else 守卫 + 事务前检查
-- tasks.py raw update() 绕过 set_status() → 逐条遍历调 set_status + revoke_pipeline
-
 ### 验证
 
 - 改动类型: feat + fix
 - 清理乱码: 删除 index.vue.bak
 - 工作区状态: 干净 ✅
-
----
-
-# Commit Analysis Log
-
-<!-- 每次提交在最前面插入新条目，时间倒序排列 -->
-
-## f2b67052
-
-> 提交日期: 2026-06-30 | 提交信息: feat: LDAP/AD identity sync engine + SAML SSO — 身份同步引擎与认证集成
-
-### 改动
-
-| 文件 | 类型 | 说明 |
-|------|------|------|
-| `backend/iam/sync/` | 后端 | 身份同步引擎（DeptMapping/UserMapping/Differ/Provider/Backend） |
-| `backend/integration/adapters/auth/ldap.py` | 后端 | LDAPConnector 适配器（health_check + search） |
-| `backend/integration/adapters/auth/saml.py` | 后端 | SAMLConnector 适配器（metadata 验证） |
-| `backend/application/` | 配置 | 路由注册 + auth 认证链 |
-| `backend/opsflow/seed_opsflow.py` | 配置 | 注册 ldap/saml 连接器定义 |
-| `backend/requirements.txt` | 配置 | 新增 ldap3, python3-saml 依赖 |
-| `web/src/views/apps/integration/` | 前端 | 新增身份同步 Tab（identity-sync.vue） |
-| `web/src/views/system/login/` | 前端 | SAML SSO 登录按钮 |
-| `web/src/i18n/` | 前端 | 身份同步中英文文案 |
-| `docs/` | 文档 | 配置指南 + 设计文档 + 功能文档 |
-
-### 解决
-
-- **问题/背景：** 企业需要从 LDAP/AD/SAML 同步组织架构和用户数据到系统，支持 LDAP Bind 认证和 SAML SSO 登录
-- **办法：** 复用集成中心连接器体系，新增 iam/sync 同步引擎（映射模型+Diff算法+同步执行器+认证后端），新增身份同步前端 Tab
-
-### 文档
-
-- **生成文档：**
-  - `docs/superpowers/specs/2026-06-30-identity-sync-design.md`
-  - `docs/iam/features/2026-06-30-identity-sync-engine.md`
-  - `docs/integration/features/2026-06-30-ldap-saml-connectors.md`
-  - `docs/guides/identity-sync-setup.md`
-
-### 验证
-
-- 改动类型: feat + chore
-- 清理乱码: 有 (`,+`, `false)`)
-- 子 App index.md 更新: iam, integration
-- 工作区状态: 待提交 ✅
-
----
-
-## b91ba26c
-
-> 提交日期: 2026-06-30 | 提交信息: fix: correct SlaPolicy field name mismatch in SLA engine
-
-### 改动
-
-| 文件 | 类型 | 说明 |
-|------|------|------|
-| `itsm/services/sla_engine.py` | 后端 | handle_time→response_minutes, reply_time→resolve_minutes |
-| `.vscode/settings.json` + `extensions.json` | 配置 | VS Code 开发环境配置 |
-| `docs/itsm/debug/2026-06-30-sla-engine-field-mismatch-fix.md` | 文档 | 新建调试文档 |
-
-### 解决
-
-- **问题/背景：** SlaPolicy 字段为 response_minutes/resolve_minutes，引擎引用不存在的 handle_time/reply_time
-- **办法：** 修正字段名匹配模型定义
-
-### 文档
-
-- docs/itsm/debug/2026-06-30-sla-engine-field-mismatch-fix.md
-
-### 验证
-
-- 改动类型: fix
-- 清理乱码: 无
-- 子 App index.md 更新: itsm
-- 工作区状态: 干净 ✅
-
----
-
-## e39712c8
-
-> 提交日期: 2026-06-30 | 提交信息: feat: complete i18n fields for all plugin groups (17 groups, 61 files)
-
-### 改动
-
-| 文件 | 类型 | 说明 |
-|------|------|------|
-| `plugins/17 groups (61 files)` | 后端 | 全量补齐 name_en/icon/color/version/output_schema + FormItem/FormGroup i18n |
-| `plugins/esxi/ (6 files)` | 后端 | 修复 attrs 字典语法 bug |
-| `tests/test_manual_pause.py` | 测试 | group 断言更新 |
-
-### 解决
-
-- **问题/背景：** 所有插件缺少 name_en/icon/color/version/output_schema；6 个 ESXi 存在语法错误
-- **办法：** 批量补齐所有字段 + 修复语法错误
-
-### 验证
-
-- 改动类型: feat + fix
-- 清理乱码: 有（空文件 dict）
-- 工作区状态: 干净 ✅
-
----
-
-## 4b67544b
-
-> 提交日期: 2026-06-29 | 提交信息: docs: add plugin development guide + fix PluginPickerDialog i18n path
-
-### 改动
-
-| 文件 | 类型 | 说明 |
-|------|------|------|
-| `docs/opsflow/guides/plugin-development-guide.md` | 文档 | **新建** 原子开发规范指南（BasePlugin 字段/FormItem/FormGroup/execute 协议/output_schema/async_select/执行流程） |
-| `backend/.gitignore` | 配置 | 取消注释 conf/* 规则 |
-| `PluginPickerDialog.vue` | 前端 | i18n 路径 opsflowPage.* 修正为 plugin.* |
-
-### 解决
-
-- **问题/背景：** 缺少统一的原子开发文档；PluginPickerDialog i18n key 路径错误
-- **办法：** 以 create_instance.py 为例编写完整开发指南；修正 i18n key 路径
-
-### 文档
-
-- **生成文档：**
-  - docs/opsflow/guides/plugin-development-guide.md
-
-### 验证
-
-- 改动类型: docs + fix
-- 清理乱码: 无
-- 子 App index.md 更新: 无
-- 工作区状态: 干净 ✅
-
----
-
-## 0fceb102
-
-> 提交日期: 2026-06-29 | 提交信息: feat: unify all plugin groups to English + fix PluginPickerDialog i18n
-
-### 改动
-
-| 文件 | 类型 | 说明 |
-|------|------|------|
-| `plugins/*/__init__.py (3 files)` | 后端 | __group_name__ 统一英文（Aliyun ECS / Common Tools / Verification） |
-| `plugins/aliyun_ecs/*.py (9 files)` | 后端 | group = "Aliyun ECS" |
-| `plugins/approval/approval.py` | 后端 | group = "Process Control" |
-| `plugins/common/*.py (4 files)` | 后端 | group = "Common Tools" |
-| `plugins/verify/ip_ops_verify.py` | 后端 | group = "Verification" |
-| `PluginPickerDialog.vue` | 前端 | 全部硬编码英文替换为 $t() |
-| `i18n en/zh-cn.ts` | 前端 | 新增 searchPlugin / searchNoResult / pluginPickerHint |
-
-### 解决
-
-- **问题/背景：** 所有插件分组为中文，全局英文模式下 UI 显示中文
-- **办法：** 批量替换所有插件文件中的 group + __group_name__ 为英文
-
-### 验证
-
-- 改动类型: feat
-- 清理乱码: 无
-- 子 App index.md 更新: opsflow
-- 工作区状态: 干净 ✅
-
----
-
-## f1b01d6b
-
-> 提交日期: 2026-06-29 | 提交信息: feat: complete i18n fields for aliyun_ecs plugins + FormGroup name_en
-
-### 改动
-
-| 文件 | 类型 | 说明 |
-|------|------|------|
-| `plugins/aliyun_ecs/*.py (8 files)` | 后端 | 每个插件加 group_en + output_schema description_en（共 27 条） |
-| `schema/form_schema.py` | 后端 | FormGroup 模型新增 name_en 字段 |
-| `FormGroup.vue` | 前端 | 标题支持 name_en 中英切换 |
-| `OutputParamSection.vue` | 前端 | description_en 中英切换 |
-| `VariableBrowser.vue` | 前端 | description_en 中英切换 |
-| `useGraphCanvas.ts` | 前端 | extractNodeOutputFields 映射 description_en |
-| `types/index.ts` | 前端 | OutputField 接口加 description_en |
-
-### 解决
-
-- **问题/背景：** aliyun_ecs 插件缺 group_en / description_en，英文模式下组名和输出描述仍显示中文；FormGroup 标题不支持 name_en 切换
-- **办法：** 后端补齐 8 个插件 + Pydantic 模型加 name_en；前端 OutputParamSection/VariableBrowser/FormGroup/useGraphCanvas/types 全链路支持
-
-### 验证
-
-- 改动类型: feat
-- 清理乱码: 无
-- 子 App index.md 更新: opsflow
-- 工作区状态: 待提交 ✅
-
----
-
-## 11d3ddf1
-
-> 提交日期: 2026-06-29 | 提交信息: feat: add show_execution_controls/show_loop_config to BasePlugin
-
-### 改动
-
-| 文件 | 类型 | 说明 |
-|------|------|------|
-| `plugins/base.py` | 后端 | BasePlugin 新增 show_execution_controls + show_loop_config 类属性 |
-| `plugins/common/manual_pause.py` | 后端 | ManualPausePlugin 覆写两者为 False |
-| `plugins/approval/approval.py` | 后端 | ApprovalPlugin 覆写两者为 False |
-| `views/plugin_views.py` | 后端 | retrieve() 动态读取插件类属性返回 |
-| `PropertyPanel.vue` | 前端 | Loop Config + Execution Control 由 computed 动态控制 |
-
-### 解决
-
-- **问题/背景：** approval/manual_pause 不需要重试/超时/循环配置，后续控制流插件也需要同样控制
-- **办法：** BasePlugin 类属性 + API 动态返回 + 前端 computed 读取，后续插件只需覆写两行
-
-### 验证
-
-- 改动类型: feat
-- 清理乱码: 无
-- 子 App index.md 更新: 无
-- 工作区状态: 待提交 ✅
-
----
-
-## 8834b280
-
-> 提交日期: 2026-06-29 | 提交信息: feat: refactor approval as standard plugin + cleanup
-
-### 改动
-
-| 文件 | 类型 | 说明 |
-|------|------|------|
-| `plugins/approval/approval.py` | 后端 | **新建** ApprovalPlugin（async_select 多选审批人） |
-| `core/plugin_service_adapter.py` | 后端 | 追加 approval 分支直接 FlowEngine.pause() |
-| `core/pipeline_builder/elements.py` | 后端 | 删除 approval 特殊分支（插件自动发现替代）|
-| `core/pipeline_schema.py` | 后端 | 删除 approval 枚举值 |
-| `signals/helpers.py` | 后端 | 删除 `_is_approval_node()` |
-| `signals/trace.py` | 后端 | 删除 approval import + pause 分支 |
-| `plugins/ansible/tower_backend/base_plugin.py` | 后端 | TowerBasePlugin code='_tower_base' 防空 code 污染 |
-| `iam/views.py` + `urls.py` | 后端 | 新增 search_users API 供 async_select 使用 |
-| `utils/shapes.ts` | 前端 | 删除 ops-approval 菱形图标 + typeMap + output_fields |
-| `composables/useDesignCanvas.ts` | 前端 | 删除 stencil ops-approval + GATEWAY_TYPES 清理 |
-| `ExecutionDetail.vue` | 前端 | `_pause_reason === 'approval'` 取代 API 调用 |
-| `opsflow-execution/index.vue` | 前端 | 支持 `?id=` 参数自动加载执行详情 |
-| `opsflow-approval/index.vue` | 前端 | 新增 View 按钮跳转执行详情 |
-| `i18n en/zh-cn` | 前端 | 新增 common.view 键 |
-| `docs/features/2026-06-29-approval-refactor-plugin.md` | 文档 | 功能文档 |
-| `docs/superpowers/specs/2026-06-29-approval-as-plugin-design.md` | 文档 | 设计规范 |
-
-### 解决
-
-- **问题/背景：** approval 节点走未知插件路径（ERROR 日志），暂停依赖信号处理器；无标准插件定义
-- **办法：** 新建 ApprovalPlugin 标准插件 + PluginService 直接 pause + 清理旧代码
-
-### 文档
-
-- **生成文档：**
-  - docs/opsflow/features/2026-06-29-approval-refactor-plugin.md
-  - docs/superpowers/specs/2026-06-29-approval-as-plugin-design.md
-
-### 验证
-
-- 改动类型: feat + refactor + fix
-- 清理乱码: 无
-- 子 App index.md 更新: 无
-- 工作区状态: 待提交 ✅
 
 ---
 
@@ -752,7 +525,7 @@
 - 改动类型: fix
 - 清理乱码: 无
 - 子 App index.md 更新: 无（纯前端改动）
-- 工作区状态: 待提交 ✅
+- 工作区状态: 干净 ✅
 
 ---
 
@@ -1317,17 +1090,6 @@
 
 - **问题/背景：** OpsFlow缺少远程Agent基础设施，远程执行依赖SSH（paramiko），无法做到指令推送、实时结果流、文件传输和主机端数据采集
 - **办法：** 用Go实现类蓝鲸GSE的Agent组件体系（Server + Agent + Gateway三层架构），替换SSH成为远程执行首选通道
-
-### 未实现 TODO
-
-1. **应用进程管理**：应用进程的启动/停止/重启/状态查看不在本计划范围内
-2. **文件传输完整链路**：Agent Server分块存储 → WS通知Agent → Agent并发HTTP拉取chunks → sha256校验 → 合并
-3. **Agent Server后端批量写回**：command_result的batch_results内网端点已创建，但Agent Server的handleCommandResult尚未调用backend.Push()
-4. **子进程管理器**：Agent subproc模块的框架已建，但exporter生命周期管理未实现
-5. **Agent热升级端到端**：升级协议已定义，但Server端的upgrade API和Django AgentUpgrade模型尚未对接
-6. **Gateway跨站点模式**：Gateway核心代码已实现，但未经过端到端测试验证
-7. **CMDB采集数据写入Neo4j**：Agent collector已采集host_info，Django internal_views已接收reports，但尚未对接CMDB Service写入Neo4j
-8. **Windows/AIX Agent安装包**：跨平台编译Makefile已建，但Windows Service注册和AIX SRC注册的install.sh尚未完善
 
 ### 验证
 

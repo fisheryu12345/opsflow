@@ -12,9 +12,9 @@ import { useProjectStore } from './project'
 export const usePermissionStore = defineStore('permission', () => {
   const projectStore = useProjectStore()
 
-  const currentRole = computed(() => projectStore.currentProject?.role || 'viewer')
+  const currentRole = computed(() => projectStore.currentProject?.role || null)
   const isAdmin = computed(() => currentRole.value === 'admin')
-  const canEdit = computed(() => currentRole.value !== 'viewer')
+  const canEdit = computed(() => currentRole.value !== null && currentRole.value !== 'viewer')
   const isSuperuser = computed(() => currentRole.value === 'admin') // IAM admin = platform superuser for sub-products
 
   /**
@@ -22,6 +22,7 @@ export const usePermissionStore = defineStore('permission', () => {
    * @param action - 'view' | 'edit' | 'admin'
    */
   function can(action: 'view' | 'edit' | 'admin'): boolean {
+    if (!currentRole.value) return false
     if (action === 'admin') return currentRole.value === 'admin'
     if (action === 'edit') return currentRole.value !== 'viewer'
     return true // viewer can always view
