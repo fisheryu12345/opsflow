@@ -2,7 +2,7 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-## 5ad24b89
+## e3761d79
 
 > 提交日期: 2026-07-01 | 提交信息: feat: opsflow v-can permission locks + dvadmin cleanup — OpsFlow 按钮权限锁和废弃代码清理
 
