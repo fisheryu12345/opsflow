@@ -38,6 +38,7 @@ class LoginLogViewSet(CustomModelViewSet):
     queryset = LoginLog.objects.all()
     serializer_class = LoginLogSerializer
     extra_filter_class = []
+    required_permission = 'system:log:view'
 
     @action(methods=['get'], detail=False)
     def stats(self, request):

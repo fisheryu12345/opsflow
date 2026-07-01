@@ -16,7 +16,7 @@ export function GetDept(query: Record<string, any> = {}) {
 }
 
 export function GetList(query: UserQuery) {
-  return request({ url: apiPrefix, method: 'get', params: query });
+  return request({ url: '/api/iam/users/search/', method: 'get', params: query });
 }
 
 export function GetObj(id: string | number) {

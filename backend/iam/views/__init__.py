@@ -12,16 +12,14 @@ from iam.views.permission_views import (
     IamProjectViewSet,
     search_users,
     my_permissions,
+    my_full_permissions,
+    page_permissions,
+    permission_catalog,
 )
 from iam.views.role import RoleViewSet
 from iam.views.menu import MenuViewSet
-from iam.views.menu_button import MenuButtonViewSet
-from iam.views.menu_field import MenuFieldViewSet
-from iam.views.role_menu import RoleMenuPermissionViewSet
-from iam.views.role_menu_button_permission import RoleMenuButtonPermissionViewSet
 
 __all__ = [
-    # Permission views
     'PermissionRequestViewSet',
     'UserDirectPermissionViewSet',
     'BusinessGroupViewSet',
@@ -30,11 +28,8 @@ __all__ = [
     'IamProjectViewSet',
     'search_users',
     'my_permissions',
-    # RBAC views (migrated from dvadmin)
+    'my_full_permissions',
+    'page_permissions',
     'RoleViewSet',
     'MenuViewSet',
-    'MenuButtonViewSet',
-    'MenuFieldViewSet',
-    'RoleMenuPermissionViewSet',
-    'RoleMenuButtonPermissionViewSet',
 ]

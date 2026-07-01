@@ -12,7 +12,7 @@ export function GetDept(params?: Record<string, any>) {
 
 export function GetList(params?: Record<string, any>) {
     return request({
-        url: apiPrefix,
+        url: '/api/iam/users/search/',
         method: 'get',
         params,
     });

@@ -18,12 +18,10 @@ import { usePermissionStore } from '/@/stores/permission'
 const vCan: Directive = {
   mounted(el: HTMLElement, binding: DirectiveBinding) {
     const store = usePermissionStore()
-    const action = binding.arg || (typeof binding.value === 'string' && !binding.value.includes(':') ? binding.value : null)
     const permKey = typeof binding.value === 'string' && binding.value.includes(':') ? binding.value : null
-    const required = (action as string) || 'edit'
 
-    if (store.can(required as 'view' | 'edit' | 'admin')) {
-      return // has permission, do nothing
+    if (permKey) {
+      if (store.hasPerm(permKey)) return
     }
 
     // No permission: disable + intercept click for auto-request

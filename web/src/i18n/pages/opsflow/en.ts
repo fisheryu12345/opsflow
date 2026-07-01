@@ -721,7 +721,7 @@ export default {
         projectsMemberRemoved: 'Member removed',
         projectsDeleteConfirm: 'Delete this project?',
         envTitle: 'Environment Variables',
-        envDesc: 'Project-level variables shared across templates. Reference them as ${env.key} in your pipeline.',
+        envDesc: 'Project-level variables shared across templates. Reference them as $env.key in your pipeline.',
         envSearch: 'Search...',
         envAdd: 'Add',
         envAddVar: 'Add Variable',

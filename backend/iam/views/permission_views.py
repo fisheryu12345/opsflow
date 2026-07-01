@@ -6,7 +6,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from iam.models.menu_rbac import Role, Menu
+from iam.models.page_config import IAMMenu
 from dvadmin.system.models import Users
 from dvadmin.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
 from iam.models import (
@@ -86,12 +86,12 @@ def _notify_approvers(req: 'PermissionRequest'):
 
         if req.request_type == 'project_role' and req.target_project:
             detail = f"项目 [{req.target_project.name}] {role_display}"
-        elif req.request_type == 'role' and req.target_role:
-            detail = f"角色 [{req.target_role.name}]"
+        elif req.request_type == 'role' and req.target_iam_role:
+            detail = f"产品角色 [{req.target_iam_role.name}]"
         elif req.request_type == 'menu' and req.target_menu:
             detail = f"菜单 [{req.target_menu.name}]"
-        elif req.request_type == 'menu_button' and req.target_menu_button:
-            detail = f"按钮 [{req.target_menu_button.name}]"
+        elif req.request_type == 'menu_button':
+            detail = f"按钮ID [{req.target_menu_button}]"
         else:
             detail = req.reason[:50] if req.reason else '-'
 
@@ -168,21 +168,45 @@ class PermissionRequestViewSet(mixins.CreateModelMixin,
             permission_request.reviewed_at = timezone.now()
             permission_request.save()
 
-            if permission_request.request_type == 'role' and permission_request.target_role:
-                permission_request.user.role.add(permission_request.target_role)
+            if permission_request.request_type == 'role' and permission_request.target_iam_role:
+                    from iam.models.permission import IAMUserRole
+                    IAMUserRole.objects.get_or_create(
+                        user=permission_request.user,
+                        role=permission_request.target_iam_role,
+                    )
             elif permission_request.request_type == 'menu' and permission_request.target_menu:
                 UserDirectPermission.objects.update_or_create(
                     user=permission_request.user, menu=permission_request.target_menu,
                     defaults={'granted_by': request.user})
-                # Grant selected buttons (or all if none selected)
-                from iam.models.menu_rbac import MenuButton
-                selected = permission_request.selected_buttons or []
-                qs = MenuButton.objects.filter(menu=permission_request.target_menu)
-                if selected:
-                    qs = qs.filter(id__in=selected)
-                for btn in qs:
+                # Grant only app access (not all permissions for the app)
+                menu_app = permission_request.target_menu.app
+                if menu_app:
+                    access_perm, _ = IAMPermission.objects.get_or_create(
+                        codename=f'{menu_app}:access',
+                        defaults={'label': f'{menu_app} 访问', 'app': menu_app, 'scope': 'platform'},
+                    )
                     UserDirectPermission.objects.update_or_create(
-                        user=permission_request.user, menu_button=btn,
+                        user=permission_request.user, permission=access_perm,
+                        defaults={'granted_by': request.user})
+                # Grant selected buttons (or all if none selected) — MenuButton deprecated
+                selected = permission_request.selected_buttons or []
+                from iam.models.page_config import PageButton
+                if permission_request.target_menu:
+                    qs = PageButton.objects.filter(tab__app=permission_request.target_menu.app)
+                    for btn in qs:
+                        if not selected or btn.id in selected:
+                            if btn.required_perm:
+                                perm = IAMPermission.objects.filter(codename=btn.required_perm).first()
+                                if perm:
+                                    UserDirectPermission.objects.update_or_create(
+                                        user=permission_request.user, permission=perm,
+                                        defaults={'granted_by': request.user})
+            elif permission_request.request_type == 'permission' and permission_request.target_permission:
+                from iam.models.permission import IAMPermission
+                perm = IAMPermission.objects.filter(codename=permission_request.target_permission).first()
+                if perm:
+                    UserDirectPermission.objects.update_or_create(
+                        user=permission_request.user, permission=perm,
                         defaults={'granted_by': request.user})
             elif permission_request.request_type == 'menu_button' and permission_request.target_menu_button:
                 UserDirectPermission.objects.update_or_create(
@@ -228,12 +252,13 @@ class PermissionRequestViewSet(mixins.CreateModelMixin,
 
     @action(detail=False, methods=['get'])
     def available_roles(self, request):
-        qs = Role.objects.filter(status=True).values('id', 'name')
-        return SuccessResponse(data=list(qs))
+        from iam.models.permission import IAMRole
+        data = IAMRole.objects.values('id', 'name')
+        return SuccessResponse(data=list(data))
 
     @action(detail=False, methods=['get'])
     def available_menus(self, request):
-        qs = Menu.objects.filter(status=1, visible=1).values('id', 'name', 'parent', 'web_path')
+        qs = IAMMenu.objects.filter(status=1, visible=1).values('id', 'name', 'parent', 'web_path')
         return SuccessResponse(data=list(qs))
 
 
@@ -464,33 +489,14 @@ def search_users(request):
 # My Permissions — 用户查看自己当前权限
 # ═══════════════════════════════════════════════════════════════════════════
 
-ALL_PAGE_DEFS = [
-    # ITSM
-    ('itsm-tickets', 'ITSM Tickets', 'ITSM 工单'),
-    ('itsm-workflows', 'ITSM Workflows', 'ITSM 流程'),
-    ('itsm-incidents', 'ITSM Incidents', 'ITSM 事件'),
-    ('itsm-changes', 'ITSM Changes', 'ITSM 变更'),
-    ('itsm-sla', 'ITSM SLA', 'ITSM SLA'),
-    ('itsm-delegation', 'ITSM Delegation', 'ITSM 委托'),
-    ('itsm-skill-groups', 'ITSM Skill Groups', 'ITSM 技能组'),
-    ('itsm-on-duty', 'ITSM On-Duty', 'ITSM 排班'),
-    ('itsm-assign-rules', 'ITSM Assign Rules', 'ITSM 路由'),
-    ('itsm-escalation', 'ITSM Escalation', 'ITSM 升级'),
-    # OPSflow
-    ('opsflow-templates', 'OPSflow Templates', 'OPSflow 模板'),
-    ('opsflow-executions', 'OPSflow Executions', 'OPSflow 执行'),
-    ('opsflow-schedules', 'OPSflow Schedules', 'OPSflow 调度'),
-    ('opsflow-webhooks', 'OPSflow Webhooks', 'OPSflow Webhook'),
-    # CMDB
-    ('cmdb-models', 'CMDB Models', 'CMDB 模型'),
-    ('cmdb-instances', 'CMDB Instances', 'CMDB 实例'),
-]
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_permissions(request):
-    """Return current user's ITSM permissions for a given project."""
+    """Return current user's unified IAM permissions for a given project."""
+    from iam.models import IAMPermission, Project
+    from iam.models.rbac import UserDirectPermission
+    from iam.models.permission import IAMRolePermission
+
     project_id = request.query_params.get('project_id')
     if not project_id:
         return ErrorResponse(msg='project_id required')
@@ -502,59 +508,88 @@ def my_permissions(request):
 
     user = request.user
 
-    # Determine IAM role on this project
-    from iam.resolvers import ROLE_ORDER
-    role = 'viewer'
-    try:
-        pm = ProjectMember.objects.filter(project_id=project_id, user=user).first()
-        if pm:
-            role = pm.role
-        else:
-            # Check BusinessMember inheritance
-            project = Project.objects.only('business_id').get(id=project_id)
-            if project.business_id: # pyright: ignore[reportAttributeAccessIssue]
-                bm = BusinessMember.objects.filter(
-                    business_id=project.business_id, user=user # pyright: ignore[reportAttributeAccessIssue]
-                ).first()
-                if bm:
-                    role = bm.role
-    except Project.DoesNotExist:
-        return ErrorResponse(msg='Project not found', status=404)
+    # ── 1. Determine IAM project role ──
+    from iam.resolvers import get_project_role
+    project_role = get_project_role(user, project_id) or 'viewer'
 
-    # Determine visible pages (all visible to editor+, some admin-only)
-    is_admin = role == 'admin'
-    is_editor = role == 'editor'
-    pages = []
-    admin_only = {'itsm-assign-rules', 'itsm-escalation', 'cmdb-models'}
-    for key, label_en, label_zh in ALL_PAGE_DEFS:
-        visible = True
-        if key in admin_only:
-            visible = is_admin
-        pages.append({'key': key, 'label_en': label_en, 'label_zh': label_zh, 'visible': visible})
-
-    # Collect all permission keys
-    perm_keys = set()
+    # ── 2. Determine visible pages from IAMPermission by app ──
+    # Get all apps the user has ANY permission for
+    perm_apps = set()
     if user.is_superuser:
-        from iam.models.menu_rbac import MenuButton
-        perm_keys = set(MenuButton.objects.values_list('value', flat=True))
+        perm_apps = set(IAMPermission.objects.values_list('app', flat=True).distinct())
     else:
-        for r in user.role.filter(status=1):
-            for mbp in r.role_menu_button.select_related('menu_button').all():
-                if mbp.menu_button:
-                    perm_keys.add(mbp.menu_button.value)
-        for dp in UserDirectPermission.objects.filter(user=user).select_related('menu_button'):
-            if dp.menu_button:
-                perm_keys.add(dp.menu_button.value)
+        # From role-based permissions
+        for rp in IAMRolePermission.objects.filter(
+            role__user_roles__user=user
+        ).select_related('permission').values('permission__app').distinct():
+            perm_apps.add(rp['permission__app'])
+        # From direct permissions
+        for dp in UserDirectPermission.objects.filter(
+            user=user, permission__isnull=False
+        ).select_related('permission').values('permission__app').distinct():
+            perm_apps.add(dp['permission__app'])
 
-    # Group permissions by app prefix
+    # ── 3. Build page list from user's perm apps + project role ──
+    APP_NAME_MAP = {
+        'opsflow': 'OPSflow', 'itsm': 'ITSM', 'cmdb': 'CMDB',
+        'system': '消息中心', 'portal': '门户', 'iam': 'IAM',
+        'monitor': '监控', 'system_admin': '系统管理',
+        'integration': '集成中心', 'open_api': '开放接口',
+        'job_platform': '作业平台', 'agent_app': 'Agent', 'opsagent': '运维助手',
+    }
+    pages = []
+    for app in sorted(perm_apps):
+        label = APP_NAME_MAP.get(app, app)
+        pages.append({'key': app, 'label_en': label, 'label_zh': label, 'visible': True})
+
+    # ── 3. Categorize permissions by app + role level ──
+    perm_keys = set()
+    # Classify permission codenames into role levels
+    ADMIN_KEYWORDS = {'delete', 'cancel', 'publish'}
+    EDITOR_KEYWORDS = {'create', 'update', 'edit', 'run', 'manage', 'assign', 'approve', 'close'}
+    VIEWER_KEYWORDS = {'search', 'retrieve', 'view', 'list', 'read', 'access'}
+    if user.is_superuser:
+        perm_keys = set(IAMPermission.objects.values_list('codename', flat=True))
+    else:
+        from iam.models.permission import IAMRolePermission, IAMUserRole
+        # From IAMRolePermissions (new system)
+        for rp in IAMRolePermission.objects.filter(
+            role__user_roles__user=user
+        ).select_related('permission'):
+            perm_keys.add(rp.permission.codename)
+        # From UserDirectPermission (new field)
+        for dp in UserDirectPermission.objects.filter(
+            user=user, permission__isnull=False
+        ).select_related('permission'):
+            perm_keys.add(dp.permission.codename)
+
+    # Group by app and role level
     from collections import defaultdict
     grouped = defaultdict(list)
     for k in sorted(perm_keys):
         app = k.split(':')[0] if ':' in k else 'other'
         grouped[app].append(k)
 
+    # Build per-app role mapping
+    def classify_role(permissions: list[str]) -> str:
+        """Classify a set of permissions into admin/editor/viewer"""
+        perm_names = [p.split(':')[-1] for p in permissions]
+        if any(kw in ' '.join(perm_names) for kw in ['delete', 'cancel', 'publish']):
+            return 'admin'
+        if any(kw in ' '.join(perm_names) for kw in ['create', 'update', 'edit', 'run', 'manage', 'assign']):
+            return 'editor'
+        return 'viewer'
+
+    app_roles = {}
+    for app, perms in sorted(grouped.items()):
+        app_roles[app.lower()] = {
+            'app': app.upper(),
+            'role': classify_role(perms),
+            'permissions': perms,
+        }
+
     return DetailResponse(data={
-        'role': role,
+        'role': project_role,
         'project_id': project_id,
         'pages': pages,
         'permissions': sorted(perm_keys),
@@ -562,4 +597,123 @@ def my_permissions(request):
             {'app': app.upper(), 'keys': keys}
             for app, keys in sorted(grouped.items())
         ],
+        'app_roles': app_roles,
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_full_permissions(request):
+    """返回当前用户的全部权限 codename 列表（含平台级和项目级）"""
+
+    user = request.user
+    if user.is_superuser:
+        from iam.models import IAMPermission
+        perms = list(IAMPermission.objects.values_list('codename', flat=True))
+    else:
+        perms = set()
+        # Collect via direct UserDirectPermission
+        from iam.models.rbac import UserDirectPermission
+        for dp in UserDirectPermission.objects.filter(
+            user=user, permission__isnull=False
+        ).select_related('permission'):
+            perms.add(dp.permission.codename)
+        # Collect via role-based permissions
+        from iam.models.permission import IAMRolePermission
+        for rp in IAMRolePermission.objects.filter(
+            role__user_roles__user=user,
+        ).select_related('permission'):
+            perms.add(rp.permission.codename)
+    return SuccessResponse(data=sorted(perms))
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Page Permissions — 根据 PageTab/PageButton 配置返回用户可见的 tab + button
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def page_permissions(request):
+    """Return visible tabs and buttons for a given app based on user permissions."""
+    app = request.query_params.get('app')
+    if not app:
+        return ErrorResponse(msg='app required')
+
+    user = request.user
+    from iam.models.permission import IAMRolePermission
+    from iam.models.rbac import UserDirectPermission
+    from iam.models.page_config import PageTab
+
+    user_perms = set()
+    if user.is_superuser:
+        from iam.models import IAMPermission
+        user_perms = set(IAMPermission.objects.filter(app=app).values_list('codename', flat=True))
+    else:
+        for rp in IAMRolePermission.objects.filter(
+            role__user_roles__user=user, permission__app=app
+        ).select_related('permission'):
+            user_perms.add(rp.permission.codename)
+        for dp in UserDirectPermission.objects.filter(
+            user=user, permission__app=app
+        ).select_related('permission'):
+            if dp.permission:
+                user_perms.add(dp.permission.codename)
+
+    tabs_data = []
+    for tab in PageTab.objects.filter(app=app, visible=True).order_by('sort'):
+        tab_has_access = not tab.required_perm or tab.required_perm in user_perms
+        buttons_data = []
+        for btn in tab.buttons.order_by('sort'):
+            buttons_data.append({
+                'key': btn.key, 'label_zh': btn.label_zh, 'label_en': btn.label_en,
+                'icon': btn.icon, 'required_perm': btn.required_perm,
+                'has_access': btn.required_perm in user_perms,
+                'style': btn.style,
+            })
+        tabs_data.append({
+            'key': tab.key, 'label_zh': tab.label_zh, 'label_en': tab.label_en,
+            'icon': tab.icon, 'is_default': tab.is_default,
+            'required_perm': tab.required_perm, 'has_access': tab_has_access,
+            'buttons': buttons_data,
+        })
+
+    return SuccessResponse(data={
+        'app': app,
+        'user_permissions': sorted(user_perms),
+        'tabs': tabs_data,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def permission_catalog(request):
+    """返回所有子产品的权限目录 — 按 app → tab → button 组织，用于权限申请页面"""
+    from iam.models.page_config import PageTab, PageButton
+
+    catalog = []
+    for app_name in ['opsflow', 'itsm', 'cmdb']:
+        tabs = []
+        for tab in PageTab.objects.filter(app=app_name, visible=True).order_by('sort'):
+            buttons = []
+            for btn in PageButton.objects.filter(tab=tab).order_by('sort'):
+                buttons.append({
+                    'key': btn.key,
+                    'label_zh': btn.label_zh,
+                    'label_en': btn.label_en,
+                    'required_perm': btn.required_perm,
+                })
+            tabs.append({
+                'key': tab.key,
+                'label_zh': tab.label_zh,
+                'label_en': tab.label_en,
+                'icon': tab.icon,
+                'required_perm_tab': tab.required_perm,
+                'buttons': buttons,
+            })
+        catalog.append({
+            'app': app_name,
+            'tabs': tabs,
+        })
+
+    return SuccessResponse(data=catalog)

@@ -2,6 +2,55 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 3ade6b9e
+
+> 提交日期: 2026-07-01 | 提交信息: refactor: migrate dvadmin RBAC to IAM single system + feat: IAMMenu + i18n
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/iam/models/menu_rbac.py` | 后端 | 删除旧 Role, MenuButton, RoleMenuPermission, RoleMenuButtonPermission |
+| `backend/iam/models/page_config.py` | 后端 | 新增 IAMMenu 导航模型（映射 opsflow_iam_menu 表） |
+| `backend/iam/models/rbac.py` | 后端 | 旧 FK 改为 IntegerField，Users.role M2M 删除 |
+| `backend/iam/views/role.py` | 后端 | RoleViewSet 重写为 IAMRole CRUD + permissions action |
+| `backend/iam/views/menu.py` | 后端 | 适配 IAMMenu, web_router 简化 |
+| `backend/iam/views/*.py` | 后端 | 删除 menu_button, role_menu, role_menu_button_permission, menu_field |
+| `backend/iam/views/permission_views.py` | 后端 | approve 去 target_role, available_roles 仅 IAMRole |
+| `backend/dvadmin/system/models.py` | 后端 | 删除 Users.role M2M, MessageCenter.target_role → IAMRole |
+| `backend/dvadmin/system/views/user.py` | 后端 | get_role_info/user_info 改用 IAMUserRole |
+| `backend/dvadmin/system/views/dept.py` | 后端 | 删除 data_range 过滤 |
+| `backend/dvadmin/utils/field_permission.py` | 后端 | 文件删除（僵尸代码） |
+| `backend/dvadmin/utils/viewset.py` | 后端 | 删除 get_menu_field 死代码 |
+| `web/src/views/apps/iam/admin/` | 前端 | 删除 MenuButtonCom/MenuFieldCom/PermissionComNew |
+| `web/src/views/apps/iam/admin/role/` | 前端 | RolePermissionPanel 重写为 IAM 权限分配 |
+| `web/src/views/apps/iam/index.vue` | 前端 | 权限展示重写 + 全 i18n |
+| `web/src/views/apps/iam/MyRequests/index.vue` | 前端 | 角色选择简化 + checkbox-group 修复 + 全 i18n |
+| `web/src/views/apps/iam/ApprovalDashboard/index.vue` | 前端 | 批量审批 + 全 i18n |
+| `web/src/i18n/pages/iam/` | 前端 | 新增 30+ i18n 键值对 |
+| `docs/` | 文档 | 架构重构 + 迁移指南文档 |
+
+### 解决
+
+- **问题/背景：** 两套 RBAC 模型（dvadmin 旧 + IAM 新）功能重叠，维护成本高。旧模型 Role/MenuButton/RoleMenuPermission/RoleMenuButtonPermission 4 表 + 对应 ViewSet 需要清理
+- **办法：** 删除旧模型代码和 ViewSet（保留 DB 表），IAMMenu 迁移到 page_config.py，用户角色绑定从 user.role M2M 改为 IAMUserRole，PermissionRequest 审批仅用 target_iam_role
+
+### 文档
+
+- **生成文档：**
+  - `docs/iam/architecture/2026-07-01-rbac-cleanup-refactor.md`
+  - `docs/iam/migration/2026-07-01-rbac-cleanup-migration.md`
+
+### 验证
+
+- 改动类型: refactor + feat + BREAKING CHANGE
+- 清理乱码: 有（删除 permission.py.bak）
+- 子 App index.md 更新: iam
+- 工作区状态: 待提交 ✅
+
+---
+
+
 ## e3761d79
 
 > 提交日期: 2026-07-01 | 提交信息: feat: opsflow v-can permission locks + dvadmin cleanup — OpsFlow 按钮权限锁和废弃代码清理

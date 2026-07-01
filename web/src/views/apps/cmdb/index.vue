@@ -17,29 +17,13 @@
       </div>
       <!-- Tabs -->
       <div class="cmdb-hero-tabs">
-        <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'schema' }"
-          @click="store.setActiveView('schema')">
-          <el-icon><Grid /></el-icon> {{ $t('message.cmdb.tabSchema') }}
-        </div>
-        <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'instance' }"
-          @click="store.setActiveView('instance')">
-          <el-icon><Folder /></el-icon> {{ $t('message.cmdb.tabInstance') }}
-        </div>
-        <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'topology' }"
-          @click="store.setActiveView('topology')">
-          <el-icon><Connection /></el-icon> {{ $t('message.cmdb.tabTopology') }}
-        </div>
-        <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'dr' }"
-          @click="switchDrTab">
-          <el-icon><Warning /></el-icon> {{ $t('message.cmdb.tabDr') }}
-        </div>
-        <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'sync' }"
-          @click="store.setActiveView('sync')">
-          <el-icon><Upload /></el-icon> {{ $t('message.cmdb.tabSync') }}
-        </div>
-        <div class="cmdb-hero-tab" :class="{ active: store.activeView === 'events' }"
-          @click="store.setActiveView('events')">
-          <el-icon><Bell /></el-icon> {{ $t('message.cmdb.tabEvents') }}
+        <div v-for="tab in pageConfig?.tabs" :key="tab.key"
+          class="cmdb-hero-tab"
+          :class="{ active: activeTab === tab.key, locked: !tab.has_access }"
+          @click="onTabClick(tab)">
+          <el-icon><component :is="iconMap[tab.icon]" /></el-icon>
+          {{ isEn ? tab.label_en : tab.label_zh }}
+          <span v-if="!tab.has_access" class="tab-lock">🔒</span>
         </div>
       </div>
     </div>
@@ -48,7 +32,7 @@
     <div class="cmdb-body">
 
       <!-- ─── Tab 1: 模型管理 ─── -->
-      <div v-show="store.activeView === 'schema'" class="cmdb-section g-fade-in-up">
+      <div v-show="activeTab === 'schema'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-schema-layout">
           <!-- Left: Model List -->
           <div class="cmdb-schema-sidebar">
@@ -154,7 +138,7 @@
       </div>
 
       <!-- ─── Tab 2: 实例管理 ─── -->
-      <div v-show="store.activeView === 'instance'" class="cmdb-section g-fade-in-up">
+      <div v-show="activeTab === 'instance'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-instance-layout">
           <div class="cmdb-instance-sidebar">
             <div class="cmdb-table-card">
@@ -185,7 +169,7 @@
       </div>
 
       <!-- ─── Tab 3: 拓扑视图 ─── -->
-      <div v-show="store.activeView === 'topology'" class="cmdb-section cmdb-section-topo g-fade-in-up">
+      <div v-show="activeTab === 'topology'" class="cmdb-section cmdb-section-topo g-fade-in-up">
         <div class="cmdb-topo-card">
           <div class="cmdb-topo-toolbar">
             <div class="cmdb-topo-toolbar-left">
@@ -224,7 +208,7 @@
       </div>
 
       <!-- ─── Tab 4: DR 拓扑 ─── -->
-      <div v-if="store.activeView === 'dr'" class="cmdb-section cmdb-section-topo g-fade-in-up">
+      <div v-show="activeTab === 'dr'" class="cmdb-section cmdb-section-topo g-fade-in-up">
         <div class="cmdb-topo-card">
           <div class="cmdb-topo-toolbar">
             <div class="cmdb-topo-toolbar-left">
@@ -248,7 +232,7 @@
       </div>
 
       <!-- ─── Tab 5: 数据同步 ─── -->
-      <div v-show="store.activeView === 'sync'" class="cmdb-section g-fade-in-up">
+      <div v-show="activeTab === 'sync'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-sync-grid">
           <div class="cmdb-table-card">
             <div class="cmdb-table-header">
@@ -280,7 +264,7 @@
       </div>
 
       <!-- ─── Tab 5: 事件订阅 ─── -->
-      <div v-show="store.activeView === 'events'" class="cmdb-section g-fade-in-up">
+      <div v-show="activeTab === 'events'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-table-card">
           <div class="cmdb-table-header">
             <span class="cmdb-table-title">{{ $t('message.cmdb.eventSubTitle') }}</span>
@@ -457,11 +441,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { usePermissionStore } from '/@/stores/permission'
 import {
   Search, Monitor, Loading, Plus, Edit, Delete, Upload, Bell,
   Folder, Connection, Grid, Warning, Star, View, Cloudy, DataBoard,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { request } from '/@/utils/service'
 import { useCmdbStore } from './stores/cmdbStore'
 import TopologyCanvas from './components/TopologyCanvas.vue'
 import DrTopologyCanvas from './components/DrTopologyCanvas.vue'
@@ -473,8 +459,46 @@ import {
   eventSubscriptionsApi,
 } from '/@/api/cmdb/index'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const isEn = computed(() => String(locale.value).startsWith('en'))
 const store = useCmdbStore()
+const permissionStore = usePermissionStore()
+
+// ===== Page Config (data-driven tabs) =====
+const pageConfig = ref<any>(null)
+const userPerms = ref<string[]>([])
+const activeTab = ref('instance')
+
+function getTab(key: string) {
+  return pageConfig.value?.tabs?.find((t: any) => t.key === key)
+}
+
+async function loadPageConfig() {
+  try {
+    const res = await request({ url: '/api/iam/page-permissions/', params: { app: 'cmdb' } })
+    pageConfig.value = res.data
+    userPerms.value = res.data.user_permissions || []
+    const defaultTab = res.data.tabs.find((t: any) => t.is_default) || res.data.tabs[0]
+    if (defaultTab) activeTab.value = defaultTab.key
+  } catch { /* show empty */ }
+}
+
+const iconMap: Record<string, any> = {
+  Grid, Folder, Connection, Warning, Upload, Bell,
+}
+
+const componentMap: Record<string, any> = {}
+
+function onTabClick(tab: any) {
+  if (!tab.has_access) {
+    permissionStore.requestPerm(tab.label_zh, tab.required_perm)
+    return
+  }
+  activeTab.value = tab.key
+  if (tab.key === 'dr') {
+    switchDrTab()
+  }
+}
 
 // ─── Schema Tab ───
 const showAddModel = ref(false)
@@ -675,7 +699,7 @@ const selectedDrGroup = ref<string>('')
 const drGroupList = ref<any[]>([])
 
 function switchDrTab() {
-  store.setActiveView('dr')
+  // DR tab switching handled by onTabClick
   // 仅加载 DR group 列表，不自动加载拓扑 — 用户下拉选择才加载
   if (!drGroupList.value.length) loadDrGroups()
   drTopoNodes.value = []
@@ -863,7 +887,7 @@ async function doGlobalSearch() {
   if (!store.searchQuery) return
   await store.doSearch(store.searchQuery)
   if (store.searchResults.length) {
-    store.setActiveView('topology')
+    activeTab.value = 'topology'
     store.topology = {
       nodes: store.searchResults.map((r: any) => ({
         instance_id: r.instance_id,
@@ -878,6 +902,7 @@ async function doGlobalSearch() {
 
 // ─── Load Data ───
 onMounted(async () => {
+  await loadPageConfig()
   store.loading = true
   await Promise.all([
     store.fetchClassifications(),
@@ -949,6 +974,9 @@ onMounted(async () => {
 }
 .cmdb-hero-tab:hover { color: rgba(255,255,255,0.9); }
 .cmdb-hero-tab.active { color: #fff; border-bottom-color: #409EFF; }
+.cmdb-hero-tab.locked { opacity: 0.6; }
+.cmdb-hero-tab.locked:hover { opacity: 0.9; background: rgba(255,193,7,0.1); border-bottom-color: #ffc107; }
+.cmdb-hero-tab .tab-lock { font-size: 11px; margin-left: 3px; }
 
 /* ===== Body ===== */
 .cmdb-body { flex: 1; overflow-y: auto; padding: 0 20px 0; display: flex; flex-direction: column; }

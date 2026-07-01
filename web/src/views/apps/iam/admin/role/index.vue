@@ -60,10 +60,10 @@
           @sort-change="handleSortChange"
         >
           <el-table-column type="index" :label="$t('message.rolePage.index')" width="65" align="center" />
-          <el-table-column v-if="colPerm('name','is_query')" prop="name" :label="$t('message.rolePage.roleName')" min-width="140" sortable="custom" />
-          <el-table-column v-if="colPerm('key','is_query')" prop="key" :label="$t('message.rolePage.roleKey')" min-width="140" />
-          <el-table-column v-if="colPerm('sort','is_query')" prop="sort" :label="$t('message.rolePage.sort')" width="80" sortable="custom" align="center" />
-          <el-table-column v-if="colPerm('status','is_query')" :label="$t('message.rolePage.status')" width="100" align="center">
+          <el-table-column prop="name" :label="$t('message.rolePage.roleName')" min-width="140" sortable="custom" />
+	          <el-table-column prop="key" :label="$t('message.rolePage.roleKey')" min-width="140" />
+	          <el-table-column prop="sort" :label="$t('message.rolePage.sort')" width="80" sortable="custom" align="center" />
+	          <el-table-column :label="$t('message.rolePage.status')" width="100" align="center">
             <template #default="{ row }">
               <el-switch
                 :model-value="row.status"
@@ -73,8 +73,8 @@
               />
             </template>
           </el-table-column>
-          <el-table-column v-if="colPerm('update_datetime','is_query')" prop="update_datetime" :label="$t('message.rolePage.updateTime')" min-width="170" sortable="custom" />
-          <el-table-column v-if="colPerm('create_datetime','is_query')" prop="create_datetime" :label="$t('message.rolePage.createTime')" min-width="170" sortable="custom" />
+          <el-table-column  prop="update_datetime" :label="$t('message.rolePage.updateTime')" min-width="170" sortable="custom" />
+          <el-table-column  prop="create_datetime" :label="$t('message.rolePage.createTime')" min-width="170" sortable="custom" />
           <el-table-column :label="$t('message.rolePage.actions')" :width="actionColWidth" fixed="right" align="center">
             <template #default="{ row }">
               <el-button text size="small" style="padding:0 4px" @click="handleView(row)">{{ $t('message.rolePage.view') }}</el-button>
@@ -128,25 +128,21 @@
     >
       <el-form ref="editFormRef" :model="editForm" :rules="editFormRules" label-width="100px">
         <el-form-item
-          v-if="(editMode==='add' && colPerm('name','is_create')) || (editMode==='edit' && colPerm('name','is_update'))"
           :label="$t('message.rolePage.roleName')" prop="name"
         >
           <el-input v-model="editForm.name" :placeholder="$t('message.rolePage.roleNamePlaceholder')" maxlength="50" />
         </el-form-item>
         <el-form-item
-          v-if="(editMode==='add' && colPerm('key','is_create')) || (editMode==='edit' && colPerm('key','is_update'))"
           :label="$t('message.rolePage.roleKey')" prop="key"
         >
           <el-input v-model="editForm.key" :placeholder="$t('message.rolePage.keyPlaceholder')" maxlength="50" />
         </el-form-item>
         <el-form-item
-          v-if="(editMode==='add' && colPerm('sort','is_create')) || (editMode==='edit' && colPerm('sort','is_update'))"
           :label="$t('message.rolePage.sort')" prop="sort"
         >
           <el-input-number v-model="editForm.sort" :min="0" />
         </el-form-item>
         <el-form-item
-          v-if="(editMode==='add' && colPerm('status','is_create')) || (editMode==='edit' && colPerm('status','is_update'))"
           :label="$t('message.rolePage.status')" prop="status"
         >
           <el-radio-group v-model="editForm.status">
@@ -176,7 +172,7 @@ import { ref, reactive, computed, onMounted, markRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { Plus, Search, Refresh, User, Tickets, Check, Close } from '@element-plus/icons-vue';
-import { GetList, GetObj, AddObj, UpdateObj, DelObj, GetPermission } from './api';
+import { GetList, GetObj, AddObj, UpdateObj, DelObj } from './api';
 
 import { successMessage } from '/@/utils/message';
 import RolePermissionPanel from './components/RolePermissionPanel.vue';
@@ -192,12 +188,7 @@ interface RoleItem {
   create_datetime: string;
   [key: string]: any;
 }
-interface ColumnPermItem {
-  field_name: string;
-  is_query: boolean;
-  is_create: boolean;
-  is_update: boolean;
-}
+
 
 /* ===================== i18n ===================== */
 const { t } = useI18n();
@@ -219,11 +210,7 @@ const searchForm = reactive({ name: '', status: undefined as boolean | string | 
 const pagination = reactive({ page: 1, limit: 15, total: 0, ordering: '' });
 
 /* ===================== Column Permissions ===================== */
-const columnPerms = ref<ColumnPermItem[]>([]);
-const colPerm = (field: string, type: 'is_query' | 'is_create' | 'is_update'): boolean => {
-  const item = columnPerms.value.find(i => i.field_name === field);
-  return item ? item[type] : true;
-};
+
 
 /* ===================== Action Column Width ===================== */
 const actionColWidth = computed(() => {
@@ -274,12 +261,7 @@ const fetchData = async () => {
   finally { loading.value = false; }
 };
 
-const loadColumnPermissions = async () => {
-  try {
-    const res: any = await GetPermission();
-    if (res?.code === 2000 && Array.isArray(res.data)) columnPerms.value = res.data;
-  } catch { /* noop */ }
-};
+
 
 /* ===================== Handlers ===================== */
 const handleSearch = () => { pagination.page = 1; fetchData(); };
@@ -352,8 +334,7 @@ const handlePermissionOpen = (row: RoleItem) => {
 };
 
 /* ===================== Lifecycle ===================== */
-onMounted(async () => {
-  await loadColumnPermissions();
+onMounted(() => {
   fetchData();
 });
 </script>

@@ -233,8 +233,8 @@ async function loadUsers() {
   if (userOptions.value.length) return
   usersLoading.value = true
   try {
-    const res: any = await request({ url: '/api/system/user/', method: 'get', params: { page_size: 10000 } })
-    userOptions.value = (res as any).data?.results || (res as any).data || []
+    const res: any = await request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 10000 } })
+    userOptions.value = ((res as any).data || []).map((item: any) => ({ id: item.value, name: item.label }))
   } catch { userOptions.value = [] }
   usersLoading.value = false
 }

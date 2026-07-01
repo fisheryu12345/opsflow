@@ -42,7 +42,7 @@ export function deptMoveDown(obj: Record<string, any>) {
 }
 
 export function getDeptUserList(query: QueryParams) {
-  return request({ url: '/api/system/user/', method: 'get', params: query });
+  return request({ url: '/api/iam/users/search/', method: 'get', params: query });
 }
 
 export function getAllDeptList() {

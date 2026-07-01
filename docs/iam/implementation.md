@@ -68,8 +68,16 @@
 - 文档: 生成 — 设计方案、功能文档、配置指南
 
 ### 2026-07-01 Update
-> 提交: (pending push)
-- ...
+> 提交: 68ba2a6e
+- RBAC 模型清理: 删除旧 Role/MenuButton/RoleMenuPermission/RoleMenuButtonPermission 四个模型和对应 ViewSet
+- IAMMenu 导航模型: 从 dvadmin Menu 迁移到 iam/models/page_config.py
+- user.role M2M 彻底移除: 8 个文件改为 IAMUserRole 查询
+- PermissionRequest 审批: 去掉 target_role 分支，仅用 target_iam_role
+- 字段权限/data_range 僵尸代码: 删除 FieldPermission/MenuField 模型和对应 ViewSet
+- 前端: 删除 MenuButtonCom/MenuFieldCom/PermissionComNew admin UI
+- RolePermissionPanel: 重写为 App→Tab→Button 权限分配 UI，复用 permission-catalog API
+- IAM 页面全 i18n: index/MyRequests/ApprovalDashboard 全量国际化
+- 批量审批: ApprovalDashboard 新增多选批量批准/驳回
 ### 2026-06-30 Update
 > 提交: 80f9ed95
 - my_permissions 端点: 新增 — 统一 ITSM 权限查询，支持 ProjectMember + BusinessMember 继承

@@ -48,6 +48,32 @@ def get_visible_businesses(user) -> set:
     ).values_list('business_id', flat=True))
 
 
+def get_project_role(user, project_id) -> str | None:
+    """Return the user's role (admin/editor/viewer) on a project.
+
+    Checks direct ProjectMember first, then BusinessMember inheritance.
+    Returns None if user has no access to the project.
+    """
+    if user.is_superuser:
+        return 'admin'
+
+    pm = ProjectMember.objects.filter(project_id=project_id, user=user).first()
+    if pm:
+        return pm.role
+
+    try:
+        project = Project.objects.only('business_id').get(id=project_id)
+        if project.business_id:
+            bm = BusinessMember.objects.filter(
+                business_id=project.business_id, user=user
+            ).first()
+            if bm:
+                return bm.role
+    except Project.DoesNotExist:
+        pass
+    return None
+
+
 def has_project_role(user, project_id, min_role='editor') -> bool:
     """Check if user has at least min_role on a project
 

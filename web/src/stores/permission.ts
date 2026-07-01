@@ -1,21 +1,36 @@
 /**
- * IAM Permission Store — replaces dvadmin BtnPermissionStore
+ * IAM Permission Store — unified permission checking
  *
- * Reads the current user's IAM role from stores/project.ts and exposes
- * simple computed helpers for permission checks.
- * No dvadmin MenuButton API calls needed.
+ * Combines platform-level permission codenames (from backend)
+ * with project-level role checks.
  */
 import { defineStore } from 'pinia'
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useProjectStore } from './project'
 
 export const usePermissionStore = defineStore('permission', () => {
+  const perms = ref<string[]>([])
+  const loaded = ref(false)
   const projectStore = useProjectStore()
+
+  async function fetchPermissions() {
+    try {
+      const { request } = await import('/@/utils/service')
+      const res = await request({ url: '/api/iam/my-full-permissions/', method: 'get' })
+      perms.value = res.data || []
+    } catch {
+      perms.value = []
+    }
+    loaded.value = true
+  }
+
+  function hasPerm(codename: string): boolean {
+    return perms.value.includes(codename)
+  }
 
   const currentRole = computed(() => projectStore.currentProject?.role || null)
   const isAdmin = computed(() => currentRole.value === 'admin')
   const canEdit = computed(() => currentRole.value !== null && currentRole.value !== 'viewer')
-  const isSuperuser = computed(() => currentRole.value === 'admin') // IAM admin = platform superuser for sub-products
 
   /**
    * Check if current user can perform an action.
@@ -25,8 +40,14 @@ export const usePermissionStore = defineStore('permission', () => {
     if (!currentRole.value) return false
     if (action === 'admin') return currentRole.value === 'admin'
     if (action === 'edit') return currentRole.value !== 'viewer'
-    return true // viewer can always view
+    return true
   }
 
-  return { currentRole, isAdmin, canEdit, isSuperuser, can }
+  function requestPerm(label: string, codename?: string) {
+    window.dispatchEvent(new CustomEvent('iam:request-permission', {
+      detail: { key: codename || 'opsflow:template:create', label },
+    }))
+  }
+
+  return { perms, loaded, fetchPermissions, hasPerm, currentRole, isAdmin, canEdit, can, requestPerm }
 })

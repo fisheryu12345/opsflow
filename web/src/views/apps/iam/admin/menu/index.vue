@@ -39,30 +39,9 @@
             <el-icon :size="16"><Setting /></el-icon>
             <span>{{ $t('message.menuPage.permissionConfig') }}</span>
           </div>
-          <el-tabs v-model="activeTab" class="menu-tabs">
-            <el-tab-pane name="button">
-              <template #label>
-                <span class="menu-tab-label">
-                  <el-icon :size="14"><Key /></el-icon>
-                  <span>{{ $t('message.menuPage.btnPermission') }}</span>
-                </span>
-              </template>
-              <div class="menu-tab-body">
-                <MenuButtonCom ref="menuButtonRef" />
-              </div>
-            </el-tab-pane>
-            <el-tab-pane name="field">
-              <template #label>
-                <span class="menu-tab-label">
-                  <el-icon :size="14"><Grid /></el-icon>
-                  <span>{{ $t('message.menuPage.colPermission') }}</span>
-                </span>
-              </template>
-              <div class="menu-tab-body">
-                <MenuFieldCom ref="menuFieldRef" />
-              </div>
-            </el-tab-pane>
-          </el-tabs>
+          <div class="menu-tab-body">
+            <el-empty :image-size="40" description="按钮权限管理已迁移至 IAM 角色权限分配" />
+          </div>
         </div>
       </el-col>
     </el-row>
@@ -93,11 +72,9 @@ import { ref, computed, onMounted, markRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
 import XEUtils from 'xe-utils';
 import { ElMessageBox } from 'element-plus';
-import { Search, Menu, Setting, Key, Grid, OfficeBuilding, Tickets, List } from '@element-plus/icons-vue';
+import { Search, Menu, Setting, Key, OfficeBuilding, Tickets, List } from '@element-plus/icons-vue';
 import MenuTreeCom from './components/MenuTreeCom/index.vue';
-import MenuButtonCom from './components/MenuButtonCom/index.vue';
 import MenuFormCom from './components/MenuFormCom/index.vue';
-import MenuFieldCom from './components/MenuFieldCom/index.vue';
 import { GetList, DelObj } from './api';
 import { successNotification } from '/@/utils/message';
 import { APIResponseData, MenuTreeItemType } from './types';
@@ -121,9 +98,7 @@ const menuTreeCacheData = ref<MenuTreeItemType[]>([]);
 const drawerVisible = ref(false);
 const drawerFormData = ref<Partial<MenuTreeItemType>>({});
 const menuTreeRef = ref<InstanceType<typeof MenuTreeCom> | null>(null);
-const menuButtonRef = ref<InstanceType<typeof MenuButtonCom> | null>(null);
-const menuFieldRef = ref<InstanceType<typeof MenuFieldCom> | null>(null);
-const activeTab = ref('button');
+// MenuButtonCom removed - button permission management moved to IAM role assignment
 
 const countNodes = (arr: any[]) => {
   let cat = 0, leaf = 0;
@@ -148,9 +123,8 @@ const getData = () => {
 };
 
 /* ===================== Handlers ===================== */
-const handleTreeClick = (record: MenuTreeItemType) => {
-  menuButtonRef.value?.handleRefreshTable(record);
-  menuFieldRef.value?.handleRefreshTable(record);
+const handleTreeClick = (_record: MenuTreeItemType) => {
+  // Button management moved to IAM role assignment
 };
 
 const handleUpdateMenu = (type: string, record?: MenuTreeItemType) => {

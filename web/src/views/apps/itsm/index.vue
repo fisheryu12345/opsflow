@@ -22,41 +22,13 @@
       </div>
       <!-- Hero tabs -->
       <div class="itsm-hero-tabs">
-        <div class="itsm-hero-tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">
-          <el-icon><DataAnalysis /></el-icon> {{ $t('message.itsm.itsmPage.tabDashboard') }}
-        </div>
-        <div class="itsm-hero-tab" :class="{ active: activeTab === 'tickets' }" @click="activeTab = 'tickets'">
-          <el-icon><List /></el-icon> 我的工单
-        </div>
-        <div class="itsm-hero-tab" :class="{ active: activeTab === 'workflows' }" @click="activeTab = 'workflows'">
-          <el-icon><Setting /></el-icon> 流程模板
-        </div>
-        <div class="itsm-hero-tab" :class="{ active: activeTab === 'incidents' }" @click="activeTab = 'incidents'">
-          <el-icon><WarningFilled /></el-icon> 事件
-        </div>
-        <div class="itsm-hero-tab" :class="{ active: activeTab === 'changes' }" @click="activeTab = 'changes'">
-          <el-icon><Edit /></el-icon> 变更
-        </div>
-        <div class="itsm-hero-tab" :class="{ active: activeTab === 'sla' }" @click="activeTab = 'sla'">
-          <el-icon><Clock /></el-icon> SLA
-        </div>
-        <div class="itsm-hero-tab" :class="{ active: activeTab === 'delegation' }" @click="activeTab = 'delegation'">
-          <el-icon><User /></el-icon> 委托
-        </div>
-        <div v-if="canEdit" class="itsm-hero-tab" :class="{ active: activeTab === 'skill-groups' }" @click="activeTab = 'skill-groups'">
-          <el-icon><Collection /></el-icon> 技能组
-        </div>
-        <div v-if="canEdit" class="itsm-hero-tab" :class="{ active: activeTab === 'on-duty' }" @click="activeTab = 'on-duty'">
-          <el-icon><Clock /></el-icon> 排班
-        </div>
-        <div v-if="isAdmin" class="itsm-hero-tab" :class="{ active: activeTab === 'assign-rules' }" @click="activeTab = 'assign-rules'">
-          <el-icon><Setting /></el-icon> 路由
-        </div>
-        <div v-if="isAdmin" class="itsm-hero-tab" :class="{ active: activeTab === 'escalation' }" @click="activeTab = 'escalation'">
-          <el-icon><WarningFilled /></el-icon> 升级
-        </div>
-        <div class="itsm-hero-tab" :class="{ active: activeTab === 'team-dashboard' }" @click="activeTab = 'team-dashboard'">
-          <el-icon><DataAnalysis /></el-icon> {{ $t('message.itsm.itsmPage.tabDashboard') }}
+        <div v-for="tab in pageConfig?.tabs" :key="tab.key"
+          class="itsm-hero-tab"
+          :class="{ active: activeTab === tab.key, locked: !tab.has_access }"
+          @click="onTabClick(tab)">
+          <el-icon><component :is="iconMap[tab.icon]" /></el-icon>
+          {{ isEn ? tab.label_en : tab.label_zh }}
+          <span v-if="!tab.has_access" class="tab-lock">🔒</span>
         </div>
       </div>
     </div>
@@ -88,7 +60,7 @@
             </div>
           </div>
           <div class="itsm-filter-actions">
-            <el-button v-if="canEdit" size="small" @click="onOpenCreateTicket">
+            <el-button v-can="'itsm:ticket:create'" size="small" @click="onOpenCreateTicket">
               <el-icon><Plus /></el-icon> 新建工单
             </el-button>
             <el-button :icon="Refresh" size="small" text @click="loadTickets" :loading="loadingTickets">刷新</el-button>
@@ -171,7 +143,7 @@
             </div>
           </div>
           <div class="itsm-filter-actions">
-            <el-button v-if="canEdit" size="small" type="primary" @click="showAICreate = true">
+            <el-button v-can="'itsm:workflow:create'" size="small" type="primary" @click="showAICreate = true">
               <el-icon><MagicStick /></el-icon> AI 创建
             </el-button>
             <el-button :icon="Refresh" size="small" text @click="loadWorkflows" :loading="loadingWf">刷新</el-button>
@@ -196,10 +168,10 @@
                 <el-button v-if="!wf.is_draft" size="small" text @click="onCreateTicketFromWf(wf)">
                   <el-icon><Plus /></el-icon> 建单
                 </el-button>
-                <el-button v-if="wf.is_draft && canEdit" size="small" text type="success" @click="onDeployWorkflow(wf)">
+                <el-button v-if="wf.is_draft" v-can="'itsm:workflow:deploy'" size="small" text type="success" @click="onDeployWorkflow(wf)">
                   <el-icon><Upload /></el-icon> 部署
                 </el-button>
-                <el-button v-if="canEdit" size="small" text @click="onOpenDesigner(wf.id)">
+                <el-button v-can="'itsm:workflow:design'" size="small" text @click="onOpenDesigner(wf.id)">
                   <el-icon><Setting /></el-icon> 设计
                 </el-button>
                 <el-button size="small" text @click="onOpenVersions(wf)">
@@ -356,19 +328,19 @@
       </div>
 
       <!-- ==================== TAB: 技能组 ==================== -->
-      <div v-if="canEdit" v-show="activeTab === 'skill-groups'" class="itsm-section g-fade-in-up">
+      <div v-show="activeTab === 'skill-groups'" class="itsm-section g-fade-in-up">
         <SkillGroup />
       </div>
       <!-- ==================== TAB: 排班 ==================== -->
-      <div v-if="canEdit" v-show="activeTab === 'on-duty'" class="itsm-section g-fade-in-up">
+      <div v-show="activeTab === 'on-duty'" class="itsm-section g-fade-in-up">
         <OnDutySchedule />
       </div>
       <!-- ==================== TAB: 路由规则 ==================== -->
-      <div v-if="isAdmin" v-show="activeTab === 'assign-rules'" class="itsm-section g-fade-in-up">
+      <div v-show="activeTab === 'assign-rules'" class="itsm-section g-fade-in-up">
         <AssignRule />
       </div>
       <!-- ==================== TAB: 升级级别 ==================== -->
-      <div v-if="isAdmin" v-show="activeTab === 'escalation'" class="itsm-section g-fade-in-up">
+      <div v-show="activeTab === 'escalation'" class="itsm-section g-fade-in-up">
         <EscalationLevel />
       </div>
       <!-- ==================== TAB: 团队看板 ==================== -->
@@ -483,7 +455,6 @@
     </el-dialog>
 
     <!-- ===== 工单分派对话框 ===== -->
-    <RequestPermission ref="requestPermRef" />
     <el-dialog v-model="assignTicketVisible" title="分派工单" width="440px" top="25vh" destroy-on-close>
       <el-form label-position="top">
         <el-form-item label="技能组筛选">
@@ -543,11 +514,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, shallowRef, computed } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useProjectStore } from '/@/stores/project'
+import { request } from '/@/utils/service'
 import Designer from './designer/index.vue'
-import RequestPermission from '/@/components/RequestPermission.vue'
+import { useI18n } from 'vue-i18n'
+import { usePermissionStore } from '/@/stores/permission'
 import Dashboard from './Dashboard.vue'
 import Delegation from './Delegation.vue'
 import SkillGroup from './SkillGroup.vue'
@@ -572,16 +544,48 @@ import {
   AssignTicket, RollbackVersion,
 } from '/@/api/itsm/index'
 
-// ===== Permission (IAM role) =====
-const projectStore = useProjectStore()
-const currentRole = computed(() => projectStore.currentProject?.role || 'viewer')
-const isAdmin = computed(() => currentRole.value === 'admin')
-const canEdit = computed(() => currentRole.value !== 'viewer')  // editor or admin
+// ===== Page Config (data-driven tabs) =====
+const pageConfig = ref<any>(null)
+const userPerms = ref<string[]>([])
+const { t, locale } = useI18n()
+const isEn = computed(() => String(locale.value).startsWith('en'))
 
-// Permission request dialog
-const requestPermRef = ref<InstanceType<typeof RequestPermission> | null>(null)
-function requestAccess(key: string, label: string) {
-  requestPermRef.value?.open(key, label)
+const permissionStore = usePermissionStore()
+
+function getTab(key: string) {
+  return pageConfig.value?.tabs?.find((t: any) => t.key === key)
+}
+
+async function loadPageConfig() {
+  try {
+    const res = await request({ url: '/api/iam/page-permissions/', params: { app: 'itsm' } })
+    pageConfig.value = res.data
+    userPerms.value = res.data.user_permissions || []
+    const defaultTab = res.data.tabs.find((t: any) => t.is_default) || res.data.tabs[0]
+    if (defaultTab) activeTab.value = defaultTab.key
+  } catch { /* show empty */ }
+}
+
+const iconMap: Record<string, any> = {
+  DataAnalysis, List, Setting, WarningFilled, Edit, Clock, User, Collection,
+}
+
+const componentMap: Record<string, any> = {
+  dashboard: Dashboard,
+  delegation: Delegation,
+  'skill-groups': SkillGroup,
+  'on-duty': OnDutySchedule,
+  'assign-rules': AssignRule,
+  escalation: EscalationLevel,
+  'team-dashboard': TeamDashboard,
+}
+
+function onTabClick(tab: any) {
+  if (!tab.has_access) {
+    permissionStore.requestPerm(tab.label_zh, tab.required_perm)
+    return
+  }
+  activeTab.value = tab.key
 }
 
 // ===== Tab state =====
@@ -657,10 +661,10 @@ async function loadAllUsers() {
   try {
     const { request } = await import('/@/utils/service')
     const [uRes, gRes] = await Promise.all([
-      request({ url: '/api/system/user/', method: 'get', params: { page_size: 10000 } }),
+      request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 10000 } }),
       request({ url: '/api/itsm/skill-groups/', method: 'get' }),
     ])
-    userOptions.value = (uRes as any).data?.results || (uRes as any).data || []
+    userOptions.value = ((uRes as any).data || []).map((item: any) => ({ id: item.value, name: item.label }))
     groupOptions.value = (gRes as any).results || (gRes as any).data || []
   } catch { userOptions.value = []; groupOptions.value = [] }
   usersLoading.value = false
@@ -1033,6 +1037,7 @@ function statusLabel(s: string) {
 }
 
 onMounted(async () => {
+  await loadPageConfig()
   await loadAllData()
 
   // 多租户: 监听全局项目切换事件，重新加载所有数据
@@ -1101,6 +1106,9 @@ async function loadAllData() {
 }
 .itsm-hero-tab:hover { color: rgba(255,255,255,0.9); }
 .itsm-hero-tab.active { color: #fff; border-bottom-color: #409EFF; }
+.itsm-hero-tab.locked { opacity: 0.6; }
+.itsm-hero-tab.locked:hover { opacity: 0.9; background: rgba(255,193,7,0.1); border-bottom-color: #ffc107; }
+.itsm-hero-tab .tab-lock { font-size: 11px; margin-left: 3px; }
 
 /* ===== Body ===== */
 .itsm-body { flex: 1; overflow-y: auto; padding: 0 20px 24px; }

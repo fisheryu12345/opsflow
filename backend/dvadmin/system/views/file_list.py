@@ -77,3 +77,4 @@ class FileViewSet(CustomModelViewSet):
     serializer_class = FileSerializer
     filter_fields = ['name', ]
     permission_classes = []
+    required_permission = 'system:file:manage'

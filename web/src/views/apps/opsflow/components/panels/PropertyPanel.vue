@@ -540,8 +540,8 @@ const usersLoading = ref(false)
 async function loadAllUsers() {
   usersLoading.value = true
   try {
-    const res: any = await request({ url: '/api/system/user/', method: 'get', params: { page_size: 10000 } })
-    const users = (res as any).data?.results || (res as any).data || []
+    const res: any = await request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 10000 } })
+    const users = ((res as any).data || []).map((item: any) => ({ id: item.value, name: item.label }))
     userList.value = users.map((u: any) => u.username)
   } catch { userList.value = [] }
   usersLoading.value = false

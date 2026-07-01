@@ -9,6 +9,7 @@ from opsflow.models import OpsKnowledge
 from opsflow.serializers import OpsKnowledgeSerializer
 from opsflow.views.base import ProjectFilteredViewSet
 from iam.permissions import TenantPermission
+from iam.permission_backend import IAMPermissionBackend
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 
 logger = logging.getLogger(__name__)
@@ -17,12 +18,17 @@ logger = logging.getLogger(__name__)
 class OpsKnowledgeViewSet(ProjectFilteredViewSet):
     queryset = OpsKnowledge.objects.all()
     serializer_class = OpsKnowledgeSerializer
-    permission_classes = [IsAuthenticated, TenantPermission]
+    permission_classes = [IsAuthenticated, TenantPermission, IAMPermissionBackend]
     search_fields = ['title', 'content', 'tags']
     filterset_fields = ['source', 'project']
     ordering = ['-created_at']
     pagination_class = None
     project_field = 'project'
+    required_permission = None
+    action_permissions = {
+        'create': 'opsflow:knowledge:create',
+        'destroy': 'opsflow:knowledge:delete',
+    }
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

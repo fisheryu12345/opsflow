@@ -151,6 +151,7 @@ class MessageCenterViewSet(CustomModelViewSet):
     serializer_class = MessageCenterSerializer
     create_serializer_class = MessageCenterCreateSerializer
     extra_filter_backends = []
+    required_permission = None
 
     def get_queryset(self):
         if self.action == 'list':

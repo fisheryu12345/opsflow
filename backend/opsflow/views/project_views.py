@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from iam.models import Project, ProjectMember
 from iam.resolvers import get_visible_projects
+from opsflow.serializers import ProjectSerializer
 from iam.permissions import TenantPermission
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 
@@ -14,6 +15,7 @@ from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 class OpsProjectViewSet(viewsets.ModelViewSet):
     """项目管理 CRUD + 成员管理"""
     queryset = Project.objects.all()
+    serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated, TenantPermission]
     search_fields = ['name', 'description']
     ordering = ['name']
@@ -159,28 +161,6 @@ class OpsProjectViewSet(viewsets.ModelViewSet):
                 role = 'viewer'
             data.append({'id': p.id, 'name': p.name, 'role': role})
         return SuccessResponse(data=data)
-
-    @action(detail=False, methods=['get'])
-    def my_opsflow_permissions(self, request):
-        """返回当前用户的 opsflow 按钮权限列表，用于前端 tab 权限控制"""
-        from iam.models.menu_rbac import Menu, MenuButton
-        from iam.models import UserDirectPermission
-        user = request.user
-        perm_keys = set()
-        opsflow_buttons = MenuButton.objects.filter(menu__web_path='/opsflow')
-        if user.is_superuser:
-            perm_keys = set(opsflow_buttons.values_list('value', flat=True))
-        else:
-            for r in user.role.filter(status=1):
-                for mbp in r.role_menu_button.filter(menu_button__in=opsflow_buttons).select_related('menu_button'):
-                    if mbp.menu_button:
-                        perm_keys.add(mbp.menu_button.value)
-            for dp in UserDirectPermission.objects.filter(
-                user=user, menu_button__in=opsflow_buttons
-            ).select_related('menu_button'):
-                if dp.menu_button:
-                    perm_keys.add(dp.menu_button.value)
-        return SuccessResponse(data=sorted(perm_keys))
 
 
     # ── 环境变量管理 ────────────────────────────────────────────────

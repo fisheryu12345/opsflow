@@ -143,12 +143,12 @@ def _resolve_role(processors: str, ticket=None) -> list:
             role_names = [role_names]
         # Try to find users by role
         results = []
-        from iam.models.menu_rbac import Role
+        from iam.models.permission import IAMRole, IAMUserRole
         for name in role_names:
-            roles = Role.objects.filter(name__icontains=name)
+            roles = IAMRole.objects.filter(name__icontains=name)
             for role in roles:
-                users = role.user_set.all() if hasattr(role, 'user_set') else []
-                results.extend([u.username for u in users])
+                user_roles = IAMUserRole.objects.filter(role=role).select_related('user')
+                results.extend([ur.user.username for ur in user_roles])
         if results:
             return list(set(results))
         # Fallback: return role names as-is (for test data)

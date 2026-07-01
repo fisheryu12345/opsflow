@@ -8,9 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.db import connection
 from django.db.models import Q
 from application import dispatch
-from iam.models.menu_rbac import Role
+from iam.models.permission import IAMRole, IAMUserRole
 from dvadmin.system.models import Users, Dept
-from iam.views.role import RoleSerializer
 from dvadmin.utils.json_response import ErrorResponse, DetailResponse, SuccessResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.validator import CustomUniqueValidator
@@ -52,15 +51,10 @@ class UserSerializer(CustomModelSerializer):
         return "/".join(dept_name_all)
 
     def get_role_info(self, instance, parsed_query):
-        roles = instance.role.all()
-        # You can do what ever you want in here
-        # `parsed_query` param is passed to BookSerializer to allow further querying
-        serializer = RoleSerializer(
-            roles,
-            many=True,
-            parsed_query=parsed_query
-        )
-        return serializer.data
+        # Use IAMUserRole instead of old user.role M2M
+        user_roles = IAMUserRole.objects.filter(user=instance).select_related('role')
+        return [{'id': ur.role.id, 'name': ur.role.name, 'key': ur.role.key}
+                for ur in user_roles]
 
 
 class UserCreateSerializer(CustomModelSerializer):
@@ -269,8 +263,9 @@ class UserViewSet(CustomModelViewSet):
             }
         },
         "dept": {"title": "部门", "choices": {"queryset": Dept.objects.filter(status=True), "values_name": "name"}},
-        "role": {"title": "角色", "choices": {"queryset": Role.objects.filter(status=True), "values_name": "name"}},
+        "role": {"title": "角色", "choices": {"queryset": IAMRole.objects.all(), "values_name": "name"}},
     }
+    required_permission = 'system:user:manage'
 
     @action(methods=["GET"], detail=False, permission_classes=[IsAuthenticated])
     def user_info(self, request):
@@ -287,7 +282,7 @@ class UserViewSet(CustomModelViewSet):
             "avatar": user.avatar,
             "dept": user.dept_id,
             "is_superuser": user.is_superuser,
-            "role": user.role.values_list('id', flat=True),
+            "role": list(IAMUserRole.objects.filter(user=user).values_list('role_id', flat=True)),
         }
         if hasattr(connection, 'tenant'):
             result['tenant_id'] = connection.tenant and connection.tenant.id
@@ -303,9 +298,10 @@ class UserViewSet(CustomModelViewSet):
                 'dept_id': None,
                 'dept_name': "暂无部门"
             }
-        role = getattr(user, 'role', None)
-        if role:
-            result['role_info'] = role.values('id', 'name', 'key')
+        user_roles = IAMUserRole.objects.filter(user=user).select_related('role')
+        if user_roles.exists():
+            result['role_info'] = [{'id': ur.role.id, 'name': ur.role.name, 'key': ur.role.key}
+                                   for ur in user_roles]
         return DetailResponse(data=result, msg="获取成功")
 
     @action(methods=["PUT"], detail=False, permission_classes=[IsAuthenticated])

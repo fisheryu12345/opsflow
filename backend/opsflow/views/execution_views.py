@@ -34,6 +34,7 @@ class FlowExecutionViewSet(
     filterset_fields = ['status', 'template', 'project', 'created_by', 'environment']
     ordering = ['-created_at']
     project_field = 'project'
+    required_permission = None
 
     def get_queryset(self):
         """自动按当前用户过滤，只显示自己创建的流程"""

@@ -733,7 +733,7 @@ export default {
         projectsMemberRemoved: '成员已移除',
         projectsDeleteConfirm: '确认删除此项目？',
         envTitle: '环境变量',
-        envDesc: '项目级变量可在模板间共享。在流程中使用 ${env.key} 引用。',
+        envDesc: '项目级变量可在模板间共享。在流程中使用 $env.key 引用。',
         envSearch: '搜索...',
         envAdd: '添加',
         envAddVar: '添加变量',

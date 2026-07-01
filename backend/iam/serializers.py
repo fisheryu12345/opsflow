@@ -14,11 +14,65 @@ class PermissionRequestSerializer(CustomModelSerializer):
     user_username = serializers.CharField(source='user.username', read_only=True)
     reviewer_name = serializers.CharField(source='reviewer.name', read_only=True, default=None)
     target_role_name = serializers.CharField(source='target_role.name', read_only=True, default=None)
+    target_iam_role_name = serializers.CharField(source='target_iam_role.name', read_only=True, default=None)
     target_menu_name = serializers.CharField(source='target_menu.name', read_only=True, default=None)
     target_menu_button_name = serializers.CharField(source='target_menu_button.name', read_only=True, default=None)
     target_project_name = serializers.CharField(source='target_project.name', read_only=True, default=None)
+    target_permission_label = serializers.SerializerMethodField()
+    target_permission_label_en = serializers.SerializerMethodField()
     request_type_label = serializers.SerializerMethodField()
+    request_type_label_en = serializers.SerializerMethodField()
     status_label = serializers.SerializerMethodField()
+    status_label_en = serializers.SerializerMethodField()
+
+    REQUEST_TYPE_EN = {
+        'role': 'Role',
+        'menu': 'Menu',
+        'menu_button': 'Button',
+        'project_role': 'Project Role',
+        'permission': 'Permission',
+    }
+    STATUS_EN = {
+        'pending': 'Pending',
+        'approved': 'Approved',
+        'rejected': 'Rejected',
+    }
+
+    def get_request_type_label_en(self, obj):
+        return self.REQUEST_TYPE_EN.get(obj.request_type, obj.request_type)
+
+    def get_status_label_en(self, obj):
+        return self.STATUS_EN.get(obj.status, obj.status)
+
+    def _resolve_perm_label(self, codename):
+        """Look up human-readable name from PageButton > PageTab > IAMPermission."""
+        from iam.models.page_config import PageButton, PageTab
+        # 1. Check PageButton
+        btn = PageButton.objects.filter(required_perm=codename).select_related('tab').first()
+        if btn:
+            return btn.label_zh, btn.label_en or btn.label_zh
+        # 2. Check PageTab
+        tab = PageTab.objects.filter(required_perm=codename).first()
+        if tab:
+            return tab.label_zh, tab.label_en or tab.label_zh
+        # 3. Fallback to IAMPermission
+        from iam.models import IAMPermission
+        perm = IAMPermission.objects.filter(codename=codename).first()
+        if perm:
+            return perm.label, perm.label
+        return codename, codename
+
+    def get_target_permission_label(self, obj):
+        if obj.target_permission:
+            zh, _ = self._resolve_perm_label(obj.target_permission)
+            return zh
+        return None
+
+    def get_target_permission_label_en(self, obj):
+        if obj.target_permission:
+            _, en = self._resolve_perm_label(obj.target_permission)
+            return en
+        return None
 
     def get_request_type_label(self, obj):
         return obj.get_request_type_display()
@@ -35,7 +89,7 @@ class PermissionRequestSerializer(CustomModelSerializer):
 class PermissionRequestCreateSerializer(CustomModelSerializer):
     class Meta:
         model = PermissionRequest
-        fields = ['request_type', 'target_role', 'target_menu', 'target_menu_button', 'target_project', 'target_project_role', 'selected_buttons', 'reason']
+        fields = ['request_type', 'target_iam_role', 'target_menu', 'target_menu_button', 'target_permission', 'target_project', 'target_project_role', 'selected_buttons', 'reason']
 
 
 class PermissionRequestReviewSerializer(serializers.Serializer):

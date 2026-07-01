@@ -79,13 +79,13 @@ class Command(BaseCommand):
         self.stdout.write(f"  Depts: {Dept.objects.count()}")
 
     def _init_roles(self):
-        from iam.models.menu_rbac import Role
+        from iam.models.permission import IAMRole as Role
         for r in ROLE_DEFAULTS:
             Role.objects.get_or_create(key=r['key'], defaults=r)
         self.stdout.write(f"  Roles: {Role.objects.count()}")
 
     def _init_menus(self):
-        from iam.models.menu_rbac import Menu
+        from iam.models.page_config import IAMMenu as Menu
         for m in MENU_TREE:
             obj, created = Menu.objects.get_or_create(
                 web_path=m['web_path'],
@@ -94,7 +94,7 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(f"  + Menu: {m['name']}")
         # Grant all core menus to every role (regular users need to see navigation)
-        from iam.models.menu_rbac import Role, RoleMenuPermission as RMP
+        from iam.models.permission import IAMRole as Role, RoleMenuPermission as RMP
         core_menus = Menu.objects.filter(name__in=['Dashboard', 'OPSflow', 'ITSM', 'CMDB', 'Message Center', 'IAM'])
         for role in Role.objects.filter(status=1):
             for menu in core_menus:
@@ -103,7 +103,7 @@ class Command(BaseCommand):
 
     def _init_message_center_buttons(self):
         """Create message center MenuButton entries and grant basic read to all roles."""
-        from iam.models.menu_rbac import Menu, MenuButton, Role, RoleMenuButtonPermission
+        from iam.models.page_config import IAMMenu as Menu, MenuButton, Role, RoleMenuButtonPermission
         mc_menu = Menu.objects.filter(web_path='/messageCenter').first()
         if not mc_menu:
             self.stdout.write("  ! Message Center menu not found, skip buttons")
@@ -137,7 +137,7 @@ class Command(BaseCommand):
 
     def _init_admin_user(self):
         from django.contrib.auth import get_user_model
-        from iam.models.menu_rbac import Role, RoleMenuPermission, RoleMenuButtonPermission, Menu, MenuButton
+        from iam.models.permission import IAMRole as Role, RoleMenuPermission, RoleMenuButtonPermission, Menu, MenuButton
         from dvadmin.system.models import Dept
 
         User = get_user_model()

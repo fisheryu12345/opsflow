@@ -10,6 +10,10 @@ from opsflow.serializers import FlowExecutionSerializer
 
 class ExecutionLifecycleMixin:
     """执行生命周期端点混入（start/pause/resume/cancel）"""
+    action_permissions = {
+        'start': 'opsflow:execution:run',
+        'cancel': 'opsflow:execution:cancel',
+    }
 
     @action(detail=True, methods=['post'])
     def start(self, request, pk=None):
@@ -37,11 +41,9 @@ class ExecutionLifecycleMixin:
     def resume(self, request, pk=None):
         """恢复执行"""
         execution = self.get_object()
-        if not validate_pipeline_transition(execution.status, PipelineState.RUNNING):
+        if not validate_pipeline_transition(execution.status, PipelineState.RESUMED):
             return api_error(ErrorCodes.INVALID_STATE,
                              msg=f"不能恢复（当前: {execution.status}）")
-        execution.status = PipelineState.RUNNING
-        execution.save()
         engine = FlowEngine(execution)
         engine.resume()
         return api_success(data=FlowExecutionSerializer(execution).data, msg='已恢复')

@@ -50,8 +50,8 @@ async function submit() {
       url: '/api/iam/requests/',
       method: 'post',
       data: {
-        request_type: 'menu_button',
-        target_menu_button_value: permissionKey.value,
+        request_type: 'permission',
+        target_permission: permissionKey.value,
         reason: `[Auto-request] ${permissionLabel.value}: ${reason.value}`,
       },
     })

@@ -69,7 +69,7 @@ class Command(BaseCommand):
     help = "Seed complete IAM RBAC permissions for all apps"
 
     def handle(self, *args, **options):
-        from iam.models.menu_rbac import Menu, MenuButton, RoleMenuPermission, RoleMenuButtonPermission, Role
+        from iam.models.page_config import IAMMenu as Menu, MenuButton, RoleMenuPermission, RoleMenuButtonPermission, Role
         from iam.models.role_template import RoleTemplate
 
         # Find or create menus for each app

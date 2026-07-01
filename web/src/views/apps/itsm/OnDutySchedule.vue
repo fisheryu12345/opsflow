@@ -93,10 +93,10 @@ async function loadList() {
 }
 async function loadOptions() {
   const [uRes, gRes] = await Promise.all([
-    request({ url: '/api/system/user/', method: 'get', params: { page_size: 5000 } }),
+    request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 5000 } }),
     skillGroupApi.list(),
   ])
-  userOptions.value = (uRes as any).data?.results || (uRes as any).data || []
+  userOptions.value = ((uRes as any).data || []).map((item: any) => ({ id: item.value, name: item.label }))
   groupOptions.value = (gRes as any).results || (gRes as any).data || []
 }
 function openDialog(item?: any) {

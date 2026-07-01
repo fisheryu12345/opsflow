@@ -12,14 +12,6 @@ export interface RoleListQuery {
   [key: string]: any;
 }
 
-/** 获取字段权限 */
-export function GetPermission() {
-  return request({
-    url: apiPrefix + 'field_permission/',
-    method: 'get',
-  });
-}
-
 /** 获取角色列表（分页） */
 export function GetList(query: RoleListQuery) {
   return request({

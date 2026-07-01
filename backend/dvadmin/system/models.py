@@ -8,23 +8,23 @@ from application import dispatch
 from dvadmin.utils.models import CoreModel, table_prefix, get_custom_app_models
 
 
-# Role/Menu/MenuButton/RoleMenuPermission/RoleMenuButtonPermission 已迁移至 iam.models.menu_rbac
+# 旧 RBAC 模型已迁移至 iam（Role→IAMRole, Menu→IAMMenu, MenuButton→IAMPermission）
 # 以下 models 仅保留 Users/Post/Dept 及 dvadmin 框架模型
 
 
 class CustomUserManager(UserManager):
 
     def create_superuser(self, username, email=None, password=None, **extra_fields):
-        from iam.models.menu_rbac import Role as IamRole
+        from iam.models.permission import IAMRole, IAMUserRole
         user = super(CustomUserManager, self).create_superuser(username, email, password, **extra_fields)
         user.set_password(password)
         try:
-            user.role.add(IamRole.objects.get(name="管理员"))
+            IAMUserRole.objects.create(user=user, role=IAMRole.objects.get(key='opsflow_admin'))
             user.save(using=self._db)
             return user
         except ObjectDoesNotExist:
             user.delete()
-            raise ValidationError("角色`管理员`不存在, 创建失败, 请先执行python manage.py init")
+            raise ValidationError("角色`opsflow_admin`不存在, 创建失败")
 
 
 class Users(CoreModel, AbstractUser):
@@ -51,8 +51,6 @@ class Users(CoreModel, AbstractUser):
     )
     post = models.ManyToManyField(to="Post", blank=True, verbose_name="关联岗位", db_constraint=False,
                                   help_text="关联岗位")
-    role = models.ManyToManyField(to="iam.Role", blank=True, verbose_name="关联角色", db_constraint=False,
-                                  help_text="关联角色")
     dept = models.ForeignKey(
         to="Dept",
         verbose_name="所属部门",
@@ -298,7 +296,7 @@ class MessageCenter(CoreModel):
                                          help_text="目标用户")
     target_dept = models.ManyToManyField(to=Dept, blank=True, db_constraint=False,
                                          verbose_name="目标部门", help_text="目标部门")
-    target_role = models.ManyToManyField(to="iam.Role", blank=True, db_constraint=False,
+    target_role = models.ManyToManyField(to="iam.IAMRole", blank=True, db_constraint=False,
                                          verbose_name="目标角色", help_text="目标角色")
 
     class Meta:

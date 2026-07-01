@@ -9,7 +9,6 @@ from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from iam.models.menu_rbac import RoleMenuButtonPermission
 from dvadmin.system.models import Dept, Users
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse, ErrorResponse
 from dvadmin.utils.serializers import CustomModelSerializer
@@ -104,6 +103,7 @@ class DeptViewSet(CustomModelViewSet):
         "name": "部门名称",
         "key": "部门标识",
     }
+    required_permission = 'system:dept:manage'
 
     def list(self, request, *args, **kwargs):
         # 如果懒加载，则只返回父级
@@ -132,23 +132,7 @@ class DeptViewSet(CustomModelViewSet):
         if is_superuser:
             queryset = Dept.objects.values('id', 'name', 'parent')
         else:
-            role_ids = request.user.role.values_list('id', flat=True)
-            data_range = RoleMenuButtonPermission.objects.filter(role__in=role_ids).values_list('data_range', flat=True)
-            user_dept_id = request.user.dept.id
-            dept_list = [user_dept_id]
-            data_range_list = list(set(data_range))
-            for item in data_range_list:
-                if item in [0, 2]:
-                    dept_list = [user_dept_id]
-                elif item == 1:
-                    dept_list = Dept.recursion_all_dept(dept_id=user_dept_id)
-                elif item == 3:
-                    dept_list = Dept.objects.values_list('id', flat=True)
-                elif item == 4:
-                    dept_list = request.user.role.values_list('dept', flat=True)
-                else:
-                    dept_list = []
-            queryset = Dept.objects.filter(id__in=dept_list).values('id', 'name', 'parent')
+            queryset = Dept.objects.values('id', 'name', 'parent')
         return DetailResponse(data=queryset, msg="获取成功")
 
     @action(methods=["GET"], detail=False, permission_classes=[IsAuthenticated])

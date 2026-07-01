@@ -45,6 +45,10 @@ class FlowTemplateViewSet(
     ordering = ['-created_at']
     project_field = 'project'
     include_public = True
+    required_permission = None
+    action_permissions = {
+        'make_public': 'opsflow:template:publish',
+    }
 
     def perform_create(self, serializer):
         is_public = serializer.validated_data.get('is_public', False)

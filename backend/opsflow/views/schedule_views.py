@@ -24,6 +24,7 @@ class SchedulePlanViewSet(ProjectFilteredViewSet):
     search_fields = ['name', 'description']
     ordering = ['-created_at']
     project_field = 'project'
+    required_permission = 'opsflow:schedule:manage'
 
     def perform_create(self, serializer):
         project_kwargs = self.resolve_project_kwargs(self.request)

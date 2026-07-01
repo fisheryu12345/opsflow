@@ -125,56 +125,26 @@
       </div>
       <!-- Hero tabs -->
       <div class="opsflow-hero-tabs">
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'designer' }" @click="onEnterDesigner" v-if="opsflowCanEdit">
-          <el-icon><EditPen /></el-icon> 设计器
-        </div>
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'templates' }" @click="activeTab = 'templates'" v-if="opsflowCanEdit">
-          <el-icon><Document /></el-icon> 模板中心
-        </div>
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'executions' }" @click="activeTab = 'executions'" v-if="opsflowCanEdit">
-          <el-icon><VideoPlay /></el-icon> 任务执行
-        </div>
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'approvals' }" @click="activeTab = 'approvals'" v-if="opsflowCanEdit">
-          <el-icon><Clock /></el-icon> 审批
-        </div>
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'knowledge' }" @click="activeTab = 'knowledge'" v-if="opsflowCanEdit">
-          <el-icon><Collection /></el-icon> 知识库
-        </div>
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'logs' }" @click="activeTab = 'logs'">
-          <el-icon><List /></el-icon> 执行日志
-        </div>
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'webhooks' }" @click="activeTab = 'webhooks'" v-if="opsflowCanEdit">
-          <el-icon><Link /></el-icon> Webhook
-        </div>
-        <div class="opsflow-hero-tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">
-          <el-icon><DataAnalysis /></el-icon> 看板
+        <div v-for="tab in pageConfig?.tabs" :key="tab.key"
+          class="opsflow-hero-tab"
+          :class="{ active: activeTab === tab.key, locked: !tab.has_access }"
+          @click="onTabClick(tab)">
+          <el-icon><component :is="iconMap[tab.icon]" /></el-icon>
+          {{ isEn ? tab.label_en : tab.label_zh }}
+          <span v-if="!tab.has_access" class="tab-lock">🔒</span>
         </div>
       </div>
     </div>
 
     <!-- Body -->
     <div class="opsflow-body-wrap">
-      <div v-show="activeTab === 'templates'" class="opsflow-section g-fade-in-up" v-if="opsflowCanEdit">
-        <OpsflowTemplate embedded />
-      </div>
-      <div v-show="activeTab === 'executions'" class="opsflow-section g-fade-in-up" v-if="opsflowCanEdit">
-        <OpsflowExecution embedded />
-      </div>
-      <div v-show="activeTab === 'approvals'" class="opsflow-section g-fade-in-up" v-if="opsflowCanEdit">
-        <OpsflowApproval embedded />
-      </div>
-      <div v-show="activeTab === 'knowledge'" class="opsflow-section g-fade-in-up" v-if="opsflowCanEdit">
-        <OpsflowKnowledge embedded />
-      </div>
-      <div v-show="activeTab === 'logs'" class="opsflow-section g-fade-in-up">
-        <OpsflowLog embedded />
-      </div>
-      <div v-show="activeTab === 'webhooks'" class="opsflow-section g-fade-in-up" v-if="opsflowCanEdit">
-        <OpsflowWebhook embedded />
-      </div>
-      <div v-show="activeTab === 'dashboard'" class="opsflow-section g-fade-in-up">
-        <OpsflowDashboard embedded />
-      </div>
+      <template v-if="pageConfig">
+        <template v-for="tab in pageConfig.tabs" :key="tab.key">
+          <div v-if="tab.has_access" v-show="activeTab === tab.key" class="opsflow-section g-fade-in-up">
+            <component :is="componentMap[tab.key]" embedded />
+          </div>
+        </template>
+      </template>
     </div>
   </div>
 </template>
@@ -188,9 +158,10 @@ import {
   Fold, Reading,
   ChatDotSquare, ChatLineSquare, User, InfoFilled,
   WarningFilled, Lightning, List, CircleCheck,
-  EditPen, Document, VideoPlay, Clock, Collection, Link, DataAnalysis,
+  EditPen, Document, VideoPlay, Clock, Collection, Link, DataAnalysis, Setting,
 } from '@element-plus/icons-vue'
 import { useOpsflowStore } from './stores/opsflowStore'
+import { usePermissionStore } from '/@/stores/permission'
 import { request } from '/@/utils/service'
 import { GetTemplates, GetTemplateDetail, CreateFromAi, CreateTemplate, GetDiff, AnalyzePipeline, RefinePipeline, AiLayout, UpdateTemplate, AcquireLock, ReleaseLock, HeartbeatLock } from './api/templates'
 import DesignCanvas from './components/canvas/DesignCanvas.vue'
@@ -206,6 +177,7 @@ import OpsflowKnowledge from '../opsflow-knowledge/index.vue'
 import OpsflowLog from '../opsflow-log/index.vue'
 import OpsflowWebhook from '../opsflow-webhook/index.vue'
 import OpsflowDashboard from '../opsflow-dashboard/index.vue'
+import OpsflowProject from '../opsflow-project/index.vue'
 
 const store = useOpsflowStore()
 const route = useRoute()
@@ -216,20 +188,49 @@ const isEn = computed(() => String(locale.value).startsWith('en'))
 // ===== Tab mode state =====
 const activeTab = ref<string>('dashboard')
 const canvasMode = ref(false)
-const opsflowPerms = ref<string[]>([])
-const opsflowCanEdit = computed(() => opsflowPerms.value.length > 0)
+const pageConfig = ref<any>(null)
+const userPerms = ref<string[]>([])
 
-// Sync activeTab with URL query param
-watch(activeTab, (val) => {
-  if (!canvasMode.value) {
-    router.replace({ query: { tab: val } }).catch(() => {})
+const permissionStore = usePermissionStore()
+const requestPerm = permissionStore.requestPerm
+
+async function loadPageConfig() {
+  try {
+    const res = await request({ url: '/api/iam/page-permissions/', params: { app: 'opsflow' } })
+    pageConfig.value = res.data
+    userPerms.value = res.data.user_permissions || []
+    const defaultTab = res.data.tabs.find((t: any) => t.is_default) || res.data.tabs[0]
+    if (defaultTab) activeTab.value = defaultTab.key
+  } catch { /* show empty */ }
+}
+
+const iconMap: Record<string, any> = {
+  EditPen, Document, VideoPlay, Clock, Collection, List, Link, DataAnalysis, Setting,
+}
+
+const componentMap: Record<string, any> = {
+  designer: DesignCanvas,
+  templates: OpsflowTemplate,
+  executions: OpsflowExecution,
+  approvals: OpsflowApproval,
+  knowledge: OpsflowKnowledge,
+  logs: OpsflowLog,
+  webhooks: OpsflowWebhook,
+  dashboard: OpsflowDashboard,
+  project: OpsflowProject,
+}
+
+function onTabClick(tab: any) {
+  if (!tab.has_access) {
+    permissionStore.requestPerm(tab.label_zh, tab.required_perm)
+    return
   }
-})
-
-function onEnterDesigner() {
-  canvasMode.value = true
-  // Load templates for the designer if not already loaded
-  if (!templates.value.length) fetchTemplates()
+  if (tab.key === 'designer') {
+    canvasMode.value = true
+    if (!templates.value.length) fetchTemplates()
+  } else {
+    activeTab.value = tab.key
+  }
 }
 
 // ===== Original designer state (unchanged) =====
@@ -455,20 +456,14 @@ function onProjectChanged() {
 
 onMounted(async () => {
   await store.fetchMyProjects()
-  // Load opsflow-specific button permissions for tab control
-  try {
-    const permRes = await request({ url: '/api/opsflow/projects/my_opsflow_permissions/', method: 'get' })
-    opsflowPerms.value = permRes.data || []
-  } catch { /* fallback: viewer */ }
+  await loadPageConfig()
   // Read initial tab from URL query param
   const tabParam = route.query.tab as string
-  if (tabParam && ['designer', 'templates', 'executions', 'approvals', 'knowledge', 'logs', 'webhooks', 'dashboard'].includes(tabParam)) {
-    if (tabParam === 'designer') {
-      if (opsflowCanEdit) { canvasMode.value = true }
-    } else {
-      const EDITOR_TABS = ['templates', 'executions', 'approvals', 'knowledge', 'webhooks']
-      if (EDITOR_TABS.includes(tabParam) && !opsflowCanEdit) {
-        activeTab.value = 'dashboard'
+  if (tabParam) {
+    const tabConfig = pageConfig.value?.tabs?.find((t: any) => t.key === tabParam)
+    if (tabConfig && (tabConfig.has_access || tabParam === 'dashboard' || tabParam === 'logs')) {
+      if (tabParam === 'designer' && tabConfig.has_access) {
+        canvasMode.value = true
       } else {
         activeTab.value = tabParam
       }
@@ -560,7 +555,10 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   &:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.05); }
   &.active { color: #fff; border-bottom-color: #409EFF; background: rgba(64,158,255,0.12); }
+  &.locked { opacity: 0.6; }
+  &.locked:hover { opacity: 0.9; background: rgba(255,193,7,0.1); border-bottom-color: #ffc107; }
   .el-icon { font-size: 15px; }
+  .tab-lock { font-size: 11px; margin-left: 3px; }
 }
 
 /* ===== Body ===== */

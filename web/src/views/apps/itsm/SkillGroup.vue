@@ -105,8 +105,8 @@ async function loadList() {
 }
 async function loadUsers() {
   try {
-    const res: any = await request({ url: '/api/system/user/', method: 'get', params: { page_size: 5000 } })
-    userOptions.value = res.data?.results || res.data || []
+    const res: any = await request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 5000 } })
+    userOptions.value = (res.data || []).map((item: any) => ({ id: item.value, name: item.label }))
   } catch { userOptions.value = [] }
 }
 function openDialog(item?: any) {

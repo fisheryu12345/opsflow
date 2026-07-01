@@ -273,7 +273,7 @@ class Command(BaseCommand):
     # ── 3. App Menus (match current DB structure) ──
 
     def _seed_app_menus(self):
-        from iam.models.menu_rbac import Menu
+        from iam.models.page_config import IAMMenu as Menu
 
         # Deduplicate: keep the oldest record for each web_path (avoid get_or_create failures)
         seen = {}
@@ -768,7 +768,7 @@ class Command(BaseCommand):
     # ── 7. IAM Menu ──
 
     def _seed_iam_menu(self):
-        from iam.models.menu_rbac import Menu
+        from iam.models.page_config import IAMMenu as Menu
         catalog, _ = Menu.objects.get_or_create(
             name="权限管理", web_path="/iam",
             defaults={"icon": "iconfont icon-safe", "sort": 5, "status": True, "parent": None},

@@ -7,7 +7,7 @@ class RoleTemplate(CoreModel):
     name = models.CharField(max_length=128, verbose_name="模板名称")
     code = models.CharField(max_length=64, unique=True, verbose_name="模板编码")
     source_role = models.ForeignKey(
-        'iam.Role', on_delete=models.SET_NULL, null=True, blank=True,
+        'iam.IAMRole', on_delete=models.SET_NULL, null=True, blank=True,
         verbose_name="来源角色",
     )
     menus = models.JSONField(default=list, verbose_name="菜单权限列表")  # [{menu_id, button_ids: [...]}]
@@ -22,16 +22,30 @@ class RoleTemplate(CoreModel):
         return f"{self.name} ({'system' if self.is_system else 'custom'})"
 
     def apply_to_role(self, role):
-        """Apply this template's menu/button permissions to a target Role."""
-        from iam.models.menu_rbac import RoleMenuPermission, RoleMenuButtonPermission, Menu, MenuButton
+        """Apply this template's IAMPermission bindings to a target IAMRole."""
+        from iam.models.permission import IAMRolePermission, IAMPermission
+        from iam.models.page_config import PageTab, PageButton
         # Clear existing
-        RoleMenuPermission.objects.filter(role=role).delete()
-        RoleMenuButtonPermission.objects.filter(role=role).delete()
-        # Apply template
+        IAMRolePermission.objects.filter(role=role).delete()
+        # Apply template: reconstruct codenames from menus/buttons stored as old IDs
         for entry in self.menus:
             menu_id = entry.get('menu_id')
-            if menu_id and Menu.objects.filter(id=menu_id).exists():
-                RoleMenuPermission.objects.get_or_create(role=role, menu_id=menu_id)
-            for btn_id in entry.get('button_ids', []):
-                if MenuButton.objects.filter(id=btn_id).exists():
-                    RoleMenuButtonPermission.objects.get_or_create(role=role, menu_button_id=btn_id)
+            btn_ids = entry.get('button_ids', [])
+            # Look up PageTabs whose app matches this menu (via Menu.app)
+            if menu_id:
+                from iam.models.page_config import IAMMenu as OldMenu
+                menu = OldMenu.objects.filter(id=menu_id).first()
+                if menu and menu.app:
+                    tab_perms = PageTab.objects.filter(app=menu.app).values_list('required_perm', flat=True)
+                    for codename in tab_perms:
+                        if codename:
+                            perm = IAMPermission.objects.filter(codename=codename).first()
+                            if perm:
+                                IAMRolePermission.objects.get_or_create(role=role, permission=perm)
+                    # Also add button perms
+                    buttons = PageButton.objects.filter(tab__app=menu.app)
+                    for btn in buttons:
+                        if btn.required_perm:
+                            perm = IAMPermission.objects.filter(codename=btn.required_perm).first()
+                            if perm:
+                                IAMRolePermission.objects.get_or_create(role=role, permission=perm)

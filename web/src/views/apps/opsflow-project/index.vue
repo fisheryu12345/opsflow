@@ -299,8 +299,9 @@ async function loadMembers(projectId: number) {
 async function loadAllUsers() {
   usersLoading.value = true
   try {
-    const res = await request({ url: '/api/system/user/', method: 'get', params: { page_size: 10000 } })
-    userOptions.value = (res as any).data?.results || (res as any).data || []
+    const res = await request({ url: '/api/iam/users/search/', method: 'get', params: { limit: 10000 } })
+    const raw = (res as any).data || []
+    userOptions.value = Array.isArray(raw) ? raw.map((u: any) => ({ id: u.value, name: u.label, username: u.label })) : []
   } catch { userOptions.value = [] }
   usersLoading.value = false
 }

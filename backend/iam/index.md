@@ -41,9 +41,9 @@
 |------|------|----------|
 | `models/__init__.py` | IAM app models — multi-tenant infrastructure + RBAC permission requests | - |
 | `models/membership.py` | Membership models — BusinessMember, DeployEnvironmentPermission | `Business line membership`, `Explicit per-user execution permission for a deploy environment` |
-| `models/menu_rbac.py` | IAM RBAC models — Role / Menu / MenuButton / Permission bridges. | `角色 (was dvadmin.system.models.Role)`, `菜单`, `菜单字段`, `字段权限` |
+| `models/page_config.py` | Page config — IAMMenu, PageTab, PageButton | `IAMMenu`, `PageTab`, `PageButton` |
 | `models/project.py` | Project model — migrated from opsflow.models.project | `Ops workspace`, `Project membership` |
-| `models/rbac.py` | - | `PermissionRequest`, `UserDirectPermission` |
+| `models/rbac.py` | PermissionRequest + UserDirectPermission | `PermissionRequest`, `UserDirectPermission` |
 | `models/role_template.py` | RoleTemplate — pre-configured Role + Menu/Button bindings for quick project setup. | `RoleTemplate` |
 | `models/tenant.py` | Tenant models — BusinessGroup, Business, DeployEnvironment | `Optional visual grouping for businesses`, `Business line`, `Deployment environment` |
 

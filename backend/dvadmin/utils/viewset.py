@@ -13,9 +13,8 @@ from rest_framework.viewsets import ModelViewSet
 
 from dvadmin.utils.import_export_mixin import ExportSerializerMixin, ImportSerializerMixin
 from dvadmin.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
-from dvadmin.utils.permission import CustomPermission
+from iam.permission_backend import IAMPermissionBackend
 from dvadmin.utils.models import get_custom_app_models
-from iam.models.menu_rbac import FieldPermission, MenuField
 from django_restql.mixins import QueryArgumentsMixin
 
 
@@ -35,7 +34,7 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
     update_serializer_class = None
     filter_fields = '__all__'
     search_fields = ()
-    permission_classes = [CustomPermission]
+    permission_classes = [IAMPermissionBackend]
     import_field_dict = {}
     export_field_label = {}
 
@@ -55,38 +54,6 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
         if action_serializer_class:
             return action_serializer_class
         return super().get_serializer_class()
-
-    # 通过many=True直接改造原有的API，使其可以批量创建
-    def get_serializer(self, *args, **kwargs):
-        serializer_class = self.get_serializer_class()
-        kwargs.setdefault('context', self.get_serializer_context())
-        # 全部以可见字段为准
-        can_see = self.get_menu_field(serializer_class)
-        # 排除掉序列化器级的字段
-        # sub_set = set(serializer_class._declared_fields.keys()) - set(can_see)
-        # for field in sub_set:
-        #     serializer_class._declared_fields.pop(field)
-        # if not self.request.user.is_superuser:
-        #     serializer_class.Meta.fields = can_see
-        # 在分页器中使用
-        self.request.permission_fields = can_see
-        if isinstance(self.request.data, list):
-            with transaction.atomic():
-                return serializer_class(many=True, *args, **kwargs)
-        else:
-            return serializer_class(*args, **kwargs)
-
-    def get_menu_field(self, serializer_class):
-        """获取字段权限"""
-        finded = False
-        for model in get_custom_app_models():
-            if model['object'] is serializer_class.Meta.model:
-                finded = True
-                break
-        if finded is False:
-            return []
-        return MenuField.objects.filter(model=model['model']
-        ).values('field_name', 'title')
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, request=request)

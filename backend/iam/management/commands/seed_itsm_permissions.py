@@ -29,8 +29,8 @@ class Command(BaseCommand):
     help = "Seed ITSM permission keys (MenuButton + Role + RoleMenuButtonPermission)"
 
     def handle(self, *args, **options):
-        from iam.models.menu_rbac import Menu, MenuButton, Role
-        from iam.models.menu_rbac import RoleMenuButtonPermission, RoleMenuPermission
+        from iam.models.page_config import IAMMenu as Menu, MenuButton, Role
+        from iam.models.permission import IAMRole as RoleMenuButtonPermission, RoleMenuPermission
 
         # Find or create the ITSM Menu
         itsm_menu, _ = Menu.objects.get_or_create(
