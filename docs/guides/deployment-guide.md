@@ -69,7 +69,20 @@ pip install -r requirements.txt
 > sudo yum install python3-devel mysql-devel gcc
 > ```
 
-### 2.3 前端依赖
+### 2.3 应用 Django 5.x 兼容补丁
+
+`bamboo-pipeline 4.0.2` 的 Meta 类使用了 Django 5.x 中已移除的 `index_together`。部署后需运行一次补丁脚本修复：
+
+```bash
+cd backend
+python scripts/patch_bamboo_pipeline.py
+```
+
+脚本会自动查找当前虚拟环境中 `pipeline/eri/models.py` 的位置，将 `index_together` 替换为 Django 5.x 兼容的 `indexes`。支持通过 `--path` 指定其他路径，或 `--all` 修补所有虚拟环境副本。
+
+> 该脚本可重复执行 — 已修补的文件会自动跳过。
+
+### 2.4 前端依赖
 
 ```bash
 cd web
