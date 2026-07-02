@@ -2,6 +2,31 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 7a839e6b
+
+> 提交日期: 2026-07-02 | 提交信息: refactor: role management search bar restructure + IAM page padding tweak
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/src/views/apps/iam/admin/role/index.vue` | 前端 | 搜索栏从列头内联筛选改为独立搜索行（Name/Status/Reset），移除列头筛选样式，简化布局 |
+| `web/src/views/apps/iam/index.vue` | 前端 | hero-tab 第一个 padding-left 归零，body padding 20px→24px |
+
+### 解决
+
+- **问题/背景：** 角色管理列头筛选占用表头空间、与排序交互冲突；IAM 页面 tab 间距不对称
+- **办法：** 拆出独立搜索行 + 弹性布局，统一间距
+
+### 验证
+
+- 改动类型: refactor + style
+- 清理乱码: 无
+- 子 App index.md 更新: 无（纯前端改动）
+- 工作区状态: 干净 ✅
+
+---
+
 ## 8a2fabec
 
 > 提交日期: 2026-07-02 | 提交信息: feat: IAM menu detail panel, OpsAgent tab + perms, v-can lock fix, ITSM button perms
