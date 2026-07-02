@@ -7,7 +7,7 @@ CRUD + 状态转换动作 — project-scoped with multi-tenant isolation
 from rest_framework.decorators import action
 from django.utils import timezone
 
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 from ..models.incident import Incident, Change, ServiceRequest, Problem, ServiceCategory, SlaPolicy
 from ..serializers import (
@@ -64,14 +64,14 @@ class IncidentViewSet(ItsmProjectViewSet):
         """分派工单"""
         instance = self.get_object()
         user_id = request.data.get('user_id')
-        from dvadmin.system.models import Users
+        from iam.models import IAMUsers
         try:
-            user = Users.objects.get(id=user_id)
+            user = IAMUsers.objects.get(id=user_id)
             instance.assignee = user
             instance.status = 'assigned'
             instance.save(update_fields=['assignee', 'status'])
             return DetailResponse(data={'status': instance.status, 'assignee': user.name}, msg='分派成功')
-        except Users.DoesNotExist:
+        except IAMUsers.DoesNotExist:
             return ErrorResponse(msg='用户不存在')
 
     @action(methods=['POST'], detail=True)

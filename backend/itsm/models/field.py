@@ -2,7 +2,7 @@
 """ITSM Field model — 节点表单字段定义"""
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 class Field(CoreModel):

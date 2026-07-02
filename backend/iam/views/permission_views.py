@@ -7,8 +7,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from iam.models.page_config import IAMMenu
-from dvadmin.system.models import Users
-from dvadmin.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
+from iam.models import IAMUsers
+from common.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
 from iam.models import (
     PermissionRequest, UserDirectPermission,
     BusinessGroup, Business, DeployEnvironment,
@@ -31,7 +31,7 @@ from iam.serializers import (
 def _notify_user(user, action: str, req: 'PermissionRequest'):
     """Send in-app notification for permission request result."""
     try:
-        from dvadmin.system.models import MessageCenter, MessageCenterTargetUser
+        from common.models import MessageCenter, MessageCenterTargetUser
         if action == 'approved':
             title = f"权限申请已通过 - Permission Approved"
             content = f"项目 [{req.target_project.name if req.target_project else '-'}] {req.get_target_project_role_display() if req.target_project_role else ''} 已获批" # pyright: ignore[reportAttributeAccessIssue]
@@ -47,13 +47,14 @@ def _notify_user(user, action: str, req: 'PermissionRequest'):
 def _notify_approvers(req: 'PermissionRequest'):
     """Send in-app notification to all potential approvers when a new request is submitted."""
     try:
-        from dvadmin.system.models import MessageCenter, MessageCenterTargetUser, Users
+        from iam.models import IAMUsers
+        from common.models import MessageCenter, MessageCenterTargetUser
 
         # Collect unique approver IDs (exclude requester to avoid duplicate notifications)
         approver_ids = set()
 
         # 1. All superusers can approve any request type
-        for uid in Users.objects.filter(is_superuser=True).values_list('id', flat=True):
+        for uid in IAMUsers.objects.filter(is_superuser=True).values_list('id', flat=True):
             approver_ids.add(uid)
 
         # 2. For project_role, also notify Business Admins of the target project's Business
@@ -476,7 +477,7 @@ class IamProjectViewSet(viewsets.ModelViewSet):
 def search_users(request):
     """搜索用户，返回 async_select 格式 {data: [{value: id, label: username}]}"""
     q = request.query_params.get('search', '').strip()
-    users = Users.objects.filter(is_active=True)
+    users = IAMUsers.objects.filter(is_active=True)
     if q:
         users = users.filter(models.Q(username__icontains=q) | models.Q(name__icontains=q))
     users = users[:50]
@@ -535,7 +536,7 @@ def my_permissions(request):
         'system': '消息中心', 'portal': '门户', 'iam': 'IAM',
         'monitor': '监控', 'system_admin': '系统管理',
         'integration': '集成中心', 'open_api': '开放接口',
-        'job_platform': '作业平台', 'agent_app': 'Agent', 'opsagent': '运维助手',
+        'job_platform': '作业平台', 'agent_backend': 'Agent', 'opsagent': '运维助手',
     }
     pages = []
     for app in sorted(perm_apps):

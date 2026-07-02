@@ -73,10 +73,10 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("IAM initialization complete!"))
 
     def _init_depts(self):
-        from dvadmin.system.models import Dept
+        from iam.models import IAMDept
         for d in DEPT_DEFAULTS:
-            Dept.objects.get_or_create(key=d['key'], defaults=d)
-        self.stdout.write(f"  Depts: {Dept.objects.count()}")
+            IAMDept.objects.get_or_create(key=d['key'], defaults=d)
+        self.stdout.write(f"  Depts: {IAMDept.objects.count()}")
 
     def _init_roles(self):
         from iam.models.permission import IAMRole as Role
@@ -138,14 +138,14 @@ class Command(BaseCommand):
     def _init_admin_user(self):
         from django.contrib.auth import get_user_model
         from iam.models.permission import IAMRole as Role, RoleMenuPermission, RoleMenuButtonPermission, Menu, MenuButton
-        from dvadmin.system.models import Dept
+        from iam.models import IAMDept
 
         User = get_user_model()
         if User.objects.filter(is_superuser=True).exists():
             self.stdout.write("  Admin user already exists, skip")
             return
 
-        dept = Dept.objects.first()
+        dept = IAMDept.objects.first()
         admin = User.objects.create_superuser(
             username='superadmin', password='yupei1986',
             name='Super Admin', email='admin@opsflow.local',

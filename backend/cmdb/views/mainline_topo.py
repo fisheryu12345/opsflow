@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """MainlineTopo views — 主线拓扑定义管理"""
 
-from dvadmin.utils.viewset import CustomModelViewSet
+from common.utils.viewset import CustomModelViewSet
 
 from ..models.mainline_topo import MainlineTopo
 from ..serializers import MainlineTopoSerializer

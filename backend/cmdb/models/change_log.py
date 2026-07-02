@@ -2,7 +2,7 @@
 """CMDB change log model — 记录模型实例的变更历史"""
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 class ChangeLog(CoreModel):

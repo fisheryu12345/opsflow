@@ -15,7 +15,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 from ..models.model_definition import ModelDefinition
 from ..models.change_log import ChangeLog

@@ -1,7 +1,7 @@
 """Template Collect — 收藏/取消收藏端点 Mixin"""
 
 from rest_framework.decorators import action
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 from rest_framework import status
 

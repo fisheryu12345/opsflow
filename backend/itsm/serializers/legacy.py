@@ -4,7 +4,7 @@
 统一规范: 继承 CustomModelSerializer，自动审计字段
 """
 
-from dvadmin.utils.serializers import CustomModelSerializer
+from common.utils.serializers import CustomModelSerializer
 from itsm.models.incident import Incident, Change, ServiceRequest, Problem, ServiceCategory, SlaPolicy
 
 

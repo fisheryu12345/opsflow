@@ -4,10 +4,7 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-import dvadmin.utils.models
-
-
-table_prefix = dvadmin.utils.models.table_prefix
+from common.utils.models import table_prefix
 
 
 class Migration(migrations.Migration):

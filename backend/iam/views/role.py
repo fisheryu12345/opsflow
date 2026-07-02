@@ -12,10 +12,10 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
 from iam.models.permission import IAMRole
-from dvadmin.utils.json_response import SuccessResponse, DetailResponse
-from dvadmin.utils.serializers import CustomModelSerializer
-from dvadmin.utils.validator import CustomUniqueValidator
-from dvadmin.utils.viewset import CustomModelViewSet
+from common.utils.json_response import SuccessResponse, DetailResponse
+from common.utils.serializers import CustomModelSerializer
+from common.utils.validator import CustomUniqueValidator
+from common.utils.viewset import CustomModelViewSet
 
 
 class RoleSerializer(CustomModelSerializer):

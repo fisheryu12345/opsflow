@@ -1,3 +1,4 @@
+from django.conf import settings
 # -*- coding: utf-8 -*-
 """ITSM model definitions
 
@@ -7,7 +8,8 @@
 import logging
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
+from itsm.models.skill_group import SkillGroup
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +28,7 @@ class ServiceCategory(CoreModel):
     sort_order = models.IntegerField(default=0, verbose_name="排序")
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
     default_group = models.ForeignKey(
-        'itsm.SkillGroup', on_delete=models.SET_NULL, null=True, blank=True,
+        SkillGroup, on_delete=models.SET_NULL, null=True, blank=True,
         verbose_name="默认分派技能组",
     )
     auto_assign = models.BooleanField(default=False, verbose_name="自动分派")
@@ -95,7 +97,7 @@ class Incident(CoreModel):
     priority = models.CharField(max_length=8, choices=SlaPolicy.priority_choices, default='P3', verbose_name="优先级")
     source = models.CharField(max_length=32, choices=source_choices, default='user', verbose_name="来源")
     category = models.ForeignKey(ServiceCategory, on_delete=models.SET_NULL, null=True, verbose_name="服务分类")
-    assignee = models.ForeignKey('system.Users', on_delete=models.SET_NULL, null=True, blank=True,
+    assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                   related_name='incidents', verbose_name="处理人")
     sla_policy = models.ForeignKey(SlaPolicy, on_delete=models.SET_NULL, null=True, verbose_name="SLA 策略")
     sla_deadline = models.DateTimeField(null=True, blank=True, verbose_name="SLA 截止时间")
@@ -150,9 +152,9 @@ class Change(CoreModel):
     change_type = models.CharField(max_length=32, choices=change_type_choices, default='normal', verbose_name="变更类型")
     status = models.CharField(max_length=32, choices=status_choices, default='draft', verbose_name="状态")
     risk_level = models.CharField(max_length=32, default='low', verbose_name="风险等级")
-    applicant = models.ForeignKey('system.Users', on_delete=models.SET_NULL, null=True,
+    applicant = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
                                    related_name='changes', verbose_name="申请人")
-    assignee = models.ForeignKey('system.Users', on_delete=models.SET_NULL, null=True, blank=True,
+    assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                   related_name='change_tasks', verbose_name="执行人")
     planned_start = models.DateTimeField(null=True, blank=True, verbose_name="计划开始时间")
     planned_end = models.DateTimeField(null=True, blank=True, verbose_name="计划结束时间")
@@ -191,9 +193,9 @@ class ServiceRequest(CoreModel):
     description = models.TextField(null=True, blank=True, verbose_name="描述")
     status = models.CharField(max_length=32, choices=status_choices, default='pending', verbose_name="状态")
     category = models.ForeignKey(ServiceCategory, on_delete=models.SET_NULL, null=True, verbose_name="服务分类")
-    requester = models.ForeignKey('system.Users', on_delete=models.SET_NULL, null=True,
+    requester = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
                                    related_name='service_requests', verbose_name="请求人")
-    assignee = models.ForeignKey('system.Users', on_delete=models.SET_NULL, null=True, blank=True,
+    assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                   related_name='assigned_requests', verbose_name="处理人")
     form_data = models.JSONField(default=dict, verbose_name="表单数据")
     fulfilled_at = models.DateTimeField(null=True, blank=True, verbose_name="完成时间")
@@ -230,7 +232,7 @@ class Problem(CoreModel):
     root_cause = models.TextField(null=True, blank=True, verbose_name="根因")
     workaround = models.TextField(null=True, blank=True, verbose_name="规避方案")
     solution = models.TextField(null=True, blank=True, verbose_name="解决方案")
-    assignee = models.ForeignKey('system.Users', on_delete=models.SET_NULL, null=True, blank=True,
+    assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                   related_name='problems', verbose_name="处理人")
     related_incidents = models.ManyToManyField(Incident, blank=True, verbose_name="关联事件")
     known_error = models.BooleanField(default=False, verbose_name="已知错误")

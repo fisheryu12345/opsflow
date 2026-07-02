@@ -4,7 +4,7 @@ from rest_framework import viewsets, mixins
 from rest_framework.response import Response
 from opsflow.models import TemplateNode, ExecutionNode
 from opsflow.serializers import TemplateNodeSerializer, ExecutionNodeSerializer
-from dvadmin.utils.json_response import DetailResponse, SuccessResponse
+from common.utils.json_response import DetailResponse, SuccessResponse
 
 
 class TemplateNodeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):

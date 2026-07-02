@@ -3,7 +3,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 from opsflow.models import PluginMeta
 from opsflow.plugins.registry import refresh_plugins, loader, get_plugin

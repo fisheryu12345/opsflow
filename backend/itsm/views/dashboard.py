@@ -13,7 +13,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ViewSet
 
-from dvadmin.utils.json_response import DetailResponse
+from common.utils.json_response import DetailResponse
 
 from itsm.models import Ticket, TicketStatus, SignTask
 

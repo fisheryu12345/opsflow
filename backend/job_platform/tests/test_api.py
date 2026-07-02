@@ -8,7 +8,7 @@ import json
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
-from dvadmin.system.models import Users as User
+from iam.models import IAMUsers as User  # TODO: migrate
 from ..models import Script, Template, Plan, Step, JobExecution, DangerousCmdRule, Account
 
 

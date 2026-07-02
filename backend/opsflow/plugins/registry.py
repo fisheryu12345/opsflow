@@ -112,6 +112,9 @@ def sync_plugin_meta_to_db():
 
     count = 0
     for code, versions in PLUGIN_REGISTRY.items():
+        if code.startswith('_'):
+            # Skip internal/abstract base classes (e.g. _tower_base)
+            continue
         for version, cls in versions.items():
             if not isinstance(cls, type):
                 logger.warning('sync_plugin_meta_to_db: skipping non-class item code=%s version=%s type=%s', code, version, type(cls).__name__)

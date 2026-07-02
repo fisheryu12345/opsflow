@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Ticket serializers"""
 
-from dvadmin.utils.serializers import CustomModelSerializer
+from common.utils.serializers import CustomModelSerializer
 from itsm.models import Ticket, TicketStatus, SignTask
 
 

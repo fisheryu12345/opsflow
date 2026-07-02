@@ -17,7 +17,7 @@ def is_tenants_mode():
 # ================================================= #
 def _get_all_system_config():
     data = {}
-    from dvadmin.system.models import SystemConfig
+    from common.models import SystemConfig
 
     system_config_obj = (
         SystemConfig.objects.filter(parent_id__isnull=False)

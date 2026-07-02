@@ -6,7 +6,7 @@ ModelField.name → Neo4j Property Key
 """
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 # ─── 字段类型常量 ───

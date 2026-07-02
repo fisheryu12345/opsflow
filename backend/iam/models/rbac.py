@@ -2,8 +2,8 @@ from django.db import models
 
 from iam.models.permission import IAMPermission, IAMRole
 from iam.models.page_config import IAMMenu
-from dvadmin.system.models import Users
-from dvadmin.utils.models import CoreModel, table_prefix
+from iam.models import IAMUsers
+from common.utils.models import CoreModel, table_prefix
 
 
 class PermissionRequest(CoreModel):
@@ -25,7 +25,7 @@ class PermissionRequest(CoreModel):
         ('viewer', '只读'),
     )
 
-    user = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='permission_requests', verbose_name='申请人')
+    user = models.ForeignKey(IAMUsers, on_delete=models.CASCADE, related_name='permission_requests', verbose_name='申请人')
     request_type = models.CharField(max_length=20, choices=RequestType.choices, verbose_name='申请类型')
     # Legacy FK fields — model-level only, DB columns retained
     target_role = models.IntegerField(null=True, blank=True, verbose_name='目标角色(旧)')
@@ -40,7 +40,7 @@ class PermissionRequest(CoreModel):
     selected_buttons = models.JSONField(default=list, blank=True, verbose_name='选中的按钮ID列表')
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, verbose_name='状态')
     reason = models.TextField(verbose_name='申请理由')
-    reviewer = models.ForeignKey(Users, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_requests', verbose_name='审批人')
+    reviewer = models.ForeignKey(IAMUsers, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_requests', verbose_name='审批人')
     review_comment = models.TextField(blank=True, default='', verbose_name='审批意见')
     reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name='审批时间')
 
@@ -55,11 +55,11 @@ class PermissionRequest(CoreModel):
 
 
 class UserDirectPermission(CoreModel):
-    user = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='direct_permissions', verbose_name='用户')
+    user = models.ForeignKey(IAMUsers, on_delete=models.CASCADE, related_name='direct_permissions', verbose_name='用户')
     menu = models.ForeignKey(IAMMenu, on_delete=models.CASCADE, null=True, blank=True, verbose_name='直接授权菜单')
     menu_button = models.IntegerField(null=True, blank=True, verbose_name='直接授权按钮(旧)')
     permission = models.ForeignKey(IAMPermission, on_delete=models.CASCADE, null=True, blank=True, verbose_name='直接授权权限')
-    granted_by = models.ForeignKey(Users, on_delete=models.SET_NULL, null=True, blank=True, related_name='granted_permissions', verbose_name='授权人')
+    granted_by = models.ForeignKey(IAMUsers, on_delete=models.SET_NULL, null=True, blank=True, related_name='granted_permissions', verbose_name='授权人')
     granted_at = models.DateTimeField(null=True, blank=True, verbose_name='授权时间')
 
     class Meta:

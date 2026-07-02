@@ -6,8 +6,8 @@
 
 from django.utils import timezone
 
-from dvadmin.utils.viewset import CustomModelViewSet
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.viewset import CustomModelViewSet
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 from ..models import (
     MonitorStrategy, MonitorItem, MonitorQueryConfig,

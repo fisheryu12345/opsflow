@@ -2,7 +2,7 @@
 """ITSM State model — 流程节点定义"""
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 class State(CoreModel):

@@ -4,8 +4,8 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 
-from dvadmin.utils.viewset import CustomModelViewSet
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.viewset import CustomModelViewSet
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 from ..models.association import AssociationType, ModelAssociation
 from ..serializers import (

@@ -12,7 +12,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 from integration.models.connector import ConnectorInstance
 from integration.models.integration_log import IntegrationLog
 
@@ -326,7 +326,7 @@ def saml_acs(request, instance_id):
             user = mapping.user
         else:
             # JIT 创建用户
-            from system.models import Users
+            from iam.models import IAMUsers as Users
             user = Users.objects.create(
                 username=username,
                 name=attrs.get(attr_name, [username])[0] if isinstance(

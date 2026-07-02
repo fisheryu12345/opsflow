@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from opsflow.models import OpsLog
 from opsflow.serializers import OpsLogSerializer
-from dvadmin.utils.json_response import DetailResponse, SuccessResponse
+from common.utils.json_response import DetailResponse, SuccessResponse
 
 
 class OpsLogViewSet(viewsets.ReadOnlyModelViewSet):

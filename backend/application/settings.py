@@ -66,8 +66,6 @@ INSTALLED_APPS = [
     "channels",
     "django_apscheduler",
     "django_extensions",
-    "dvadmin.system",
-    "opsagent",
     # ------------------------------------------------------------------ #
     #  OpsFlow Pipeline 引擎 (bamboo-pipeline)                            #
     # ------------------------------------------------------------------ #
@@ -75,6 +73,7 @@ INSTALLED_APPS = [
     "pipeline.eri",
     "pipeline.contrib.rollback",
     "pipeline.contrib.engine_admin",
+    "opsagent",
     "opsflow",
     "iam",
     "integration",
@@ -86,14 +85,14 @@ INSTALLED_APPS = [
     "open_api",
     "common",
     "mock_service",
-    "agent_app",
+    "agent_backend",
 ]
 
 # ================================================= #
 # ******************** 骨架配置 ******************* #
 # ================================================= #
 MIDDLEWARE = [
-    "dvadmin.utils.middleware.HealthCheckMiddleware",  # K8s 健康检查 /healthz + /readiness
+    "common.utils.middleware.HealthCheckMiddleware",  # K8s 健康检查 /healthz + /readiness
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -104,7 +103,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "dvadmin.utils.middleware.ApiLoggingMiddleware",
+    "common.utils.middleware.ApiLoggingMiddleware",
 ]
 
 ROOT_URLCONF = "application.urls"
@@ -127,7 +126,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "application.wsgi.application"
 
-AUTH_USER_MODEL = "system.Users"
+AUTH_USER_MODEL = "iam.IAMUsers"
 USERNAME_FIELD = "username"
 
 AUTH_PASSWORD_VALIDATORS = [

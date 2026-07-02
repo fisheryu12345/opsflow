@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Serializers for job_platform app — 所有模型序列化器"""
 
-from dvadmin.utils.serializers import CustomModelSerializer
+from common.utils.serializers import CustomModelSerializer
 
 from .models.subs.base import Account, FileSource, DangerousCmdRule, DangerousCheckLog
 from .models.subs.script import Script, ScriptVersion, ScriptReference

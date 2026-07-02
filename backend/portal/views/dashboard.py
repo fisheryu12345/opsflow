@@ -7,7 +7,7 @@ import logging
 from datetime import datetime, timedelta
 
 from django.utils import timezone
-from dvadmin.utils.json_response import DetailResponse
+from common.utils.json_response import DetailResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 

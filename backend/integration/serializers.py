@@ -4,7 +4,7 @@
 遵循统一规范：继承 CustomModelSerializer，自动填充审计字段
 """
 
-from dvadmin.utils.serializers import CustomModelSerializer
+from common.utils.serializers import CustomModelSerializer
 from rest_framework import serializers
 
 from .models.connector import ConnectorDefinition, ConnectorInstance

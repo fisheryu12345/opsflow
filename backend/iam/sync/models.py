@@ -1,3 +1,4 @@
+from django.conf import settings
 # -*- coding: utf-8 -*-
 """Mapping models for identity sync engine
 
@@ -9,7 +10,7 @@ remote attributes so the differ can detect changes efficiently.
 """
 
 from django.db import models
-from dvadmin.utils.models import table_prefix
+from common.utils.models import table_prefix
 
 
 def _sync_table(name: str) -> str:
@@ -32,7 +33,7 @@ class DeptMapping(models.Model):
         db_constraint=False,
     )
     dept = models.ForeignKey(
-        'system.Dept',
+        'iam.IAMDept',
         on_delete=models.CASCADE,
         related_name='sync_mappings',
         verbose_name="Local Dept",
@@ -84,7 +85,7 @@ class UserMapping(models.Model):
         db_constraint=False,
     )
     user = models.ForeignKey(
-        'system.Users',
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='sync_mappings',
         verbose_name="Local User",

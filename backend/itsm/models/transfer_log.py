@@ -1,8 +1,9 @@
+from django.conf import settings
 # -*- coding: utf-8 -*-
 """TicketTransferLog model — 工单转派/升级审计日志"""
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 class TicketTransferLog(CoreModel):
@@ -17,11 +18,11 @@ class TicketTransferLog(CoreModel):
         verbose_name="关联工单",
     )
     from_user = models.ForeignKey(
-        'system.Users', on_delete=models.SET_NULL, null=True, blank=True,
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='+', verbose_name="转出人",
     )
     to_user = models.ForeignKey(
-        'system.Users', on_delete=models.SET_NULL, null=True, blank=True,
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='+', verbose_name="转入人",
     )
     from_group = models.ForeignKey(

@@ -2,7 +2,7 @@
 """Serializers for ITSM assignment models"""
 
 from rest_framework import serializers
-from dvadmin.utils.serializers import CustomModelSerializer
+from common.utils.serializers import CustomModelSerializer
 from itsm.models.skill_group import SkillGroup, OnDutySchedule
 from itsm.models.assign_rule import AssignRule
 from itsm.models.escalation import EscalationLevel

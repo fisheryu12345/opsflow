@@ -4,8 +4,8 @@
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from dvadmin.utils.viewset import CustomModelViewSet
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.viewset import CustomModelViewSet
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 from opsflow.views.base import ProjectFilteredViewSet
 from iam.permissions import TenantPermission, EnvironmentGatePermission
@@ -184,8 +184,8 @@ class TicketViewSet(ItsmProjectViewSet):
         if not user_id:
             return ErrorResponse(msg='user_id required')
         try:
-            from dvadmin.system.models import Users
-            user = Users.objects.get(id=user_id)
+            from iam.models import IAMUsers
+            user = IAMUsers.objects.get(id=user_id)
             group = None
             if group_id:
                 from itsm.models.skill_group import SkillGroup
@@ -195,7 +195,7 @@ class TicketViewSet(ItsmProjectViewSet):
                     pass
             AssignEngine.manual_assign(instance, user, group, reason)
             return DetailResponse(msg='工单已分派')
-        except Users.DoesNotExist:
+        except IAMUsers.DoesNotExist:
             return ErrorResponse(msg='用户不存在')
         except Exception as e:
             return ErrorResponse(msg=f'分派失败: {str(e)}')

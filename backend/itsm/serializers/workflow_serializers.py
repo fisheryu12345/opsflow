@@ -2,7 +2,7 @@
 """Workflow serializers"""
 
 from rest_framework import serializers
-from dvadmin.utils.serializers import CustomModelSerializer
+from common.utils.serializers import CustomModelSerializer
 from itsm.models import Workflow, WorkflowVersion, State, Transition, Field
 
 

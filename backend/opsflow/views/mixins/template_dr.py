@@ -16,7 +16,7 @@ import re
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 from opsflow.services.dr_service import (
     DR_SYSTEM_PROMPT,
     get_dr_group_topology,

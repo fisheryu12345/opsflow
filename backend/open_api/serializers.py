@@ -2,7 +2,7 @@
 """
 
 from rest_framework import serializers
-from dvadmin.utils.serializers import CustomModelSerializer
+from common.utils.serializers import CustomModelSerializer
 from .models.models import ApiApp, OpenApiToken, WebhookSubscription, OpenApiLog
 
 

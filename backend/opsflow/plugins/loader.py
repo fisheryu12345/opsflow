@@ -56,7 +56,7 @@ class PluginLoader:
             int: 本次新增插件数量
         """
         if not self.base_dir.is_dir():
-            logger.warning("PluginLoader: 目录不存在: %s", self.base_dir)
+            logger.warning("PluginLoader: directory not found: %s", self.base_dir)
             return 0
 
         new_count = 0
@@ -85,7 +85,7 @@ class PluginLoader:
             try:
                 module = importlib.import_module(module_path)
             except Exception as e:
-                logger.warning("PluginLoader 导入模块失败 %s: %s", module_path, e)
+                logger.warning("PluginLoader import failed %s: %s", module_path, e)
                 continue
 
             # 查找 BasePlugin 子类并注册
@@ -97,7 +97,7 @@ class PluginLoader:
 
         if new_count > 0:
             self._revision += 1
-            logger.info("PluginLoader scan 完成: 新增 %d 个插件, revision=%d",
+            logger.info("PluginLoader scan: %d new plugins, revision=%d",
                         new_count, self._revision)
 
         return new_count
@@ -128,12 +128,14 @@ class PluginLoader:
             if (isinstance(cls, type) and issubclass(cls, BasePlugin)
                     and cls is not BasePlugin):
                 code = cls.code or cls.name
+                if code.startswith('_'):
+                    continue  # Skip internal/abstract base classes (e.g. _tower_base)
                 version = cls.version or "v1.0"
 
                 if code not in self._registry:
                     self._registry[code] = {}
                 if version in self._registry.get(code, {}):
-                    logger.warning("PluginLoader 插件 code=%s version=%s 重复，跳过注册",
+                    logger.warning("PluginLoader plugin code=%s version=%s duplicate, skip",
                                    code, version)
                     continue
 
@@ -141,8 +143,8 @@ class PluginLoader:
                 if code not in self._group_map.get(cls.group, []):
                     self._group_map.setdefault(cls.group, []).append(code)
                 count += 1
-                logger.info("PluginLoader 注册新插件: %s v%s (%s)",
-                            code, version, module_path)
+                logger.info("PluginLoader register plugin: %s (%s)",
+                            code, module_path)
 
         return count
 

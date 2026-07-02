@@ -8,8 +8,8 @@ from rest_framework.decorators import action
 from django.utils import timezone
 from django.conf import settings
 
-from dvadmin.utils.viewset import CustomModelViewSet
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.viewset import CustomModelViewSet
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 from ..models.models import ApiApp, OpenApiToken, WebhookSubscription, OpenApiLog
 from ..serializers import (

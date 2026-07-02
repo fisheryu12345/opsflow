@@ -1,8 +1,9 @@
+from django.conf import settings
 # -*- coding: utf-8 -*-
 """EscalationLevel model — 多级升级策略配置"""
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 class EscalationLevel(CoreModel):
@@ -28,7 +29,7 @@ class EscalationLevel(CoreModel):
         verbose_name="超时动作",
     )
     notify_users = models.ManyToManyField(
-        'system.Users', blank=True, related_name='+', verbose_name="通知用户",
+        settings.AUTH_USER_MODEL, blank=True, related_name='+', verbose_name="通知用户",
     )
 
     class Meta:

@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.db.models import Count, Avg, Q, F, Max, Sum, Case, Value, IntegerField, When
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 
 from ...models import FlowExecution, NodeExecutionTrace

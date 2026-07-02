@@ -1,8 +1,9 @@
+from django.conf import settings
 # -*- coding: utf-8 -*-
 """SkillGroup and OnDutySchedule models — IT 运维技能组与值班排班"""
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 class SkillGroup(CoreModel):
@@ -14,11 +15,11 @@ class SkillGroup(CoreModel):
     name = models.CharField(max_length=128, verbose_name="技能组名称")
     code = models.CharField(max_length=64, unique=True, verbose_name="技能组编码")
     leader = models.ForeignKey(
-        'system.Users', on_delete=models.SET_NULL, null=True, blank=True,
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='leading_groups', verbose_name="组长",
     )
     members = models.ManyToManyField(
-        'system.Users', blank=True, related_name='skill_groups', verbose_name="组员",
+        settings.AUTH_USER_MODEL, blank=True, related_name='skill_groups', verbose_name="组员",
     )
     description = models.TextField(blank=True, default='', verbose_name="说明")
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
@@ -48,7 +49,7 @@ class OnDutySchedule(CoreModel):
         verbose_name="技能组",
     )
     user = models.ForeignKey(
-        'system.Users', on_delete=models.CASCADE, related_name='duty_schedules',
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='duty_schedules',
         verbose_name="值班人",
     )
     duty_date = models.DateField(verbose_name="值班日期")

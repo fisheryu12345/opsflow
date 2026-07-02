@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework import status
 
 from opsflow.models import WebhookConfig, WebhookLog
-from dvadmin.utils.json_response import DetailResponse, SuccessResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, SuccessResponse, ErrorResponse
 
 logger = logging.getLogger(__name__)
 

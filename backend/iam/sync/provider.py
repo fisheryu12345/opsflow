@@ -126,7 +126,7 @@ class BaseSyncProvider(ABC):
 
     def _apply_dept_diff(self, diff: DeptDiff, result: SyncResult):
         """Apply department diff to database"""
-        from system.models import Dept  # lazy import to avoid circular
+        from iam.models import IAMDept
 
         # --- Added ---
         for item in diff.added:
@@ -142,7 +142,7 @@ class BaseSyncProvider(ABC):
                         parent = parent_mapping.dept
 
                 # Create Dept
-                dept = Dept.objects.create(
+                dept = IAMDept.objects.create(
                     name=item["name"],
                     key=item["dn"],  # Store DN as key for traceability
                     parent=parent,
@@ -191,14 +191,14 @@ class BaseSyncProvider(ABC):
         # --- Disabled ---
         for dept_id in diff.disabled:
             try:
-                Dept.objects.filter(id=dept_id).update(status=False)
+                IAMDept.objects.filter(id=dept_id).update(status=False)
                 result.stats.dept_disabled += 1
             except Exception as e:
                 logger.warning("Failed to disable dept %d: %s", dept_id, e)
 
     def _apply_user_diff(self, diff: UserDiff, result: SyncResult):
         """Apply user diff to database"""
-        from system.models import Users  # lazy import to avoid circular
+        from iam.models import IAMUsers
 
         # --- Added ---
         for item in diff.added:
@@ -207,8 +207,8 @@ class BaseSyncProvider(ABC):
                 dept_id = item.get("dept_id")
                 dept = None
                 if dept_id:
-                    from system.models import Dept
-                    dept = Dept.objects.filter(id=dept_id).first()
+                    from iam.models import IAMDept
+                    dept = IAMDept.objects.filter(id=dept_id).first()
 
                 # Build user fields from mapping
                 user_data = {
@@ -220,7 +220,7 @@ class BaseSyncProvider(ABC):
                     "dept": dept,
                 }
                 # Set a default password (user will login via LDAP Bind)
-                user = Users.objects.create(**user_data)
+                user = IAMUsers.objects.create(**user_data)
 
                 UserMapping.objects.create(
                     source_instance=self.instance,
@@ -278,7 +278,7 @@ class BaseSyncProvider(ABC):
         # --- Disabled ---
         for user_id in diff.disabled:
             try:
-                Users.objects.filter(id=user_id).update(is_active=False)
+                IAMUsers.objects.filter(id=user_id).update(is_active=False)
                 result.stats.user_disabled += 1
             except Exception as e:
                 logger.warning("Failed to disable user %d: %s", user_id, e)

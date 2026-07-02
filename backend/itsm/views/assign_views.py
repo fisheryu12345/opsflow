@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """View sets for ITSM assignment models — project-scoped with multi-tenant isolation"""
 
-from dvadmin.utils.viewset import CustomModelViewSet
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.viewset import CustomModelViewSet
+from common.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.decorators import action
 
 from itsm.models.skill_group import SkillGroup, OnDutySchedule

@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 
 from django.db import models
-from dvadmin.utils.models import table_prefix
+from common.utils.models import table_prefix
 
 
 # ═══════════════════════════════════════════════════════════════════════

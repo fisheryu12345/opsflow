@@ -9,7 +9,7 @@ from iam.models import Project, ProjectMember
 from iam.resolvers import get_visible_projects
 from opsflow.serializers import ProjectSerializer
 from iam.permissions import TenantPermission
-from dvadmin.utils.json_response import DetailResponse, SuccessResponse
+from common.utils.json_response import DetailResponse, SuccessResponse
 
 
 class OpsProjectViewSet(viewsets.ModelViewSet):

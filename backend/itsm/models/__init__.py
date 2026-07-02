@@ -2,6 +2,9 @@
 """Re-export all models for itsm app"""
 
 from .incident import Incident, Change, ServiceRequest, Problem, ServiceCategory, SlaPolicy
+from .skill_group import SkillGroup, OnDutySchedule
+from .assign_rule import AssignRule
+from .escalation import EscalationLevel
 from .workflow import Workflow, WorkflowVersion
 from .state import State
 from .transition import Transition

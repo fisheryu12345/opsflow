@@ -6,7 +6,7 @@ WorkflowVersion: 部署快照，工单运行依赖的冻结数据
 """
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 class Workflow(CoreModel):

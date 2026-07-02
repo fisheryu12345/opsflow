@@ -6,7 +6,7 @@ Frontend renders purely from the /api/iam/page-permissions/ API.
 """
 from django.db import models
 
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 class IAMMenu(models.Model):

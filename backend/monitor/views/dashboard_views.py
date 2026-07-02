@@ -9,8 +9,8 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.decorators import action
 
-from dvadmin.utils.viewset import CustomModelViewSet
-from dvadmin.utils.json_response import DetailResponse
+from common.utils.viewset import CustomModelViewSet
+from common.utils.json_response import DetailResponse
 
 from ..models import Alert, AlertEvent, MonitorStrategy
 

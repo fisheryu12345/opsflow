@@ -10,7 +10,7 @@ from opsflow.serializers import OpsKnowledgeSerializer
 from opsflow.views.base import ProjectFilteredViewSet
 from iam.permissions import TenantPermission
 from iam.permission_backend import IAMPermissionBackend
-from dvadmin.utils.json_response import DetailResponse, SuccessResponse
+from common.utils.json_response import DetailResponse, SuccessResponse
 
 logger = logging.getLogger(__name__)
 

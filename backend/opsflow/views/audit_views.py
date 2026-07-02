@@ -3,7 +3,7 @@
 from rest_framework import viewsets, mixins
 from opsflow.models import OperationRecord
 from opsflow.serializers import OperationRecordSerializer
-from dvadmin.utils.json_response import DetailResponse, SuccessResponse
+from common.utils.json_response import DetailResponse, SuccessResponse
 
 
 class OperationRecordViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):

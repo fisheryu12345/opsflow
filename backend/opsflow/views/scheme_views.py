@@ -9,7 +9,7 @@ from opsflow.models import FlowTemplate, ExecutionScheme
 from opsflow.serializers import ExecutionSchemeSerializer
 from opsflow.views.base import ProjectFilteredViewSet
 from iam.permissions import TenantPermission
-from dvadmin.utils.json_response import DetailResponse, SuccessResponse
+from common.utils.json_response import DetailResponse, SuccessResponse
 
 
 class ExecutionSchemeViewSet(ProjectFilteredViewSet):

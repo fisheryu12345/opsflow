@@ -2,7 +2,7 @@
 """AssignRule model — 工单自动分派路由规则"""
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 from itsm.models.skill_group import SkillGroup
 from itsm.models.incident import ServiceCategory
 

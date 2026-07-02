@@ -24,14 +24,14 @@ from rest_framework_simplejwt.views import (
 from application import dispatch
 from application import settings
 # from dvadmin.system import admin
-from dvadmin.system.views.login import (
+from iam.views.login import (
     LoginView,
     CaptchaView,
     ApiLogin,
     LogoutView,
     LoginTokenView
 )
-from dvadmin.system.views.system_config import InitSettingsViewSet
+from common.views.system_config import InitSettingsViewSet
 # =========== 初始化系统配置 =================
 dispatch.init_system_config()
 # =========== 初始化系统配置 =================
@@ -41,7 +41,7 @@ urlpatterns = (
             path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
             path("", SpectacularSwaggerView.as_view(url_name="schema"), name="schema-swagger-ui"),
             path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="schema-redoc"),
-            path("api/system/", include("dvadmin.system.urls")),
+            path("api/system/", include("common.urls")),
             path("api/login/", LoginView.as_view(), name="token_obtain_pair"),
             path("api/logout/", LogoutView.as_view(), name="token_obtain_pair"),
             path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
@@ -82,9 +82,9 @@ urlpatterns = (
             # Open API external URLs (third-party facing) - separate urlconf
             path("api/v2/open/", include("open_api.external_urls")),
             # Agent URLs
-            path("api/agent/", include("agent_app.urls")),
+            path("api/agent/", include("agent_backend.urls")),
             # OAuth2/SSO URLs
-            path("api/system/oauth/", include("dvadmin.system.views.oauth")),
+            path("api/system/oauth/", include("iam.views.oauth")),
             re_path(r'^admin/', admin.site.urls),  # Django admin route
         ]
         + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

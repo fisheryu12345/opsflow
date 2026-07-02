@@ -28,16 +28,33 @@ if [ -n "$staged_py" ]; then
     echo ""
 fi
 
-# ── 2. 检查新增的插件文件是否缺 name_en ──
+# ── 2. Validate new plugin files have all 12 metadata fields (all required) ──
 staged_new_py=$(git diff --cached --name-only --diff-filter=A | grep -E 'opsflow/plugins/.*\.py$' | grep -v __init__ | grep -v _client | grep -v base | grep -v loader | grep -v registry)
 if [ -n "$staged_new_py" ]; then
+    has_warn=0
     for f in $staged_new_py; do
-        if [ -f "$f" ] && grep -q "class.*Plugin" "$f" 2>/dev/null; then
-            if ! grep -q "name_en" "$f" 2>/dev/null; then
-                echo "⚠️  Warning: $f may be missing name_en"
+        if [ ! -f "$f" ]; then
+            continue
+        fi
+        if ! grep -q "class.*Plugin" "$f" 2>/dev/null; then
+            continue
+        fi
+        missing=""
+        for field in code name name_en group version description description_en risk_level icon color show_execution_controls show_loop_config; do
+            if ! grep -q "$field\s*=" "$f" 2>/dev/null; then
+                missing="$missing $field"
             fi
+        done
+        if [ -n "$missing" ]; then
+            echo "❌ $f: missing metadata field(s):$missing"
+            has_warn=1
         fi
     done
+    if [ $has_warn -eq 1 ]; then
+        echo ""
+        echo "   All 12 metadata fields required (per plugin-development-guide.md):"
+        echo "   code, name, name_en, group, version, description, description_en,"
+        echo "   risk_level, icon, color, show_execution_controls, show_loop_config"
+    fi
 fi
 
-echo "✅ [pre-commit] All checks passed"

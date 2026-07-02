@@ -166,9 +166,9 @@ def _resolve_organization(processors: str, ticket=None) -> list:
         if isinstance(dept_names, str):
             dept_names = [dept_names]
         results = []
-        from dvadmin.system.models import Dept
+        from iam.models import IAMDept
         for name in dept_names:
-            depts = Dept.objects.filter(name__icontains=name)
+            depts = IAMDept.objects.filter(name__icontains=name)
             for dept in depts:
                 users = UserModel.objects.filter(dept=dept)
                 results.extend([u.username for u in users])

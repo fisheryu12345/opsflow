@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 
 

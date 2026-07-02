@@ -18,7 +18,7 @@ from opsflow.views.mixins.execution_lifecycle import ExecutionLifecycleMixin
 from opsflow.views.mixins.execution_node_command import ExecutionNodeCommandMixin
 from opsflow.views.mixins.execution_approval import ExecutionApprovalMixin
 from opsflow.views.mixins.execution_trace import ExecutionTraceMixin
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 
 class FlowExecutionViewSet(

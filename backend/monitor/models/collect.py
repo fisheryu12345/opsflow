@@ -2,7 +2,7 @@
 """CollectConfig model — 采集配置（数据源接入配置）"""
 
 from django.db import models
-from dvadmin.utils.models import table_prefix
+from common.utils.models import table_prefix
 
 
 class CollectConfig(models.Model):

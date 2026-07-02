@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """AttributeGroup views — 属性分组管理"""
 
-from dvadmin.utils.viewset import CustomModelViewSet
+from common.utils.viewset import CustomModelViewSet
 
 from ..models.attribute_group import AttributeGroup
 from ..serializers import AttributeGroupSerializer

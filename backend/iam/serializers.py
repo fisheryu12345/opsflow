@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from dvadmin.utils.serializers import CustomModelSerializer
+from common.utils.serializers import CustomModelSerializer
 from iam.models import (
     PermissionRequest, UserDirectPermission,
     BusinessGroup, Business, DeployEnvironment,

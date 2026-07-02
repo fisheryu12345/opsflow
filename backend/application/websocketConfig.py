@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 @database_sync_to_async
 def _get_message_unread(user_id):
     """获取用户的未读消息数量"""
-    from dvadmin.system.models import MessageCenterTargetUser
+    from common.models import MessageCenterTargetUser
     count = MessageCenterTargetUser.objects.filter(users=user_id, is_read=False).count()
     return count or 0
 
@@ -32,7 +32,7 @@ def _get_message_unread(user_id):
 @database_sync_to_async
 def _get_message_center_instance(message_id):
     """查询消息中心的目标用户 ID 列表"""
-    from dvadmin.system.models import MessageCenter
+    from common.models import MessageCenter
     qs = MessageCenter.objects.filter(id=message_id).values_list('target_user', flat=True)
     return list(qs) if qs else []
 

@@ -2,7 +2,7 @@
 """Delegation serializers — 审批委托序列化器"""
 
 from rest_framework import serializers
-from dvadmin.utils.serializers import CustomModelSerializer
+from common.utils.serializers import CustomModelSerializer
 from itsm.models.delegation import ApprovalDelegate
 
 

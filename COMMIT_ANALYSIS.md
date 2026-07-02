@@ -2,6 +2,48 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 58f68b5d
+
+> 提交日期: 2026-07-02 | 提交信息: refactor: migrate dvadmin to common/ + iam/, rename agent_app to agent_backend
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `dvadmin/utils/ → common/utils/` (14 文件) | 后端 | 工具代码迁移 — json_response, CoreModel, viewset 等 |
+| `dvadmin/system/models → iam/ IAMUsers/IAMDept` | 后端 | 用户+部门模型迁入 iam，重命名 IAMUsers/IAMDept |
+| `dvadmin/system/views/ → iam/views/` | 后端 | login, user, dept, oauth 视图迁移 |
+| `common/models/` | 后端 | OperationLog, LoginLog, FileList, SystemConfig, MessageCenter |
+| `dvadmin/system/views/ → common/views/` | 后端 | operation_log, login_log, message_center 等 |
+| `itsm/models/` (11 文件) | 后端 | system.Users FK → settings.AUTH_USER_MODEL |
+| `opsflow/plugins/loader.py, registry.py` | 后端 | 日志英文化, 跳过 _tower_base, 修复 vv1.0 |
+| `opsflow/plugins/registry.py` | 后端 | sync_plugin_meta_to_db 跳过内部基类 |
+| `opsflow/tests/test_layout.py` | 修复 | 修复语法错误 |
+| `job_platform` | 修复 | 补齐 dangerous_cmd_rule creator 列 |
+| `agent_app → agent_backend` | 配置 | 应用重命名 |
+| `application/dispatch.py` | 修复 | SystemConfig 表名变更兼容 |
+| `docs/opsflow/config/2026-07-02-conf-db-table-rename-config.md` | 文档 | 数据库表名迁移配置变更文档 |
+
+### 解决
+
+- **问题/背景：** dvadmin 遗留代码与 IAM 体系重复，Users/Dept 模型在 dvadmin 中、所有工具函数依赖 dvadmin.utils 
+- **办法：** 一步到位迁移：utils → common, 模型 → iam/common, 137+ import 路径更新, ALTER TABLE 表重命名
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/config/2026-07-02-conf-db-table-rename-config.md`
+
+### 验证
+
+- 改动类型: refactor + fix + chore + BREAKING CHANGE
+- 清理乱码: 有（删除 agent-py 目录）
+- 子 App index.md 更新: iam, common
+- 工作区状态: 待提交 ✅
+
+---
+
+
 ## 76e42387
 
 > 提交日期: 2026-07-01 | 提交信息: chore: unify Redis config with conf/env + common/utils/redis_helper

@@ -11,7 +11,7 @@ from opsflow.models import SchedulePlan, FlowExecution
 from opsflow.serializers import SchedulePlanSerializer, FlowExecutionSerializer
 from opsflow.views.base import ProjectFilteredViewSet
 from opsflow.core.scheduler_service import opsflow_scheduler
-from dvadmin.utils.json_response import DetailResponse, SuccessResponse
+from common.utils.json_response import DetailResponse, SuccessResponse
 
 logger = logging.getLogger(__name__)
 

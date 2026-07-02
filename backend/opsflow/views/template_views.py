@@ -22,7 +22,7 @@ from opsflow.views.mixins.template_webhook import TemplateWebhookMixin
 from opsflow.views.base import ProjectFilteredViewSet
 from opsflow.core.audit_logger import log_operation
 from opsflow.core.plugin_deprecation import check_deprecated_plugins_in_template
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 logger = logging.getLogger(__name__)
 

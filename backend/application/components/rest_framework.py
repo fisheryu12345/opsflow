@@ -14,11 +14,11 @@ REST_FRAMEWORK = {
     "DATE_FORMAT": "%Y-%m-%d",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_FILTER_BACKENDS": (
-        "dvadmin.utils.filters.CustomDjangoFilterBackend",
+        "common.utils.filters.CustomDjangoFilterBackend",
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ),
-    "DEFAULT_PAGINATION_CLASS": "dvadmin.utils.pagination.CustomPagination",
+    "DEFAULT_PAGINATION_CLASS": "common.utils.pagination.CustomPagination",
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
@@ -26,7 +26,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    "EXCEPTION_HANDLER": "dvadmin.utils.exception.CustomExceptionHandler",
+    "EXCEPTION_HANDLER": "common.utils.exception.CustomExceptionHandler",
 }
 
 # ── drf-spectacular (API 文档) ──

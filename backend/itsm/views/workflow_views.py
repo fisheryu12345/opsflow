@@ -5,8 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
-from dvadmin.utils.viewset import CustomModelViewSet
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
+from common.utils.viewset import CustomModelViewSet
+from common.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
 
 from opsflow.views.base import ProjectFilteredViewSet
 from iam.permissions import TenantPermission

@@ -2,7 +2,7 @@
 """ITSM SLA model — SLA 策略、优先级矩阵、计时任务"""
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 class PriorityMatrix(CoreModel):

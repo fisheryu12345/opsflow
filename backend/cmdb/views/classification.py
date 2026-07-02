@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Classification views — 模型分类管理"""
 
-from dvadmin.utils.viewset import CustomModelViewSet
+from common.utils.viewset import CustomModelViewSet
 
 from ..models.classification import Classification
 from ..serializers import (

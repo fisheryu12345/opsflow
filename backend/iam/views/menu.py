@@ -11,9 +11,9 @@ from rest_framework import serializers
 from rest_framework.decorators import action
 
 from iam.models.page_config import IAMMenu
-from dvadmin.utils.json_response import SuccessResponse, ErrorResponse
-from dvadmin.utils.serializers import CustomModelSerializer
-from dvadmin.utils.viewset import CustomModelViewSet
+from common.utils.json_response import SuccessResponse, ErrorResponse
+from common.utils.serializers import CustomModelSerializer
+from common.utils.viewset import CustomModelViewSet
 
 
 class MenuSerializer(CustomModelSerializer):

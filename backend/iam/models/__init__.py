@@ -4,6 +4,8 @@ All models are importable from iam.models, preserving backward compatibility
 with existing code that references iam.models.PermissionRequest etc.
 """
 
+from iam.models.users import IAMUsers
+from iam.models.dept import IAMDept
 from iam.models.rbac import PermissionRequest, UserDirectPermission
 from iam.models.role_template import RoleTemplate
 from iam.models.permission import IAMPermission, IAMRole, IAMRolePermission, IAMUserRole

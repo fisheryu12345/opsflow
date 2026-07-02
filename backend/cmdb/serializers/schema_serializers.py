@@ -4,7 +4,7 @@
 使用 dvadmin 统一的 CustomModelSerializer 基类。
 """
 
-from dvadmin.utils.serializers import CustomModelSerializer
+from common.utils.serializers import CustomModelSerializer
 
 from ..models.classification import Classification
 from ..models.model_definition import ModelDefinition, ModelField

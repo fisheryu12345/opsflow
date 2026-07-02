@@ -160,21 +160,21 @@ All OPSflow Vue components should follow these conventions for visual consistenc
 
 ---
 
-## 前端注释规范
+## Frontend Comment Rules
 
-**注释是解释"为什么"，不是"是什么"。**
+**Comments explain "why", not "what".**
 
-| # | 规则 | ✅ 正确示例 | ❌ 错误示例 |
-|---|------|------------|------------|
-| 1 | 组件顶部写一句话职责说明 | `<!-- 部门树组件：懒加载、拖拽排序 -->` | 不写注释 |
-| 2 | 非自明的逻辑写"为什么" | `// 先重置再 fetch，避免竞态` | `// 获取列表` |
-| 3 | 复杂 API 调用写预期行为 | `// 返回 { code, data, total }，data 可能为 null` | 不写注释 |
-| 4 | 信号/事件/发布订阅写触发条件 | `// 节点完成时触发，pipeline_builder 监听此信号` | `// 发送信号` |
-| 5 | 禁止废话注释 | — | `// 设置变量`、`// 循环` |
-| 6 | 中英双语可选 | 复杂的业务逻辑用中文，纯技术说明用英文 | — |
-| 7 | CSS hack 必须注释 | `// 覆盖 el-table 默认内边距` | 裸 hack 代码 |
+| # | Rule | ✅ Correct | ❌ Wrong |
+|---|------|------------|----------|
+| 1 | Write a one-line responsibility comment at the top of every component | `<!-- DeptTree: lazy-load, drag-and-drop sorting -->` | No comment |
+| 2 | For non-obvious logic, explain "why" | `// Reset before fetch to avoid race condition` | `// Fetch list` |
+| 3 | For complex API calls, document the expected behavior | `// Returns { code, data, total }, data may be null` | No comment |
+| 4 | For signals/events/pub-sub, document the trigger condition | `// Fires on node completion, consumed by pipeline_builder` | `// Send signal` |
+| 5 | No useless comments | — | `// Set variable`, `// Loop` |
+| 6 | All comments MUST be in English | `// Validate user input before saving` | Chinese comments |
+| 7 | CSS hacks must have a comment | `// Override el-table default padding` | Bare hack code |
 
-**关键原则：** 好的代码本身就能说明"是什么"——注释的唯一价值是解释代码无法表达的上下文、约束和缘由。
+**Key principle:** Good code tells you "what" — comments exist only for context, constraints, and reasoning that the code cannot express on its own.
 
 ---
 

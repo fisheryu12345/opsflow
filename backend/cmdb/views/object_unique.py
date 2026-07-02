@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """ObjectUnique views — 唯一约束管理"""
 
-from dvadmin.utils.viewset import CustomModelViewSet
+from common.utils.viewset import CustomModelViewSet
 
 from ..models.object_unique import ObjectUnique
 from ..serializers import ObjectUniqueSerializer

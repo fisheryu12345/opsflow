@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from opsflow.models import TemplateCategory
 from opsflow.serializers import TemplateCategorySerializer
-from dvadmin.utils.json_response import DetailResponse, SuccessResponse
+from common.utils.json_response import DetailResponse, SuccessResponse
 
 
 class TemplateCategoryViewSet(viewsets.ModelViewSet):

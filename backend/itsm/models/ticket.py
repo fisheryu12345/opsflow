@@ -7,7 +7,7 @@ SignTask: 会签/审批操作记录
 """
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 def generate_sn():

@@ -2,7 +2,7 @@
 """CloudSyncLog — 云资产同步日志"""
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 class CloudSyncLog(CoreModel):

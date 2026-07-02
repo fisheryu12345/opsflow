@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """EventSubscriptionViewSet — 事件订阅管理 CRUD"""
 
-from dvadmin.utils.viewset import CustomModelViewSet
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.viewset import CustomModelViewSet
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 from ..models.event_subscription import EventSubscription
 from ..serializers import EventSubscriptionSerializer

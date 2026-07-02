@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Model definition & field management views (MySQL CRUD)"""
 
-from dvadmin.utils.viewset import CustomModelViewSet
-from dvadmin.utils.json_response import ErrorResponse
+from common.utils.viewset import CustomModelViewSet
+from common.utils.json_response import ErrorResponse
 
 from ..models.model_definition import ModelDefinition, ModelField
 from ..serializers import (

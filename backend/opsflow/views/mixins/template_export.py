@@ -3,7 +3,7 @@
 from datetime import datetime
 
 from rest_framework.decorators import action
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 from rest_framework.response import Response
 
 from opsflow.models import FlowTemplate

@@ -11,7 +11,7 @@ from opsflow.core.layout import compute_layout
 from opsflow.core.safety_guard import validate_pipeline
 from opsflow.core.bamboo_validator import validate_bamboo_compatibility
 from opsflow.plugins.registry import get_plugin
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 logger = logging.getLogger(__name__)
 

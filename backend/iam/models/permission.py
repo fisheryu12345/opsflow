@@ -6,8 +6,8 @@ Menu retains navigation structure only (permission semantics removed).
 from django.conf import settings
 from django.db import models
 
-from dvadmin.system.models import Users
-from dvadmin.utils.models import CoreModel, table_prefix
+from django.conf import settings
+from common.utils.models import CoreModel, table_prefix
 
 
 class IAMPermission(CoreModel):
@@ -70,7 +70,7 @@ class IAMRolePermission(CoreModel):
 
 class IAMUserRole(CoreModel):
     """User-Role binding — replaces user.role M2M"""
-    user = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='iam_user_roles', verbose_name="用户")
+    user = models.IntegerField(null=True, blank=True, verbose_name="用户")
     role = models.ForeignKey(IAMRole, on_delete=models.CASCADE, related_name='user_roles', verbose_name="角色")
 
     class Meta:

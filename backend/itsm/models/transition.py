@@ -2,7 +2,7 @@
 """ITSM Transition model — 节点间连线定义"""
 
 from django.db import models
-from dvadmin.utils.models import CoreModel, table_prefix
+from common.utils.models import CoreModel, table_prefix
 
 
 class Transition(CoreModel):

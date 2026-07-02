@@ -6,7 +6,7 @@
 
 from rest_framework import filters, mixins, viewsets
 
-from dvadmin.utils.json_response import DetailResponse
+from common.utils.json_response import DetailResponse
 
 from ..models.integration_log import IntegrationLog
 from ..serializers import IntegrationLogSerializer

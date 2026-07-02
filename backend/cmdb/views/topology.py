@@ -9,7 +9,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework import viewsets
 
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 from ..services.topology_service import TopologyService
 

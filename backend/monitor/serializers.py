@@ -4,7 +4,7 @@
 遵循 opsflow 规范: 继承 CustomModelSerializer，自动审计字段
 """
 
-from dvadmin.utils.serializers import CustomModelSerializer
+from common.utils.serializers import CustomModelSerializer
 from rest_framework import serializers
 
 from .models import (

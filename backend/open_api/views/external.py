@@ -12,7 +12,7 @@ import logging
 from rest_framework.decorators import api_view, authentication_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated
 
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.json_response import DetailResponse, ErrorResponse
 
 from open_api.auth import OpenApiAuthentication
 from open_api.throttling import OpenApiRateThrottle

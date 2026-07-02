@@ -9,8 +9,8 @@ from rest_framework.decorators import action
 from django.utils import timezone
 from django.db import transaction
 
-from dvadmin.utils.viewset import CustomModelViewSet
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
+from common.utils.viewset import CustomModelViewSet
+from common.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
 
 from ..models.subs.base import Account, FileSource, DangerousCmdRule, DangerousCheckLog
 from ..models.subs.script import Script, ScriptVersion, ScriptReference
