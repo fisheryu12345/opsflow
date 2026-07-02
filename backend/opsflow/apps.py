@@ -142,12 +142,8 @@ class OpsflowConfig(AppConfig):
                     from opsflow.core.scheduler_service import opsflow_scheduler
                     # Redis 锁防多进程重复启动
                     try:
-                        import redis as _redis
-                        _r = _redis.Redis(
-                            host=getattr(settings, 'REDIS_HOST', '127.0.0.1'),
-                            port=getattr(settings, 'REDIS_PORT', 6379),
-                            db=0,
-                        )
+                        from common.utils.redis_helper import get_redis
+                        _r = get_redis(db=0, decode=False)
                         _lock_key = 'lock:opsflow_scheduler'
                         if _r.set(_lock_key, '1', nx=True, ex=60):
                             opsflow_scheduler.start()

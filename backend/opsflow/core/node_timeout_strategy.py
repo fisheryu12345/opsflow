@@ -148,12 +148,8 @@ def batch_create_timeout_configs(execution, pipeline_tree: dict):
 
 def get_redis():
     """获取 Redis 连接"""
-    import redis
-    return redis.Redis(
-        host="127.0.0.1", port=6379, db=0,
-        socket_connect_timeout=3,
-        decode_responses=True,
-    )
+    from common.utils.redis_helper import get_redis as _get_redis
+    return _get_redis(db=0)
 
 
 def update_node_timeout(execution, node_id: str, to_state: str, version: str = ""):

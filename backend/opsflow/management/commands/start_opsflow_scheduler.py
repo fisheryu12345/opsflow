@@ -14,13 +14,8 @@ class Command(BaseCommand):
 
         # Redis 锁防重复启动
         try:
-            import redis
-            from django.conf import settings
-            r = redis.Redis(
-                host=getattr(settings, 'REDIS_HOST', '127.0.0.1'),
-                port=getattr(settings, 'REDIS_PORT', 6379),
-                db=getattr(settings, 'REDIS_DB', 0),
-            )
+            from common.utils.redis_helper import get_redis
+            r = get_redis(db=0, decode=False)
             lock_key = 'lock:opsflow_scheduler'
             if not r.set(lock_key, '1', nx=True, ex=60):
                 self.stdout.write(self.style.WARNING('OpsFlow 调度器已在运行中（持有锁），退出'))

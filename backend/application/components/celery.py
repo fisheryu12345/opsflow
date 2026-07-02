@@ -6,8 +6,8 @@ celery.py — Celery 任务队列配置
 from kombu import Queue
 from conf.env import *
 
-CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
-CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/1'
+CELERY_BROKER_URL = f'{REDIS_URL}/0'
+CELERY_RESULT_BACKEND = f'{REDIS_URL}/1'
 CELERY_TASK_DEFAULT_QUEUE = 'default'
 
 CELERY_TASK_QUEUES = [

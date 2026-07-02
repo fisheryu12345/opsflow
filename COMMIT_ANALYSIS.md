@@ -2,6 +2,46 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 76e42387
+
+> 提交日期: 2026-07-01 | 提交信息: chore: unify Redis config with conf/env + common/utils/redis_helper
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `conf/env.py` + `conf/env_base.py` | 后端 | 分层配置系统：base 定义默认值，env_{dev,uat,prod}.py 按环境覆写 |
+| `application/components/database.py` | 后端 | CACHES LOCATION 改为 f"{REDIS_URL}/1" |
+| `application/components/channels.py` | 后端 | CHANNEL_LAYERS hosts 改为 (REDIS_HOST, REDIS_PORT) |
+| `application/components/celery.py` | 后端 | CELERY_BROKER_URL/RESULT_BACKEND 改为 f"{REDIS_URL}/0/1" |
+| `common/utils/redis_helper.py` | 后端 | 新增 get_redis() 通用 Redis 连接函数 |
+| `opsflow/signals/timeout.py` | 后端 | 硬编码 → get_redis(db=0) |
+| `opsflow/core/node_timeout_strategy.py` | 后端 | 硬编码 → get_redis(db=0) |
+| `opsflow/apps.py` | 后端 | 硬编码 → get_redis(db=0, decode=False) |
+| `opsflow/management/commands/start_opsflow_scheduler.py` | 后端 | 硬编码 → get_redis(db=0, decode=False) |
+| `itsm/management/commands/start_itsm_scheduler.py` | 后端 | 硬编码 → get_redis(db=0, decode=False) |
+| `docs/opsflow/config/2026-07-01-conf-env-design-config.md` | 文档 | 配置系统设计文档 |
+
+### 解决
+
+- **问题/背景：** Redis 地址在 11 个文件中硬编码 127.0.0.1:6379，改地址需逐文件修改，无法按环境切换
+- **办法：** conf/env 分层配置 + common/utils/redis_helper 统一连接函数
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/config/2026-07-01-conf-env-design-config.md`
+
+### 验证
+
+- 改动类型: chore
+- 清理乱码: 无
+- 子 App index.md 更新: opsflow, common
+- 工作区状态: 待提交 ✅
+
+---
+
+
 ## 3ade6b9e
 
 > 提交日期: 2026-07-01 | 提交信息: refactor: migrate dvadmin RBAC to IAM single system + feat: IAMMenu + i18n

@@ -23,12 +23,8 @@ REDIS_EXECUTING_NODES_KEY = "opsflow:executing_nodes"
 
 def _get_redis():
     """获取 Redis 连接"""
-    import redis
-    return redis.Redis(
-        host="127.0.0.1", port=6379, db=0,
-        socket_connect_timeout=3,
-        decode_responses=True,
-    )
+    from common.utils.redis_helper import get_redis
+    return get_redis(db=0)
 
 
 def _update_node_timeout(execution, node_id: str, to_state):
