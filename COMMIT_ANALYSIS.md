@@ -2,6 +2,45 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## c14e45c4
+
+> 提交日期: 2026-07-02 | 提交信息: refactor: squash migrations + cleanup management commands + fix IAM seed
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `*/migrations/0001_initial.py` (12 files) | 后端 | 迁移文件 Squash — 从 96+ 个文件压缩到 12 个 0001_initial |
+| `iam/commands/seed_iam_permissions.py` | 后端 | 删除（引用已删除的旧模型） |
+| `iam/commands/seed_iam_page_configs.py` | 后端 | 新增 4 个 system 权限 + system_admin 角色 |
+| `iam/commands/init_iam.py, seed_itsm_permissions.py` | 后端 | 删除（功能已被覆盖） |
+| `opsflow/commands/seed_opsflow.py` | 后端 | 修复重复的 Command 类（删除第 1 个） |
+| `opsflow/commands/` (6 文件) | 后端 | 删除过时的一次性命令 & 合入管理命令 |
+| `common/commands/bootstrap.py, add_*mock*.py` | 后端 | 删除（bootstrap 过时，mock 已拆分） |
+| `common/commands/seed_all.py` | 后端 | 更新为新的 seed 命令列表 |
+| `cmdb/commands/seed_cmdb_mock.py` | 后端 | 删除（mock 合入 seed_cmdb） |
+| `opsagent/commands/` (2 文件) | 后端 | 删除（过时） |
+| `common/utils/models.py` | 后端 | CoreModel.creator 加 db_column='creator_id' 兼容旧表 |
+
+### 解决
+
+- **问题/背景：** 96+ 个迁移文件过于庞大，管理命令 31 个含大量过时代码，IAM seed 缺少 system 权限
+- **办法：** 全量 squash + 清理 14+ 个命令 + 补全 4 个 system 权限 + system_admin 角色
+
+### 文档
+
+- **生成文档：** 无（chore + refactor 类型，已有架构文档覆盖）
+
+### 验证
+
+- 改动类型: refactor + chore
+- 清理乱码: 有（30+ 个管理命令删除）
+- 子 App index.md 更新: 无
+- 工作区状态: 待提交 ✅
+
+---
+
+
 ## 58f68b5d
 
 > 提交日期: 2026-07-02 | 提交信息: refactor: migrate dvadmin to common/ + iam/, rename agent_app to agent_backend

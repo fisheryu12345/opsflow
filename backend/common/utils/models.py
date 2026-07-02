@@ -71,7 +71,7 @@ class CoreModel(models.Model):
     """
     id = models.BigAutoField(primary_key=True, help_text="Id", verbose_name="Id")
     description = models.CharField(max_length=255, verbose_name="描述", null=True, blank=True, help_text="描述")
-    creator = models.IntegerField(null=True, blank=True, verbose_name='创建人', help_text="创建人")
+    creator = models.IntegerField(null=True, blank=True, verbose_name='创建人', help_text="创建人", db_column='creator_id')
     modifier = models.CharField(max_length=255, null=True, blank=True, help_text="修改人", verbose_name="修改人")
     dept_belong_id = models.CharField(max_length=255, help_text="数据归属部门", null=True, blank=True,
                                       verbose_name="数据归属部门")

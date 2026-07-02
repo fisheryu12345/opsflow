@@ -69,6 +69,11 @@ class Command(BaseCommand):
             ('cmdb:events:view', '查看事件', 'cmdb'),
             ('cmdb:events:subscribe', '订阅事件', 'cmdb'),
             ('cmdb:events:unsubscribe', '取消订阅', 'cmdb'),
+            # ── System admin perms ──
+            ('system:user:manage', '用户管理', 'system'),
+            ('system:dept:manage', '部门管理', 'system'),
+            ('system:log:view', '查看日志', 'system'),
+            ('system:file:manage', '文件管理', 'system'),
         ]
         created = 0
         for codename, label, app in perms:
@@ -248,6 +253,8 @@ class Command(BaseCommand):
             ('cmdb_viewer', 'CMDB Viewer'),
             ('cmdb_editor', 'CMDB Editor'),
             ('cmdb_admin', 'CMDB Admin'),
+            # System admin role
+            ('system_admin', '系统管理员'),
         ]
         created = 0
         for key, name in roles:
@@ -362,6 +369,13 @@ class Command(BaseCommand):
                 'cmdb:events:view',
                 'cmdb:events:subscribe',
                 'cmdb:events:unsubscribe',
+            ],
+            # ── System ─────────────────────────────────────────────
+            'system_admin': [
+                'system:user:manage',
+                'system:dept:manage',
+                'system:log:view',
+                'system:file:manage',
             ],
         }
 
