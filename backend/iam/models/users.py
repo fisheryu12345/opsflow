@@ -13,7 +13,7 @@ class CustomUserManager(UserManager):
         user = super(CustomUserManager, self).create_superuser(username, email, password, **extra_fields)
         user.set_password(password)
         try:
-            IAMUserRole.objects.create(user=user, role=IAMRole.objects.get(key='opsflow_admin'))
+            IAMUserRole.objects.create(user=user.id, role=IAMRole.objects.get(key='opsflow_admin'))
             user.save(using=self._db)
             return user
         except ObjectDoesNotExist:

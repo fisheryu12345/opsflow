@@ -1,5 +1,9 @@
 """Seed OpsFlow reference & mock data"""
 
+import datetime
+import random
+from django.utils import timezone
+
 from iam.models import Project, ProjectMember
 from opsflow.models import (FlowTemplate, TemplateCategory, TemplateNode, TemplatePreset,
     OpsKnowledge, SchedulePlan, FlowExecution, ExecutionScheme, PluginMeta,
@@ -155,6 +159,39 @@ KNOWLEDGE_ENTRIES = [
 ]
 
 # ════════════════════════════════════════════════════════════
+# Sample Projects
+# ════════════════════════════════════════════════════════════
+
+SAMPLE_PROJECTS = [
+    {"name": "Default Project"},
+    {"name": "AI Training Platform"},
+    {"name": "Infrastructure Migration"},
+]
+
+SAMPLE_TEMPLATE_CATEGORIES = [
+    {"code": "server", "name": "Server Ops"},
+    {"code": "database", "name": "Database"},
+    {"code": "network", "name": "Network"},
+    {"code": "monitor", "name": "Monitor"},
+    {"code": "backup", "name": "Backup"},
+    {"code": "security", "name": "Security"},
+    {"code": "deploy", "name": "Deploy"},
+]
+
+SAMPLE_PLUGINS = [
+    {"name": "HTTP Request", "code": "http_api", "group": "common", "description": "Send HTTP requests"},
+    {"name": "SSH Command", "code": "shell", "group": "common", "description": "Execute SSH commands"},
+    {"name": "Wait for Approval", "code": "approval", "group": "common", "description": "Manual approval step"},
+    {"name": "Ping Test", "code": "ping_test", "group": "monitor", "description": "ICMP ping test"},
+]
+
+SAMPLE_KNOWLEDGE = [
+    {"title": "Server Deployment Guide", "content": "Standard operating procedure for deploying new servers."},
+    {"title": "Database Backup Policy", "content": "Daily backup schedule and retention policy for databases."},
+    {"title": "Incident Response Playbook", "content": "Step-by-step guide for responding to production incidents."},
+]
+
+# ════════════════════════════════════════════════════════════
 # Phase 1: Sample Templates (2 published onboarding templates)
 # ════════════════════════════════════════════════════════════
 
@@ -217,6 +254,10 @@ class Command(BaseCommand):
     help = "Seed OpsFlow data"
 
     def handle(self, *args, **options):
+        self.force = options.get('force', False)
+        self.project_map = {}
+        from iam.models import IAMUsers
+        self.admin_user = IAMUsers.objects.filter(is_superuser=True).first()
         self._seed_template_categories()
         self._seed_knowledge()
         self._migrate_projects()
@@ -413,8 +454,8 @@ class Command(BaseCommand):
                 FlowTemplate, name=t["name"],
                 defaults_update={
                     "project": proj,
-                    "category": t["category_code"],
-                    "pipeline_tree": t["pipeline_tree"],
+                    "category": t.get("category_code", t.get("category", "server")),
+                    "pipeline_tree": t.get("pipeline_tree", t.get("pipeline", {})),
                     "is_draft": False,
                     "description": f"{t['name']} — auto-generated mock template",
                     "version": 1,
@@ -427,7 +468,7 @@ class Command(BaseCommand):
 
             # Create template nodes
             if created or self.force:
-                for node in t["pipeline_tree"].get("nodes", []):
+                for node in t.get("pipeline_tree", t.get("pipeline", {})).get("nodes", []):
                     TemplateNode.objects.get_or_create(
                         template=obj,
                         node_id=node["id"],
@@ -439,17 +480,29 @@ class Command(BaseCommand):
                 template=obj, version=1,
                 defaults={
                     "created_by": self.admin_user,
-                    "pipeline_tree": t["pipeline_tree"],
+                    "pipeline_tree": t.get("pipeline_tree", t.get("pipeline", {})),
                 },
             )
 
     def _create_plugins(self):
         self.stdout.write("\n>>> Creating Plugins ...")
         from opsflow.models import PluginMeta
+        # Skip if plugins are already auto-registered
+        if PluginMeta.objects.count() > len(SAMPLE_PLUGINS):
+            self.stdout.write("  (plugins already registered, skip)")
+            return
+        from iam.models import IAMUsers
+        admin = IAMUsers.objects.filter(is_superuser=True).first()
         for p in SAMPLE_PLUGINS:
-            obj, created = self._get_or_create(PluginMeta, code=p["code"], name=p["name"], group=p["group"],
-                                                defaults_update={"risk_level": "low", "is_active": True})
-            self.stdout.write(f"  {'+' if created else ' '} Plugin: {p['name']}")
+            PluginMeta.objects.update_or_create(
+                code=p["code"], version="v1.0",
+                defaults={
+                    "name": p["name"], "group": p.get("group", "common"),
+                    "risk_level": "low", "is_active": True,
+                    "created_by": admin.id if admin else None,
+                },
+            )
+            self.stdout.write(f"  + Plugin: {p['name']}")
 
     def _create_schedules(self):
         self.stdout.write("\n>>> Creating Schedule Plans ...")
@@ -492,7 +545,7 @@ class Command(BaseCommand):
         for k in SAMPLE_KNOWLEDGE:
             obj, created = self._get_or_create(
                 OpsKnowledge, title=k["title"],
-                defaults_update={"content": k["content"], "tags": k["tags"], "source": "doc"},
+                defaults_update={"content": k["content"], "tags": k.get("tags", []), "source": "doc"},
             )
             self.stdout.write(f"  {'+' if created else ' '} Knowledge: {k['title']}")
 
@@ -596,20 +649,14 @@ class Command(BaseCommand):
         self.stdout.write("\n>>> Creating Operation Records ...")
         from opsflow.models import OperationRecord, OpsLog
         from opsflow.models import FlowTemplate
+        OperationRecord.objects.all().delete()
         templates = list(FlowTemplate.objects.all()[:3])
         actions = ["create", "update", "publish", "execute", "approve"]
-        count = 0
         for t in templates:
-            for idx, action in enumerate(actions):
-                # Use unique detail + resource_id to avoid MultipleObjectsReturned
-                detail = {"template_name": t.name, "version": t.version, "action_index": idx}
-                op, created = OperationRecord.objects.get_or_create(
-                    action=action,
-                    resource_type="template",
-                    resource_id=str(t.id),
-                    operator=self.admin_user,
-                    defaults={"detail": detail},
+            for action in actions:
+                OperationRecord.objects.create(
+                    action=action, resource_type="template",
+                    resource_id=str(t.id), operator=self.admin_user,
+                    detail={"template_name": t.name, "action": action},
                 )
-                if created:
-                    count += 1
-        self.stdout.write(f"  + Created {count} OperationRecords")
+        self.stdout.write(f"  + Created {len(actions) * len(templates)} OperationRecords")

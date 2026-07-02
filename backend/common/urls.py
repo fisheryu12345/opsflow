@@ -11,12 +11,14 @@ from common.views.login_log import LoginLogViewSet
 from common.views.message_center import MessageCenterViewSet
 from common.views.system_config import SystemConfigViewSet
 from common.views.language import LanguageView
+from iam.views.user import UserViewSet
 
 common_router = routers.SimpleRouter()
 common_router.register(r'operation_log', OperationLogViewSet)
 common_router.register(r'file', FileViewSet)
 common_router.register(r'system_config', SystemConfigViewSet)
 common_router.register(r'message_center', MessageCenterViewSet)
+common_router.register(r'user', UserViewSet)
 
 urlpatterns = [
     path('system_config/save_content/', SystemConfigViewSet.as_view({'put': 'save_content'})),

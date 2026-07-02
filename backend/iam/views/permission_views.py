@@ -172,7 +172,7 @@ class PermissionRequestViewSet(mixins.CreateModelMixin,
             if permission_request.request_type == 'role' and permission_request.target_iam_role:
                     from iam.models.permission import IAMUserRole
                     IAMUserRole.objects.get_or_create(
-                        user=permission_request.user,
+                        user=permission_request.user.id,
                         role=permission_request.target_iam_role,
                     )
             elif permission_request.request_type == 'menu' and permission_request.target_menu:
@@ -521,7 +521,7 @@ def my_permissions(request):
     else:
         # From role-based permissions
         for rp in IAMRolePermission.objects.filter(
-            role__user_roles__user=user
+            role__user_roles__user=user.id
         ).select_related('permission').values('permission__app').distinct():
             perm_apps.add(rp['permission__app'])
         # From direct permissions
@@ -555,7 +555,7 @@ def my_permissions(request):
         from iam.models.permission import IAMRolePermission, IAMUserRole
         # From IAMRolePermissions (new system)
         for rp in IAMRolePermission.objects.filter(
-            role__user_roles__user=user
+            role__user_roles__user=user.id
         ).select_related('permission'):
             perm_keys.add(rp.permission.codename)
         # From UserDirectPermission (new field)
@@ -622,7 +622,7 @@ def my_full_permissions(request):
         # Collect via role-based permissions
         from iam.models.permission import IAMRolePermission
         for rp in IAMRolePermission.objects.filter(
-            role__user_roles__user=user,
+            role__user_roles__user=user.id,
         ).select_related('permission'):
             perms.add(rp.permission.codename)
     return SuccessResponse(data=sorted(perms))
@@ -652,7 +652,7 @@ def page_permissions(request):
         user_perms = set(IAMPermission.objects.filter(app=app).values_list('codename', flat=True))
     else:
         for rp in IAMRolePermission.objects.filter(
-            role__user_roles__user=user, permission__app=app
+            role__user_roles__user=user.id, permission__app=app
         ).select_related('permission'):
             user_perms.add(rp.permission.codename)
         for dp in UserDirectPermission.objects.filter(

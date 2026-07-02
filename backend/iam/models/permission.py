@@ -70,7 +70,7 @@ class IAMRolePermission(CoreModel):
 
 class IAMUserRole(CoreModel):
     """User-Role binding — replaces user.role M2M"""
-    user = models.IntegerField(null=True, blank=True, verbose_name="用户")
+    user = models.IntegerField(null=True, blank=True, verbose_name="用户", db_column='user_id')
     role = models.ForeignKey(IAMRole, on_delete=models.CASCADE, related_name='user_roles', verbose_name="角色")
 
     class Meta:

@@ -52,7 +52,8 @@ class UserSerializer(CustomModelSerializer):
 
     def get_role_info(self, instance, parsed_query):
         # Use IAMUserRole instead of old user.role M2M
-        user_roles = IAMUserRole.objects.filter(user=instance).select_related('role')
+        # NOTE: IAMUserRole.user is IntegerField, must pass .id (not model instance)
+        user_roles = IAMUserRole.objects.filter(user=instance.id).select_related('role')
         return [{'id': ur.role.id, 'name': ur.role.name, 'key': ur.role.key}
                 for ur in user_roles]
 
@@ -229,7 +230,7 @@ class UserViewSet(CustomModelViewSet):
     create_serializer_class = UserCreateSerializer
     update_serializer_class = UserUpdateSerializer
     filter_fields = ["name", "username", "gender", "is_active", "dept", "user_type"]
-    search_fields = ["username", "name", "dept__name", "role__name"]
+    search_fields = ["username", "name", "dept__name"]
     # 导出
     export_field_label = {
         "username": "用户账号",
@@ -282,7 +283,7 @@ class UserViewSet(CustomModelViewSet):
             "avatar": user.avatar,
             "dept": user.dept_id,
             "is_superuser": user.is_superuser,
-            "role": list(IAMUserRole.objects.filter(user=user).values_list('role_id', flat=True)),
+            "role": list(IAMUserRole.objects.filter(user=user.id).values_list('role_id', flat=True)),
         }
         if hasattr(connection, 'tenant'):
             result['tenant_id'] = connection.tenant and connection.tenant.id
@@ -298,7 +299,7 @@ class UserViewSet(CustomModelViewSet):
                 'dept_id': None,
                 'dept_name': "暂无部门"
             }
-        user_roles = IAMUserRole.objects.filter(user=user).select_related('role')
+        user_roles = IAMUserRole.objects.filter(user=user.id).select_related('role')
         if user_roles.exists():
             result['role_info'] = [{'id': ur.role.id, 'name': ur.role.name, 'key': ur.role.key}
                                    for ur in user_roles]

@@ -49,7 +49,7 @@ class IAMPermissionChecker:
 
         # Check role-based permission
         role_perm = IAMRolePermission.objects.filter(
-            role__user_roles__user=user,
+            role__user_roles__user=user.id,
             permission__codename=codename,
         ).first()
         if not role_perm:
@@ -78,7 +78,7 @@ class IAMPermissionChecker:
             return True
         # Role-based permissions
         if IAMRolePermission.objects.filter(
-            role__user_roles__user=user,
+            role__user_roles__user=user.id,
             permission__app=app,
         ).exists():
             return True

@@ -69,7 +69,8 @@ class Command(BaseCommand):
                     f_count += 1
         self.stdout.write(f"  + Models: {md_count}, Fields: {f_count}")
 
-        # Associations
+        # Associations (delete + recreate for idempotency)
+        ModelAssociation.objects.all().delete()
         asso_data = [
             ("Biz", "Set", "CONTAINS", "1:n", "delete_target"),
             ("Set", "Module", "CONTAINS", "1:n", "delete_target"),
@@ -82,9 +83,10 @@ class Command(BaseCommand):
             dst_md = ModelDefinition.objects.filter(code=dst).first()
             assoc_type = AssociationType.objects.filter(asst_id=rel_type).first()
             if src_md and dst_md and assoc_type:
-                ModelAssociation.objects.get_or_create(source_model=src_md, target_model=dst_md, defaults={
-                    "association_type": assoc_type, "mapping": cardinality, "on_delete": on_delete,
-                })
+                ModelAssociation.objects.create(
+                    source_model=src_md, target_model=dst_md,
+                    association_type=assoc_type, mapping=cardinality, on_delete=on_delete,
+                )
 
         # Mainline
         ml_data = [("Biz", None, 1), ("Set", "Biz", 2), ("Module", "Set", 3), ("Host", "Module", 4)]
