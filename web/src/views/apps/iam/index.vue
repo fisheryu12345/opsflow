@@ -352,11 +352,12 @@ function tabPerms(tab: any): { key: string; label: string; shortKey: string; gra
   cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; user-select: none;
   .el-icon { font-size: 16px; }
 }
+.iam-hero-tab:first-child { padding-left: 0; }
 .iam-hero-tab:hover { color: rgba(255,255,255,0.9); }
 .iam-hero-tab.active { color: #fff; border-bottom-color: #409EFF; }
 
 /* ===== Body ===== */
-.iam-body { flex: 1; overflow-y: auto; padding: 0 20px 24px; }
+.iam-body { flex: 1; overflow-y: auto; padding: 0 24px 24px; }
 .iam-section { padding-top: 16px; }
 
 /* ===== Permissions Page ===== */
