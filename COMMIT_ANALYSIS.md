@@ -2,6 +2,30 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## dacd322e
+
+> 提交日期: 2026-07-03 | 提交信息: docs: add spacing after deployment guide frontmatter — 部署指南添加格式间距
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `docs/guides/deployment-guide.md` | 文档 | frontmatter 分隔线后添加 2 个空行，改善排版可读性 |
+
+### 解决
+
+- **问题/背景：** 部署指南 frontmatter 后缺少间距，排版紧凑
+- **办法：** 添加 2 个空行分隔，同时清理编码错乱的空文件
+
+### 验证
+
+- 改动类型: docs
+- 清理乱码: 有（编码错乱产生的 0 字节空文件）
+- 子 App index.md 更新: 无（纯文档改动）
+- 工作区状态: 干净 ✅
+
+---
+
 ## 7a839e6b
 
 > 提交日期: 2026-07-02 | 提交信息: refactor: role management search bar restructure + IAM page padding tweak
