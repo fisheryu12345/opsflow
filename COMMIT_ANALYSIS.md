@@ -2,9 +2,62 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-## c14e45c4
+## 8a2fabec
 
-> 提交日期: 2026-07-02 | 提交信息: refactor: squash migrations + cleanup management commands + fix IAM seed
+> 提交日期: 2026-07-02 | 提交信息: feat: IAM menu detail panel, OpsAgent tab + perms, v-can lock fix, ITSM button perms
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/iam/views/menu.py` | 后端 | MenuSerializer 新增 parent/name_display/hasChild 字段，修复 list 方法支持 ?parent= 懒加载 |
+| `backend/iam/views/permission_views.py` | 后端 | permission_catalog 改用动态 PageTab 查询替代写死 app 列表 |
+| `backend/common/utils/serializers.py` | 后端 | SlagRelatedField → SerializerMethodField 修复 IAMMenu 无 creator 属性报错 |
+| `backend/common/utils/middleware.py` | 后端 | creator: user → user.id 修复 IntegerField 类型不匹配 |
+| `backend/common/utils/request_util.py` | 后端 | creator_id → creator 修复 LoginLog 传参错误 |
+| `backend/common/views/operation_log.py` | 后端 | creator=self.request.user → user.id 修复 IntegerField 类型错误 |
+| `backend/common/urls.py` | 后端 | 注册 DeptViewSet 修复 /api/system/dept/ 404 |
+| `backend/iam/models/page_config.py` | 后端 | 补充 IAMMenu 字段（is_affix/name_en/app） |
+| `backend/iam/management/commands/seed_iam_page_configs.py` | 后端 | 新增 OpsAgent 权限码/tab/button/角色绑定 |
+| `web/src/views/apps/iam/admin/menu/components/MenuDetailPanel/index.vue` | 前端 | **新建** IAM Menu 详情面板（内联开关/图标选择/排序按钮） |
+| `web/src/views/apps/iam/admin/menu/index.vue` | 前端 | 右侧空面板替换为 MenuDetailPanel |
+| `web/src/views/apps/iam/admin/menu/components/MenuFormCom/index.vue` | 前端 | 移除 icon 选择（入口统一到详情面板） |
+| `web/src/views/apps/opsagent/index.vue` | 前端 | **新建** 参考 ITSM 布局的 tab 页面 + 权限感知 |
+| `web/src/views/apps/opsagent/Console.vue` | 前端 | 修复嵌入式布局，添加 btnPerms 按钮权限控制 |
+| `web/src/views/apps/opsagent/Sessions.vue` | 前端 | 修复嵌入式布局（移除 position:absolute） |
+| `web/src/directive/iamPermission.ts` | 前端 | 修复 v-can 支持 modifier 模式（v-can.edit/admin），移除 disabled 属性使点击可穿透 |
+| `web/src/views/apps/itsm/index.vue` | 前端 | ITSM 按钮补充 v-can（提交/转派/关闭/分派/批准/驳回/SLA编辑） |
+| `web/src/views/apps/itsm/SkillGroup.vue` | 前端 | 按钮补充 v-can="itsm:skillgroup:manage" |
+| `web/src/views/apps/itsm/Delegation.vue` | 前端 | 按钮补充 v-can="itsm:ticket:assign" |
+| `web/src/views/apps/itsm/OnDutySchedule.vue` | 前端 | 按钮补充 v-can="itsm:duty:manage" |
+| `web/src/views/apps/itsm/AssignRule.vue` | 前端 | 按钮补充 v-can="itsm:rule:manage" |
+| `web/src/views/apps/itsm/EscalationLevel.vue` | 前端 | 按钮补充 v-can="itsm:escalation:manage" |
+| `web/src/views/apps/iam/admin/role/index.vue` | 前端 | 修复 `{{ viewForm.key }}` Vue 保留属性编译错误 |
+| `web/src/theme/iconSelector.scss` | 前端 | 图标选择弹窗标题/tabs 布局修复（绝对定位 → 块级布局） |
+| `web/src/components/iconSelector/list.vue` | 前端 | 图标列表高度 230→320px |
+| `web/src/i18n/lang/zh-cn.ts` | 前端 | 新增 menuPage 14 个 + opsagent 4 个 i18n 键 |
+| `web/src/i18n/lang/en.ts` | 前端 | 新增 menuPage 14 个 + opsagent 4 个 i18n 键 |
+
+### 解决
+
+- **问题/背景：** 两轮对话遗留问题：IAM Menu tab 右侧面板空白、OpsAgent 页面 tab 不显示、v-can modifier 模式永久锁住按钮、ITSM 多个子组件按钮无权限锁、creator IntegerField 类型不匹配导致 500 错误
+- **办法：** 新建 MenuDetailPanel 组件替代空白面板，重写 OpsAgent 父页面为 ITSM 风格，修复 v-can 指令逻辑并移除 disabled，ITSM 6 个组件 18+ 按钮补齐 v-can，后端 8 处 IntegerField 类型修复
+
+### 文档
+
+- **生成文档：**
+  - `docs/superpowers/specs/2026-07-02-iam-menu-detail-panel-design.md`
+
+### 验证
+
+- 改动类型: feat + fix + refactor
+- 清理乱码: 有（{, 和 , 两个 shell 残留文件）
+- 子 App index.md 更新: iam, itsm, opsagent
+- 工作区状态: 干净 ✅
+
+---
+
+## c14e45c4
 
 ### 改动
 
