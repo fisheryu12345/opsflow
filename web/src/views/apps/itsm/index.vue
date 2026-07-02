@@ -107,19 +107,19 @@
             </el-table-column>
             <el-table-column label="操作" width="280" fixed="right">
               <template #default="{ row }">
-                <el-button v-if="row.current_status === 'draft'" size="small" text @click="onSubmitTicket(row)">
+                <el-button v-if="row.current_status === 'draft'" size="small" text v-can="'itsm:ticket:create'" @click="onSubmitTicket(row)">
                   <el-icon><Select /></el-icon> 提交
                 </el-button>
                 <el-button size="small" text @click="onViewTicket(row)">
                   <el-icon><Search /></el-icon> 详情
                 </el-button>
-                <el-button v-if="row.meta?.assignee" size="small" text type="warning" @click="ticketAssign(row)">
+                <el-button v-if="row.meta?.assignee" size="small" text type="warning" v-can="'itsm:ticket:assign'" @click="ticketAssign(row)">
                   <el-icon><User /></el-icon> 转派
                 </el-button>
-                <el-button v-else size="small" text type="primary" @click="ticketAssign(row)">
+                <el-button v-else size="small" text type="primary" v-can="'itsm:ticket:assign'" @click="ticketAssign(row)">
                   <el-icon><User /></el-icon> 分派
                 </el-button>
-                <el-button v-if="row.current_status === 'running'" size="small" text type="danger" @click="onCloseTicket(row)">
+                <el-button v-if="row.current_status === 'running'" size="small" text type="danger" v-can="'itsm:ticket:close'" @click="onCloseTicket(row)">
                   <el-icon><CircleClose /></el-icon> 关闭
                 </el-button>
               </template>
@@ -165,7 +165,7 @@
                 <span>{{ wf.create_datetime || '' }}</span>
               </div>
               <div class="itsm-wf-actions">
-                <el-button v-if="!wf.is_draft" size="small" text @click="onCreateTicketFromWf(wf)">
+                <el-button v-if="!wf.is_draft" size="small" text v-can="'itsm:ticket:create'" @click="onCreateTicketFromWf(wf)">
                   <el-icon><Plus /></el-icon> 建单
                 </el-button>
                 <el-button v-if="wf.is_draft" v-can="'itsm:workflow:deploy'" size="small" text type="success" @click="onDeployWorkflow(wf)">
@@ -223,13 +223,13 @@
             <el-table-column prop="create_datetime" label="创建时间" width="170" />
             <el-table-column label="操作" width="200" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" text @click="assignIncident(row)">
+                <el-button size="small" text v-can="'itsm:ticket:assign'" @click="assignIncident(row)">
                   <el-icon><User /></el-icon> 分派
                 </el-button>
-                <el-button size="small" text type="success" @click="resolveIncident(row)">
+                <el-button size="small" text type="success" v-can="'itsm:ticket:close'" @click="resolveIncident(row)">
                   <el-icon><Finished /></el-icon> 解决
                 </el-button>
-                <el-button size="small" text type="info" @click="closeIncident(row)">
+                <el-button size="small" text type="info" v-can="'itsm:ticket:close'" @click="closeIncident(row)">
                   <el-icon><CircleClose /></el-icon> 关闭
                 </el-button>
               </template>
@@ -263,10 +263,10 @@
             </el-table-column>
             <el-table-column label="操作" width="160" fixed="right">
               <template #default="{ row }">
-                <el-button v-if="row.status==='pending_approval'" size="small" text type="success" @click="approveChange(row)">
+                <el-button v-if="row.status==='pending_approval'" size="small" text type="success" v-can="'itsm:ticket:approve'" @click="approveChange(row)">
                   <el-icon><Select /></el-icon> 批准
                 </el-button>
-                <el-button v-if="row.status==='pending_approval'" size="small" text type="danger" @click="rejectChange(row)">
+                <el-button v-if="row.status==='pending_approval'" size="small" text type="danger" v-can="'itsm:ticket:approve'" @click="rejectChange(row)">
                   <el-icon><Close /></el-icon> 驳回
                 </el-button>
               </template>
@@ -292,7 +292,7 @@
             </el-table-column>
             <el-table-column label="操作" width="80" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" text @click="onSlaEdit(row)">编辑</el-button>
+                <el-button size="small" text v-can="'itsm:sla:edit'" @click="onSlaEdit(row)">编辑</el-button>
               </template>
             </el-table-column>
           </el-table>

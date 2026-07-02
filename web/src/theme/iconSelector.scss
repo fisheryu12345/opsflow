@@ -3,18 +3,19 @@
 .icon-selector-popper {
 	padding: 0 !important;
 	.icon-selector-warp {
-		height: 260px;
+		height: 380px;
 		overflow: hidden;
 		position: relative;
 		.icon-selector-warp-title {
-			position: absolute;
 			height: 40px;
 			line-height: 40px;
-			left: 15px;
+			padding: 0 15px;
+			font-size: 13px;
+			font-weight: 600;
+			color: var(--el-text-color-primary);
+			border-bottom: 1px solid var(--el-border-color-light);
 		}
 		.el-tabs__header {
-			display: flex;
-			justify-content: flex-end;
 			padding: 0 15px;
 			border-bottom: 1px solid var(--el-border-color-light);
 			margin: 0 !important;
@@ -23,7 +24,7 @@
 					height: 0 !important;
 				}
 				.el-tabs__item {
-					padding: 0 5px !important;
+					padding: 0 12px !important;
 				}
 			}
 		}

@@ -74,6 +74,11 @@ class Command(BaseCommand):
             ('system:dept:manage', '部门管理', 'system'),
             ('system:log:view', '查看日志', 'system'),
             ('system:file:manage', '文件管理', 'system'),
+            # ── OpsAgent tab + button perms ──
+            ('opsagent:console:view', '查看控制台', 'opsagent'),
+            ('opsagent:console:execute', '执行指令', 'opsagent'),
+            ('opsagent:sessions:view', '查看会话', 'opsagent'),
+            ('opsagent:session:delete', '删除会话', 'opsagent'),
         ]
         created = 0
         for codename, label, app in perms:
@@ -190,10 +195,25 @@ class Command(BaseCommand):
             ],
         }
 
+        # ── OpsAgent ──────────────────────────────────────────────
+        opsagent_tabs = [
+            {'key': 'console',  'label_zh': '控制台',   'label_en': 'Console',  'icon': 'Monitor',       'required_perm': 'opsagent:console:view', 'is_default': True,  'sort': 10},
+            {'key': 'sessions', 'label_zh': '历史会话', 'label_en': 'Sessions', 'icon': 'Clock',          'required_perm': 'opsagent:sessions:view',                     'sort': 20},
+        ]
+        opsagent_buttons = {
+            'console': [
+                {'key': 'execute', 'label_zh': '执行',   'label_en': 'Execute',  'icon': 'VideoPlay',      'required_perm': 'opsagent:console:execute', 'style': 'primary', 'sort': 10},
+            ],
+            'sessions': [
+                {'key': 'delete', 'label_zh': '删除',   'label_en': 'Delete',   'icon': 'Delete',          'required_perm': 'opsagent:session:delete',  'style': 'danger',  'sort': 10},
+            ],
+        }
+
         app_configs = [
             ('opsflow', opsflow_tabs, opsflow_buttons),
             ('itsm', itsm_tabs, itsm_buttons),
             ('cmdb', cmdb_tabs, cmdb_buttons),
+            ('opsagent', opsagent_tabs, opsagent_buttons),
         ]
 
         tabs_created = 0
@@ -255,6 +275,10 @@ class Command(BaseCommand):
             ('cmdb_admin', 'CMDB Admin'),
             # System admin role
             ('system_admin', '系统管理员'),
+            # OpsAgent roles
+            ('opsagent_viewer', 'OpsAgent Viewer'),
+            ('opsagent_editor', 'OpsAgent Editor'),
+            ('opsagent_admin', 'OpsAgent Admin'),
         ]
         created = 0
         for key, name in roles:
@@ -369,6 +393,22 @@ class Command(BaseCommand):
                 'cmdb:events:view',
                 'cmdb:events:subscribe',
                 'cmdb:events:unsubscribe',
+            ],
+            # ── OpsAgent ──────────────────────────────────────────
+            'opsagent_viewer': [
+                'opsagent:console:view',
+                'opsagent:sessions:view',
+            ],
+            'opsagent_editor': [
+                'opsagent:console:view',
+                'opsagent:console:execute',
+                'opsagent:sessions:view',
+            ],
+            'opsagent_admin': [
+                'opsagent:console:view',
+                'opsagent:console:execute',
+                'opsagent:sessions:view',
+                'opsagent:session:delete',
             ],
             # ── System ─────────────────────────────────────────────
             'system_admin': [

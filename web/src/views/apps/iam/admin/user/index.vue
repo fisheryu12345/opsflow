@@ -1,18 +1,5 @@
 <template>
   <div class="sys-page user-page">
-    <!-- ===== Stats Cards ===== -->
-    <div class="user-stats sys-fade-in-up">
-      <div v-for="s in stats" :key="s.label" class="user-stat-card">
-        <div class="user-stat-icon" :style="{ background: s.bg }">
-          <el-icon :size="20"><component :is="s.icon" /></el-icon>
-        </div>
-        <div class="user-stat-body">
-          <div class="user-stat-val">{{ s.value }}</div>
-          <div class="user-stat-lbl">{{ s.label }}</div>
-        </div>
-      </div>
-    </div>
-
     <!-- ===== Main Content ===== -->
     <el-row class="user-main-row" :gutter="14">
       <!-- Left: Department Tree -->
@@ -154,13 +141,13 @@
 </template>
 
 <script lang="ts" setup name="user">
-import { ref, reactive, onMounted, watch, computed, provide, markRaw } from 'vue';
+import { ref, reactive, onMounted, watch, computed, provide } from 'vue';
 import { useI18n } from 'vue-i18n';
 import XEUtils from 'xe-utils';
 import { ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { Md5 } from 'ts-md5';
-import { Plus, Search, Refresh, Download, User, OfficeBuilding, Male, Female, QuestionFilled } from '@element-plus/icons-vue';
+import { Plus, Search, Refresh, Download, User, OfficeBuilding, QuestionFilled } from '@element-plus/icons-vue';
 import SvgIcon from '/@/components/SvgIcon/index.vue';
 import importExcel from '/@/components/importExcel/index.vue';
 
@@ -184,24 +171,6 @@ const { t } = useI18n();
 /* ===================== Store ===================== */
 const systemConfigStore = SystemConfigStore();
 const defaultPassword = computed(() => systemConfigStore.systemConfig?.['base.default_password'] || '123456');
-
-/* ===================== Stats ===================== */
-const statsArr = ref([
-  { label: t('message.userPage.statTotal'), value: 0, icon: markRaw(User), bg: 'linear-gradient(135deg,#409eff,#337ecc)' },
-  { label: t('message.userPage.statActive'), value: 0, icon: markRaw(Male), bg: 'linear-gradient(135deg,#67c23a,#409eff)' },
-  { label: t('message.userPage.statLocked'), value: 0, icon: markRaw(Female), bg: 'linear-gradient(135deg,#f56c6c,#e6a23c)' },
-  { label: t('message.userPage.statCurrentDept'), value: '--', icon: markRaw(OfficeBuilding), bg: 'linear-gradient(135deg,#909399,#606266)' },
-]);
-const stats = computed(() => statsArr.value);
-
-function updateStats(data: UserRecord[]) {
-  let active = 0, inactive = 0;
-  data.forEach(u => { if (u.is_active) active++; else inactive++; });
-  statsArr.value[0].value = total.value;
-  statsArr.value[1].value = active;
-  statsArr.value[2].value = inactive;
-  statsArr.value[3].value = currentDeptId.value ? data.length : total.value;
-}
 
 /* ===================== Dict ===================== */
 const genderDict = computed(() => [] as any[]);
@@ -261,7 +230,6 @@ async function getList() {
     if (res?.code === 2000) {
       tableData.value = res.data || [];
       total.value = res.total || tableData.value.length;
-      updateStats(tableData.value);
     } else { tableData.value = []; total.value = 0; }
   } catch { tableData.value = []; total.value = 0; }
   finally { loading.value = false; }
@@ -309,7 +277,8 @@ function openAddDialog() {
 }
 function openEditDialog(row: UserRecord) {
   dialogType.value = 'edit';
-  Object.assign(formData, { id: row.id, username: row.username, password: '', name: row.name, dept: row.dept?.id ?? null, role: row.role || [], mobile: row.mobile || '', email: row.email || '', gender: row.gender ?? 1, is_active: row.is_active ?? true, user_type: row.user_type ?? 0 });
+  const roleIds = row.role_info?.map(r => r.id) || row.role || [];
+  Object.assign(formData, { id: row.id, username: row.username, password: '', name: row.name, dept: row.dept?.id ?? null, role: roleIds, mobile: row.mobile || '', email: row.email || '', gender: row.gender ?? 1, is_active: row.is_active ?? true, user_type: row.user_type ?? 0 });
   dialogVisible.value = true;
 }
 function resetForm() { formRef.value?.resetFields(); }

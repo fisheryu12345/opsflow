@@ -1,0 +1,74 @@
+<h2>IAM Menu Tab - Current State</h2>
+<p class="subtitle">The Menu tab currently has a tree on the left, but the right panel is empty</p>
+
+<div class="mockup" style="max-width: 900px;">
+  <div class="mockup-header">IAM Page &gt; Menus Tab</div>
+  <div class="mockup-body" style="padding: 0; background: #f5f6fa;">
+    <div style="display: flex; min-height: 400px;">
+      <!-- Left: Menu Tree -->
+      <div style="width: 30%; background: #fff; border-right: 1px solid #e4e7ed; padding: 12px;">
+        <div style="background: #f5f7fa; padding: 8px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; color: #909399;">🔍 Search menus...</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="padding: 6px 8px; background: #ecf5ff; border-radius: 6px; font-size: 13px; font-weight: 500;">📁 IAM</div>
+          <div style="padding: 6px 8px 6px 24px; font-size: 13px;">📄 My Permissions</div>
+          <div style="padding: 6px 8px 6px 24px; font-size: 13px;">📄 Approval</div>
+          <div style="padding: 6px 8px; background: #ecf5ff; border-radius: 6px; font-size: 13px; font-weight: 500;">📁 System</div>
+          <div style="padding: 6px 8px 6px 24px; font-size: 13px;">📄 User Management</div>
+          <div style="padding: 6px 8px 6px 24px; font-size: 13px;">📄 Role Management</div>
+        </div>
+        <div style="display: flex; gap: 6px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e4e7ed;">
+          <span style="background: #409eff; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px;">＋</span>
+          <span style="background: #f0f2f5; color: #606266; padding: 4px 10px; border-radius: 4px; font-size: 12px;">✏️</span>
+          <span style="background: #f0f2f5; color: #606266; padding: 4px 10px; border-radius: 4px; font-size: 12px;">↑</span>
+          <span style="background: #f0f2f5; color: #606266; padding: 4px 10px; border-radius: 4px; font-size: 12px;">↓</span>
+          <span style="background: #f56c6c; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px;">🗑</span>
+        </div>
+      </div>
+
+      <!-- Right: Currently Empty -->
+      <div style="width: 70%; display: flex; align-items: center; justify-content: center; background: #fff;">
+        <div style="text-align: center; color: #c0c4cc;">
+          <div style="font-size: 48px; margin-bottom: 8px;">📭</div>
+          <div style="font-size: 14px;">按钮权限管理已迁移至 IAM 角色权限分配</div>
+          <div style="font-size: 12px; color: #e0e0e0; margin-top: 4px;">(Empty - button permission management moved to IAM role assignment)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>What needs to change?</h3>
+  <p class="subtitle">The right panel is currently empty. What functionality would you like to put there?</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="menu-detail" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Menu Detail Panel</h3>
+      <p>Click a menu in the tree → show its details (name, path, icon, status) in the right panel, with inline edit capability</p>
+    </div>
+  </div>
+  <div class="option" data-choice="page-perms" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Page Tab &amp; Button Config</h3>
+      <p>For each menu, configure page-level permissions: which tabs/buttons/columns are available on that page. Linked to the PageTab/PageButton models.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="role-link" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Role-Menu Assignment</h3>
+      <p>Show which roles have access to the selected menu, and allow quick assignment changes</p>
+    </div>
+  </div>
+  <div class="option" data-choice="custom" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>Something else</h3>
+      <p>I have a different idea — I'll describe it in the terminal</p>
+    </div>
+  </div>
+</div>

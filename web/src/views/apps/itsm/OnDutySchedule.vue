@@ -5,7 +5,7 @@
       <div style="display:flex;gap:8px">
         <el-date-picker v-model="filterDate" type="date" size="small" :placeholder="$t('message.onDuty.filterDate')" value-format="YYYY-MM-DD"
           @change="loadList" />
-        <el-button type="primary" size="small" @click="openDialog()"><el-icon><Plus /></el-icon> {{ $t('message.common.create') }}</el-button>
+        <el-button type="primary" size="small" v-can="'itsm:duty:manage'" @click="openDialog()"><el-icon><Plus /></el-icon> {{ $t('message.common.create') }}</el-button>
       </div>
     </div>
     <div class="itsm-table-card">
@@ -26,8 +26,8 @@
         </el-table-column>
         <el-table-column :label="$t('message.itsmPage.colActions')" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" text @click="openDialog(row)">{{ $t('message.common.edit') }}</el-button>
-            <el-button size="small" text type="danger" @click="onDelete(row)">{{ $t('message.common.delete') }}</el-button>
+            <el-button size="small" text v-can="'itsm:duty:manage'" @click="openDialog(row)">{{ $t('message.common.edit') }}</el-button>
+            <el-button size="small" text type="danger" v-can="'itsm:duty:manage'" @click="onDelete(row)">{{ $t('message.common.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>

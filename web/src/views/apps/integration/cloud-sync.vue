@@ -184,8 +184,13 @@ function statusLabel(status: string): string {
   return { running: t('message.cloudSync.running'), success: t('message.cloudSync.success'), failed: t('message.cloudSync.failed') }[status] || status
 }
 
-function triggerLabel(t: string): string {
-  return { schedule: t('message.cloudSync.schedule'), manual: t('message.cloudSync.manual'), pipeline: t('message.cloudSync.pipeline') }[t] || t
+function triggerLabel(code: string): string {
+  const labels: Record<string, string> = {
+    schedule: t('message.cloudSync.schedule'),
+    manual: t('message.cloudSync.manual'),
+    pipeline: t('message.cloudSync.pipeline'),
+  }
+  return labels[code] || code
 }
 
 function formatTime(tm: string): string {

@@ -3,7 +3,7 @@
     <!-- Toolbar -->
     <div class="itsm-delegation-toolbar">
       <span class="itsm-delegation-title">我的审批委托</span>
-      <el-button type="primary" size="small" @click="openCreate">
+      <el-button type="primary" size="small" v-can="'itsm:ticket:assign'" @click="openCreate">
         <el-icon><Plus /></el-icon> 新建委托
       </el-button>
     </div>
@@ -51,8 +51,8 @@
         </el-table-column>
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" text @click="openEdit(row)">编辑</el-button>
-            <el-button size="small" text type="danger" @click="onDelete(row)">删除</el-button>
+            <el-button size="small" text v-can="'itsm:ticket:assign'" @click="openEdit(row)">编辑</el-button>
+            <el-button size="small" text type="danger" v-can="'itsm:ticket:assign'" @click="onDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

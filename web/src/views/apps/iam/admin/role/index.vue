@@ -1,81 +1,61 @@
 <template>
-  <div class="sys-page role-page">
-    <!-- ===== Stats Cards ===== -->
-    <div class="role-stats-row g-fade-in-up">
-      <div v-for="card in statCards" :key="card.label" class="role-stat-card">
-        <div class="role-stat-icon" :style="{ background: card.bg }">
-          <el-icon :size="20"><component :is="card.icon" /></el-icon>
-        </div>
-        <div class="role-stat-body">
-          <div class="role-stat-value">{{ card.value }}</div>
-          <div class="role-stat-label">{{ card.label }}</div>
-        </div>
-      </div>
-    </div>
-
+  <div class="role-page">
     <!-- ===== Main Card ===== -->
-    <div class="sys-card g-fade-in-up" style="animation-delay:0.08s">
-      <div class="sys-card-header">
-        <div class="sys-card-title">
-          <span class="sys-card-icon">
-            <el-icon :size="16"><User /></el-icon>
-          </span>
+    <div class="role-card">
+      <div class="role-card-header">
+        <div class="role-card-title">
+          <span class="role-card-icon"><el-icon :size="15"><User /></el-icon></span>
           <span>{{ $t('message.rolePage.roleManagement') }}</span>
         </div>
-        <div class="sys-card-extra">
-          <el-button type="primary" :icon="Plus" @click="handleAdd">{{ $t('message.rolePage.addRole') }}</el-button>
+        <div class="role-card-extra">
+          <el-button type="primary" :icon="Plus" size="small" @click="handleAdd">{{ $t('message.rolePage.addRole') }}</el-button>
         </div>
       </div>
 
-      <div class="sys-card-body">
-        <!-- Toolbar: Search -->
-        <div class="role-toolbar">
-          <el-form :model="searchForm" inline size="default">
-            <el-form-item :label="$t('message.rolePage.roleName')">
-              <el-input v-model="searchForm.name" :placeholder="$t('message.rolePage.inputPlaceholder')" clearable style="width:180px" @keyup.enter="handleSearch" />
-            </el-form-item>
-            <el-form-item :label="$t('message.rolePage.status')">
-              <el-select v-model="searchForm.status" :placeholder="$t('message.rolePage.all')" clearable style="width:110px" @change="handleSearch">
-                <el-option :label="$t('message.rolePage.enabled')" :value="true" />
-                <el-option :label="$t('message.rolePage.disabled')" :value="false" />
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" size="small" @click="handleSearch">
-                <el-icon><Search /></el-icon> {{ $t('message.rolePage.search') }}
-              </el-button>
-              <el-button size="small" @click="handleReset">
-                <el-icon><Refresh /></el-icon> {{ $t('message.rolePage.reset') }}
-              </el-button>
-            </el-form-item>
-          </el-form>
-        </div>
-
+      <div class="role-card-body">
         <!-- Table -->
         <el-table
           :data="tableData"
           v-loading="loading"
           stripe
+          size="small"
           style="width:100%"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="index" :label="$t('message.rolePage.index')" width="65" align="center" />
-          <el-table-column prop="name" :label="$t('message.rolePage.roleName')" min-width="140" sortable="custom" />
-	          <el-table-column prop="key" :label="$t('message.rolePage.roleKey')" min-width="140" />
-	          <el-table-column prop="sort" :label="$t('message.rolePage.sort')" width="80" sortable="custom" align="center" />
-	          <el-table-column :label="$t('message.rolePage.status')" width="100" align="center">
+          <el-table-column type="index" :label="$t('message.rolePage.index')" width="55" align="center" />
+          <el-table-column prop="name" min-width="160" sortable="custom" show-overflow-tooltip>
+            <template #header>
+              <div class="role-col-filter">
+                <span>{{ $t('message.rolePage.roleName') }}</span>
+                <el-input v-model="searchForm.name" size="small" :placeholder="$t('message.rolePage.inputPlaceholder')" clearable @input="handleSearch" @click.stop />
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="key" :label="$t('message.rolePage.roleKey')" min-width="130" show-overflow-tooltip />
+          <el-table-column prop="sort" :label="$t('message.rolePage.sort')" width="70" sortable="custom" align="center" />
+          <el-table-column width="90" align="center">
+            <template #header>
+              <div class="role-col-filter role-col-filter--center">
+                <span>{{ $t('message.rolePage.status') }}</span>
+                <el-select v-model="searchForm.status" size="small" :placeholder="$t('message.rolePage.all')" clearable @change="handleSearch" @click.stop>
+                  <el-option :label="$t('message.rolePage.enabled')" :value="true" />
+                  <el-option :label="$t('message.rolePage.disabled')" :value="false" />
+                </el-select>
+              </div>
+            </template>
             <template #default="{ row }">
               <el-switch
                 :model-value="row.status"
                 :active-value="true"
                 :inactive-value="false"
+                size="small"
                 @change="() => handleStatusChange(row)"
               />
             </template>
           </el-table-column>
-          <el-table-column  prop="update_datetime" :label="$t('message.rolePage.updateTime')" min-width="170" sortable="custom" />
-          <el-table-column  prop="create_datetime" :label="$t('message.rolePage.createTime')" min-width="170" sortable="custom" />
-          <el-table-column :label="$t('message.rolePage.actions')" :width="actionColWidth" fixed="right" align="center">
+          <el-table-column prop="update_datetime" :label="$t('message.rolePage.updateTime')" min-width="155" sortable="custom" show-overflow-tooltip />
+          <el-table-column prop="create_datetime" :label="$t('message.rolePage.createTime')" min-width="155" sortable="custom" show-overflow-tooltip />
+          <el-table-column :label="$t('message.rolePage.actions')" width="240" fixed="right" align="center">
             <template #default="{ row }">
               <el-button text size="small" style="padding:0 4px" @click="handleView(row)">{{ $t('message.rolePage.view') }}</el-button>
               <el-button text size="small" style="padding:0 4px" @click="handleEdit(row)">{{ $t('message.rolePage.edit') }}</el-button>
@@ -94,6 +74,7 @@
             :page-sizes="[15,30,50,100]"
             layout="total, sizes, prev, pager, next, jumper"
             background
+            small
             @update:pageSize="handleSizeChange"
             @update:currentPage="handleCurrentChange"
           />
@@ -105,7 +86,7 @@
     <el-dialog v-model="viewDialogVisible" :title="$t('message.rolePage.viewRole')" width="560px" :close-on-click-modal="false" class="opsflow-dialog">
       <el-form label-width="100px" disabled>
         <el-form-item :label="$t('message.rolePage.roleName')">{{ viewForm.name }}</el-form-item>
-        <el-form-item :label="$t('message.rolePage.roleKey')">{{ viewForm.key }}</el-form-item>
+        <el-form-item :label="$t('message.rolePage.roleKey')"><span>{{ viewForm['key'] }}</span></el-form-item>
         <el-form-item :label="$t('message.rolePage.sort')">{{ viewForm.sort }}</el-form-item>
         <el-form-item :label="$t('message.rolePage.status')">
           <el-tag :type="viewForm.status ? 'success' : 'danger'" effect="plain" round>
@@ -168,10 +149,10 @@
 </template>
 
 <script setup lang="ts" name="role">
-import { ref, reactive, computed, onMounted, markRaw } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessageBox, ElMessage } from 'element-plus';
-import { Plus, Search, Refresh, User, Tickets, Check, Close } from '@element-plus/icons-vue';
+import { Plus, Search, Refresh, User } from '@element-plus/icons-vue';
 import { GetList, GetObj, AddObj, UpdateObj, DelObj } from './api';
 
 import { successMessage } from '/@/utils/message';
@@ -193,14 +174,6 @@ interface RoleItem {
 /* ===================== i18n ===================== */
 const { t } = useI18n();
 
-/* ===================== Stats ===================== */
-const statCards = computed(() => [
-  { label: t('message.rolePage.statTotal'), value: pagination.total, icon: markRaw(Tickets), bg: 'linear-gradient(135deg, #409eff, #337ecc)' },
-  { label: t('message.rolePage.statEnabled'), value: tableData.value.filter(r => r.status).length, icon: markRaw(Check), bg: 'linear-gradient(135deg, #67c23a, #409eff)' },
-  { label: t('message.rolePage.statDisabled'), value: tableData.value.filter(r => !r.status).length, icon: markRaw(Close), bg: 'linear-gradient(135deg, #f56c6c, #e6a23c)' },
-  { label: t('message.rolePage.statCurrent'), value: '---', icon: markRaw(User), bg: 'linear-gradient(135deg, #909399, #606266)' },
-]);
-
 /* ===================== State ===================== */
 const loading = ref(false);
 const tableData = ref<RoleItem[]>([]);
@@ -208,18 +181,6 @@ const tableData = ref<RoleItem[]>([]);
 const searchForm = reactive({ name: '', status: undefined as boolean | string | undefined });
 
 const pagination = reactive({ page: 1, limit: 15, total: 0, ordering: '' });
-
-/* ===================== Column Permissions ===================== */
-
-
-/* ===================== Action Column Width ===================== */
-const actionColWidth = computed(() => {
-  let count = 1; // 查看
-  count++; // Update
-  count++; // Delete
-  count++; // Permission
-  return 60 + count * 55;
-});
 
 /* ===================== View Dialog ===================== */
 const viewDialogVisible = ref(false);
@@ -344,79 +305,103 @@ onMounted(() => {
 
 .role-page {
   width: 100%;
+  height: 100%;
 }
 
-// ===== Stats Cards =====
-.role-stats-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
-  margin-bottom: 16px;
+// ===== Card =====
+.role-card {
+  background: #fff;
+  border-radius: $g-radius-card;
+  box-shadow: $g-shadow-card;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 260px);
+  overflow: hidden;
 }
 
-.role-stat-card {
+.role-card-header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  background: #fff;
-  border-radius: $g-radius;
-  padding: 16px 18px;
-  box-shadow: $g-shadow-card;
-  transition: transform 0.2s, box-shadow 0.2s;
-  cursor: default;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: $g-shadow-hover;
-  }
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid $g-border-light;
+  flex-shrink: 0;
 }
 
-.role-stat-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+.role-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $g-text-primary;
+}
+
+.role-card-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: $g-gradient-accent;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   color: #fff;
+  flex-shrink: 0;
 }
 
-.role-stat-body {
+.role-card-body {
   flex: 1;
-  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 18px;
+  overflow: hidden;
 }
 
-.role-stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: $g-text-primary;
-  line-height: 1.2;
-}
-
-.role-stat-label {
-  font-size: 13px;
-  color: $g-text-secondary;
-  margin-top: 2px;
-}
-
-// ===== Toolbar =====
-.role-toolbar {
-  margin-bottom: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid $g-border-light;
-
-  :deep(.el-form--inline .el-form-item) {
-    margin-right: 14px;
-    margin-bottom: 0;
+// ===== Column Filter =====
+.role-col-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  > span {
+    font-size: 12px;
+    font-weight: 600;
+    color: $g-text-primary;
+    line-height: 1;
   }
+  :deep(.el-input) {
+    width: 100%;
+  }
+  :deep(.el-input__wrapper) {
+    height: 26px;
+    padding: 0 8px;
+  }
+  :deep(.el-select) {
+    width: 100%;
+  }
+  :deep(.el-select__wrapper) {
+    min-height: 26px;
+    height: 26px;
+  }
+}
+.role-col-filter--center {
+  align-items: center;
+}
+
+// ===== Table =====
+.role-card-body :deep(.el-table) {
+  flex: 1;
+  overflow: auto;
+}
+.role-card-body :deep(.el-table thead th.el-table__cell) {
+  padding: 6px 4px;
 }
 
 // ===== Pagination =====
 .role-pagination {
+  flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
-  padding-top: 16px;
+  padding-top: 12px;
   margin-top: 4px;
   border-top: 1px solid $g-border-light;
 }

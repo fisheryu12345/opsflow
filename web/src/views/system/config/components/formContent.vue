@@ -206,8 +206,8 @@
                   <el-popover placement="top" width="160" v-model="childRemoveVisible">
                     <p>删除后无法恢复,确定删除吗？</p>
                     <div style="text-align: right; margin: 0">
-                      <el-button size="mini" type="text" @click="childRemoveVisible = false">取消</el-button>
-                      <el-button type="primary" size="mini" @click="onRemoveChild(row, index, item.key)">确定</el-button>
+                      <el-button size="small" type="text" @click="childRemoveVisible = false">取消</el-button>
+                      <el-button type="primary" size="small" @click="onRemoveChild(row, index, item.key)">确定</el-button>
                     </div>
                     <el-button type="text" slot="reference">删除</el-button>
                   </el-popover>
@@ -215,7 +215,7 @@
               </vxe-column>
             </vxe-table>
             <div>
-              <el-button size="mini" @click="onAppend('xTable_' + item.key)">追加</el-button>
+              <el-button size="small" @click="onAppend('xTable_' + item.key)">追加</el-button>
             </div>
           </div>
         </el-col>
@@ -223,11 +223,11 @@
           <el-switch v-model="item.status" active-color="#13ce66" inactive-color="#ff4949"> </el-switch>
         </el-col>
         <el-col :span="3">
-          <el-button v-if="item.edit" size="mini" type="primary" :icon="Finished" @click="onEditSave(item)">保存</el-button>
-          <el-button v-else size="mini" type="primary" :icon="Edit" @click="onEdit(index)"></el-button>
+          <el-button v-if="item.edit" size="small" type="primary" :icon="Finished" @click="onEditSave(item)">保存</el-button>
+          <el-button v-else size="small" type="primary" :icon="Edit" @click="onEdit(index)"></el-button>
           <el-popconfirm title="确定删除该条数据吗？" @confirm="onDelRow(item)">
             <template #reference>
-              <el-button size="mini" type="danger" :icon="Delete" ></el-button>
+              <el-button size="small" type="danger" :icon="Delete" ></el-button>
             </template>
           </el-popconfirm>
         </el-col>

@@ -44,7 +44,7 @@ const onColClick = (v: unknown | string) => {
 
 <style scoped lang="scss">
 .icon-selector-warp-row {
-	height: 230px;
+	height: 320px;
 	overflow: hidden;
 	.el-row {
 		padding: 15px;

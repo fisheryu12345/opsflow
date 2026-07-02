@@ -42,9 +42,17 @@ class CustomModelSerializer(DynamicFieldsMixin, ModelSerializer):
 
     # 创建人的审计字段名称, 默认creator, 继承使用时可自定义覆盖
     creator_field_id = "creator"
-    creator_name = serializers.SlugRelatedField(
-        slug_field="name", source="creator", read_only=True
-    )
+    creator_name = serializers.SerializerMethodField()
+
+    def get_creator_name(self, instance):
+        if not hasattr(instance, 'creator') or not instance.creator:
+            return None
+        from iam.models import IAMUsers
+        try:
+            user = IAMUsers.objects.get(id=instance.creator)
+            return user.name
+        except IAMUsers.DoesNotExist:
+            return str(instance.creator)
     # 数据所属部门字段
     dept_belong_id_field_name = "dept_belong_id"
     # 添加默认时间返回格式

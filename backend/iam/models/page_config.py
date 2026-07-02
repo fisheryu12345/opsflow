@@ -29,6 +29,9 @@ class IAMMenu(models.Model):
     cache = models.BooleanField(default=False, blank=True, verbose_name="缓存")
     visible = models.BooleanField(default=True, blank=True, verbose_name="可见")
     is_iframe = models.BooleanField(default=False, blank=True, verbose_name="iframe")
+    is_affix = models.BooleanField(default=False, blank=True, verbose_name="是否固定")
+    name_en = models.CharField(max_length=128, null=True, blank=True, verbose_name="英文名称")
+    app = models.CharField(max_length=64, null=True, blank=True, verbose_name="应用")
 
     @classmethod
     def get_all_parent(cls, menu_id, all_list=None, nodes=None):

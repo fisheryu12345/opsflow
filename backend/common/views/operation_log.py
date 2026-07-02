@@ -50,5 +50,5 @@ class OperationLogViewSet(CustomModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         if not self.request.user.is_superuser:
-            qs = qs.filter(creator=self.request.user)
+            qs = qs.filter(creator=self.request.user.id)
         return qs

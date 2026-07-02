@@ -1,0 +1,149 @@
+<h2>Menu Detail Panel — v2 (with Icon field)</h2>
+<p class="subtitle">Icon is now a visible + editable field in the detail panel</p>
+
+<div class="mockup" style="max-width: 920px;">
+  <div class="mockup-header">IAM &gt; Menus &gt; Selected: "User Management"</div>
+  <div class="mockup-body" style="padding: 0; background: #f5f6fa;">
+
+    <div style="display: flex; min-height: 480px;">
+
+      <!-- Left (tree) -->
+      <div style="width: 28%; background: #fff; border-right: 1px solid #e4e7ed; padding: 12px;">
+        <div style="background: #f5f7fa; padding: 8px; border-radius: 6px; margin-bottom: 12px; font-size: 12px; color: #909399;">🔍 Search menus...</div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="padding: 6px 8px; background: #ecf5ff; border-radius: 6px; font-size: 13px; font-weight: 500;">📁 System</div>
+          <div style="padding: 6px 8px 6px 24px; background: #409eff; color: #fff; border-radius: 4px; font-size: 13px;">👥 User Management</div>
+          <div style="padding: 6px 8px 6px 24px; font-size: 13px;">🔑 Role Management</div>
+        </div>
+      </div>
+
+      <!-- Right: Detail Panel -->
+      <div style="width: 72%; background: #fff; padding: 20px; overflow-y: auto;">
+
+        <!-- Header with Icon edit -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <!-- Icon Picker -->
+            <div style="position: relative; cursor: default;">
+              <div style="width: 48px; height: 48px; background: #ecf5ff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 2px dashed #c6e2ff;">
+                👥
+              </div>
+              <div style="position: absolute; bottom: -4px; right: -4px; background: #409eff; color: #fff; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; display: flex; align-items: center; justify-content: center; border: 2px solid #fff;">✎</div>
+            </div>
+            <div>
+              <div style="font-size: 18px; font-weight: 700; color: #303133;">User Management</div>
+              <div style="font-size: 12px; color: #909399;">用户管理</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <span style="background: #409eff; color: #fff; padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: default;">✏️ Edit</span>
+            <span style="background: #fef0f0; color: #f56c6c; padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: default;">🗑 Delete</span>
+          </div>
+        </div>
+
+        <!-- Row 1: Icon + name_en + sort + parent -->
+        <div style="border: 1px solid #ebeef5; border-radius: 10px; margin-bottom: 14px; overflow: hidden;">
+          <div style="background: #f5f7fa; padding: 8px 14px; font-size: 12px; font-weight: 600; color: #606266; border-bottom: 1px solid #ebeef5;">Basic Info</div>
+          <div style="padding: 14px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+            <div>
+              <div style="font-size: 11px; color: #909399; margin-bottom: 4px;">Icon</div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 28px; height: 28px; background: #ecf5ff; border-radius: 6px; display: flex; align-items: center; justify-content: center;">👥</span>
+                <span style="font-size: 12px; font-family: monospace; color: #409eff; cursor: default; padding: 2px 8px; background: #f5f7fa; border-radius: 4px;">User</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #909399; margin-bottom: 4px;">Name (EN)</div>
+              <div style="font-size: 13px; color: #303133;">userManagement</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #909399; margin-bottom: 4px;">Parent</div>
+              <div style="font-size: 13px; color: #303133;">System</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #909399; margin-bottom: 4px;">Sort</div>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span style="font-size: 13px; font-weight: 500; color: #303133;">2</span>
+                <span style="font-size: 11px; color: #909399; cursor: default; padding: 2px 6px; border: 1px solid #e4e7ed; border-radius: 4px;">↑</span>
+                <span style="font-size: 11px; color: #909399; cursor: default; padding: 2px 6px; border: 1px solid #e4e7ed; border-radius: 4px;">↓</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Route -->
+        <div style="border: 1px solid #ebeef5; border-radius: 10px; margin-bottom: 14px; overflow: hidden;">
+          <div style="background: #f5f7fa; padding: 8px 14px; font-size: 12px; font-weight: 600; color: #606266; border-bottom: 1px solid #ebeef5;">Route &amp; Component</div>
+          <div style="padding: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div>
+              <div style="font-size: 11px; color: #909399; margin-bottom: 4px;">Web Path</div>
+              <div style="font-size: 13px; font-weight: 500; font-family: monospace; color: #409eff;">/system/user</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #909399; margin-bottom: 4px;">Component</div>
+              <div style="font-size: 12px; color: #303133; font-family: monospace;">views/system/user/index.vue</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #909399; margin-bottom: 4px;">Component Name</div>
+              <div style="font-size: 13px; color: #303133;">userPages</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #909399; margin-bottom: 4px;">Link URL</div>
+              <div style="font-size: 12px; color: #909399; font-style: italic;">(empty - not a link)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3: Switches (inline, editable) -->
+        <div style="border: 1px solid #ebeef5; border-radius: 10px; margin-bottom: 14px; overflow: hidden;">
+          <div style="background: #f5f7fa; padding: 8px 14px; font-size: 12px; font-weight: 600; color: #606266; border-bottom: 1px solid #ebeef5;">Toggles</div>
+          <div style="padding: 14px; display: flex; flex-wrap: wrap; gap: 20px;">
+            <div><span style="display: inline-block; width: 36px; height: 20px; background: #67c23a; border-radius: 10px; position: relative; vertical-align: middle;"><span style="position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%;"></span></span> <span style="font-size: 12px;">Status: ✅</span></div>
+            <div><span style="display: inline-block; width: 36px; height: 20px; background: #67c23a; border-radius: 10px; position: relative; vertical-align: middle;"><span style="position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%;"></span></span> <span style="font-size: 12px;">Sidebar: ✅</span></div>
+            <div><span style="display: inline-block; width: 36px; height: 20px; background: #dcdfe6; border-radius: 10px; position: relative; vertical-align: middle;"><span style="position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%;"></span></span> <span style="font-size: 12px;">Cache: ❌</span></div>
+            <div><span style="display: inline-block; width: 36px; height: 20px; background: #dcdfe6; border-radius: 10px; position: relative; vertical-align: middle;"><span style="position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%;"></span></span> <span style="font-size: 12px;">Is Catalog: ❌</span></div>
+            <div><span style="display: inline-block; width: 36px; height: 20px; background: #dcdfe6; border-radius: 10px; position: relative; vertical-align: middle;"><span style="position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%;"></span></span> <span style="font-size: 12px;">Is Link: ❌</span></div>
+            <div><span style="display: inline-block; width: 36px; height: 20px; background: #dcdfe6; border-radius: 10px; position: relative; vertical-align: middle;"><span style="position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%;"></span></span> <span style="font-size: 12px;">Is Iframe: ❌</span></div>
+            <div><span style="display: inline-block; width: 36px; height: 20px; background: #dcdfe6; border-radius: 10px; position: relative; vertical-align: middle;"><span style="position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%;"></span></span> <span style="font-size: 12px;">Is Affix: ❌</span></div>
+          </div>
+          <div style="padding: 0 14px 10px; font-size: 11px; color: #909399;">Toggles are editable inline — click to change without opening the drawer</div>
+        </div>
+
+        <!-- Description -->
+        <div style="border: 1px solid #ebeef5; border-radius: 10px; overflow: hidden;">
+          <div style="background: #f5f7fa; padding: 8px 14px; font-size: 12px; font-weight: 600; color: #606266; border-bottom: 1px solid #ebeef5;">Description</div>
+          <div style="padding: 12px 14px; font-size: 13px; color: #606266;">User management page with CRUD, role assignment, and permission configuration</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <h3>Key change: Icon is now in the panel</h3>
+  <ul style="font-size: 14px; color: #606266; line-height: 2;">
+    <li><strong>Icon</strong> is shown in Basic Info section with an icon preview + name tag, <strong>and</strong> in the header as a large preview</li>
+    <li>Clicking the header icon opens <strong>IconSelector</strong> to pick a different icon</li>
+    <li><strong>Toggle switches</strong> (status/sidebar/cache/catalog/link/iframe/affix) are editable <strong>inline</strong> — no need to open the drawer</li>
+    <li><strong>Edit button</strong> still opens the full drawer for editing text fields (name, path, component, etc.)</li>
+    <li><strong>Up/Down arrows</strong> on the sort field for quick reorder</li>
+  </ul>
+</div>
+
+<div class="options" style="margin-top: 24px;">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Looks good — proceed</h3>
+      <p>This is what I want. Write the spec.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="revise" onclick="toggleSelect(this)">
+    <div class="letter">✎</div>
+    <div class="content">
+      <h3>Needs changes</h3>
+      <p>I'll describe what to modify in the terminal</p>
+    </div>
+  </div>
+</div>

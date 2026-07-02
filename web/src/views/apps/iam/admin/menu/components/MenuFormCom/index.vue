@@ -25,18 +25,13 @@
         </el-row>
       </div>
 
-      <!-- Section: Route & Icon -->
+      <!-- Section: Route -->
       <div class="mf-section">
-        <div class="mf-sec-title">{{ $t('message.menuPage.routePath') }} / {{ $t('message.menuPage.icon') }}</div>
+        <div class="mf-sec-title">{{ $t('message.menuPage.routePath') }}</div>
         <el-row :gutter="14">
-          <el-col :span="12">
+          <el-col :span="24">
             <el-form-item :label="$t('message.menuPage.routePath')" prop="web_path">
               <el-input v-model="menuFormData.web_path" :placeholder="$t('message.menuPage.routePathPlaceholder')" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item :label="$t('message.menuPage.icon')" prop="icon">
-              <IconSelector clearable v-model="menuFormData.icon" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -171,7 +166,6 @@
 import { ref, onMounted, reactive } from 'vue';
 import { ElForm, FormRules } from 'element-plus';
 import { InfoFilled, Check, Link } from '@element-plus/icons-vue';
-import IconSelector from '/@/components/iconSelector/index.vue';
 import { lazyLoadMenu, AddObj, UpdateObj } from '../../api';
 import { successNotification } from '/@/utils/message';
 import { MenuFormDataType, MenuTreeItemType, ComponentFileItem, APIResponseData } from '../../types';

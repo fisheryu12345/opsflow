@@ -1,18 +1,5 @@
 <template>
   <div class="sys-page menu-page">
-    <!-- ===== Stats Cards ===== -->
-    <div class="menu-stats sys-fade-in-up">
-      <div v-for="s in stats" :key="s.label" class="menu-stat-card">
-        <div class="menu-stat-icon" :style="{ background: s.bg }">
-          <el-icon :size="20"><component :is="s.icon" /></el-icon>
-        </div>
-        <div class="menu-stat-body">
-          <div class="menu-stat-val">{{ s.value }}</div>
-          <div class="menu-stat-lbl">{{ s.label }}</div>
-        </div>
-      </div>
-    </div>
-
     <!-- ===== Main Content ===== -->
     <el-row class="menu-row" :gutter="14">
       <!-- ── Left: Menu Tree ── -->
@@ -32,15 +19,21 @@
         </div>
       </el-col>
 
-      <!-- ── Right: Tabs ── -->
+      <!-- ── Right: Menu Detail Panel ── -->
       <el-col :span="18" class="menu-col">
         <div class="sys-card menu-tabs-card sys-fade-in-up" style="animation-delay:0.1s">
           <div class="menu-section-header">
             <el-icon :size="16"><Setting /></el-icon>
-            <span>{{ $t('message.menuPage.permissionConfig') }}</span>
+            <span>{{ selectedMenu ? selectedMenu.name : $t('message.menuPage.permissionConfig') }}</span>
           </div>
           <div class="menu-tab-body">
-            <el-empty :image-size="40" description="按钮权限管理已迁移至 IAM 角色权限分配" />
+            <MenuDetailPanel
+              :menu="selectedMenu"
+              :treeData="menuTreeData"
+              @edit="handleMenuEdit"
+              @delete="handleMenuDeleteFromDetail"
+              @refresh="getData"
+            />
           </div>
         </div>
       </el-col>
@@ -68,29 +61,19 @@
 </template>
 
 <script lang="ts" setup name="menuPages">
-import { ref, computed, onMounted, markRaw } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import XEUtils from 'xe-utils';
 import { ElMessageBox } from 'element-plus';
-import { Search, Menu, Setting, Key, OfficeBuilding, Tickets, List } from '@element-plus/icons-vue';
+import { Menu, Setting, Key } from '@element-plus/icons-vue';
 import MenuTreeCom from './components/MenuTreeCom/index.vue';
 import MenuFormCom from './components/MenuFormCom/index.vue';
+import MenuDetailPanel from './components/MenuDetailPanel/index.vue';
 import { GetList, DelObj } from './api';
 import { successNotification } from '/@/utils/message';
 import { APIResponseData, MenuTreeItemType } from './types';
 
 const { t } = useI18n();
-
-/* ===================== Stats ===================== */
-const menuCount = ref(0);
-const catalogCount = ref(0);
-const leafCount = ref(0);
-const stats = computed(() => [
-  { label: t('message.menuPage.statTotal'), value: menuCount.value, icon: markRaw(OfficeBuilding), bg: 'linear-gradient(135deg,#409eff,#337ecc)' },
-  { label: t('message.menuPage.statCatalog'), value: catalogCount.value, icon: markRaw(Tickets), bg: 'linear-gradient(135deg,#e6a23c,#f56c6c)' },
-  { label: t('message.menuPage.statLeaf'), value: leafCount.value, icon: List, bg: 'linear-gradient(135deg,#67c23a,#409eff)' },
-  { label: t('message.menuPage.statCurrent'), value: '---', icon: Search, bg: 'linear-gradient(135deg,#909399,#606266)' },
-]);
 
 /* ===================== State ===================== */
 const menuTreeData = ref([]);
@@ -98,33 +81,26 @@ const menuTreeCacheData = ref<MenuTreeItemType[]>([]);
 const drawerVisible = ref(false);
 const drawerFormData = ref<Partial<MenuTreeItemType>>({});
 const menuTreeRef = ref<InstanceType<typeof MenuTreeCom> | null>(null);
+const selectedMenu = ref<MenuTreeItemType | null>(null);
 // MenuButtonCom removed - button permission management moved to IAM role assignment
 
-const countNodes = (arr: any[]) => {
-  let cat = 0, leaf = 0;
-  const walk = (nodes: any[]) => {
-    for (const n of nodes) {
-      if (n.is_catalog) cat++; else leaf++;
-      if (n.children?.length) walk(n.children);
-    }
-  };
-  walk(arr);
-  catalogCount.value = cat;
-  leafCount.value = leaf;
-  menuCount.value = cat + leaf;
-};
-
 const getData = () => {
+  const prevId = selectedMenu.value?.id;
   GetList({}).then((ret: APIResponseData) => {
     const result = XEUtils.toArrayTree(ret.data, { parentKey: 'parent', children: 'children', strict: true });
     menuTreeData.value = result;
-    countNodes(result);
+    // Re-select previously selected menu after refresh
+    if (prevId) {
+      const flat = ret.data || [];
+      const found = flat.find((i: any) => String(i.id) === String(prevId));
+      if (found) selectedMenu.value = found;
+    }
   });
 };
 
 /* ===================== Handlers ===================== */
-const handleTreeClick = (_record: MenuTreeItemType) => {
-  // Button management moved to IAM role assignment
+const handleTreeClick = (record: MenuTreeItemType) => {
+  selectedMenu.value = record;
 };
 
 const handleUpdateMenu = (type: string, record?: MenuTreeItemType) => {
@@ -138,6 +114,7 @@ const handleUpdateMenu = (type: string, record?: MenuTreeItemType) => {
 
 const handleDrawerClose = (type?: string) => {
   if (type === 'submit') getData();
+  else if (type === 'delete') getData();
   drawerVisible.value = false;
   drawerFormData.value = {};
 };
@@ -152,6 +129,17 @@ const handleDeleteMenu = (id: string, callback: Function) => {
     callback();
     if (res?.code === 2000) { successNotification(res.msg as string); getData(); }
   }).catch(() => {});
+};
+
+/* Detail panel event handlers */
+const handleMenuEdit = (menu: MenuTreeItemType) => {
+  handleUpdateMenu('update', menu);
+};
+
+const handleMenuDeleteFromDetail = (menu: MenuTreeItemType) => {
+  handleDeleteMenu(String(menu.id), () => {
+    selectedMenu.value = null;
+  });
 };
 
 onMounted(() => { getData(); });
@@ -221,7 +209,7 @@ onMounted(() => { getData(); });
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  background: $g-gradient-hero;
+  background: #f5f7fa;
   border-bottom: 1px solid $g-border-light;
   font-size: 14px;
   font-weight: 600;

@@ -96,6 +96,10 @@ watch(() => props.modelValue, (v) => {
   }
 })
 
+function onClosed() {
+  // Dialog closed animation completed — no-op needed
+}
+
 function doExec() {
   if (!props.target) return
   running.value = true

@@ -693,7 +693,7 @@ def permission_catalog(request):
     from iam.models.page_config import PageTab, PageButton
 
     catalog = []
-    for app_name in ['opsflow', 'itsm', 'cmdb']:
+    for app_name in PageTab.objects.filter(visible=True).values_list('app', flat=True).distinct().order_by('app'):
         tabs = []
         for tab in PageTab.objects.filter(app=app_name, visible=True).order_by('sort'):
             buttons = []

@@ -1,0 +1,147 @@
+<h2>Menu Detail Panel — Design Proposal</h2>
+<p class="subtitle">When clicking a menu in the left tree, the right panel shows its details with inline edit capability</p>
+
+<div class="mockup" style="max-width: 920px;">
+  <div class="mockup-header">IAM &gt; Menus &gt; Selected: "User Management"</div>
+  <div class="mockup-body" style="padding: 0; background: #f5f6fa;">
+
+    <!-- Split: tree left + detail right -->
+    <div style="display: flex; min-height: 480px;">
+
+      <!-- Left (tree, existing, shown for context) -->
+      <div style="width: 28%; background: #fff; border-right: 1px solid #e4e7ed; padding: 12px;">
+        <div style="background: #f5f7fa; padding: 8px; border-radius: 6px; margin-bottom: 12px; font-size: 12px; color: #909399;">🔍 Search menus...</div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="padding: 6px 8px; font-size: 13px; font-weight: 500;">📁 IAM</div>
+          <div style="padding: 6px 8px 6px 24px; font-size: 13px;">📄 My Permissions</div>
+          <div style="padding: 6px 8px 6px 24px; font-size: 13px;">📄 Approval</div>
+          <div style="padding: 6px 8px; background: #ecf5ff; border-radius: 6px; font-size: 13px; font-weight: 500;">📁 System</div>
+          <div style="padding: 6px 8px 6px 24px; background: #409eff; color: #fff; border-radius: 4px; font-size: 13px;">📄 User Management</div>
+          <div style="padding: 6px 8px 6px 24px; font-size: 13px;">📄 Role Management</div>
+        </div>
+      </div>
+
+      <!-- Right: Detail Panel -->
+      <div style="width: 72%; background: #fff; padding: 20px; overflow-y: auto;">
+
+        <!-- Header: Icon + Name + Actions -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 44px; height: 44px; background: #ecf5ff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;">👥</div>
+            <div>
+              <div style="font-size: 18px; font-weight: 700; color: #303133;">User Management</div>
+              <div style="font-size: 12px; color: #909399;">用户管理</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <span style="background: #409eff; color: #fff; padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: default;">✏️ Edit</span>
+            <span style="background: #fef0f0; color: #f56c6c; padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: default;">🗑 Delete</span>
+          </div>
+        </div>
+
+        <!-- Route Info -->
+        <div style="border: 1px solid #ebeef5; border-radius: 10px; margin-bottom: 14px; overflow: hidden;">
+          <div style="background: #f5f7fa; padding: 8px 14px; font-size: 12px; font-weight: 600; color: #606266; border-bottom: 1px solid #ebeef5;">Route Info</div>
+          <div style="padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <div style="font-size: 11px; color: #909399; margin-bottom: 2px;">Web Path</div>
+              <div style="font-size: 13px; font-weight: 500; font-family: monospace; color: #409eff;">/system/user</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #909399; margin-bottom: 2px;">Component</div>
+              <div style="font-size: 13px; color: #303133; font-family: monospace;">views/system/user/index.vue</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #909399; margin-bottom: 2px;">Component Name</div>
+              <div style="font-size: 13px; color: #303133;">userPages</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #909399; margin-bottom: 2px;">Sort Order</div>
+              <div style="font-size: 13px; color: #303133;">2</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toggles -->
+        <div style="border: 1px solid #ebeef5; border-radius: 10px; margin-bottom: 14px; overflow: hidden;">
+          <div style="background: #f5f7fa; padding: 8px 14px; font-size: 12px; font-weight: 600; color: #606266; border-bottom: 1px solid #ebeef5;">Configuration</div>
+          <div style="padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="display: inline-block; width: 36px; height: 20px; background: #67c23a; border-radius: 10px; position: relative;"><span style="position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%;"></span></span>
+              <span style="font-size: 12px; color: #303133;">Status</span>
+              <span style="font-size: 11px; color: #67c23a;">Enabled</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="display: inline-block; width: 36px; height: 20px; background: #67c23a; border-radius: 10px; position: relative;"><span style="position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%;"></span></span>
+              <span style="font-size: 12px; color: #303133;">Sidebar Visible</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="display: inline-block; width: 36px; height: 20px; background: #dcdfe6; border-radius: 10px; position: relative;"><span style="position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%;"></span></span>
+              <span style="font-size: 12px; color: #909399;">Cache</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Type Badges + Link Info -->
+        <div style="border: 1px solid #ebeef5; border-radius: 10px; margin-bottom: 14px; overflow: hidden;">
+          <div style="background: #f5f7fa; padding: 8px 14px; font-size: 12px; font-weight: 600; color: #606266; border-bottom: 1px solid #ebeef5;">Type &amp; Flags</div>
+          <div style="padding: 12px 14px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+              <span style="background: #ecf5ff; color: #409eff; font-size: 11px; padding: 2px 10px; border-radius: 12px;">is_catalog: No</span>
+              <span style="background: #f0f9eb; color: #67c23a; font-size: 11px; padding: 2px 10px; border-radius: 12px;">is_link: No</span>
+              <span style="background: #f4f4f5; color: #909399; font-size: 11px; padding: 2px 10px; border-radius: 12px;">is_iframe: No</span>
+              <span style="background: #fdf6ec; color: #e6a23c; font-size: 11px; padding: 2px 10px; border-radius: 12px;">is_affix: No</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div style="border: 1px solid #ebeef5; border-radius: 10px; margin-bottom: 14px; overflow: hidden;">
+          <div style="background: #f5f7fa; padding: 8px 14px; font-size: 12px; font-weight: 600; color: #606266; border-bottom: 1px solid #ebeef5;">Description</div>
+          <div style="padding: 12px 14px; font-size: 13px; color: #606266;">
+            User management page with CRUD, role assignment, and permission configuration
+          </div>
+        </div>
+
+        <!-- Audit Info -->
+        <div style="border: 1px solid #ebeef5; border-radius: 10px; overflow: hidden;">
+          <div style="background: #f5f7fa; padding: 8px 14px; font-size: 12px; font-weight: 600; color: #606266; border-bottom: 1px solid #ebeef5;">Audit</div>
+          <div style="padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div style="font-size: 12px; color: #909399;">Created: 2025-06-12 14:30 by admin</div>
+            <div style="font-size: 12px; color: #909399;">Updated: 2026-07-01 09:15 by admin</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>How it works</h3>
+  <ul style="font-size: 14px; color: #606266; line-height: 2;">
+    <li><strong>Click a tree node</strong> → right panel populates with that menu's full details (read-only view)</li>
+    <li><strong>Edit button</strong> → opens the existing drawer (<code>MenuFormCom</code>) pre-filled for editing</li>
+    <li><strong>Quick status toggle</strong> → inline switch for status/visible without opening the drawer</li>
+    <li><strong>Delete</strong> → confirmation dialog, then remove</li>
+    <li>The existing <strong>drawer form</strong> (add/edit) stays unchanged</li>
+    <li>No new backend APIs needed — all data is already available from the existing <code>GET /api/iam/menu/{id}/</code> endpoint</li>
+  </ul>
+</div>
+
+<div class="options" style="margin-top: 24px;">
+  <div class="option selected" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Looks good — proceed</h3>
+      <p>This is what I want. Continue to write the spec.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="revise" onclick="toggleSelect(this)">
+    <div class="letter">✎</div>
+    <div class="content">
+      <h3>Needs changes</h3>
+      <p>I'll describe what to modify in the terminal</p>
+    </div>
+  </div>
+</div>

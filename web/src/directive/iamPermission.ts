@@ -20,13 +20,24 @@ const vCan: Directive = {
     const store = usePermissionStore()
     const permKey = typeof binding.value === 'string' && binding.value.includes(':') ? binding.value : null
 
+    // Check permission: explicit key OR role modifier
+    let hasAccess = false
     if (permKey) {
-      if (store.hasPerm(permKey)) return
+      hasAccess = store.hasPerm(permKey)
+    } else if (binding.modifiers?.admin) {
+      hasAccess = store.isAdmin
+    } else if (binding.modifiers?.edit) {
+      hasAccess = store.canEdit
+    } else {
+      hasAccess = true // no modifier = always allowed
     }
+    if (hasAccess) return
 
-    // No permission: disable + intercept click for auto-request
-    el.setAttribute('disabled', 'true')
-    el.classList.add('is-disabled', 'v-can-locked')
+    // No permission: style as locked but keep clickable
+    // Note: DO NOT set disabled=true — Element Plus el-button applies
+    // pointer-events:none when disabled, which blocks click events entirely.
+    el.removeAttribute('disabled')
+    el.classList.add('v-can-locked')
 
     // Add lock icon prefix to button text
     if (el.tagName === 'BUTTON') {

@@ -18,12 +18,22 @@ from common.utils.viewset import CustomModelViewSet
 
 class MenuSerializer(CustomModelSerializer):
     hasChild = serializers.SerializerMethodField()
+    name_display = serializers.SerializerMethodField()
+    parent = serializers.SerializerMethodField()
 
     def get_hasChild(self, instance):
-        return False  # Flat menu list, no hierarchy in current DB schema
+        return IAMMenu.objects.filter(dept_belong_id=str(instance.id)).exists()
 
     def get_name_display(self, obj):
         return obj.name
+
+    def get_parent(self, instance):
+        if not instance.dept_belong_id:
+            return None
+        try:
+            return int(instance.dept_belong_id)
+        except (ValueError, TypeError):
+            return instance.dept_belong_id
 
     class Meta:
         model = IAMMenu
@@ -33,21 +43,51 @@ class MenuSerializer(CustomModelSerializer):
 
 class MenuCreateSerializer(CustomModelSerializer):
     name = serializers.CharField(required=False)
+    parent = serializers.CharField(required=False, allow_null=True, allow_blank=True, write_only=True)
 
     class Meta:
         model = IAMMenu
-        fields = "__all__"
+        fields = [
+            'id', 'name', 'name_en', 'icon', 'sort', 'parent',
+            'web_path', 'component', 'component_name',
+            'is_catalog', 'is_link', 'link_url', 'is_iframe', 'is_affix',
+            'status', 'visible', 'cache',
+            'description', 'app',
+        ]
         read_only_fields = ["id"]
+
+    def create(self, validated_data):
+        parent = validated_data.pop('parent', None)
+        if parent and str(parent).strip():
+            validated_data['dept_belong_id'] = str(parent)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        parent = validated_data.pop('parent', None)
+        if parent and str(parent).strip():
+            validated_data['dept_belong_id'] = str(parent)
+        elif 'parent' in validated_data:
+            validated_data['dept_belong_id'] = None
+        return super().update(instance, validated_data)
 
 
 class WebRouterSerializer(CustomModelSerializer):
     path = serializers.CharField(source="web_path")
     title = serializers.CharField(source="name")
+    parent = serializers.SerializerMethodField()
+
+    def get_parent(self, instance):
+        if not instance.dept_belong_id:
+            return None
+        try:
+            return int(instance.dept_belong_id)
+        except (ValueError, TypeError):
+            return instance.dept_belong_id
 
     class Meta:
         model = IAMMenu
         fields = (
-            'id', 'icon', 'sort', 'path', 'title', 'is_link', 'link_url',
+            'id', 'icon', 'sort', 'parent', 'path', 'title', 'is_link', 'link_url',
             'is_catalog', 'web_path', 'component', 'component_name',
             'cache', 'visible', 'is_iframe', 'status')
         read_only_fields = ["id"]
@@ -62,13 +102,16 @@ class MenuViewSet(CustomModelViewSet):
     filter_fields = ['name', 'status', 'is_link', 'visible', 'cache', 'is_catalog']
 
     def list(self, request):
-        request.query_params._mutable = True
-        params = request.query_params
-        page = params.get('page', None)
-        limit = params.get('limit', None)
-        if page: del params['page']
-        if limit: del params['limit']
-        queryset = self.filter_queryset(self.queryset.all()) if not params else self.queryset.filter() if not params.get('parent') else self.queryset.filter()
+        params = request.query_params.copy()
+        parent_val = params.pop('parent', [None])[0]
+        page = params.pop('page', [None])[0]
+        limit = params.pop('limit', [None])[0]
+        if parent_val is not None:
+            queryset = self.queryset.filter(dept_belong_id=str(parent_val))
+        elif params:
+            queryset = self.filter_queryset(self.queryset.all())
+        else:
+            queryset = self.queryset.all()
         serializer = MenuSerializer(queryset, many=True, request=request)
         return SuccessResponse(data=serializer.data)
 

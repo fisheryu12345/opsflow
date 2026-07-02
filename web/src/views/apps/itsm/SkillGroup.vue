@@ -2,7 +2,7 @@
   <div class="itsm-settings">
     <div class="itsm-settings-toolbar">
       <span class="itsm-settings-title">{{ $t('message.skillGroup.title') }}</span>
-      <el-button type="primary" size="small" @click="openDialog()">
+      <el-button type="primary" size="small" v-can="'itsm:skillgroup:manage'" @click="openDialog()">
         <el-icon><Plus /></el-icon> {{ $t('message.common.create') }}
       </el-button>
     </div>
@@ -26,9 +26,9 @@
         </el-table-column>
         <el-table-column :label="$t('message.itsmPage.colActions')" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" text @click="openDialog(row)">{{ $t('message.common.edit') }}</el-button>
-            <el-button size="small" text @click="manageMembers(row)">{{ $t('message.skillGroup.memberManage') }}</el-button>
-            <el-button size="small" text type="danger" @click="onDelete(row)">{{ $t('message.common.delete') }}</el-button>
+            <el-button size="small" text v-can="'itsm:skillgroup:manage'" @click="openDialog(row)">{{ $t('message.common.edit') }}</el-button>
+            <el-button size="small" text v-can="'itsm:skillgroup:manage'" @click="manageMembers(row)">{{ $t('message.skillGroup.memberManage') }}</el-button>
+            <el-button size="small" text type="danger" v-can="'itsm:skillgroup:manage'" @click="onDelete(row)">{{ $t('message.common.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -56,7 +56,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">{{ $t('message.common.cancel') }}</el-button>
-        <el-button type="primary" :loading="saving" @click="onSave">{{ $t('message.common.save') }}</el-button>
+        <el-button type="primary" :loading="saving" v-can="'itsm:skillgroup:manage'" @click="onSave">{{ $t('message.common.save') }}</el-button>
       </template>
     </el-dialog>
 
@@ -64,7 +64,7 @@
       <div class="sg-member-list">
         <div v-for="m in form.members" :key="m.id" class="sg-member-row">
           <span>{{ m.name }} ({{ m.username }})</span>
-          <el-button size="small" text type="danger" @click="removeMember(m.id)">{{ $t('message.skillGroup.removeMember') }}</el-button>
+          <el-button size="small" text type="danger" v-can="'itsm:skillgroup:manage'" @click="removeMember(m.id)">{{ $t('message.skillGroup.removeMember') }}</el-button>
         </div>
         <div v-if="!form.members.length" style="color:#C0C4CC;font-size:12px;padding:8px 0">{{ $t('message.skillGroup.noMembers') }}</div>
       </div>
@@ -72,7 +72,7 @@
         <el-select v-model="addUserId" filterable style="width:240px" size="small" :placeholder="$t('message.skillGroup.selectUser')">
           <el-option v-for="u in userOptions" :key="u.id" :label="`${u.name} (${u.username})`" :value="u.id" />
         </el-select>
-        <el-button size="small" type="primary" :disabled="!addUserId" @click="addMember">{{ $t('message.skillGroup.addMember') }}</el-button>
+        <el-button size="small" type="primary" v-can="'itsm:skillgroup:manage'" :disabled="!addUserId" @click="addMember">{{ $t('message.skillGroup.addMember') }}</el-button>
       </div>
     </el-dialog>
   </div>

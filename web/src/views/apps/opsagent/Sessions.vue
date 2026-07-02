@@ -1,7 +1,7 @@
 <template>
   <div class="ss-page">
     <!-- Hero Section -->
-    <div class="ss-hero">
+    <div v-if="!embedded" class="ss-hero">
       <div class="ss-hero-bg" />
       <div class="ss-hero-inner">
         <div class="ss-hero-left">
@@ -85,9 +85,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, withDefaults } from 'vue'
 import { onMounted } from 'vue'
 import { Search, Refresh } from '@element-plus/icons-vue'
+
+const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
 import { useSessions } from './useSessions'
 
 const { list, loading, page, pageSize, total, filters, onPageChange, onSizeChange, refresh: baseRefresh } = useSessions()
@@ -125,7 +127,7 @@ onMounted(() => { filters.status = ''; refresh() })
 </script>
 
 <style scoped>
-.ss-page { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; background: #f5f6fa; overflow: hidden; }
+.ss-page { background: transparent; overflow: visible; }
 
 /* ===== Hero ===== */
 .ss-hero { position: relative; flex-shrink: 0; overflow: hidden; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
@@ -147,7 +149,7 @@ onMounted(() => { filters.status = ''; refresh() })
 .ss-stat-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
 
 /* ===== Body ===== */
-.ss-body { flex: 1; overflow-y: auto; padding: 0 16px 24px; }
+.ss-body { padding: 0 16px 24px; }
 
 /* ===== Filter bar ===== */
 .ss-filter-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; gap: 16px; position: sticky; top: 0; z-index: 10; background: #f5f6fa; }

@@ -1,7 +1,7 @@
 <template>
   <div class="console-page">
     <!-- Hero Section -->
-    <div class="console-hero">
+    <div v-if="!embedded" class="console-hero">
       <div class="console-hero-bg" />
       <div class="console-hero-inner">
         <div class="console-hero-left">
@@ -25,10 +25,11 @@
           <el-input v-model="input" type="textarea" :rows="2"
             placeholder="Describe your ops task, e.g. 'Check disk usage on all servers'"
             :disabled="running" class="console-input"
-            @keydown.enter.prevent="execute" />
-          <el-button type="primary" :loading="running" :disabled="!input.trim() || running"
-            class="console-exec-btn" size="large">
-            {{ running ? 'Executing...' : 'Execute' }}
+            @keydown.enter.prevent="handleExecuteClick" />
+          <el-button type="primary" :loading="running" :disabled="running || (!canExecute ? false : !input.trim())"
+            class="console-exec-btn" size="large" @click="handleExecuteClick">
+            <template v-if="!canExecute && !running">🔒 </template>
+            {{ running ? 'Executing...' : canExecute ? 'Execute' : 'No Permission' }}
           </el-button>
         </div>
       </div>
@@ -79,11 +80,30 @@
 
 <script setup lang="ts">
 import { Loading } from '@element-plus/icons-vue'
-import { computed } from 'vue'
+import { computed, withDefaults } from 'vue'
+import { usePermissionStore } from '/@/stores/permission'
+
+const permissionStore = usePermissionStore()
+
+interface BtnPerms {
+  [key: string]: boolean
+}
+const props = withDefaults(defineProps<{ embedded?: boolean; btnPerms?: BtnPerms }>(), { embedded: false, btnPerms: () => ({}) })
 import ToolCallCard from './components/ToolCallCard.vue'
 import { useConsole } from './useConsole'
 
 const { input, running, result, error, history, execute, loadHistory } = useConsole()
+
+const canExecute = computed(() => props.btnPerms?.execute !== false)
+
+function handleExecuteClick() {
+  if (!canExecute.value) {
+    permissionStore.requestPerm('Execute Task', 'opsagent:console:execute')
+    return
+  }
+  if (!input.value.trim() || running.value) return
+  execute()
+}
 
 const toolCount = computed(() => {
   if (result?.tool_calls) return result.tool_calls.length
@@ -92,7 +112,7 @@ const toolCount = computed(() => {
 </script>
 
 <style scoped>
-.console-page { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; background: #f5f6fa; overflow: hidden; }
+.console-page { background: transparent; overflow: visible; }
 
 /* ===== Hero ===== */
 .console-hero { position: relative; flex-shrink: 0; overflow: hidden; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
@@ -109,7 +129,7 @@ const toolCount = computed(() => {
 .console-stat-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
 
 /* ===== Body ===== */
-.console-body { flex: 1; overflow-y: auto; padding: 0 16px 24px; }
+.console-body { padding: 0 16px 24px; }
 
 /* ===== Shared card style ===== */
 .console-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; margin-bottom: 16px; }

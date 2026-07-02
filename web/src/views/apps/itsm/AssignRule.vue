@@ -2,7 +2,7 @@
   <div class="itsm-settings">
     <div class="itsm-settings-toolbar">
       <span class="itsm-settings-title">分派规则</span>
-      <el-button type="primary" size="small" @click="openDialog()"><el-icon><Plus /></el-icon> 新建</el-button>
+      <el-button type="primary" size="small" v-can="'itsm:rule:manage'" @click="openDialog()"><el-icon><Plus /></el-icon> 新建</el-button>
     </div>
     <div class="itsm-table-card">
       <el-table :data="list" v-loading="loading" stripe size="small" style="width:100%">
@@ -32,8 +32,8 @@
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" text @click="openDialog(row)">编辑</el-button>
-            <el-button size="small" text type="danger" @click="onDelete(row)">删除</el-button>
+            <el-button size="small" text v-can="'itsm:rule:manage'" @click="openDialog(row)">编辑</el-button>
+            <el-button size="small" text type="danger" v-can="'itsm:rule:manage'" @click="onDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

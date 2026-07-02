@@ -72,6 +72,7 @@ class UserCreateSerializer(CustomModelSerializer):
     password = serializers.CharField(
         required=False,
     )
+    role = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
 
     def validate_password(self, value):
         """
@@ -86,7 +87,16 @@ class UserCreateSerializer(CustomModelSerializer):
         data = super().save(**kwargs)
         data.dept_belong_id = data.dept_id
         data.save()
-        data.post.set(self.initial_data.get("post", []))
+        # Sync IAMUserRole for selected roles
+        if 'role' in self.initial_data:
+            from iam.models.permission import IAMUserRole
+            role_ids = self.initial_data.get("role", [])
+            IAMUserRole.objects.filter(user=data.id).delete()
+            if role_ids:
+                IAMUserRole.objects.bulk_create([
+                    IAMUserRole(user=data.id, role_id=rid)
+                    for rid in role_ids
+                ])
         return data
 
     class Meta:
@@ -94,7 +104,6 @@ class UserCreateSerializer(CustomModelSerializer):
         fields = "__all__"
         read_only_fields = ["id"]
         extra_kwargs = {
-            "post": {"required": False},
             "mobile": {"required": False},
         }
 
@@ -110,21 +119,22 @@ class UserUpdateSerializer(CustomModelSerializer):
             CustomUniqueValidator(queryset=IAMUsers.objects.all(), message="账号必须唯一")
         ],
     )
-
-    # password = serializers.CharField(required=False, allow_blank=True)
-    # mobile = serializers.CharField(
-    #     max_length=50,
-    #     validators=[
-    #         CustomUniqueValidator(queryset=IAMUsers.objects.all(), message="手机号必须唯一")
-    #     ],
-    #     allow_blank=True
-    # )
+    role = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
 
     def save(self, **kwargs):
         data = super().save(**kwargs)
         data.dept_belong_id = data.dept_id
         data.save()
-        data.post.set(self.initial_data.get("post", []))
+        # Sync IAMUserRole for selected roles
+        if 'role' in self.initial_data:
+            from iam.models.permission import IAMUserRole
+            role_ids = self.initial_data.get("role", [])
+            IAMUserRole.objects.filter(user=data.id).delete()
+            if role_ids:
+                IAMUserRole.objects.bulk_create([
+                    IAMUserRole(user=data.id, role_id=rid)
+                    for rid in role_ids
+                ])
         return data
 
     class Meta:
@@ -132,7 +142,6 @@ class UserUpdateSerializer(CustomModelSerializer):
         read_only_fields = ["id", "password"]
         fields = "__all__"
         extra_kwargs = {
-            "post": {"required": False, "read_only": True},
             "mobile": {"required": False},
         }
 
