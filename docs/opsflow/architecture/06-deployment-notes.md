@@ -51,6 +51,11 @@ OpsFlow 注册的 API 端点：
 | `api/opsflow/template-categories/` | TemplateCategoryViewSet | 模板分类 |
 | `api/opsflow/dashboard/*/` | （函数视图） | 12 个统计端点 |
 | `api/opsflow/cmdb/*/` | （函数视图） | CMDB 模拟数据 |
+| `api/opsflow/plugins/aliyun/*/` | （函数视图） | 8 个阿里云 ECS 资源查询端点 |
+| `api/opsflow/templates/create_dr_pipeline/` | （函数视图） | DR 管线创建 |
+| `api/opsflow/templates/preview_dr_topology/` | （函数视图） | DR 拓扑预览 |
+| `api/opsflow/clause/privacy.html` | PrivacyView | 隐私条款页面 |
+| `api/opsflow/clause/terms_service.html` | TermsServiceView | 服务条款页面 |
 
 嵌套路由：
 - `api/opsflow/templates/{id}/schemes/` — 执行方案
@@ -58,13 +63,14 @@ OpsFlow 注册的 API 端点：
 
 ### WebSocket 路由（`application/routing.py`）
 
+使用统一 WebSocket 端点 `MegCenter`，所有消息按 topic 路由：
+
 ```python
-from django.urls import path, re_path
-from opsflow.consumers import FlowMonitorConsumer
+from django.urls import path
+from application.websocketConfig import MegCenter
 
 websocket_urlpatterns = [
-    re_path(r'^ws/opsflow/execution/(?P<execution_id>\d+)/$',
-            FlowMonitorConsumer.as_asgi()),
+    path('ws/<str:service_uid>/', MegCenter.as_asgi()),
 ]
 ```
 
@@ -81,11 +87,13 @@ application = ProtocolTypeRouter({
 })
 ```
 
+> **说明：** 旧版 `opsflow/consumers.py`（FlowMonitorConsumer）已移除，改用统一 `MegCenter` WebSocket 网关。前端通过 `ws/{service_uid}/` 连接，服务端通过 `channel_layer.group_send()` 推送执行状态变更。
+
 ### 关键依赖（`backend/requirements.txt`）
 
 | 包 | 版本 | 用途 |
 |---|---|---|
-| `bamboo-pipeline` | 3.29.9 | 流程引擎核心（BambooDjangoRuntime） |
+| `bamboo-pipeline` | 4.0.2 | 流程引擎核心（BambooDjangoRuntime） |
 | `apscheduler` | 3.11.2 | Cron 调度器 |
 | `django-apscheduler` | 0.7.0 | APScheduler Django 管理界面 |
 | `celery` | 5.6.3 | 异步任务队列 |
@@ -94,6 +102,11 @@ application = ProtocolTypeRouter({
 | `django-redis` | （内置） | Redis 缓存后端 |
 | `openai` | 2.31.0 | AI 生成/精炼/分析 |
 | `uvicorn` | 0.23.2 | ASGI 服务器 |
+| `neo4j` | 5.x | CMDB 图数据库驱动 |
+| `ldap3` | — | LDAP 身份同步 |
+| `paramiko` | — | SSH 远程执行（Job Platform） |
+| `django-cors-headers` | — | CORS 跨域 |
+| `django-fernet-fields` | — | 凭证加密（Integration Hub） |
 
 ### Open API 独立应用（`backend/open_api/`）
 
@@ -129,6 +142,21 @@ CELERY_TASK_QUEUES = [
 celery -A application worker -l info -Q er_execute,er_schedule,default -c 4
 ```
 
+**各 App 的 Celery 任务：**
+
+| App | 任务 | 队列 | 说明 |
+|-----|------|------|------|
+| opsflow | `execute_pipeline_task` | er_execute | 异步管线执行 (max_retries=3) |
+| opsflow | `auto_retry_node_task` | default | 节点自动重试 |
+| opsflow | `execute_node_timeout_strategy` | default | 节点超时策略执行 |
+| opsflow | `webhook_send` | default | Webhook 回调 + 重试 |
+| opsflow | `retry_schedule_execution` | default | 调度计划重试 |
+| itsm | `sla_check` | default | 每分钟 SLA 违规检查 |
+| itsm | `auto_resolve_expired_tickets` | default | 自动关闭 7 天前过期工单 |
+| job_platform | `ai_script_check` | default | AI 脚本安全检测 |
+| job_platform | `job_start_task` | default | 作业执行入口 |
+| job_platform | `step_exec_task` | default | 顺序执行步骤 |
+
 ### Redis 配置
 
 ```python
@@ -158,6 +186,18 @@ daphne -b 0.0.0.0 -p 8000 application.asgi:application
 uvicorn --host 0.0.0.0 --port 8000 application.asgi:application
 ```
 
+### APScheduler 调度器独立进程
+
+OpsFlow 和 ITSM 各有独立调度器管理命令：
+
+```bash
+# OpsFlow 调度器（定时计划、超时检查）
+python manage.py start_opsflow_scheduler &
+
+# ITSM 调度器（SLA 检查、工单自动关闭）
+python manage.py start_itsm_scheduler &
+```
+
 ## 前端配置
 
 ### 关键依赖（`web/package.json`）
@@ -176,7 +216,9 @@ uvicorn --host 0.0.0.0 --port 8000 application.asgi:application
 
 ### 路由配置
 
-OpsFlow 页面通过后端菜单管理系统注册（前端使用 vue-next-admin 的 isRequestRoutes 模式），因此 `web/src/router/route.ts` 中不需要显式定义 opsflow 路由。后端在菜单表 `/api/system/menu/` 中配置以下路由：
+OpsFlow 页面通过后端菜单管理系统注册（前端使用 vue-next-admin 的 isRequestRoutes 模式），因此 `web/src/router/route.ts` 中不需要显式定义 opsflow 路由。后端在菜单表 `/api/iam/menu/web_router/` 中配置以下路由：
+
+**OpsFlow 核心页面：**
 
 ```
 /opsflow                   → apps/opsflow/index.vue
@@ -191,13 +233,30 @@ OpsFlow 页面通过后端菜单管理系统注册（前端使用 vue-next-admin
 /opsflow/stats             → apps/opsflow-stats/index.vue
 ```
 
+**其他子产品页面：**
+
+```
+/cmdb                      → apps/cmdb/index.vue
+/itsm                      → apps/itsm/index.vue
+/iam                       → apps/iam/index.vue
+/integration               → apps/integration/index.vue
+/monitor                   → apps/monitor/index.vue
+/job-platform              → apps/job-platform/index.vue
+/opsagent                  → apps/opsagent/index.vue
+/agent                     → apps/agent/index.vue
+/portal                    → apps/portal/index.vue
+/open-api                  → apps/open-api/index.vue
+```
+
 ## 部署检查清单
 
 1. 确保 MySQL 已创建数据库且 `conf/env.py` 中配置正确
-2. 运行迁移：`python manage.py migrate opsflow`
-3. 注册插件：`python manage.py shell -c "from opsflow.plugins.registry import discover_plugins; discover_plugins()"`（或重启后自动执行）
+2. 运行迁移：`python manage.py migrate`
+3. 导入种子数据：`python manage.py seed_all`（按依赖顺序自动执行全部 App）
 4. 启动 Redis 服务
 5. 启动 ASGI 服务器（Daphne/Uvicorn）
-6. 启动 Celery Worker（至少包含 er_execute 和 er_schedule 队列）
-7. 确保前端 `web/src/api/opsflow/request.ts` 中的 baseURL 指向正确的后端地址
-8. （可选）配置 OpenAI API Key 以启用 AI 生成功能
+6. （可选）启动 APScheduler 调度器：`start_opsflow_scheduler` / `start_itsm_scheduler`
+7. 启动 Celery Worker（至少包含 er_execute 和 er_schedule 队列）
+8. 确保前端 `web/src/api/opsflow/request.ts` 中的 baseURL 指向正确的后端地址
+9. （可选）配置 OpenAI/DeepSeek API Key 以启用 AI 生成功能
+10. （可选）安装 Neo4j 5.x 并配置 `conf/env.py` 中的 Neo4j 连接参数

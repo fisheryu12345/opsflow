@@ -386,6 +386,7 @@ class Command(BaseCommand):
         )
 
         def _seed_one(name, category, desc, pipeline):
+            from iam.models import IAMUsers
             tpl, created = FlowTemplate.objects.get_or_create(
                 name=name,
                 defaults={
@@ -394,17 +395,11 @@ class Command(BaseCommand):
                 },
             )
             if created:
-                tpl.created_by = User.objects.filter(is_superuser=True).first()
+                tpl.created_by = IAMUsers.objects.filter(is_superuser=True).first()
                 tpl.save(update_fields=["created_by"] if tpl.created_by else [])
-                # Publish snapshot
-                from opsflow.models import TemplateVersion
-                TemplateVersion.objects.get_or_create(
-                    template=tpl, version=1,
-                    defaults={"created_by": tpl.created_by, "pipeline_tree": pipeline},
-                )
-                from opsflow.core.pipeline_builder import publish_pipeline_snapshot
-                publish_pipeline_snapshot(tpl)
-                sync_template_nodes(tpl, pipeline.get("nodes", []))
+                # Publish snapshot (creates TemplateVersion internally)
+                tpl.publish_snapshot()
+                sync_template_nodes(tpl)
                 return tpl, True
             return tpl, False
 

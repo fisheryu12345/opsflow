@@ -36,7 +36,7 @@ class Command(BaseCommand):
         for code, name_d, name_s, name_t, direction in at_data:
             AssociationType.objects.get_or_create(
                 asst_id=code,
-                defaults={"name_dest": name_d, "name_source": name_s, "name_target": name_t, "direction": direction},
+                defaults={"name": name_t, "src_to_dest_note": name_s, "dest_to_src_note": name_d, "direction": direction},
             )
         self.stdout.write(f"  + AssociationTypes: {len(at_data)}")
 

@@ -145,3 +145,4 @@ django_redis==7.0.0
 alibabacloud_ecs20140526
 aliyun-python-sdk-core
 aliyun-python-sdk-ecs
+ldap3==2.9.1

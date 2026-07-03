@@ -16,7 +16,7 @@ class Command(BaseCommand):
     def _create_users(self):
         """Create default admin and test user if they don't exist."""
         from django.contrib.auth import get_user_model
-        from iam.models.permission import IAMRole
+        from iam.models.permission import IAMRole, IAMUserRole
         from django.db import connection
 
         User = get_user_model()

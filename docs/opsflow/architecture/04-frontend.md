@@ -2,12 +2,14 @@
 
 ## 页面结构
 
+### OpsFlow 核心页面
+
 主入口 `web/src/views/apps/opsflow/index.vue`，通过 vue-next-admin 的后端菜单管理系统注册以下子页面：
 
 | 页面路由 | 目录 | 用途 |
 |---|---|---|
 | opsflow | `apps/opsflow/` | 主设计画布（index.vue + DesignCanvas + AI 聊天浮窗） |
-| opsflow-template | `apps/opsflow-template/` | 模板管理列表（CRUD、搜索、分类筛选） |
+| opsflow-template | `apps/opsflow-template/` | 模板管理列表（CRUD、搜索、分类筛选、定时计划） |
 | opsflow-execution | `apps/opsflow-execution/` | 执行历史列表 + 实时监控画布（MonitorCanvas） |
 | opsflow-approval | `apps/opsflow-approval/` | 待审批节点列表（含审批/拒绝操作） |
 | opsflow-dashboard | `apps/opsflow-dashboard/` | 仪表盘（统计图表 + 趋势 + 排名） |
@@ -17,7 +19,41 @@
 | opsflow-webhook | `apps/opsflow-webhook/` | Webhook 配置列表 |
 | opsflow-stats | `apps/opsflow-stats/` | 深度统计报表 |
 
+### 其他 App 页面
+
+各子产品页面通过后端菜单系统注册：
+
+| App | 页面路由 | 目录 | 用途 |
+|---|---|---|---|
+| CMDB | cmdb | `apps/cmdb/` | 模型定义、实例管理、拓扑可视化 |
+| ITSM | itsm | `apps/itsm/` | 工单列表与流转 |
+| ITSM | itsm-dashboard | `apps/itsm/Dashboard.vue` | 工单统计 |
+| ITSM | itsm-designer | `apps/itsm/designer/` | 可视化表单设计器 |
+| ITSM | itsm-delegation | `apps/itsm/Delegation.vue` | 审批委托 |
+| ITSM | itsm-skill-group | `apps/itsm/SkillGroup.vue` | 技能组管理 |
+| ITSM | itsm-assign-rule | `apps/itsm/AssignRule.vue` | 自动分派规则 |
+| ITSM | itsm-onduty | `apps/itsm/OnDutySchedule.vue` | 排班管理 |
+| ITSM | itsm-escalation | `apps/itsm/EscalationLevel.vue` | 告警升级 |
+| IAM | iam | `apps/iam/` | 业务/环境/权限管理 |
+| IAM | iam-my-permissions | `apps/iam/MyRequests/` | 我的权限申请 |
+| IAM | iam-approval | `apps/iam/ApprovalDashboard/` | 权限审批 |
+| IAM | system-user | `apps/iam/admin/user/` | 用户管理 |
+| IAM | system-role | `apps/iam/admin/role/` | 角色管理 |
+| IAM | system-menu | `apps/iam/admin/menu/` | 菜单管理 |
+| IAM | system-dept | `apps/iam/admin/dept/` | 部门管理 |
+| Integration | integration | `apps/integration/` | 连接器管理 |
+| Integration | integration-identity-sync | `apps/integration/identity-sync.vue` | 身份同步 |
+| Integration | integration-cloud-sync | `apps/integration/cloud-sync.vue` | 云资产同步 |
+| Monitor | monitor | `apps/monitor/` | 告警策略、事件、屏蔽 |
+| Job Platform | job-platform | `apps/job-platform/` | 作业平台 |
+| OpsAgent | opsagent | `apps/opsagent/` | AI 运维助手对话 |
+| Open API | open-api | `apps/open-api/` | API 管理 |
+| Agent | agent | `apps/agent/` | Agent 管理 |
+| Portal | portal | `apps/portal/` | 聚合门户首页 |
+
 ## 组件层次
+
+### OpsFlow 核心
 
 ```
 opsflow/index.vue
@@ -25,6 +61,7 @@ opsflow/index.vue
  │    ├── ProjectSwitcher.vue   # 项目切换器
  │    ├── PropertyPanel.vue     # 属性面板（节点/边选中时显示）
  │    ├── GlobalVariablePanel.vue # 全局变量面板（左侧滑出）
+ │    ├── OutputParamSection.vue # 节点输出参数配置区
  │    ├── SchemeSelector.vue    # 执行方案选择器
  │    ├── SubprocessStatusBadge.vue # 子流程状态徽标
  │    └── ConditionDialog.vue   # 条件表达式编辑弹窗
@@ -42,6 +79,35 @@ opsflow/index.vue
  ├── HelpDrawer.vue             # 帮助侧边栏（使用指南）
  └── ProjectEnvVarPanel.vue     # 项目环境变量面板
 ```
+
+### 全局共享组件
+
+定义在 `web/src/views/apps/components/`，供所有子产品页面复用：
+
+| 组件 | 用途 |
+|------|------|
+| `EChartsWrapper.vue` | ECharts 实例封装，统一响应式 + 自动销毁 |
+| `MetricCard.vue` | 统计指标卡片（标题、值、趋势箭头） |
+| `PageHeader.vue` | 页面顶部标题栏（面包屑 + 操作按钮） |
+| `StatusTag.vue` | 状态标签（颜色映射 + 图标） |
+| `ValueCell.vue` | 表格内格式化数值单元格 |
+
+### 其他 App 关键组件
+
+| App | 组件 | 用途 |
+|-----|------|------|
+| CMDB | `TopologyCanvas.vue` | G6 拓扑图可视化（力导向图） |
+| CMDB | `DrTopologyCanvas.vue` | DR 站点拓扑图 |
+| CMDB | `DynamicTable.vue` | 动态模型实例表格 |
+| ITSM | `FormDesigner.vue` | 可视化拖拽表单设计器（三栏布局） |
+| ITSM | `DesignerToolbar.vue` | 表单设计器工具栏 |
+| ITSM | `DesignerConfigPanel.vue` | 表单字段配置面板 |
+| ITSM | `FieldEditorDialog.vue` | 字段属性编辑弹窗 |
+| Monitor | `StrategyWizard.vue` | 告警策略创建向导 |
+| OpsAgent | `ChatPanel.vue` | AI 对话面板 |
+| OpsAgent | `ToolCallCard.vue` | 工具调用结果卡片 |
+| IAM | `RolePermissionPanel.vue` | 角色权限分配面板（菜单树+按钮勾选） |
+| IAM | `MenuDetailPanel.vue` | 菜单详情面板 |
 
 ## X6 节点类型
 
@@ -103,13 +169,15 @@ Stencil 面板从后端插件系统动态加载，按 `group` 字段分组：
 
 ## Composable 架构
 
-| Composable | 功能 | 依赖 |
-|---|---|---|
-| `useGraphCanvas` | 通用 Graph 实例创建（design/monitor/preview 模式）、网格/平移/滚轮、连线验证规则、撤销/重做、导出 | X6 Graph |
-| `useDesignCanvas` | 设计模式增强：Stencil 调色板、拖放创建节点、属性面板绑定、全局变量面板、AI 布局、节点删除 | useGraphCanvas |
-| `useMonitor` | WebSocket 连接管理、节点状态跟踪、心跳保活、自动重连 | 原生 WebSocket |
-| `useGraphValidator` | 拓扑验证：开始/结束节点、孤立节点、死路径、未配置原子节点、边条件引用检查 | useGraphCanvas |
-| `useAutoSave` | 定期自动保存草稿（防丢）、脏标志检测 | useDesignCanvas |
+| Composable | App | 功能 | 依赖 |
+|---|---|---|---|---|
+| `useGraphCanvas` | opsflow | 通用 Graph 实例创建（design/monitor/preview 模式）、网格/平移/滚轮、连线验证规则、撤销/重做、导出 | X6 Graph |
+| `useDesignCanvas` | opsflow | 设计模式增强：Stencil 调色板、拖放创建节点、属性面板绑定、全局变量面板、AI 布局、节点删除 | useGraphCanvas |
+| `useGraphValidator` | opsflow | 拓扑验证：开始/结束节点、孤立节点、死路径、未配置原子节点、边条件引用检查 | useGraphCanvas |
+| `useAutoSave` | opsflow | 定期自动保存草稿（防丢）、脏标志检测 | useDesignCanvas |
+| `useDesigner` | itsm | 表单设计器状态管理（字段拖放、布局数据、选中状态） | vuedraggable |
+| `useConsole` | opsagent | AI 对话控制台交互（消息发送、流式接收、历史管理） | WebSocket |
+| `useSessions` | opsagent | 对话会话生命周期管理 | API |
 
 ## API 客户端
 

@@ -2,6 +2,52 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 0861c07c
+
+> 提交日期: 2026-07-03 | 提交信息: docs: doc restructure + seed_iam_menu — 文档重组与导航菜单种子命令
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/iam/management/commands/seed_iam_menu.py` | 后端 | 新增 IAMMenu 种子命令（基于当前 DB 快照 13 条记录，幂等） |
+| `backend/common/management/commands/seed_all.py` | 后端 | L1 依赖链加入 seed_iam_menu、seed_iam_page_configs |
+| `docs/guides/deployment-guide.md` | 文档 | 修复明文密码泄露；修正默认凭据 superadmin → opsflowadmin；MySQL 创建用户独立为 3.2 节 |
+| `docs/opsflow/architecture/04-frontend.md` | 文档 | 补充 12 个子产品页面注册表、全局共享组件、跨 App composable |
+| `docs/opsflow/architecture/06-deployment-notes.md` | 文档 | 更新 API 端点表/WebSocket 路由/Celery 任务表/路由配置/部署清单 |
+| `docs/guides/quick-start.md` | 文档 | 从 docs/opsflow/guides/ 迁移至 docs/guides/ |
+| `docs/guides/link_rules.md` | 文档 | 从 docs/opsflow/reference/ 迁移至 docs/guides/ |
+| `docs/guides/notes.md` | 文档 | 从 docs/guides/注意事项.md 重命名 |
+| `backend/scripts/generate_pdf.py` | 后端 | 从 docs/opsflow/reference/ 迁移至 backend/scripts/ |
+| `docs/TODO.md`, `docs/TODO.html` | 文档 | 删除（已被各 App implementation.md 替代） |
+| `backend/conf/env_base.py` | 配置 | 配置项更新 |
+| `backend/requirements.txt` | 配置 | 依赖项更新 |
+| `backend/job_platform/services/dangerous_detector.py` | 后端修复 | bug 修复 |
+| `backend/opsflow/apps.py` | 后端修复 | ready() 方法清理 |
+| `backend/job_platform/apps.py` | 后端修复 | ready() 方法清理 |
+| `backend/*/migrations/` | 迁移 | 各 App 自动生成迁移文件同步 |
+
+### 解决
+
+- **问题/背景：** 文档结构有过多散乱文件，导航菜单种子命令缺失导致新建环境无法正常渲染前端路由
+- **办法：** 文档归类迁移（代码→backend/scripts/，全局指南→docs/guides/），新增 seed_iam_menu 命令并加入 seed_all；修复部署指南中明文密码和过时凭据
+
+### 文档
+
+- **生成/更新文档：**
+  - `docs/guides/deployment-guide.md`
+  - `docs/opsflow/architecture/04-frontend.md`
+  - `docs/opsflow/architecture/06-deployment-notes.md`
+
+### 验证
+
+- 改动类型: docs/feat/chore/fix
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 已提交
+
+---
+
 ## dacd322e
 
 > 提交日期: 2026-07-03 | 提交信息: docs: add spacing after deployment guide frontmatter — 部署指南添加格式间距

@@ -8,9 +8,10 @@ from django.core.management.base import BaseCommand
 
 
 SEED_COMMANDS = [
-    # Layer 1: IAM foundation (page configs, permissions, roles, environments)
+    # Layer 1: IAM foundation (page configs, permissions, roles, environments, menus)
     ('iam', 'seed_iam_page_configs'),
     ('iam', 'seed_iam_unified'),
+    ('iam', 'seed_iam_menu'),
     ('iam', 'seed_deploy_environments'),
     # Layer 2: Sub-product seed commands
     ('opsflow', 'seed_opsflow'),
@@ -20,6 +21,7 @@ SEED_COMMANDS = [
     ('monitor', 'seed_monitor'),
     ('integration', 'seed_integration'),
     ('itsm', 'seed_itsm'),
+    ('job_platform', 'seed_job_platform'),
 ]
 
 

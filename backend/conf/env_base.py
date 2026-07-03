@@ -10,9 +10,11 @@ env.py 入口：先加载 base，再 exec 环境文件覆写。
 # ================================================= #
 DATABASE_ENGINE = "django.db.backends.mysql"
 DATABASE_NAME = "stock"
+DATABASE_USER = "trade"
 DATABASE_HOST = "127.0.0.1"
 DATABASE_PORT = 3306
-DATABASE_USER = "trade"
+# DATABASE_NAME = "opsflow"
+# DATABASE_USER = "opsflow"
 DATABASE_PASSWORD = "312711936!@#GHS"
 
 # 表前缀

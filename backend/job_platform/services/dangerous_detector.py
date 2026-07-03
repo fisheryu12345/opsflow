@@ -14,7 +14,7 @@ from ..models import DangerousCmdRule, DangerousCheckLog
 logger = logging.getLogger(__name__)
 FSM = 'dangerous_detector'
 
-# 内置高危规则（启动时自动同步到 DB）
+# 内置高危规则（通过 seed_job_platform 命令同步到 DB）
 BUILTIN_RULES = [
     # 系统破坏
     {'name': 'rm-root', 'pattern': 'rm -rf /', 'action': 'reject',
@@ -215,4 +215,4 @@ def sync_builtin_rules():
                 'script_type': rule_def.get('script_type', 'all'),
             },
         )
-    logger.info(f"内置高危规则同步完成: {len(BUILTIN_RULES)} 条")
+    logger.info(f"Built-in dangerous rules synced: {len(BUILTIN_RULES)} entries")

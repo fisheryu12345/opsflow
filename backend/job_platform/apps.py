@@ -10,11 +10,5 @@ class JobPlatformConfig(AppConfig):
     verbose_name = '作业平台'
 
     def ready(self):
-        """应用启动时同步内置高危规则"""
-        import logging
-        logger = logging.getLogger(__name__)
-        try:
-            from .services.dangerous_detector import sync_builtin_rules
-            sync_builtin_rules()
-        except Exception as e:
-            logger.warning(f"同步内置高危规则失败（可忽略）: {e}")
+        """预留 — 种子数据移至 seed_job_platform 命令"""
+        pass

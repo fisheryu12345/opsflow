@@ -103,8 +103,10 @@ CREATE DATABASE IF NOT EXISTS opsflow
 
 ### 3.2 创建数据库用户（可选）
 
+如需独立数据库用户，可执行：
+这里不是真实密码
 ```sql
-CREATE USER 'opsflow'@'%' IDENTIFIED BY 'your_strong_password';
+CREATE USER 'opsflow'@'%' IDENTIFIED BY '312711936!@#GHS';
 GRANT ALL PRIVILEGES ON opsflow.* TO 'opsflow'@'%';
 FLUSH PRIVILEGES;
 ```
@@ -304,7 +306,8 @@ python manage.py seed_all
 | 层级 | App | 命令 | 用途 |
 |------|-----|------|------|
 | L1 | iam | `seed_iam_page_configs` | 权限码、PageTab/PageButton、IAM 角色、角色权限绑定 |
-| L1 | iam | `seed_iam_unified` | IAM 用户（superadmin）、默认角色分配 |
+| L1 | iam | `seed_iam_unified` | IAM 用户（opsflowadmin/testuser）、默认角色分配 |
+| L1 | iam | `seed_iam_menu` | 导航菜单（38 条，全子产品侧边栏） |
 | L1 | iam | `seed_deploy_environments` | 部署环境配置 |
 | L2 | opsflow | `seed_opsflow` | OpsFlow 菜单、初始化数据 |
 | L2 | opsflow | `seed_template_presets` | AI 模板预设提示词 |
@@ -320,8 +323,9 @@ python manage.py seed_all
 
 | 字段 | 值 |
 |------|-----|
-| 用户名 | `superadmin` |
-| 密码 | `yupei1986` |
+| 用户名 | `opsflowadmin` |
+| 密码 | `admin123456` |
+| 测试用户 | `testuser / test1234` |
 
 ## 8. 启动服务
 
@@ -397,14 +401,14 @@ curl http://localhost:8000/readiness
 # 获取 Token
 curl -X POST http://localhost:8000/api/token/ \
   -H "Content-Type: application/json" \
-  -d '{"username":"superadmin","password":"yupei1986"}'
+  -d '{"username":"opsflowadmin","password":"admin123456"}'
 
 # 应返回包含 access 和 refresh token 的 JSON
 ```
 
 ### 9.3 前端检查
 
-浏览器打开 `http://localhost:8080`，使用 `superadmin / yupei1986` 登录。
+浏览器打开 `http://localhost:8080`，使用 `opsflowadmin / admin123456` 登录。
 
 ### 9.4 功能检查清单
 
