@@ -4,3 +4,4 @@
 ./venv/
 backend/agent/build/
 backend/logs/
+./superpowers/

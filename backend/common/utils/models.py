@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
+"""CoreModel base class — all models inherit from this"""
 
-"""
-@author: 猿小天
-@contact: QQ:1638245306
-@Created on: 2021/5/31 031 22:08
-@Remark: 公共基础model类
-"""
 from importlib import import_module
 
 from django.apps import apps

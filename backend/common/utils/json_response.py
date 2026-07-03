@@ -1,11 +1,4 @@
-# -*- coding: utf-8 -*-
-
-"""
-@author: 猿小天
-@contact: QQ:1638245306
-@Created on: 2021/6/2 002 14:43
-@Remark: 自定义的JsonResonpse文件
-"""
+"""Unified JSON response classes — SuccessResponse, DetailResponse, ErrorResponse"""
 
 from rest_framework.response import Response
 

@@ -2,6 +2,43 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 2f1335e3
+
+> 提交日期: 2026-07-03 | 提交信息: refactor: cleanup common/utils + remove dead code — 公共工具代码清理
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/common/utils/crud_mixin.py` | 后端 | 删除 FastCrudMixin（零引用，遗留代码） |
+| `backend/common/utils/viewset.py` | 后端 | 剥离 ImportExportMixin，移除 import_field_dict/export_field_label |
+| `backend/common/utils/exception.py` | 后端 | 清理 @author 样板 docstring |
+| `backend/common/utils/json_response.py` | 后端 | 清理 @author 样板 docstring |
+| `backend/common/utils/models.py` | 后端 | 清理 @author 样板 docstring |
+| `backend/common/utils/pagination.py` | 后端 | 清理 @author 样板 docstring |
+| `backend/common/utils/serializers.py` | 后端 | 清理 @author 样板 docstring |
+| `backend/common/utils/validator.py` | 后端 | 清理 @author 样板 docstring |
+| `backend/iam/views/user.py` | 后端 | 直接继承 ImportSerializerMixin, ExportSerializerMixin |
+| `backend/iam/views/dept.py` | 后端 | 直接继承 ImportSerializerMixin，清理空 docstring |
+| `backend/application/settings.py` | 配置 | 移除 LOCALE_PATHS |
+| `backend/locale/en/LC_MESSAGES/django.po` | 配置 | 删除未使用的语言翻译文件 |
+| `backend/scripts/generate_pdf.py` | 脚本 | 删除未使用的 PDF 生成脚本 |
+| `docs/opsflow/architecture/06-deployment-notes.md` | 文档 | 删除（内容已合并至 deployment-guide.md） |
+
+### 解决
+
+- **问题/背景：** common/utils/ 目录积累了大量遗留代码（FastCrudMixin 零引用、ImportExportMixin 仅 IAM 使用却被所有 ViewSet 继承、@author 样板 docstring 不符项目规范）
+- **办法：** 删除无引用代码、将 ImportExportMixin 从基类剥离为按需继承、清理所有 @author 头部注释为单行英文描述
+
+### 验证
+
+- 改动类型: refactor/chore
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## 0861c07c
 
 > 提交日期: 2026-07-03 | 提交信息: docs: doc restructure + seed_iam_menu — 文档重组与导航菜单种子命令

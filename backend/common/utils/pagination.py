@@ -1,12 +1,4 @@
-# -*- coding: utf-8 -*-
-
-"""
-@author: 猿小天
-
-@contact: QQ:1638245306
-
-@Created on: 2020/4/16 23:35
-"""
+"""Custom pagination — page, limit, total, is_next/is_previous"""
 from collections import OrderedDict
 
 from django.core import paginator

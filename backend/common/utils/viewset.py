@@ -1,32 +1,22 @@
-# -*- coding: utf-8 -*-
-
-"""
-@author: 猿小天
-@contact: QQ:1638245306
-@Created on: 2021/6/1 001 22:57
-@Remark: 自定义视图集
-"""
+"""Custom ModelViewSet — unified CRUD with filters, pagination, permissions"""
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.viewsets import ModelViewSet
 
-from common.utils.import_export_mixin import ExportSerializerMixin, ImportSerializerMixin
 from common.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
 from iam.permission_backend import IAMPermissionBackend
 from common.utils.models import get_custom_app_models
 from django_restql.mixins import QueryArgumentsMixin
 
 
-class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMixin, QueryArgumentsMixin):
+class CustomModelViewSet(ModelViewSet, QueryArgumentsMixin):
     """
     自定义的ModelViewSet:
     统一标准的返回格式;新增,查询,修改可使用不同序列化器
     (1)ORM性能优化, 尽可能使用values_queryset形式
     (2)xxx_serializer_class 某个方法下使用的序列化器(xxx=create|update|list|retrieve|destroy)
     (3)filter_fields = '__all__' 默认支持全部model中的字段查询(除json字段外)
-    (4)import_field_dict={} 导入时的字段字典 {model值: model的label}
-    (5)export_field_label = [] 导出时的字段
     """
     values_queryset = None
     ordering_fields = '__all__'
@@ -35,8 +25,6 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
     filter_fields = '__all__'
     search_fields = ()
     permission_classes = [IAMPermissionBackend]
-    import_field_dict = {}
-    export_field_label = {}
 
     def filter_queryset(self, queryset):
         for backend in set(set(self.filter_backends) | set(getattr(self, 'extra_filter_class', []) or [])):

@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
-
-"""
-@author: H0nGzA1
-@contact: QQ:2505811377
-@Remark: 部门管理
-"""
+"""Department management views"""
 from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -13,6 +7,7 @@ from iam.models import IAMDept, IAMUsers
 from common.utils.json_response import DetailResponse, SuccessResponse, ErrorResponse
 from common.utils.serializers import CustomModelSerializer
 from common.utils.viewset import CustomModelViewSet
+from common.utils.import_export_mixin import ImportSerializerMixin
 
 
 class DeptSerializer(CustomModelSerializer):
@@ -82,7 +77,7 @@ class DeptCreateUpdateSerializer(CustomModelSerializer):
         fields = '__all__'
 
 
-class DeptViewSet(CustomModelViewSet):
+class DeptViewSet(CustomModelViewSet, ImportSerializerMixin):
     """
     部门管理接口
     list:查询

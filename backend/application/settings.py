@@ -144,7 +144,6 @@ LANGUAGES = [
     ('zh-hans', '简体中文'),
     ('en', 'English'),
 ]
-LOCALE_PATHS = [os.path.join(BASE_DIR, 'locale')]
 TIME_ZONE = "Asia/Shanghai"
 USE_I18N = True
 USE_TZ = True

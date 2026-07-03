@@ -1,11 +1,4 @@
-# -*- coding: utf-8 -*-
-
-"""
-@author: 猿小天
-@contact: QQ:1638245306
-@Created on: 2021/6/1 001 22:47
-@Remark: 自定义序列化器
-"""
+"""CustomModelSerializer — auto-fills creator/modifier audit fields"""
 from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.request import Request

@@ -14,6 +14,7 @@ from common.utils.json_response import ErrorResponse, DetailResponse, SuccessRes
 from common.utils.serializers import CustomModelSerializer
 from common.utils.validator import CustomUniqueValidator
 from common.utils.viewset import CustomModelViewSet
+from common.utils.import_export_mixin import ImportSerializerMixin, ExportSerializerMixin
 
 
 def recursion(instance, parent, result):
@@ -224,7 +225,7 @@ class UserProfileImportSerializer(CustomModelSerializer):
         )
 
 
-class UserViewSet(CustomModelViewSet):
+class UserViewSet(CustomModelViewSet, ImportSerializerMixin, ExportSerializerMixin):
     """
     用户接口
     list:查询
