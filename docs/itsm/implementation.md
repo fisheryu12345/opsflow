@@ -16,8 +16,9 @@
 |---------|:------:|:----:|---------|---------|
 | 工作流模板引擎 | P0 | ✅ | Workflow/State/Transition/Field 管理 | 完整 CRUD + deploy 版本快照 + 版本回滚 |
 | 工单生命周期 | P0 | ✅ | Ticket CRUD + 流转 | submit/node_submit/approve/reject/suspend/resume/close + assign/auto_assign |
-| Pipeline 驱动执行 | P0 | ✅ | Bamboo-engine DAG 驱动 | PipelineWrapper(build_tree/run/pause/resume/revoke/callback) |
+| Pipeline 驱动执行 | P0 | ✅ | Bamboo-engine DAG 驱动 | ITSMEngine(run/pause/resume/revoke/callback) + post_set_state 信号同步 |
 | 4 种节点类型 | P0 | ✅ | 填单/审批/会签/自动任务 | ItsmFillForm/ItsmApproval/ItsmSign/ItsmAutoTask 组件 |
+| 3 种网关类型 | P0 | ✅ | 排他/并行/条件并行网关 | EXCLUSIVE/ParallelGateway / PARALLEL/ConditionalParallelGateway / CONDITIONAL_PARALLEL/ConditionalParallelGateway + by_field 条件 + ConvergeGateway 自动配对 |
 | 多级审批/会签 | P0 | ✅ | 多审批人/顺序/并行 | SignTask + RoleResolver(6种解析) + delegation |
 | 可视化表单设计器 | P1 | ✅ | 拖拽设计工单表单 | FormDesigner.vue 三栏可视化拖拽(vuedraggable)，14种字段+Section+COL布局 |
 | 智能分派体系 | P1 | ✅ | 技能组+排班+路由+升级 | SkillGroup/OnDuty/AssignRule/EscalationLevel/TransferLog + AssignEngine + EscalationService |
@@ -29,7 +30,7 @@
 | 仪表盘 | P1 | ✅ | 工单统计(含 assigned/receiving) | summary/my_tasks/trend/status_dist/overdue |
 | 工单分派/转派 | P1 | ✅ | 手动+自动分派 | assign/auto_assign API + 前端对话框(技能组筛选) |
 | i18n 国际化 | P1 | ✅ | 中英文翻译 | itsm/zh-cn.ts + en.ts，SkillGroup/OnDutySchedule/AssignRule/EscalationLevel 完成 |
-| DevOps 测试 | P1 | ✅ | 26 个单元测试 | test_models(14) + test_views(4) + test_services(8) |
+| DevOps 测试 | P1 | ✅ | 43+ 个单元测试 | test_models(14) + test_views(4) + test_services(8) + test_itsm_engine(8) + test_workflow_builder(11) + test_layout(3) |
 | 多租户对齐 | P1 | ✅ | Project/Business FK 隔离 | ITSM 核心模型注入 project/business FK，ViewSet 继承 ItsmProjectViewSet |
 | SlaPolicy 模型 | P1 | ✅ | SLA 策略定义 | PriorityMatrix + SLA 策略 |
 | AI 智能生成 | P2 | 🔄 | LLM 生成工作流 | AIGenerator：内置关键词模板引擎，<b>未接入真实 DeepSeek</b> |
@@ -76,3 +77,15 @@
 - APScheduler: start_itsm_scheduler 独立进程 → ✅
 - 多租户对齐: ITSM 核心模型注入 project/business FK，ItsmProjectViewSet 统一 project-scoped → ✅
 - Bug 修复: escalation_service escalated_at datetime 类型、assign_engine user=None 守卫、dashboard ACTIVE_STATUSES、tasks set_status、onBeforeUnmount import → ✅
+
+### 2026-07-04 Update
+> 提交: 1d8ddc88
+- ITSM 引擎重构: PipelineWrapper → ITSMEngine（实例化模式，与 FlowEngine 对齐），新增 ITSMWorkflowBuilder 和 condition_utils → ✅
+- 信号增强: post_set_state 监听（bamboo 节点状态 → TicketStatus 同步）→ ✅
+- 布局引擎共享: opsflow/core/layout/ → common/utils/layout/（零修改 copy）→ ✅
+- 三种网关: EXCLUSIVE（排他网关）+ PARALLEL（并行网关）+ CONDITIONAL_PARALLEL（条件并行网关，原 ROUTER_P）→ ✅
+- 条件表达式扩展: condition_type=by_field 结构化条件，表单字段 NodeOutput 注册到 data.inputs → ✅
+- 组件输出: ItsmFillForm/ApprovalService 新增 data.set_outputs() 供网关条件运行时引用 → ✅
+- 前端设计器: 排他/并行/条件并行网关拖拽 + 出边校验 + by_field 条件编辑面板 → ✅
+- 测试: test_itsm_engine(8) + test_workflow_builder(11) + test_layout(3) 新增 → ✅
+- eri migration 修复: RenameIndex → AddIndex，SQLite 测试兼容 → ✅

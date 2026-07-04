@@ -150,8 +150,8 @@ export function useDesigner(containerId: string, workflowId?: number) {
           if (t === 'START')             n.setPosition({ x: 26, y: 8 })
           else if (t === 'END')           n.setPosition({ x: 110, y: 8 })
           else if (t === 'EXCLUSIVE')     n.setPosition({ x: 14, y: 82 })
-          else if (t === 'ROUTER_P')      n.setPosition({ x: 110, y: 82 })
-          else if (t === 'CONDITIONAL')   n.setPosition({ x: 14, y: 160 })
+          else if (t === 'CONDITIONAL_PARALLEL') n.setPosition({ x: 110, y: 82 })
+          else if (t === 'PARALLEL')      n.setPosition({ x: 14, y: 160 })
           else if (t === 'COVERAGE')      n.setPosition({ x: 110, y: 160 })
           else if (t === 'NORMAL')        n.setPosition({ x: 4, y: 244 })
           else if (t === 'APPROVAL')      n.setPosition({ x: 4, y: 300 })
@@ -162,7 +162,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
       getDropNode(node) {
         const d = node.getData()
         // 将 stencil 卡片预览节点转换为正式 itsm-node 形状
-        if (d?.type && !['START', 'END', 'EXCLUSIVE', 'ROUTER_P', 'CONDITIONAL', 'COVERAGE'].includes(d.type)) {
+        if (d?.type && !['START', 'END', 'EXCLUSIVE', 'CONDITIONAL_PARALLEL', 'PARALLEL', 'COVERAGE'].includes(d.type)) {
           const n = node.clone()
           n.prop('shape', 'itsm-node')
           n.setSize({ width: CARD_WIDTH, height: CARD_HEIGHT })
@@ -180,8 +180,8 @@ export function useDesigner(containerId: string, workflowId?: number) {
     // Gateways use diamond with visible label
     const gatewayCfgs = [
       { type: 'EXCLUSIVE', shape: 'itsm-exclusive-gateway' },
-      { type: 'ROUTER_P', shape: 'itsm-parallel-gateway' },
-      { type: 'CONDITIONAL', shape: 'itsm-conditional-parallel-gateway' },
+      { type: 'CONDITIONAL_PARALLEL', shape: 'itsm-conditional-parallel-gateway' },
+      { type: 'PARALLEL', shape: 'itsm-parallel-gateway' },
       { type: 'COVERAGE', shape: 'itsm-converge-gateway' },
     ]
     const gatewayNodes = gatewayCfgs.map(cfg =>
@@ -363,9 +363,16 @@ export function useDesigner(containerId: string, workflowId?: number) {
     nodeDataList.filter((d: any) => d.type === 'APPROVAL').forEach((a: any) => {
       if (!a.processors_type && !a.processorsRaw) errs.push(`${a.name || '审批节点'}未配置处理人`)
     })
-    const r = nodeDataList.filter((d: any) => d.type === 'ROUTER_P')
-    const c = nodeDataList.filter((d: any) => d.type === 'COVERAGE')
-    if (r.length !== c.length) errs.push('并行网关与汇聚网关数量不匹配')
+    const pg = nodeDataList.filter((d: any) => d.type === 'CONDITIONAL_PARALLEL' || d.type === 'PARALLEL')
+    const cg = nodeDataList.filter((d: any) => d.type === 'COVERAGE')
+    // 排他网关出边校验：前端约束，至少有一条无条件边
+    const edgeDataList = allCells.filter(c => c.isEdge()).map(c => c.getData()).filter(Boolean)
+    nodeDataList.filter((d: any) => d.type === 'EXCLUSIVE').forEach((gw: any) => {
+      const outEdges = edgeDataList.filter((e: any) => e._from_state === gw.id || e._from_state === String(gw.id))
+      const hasDefault = outEdges.some((e: any) => !e.condition && !e.isReject)
+      if (!hasDefault) errs.push('排他网关「' + (gw.name || gw.type) + '」缺少默认（无条件）出边')
+    })
+    if (pg.length > cg.length) errs.push('并行网关与汇聚网关数量不匹配')
     validateErrors.value = errs
     return errs
   }

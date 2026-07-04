@@ -14,9 +14,10 @@ class State(CoreModel):
         ('APPROVAL', '审批'),
         ('SIGN', '会签'),
         ('TASK', '自动任务'),
-        ('ROUTER_P', '并行网关'),
+        ('CONDITIONAL_PARALLEL', '条件并行网关'),   # 原 ROUTER_P
+        ('EXCLUSIVE', '排他网关'),                  # 新增
+        ('PARALLEL', '并行网关'),                   # 新增
         ('COVERAGE', '汇聚网关'),
-        ('WEBHOOK', 'Webhook'),
     )
     PROCESSOR_TYPE_CHOICES = (
         ('PERSON', '指定人员'),

@@ -42,9 +42,10 @@ def auto_resolve_expired_tickets():
     for ticket in expired:
         try:
             if ticket.pipeline_id:
-                from itsm.services.pipeline_wrapper import PipelineWrapper
-                PipelineWrapper.revoke_pipeline(ticket.pipeline_id)
-            ticket.set_status('terminated', 'system')
+                from itsm.services.itsm_engine import ITSMEngine
+                ITSMEngine(ticket).revoke()
+            else:
+                ticket.set_status('terminated', 'system')
             count += 1
         except Exception as e:
             logger.warning('Auto-close ticket %s failed: %s', ticket.sn, e)

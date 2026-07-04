@@ -33,10 +33,10 @@ export const ITSM_NODE_CONFIG: Record<string, { icon: string; color: string; lab
   APPROVAL:  { icon: '✓',  color: '#E6A23C', label: '审批' },
   SIGN:      { icon: '✍',  color: '#9B59B6', label: '会签' },
   TASK:      { icon: '⚙',  color: '#67C23A', label: '自动任务' },
-  ROUTER_P:  { icon: '⊞',  color: '#409EFF', label: '并行网关' },
   COVERAGE:  { icon: '⨁', color: '#909399', label: '汇聚网关' },
   EXCLUSIVE:  { icon: '⊗', color: '#E6A23C', label: '排他网关' },
-  CONDITIONAL: { icon: '◐', color: '#5CADFF', label: '条件网关' },
+  CONDITIONAL_PARALLEL: { icon: '◐', color: '#5CADFF', label: '条件并行网关' },
+  PARALLEL:  { icon: '⊞', color: '#409EFF', label: '并行网关' },
   START:     { icon: '▶',  color: '#67C23A', label: '开始' },
   END:       { icon: '■',  color: '#F56C6C', label: '结束' },
 }
@@ -273,10 +273,10 @@ export function resolveItsmShape(type: string): string {
   const map: Record<string, string> = {
     START: 'itsm-start-event',
     END: 'itsm-end-event',
-    ROUTER_P: 'itsm-parallel-gateway',
     COVERAGE: 'itsm-converge-gateway',
     EXCLUSIVE: 'itsm-exclusive-gateway',
-    CONDITIONAL: 'itsm-conditional-parallel-gateway',
+    CONDITIONAL_PARALLEL: 'itsm-conditional-parallel-gateway',
+    PARALLEL: 'itsm-parallel-gateway',
   }
   return map[type] || 'itsm-node'
 }

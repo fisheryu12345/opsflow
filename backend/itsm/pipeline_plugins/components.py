@@ -45,6 +45,9 @@ class ItsmFillFormService(Service):
         try:
             ticket = Ticket.objects.get(id=ticket_id)
             ticket.do_in_state(state_id, fields, operator)
+            # 输出表单字段（供网关条件引用）
+            for field_key, field_val in fields.items():
+                data.set_outputs(f'field_{field_key}', field_val)
             ticket.do_before_exit_state(state_id, operator)
             self.finish(data)
             logger.info(f'[itsm_fill] Fill form done for ticket #{ticket_id}')
@@ -95,11 +98,13 @@ class ItsmApprovalService(Service):
             # Check if approval is finished
             if approve_result != 'true':
                 # Rejected — terminate pipeline
+                data.set_outputs('field_approve_result', 'rejected')  # 供条件引用
                 ticket.set_status('terminated', operator)
                 self.finish(data)
                 return True
             if ticket.check_approval_finished(state_id):
                 ticket.do_in_state(state_id, {'approve_result': approve_result}, operator)
+                data.set_outputs('field_approve_result', 'approved')  # 供条件引用
                 ticket.do_before_exit_state(state_id, operator)
                 self.finish(data)
                 logger.info(f'[itsm_approval] Approval finished for ticket #{ticket_id}')

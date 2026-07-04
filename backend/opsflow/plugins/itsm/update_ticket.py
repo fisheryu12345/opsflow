@@ -188,10 +188,10 @@ class UpdateItsmTicketPlugin(BasePlugin):
                 result_data["action"] = "meta_updated"
 
             elif action == "close":
-                from itsm.services.pipeline_wrapper import PipelineWrapper
+                from itsm.services.itsm_engine import ITSMEngine
 
                 if ticket.pipeline_id:
-                    PipelineWrapper.revoke_pipeline(ticket.pipeline_id)
+                    ITSMEngine.revoke_by_pipeline_id(ticket.pipeline_id)
                 ticket.set_status("terminated", operator="opsflow")
                 if comment:
                     meta = dict(ticket.meta or {})

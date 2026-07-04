@@ -15,7 +15,7 @@ from itsm.serializers import (
     TicketSerializer, TicketCreateSerializer,
     TicketStatusSerializer, SignTaskSerializer,
 )
-from itsm.services.pipeline_wrapper import PipelineWrapper
+from itsm.services.itsm_engine import ITSMEngine
 from itsm.services.opsflow_trigger import OpsflowTriggerService
 from itsm.views.workflow_views import ItsmProjectViewSet
 
@@ -51,8 +51,7 @@ class TicketViewSet(ItsmProjectViewSet):
         if instance.current_status != 'draft':
             return ErrorResponse(msg='工单已提交，不能重复提交')
         try:
-            wrapper = PipelineWrapper(instance.workflow_version)
-            pipeline_id, tree = wrapper.run_pipeline(instance.id)
+            pipeline_id, tree = ITSMEngine.run(instance, instance.workflow_version)
             instance.pipeline_id = pipeline_id
             instance.current_status = 'running'
             instance.save(update_fields=['pipeline_id', 'current_status'])
@@ -85,7 +84,7 @@ class TicketViewSet(ItsmProjectViewSet):
         if not state_id:
             return ErrorResponse(msg='state_id required')
         try:
-            PipelineWrapper.activity_callback(
+            ITSMEngine.activity_callback(
                 activity_id=self._get_activity_id(instance, state_id),
                 callback_data={
                     'ticket_id': instance.id,
@@ -146,29 +145,23 @@ class TicketViewSet(ItsmProjectViewSet):
 
     @action(methods=['POST'], detail=True)
     def suspend(self, request, pk=None):
-        """挂起工单"""
+        """挂起工单（统一暂停 pipeline + SLA + 升级检测）"""
         instance = self.get_object()
-        if instance.pipeline_id:
-            PipelineWrapper.pause_pipeline(instance.pipeline_id)
-        instance.set_status('suspended', request.user.username)
+        ITSMEngine(instance).pause()
         return DetailResponse(msg='工单已挂起')
 
     @action(methods=['POST'], detail=True)
     def resume(self, request, pk=None):
-        """恢复工单"""
+        """恢复工单（统一恢复 pipeline + SLA）"""
         instance = self.get_object()
-        if instance.pipeline_id:
-            PipelineWrapper.resume_pipeline(instance.pipeline_id)
-        instance.set_status('running', request.user.username)
+        ITSMEngine(instance).resume()
         return DetailResponse(msg='工单已恢复')
 
     @action(methods=['POST'], detail=True)
     def close(self, request, pk=None):
-        """关闭工单"""
+        """关闭工单（撤销 pipeline + 停止 SLA）"""
         instance = self.get_object()
-        if instance.pipeline_id:
-            PipelineWrapper.revoke_pipeline(instance.pipeline_id)
-        instance.set_status('terminated', request.user.username)
+        ITSMEngine(instance).revoke()
         return DetailResponse(msg='工单已关闭')
 
     @action(methods=['POST'], detail=True)
@@ -230,7 +223,7 @@ class TicketViewSet(ItsmProjectViewSet):
         if not state_id:
             return ErrorResponse(msg='state_id required')
         try:
-            PipelineWrapper.activity_callback(
+            ITSMEngine.activity_callback(
                 activity_id=self._get_activity_id(instance, state_id),
                 callback_data={
                     'ticket_id': instance.id,

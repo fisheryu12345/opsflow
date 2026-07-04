@@ -87,8 +87,8 @@ ITSM_NODE_TYPE_MAP = {
     'START': 'start_event',
     'END': 'end_event',
     'EXCLUSIVE': 'exclusive_gateway',
-    'ROUTER_P': 'parallel_gateway',
-    'CONDITIONAL': 'conditional_parallel_gateway',
+    'CONDITIONAL_PARALLEL': 'conditional_parallel_gateway',
+    'PARALLEL': 'parallel_gateway',
     'COVERAGE': 'converge_gateway',
 }
 
@@ -109,8 +109,8 @@ class WorkflowViewSet(ItsmProjectViewSet):
 
     @action(methods=['POST'], detail=True)
     def layout(self, request, pk=None):
-        """计算流程布局 — 使用 opsflow Sugiyama 布局引擎"""
-        from opsflow.core.layout import compute_layout
+        """计算流程布局 — 使用 Sugiyama 布局引擎"""
+        from common.utils.layout import compute_layout
 
         instance = self.get_object()
         nodes_data = request.data.get('nodes', [])

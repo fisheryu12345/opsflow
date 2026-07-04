@@ -12,6 +12,7 @@ import {initFrontEndControlRoutes} from '/@/router/frontEnd';
 import {initBackEndControlRoutes, setRouters} from '/@/router/backEnd';
 import {useFrontendMenuStore} from "/@/stores/frontendMenu";
 import {useTagsViewRoutes} from "/@/stores/tagsViewRoutes";
+import {usePermissionStore} from "/@/stores/permission";
 import {toRaw} from "vue";
 
 /**
@@ -110,6 +111,12 @@ router.beforeEach(async (to, from, next) => {
             next('/home');
             NProgress.done();
         } else {
+
+            // Initialize permission store before rendering so v-can directives work
+            const permStore = usePermissionStore(pinia);
+            if (!permStore.loaded) {
+                await permStore.fetchPermissions();
+            }
 
             const storesRoutesList = useRoutesList(pinia);
             const {routesList} = storeToRefs(storesRoutesList);

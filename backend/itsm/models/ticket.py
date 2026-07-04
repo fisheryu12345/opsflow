@@ -60,7 +60,8 @@ class Ticket(CoreModel):
     impact = models.CharField(max_length=16, blank=True, default='', verbose_name="影响范围")
     current_status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='draft',
                                        verbose_name="当前状态")
-    pipeline_id = models.CharField(max_length=128, blank=True, default='', verbose_name="Pipeline ID")
+    pipeline_id = models.CharField(max_length=128, blank=True, default='', db_index=True,
+                                   verbose_name="Pipeline ID")
     node_status = models.JSONField(default=dict, verbose_name="节点状态快照")
     business = models.ForeignKey(
         'iam.Business', null=True, blank=True,
@@ -86,7 +87,7 @@ class Ticket(CoreModel):
         self.state_history.append({
             'status': status,
             'operator': operator,
-            'time': self.updated_at.isoformat() if self.updated_at else '',
+            'time': self.update_datetime.isoformat() if self.update_datetime else '',
         })
         self.save(update_fields=['current_status', 'state_history'])
 

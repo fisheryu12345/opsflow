@@ -2,7 +2,53 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-## 2f1335e3
+## 1d8ddc88
+
+> 提交日期: 2026-07-04 | 提交信息: feat: itsm engine refactor + three gateway types — ITSM 引擎重构与三种网关支持
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/itsm/services/itsm_engine.py` | 后端 | **新建** ITSMEngine — PipelineWrapper 重构为实例化模式（run/pause/resume/revoke），SLA/暂停/升级统一联动 |
+| `backend/itsm/services/workflow_builder.py` | 后端 | **新建** ITSMWorkflowBuilder — 三种网关 + Data/NodeOutput + by_field 条件 + ConvergeGateway 配对 |
+| `backend/itsm/services/condition_utils.py` | 后端 | **新建** 条件表达式工具（从 opsflow.core.pipeline_builder.elements 复制，消除跨 app import） |
+| `backend/itsm/services/pipeline_wrapper.py` | 后端 | **删除** PipelineWrapper（已由 ITSMEngine 替代） |
+| `backend/itsm/signals.py` | 后端 | 新增 post_set_state 信号监听 — bamboo 节点状态变更同步 ITSM 工单状态 |
+| `backend/itsm/views/ticket_views.py` | 后端 | PipelineWrapper → ITSMEngine 替换（5 处） |
+| `backend/itsm/tasks.py` | 后端 | PipelineWrapper → ITSMEngine 替换 |
+| `backend/opsflow/plugins/itsm/update_ticket.py` | 后端 | PipelineWrapper → ITSMEngine 替换 |
+| `backend/itsm/models/state.py` | 后端 | TYPE_CHOICES: ROUTER_P → CONDITIONAL_PARALLEL, 新增 EXCLUSIVE/PARALLEL, 移除 WEBHOOK |
+| `backend/itsm/models/transition.py` | 后端 | condition_type 增加 choices（default/by_field） |
+| `backend/itsm/models/ticket.py` | 后端 | pipeline_id 加 db_index=True |
+| `backend/itsm/pipeline_plugins/components.py` | 后端 | ItsmFillForm/ApprovalService 新增 data.set_outputs() — 表单字段输出供网关条件引用 |
+| `backend/itsm/views/workflow_views.py` | 后端 | ITSM_NODE_TYPE_MAP 更新 — ROUTER_P → CONDITIONAL_PARALLEL, 新增 PARALLEL |
+| `backend/itsm/migrations/0002_ticket_pipeline_id_db_index.py` | 迁移 | pipeline_id db_index |
+| `backend/itsm/migrations/0003_gateway_types.py` | 迁移 | ROUTER_P → CONDITIONAL_PARALLEL + choices 更新 |
+| `backend/common/utils/layout/` (18 文件) | 后端 | **新建** 从 opsflow/core/layout/ 复制（零修改） |
+| `backend/scripts/patch_eri_migration.py` | 脚本 | **新建** eri.0006 RenameIndex → AddIndex 补丁脚本 |
+| `docs/guides/eri-migration-fix.md` | 文档 | **新建** ERI 迁移修复指南 |
+| `web/src/views/apps/itsm/designer/shapes.ts` | 前端 | ITSM_NODE_CONFIG + resolveItsmShape 更新（CONDITIONAL_PARALLEL, PARALLEL） |
+| `web/src/views/apps/itsm/designer/useDesigner.ts` | 前端 | Stencil 网关配置更新 + validateWorkflow 排他网关出边校验 + COVERAGE 配对 |
+| `web/src/views/apps/itsm/designer/DesignerConfigPanel.vue` | 前端 | 网关类型提示更新 + 条件编辑 by_field 支持 |
+| `web/src/views/apps/itsm/tests/test_workflow_builder.py` | 测试 | **新建** 11 个测试（排他/并行/条件并行网关 + by_field 条件 + converge 配对） |
+| `web/src/views/apps/itsm/tests/test_itsm_engine.py` | 测试 | **新建** 8 个引擎测试 |
+| `web/src/views/apps/itsm/tests/test_layout.py` | 测试 | **新建** 3 个 layout 测试 |
+
+### 解决
+
+- **问题/背景：** ITSM 只实现了 ROUTER_P（条件并行）一种网关，缺少排他/纯并行网关；PipelineWrapper 为 stateless 模式未与 FlowEngine 对齐；组件不输出表单字段导致网关条件运行时死引用；bamboo-pipeline eri.0006 在 SQLite 测试环境失败
+- **办法：** 命名与 opsflow 对齐（ROUTER_P→CONDITIONAL_PARALLEL, 新增 EXCLUSIVE/PARALLEL）；Builder 增加三种网关、Data/NodeOutput 注册、by_field 结构化条件、ConvergeGateway 自动配对；组件加 data.set_outputs()；eri migration RenameIndex→AddIndex；前端设计器同步更新
+
+### 验证
+
+- 改动类型: feat + refactor + fix + chore
+- 清理乱码: 无
+- 子 App index.md 更新: itsm
+- 工作区状态: 干净 ✅
+
+---
+
 
 > 提交日期: 2026-07-03 | 提交信息: refactor: cleanup common/utils + remove dead code — 公共工具代码清理
 

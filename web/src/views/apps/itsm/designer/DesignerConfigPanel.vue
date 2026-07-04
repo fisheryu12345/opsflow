@@ -126,7 +126,7 @@
           </template>
 
           <!-- Fields button (all except gateways) -->
-          <template v-if="!['ROUTER_P', 'COVERAGE', 'EXCLUSIVE', 'CONDITIONAL'].includes(node.type)">
+          <template v-if="!['COVERAGE', 'EXCLUSIVE', 'CONDITIONAL_PARALLEL', 'PARALLEL'].includes(node.type)">
             <el-form-item label="工单设计">
               <template v-if="node.type === 'NORMAL'">
                 <div style="display:flex;align-items:center;gap:6px;width:100%">
@@ -161,8 +161,8 @@
           </template>
 
           <!-- Gateway hint -->
-          <template v-if="['ROUTER_P', 'COVERAGE', 'EXCLUSIVE', 'CONDITIONAL'].includes(node.type)">
-            <el-alert type="info" :closable="false" show-icon :title="node.type === 'ROUTER_P' ? '并行网关 — 所有分支同时执行，需配合汇聚网关使用' : '汇聚网关 — 等待所有并行分支完成后继续'" />
+          <template v-if="['COVERAGE', 'EXCLUSIVE', 'CONDITIONAL_PARALLEL', 'PARALLEL'].includes(node.type)">
+            <el-alert type="info" :closable="false" show-icon :title="gatewayHint(node.type)" />
           </template>
         </el-form>
       </template>
@@ -214,6 +214,15 @@ const typeLabel = computed(() => {
 function onChange() { emit('change') }
 function onEdgeChange() { emit('change') }
 function onOpenFieldEditor() { emit('openFieldEditor') }
+function gatewayHint(type: string) {
+  const hints: Record<string, string> = {
+    COVERAGE: '汇聚网关 — 等待所有并行分支完成后继续',
+    EXCLUSIVE: '排他网关 — 首个匹配条件的分支执行，其他跳过；需至少有一条无条件边',
+    CONDITIONAL_PARALLEL: '条件并行网关 — 所有匹配条件的分支同时执行，需配合汇聚网关使用',
+    PARALLEL: '并行网关 — 所有分支同时执行，需配合汇聚网关使用',
+  }
+  return hints[type] || ''
+}
 
 // 当节点 processors_type 变为 PERSON 时，从 node.processorsRaw 同步 personUsers
 watch(() => props.node?.processors_type, (val) => {
