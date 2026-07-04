@@ -11,53 +11,6 @@ from application import settings
 table_prefix = settings.TABLE_PREFIX  # 数据库表名前缀
 
 
-class SoftDeleteQuerySet(models.QuerySet):
-    pass
-
-
-class SoftDeleteManager(models.Manager):
-    """支持软删除"""
-
-    def __init__(self, *args, **kwargs):
-        self.__add_is_del_filter = False
-        super(SoftDeleteManager, self).__init__(*args, **kwargs)
-
-    def filter(self, *args, **kwargs):
-        # 考虑是否主动传入is_deleted
-        if not kwargs.get('is_deleted') is None:
-            self.__add_is_del_filter = True
-        return super(SoftDeleteManager, self).filter(*args, **kwargs)
-
-    def get_queryset(self):
-        if self.__add_is_del_filter:
-            return SoftDeleteQuerySet(self.model, using=self._db).exclude(is_deleted=False)
-        return SoftDeleteQuerySet(self.model).exclude(is_deleted=True)
-
-    def get_by_natural_key(self, name):
-        return SoftDeleteQuerySet(self.model).get(username=name)
-
-
-class SoftDeleteModel(models.Model):
-    """
-    软删除模型
-    一旦继承,就将开启软删除
-    """
-    is_deleted = models.BooleanField(verbose_name="是否软删除", help_text='是否软删除', default=False, db_index=True)
-    objects = SoftDeleteManager()
-
-    class Meta:
-        abstract = True
-        verbose_name = '软删除模型'
-        verbose_name_plural = verbose_name
-
-    def delete(self, using=None, soft_delete=True, *args, **kwargs):
-        """
-        重写删除方法,直接开启软删除
-        """
-        self.is_deleted = True
-        self.save(using=using)
-
-
 class CoreModel(models.Model):
     """
     核心标准抽象模型模型,可直接继承使用
