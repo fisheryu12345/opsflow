@@ -1189,7 +1189,7 @@ async function loadAllData() {
   position: relative; z-index: 1; display: flex; gap: 0; padding: 0 24px; margin-top: -4px; 
 }
 .itsm-hero-tab {
-  display: flex; align-items: center; gap: 6px; padding: 10px 20px;
+  display: flex; align-items: center; gap: 6px; padding: 10px 20px 10px 0;
   font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.6);
   cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; user-select: none;
   .el-icon { font-size: 16px; }

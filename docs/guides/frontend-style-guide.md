@@ -121,7 +121,8 @@ All OPSflow Vue components should follow these conventions for visual consistenc
 | 2 | **禁止扩高** | hero-inner padding 统一 `14px 24px`（portal/opsflow-* 已拉齐），禁止额外扩高 |
 | 3 | **统计分隔线** | 统一 `$g-hero-divider-height: 24px`，stat-item padding `0 14px` |
 | 4 | **tabs 上拉** | 有 tabs 的 hero 需要 `margin-top: -4px` 吸附到 hero 底部 |
-| 5 | **已对齐页面** | portal / opsflow / opsflow-dashboard / itsm / integration / cmdb / job-platform / iam / opsflow-log / opsflow-knowledge / opsflow-approval / opsflow-webhook / opsflow-template / open-api |
+| 5 | **tab 内容左对齐** | `g-hero-tab` mixin 使用 `padding: 10px 16px 10px 0`（无左侧 padding），因为 tabs 容器 `padding: 0 24px` 已与 hero-inner 对齐。**禁止给 hero-tab 加左侧 padding**，否则 tab 内容会比标题偏右。如确需 tab 间距，用 `margin-right` 或容器 `gap` 实现 |
+| 6 | **已对齐页面** | portal / opsflow / opsflow-dashboard / itsm / integration / cmdb / job-platform / iam / opsflow-log / opsflow-knowledge / opsflow-approval / opsflow-webhook / opsflow-template / open-api / opsagent |
 
 ---
 

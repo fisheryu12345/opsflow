@@ -133,19 +133,21 @@ class Command(BaseCommand):
 
         # ── ITSM ──────────────────────────────────────────────────
         itsm_tabs = [
-            {'key': 'dashboard',     'label_zh': '看板',      'label_en': 'Dashboard',    'icon': 'DataAnalysis',  'required_perm': None,                     'is_default': False, 'sort': 10},
-            {'key': 'tickets',       'label_zh': '工单',      'label_en': 'Tickets',      'icon': 'List',          'required_perm': None,                     'is_default': True,  'sort': 20},
-            {'key': 'workflows',     'label_zh': '流程模板',   'label_en': 'Workflows',    'icon': 'Setting',       'required_perm': 'itsm:workflows:view',                   'sort': 30},
-            {'key': 'incidents',     'label_zh': '事件',      'label_en': 'Incidents',    'icon': 'WarningFilled', 'required_perm': None,                     'sort': 40},
-            {'key': 'changes',       'label_zh': '变更',      'label_en': 'Changes',      'icon': 'Edit',          'required_perm': None,                     'sort': 50},
+            {'key': 'service-market', 'label_zh': '服务市场', 'label_en': 'Service Catalog','icon': 'List','required_perm': None,                                        'is_default': True,  'sort': 10},
+            {'key': 'tickets',       'label_zh': '工单',      'label_en': 'Tickets',      'icon': 'List',          'required_perm': None,                     'is_default': False, 'sort': 20},
+            {'key': 'dashboard',     'label_zh': '看板',      'label_en': 'Dashboard',    'icon': 'DataAnalysis',  'required_perm': None,                     'is_default': False, 'sort': 30},
+            {'key': 'workflows',     'label_zh': '流程模板',   'label_en': 'Workflows',    'icon': 'Setting',       'required_perm': 'itsm:workflows:view',                   'sort': 40},
+            # ── ITSM 管理 ──
+            {'key': 'service-admin',  'label_zh': '服务目录管理','label_en': 'Catalog Admin','icon': 'Setting','required_perm': 'itsm:service:admin',                       'sort': 50},
             {'key': 'sla',           'label_zh': 'SLA',       'label_en': 'SLA',          'icon': 'Clock',         'required_perm': None,                     'sort': 60},
-            {'key': 'delegation',    'label_zh': '委托',      'label_en': 'Delegation',   'icon': 'User',          'required_perm': None,                     'sort': 70},
-            {'key': 'skill-groups',  'label_zh': '技能组',    'label_en': 'Skill Groups', 'icon': 'Collection',    'required_perm': 'itsm:skill_groups:view',                'sort': 80},
-            {'key': 'on-duty',       'label_zh': '排班',      'label_en': 'On-Duty',      'icon': 'Clock',         'required_perm': 'itsm:on_duty:view',                     'sort': 90},
-            {'key': 'assign-rules',  'label_zh': '路由',      'label_en': 'Assign Rules', 'icon': 'Setting',       'required_perm': 'itsm:assign_rules:view',                'sort': 100},
-            {'key': 'escalation',    'label_zh': '升级',      'label_en': 'Escalation',   'icon': 'WarningFilled', 'required_perm': 'itsm:escalation:view',                  'sort': 110},
-            {'key': 'service-market', 'label_zh': '服务市场', 'label_en': 'Service Catalog','icon': 'List','required_perm': None,                                        'sort': 15},
-            {'key': 'service-admin',  'label_zh': '服务目录管理','label_en': 'Catalog Admin','icon': 'Setting','required_perm': 'itsm:service:admin',                       'sort': 22},
+            {'key': 'skill-groups',  'label_zh': '技能组',    'label_en': 'Skill Groups', 'icon': 'Collection',    'required_perm': 'itsm:skill_groups:view',                'sort': 70},
+            {'key': 'on-duty',       'label_zh': '排班',      'label_en': 'On-Duty',      'icon': 'Clock',         'required_perm': 'itsm:on_duty:view',                     'sort': 80},
+            {'key': 'assign-rules',  'label_zh': '路由',      'label_en': 'Assign Rules', 'icon': 'Setting',       'required_perm': 'itsm:assign_rules:view',                'sort': 90},
+            {'key': 'escalation',    'label_zh': '升级',      'label_en': 'Escalation',   'icon': 'WarningFilled', 'required_perm': 'itsm:escalation:view',                  'sort': 100},
+            {'key': 'delegation',    'label_zh': '委托',      'label_en': 'Delegation',   'icon': 'User',          'required_perm': None,                     'sort': 110},
+            # ── 遗留模块 ──
+            {'key': 'incidents',     'label_zh': '事件',      'label_en': 'Incidents',    'icon': 'WarningFilled', 'required_perm': None,                     'sort': 120},
+            {'key': 'changes',       'label_zh': '变更',      'label_en': 'Changes',      'icon': 'Edit',          'required_perm': None,                     'sort': 130},
         ]
         itsm_buttons = {
             'tickets': [

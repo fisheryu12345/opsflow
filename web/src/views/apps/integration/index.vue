@@ -849,7 +849,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 20px;
+  padding: 10px 20px 10px 0;
   font-size: 13px;
   font-weight: 500;
   color: rgba(255,255,255,0.6);

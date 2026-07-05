@@ -2,6 +2,45 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 8240cbb1
+
+> 提交日期: 2026-07-05 | 提交信息: fix: cross-app hero-tab alignment — 全线修复 hero-tab 内容与标题左对齐，全局 mixin + 8 个 app CSS 修正
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/src/styles/_mixins.scss` | 前端 | 全局 `g-hero-tab` mixin padding 从 `10px 16px` 改为 `10px 16px 10px 0`，移除左侧 padding |
+| `web/src/views/apps/cmdb/index.vue` | 前端 | hero-tab padding 修复 `10px 20px` → `10px 20px 10px 0` |
+| `web/src/views/apps/iam/index.vue` | 前端 | hero-tab padding 修复 `10px 16px` → `10px 16px 10px 0`，移除旧 `:first-child` hack |
+| `web/src/views/apps/integration/index.vue` | 前端 | hero-tab padding 修复 `10px 20px` → `10px 20px 10px 0` |
+| `web/src/views/apps/itsm/index.vue` | 前端 | hero-tab padding 修复 `10px 20px` → `10px 20px 10px 0` |
+| `web/src/views/apps/job-platform/index.vue` | 前端 | hero-tab padding 修复 `10px 20px` → `10px 20px 10px 0` |
+| `web/src/views/apps/open-api/index.vue` | 前端 | hero-tab padding 修复 `10px 20px` → `10px 20px 10px 0` |
+| `web/src/views/apps/opsagent/index.vue` | 前端 | hero-tab padding 修复 `10px 20px` → `10px 20px 10px 0` |
+| `web/src/views/apps/opsflow/index.vue` | 前端 | hero-tab padding 修复 `10px 16px` → `10px 16px 10px 0` |
+| `backend/iam/management/commands/seed_iam_page_configs.py` | 后端 | ITSM tab 重新排序，服务市场设为默认首页 (sort=10, is_default=True) |
+| `docs/guides/frontend-style-guide.md` | 文档 | 新增约束规则 #5 tab 内容左对齐 |
+
+### 解决
+
+- **问题/背景：** 全局 `g-hero-tab` mixin 定义了 `padding: 10px 16px`，其中 `padding-left` 导致 tab 内容相对于父容器（`padding: 0 24px`）额外偏移 16-20px，tab 内容比标题偏右。ITSM tab 排序不合理，服务市场与后台配置混杂
+- **办法：** 所有 hero-tab 移除 `padding-left`（统一为 `padding: 10px Xpx 10px 0`）；ITSM tab 重新按"核心流程 → 后台管理 → 遗留模块"三段式分组
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/debug/2026-07-05-hero-tab-alignment.md`
+  - `docs/itsm/features/2026-07-05-tab-ordering-optimization.md`
+
+### 验证
+
+- 改动类型: fix + feat
+- 清理乱码: 无
+- 子 App index.md 更新: 无（纯前端 + iam seed）
+- 工作区状态: 干净 ✅
+
+
 ## 847774f9
 
 > 提交日期: 2026-07-05 | 提交信息: feat: itsm node_key stable identity + SLA pause/resume enhancement — 节点稳定标识与 SLA 暂停恢复增强

@@ -548,7 +548,7 @@ onBeforeUnmount(() => {
 }
 .opsflow-hero-tab {
   display: flex; align-items: center; gap: 6px;
-  padding: 10px 16px;
+  padding: 10px 16px 10px 0;
   font-size: 13px; color: rgba(255,255,255,0.65);
   cursor: pointer; border-bottom: 2px solid transparent;
   transition: all 0.2s;
