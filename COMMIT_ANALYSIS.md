@@ -2,7 +2,7 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
-## 8240cbb1
+## db14a792
 
 > 提交日期: 2026-07-05 | 提交信息: fix: cross-app hero-tab alignment — 全线修复 hero-tab 内容与标题左对齐，全局 mixin + 8 个 app CSS 修正
 
