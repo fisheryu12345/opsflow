@@ -55,8 +55,9 @@ class Workflow(CoreModel):
         """部署 -> 创建 WorkflowVersion 快照"""
         states_data = {}
         for s in self.states.all():
-            states_data[s.id] = {
-                'id': s.id, 'name': s.name, 'type': s.type,
+            key = s.node_key or s.id
+            states_data[key] = {
+                'id': s.id, 'node_key': s.node_key or '', 'name': s.name, 'type': s.type,
                 'processors_type': s.processors_type,
                 'processors': s.processors,
                 'distribute_type': s.distribute_type,
@@ -69,12 +70,19 @@ class Workflow(CoreModel):
                 'is_builtin': s.is_builtin,
                 'api_instance_id': s.api_instance_id,
             }
+        # Safety net: ensure START/END exist even if not saved
+        if '__start__' not in states_data:
+            states_data['__start__'] = {'id': -1, 'node_key': '__start__', 'name': '开始', 'type': 'START', 'fields': [], 'is_builtin': True}
+        if '__end__' not in states_data:
+            states_data['__end__'] = {'id': -2, 'node_key': '__end__', 'name': '结束', 'type': 'END', 'fields': [], 'is_builtin': True}
         transitions_data = {}
         for t in self.transitions.all():
             transitions_data[t.id] = {
                 'id': t.id, 'name': t.name,
                 'from_state_id': t.from_state_id,
                 'to_state_id': t.to_state_id,
+                'from_node_key': t.from_node_key or '',
+                'to_node_key': t.to_node_key or '',
                 'condition': t.condition,
                 'condition_type': t.condition_type,
                 'direction': t.direction,

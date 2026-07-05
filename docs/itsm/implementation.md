@@ -1,6 +1,6 @@
 # ITSM — 开发进度跟踪
 
-> 最后更新: 2026-06-30 | 参考目标: docs/opsflow_target.md
+> 最后更新: 2026-07-05 | 参考目标: docs/opsflow_target.md
 
 ## 成熟度评估
 
@@ -52,6 +52,15 @@
 - [ ] OpsFlow 审批节点 ↔ ITSM 工单双向
 - [ ] Monitor 告警 → 创建工单
 - [ ] 变更日历前端
+
+### 2026-07-05 Update
+> 提交: 229bae20
+- node_key 稳定标识: State/Transition 新增 node_key 字段，Workflow create_version 改用 node_key 做快照 key，Ticket get_state 支持 node_key 双向查找，Pipeline activity ID 用 node_key 匹配 bamboo element → ✅
+- 前端设计器增强: 节点拖入自动初始化(node_key+默认数据)，连线连接校验(禁止非法连接)，Stencil 重构(clone→createNode)，旧流程无 node_key 兼容 → ✅
+- SLA 暂停/恢复增强: SlaTask.paused_at 字段 + pause/resume 时长补偿 + start_ticket_sla 改用 get_or_create 不覆盖 → ✅
+- 工单详情内联填单: NORMAL 节点运行时渲染表单字段(TEXT/SELECT/FILE)，联动 NodeSubmit 后端，从 WorkflowVersion 合并字段定义 → ✅
+- 删除已废弃 state_machine.py → ✅
+- 服务目录设计文档完成，待 Phase1 编码 → 📅
 
 ### 2026-06-30 Update #2
 > 提交: 6377ca67

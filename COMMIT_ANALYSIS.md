@@ -2,6 +2,58 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 847774f9
+
+> 提交日期: 2026-07-05 | 提交信息: feat: itsm node_key stable identity + SLA pause/resume enhancement — 节点稳定标识与 SLA 暂停恢复增强
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/itsm/models/state.py` | 后端 | **新增** node_key（前端节点标识）、is_builtin 字段，unique_together(workflow, node_key) |
+| `backend/itsm/models/transition.py` | 后端 | **新增** from_node_key、to_node_key 字段（连线两端节点标识） |
+| `backend/itsm/models/workflow.py` | 后端 | create_version() 快照 key 改用 node_key；START/END 自动补全 safety net；快照含 node_key |
+| `backend/itsm/models/ticket.py` | 后端 | get_state() 支持 node_key 查找；节点状态 key 改用 node_key；多处理 null safety |
+| `backend/itsm/models/sla.py` | 后端 | SlaTask 新增 paused_at 字段 |
+| `backend/itsm/services/workflow_builder.py` | 后端 | build_tree() 优先用 node_key 映射 transition |
+| `backend/itsm/services/sla_engine.py` | 后端 | SLA pause/resume 增强：paused_at 记录 + 时长补偿；start 改为 get_or_create 不覆盖 |
+| `backend/itsm/services/condition_utils.py` | 后端 | 条件工具微调 |
+| `backend/itsm/services/role_resolver.py` | 后端 | 角色解析微调 |
+| `backend/itsm/services/state_machine.py` | 后端 | **删除** — 已被新引擎替代 |
+| `backend/itsm/views/workflow_views.py` | 后端 | StateSync 按 node_key 差异同步；operator 传 user.id；State 关闭分页 |
+| `backend/itsm/views/ticket_views.py` | 后端 | _get_activity_id() 用 node_key 映射 bamboo element ID |
+| `backend/itsm/migrations/0004_add_node_key.py` | 迁移 | **新建** node_key 字段迁移 |
+| `backend/itsm/migrations/0005_add_sla_paused_at.py` | 迁移 | **新建** paused_at 字段迁移 |
+| `backend/common/utils/serializers.py` | 后端 | 序列化器微调 |
+| `backend/iam/management/commands/seed_iam_page_configs.py` | 后端 | IAM 种子配置修复 |
+| `web/src/views/apps/itsm/designer/useDesigner.ts` | 前端 | **大幅重写** node_key 自动生成；连接校验；拖放重构（clone→createNode）；连线数据自动填充 |
+| `web/src/views/apps/itsm/designer/shapes.ts` | 前端 | 节点形状适配 node_key |
+| `web/src/views/apps/itsm/designer/DesignerConfigPanel.vue` | 前端 | 配置面板 node_key 展示 |
+| `web/src/views/apps/itsm/designer/index.vue` | 前端 | 设计器 layout 微调 |
+| `web/src/views/apps/itsm/index.vue` | 前端 | **新增** 工单详情内联填单（NORMAL 节点表单渲染+提交）；从 WorkflowVersion 合并字段定义 |
+| `web/src/api/itsm/index.ts` | 前端 | **新增** NodeSubmit、stateApi、transitionApi |
+| `.gitignore` | 配置 | 新增 .superpowers/ 忽略规则 |
+
+### 解决
+
+- **问题/背景：** ITSM 引擎重构后，设计器节点缺乏稳定标识，导致保存/加载不一致、Pipeline activity ID 和 node_status key 不匹配、SLA 暂停/恢复计时不准、工单详情无法内联填单
+- **办法：** node_key 贯穿设计→快照→运行整条链路做 stable identity；SLA 用 paused_at 做时长补偿；前端设计器全面增强初始化与连接校验
+
+### 文档
+
+- **生成文档：**
+  - `docs/itsm/features/2026-07-05-node-key-stable-identity.md`
+  - `docs/itsm/features/2026-07-05-sla-pause-resume-enhance.md`
+  - `docs/superpowers/specs/2026-07-05-itsm-service-catalog-design.md`
+
+### 验证
+
+- 改动类型: feat + fix
+- 清理乱码: 有（2 个 0 字节垃圾文件）
+- 工作区状态: 干净 ✅
+
+---
+
 ## 1d8ddc88
 
 > 提交日期: 2026-07-04 | 提交信息: feat: itsm engine refactor + three gateway types — ITSM 引擎重构与三种网关支持

@@ -1,95 +1,108 @@
-# itsm — 模块索引
+# itsm -- Module Index
 
-> 上次自动更新: 2026-07-04 | 触发提交: 1d8ddc88
+> Last auto-update: 2026-07-05 | Trigger: 847774f9
 
 ---
 
-## 根目录
+## `management/`
 
-| 文件 | 用途 | 核心组件 |
-|------|------|----------|
-| `__init__.py` | 包初始化 | — |
-| `apps.py` | Django AppConfig，注册信号 | `class ItsmConfig(AppConfig)` |
-| `urls.py` | URL 路由注册 (10 ViewSets + AI 视图) | `router.register()`, `AIGenerateView` |
-| `signals.py` | Django 信号处理 — ITSM 工单状态同步 + bamboo post_set_state | `ticket_post_save`, `itsm_post_set_state_handler` — bamboo 节点状态 → TicketStatus 同步 |
-| `tasks.py` | Celery 异步任务 | `auto_resolve()`, `ITSMEngine` revoke 调用 |
-| `admin.py` | Django Admin 注册 | — |
+| File | Purpose | Core Components |
+|------|---------|-----------------|
+| `management\__init__.py` | -- |  |
 
-## `management/commands/`
+## `management\commands/`
 
-| 文件 | 用途 | 核心组件 |
-|------|------|----------|
-| `seed_itsm.py` | 完整种子数据 (14 cat + 4 SLA + 5 groups + 3 workflows + 7 escalations + 5 rules + 8 duty + 10 incidents + 6 changes + 6 requests + 3 problems) | `class Command(BaseCommand)` — `_create_service_categories()`, `_create_workflows()`, `_create_skill_groups()`, ... |
-| `itsm_check_sla.py` | SLA 超时检查命令 | — |
-| `start_itsm_scheduler.py` | 独立 APScheduler 进程 (ES/SLA) | — |
+| File | Purpose | Core Components |
+|------|---------|-----------------|
+| `management\commands\__init__.py` | -- |  |
+| `management\commands\itsm_check_sla.py` | ITSM SLA 检查命令 — 检查所有活跃工单的 SLA 状态 | `Command` |
+| `management\commands\seed_itsm.py` | Seed complete ITSM test data — all models | `Command` |
+| `management\commands\start_itsm_scheduler.py` | ITSM 调度器 — 独立进程，用于工单升级检测等定时任务 | `ItsmScheduler -- ITSM 独立 APScheduler 实例`; `Command`; `escalation_check() -- 工单升级检测 — 每分钟执行` |
 
 ## `models/`
 
-| 文件 | 用途 | 核心组件 |
-|------|------|----------|
-| `workflow.py` | 流程模板 + 版本管理 | `class Workflow(CoreModel)` — `project` FK, `create_version()`; `class WorkflowVersion` — 运行时快照 JSON |
-| `ticket.py` | 工单运行时 (pipeline 驱动) | `class Ticket(CoreModel)` — `project`+`business` FK, `set_status()`, `pipeline_id` (db_index); `class TicketStatus`; `class SignTask` |
-| `incident.py` | 事件/变更/请求/问题 + 分类 + SLA | `Incident`, `Change`, `ServiceRequest`, `Problem`, `ServiceCategory`, `SlaPolicy` (全含 `project` FK) |
-| `sla.py` | SLA 优先级矩阵 + 计时任务 | `class PriorityMatrix`; `class SlaTask` |
-| `skill_group.py` | 技能组 + 值班排班 | `class SkillGroup` — `business` FK, `leader`, `members` M2M; `class OnDutySchedule` — `project` FK |
-| `assign_rule.py` | 自动分派路由规则 | `class AssignRule(CoreModel)` — `project` FK, `match_category/priority/itsm_type`, `target_group`, `assign_mode` |
-| `escalation.py` | 多级升级策略 | `class EscalationLevel(CoreModel)` — `project` FK, `group/level/timeout_minutes/action/notify_users` |
-| `delegation.py` | 审批委托 (临时转交) | `class ApprovalDelegate(CoreModel)` |
-| `transfer_log.py` | 分派/转派审计日志 | `class TicketTransferLog(CoreModel)` |
-| `state.py` | 流程节点定义 — 3 种网关类型 | `class State(CoreModel)` — TYPE_CHOICES: START/END/NORMAL/APPROVAL/SIGN/TASK/CONDITIONAL_PARALLEL/EXCLUSIVE/PARALLEL/COVERAGE |
-| `transition.py` | 流程连线定义 — 条件表达式 | `class Transition(CoreModel)` — `condition` JSONField, `condition_type` (default/by_field) |
-| `field.py` | 节点表单字段 | `class Field(CoreModel)` — LAYOUT_CHOICES 12/8/6/4/3 |
-
-## `serializers/`
-
-| 文件 | 用途 | 核心组件 |
-|------|------|----------|
-| `workflow_serializers.py` | Workflow/WorkflowVersion/State/Transition/Field | `WorkflowVersionSerializer` 含 `workflow_name` |
-| `ticket_serializers.py` | Ticket/TicketStatus/SignTask | `TicketSerializer`, `TicketCreateSerializer` |
-| `legacy.py` | Incident/Change/ServiceRequest/Problem/Category/Sla | 6 个 CRUD 序列化器 |
-| `assign_serializers.py` | SkillGroup/OnDuty/AssignRule/Escalation/TransferLog | 含 `leader_name`, `group_name`, `user_name`, `target_group_name`, `match_category_name` |
-| `delegation.py` | ApprovalDelegate | `DelegationSerializer` 含 `user_name`/`delegate_to_name`; `DelegationCreateUpdateSerializer` (`user` read_only) |
-
-## `services/`
-
-| 文件 | 用途 | 核心组件 |
-|------|------|----------|
-| `assign_engine.py` | 自动分派引擎 (规则匹配→人选确定→执行) | `class AssignEngine(ticket, project_id)` — `auto_assign()`, `_match_rule()` project-scoped, `manual_assign()` |
-| `escalation_service.py` | 多级升级检测与执行 | `class EscalationService` — `check_and_escalate()`, `_process_ticket()` project-scoped |
-| `sla_engine.py` | SLA 计时与升级 | `class SlaEngine` — `start_ticket_sla()` project-scoped, `check_all_active_sla()` |
-| `itsm_engine.py` | Bamboo Pipeline 执行引擎 (实例化模式) | `class ITSMEngine` — `run()`, `pause()`, `resume()`, `revoke()`, `activity_callback()`; SLA/暂停/升级统一联动 |
-| `workflow_builder.py` | 流程定义 → bamboo pipeline tree 构建 | `class ITSMWorkflowBuilder` — `build_tree()` 三种网关 + Data/NodeOutput + by_field 条件 + Converge 配对 |
-| `condition_utils.py` | 条件表达式解析工具 (本地 copy) | `_collect_condition_refs()`, `_register_node_output()`, `_EXPR_PATTERN`, `_VAR_REF_PATTERN` |
-| `opsflow_trigger.py` | ITSM→OpsFlow 执行触发 | `class OpsflowTriggerService`, `class TicketOpsflowConfig` |
-| `state_machine.py` | 工单状态机 | `class StateMachine` |
-| `ai_generator.py` | AI 工作流生成 (LLM→节点/连线) | `class AIGenerator` |
-| `notifications.py` | 通知服务 | `class NotificationService` |
-| `role_resolver.py` | 角色解析 | 审批人/处理人查找 |
-
-## `views/`
-
-| 文件 | 用途 | 核心组件 |
-|------|------|----------|
-| `workflow_views.py` | 流程模板 + 版本 + 节点/连线/字段 API + 自动布局 | `class ItsmProjectViewSet` — IAM+ProjectFilteredViewSet+dvadmin响应; `WorkflowViewSet` (deploy/rollback/layout); `WorkflowVersionViewSet`; `StateViewSet` (sync); `TransitionViewSet` (sync); `FieldViewSet` (batch_update) |
-| `ticket_views.py` | 工单 CRUD + 提交/审批/分派/挂起/恢复/关闭/文件上传 | `class TicketViewSet(ItsmProjectViewSet)` — submit/approve/reject/suspend/resume/close/assign/auto_assign/upload_file/node_submit/status |
-| `views.py` | 事件/变更/请求/问题/分类/SLA | `IncidentViewSet` (assign/resolve/close); `ChangeViewSet` (approve/reject); `ServiceRequestViewSet`; `ProblemViewSet`; `ServiceCategoryViewSet`; `SlaPolicyViewSet` |
-| `assign_views.py` | 技能组/排班/分派/升级/日志 | `SkillGroupViewSet` (business-scoped, add_member/remove_member); `OnDutyScheduleViewSet`; `AssignRuleViewSet`; `EscalationLevelViewSet`; `TicketTransferLogViewSet` |
-| `dashboard.py` | 看板 API | `class DashboardView` |
-| `delegation.py` | 委托 CRUD + 切换 + 我的委托 | `class DelegationViewSet` — toggle_active/my_delegations, `perform_create` 自动设 user |
-
-## `tests/`
-
-| 文件 | 用途 |
-|------|------|
-| `test_models.py` | 模型创建/字段/约束测试 |
-| `test_services.py` | AssignEngine/SlaEngine/EscalationService 单元测试 |
-| `test_views.py` | ViewSet API 端点测试 |
-| `test_itsm_engine.py` | ITSMEngine 核心方法测试 (run/pause/resume/revoke) |
-| `test_workflow_builder.py` | build_tree 节点映射 + 3 种网关 + by_field 条件 + converge 配对 (11 测试) |
-| `test_layout.py` | Sugiyama 布局引擎端点测试 |
+| File | Purpose | Core Components |
+|------|---------|-----------------|
+| `models\__init__.py` | Re-export all models for itsm app |  |
+| `models\assign_rule.py` | AssignRule model — 工单自动分派路由规则 | `AssignRule -- 分派规则 — IF category+priority+itsm_type THEN target_group+assign_mode` |
+| `models\delegation.py` | ApprovalDelegate model — 审批委托 | `ApprovalDelegate -- 审批委托 — 将审批权限临时委托给其他用户` |
+| `models\escalation.py` | -- | `EscalationLevel -- 升级级别 — 每组可配置 L1→L2→L3 超时与动作` |
+| `models\field.py` | ITSM Field model — 节点表单字段定义 | `Field -- 表单字段定义 — 绑定到 State` |
+| `models\incident.py` | -- | `ServiceCategory -- 服务分类 — 服务目录的一级/二级分类`; `SlaPolicy -- SLA 策略定义`; `Incident -- 事件工单 (Incident)` |
+| `models\skill_group.py` | -- | `SkillGroup -- 技能组 — 如网络组、数据库组、应用组等`; `OnDutySchedule -- 值班排班 — 每天每组的 primary/backup` |
+| `models\sla.py` | ITSM SLA model — SLA 策略、优先级矩阵、计时任务 | `PriorityMatrix -- 优先级矩阵 — 紧急程度 × 影响范围 → 优先级`; `SlaTask -- SLA 计时任务 — 工单级别的计时` |
+| `models\state.py` | ITSM State model — 流程节点定义 | `State -- 流程节点 — 对应 pipeline 中的一个活动` |
+| `models\ticket.py` | ITSM Ticket model — 工单运行时 | `Ticket -- ITSM 工单 — pipeline 驱动的运行实例`; `TicketStatus -- 节点运行时状态 — 工单在每个节点上的实时状态`; `SignTask -- 会签/审批记录 — 每个审批人的操作` |
+| `models\transfer_log.py` | -- | `TicketTransferLog -- 工单转派记录 — 手动转派 + 自动升级 + 自动分派` |
+| `models\transition.py` | ITSM Transition model — 节点间连线定义 | `Transition -- 节点间流转线 — 可选条件表达式` |
+| `models\workflow.py` | ITSM Workflow model — 流程模板定义与版本管理 | `Workflow -- ITSM 流程模板 — 设计时定义`; `WorkflowVersion -- 流程版本 — 部署快照，工单运行的依据` |
 
 ## `pipeline_plugins/`
 
-| 文件 | 用途 |
-|------|------|
-| `components.py` | Bamboo Pipeline 自定义组件 (ITSM 填单/审批/会签/自动任务) — data.set_outputs() 输出表单字段供网关条件引用 |
+| File | Purpose | Core Components |
+|------|---------|-----------------|
+| `pipeline_plugins\__init__.py` | -- |  |
+| `pipeline_plugins\components.py` | ITSM Pipeline 组件注册 | `ItsmFillFormService -- 填单节点 — 等待用户提交表单`; `ItsmApprovalService -- 审批节点 — 支持单签/会签`; `ItsmSignService -- 会签节点 — 多审批人，根据 finish_condition 决定` |
+
+## `root/`
+
+| File | Purpose | Core Components |
+|------|---------|-----------------|
+| `__init__.py` | ITSM service management app |  |
+| `admin.py` | -- |  |
+| `apps.py` | -- | `ItsmConfig` |
+| `signals.py` | ITSM 信号处理器 — 工单状态变更时自动触发 SLA/通知 + post_set_state 同步 | `ticket_post_save() -- 工单保存后 — 根据状态变化触发 SLA`; `itsm_post_set_state_handler() -- 监听 bamboo 节点状态变更 → 同步 ITSM 工单状态` |
+| `tasks.py` | ITSM Celery 定时任务 | `sla_check() -- SLA 定时检查 — 每分钟执行`; `auto_resolve_expired_tickets() -- 自动关闭超时未处理的草稿工单（每日执行）` |
+| `urls.py` | URL configuration for ITSM app |  |
+
+## `serializers/`
+
+| File | Purpose | Core Components |
+|------|---------|-----------------|
+| `serializers\__init__.py` | -- |  |
+| `serializers\assign_serializers.py` | Serializers for ITSM assignment models | `SkillGroupSerializer`; `OnDutyScheduleSerializer`; `AssignRuleSerializer` |
+| `serializers\delegation.py` | Delegation serializers — 审批委托序列化器 | `DelegationSerializer -- 委托列表/详情序列化器`; `DelegationCreateUpdateSerializer -- 委托创建/更新序列化器 — user 由视图自动设置` |
+| `serializers\legacy.py` | Serializers for ITSM app | `ServiceCategorySerializer`; `ServiceCategoryCreateUpdateSerializer`; `SlaPolicySerializer` |
+| `serializers\ticket_serializers.py` | Ticket serializers | `TicketSerializer`; `TicketCreateSerializer`; `TicketSubmitSerializer -- 提交工单（启动 pipeline）` |
+| `serializers\workflow_serializers.py` | Workflow serializers | `WorkflowSerializer`; `WorkflowCreateSerializer`; `WorkflowVersionSerializer` |
+
+## `services/`
+
+| File | Purpose | Core Components |
+|------|---------|-----------------|
+| `services\__init__.py` | Services package for itsm app |  |
+| `services\ai_generator.py` | AI 驱动的 ITSM 工作流生成器 | `AIGenerator -- AI 驱动的 ITSM 工作流生成器` |
+| `services\assign_engine.py` | AssignEngine — 工单自动分派引擎 | `AssignEngine -- ITSM 工单自动分派引擎` |
+| `services\condition_utils.py` | ITSM 条件表达式工具 — 从 opsflow 复制，消除跨 app import |  |
+| `services\escalation_service.py` | EscalationService — 工单升级检测与执行 | `EscalationService -- 多级升级服务 — 检测超时并执行升级动作` |
+| `services\itsm_engine.py` | ITSMEngine — ITSM Bamboo Pipeline 执行引擎 | `ITSMEngine -- ITSM 工单执行引擎 — BambooDjangoRuntime 驱动` |
+| `services\notifications.py` | ITSM 通知服务 — 状态变更时的消息通知 | `NotificationService -- 通知服务 — 发送工单状态通知`; `send_wecom_notify() -- 企业微信机器人消息`; `send_dingtalk_notify() -- 钉钉机器人消息` |
+| `services\opsflow_trigger.py` | ITSM 工单审批通过后触发 OpsFlow 自愈流程 | `TicketOpsflowConfig -- ITSM 工单类型到 OpsFlow 模板的映射配置`; `OpsflowTriggerService -- ITSM 工单审批通过后触发 OpsFlow 自愈流程的服务` |
+| `services\role_resolver.py` | 处理人解析器 — 将处理器类型转换为实际用户名列表 | `resolve_processors() -- 解析处理人配置，返回用户名列表` |
+| `services\sla_engine.py` | SLA 引擎 — 工单级别计时与升级管理 | `SlaEngine -- SLA 引擎 — 管理工单的 SLA 计时与升级` |
+| `services\workflow_builder.py` | ITSMWorkflowBuilder — 将 ITSM Workflow 转换为 bamboo-pipeline 可执行树 | `ITSMWorkflowBuilder -- 将 ITSM WorkflowVersion 快照转换为 bamboo-engine pipeline tree` |
+
+## `tests/`
+
+| File | Purpose | Core Components |
+|------|---------|-----------------|
+| `tests\__init__.py` | -- |  |
+| `tests\test_itsm_engine.py` | ITSMEngine 测试 — PipelineWrapper 迁移验证 | `ITSMEngineRunTests -- ITSMEngine.run() — pipeline 启动`; `ITSMEnginePauseResumeRevokeTests -- ITSMEngine.pause/resume/revoke — pipeline 生命周期管理` |
+| `tests\test_layout.py` | Layout engine 测试 — Sugiyama 布局计算 | `ComputeLayoutTests -- 布局引擎基本功能` |
+| `tests\test_models.py` | ITSM 模型测试 | `SkillGroupTests`; `OnDutyScheduleTests`; `AssignRuleTests` |
+| `tests\test_services.py` | ITSM 服务测试 — AssignEngine, EscalationService | `AssignEngineRuleMatchTests`; `EscalationServiceTests`; `RollbackTests -- WorkflowVersion rollback — 从旧版本快照重建 States/Transitions/Fields` |
+| `tests\test_views.py` | ITSM 视图测试 — SkillGroupViewSet, AssignRuleViewSet, EscalationLevelViewSet | `SkillGroupViewSetTests`; `AssignRuleViewSetTests`; `EscalationLevelViewSetTests` |
+| `tests\test_workflow_builder.py` | ITSMWorkflowBuilder 测试 — 验证 pipeline tree 构建 | `BuildTreeBasicTests -- 基础节点映射` |
+
+## `views/`
+
+| File | Purpose | Core Components |
+|------|---------|-----------------|
+| `views\__init__.py` | -- |  |
+| `views\assign_views.py` | View sets for ITSM assignment models — project-scoped with multi-tenant isolation | `SkillGroupViewSet -- 技能组管理 — business-scoped (非 project 维度，保持 CustomModelViewSet)`; `OnDutyScheduleViewSet -- 值班排班管理 — project-scoped`; `AssignRuleViewSet -- 分派规则管理 — project-scoped` |
+| `views\dashboard.py` | ITSM Dashboard view — 看板数据聚合 | `DashboardViewSet -- ITSM 看板 — 数据聚合（只读）` |
+| `views\delegation.py` | Delegation views — 审批委托 CRUD | `DelegationViewSet -- 审批委托 CRUD` |
+| `views\ticket_views.py` | ITSM Ticket views — 工单管理、提交、审批、状态管理、文件上传 | `TicketViewSet -- 工单管理 — project-scoped with environment gate` |
+| `views\views.py` | ITSM views - Incident, Change, ServiceRequest, Problem, ServiceCategory, SlaPolicy | `ServiceCategoryViewSet -- 服务分类 CRUD — project-scoped`; `SlaPolicyViewSet -- SLA 策略 CRUD — project-scoped`; `IncidentViewSet -- 事件工单管理 — project-scoped` |
+| `views\workflow_views.py` | ITSM Workflow views — 流程模板管理、节点、连线、字段、AI 生成 | `ItsmProjectViewSet -- ITSM project-scoped ViewSet — 整合 IAM ProjectFilteredViewSet + dvadmin 响应格式`; `WorkflowViewSet -- 流程模板管理 — project-scoped with multi-tenant isolation`; `WorkflowVersionViewSet -- 流程版本管理` |
+

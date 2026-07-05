@@ -92,8 +92,17 @@ class Ticket(CoreModel):
         self.save(update_fields=['current_status', 'state_history'])
 
     def get_state(self, state_id):
-        """从 workflow_version 快照中获取节点数据"""
-        return self.workflow_version.states.get(str(state_id))
+        """从 workflow_version 快照中获取节点数据
+        支持按 dict key（node_key 或 id）和按 state['id'] / state['node_key'] 查找"""
+        states = self.workflow_version.states or {}
+        key = str(state_id)
+        if key in states:
+            return states[key]
+        # Fallback: search by id or node_key field
+        for s in states.values():
+            if str(s.get('id')) == key or str(s.get('node_key')) == key:
+                return s
+        return {}
 
     def get_first_state(self):
         """获取提单节点"""
@@ -105,10 +114,14 @@ class Ticket(CoreModel):
     def do_before_enter_state(self, state_id, operator=''):
         """进入节点前处理"""
         state_data = self.get_state(state_id)
+        if not state_data:
+            return
+        db_id = state_data.get('id', state_id)
+        nk = state_data.get('node_key', '')
         processors_text = state_data.get('processors', '')
         TicketStatus.objects.update_or_create(
             ticket=self,
-            state_id=state_id,
+            state_id=int(db_id),
             defaults={
                 'name': state_data.get('name', ''),
                 'type': state_data.get('type', 'NORMAL'),
@@ -117,7 +130,9 @@ class Ticket(CoreModel):
             }
         )
         node_status = self.node_status or {}
-        node_status[str(state_id)] = {
+        # Use node_key as primary key for node_status (matches bamboo activity ID)
+        key = nk or str(db_id)
+        node_status[key] = {
             'status': 'RUNNING',
             'name': state_data.get('name', ''),
         }
@@ -150,13 +165,17 @@ class Ticket(CoreModel):
 
     def do_in_state(self, state_id, fields_data, operator=''):
         """节点处理中 — 保存表单数据"""
-        TicketStatus.objects.filter(ticket=self, state_id=state_id).update(
+        state_data = self.get_state(state_id)
+        db_id = state_data.get('id', state_id) if state_data else state_id
+        nk = state_data.get('node_key', '') if state_data else ''
+        TicketStatus.objects.filter(ticket=self, state_id=int(db_id)).update(
             status='FINISHED',
             fields=fields_data,
         )
         node_status = self.node_status or {}
-        if str(state_id) in node_status:
-            node_status[str(state_id)]['status'] = 'FINISHED'
+        key = nk or str(db_id)
+        if key in node_status:
+            node_status[key]['status'] = 'FINISHED'
         self.node_status = node_status
         self.save(update_fields=['node_status'])
 
@@ -181,9 +200,11 @@ class Ticket(CoreModel):
         """工单创建后初始化"""
         state_id, state_data = self.get_first_state()
         if state_id:
+            # state_id may be node_key (str), use state_data['id'] for DB integer
+            db_id = state_data.get('id', state_id)
             TicketStatus.objects.create(
                 ticket=self,
-                state_id=int(state_id),
+                state_id=int(db_id),
                 name=state_data.get('name', ''),
                 type=state_data.get('type', 'NORMAL'),
                 status='WAIT',

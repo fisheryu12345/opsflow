@@ -441,6 +441,30 @@
               <div class="itsm-timeline-name">{{ ns.name }} <el-tag :type="ns.status === 'FINISHED' ? 'success' : ns.status === 'RUNNING' ? 'primary' : 'info'" size="small">{{ ns.status }}</el-tag></div>
               <div class="itsm-timeline-meta" v-if="ns.processors">处理人: {{ ns.processors }}</div>
             </div>
+            <!-- Fill form for RUNNING normal (fill-form) nodes -->
+            <div v-if="ns.type === 'NORMAL' && ns.status === 'RUNNING' && ns.fields?.length" class="itsm-timeline-form">
+              <el-form label-position="top" size="small" class="itsm-fill-form">
+                <el-form-item v-for="f in ns.fields" :key="f.key" :label="f.name" :required="f.required">
+                  <template v-if="f.type === 'TEXT'">
+                    <el-input v-model="fillFormData[f.key]" type="textarea" :rows="3" :placeholder="f.placeholder" />
+                  </template>
+                  <template v-else-if="f.type === 'SELECT'">
+                    <el-select v-model="fillFormData[f.key]" style="width:100%" :placeholder="f.placeholder">
+                      <el-option v-for="c in (f.choice || [])" :key="c.value" :label="c.label" :value="c.value" />
+                    </el-select>
+                  </template>
+                  <template v-else-if="f.type === 'FILE'">
+                    <el-upload :auto-upload="false" :limit="1" @change="(file: any) => fillFormData[f.key] = file.raw">
+                      <el-button size="small" type="primary">选择文件</el-button>
+                    </el-upload>
+                  </template>
+                  <template v-else>
+                    <el-input v-model="fillFormData[f.key]" :placeholder="f.placeholder" />
+                  </template>
+                </el-form-item>
+                <el-button type="primary" size="small" :loading="submittingNode" @click="onNodeSubmit(ns)">提交</el-button>
+              </el-form>
+            </div>
             <!-- Approve/reject for RUNNING approval nodes -->
             <div v-if="ns.type === 'APPROVAL' && ns.status === 'RUNNING'" class="itsm-timeline-actions">
               <el-button size="small" type="success" @click="onApprove(ns)">通过</el-button>
@@ -537,8 +561,8 @@ import {
   incidentApi, changeApi, slaPolicyApi,
   AssignIncident, ResolveIncident, CloseIncident,
   ApproveChange, RejectChange,
-  workflowApi, workflowVersionApi, ticketApi,
-  DeployWorkflow, SubmitTicket, ApproveTicketNode, RejectTicketNode,
+  workflowApi, workflowVersionApi, stateApi, transitionApi, ticketApi,
+  DeployWorkflow, SubmitTicket, NodeSubmit, ApproveTicketNode, RejectTicketNode,
   CloseTicket, GetTicketStatus,
   AIGenerateWorkflow,
   AssignTicket, RollbackVersion,
@@ -624,6 +648,8 @@ async function loadCategories() {
   } catch { categoryOptions.value = [] }
 }
 const submittingTicket = ref(false)
+const submittingNode = ref(false)
+const fillFormData = reactive<Record<string, any>>({})
 
 async function loadTickets() {
   loadingTickets.value = true
@@ -737,11 +763,31 @@ async function onViewTicket(row: any) {
   try {
     const res = await ticketApi.detail(row.id)
     const ticketDetail = res?.data || res
+    detailTicket.value = ticketDetail
     ticketNodeStatus.value = ticketDetail.node_status ? Object.values(ticketDetail.node_status) : []
     const statusRes = await GetTicketStatus(row.id)
     const statusData = statusRes?.data || statusRes
     if (statusData?.node_status) {
       ticketNodeStatus.value = statusData.node_status
+    }
+    // Merge field definitions from workflow version states into node status items
+    const wfVersionId = ticketDetail.workflow_version
+    if (wfVersionId) {
+      try {
+        const wfRes = await workflowVersionApi.detail(String(wfVersionId))
+        const wfData = wfRes?.data || wfRes
+        const states = wfData?.states || {}
+        for (const ns of ticketNodeStatus.value) {
+          for (const [key, state] of Object.entries(states) as [string, any][]) {
+            if (String(state.id) === String(ns.state_id) || key === String(ns.state_id)) {
+              ns.fields = state.fields || []
+              ns.state_id = state.id
+              ns.node_key = state.node_key
+              break
+            }
+          }
+        }
+      } catch { /* field definitions unavailable */ }
     }
   } catch { ticketNodeStatus.value = [] }
   showTicketDetail.value = true
@@ -755,6 +801,36 @@ async function onCloseTicket(row: any) {
   } catch (e: any) {
     ElMessage.error(e?.msg || '关闭失败')
   }
+}
+
+async function onNodeSubmit(ns: any) {
+  if (!detailTicket.value) return
+  submittingNode.value = true
+  try {
+    // Build fields object from fillFormData
+    const fields: Record<string, any> = {}
+    for (const [k, v] of Object.entries(fillFormData)) {
+      if (v != null && v !== '') fields[k] = v
+    }
+    await NodeSubmit(detailTicket.value.id, {
+      state_id: ns.state_id || ns.id,
+      fields,
+    })
+    ElMessage.success('提交成功')
+    // Clear form and refresh detail
+    Object.keys(fillFormData).forEach(k => delete fillFormData[k])
+    const row = { id: detailTicket.value.id }
+    // Re-fetch ticket detail
+    const res = await ticketApi.detail(row.id)
+    detailTicket.value = res?.data || res
+    const statusRes = await GetTicketStatus(row.id)
+    const statusData = statusRes?.data || statusRes
+    ticketNodeStatus.value = statusData?.node_status || []
+    await loadTickets()
+  } catch (e: any) {
+    ElMessage.error(e?.msg || '提交失败')
+  }
+  submittingNode.value = false
 }
 
 async function onApprove(ns: any) {
@@ -934,20 +1010,21 @@ async function onSaveAIWorkflow() {
   if (!aiResult.value) return
   savingWf.value = true
   try {
-    const wfData = aiResult.value.workflow
+    const wfData = aiResult.value.workflow || {}
+    console.log('[AI SAVE] wfData=', JSON.stringify(wfData), 'aiType=', aiType.value)
     const res = await workflowApi.create({
-      name: wfData.name,
+      name: wfData.name || `AI-${aiType.value}-${Date.now()}`,
       itsm_type: aiType.value,
       description: wfData.description || aiDescription.value,
     })
-    const wf = res.data || res
-    // Create states
+    const wf = res.data?.data || res.data || res
+    // Create states via state API
     for (const state of aiResult.value.states || []) {
-      await workflowApi.create({ ...state, workflow: wf.id })
+      await stateApi.create({ ...state, workflow: wf.id })
     }
-    // Create transitions
+    // Create transitions via transition API
     for (const trans of aiResult.value.transitions || []) {
-      await workflowApi.create({ ...trans, workflow: wf.id })
+      await transitionApi.create({ ...trans, workflow: wf.id })
     }
     ElMessage.success('流程模板已创建，可在「流程模板」中查看并部署')
     showAICreate.value = false

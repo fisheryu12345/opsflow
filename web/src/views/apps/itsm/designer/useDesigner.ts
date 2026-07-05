@@ -42,7 +42,16 @@ export function useDesigner(containerId: string, workflowId?: number) {
         allowLoop: false,
         snap: true,
         highlight: true,
-        validateConnection: () => true,
+        validateConnection({ sourceCell, targetCell, sourcePort, targetPort }) {
+          if (!sourceCell || !sourcePort) return false
+          // Must connect to a valid cell port
+          if (!targetCell && !targetPort) return false
+          // START only has outgoing connections
+          if (sourceCell?.getData()?.type === 'END') return false
+          // END only has incoming connections
+          if (targetCell?.getData()?.type === 'START') return false
+          return true
+        },
       },
       highlighting: {
         nodeAvailable: { name: 'stroke', args: { padding: 4, attrs: { stroke: '#409EFF' } } },
@@ -90,30 +99,94 @@ export function useDesigner(containerId: string, workflowId?: number) {
       }
     })
     g.on('edge:connected', ({ edge }) => {
-      const t = edge.getTargetCell()
       const s = edge.getSourceCell()
+      const t = edge.getTargetCell()
+      const src = edge.getSource()
+      const tgt = edge.getTarget()
+      // Fix edge data after connection is finalized (edge:added fires before target is resolved)
+      if (tgt?.cell) {
+        const ed = edge.getData() || {}
+        ed.from_node_key = s?.getData()?.node_key || src.cell || ''
+        ed.to_node_key = t?.getData()?.node_key || tgt.cell || ''
+        ed._from_state = src.cell || ''
+        ed._to_state = tgt.cell || ''
+        edge.setData(ed)
+      }
       if (s && t) { refreshPortStates(s); refreshPortStates(t) }
     })
     g.bindKey('del', () => { const c = g.getSelectedCells(); if (c.length) g.removeCells(c) })
     g.bindKey('backspace', () => { const c = g.getSelectedCells(); if (c.length) g.removeCells(c) })
     g.on('node:added', ({ node }) => {
       const data = node.getData() || {}
-      // 填单/审批/会签节点自动注入默认表单字段（仅在首次拖入时）
-      if ((data.type === 'NORMAL' || data.type === 'APPROVAL' || data.type === 'SIGN') && data.fields == null) {
-        data.fields = JSON.parse(JSON.stringify(DEFAULT_NODE_FIELDS[data.type] || []))
+      const isCardNode = node.shape === 'itsm-node'
+      const isEvent = node.shape === 'itsm-start-event' || node.shape === 'itsm-end-event'
+      // Generate node_key for START/END like content nodes
+      if (isEvent && !data._initialized) {
+        let maxN = 0
+        for (const cell of g.getNodes()) {
+          const nk = cell.getData()?.node_key || ''
+          const m = nk.match(/^node_(\d+)$/)
+          if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
+        }
+        data.node_key = `node_${maxN + 1}`
+        data._initialized = true
         node.setData(data)
       }
-      if (node.shape === 'itsm-node') updateItsmNode(node)
+      // Populate complete default data on first drop from stencil
+      // (stencil nodes only have { node_type, type }; without this the config panel shows empty)
+      if (isCardNode && !data._initialized) {
+        // Generate stable node_key (node_{N+1} format) — does NOT change X6 cell ID
+        if (!data.node_key) {
+          let maxN = 0
+          for (const cell of g.getNodes()) {
+            const nk = cell.getData()?.node_key || ''
+            const m = nk.match(/^node_(\d+)$/)
+            if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
+          }
+          data.node_key = `node_${maxN + 1}`
+        }
+        const cfg = getNodeConfig(data.type || 'NORMAL')
+        data.name = data.name || cfg.label
+        data.processors_type = data.processors_type || ''
+        data.processorsRaw = data.processorsRaw || ''
+        data.is_multi = data.is_multi ?? false
+        data.is_sequential = data.is_sequential ?? false
+        data.is_allow_skip = data.is_allow_skip ?? false
+        data.is_builtin = data.is_builtin ?? false
+        data.node_key = data.node_key || node.id
+        data.api_instance_id = data.api_instance_id ?? 0
+        // Inject default form fields for fill/approval/sign nodes
+        if ((data.type === 'NORMAL' || data.type === 'APPROVAL' || data.type === 'SIGN') && data.fields == null) {
+          data.fields = JSON.parse(JSON.stringify(DEFAULT_NODE_FIELDS[data.type] || []))
+        }
+        data._initialized = true
+        node.setData(data)
+      }
+      if (isCardNode) updateItsmNode(node)
     })
     g.on('edge:added', ({ edge }) => {
-      if (!edge.getData()) {
-        edge.setData({ label: '' })
+      const ed = edge.getData() || {}
+      const srcCell = edge.getSourceCell()
+      const tgtCell = edge.getTargetCell()
+      const srcId = edge.getSourceCellId?.() || ''
+      const tgtId = edge.getTargetCellId?.() || ''
+      const rawSrc = edge.getSource()
+      const rawTgt = edge.getTarget()
+      if (!ed.label && !ed._initialized) ed.label = ''
+      if (!ed.from_node_key) {
+        ed.from_node_key = srcCell?.getData()?.node_key || srcCell?.id || ''
       }
+      if (!ed.to_node_key) {
+        ed.to_node_key = tgtCell?.getData()?.node_key || tgtCell?.id || ''
+      }
+      if (!ed._from_state) ed._from_state = srcId
+      if (!ed._to_state) ed._to_state = tgtId
+      edge.setData(ed)
     })
 
 
     graph.value = g
-  // 边配置修改自动同步回 X6 cell
+  // Sync edge config changes back to X6 cell
   watch(selectedEdge, (val) => {
     if (val && val._x6Id && graph.value) {
       const cell = graph.value.getCellById(val._x6Id)
@@ -122,12 +195,13 @@ export function useDesigner(containerId: string, workflowId?: number) {
       }
     }
   }, { deep: true })
-  // 节点配置修改自动同步回 X6 cell（名称变更触发视觉更新）
+  // Sync node config changes back to X6 cell + refresh card visual
   watch(selectedNode, (val) => {
     if (val && val._x6Id && graph.value) {
       const cell = graph.value.getCellById(val._x6Id)
       if (cell && cell.isNode()) {
         cell.setData({ ...val })
+        if (cell.shape === 'itsm-node') updateItsmNode(cell)
       }
     }
   }, { deep: true })
@@ -161,11 +235,18 @@ export function useDesigner(containerId: string, workflowId?: number) {
       },
       getDropNode(node) {
         const d = node.getData()
-        // 将 stencil 卡片预览节点转换为正式 itsm-node 形状
-        if (d?.type && !['START', 'END', 'EXCLUSIVE', 'CONDITIONAL_PARALLEL', 'PARALLEL', 'COVERAGE'].includes(d.type)) {
-          const n = node.clone()
-          n.prop('shape', 'itsm-node')
-          n.setSize({ width: CARD_WIDTH, height: CARD_HEIGHT })
+        // Create fresh nodes instead of cloning — cloning breaks X6 view binding
+        if (d?.type) {
+          const gatewayTypes = ['EXCLUSIVE', 'CONDITIONAL_PARALLEL', 'PARALLEL', 'COVERAGE']
+          if (gatewayTypes.includes(d.type)) return node.clone()  // gateways can clone safely
+          const isEvent = d.type === 'START' || d.type === 'END'
+          const shape = isEvent
+            ? (d.type === 'START' ? 'itsm-start-event' : 'itsm-end-event')
+            : 'itsm-node'
+          const w = isEvent ? 56 : CARD_WIDTH
+          const h = isEvent ? 56 : CARD_HEIGHT
+          const n = graph.value!.createNode({ shape, width: w, height: h })
+          n.setData({ ...d })
           return n
         }
         return node.clone()
@@ -221,11 +302,13 @@ export function useDesigner(containerId: string, workflowId?: number) {
     try {
       const [wfRes, stRes, trRes] = await Promise.all([
         workflowApi.detail(String(id)),
-        stateApi.list({ workflow: id }),
-        transitionApi.list({ workflow: id }),
+        stateApi.list({ workflow: id, page_size: 1000 }),
+        transitionApi.list({ workflow: id, page_size: 1000 }),
       ])
       workflow.value = wfRes.data?.data || wfRes.data || wfRes
+      console.log('[LOAD] raw states:', JSON.stringify((stRes.data?.data||stRes.data?.results||stRes.data||[]).map((s:any)=>({nk:s.node_key,t:s.type,n:s.name}))))
       const states = stRes.data?.data || stRes.data?.results || stRes.data || []
+      console.log('[LOAD] raw trans:', JSON.stringify((trRes.data?.data||trRes.data?.results||trRes.data||[]).map((t:any)=>({f:t.from_node_key,to:t.to_node_key}))))
       const trans = trRes.data?.data || trRes.data?.results || trRes.data || []
       nodes.value = states
       edges.value = trans
@@ -248,8 +331,26 @@ export function useDesigner(containerId: string, workflowId?: number) {
       s._y = 80 + row * 90
     })
 
-    states.forEach((s: any) => {
-      const nodeId = `node_${s.id}`
+    // Generate unique node_keys for old states without one (prevent conflicts)
+    let maxN = 0
+    for (const s of states) {
+      const m = (s.node_key || '').match(/^node_(\d+)$/)
+      if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
+    }
+    const stateNkMap: Record<string, string> = {}  // DB id → new node_key
+    for (const s of states) {
+      if (s.node_key) {
+        stateNkMap[String(s.id)] = s.node_key
+      } else {
+        stateNkMap[String(s.id)] = `node_${++maxN}`
+      }
+    }
+
+    // Render all states including START/END
+    for (const s of states) {
+      const nk = stateNkMap[String(s.id)]
+      const nodeId = nk
+      s.node_key = nk  // update source so edge lookup works
       const shap = resolveItsmShape(s.type)
       const isGateway = ['itsm-exclusive-gateway', 'itsm-conditional-parallel-gateway', 'itsm-parallel-gateway', 'itsm-converge-gateway'].includes(shap)
       const isEvent = shap === 'itsm-start-event' || shap === 'itsm-end-event'
@@ -258,18 +359,26 @@ export function useDesigner(containerId: string, workflowId?: number) {
         x: s._x || 80, y: s._y || 80,
         width: isEvent ? 56 : isGateway ? 70 : CARD_WIDTH,
         height: isEvent ? 56 : isGateway ? 70 : CARD_HEIGHT,
-        data: { ...s, id: s.id },
+        data: { ...s, id: s.id, node_key: nk },
       })
-    })
+    }
+
+    // Build state_id → cell_id map for edge lookups
+    const cellIdMap: Record<string, string> = {}
+    for (const s of states) {
+      cellIdMap[String(s.id)] = stateNkMap[String(s.id)]
+    }
 
     trans.forEach((t: any) => {
-      const fromNode = g.getCellById(`node_${t.from_state}`)
-      const toNode = g.getCellById(`node_${t.to_state}`)
+      const fromCellId = t.from_node_key || cellIdMap[String(t.from_state)] || `node_${t.from_state}`
+      const toCellId = t.to_node_key || cellIdMap[String(t.to_state)] || `node_${t.to_state}`
+      const fromNode = g.getCellById(fromCellId)
+      const toNode = g.getCellById(toCellId)
       if (!fromNode || !toNode) return
       const isReject = t.direction === 'reject' || t.name === 'reject'
       g.addEdge({
-        source: { cell: fromNode.id, port: 'bottom' },
-        target: { cell: toNode.id, port: 'top' },
+        source: { cell: fromNode.id, port: 'right' },
+        target: { cell: toNode.id, port: 'left' },
         attrs: {
           line: {
             stroke: isReject ? '#F56C6C' : t.condition ? '#E6A23C' : '#DCDFE6',
@@ -279,6 +388,8 @@ export function useDesigner(containerId: string, workflowId?: number) {
         },
         data: {
           ...t, _from_state: t.from_state, _to_state: t.to_state,
+          from_node_key: t.from_node_key || '',
+          to_node_key: t.to_node_key || '',
           isReject, label: isReject ? '驳回' : (t.condition ? '条件' : ''),
         },
       })
@@ -293,30 +404,48 @@ export function useDesigner(containerId: string, workflowId?: number) {
     try {
       const wfId = workflow.value?.id || workflowData.id
       const stData = nodeList
-        .filter((n: any) => n.type !== 'START' && n.type !== 'END')
         .map((n: any) => ({
-          id: n.originId || n.id, workflow_id: wfId, name: n.name || getNodeConfig(n.type).label,
+          ...(n.originId && typeof n.originId === 'number' ? { id: n.originId } : {}),
+          node_key: n.node_key || n.id, workflow_id: wfId, name: n.name || getNodeConfig(n.type).label,
           type: n.type, processors_type: n.processors_type || '',
           processors: n.processorsRaw || n.processors || '',
           is_multi: n.is_multi ?? false, is_sequential: n.is_sequential ?? false,
           is_allow_skip: n.is_allow_skip ?? false, is_builtin: n.is_builtin ?? false,
           fields: n.fields || [],
         }))
-      const trData = edgeList.map((e: any) => ({
-        id: e.originId || e._id, workflow_id: wfId, name: e.label || '',
-        from_state_id: e._from_state, to_state_id: e._to_state,
-        condition: e.condition || null, condition_type: e.condition ? 'script' : '',
+      const trData = edgeList.map((e: any) => {
+      // Re-derive node_key from real-time cell data (stale edge data can be wrong)
+      const g = graph.value
+      let fnk = e.from_node_key || ''
+      let tnk = e.to_node_key || ''
+      if (g) {
+        const srcCell = g.getCellById(e._from_state || '') || (fnk ? g.getCellById(fnk) : null)
+        const tgtCell = g.getCellById(e._to_state || '') || (tnk ? g.getCellById(tnk) : null)
+        fnk = srcCell?.getData()?.node_key || fnk
+        tnk = tgtCell?.getData()?.node_key || tnk
+      }
+      return {
+        ...(e.originId && typeof e.originId === 'number' ? { id: e.originId } : {}),
+        workflow_id: wfId, name: e.label || '',
+        from_node_key: fnk, to_node_key: tnk,
+        condition: e.condition || {}, condition_type: e.condition ? 'script' : '',
         direction: e.isReject ? 'reject' : 'forward',
-      }))
-      // 同步流程名称等元数据
+      }})
+      // Sync workflow metadata
       await workflowApi.update(String(wfId), {
         name: workflowData.name,
         description: workflowData.description,
         itsm_type: workflowData.itsm_type,
       })
+      console.log('[SAVE] states:', JSON.stringify(stData.map(s=>({nk:s.node_key,t:s.type,n:s.name}))))
+      console.log('[SAVE] edges:', JSON.stringify(trData.map(t=>({f:t.from_node_key,to:t.to_node_key}))))
       await StateSync(wfId, stData)
       await TransitionSync(wfId, trData)
-      await loadWorkflow(wfId)
+      // Mark as draft to re-enable deploy button after modifying a deployed workflow
+      if (workflow.value && !workflow.value.is_draft) {
+        workflow.value.is_draft = true
+        await workflowApi.update(String(wfId), { is_draft: true })
+      }
       ElMessage.success('保存成功')
     } catch (e) { console.error(e); ElMessage.error('保存失败') }
     saving.value = false
@@ -338,7 +467,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
     for (const cell of cells) {
       if (cell.isNode()) {
         const data = cell.getData()
-        if (data && data.type !== 'START' && data.type !== 'END') nodeList.push(data)
+        if (data) nodeList.push(data)
       } else if (cell.isEdge()) {
         const data = cell.getData()
         if (data) edgeList.push(data)
@@ -347,8 +476,11 @@ export function useDesigner(containerId: string, workflowId?: number) {
     await saveDesigner(workflow.value, nodeList, edgeList)
     try {
       await DeployWorkflow(String(workflow.value.id))
+      if (workflow.value) {
+        workflow.value.is_draft = false
+        workflow.value.is_enabled = true
+      }
       ElMessage.success('部署成功')
-      await loadWorkflow(workflow.value.id)
     } catch (e) { console.error(e); ElMessage.error('部署失败') }
   }
 
@@ -365,7 +497,8 @@ export function useDesigner(containerId: string, workflowId?: number) {
     })
     const pg = nodeDataList.filter((d: any) => d.type === 'CONDITIONAL_PARALLEL' || d.type === 'PARALLEL')
     const cg = nodeDataList.filter((d: any) => d.type === 'COVERAGE')
-    // 排他网关出边校验：前端约束，至少有一条无条件边
+    // Exclusive gateway out-edge validation: at least one default (unconditional) edge
+    const allCells = g.getCells()
     const edgeDataList = allCells.filter(c => c.isEdge()).map(c => c.getData()).filter(Boolean)
     nodeDataList.filter((d: any) => d.type === 'EXCLUSIVE').forEach((gw: any) => {
       const outEdges = edgeDataList.filter((e: any) => e._from_state === gw.id || e._from_state === String(gw.id))
@@ -393,26 +526,21 @@ export function useDesigner(containerId: string, workflowId?: number) {
       return
     }
 
-    // 收集节点数据 (id + type + name)
+    // Collect node data — use X6 cell ID directly so positions map back correctly
     const nodesData = nodeList.map(n => {
       const d = n.getData() || {}
-      return { id: d.id || n.id, type: d.type, name: d.name || '' }
+      return { id: n.id, type: d.type, name: d.name || '' }
     })
 
-    // 收集边数据 (from_state → to_state)
+    // Collect edge data — use X6 cell IDs for source/target
     const edgesData = edgeList.map((e: any) => {
       const d = e.getData() || {}
-      const src = e.getSourceCellId?.() || ''
-      const tgt = e.getTargetCellId?.() || ''
-      // Extract state IDs from X6 cell IDs (format: node_<id>)
-      const fromId = d.from_state || d._from_state || (src.startsWith('node_') ? src.slice(5) : src)
-      const toId = d.to_state || d._to_state || (tgt.startsWith('node_') ? tgt.slice(5) : tgt)
-      return { id: d.id || e.id, from_state: String(fromId), to_state: String(toId) }
+      const srcId = e.getSourceCellId?.() || ''
+      const tgtId = e.getTargetCellId?.() || ''
+      return { id: e.id, from_state: srcId, to_state: tgtId }
     })
 
     try {
-      const { workflowApi } = await import('/@/api/itsm/index')
-      // Use a dedicated request for layout since workflowApi doesn't have a layout method
       const { request } = await import('/@/utils/service')
       const res: any = await request({
         url: `/api/itsm/workflows/${wfId}/layout/`,
@@ -425,14 +553,15 @@ export function useDesigner(containerId: string, workflowId?: number) {
         return
       }
 
-      // Apply positions: map state ID → X6 cell ID (node_<id>)
+      // Apply positions: pos.id matches X6 cell ID directly
       for (const pos of positions) {
-        const cell = g.getCellById(`node_${pos.id}`)
+        const cell = g.getCellById(String(pos.id))
         if (cell && cell.isNode()) {
           cell.setPosition({ x: pos.x, y: pos.y })
         }
       }
       g.centerContent()
+      console.log('[LAYOUT] after layout - nodes:', g.getNodes().map(n=>({id:n.id,pos:n.getPosition(),nk:n.getData()?.node_key})))
       ElMessage.success('Auto layout complete')
     } catch (e: any) {
       console.error('Layout failed:', e)

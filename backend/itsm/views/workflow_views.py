@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ITSM Workflow views — 流程模板管理、节点、连线、字段、AI 生成"""
 
+import logging
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -48,6 +49,8 @@ class ItsmProjectViewSet(ProjectFilteredViewSet):
         return DetailResponse(data=serializer.data, msg="获取成功")
 
     def create(self, request, *args, **kwargs):
+        import logging
+        logging.getLogger(__name__).warning(f'[WF CREATE] request.data={request.data}')
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -159,7 +162,7 @@ class WorkflowViewSet(ItsmProjectViewSet):
         message = request.data.get('message', '')
         try:
             version = instance.create_version(
-                operator=request.user,
+                operator=request.user.id,
                 message=message,
             )
             instance.is_draft = False
@@ -220,7 +223,7 @@ class WorkflowVersionViewSet(CustomModelViewSet):
                     layout=fdata.get('layout', 'COL_12'),
                     choice=fdata.get('choice', []), default=fdata.get('default', []),
                 )
-        new_version = workflow.create_version(operator=request.user, message=message)
+        new_version = workflow.create_version(operator=request.user.id, message=message)
         return DetailResponse(data=WorkflowVersionSerializer(new_version).data, msg='Rolled back v'+old_version.version+', created v'+new_version.version)
 
 class StateViewSet(CustomModelViewSet):
@@ -230,6 +233,7 @@ class StateViewSet(CustomModelViewSet):
     serializer_class = StateSerializer
     filter_fields = ['workflow', 'type']
     ordering = ['id']
+    pagination_class = None  # disable pagination — all states for a workflow must load
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -241,26 +245,33 @@ class StateViewSet(CustomModelViewSet):
 
     @action(methods=['POST'], detail=False)
     def sync(self, request):
-        """全量同步节点（自动保存用）— 差异删除+创建+更新"""
+        """全量同步节点（自动保存用）— 按 node_key 差异删除+创建+更新"""
         workflow_id = request.data.get('workflow_id')
         states = request.data.get('states', [])
         if not workflow_id:
             return ErrorResponse(msg='workflow_id required')
-        existing_ids = set(State.objects.filter(workflow_id=workflow_id).values_list('id', flat=True))
-        incoming_ids = set()
+        # Use node_key as stable identifier; fall back to id for backward compat
+        existing = {s.node_key: s for s in State.objects.filter(workflow_id=workflow_id) if s.node_key}
+        incoming_keys = set()
         for s in states:
-            sid = s.get('id')
+            nk = s.get('node_key')
             clean = _filter_model_fields(State, s)
             clean.pop('id', None)
-            if sid and State.objects.filter(id=sid, workflow_id=workflow_id).exists():
-                State.objects.filter(id=sid).update(**clean)
-                incoming_ids.add(sid)
+            if nk and nk in existing:
+                State.objects.filter(id=existing[nk].id).update(**clean)
+                incoming_keys.add(nk)
             else:
                 clean['workflow_id'] = workflow_id
+                if nk:
+                    clean['node_key'] = nk
                 new_state = State.objects.create(**clean)
-                incoming_ids.add(new_state.id)
-        to_delete = existing_ids - incoming_ids
-        State.objects.filter(id__in=to_delete).delete()
+                if nk:
+                    incoming_keys.add(nk)
+        # Delete states that no longer exist on canvas + old states without node_key
+        to_delete = set(existing.keys()) - incoming_keys
+        State.objects.filter(workflow_id=workflow_id, node_key__in=to_delete).delete()
+        # Also purge legacy states without node_key (already replaced by node_key versions)
+        State.objects.filter(workflow_id=workflow_id, node_key__isnull=True).delete()
         return DetailResponse(msg='节点全量同步成功')
 
 
@@ -270,6 +281,7 @@ class TransitionViewSet(CustomModelViewSet):
     queryset = Transition.objects.all()
     serializer_class = TransitionSerializer
     filter_fields = ['workflow', 'from_state', 'to_state']
+    pagination_class = None  # disable pagination — all transitions for a workflow must load
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -281,17 +293,31 @@ class TransitionViewSet(CustomModelViewSet):
 
     @action(methods=['POST'], detail=False)
     def sync(self, request):
-        """全量同步连线（自动保存用）"""
+        """全量同步连线（自动保存用）— 按 from_node_key → to_node_key 标识"""
         workflow_id = request.data.get('workflow_id')
         transitions = request.data.get('transitions', [])
         if not workflow_id:
             return ErrorResponse(msg='workflow_id required')
+        # Build node_key → State.id lookup
+        state_map = {s.node_key: s.id for s in State.objects.filter(workflow_id=workflow_id) if s.node_key}
         existing_ids = set(Transition.objects.filter(workflow_id=workflow_id).values_list('id', flat=True))
         incoming_ids = set()
         for t in transitions:
             tid = t.get('id')
             clean = _filter_model_fields(Transition, t)
             clean.pop('id', None)
+            # Always strip old from_state_id/to_state_id — resolve solely from node_key
+            clean.pop('from_state_id', None)
+            clean.pop('to_state_id', None)
+            fnk = t.get('from_node_key', '')
+            tnk = t.get('to_node_key', '')
+            if fnk and fnk in state_map:
+                clean['from_state_id'] = state_map[fnk]
+            if tnk and tnk in state_map:
+                clean['to_state_id'] = state_map[tnk]
+            # Skip transitions that can't resolve source or target
+            if 'from_state_id' not in clean or 'to_state_id' not in clean:
+                continue
             if tid and Transition.objects.filter(id=tid, workflow_id=workflow_id).exists():
                 Transition.objects.filter(id=tid).update(**clean)
                 incoming_ids.add(tid)
@@ -301,6 +327,11 @@ class TransitionViewSet(CustomModelViewSet):
                 incoming_ids.add(new_t.id)
         to_delete = existing_ids - incoming_ids
         Transition.objects.filter(id__in=to_delete).delete()
+        # Also purge legacy transitions without node_key
+        from django.db.models import Q
+        Transition.objects.filter(workflow_id=workflow_id).filter(
+            Q(from_node_key__isnull=True) | Q(to_node_key__isnull=True)
+        ).delete()
         return DetailResponse(msg='连线全量同步成功')
 
 

@@ -106,7 +106,7 @@ class Command(BaseCommand):
             {'key': 'logs',        'label_zh': '执行日志',   'label_en': 'Logs',      'icon': 'List',          'required_perm': None,                                     'sort': 60},
             {'key': 'webhooks',    'label_zh': 'Webhook',   'label_en': 'Webhook',    'icon': 'Link',          'required_perm': 'opsflow:webhooks:view',                   'sort': 70},
             {'key': 'project',     'label_zh': '项目管理',   'label_en': 'Project',   'icon': 'Setting',       'required_perm': 'opsflow:project:view',                    'sort': 80},
-            {'key': 'designer',    'label_zh': '设计器',     'label_en': 'Designer',  'icon': 'EditPen',       'required_perm': 'opsflow:designer:view',  'visible': False, 'sort': 5},
+            {'key': 'designer',    'label_zh': '设计器',     'label_en': 'Designer',  'icon': 'EditPen',       'required_perm': 'opsflow:designer:view',  'visible': True,  'sort': 5},
         ]
         opsflow_buttons = {
             'templates': [

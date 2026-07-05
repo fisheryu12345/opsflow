@@ -51,8 +51,9 @@ class ITSMWorkflowBuilder:
         transition_map = {}  # from_state_id → [(to_state_id, condition_data)]
 
         for tid, trans in transitions.items():
-            from_id = str(trans.get('from_state_id'))
-            to_id = str(trans.get('to_state_id'))
+            # Use node_key for mapping if available, fall back to state FK IDs
+            from_id = str(trans.get('from_node_key') or trans.get('from_state_id'))
+            to_id = str(trans.get('to_node_key') or trans.get('to_state_id'))
             transition_map.setdefault(from_id, []).append({
                 'to_id': to_id,
                 'condition': trans.get('condition', {}),

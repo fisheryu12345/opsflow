@@ -69,7 +69,7 @@ class CustomModelSerializer(DynamicFieldsMixin, ModelSerializer):
                 if self.modifier_field_id in self.fields.fields:
                     validated_data[self.modifier_field_id] = self.get_request_user_id()
                 if self.creator_field_id in self.fields.fields:
-                    validated_data[self.creator_field_id] = self.request.user
+                    validated_data[self.creator_field_id] = self.get_request_user_id()
 
                 if (
                     self.dept_belong_id_field_name in self.fields.fields

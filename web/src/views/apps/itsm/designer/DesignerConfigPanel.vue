@@ -13,6 +13,9 @@
           <el-form-item label="节点名称">
             <el-input v-model="node.name" @input="onChange" />
           </el-form-item>
+          <el-form-item label="节点ID">
+            <el-input :model-value="node.node_key || node._x6Id" disabled />
+          </el-form-item>
           <el-form-item label="节点类型">
             <el-tag size="small">{{ typeLabel }}</el-tag>
           </el-form-item>

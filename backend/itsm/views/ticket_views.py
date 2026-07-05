@@ -36,7 +36,7 @@ class TicketViewSet(ItsmProjectViewSet):
         return TicketSerializer
 
     def perform_create(self, serializer):
-        instance = serializer.save(creator=self.request.user)
+        instance = serializer.save(creator=self.request.user.id)
         # Auto-fill business from project's business
         if instance.project and instance.project.business_id:
             instance.business = instance.project.business
@@ -250,5 +250,14 @@ class TicketViewSet(ItsmProjectViewSet):
 
     @staticmethod
     def _get_activity_id(ticket, state_id):
-        """获取 pipeline activity ID（目前直接使用 state_id）"""
+        """获取 pipeline activity ID — 用 node_key 匹配 bamboo element ID"""
+        states = (ticket.workflow_version and ticket.workflow_version.states) or {}
+        key = str(state_id)
+        if key in states:
+            s = states[key]
+            return str(s.get('node_key') or key)
+        # Fallback: search by id field
+        for s in states.values():
+            if str(s.get('id')) == key:
+                return str(s.get('node_key') or key)
         return str(state_id)

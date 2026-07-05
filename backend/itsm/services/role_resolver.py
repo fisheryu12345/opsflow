@@ -127,10 +127,10 @@ def _resolve_starter_leader(processors: str, ticket=None) -> list:
                 ).first()
                 if dept_head:
                     return [dept_head.username]
-        return [f'{ticket.creator}_leader']
+        return []
     except Exception as e:
         logger.warning(f'Cannot resolve leader for {ticket.creator}: {e}')
-        return [f'{ticket.creator}_leader']
+        return []
 
 
 def _resolve_role(processors: str, ticket=None) -> list:

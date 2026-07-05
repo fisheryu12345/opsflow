@@ -13,7 +13,7 @@ from bamboo_engine.builder.flow.data import NodeOutput
 # 匹配 ${expr} 整体
 _EXPR_PATTERN = re.compile(r'\$\{([^}]*)\}')
 # 在 ${} 内部匹配 node_id.key 引用
-_VAR_REF_PATTERN = re.compile(r'([a-zA-Z_]\w*)\.([a-zA-Z_]\w*)')
+_VAR_REF_PATTERN = re.compile(r'([a-zA-Z_]\w*|\d+)\.([a-zA-Z_]\w*)')
 
 
 def _register_node_output(data, var_name, source_act, source_key):

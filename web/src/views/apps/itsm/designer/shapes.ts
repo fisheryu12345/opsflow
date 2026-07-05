@@ -112,10 +112,8 @@ const PORT_GROUPS = {
   bottom: { position: { name: 'bottom' }, attrs: { circle: { ...PORT_ATTRS } } },
   left:   { position: { name: 'left' },   attrs: { circle: { ...PORT_ATTRS } } },
 }
-const PORT_ITEMS = [
-  { id: 'top', group: 'top' },
+const PORT_ITEMS = [  // Business nodes: left-in, right-out only
   { id: 'right', group: 'right' },
-  { id: 'bottom', group: 'bottom' },
   { id: 'left', group: 'left' },
 ]
 

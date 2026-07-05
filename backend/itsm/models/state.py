@@ -34,6 +34,8 @@ class State(CoreModel):
     )
     workflow = models.ForeignKey('itsm.Workflow', on_delete=models.CASCADE,
                                  related_name='states', verbose_name="所属流程")
+    node_key = models.CharField(max_length=32, null=True, blank=True, db_index=True,
+                                verbose_name="前端节点标识")
     name = models.CharField(max_length=128, verbose_name="节点名称")
     type = models.CharField(max_length=32, choices=TYPE_CHOICES, verbose_name="节点类型")
     is_builtin = models.BooleanField(default=False, verbose_name="内置节点")
@@ -61,6 +63,7 @@ class State(CoreModel):
         verbose_name = "流程节点"
         verbose_name_plural = verbose_name
         ordering = ['id']
+        unique_together = [('workflow', 'node_key')]
 
     def __str__(self):
         return f"[{self.get_type_display()}] {self.name}"

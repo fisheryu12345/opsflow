@@ -5,3 +5,4 @@
 backend/agent/build/
 backend/logs/
 ./superpowers/
+.superpowers/

@@ -110,7 +110,7 @@ async function onSave() {
     for (const cell of g.getCells()) {
       if (cell.isNode()) {
         const data = cell.getData()
-        if (data && data.type !== 'START' && data.type !== 'END') nodeList.push(data)
+        if (data) nodeList.push(data)
       } else if (cell.isEdge()) {
         const data = cell.getData()
         if (data) edgeList.push(data)

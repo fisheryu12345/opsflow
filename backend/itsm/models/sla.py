@@ -43,6 +43,7 @@ class SlaTask(CoreModel):
     deadline = models.DateTimeField(verbose_name="处理截止时间")
     reply_deadline = models.DateTimeField(null=True, blank=True, verbose_name="响应截止时间")
     cost_seconds = models.IntegerField(default=0, verbose_name="已用时间(秒)")
+    paused_at = models.DateTimeField(null=True, blank=True, verbose_name="暂停时间")
     task_status = models.CharField(max_length=16, choices=TASK_STATUS, default='unactivated',
                                     verbose_name="任务状态")
     sla_status = models.CharField(max_length=16, choices=SLA_STATUS, default='normal',

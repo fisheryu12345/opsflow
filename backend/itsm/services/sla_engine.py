@@ -45,7 +45,8 @@ class SlaEngine:
         handle_deadline = now + timedelta(minutes=policy.response_minutes) if policy.response_minutes else None
         reply_deadline = now + timedelta(minutes=policy.resolve_minutes) if policy.resolve_minutes else None
 
-        sla_task, created = SlaTask.objects.update_or_create(
+        # Only create SLA task if none exists — don't overwrite active SLA timers
+        sla_task, created = SlaTask.objects.get_or_create(
             ticket=ticket,
             defaults={
                 'sla_policy': policy,
@@ -56,30 +57,35 @@ class SlaEngine:
                 'sla_status': SlaEngine.NORMAL,
             }
         )
+        if not created and sla_task.task_status == 'paused':
+            # Resume paused SLA instead of resetting
+            SlaEngine.resume_ticket_sla(ticket)
         logger.info(f'SLA timer started for ticket {ticket.sn}: deadline={handle_deadline}')
         return sla_task
 
     @staticmethod
     def pause_ticket_sla(ticket):
-        """挂起工单时暂停 SLA 计时"""
+        """挂起工单时暂停 SLA 计时，记录暂停时间用于恢复"""
         from itsm.models import SlaTask
+        now = timezone.now()
         SlaTask.objects.filter(ticket=ticket, task_status='running').update(
             task_status='paused',
+            paused_at=now,
         )
         logger.info(f'SLA timer paused for ticket {ticket.sn}')
 
     @staticmethod
     def resume_ticket_sla(ticket):
-        """恢复工单时继续 SLA 计时"""
+        """恢复工单时继续 SLA 计时 — 补偿暂停时间"""
         from itsm.models import SlaTask
         sla = SlaTask.objects.filter(ticket=ticket, task_status='paused').first()
         if sla:
-            # 重新计算 deadline（扣除已用时间）
             now = timezone.now()
+            pause_duration = (now - sla.paused_at) if sla.paused_at else timedelta(0)
             if sla.deadline:
-                sla.deadline = now + (sla.deadline - sla.created_at) if sla.created_at else now
-            if sla.reply_deadline and sla.created_at:
-                sla.reply_deadline = now + (sla.reply_deadline - sla.created_at)
+                sla.deadline = sla.deadline + pause_duration
+            if sla.reply_deadline:
+                sla.reply_deadline = sla.reply_deadline + pause_duration
             sla.task_status = 'running'
             sla.save(update_fields=['deadline', 'reply_deadline', 'task_status'])
             logger.info(f'SLA timer resumed for ticket {ticket.sn}')

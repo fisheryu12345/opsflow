@@ -19,6 +19,10 @@ class Transition(CoreModel):
                                    related_name='outgoing', verbose_name="源节点")
     to_state = models.ForeignKey('itsm.State', on_delete=models.CASCADE,
                                  related_name='incoming', verbose_name="目标节点")
+    from_node_key = models.CharField(max_length=32, null=True, blank=True, db_index=True,
+                                     verbose_name="源节点标识")
+    to_node_key = models.CharField(max_length=32, null=True, blank=True, db_index=True,
+                                   verbose_name="目标节点标识")
     condition = models.JSONField(default=dict, verbose_name="条件表达式")
     condition_type = models.CharField(
         max_length=16, default='default',

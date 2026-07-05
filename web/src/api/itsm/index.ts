@@ -77,6 +77,9 @@ export function UploadTicketFile(id: number, file: File, fieldKey?: string) {
 export function SubmitTicket(id: string) {
   return request({ url: `${prefix}/tickets/${id}/submit/`, method: 'post' })
 }
+export function NodeSubmit(id: string, data: { state_id: number; fields: Record<string, any> }) {
+  return request({ url: `${prefix}/tickets/${id}/node_submit/`, method: 'post', data })
+}
 export function ApproveTicketNode(id: string, stateId: number, comment?: string) {
   return request({ url: `${prefix}/tickets/${id}/approve/`, method: 'post', data: { state_id: stateId, comment } })
 }
