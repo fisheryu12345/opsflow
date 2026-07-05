@@ -10,6 +10,7 @@ from itsm.models.workflow import Workflow, WorkflowVersion
 from itsm.models.state import State
 from itsm.models.transition import Transition
 from itsm.models.sla import SlaTask
+from itsm.models.service_item import ServiceItem
 
 
 def _create_user(username='testuser'):
@@ -221,3 +222,42 @@ class SlaTaskPausedAtTests(TestCase):
             paused_at=now,
         )
         self.assertIsNotNone(task.paused_at)
+
+
+class ServiceItemTests(TestCase):
+    def test_create_basic(self):
+        item = ServiceItem.objects.create(
+            name='申请服务器', description='申请一台云服务器',
+            icon='🖥️', mode='flow', expected_duration='3-5 工作日',
+        )
+        self.assertEqual(item.name, '申请服务器')
+        self.assertTrue(item.is_active)
+        self.assertEqual(item.mode, 'flow')
+        self.assertEqual(item.visible_to, 'all')
+
+    def test_default_mode_and_visibility(self):
+        item = ServiceItem.objects.create(name='默认测试')
+        self.assertEqual(item.mode, 'flow')
+        self.assertEqual(item.visible_to, 'all')
+        self.assertIsNone(item.workflow)
+
+    def test_lightweight_mode(self):
+        item = ServiceItem.objects.create(name='重置密码', mode='lightweight', default_assignee='IT支持组')
+        self.assertEqual(item.mode, 'lightweight')
+        self.assertEqual(item.default_assignee, 'IT支持组')
+
+    def test_form_fields_storage(self):
+        fields = [
+            {'key': 'env', 'name': '环境', 'type': 'SELECT', 'choice': [{'value': 'dev', 'label': '开发'}]},
+            {'key': 'reason', 'name': '申请理由', 'type': 'TEXT'},
+        ]
+        item = ServiceItem.objects.create(name='申请数据库', form_fields=fields)
+        self.assertEqual(len(item.form_fields), 2)
+        self.assertEqual(item.form_fields[0]['key'], 'env')
+
+    def test_ordering(self):
+        ServiceItem.objects.create(name='B', sort_order=2)
+        ServiceItem.objects.create(name='A', sort_order=1)
+        items = list(ServiceItem.objects.all())
+        self.assertEqual(items[0].name, 'A')
+        self.assertEqual(items[1].name, 'B')

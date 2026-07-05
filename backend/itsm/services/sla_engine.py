@@ -57,9 +57,16 @@ class SlaEngine:
                 'sla_status': SlaEngine.NORMAL,
             }
         )
-        if not created and sla_task.task_status == 'paused':
-            # Resume paused SLA instead of resetting
-            SlaEngine.resume_ticket_sla(ticket)
+        if not created:
+            if sla_task.task_status == 'paused':
+                SlaEngine.resume_ticket_sla(ticket)
+            elif sla_task.task_status == 'stopped':
+                # Reset a stopped SLA for subsequent approval nodes
+                sla_task.deadline = handle_deadline
+                sla_task.reply_deadline = reply_deadline
+                sla_task.task_status = 'running'
+                sla_task.sla_status = SlaEngine.NORMAL
+                sla_task.save(update_fields=['deadline', 'reply_deadline', 'task_status', 'sla_status'])
         logger.info(f'SLA timer started for ticket {ticket.sn}: deadline={handle_deadline}')
         return sla_task
 

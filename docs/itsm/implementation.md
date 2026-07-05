@@ -8,7 +8,7 @@
 |------|:----:|
 | 当前成熟度 | ⭐⭐⭐⭐☆ (4.5/5) |
 | 目标成熟度 | ⭐⭐⭐⭐⭐ (5/5) |
-| 差距 | AI 生成器未用真实 LLM，双向 OpsFlow 审批集成未完成，服务目录未建 |
+| 差距 | AI 生成器未用真实 LLM，双向 OpsFlow 审批集成未完成 |
 
 ## 功能点清单
 
@@ -34,7 +34,7 @@
 | 多租户对齐 | P1 | ✅ | Project/Business FK 隔离 | ITSM 核心模型注入 project/business FK，ViewSet 继承 ItsmProjectViewSet |
 | SlaPolicy 模型 | P1 | ✅ | SLA 策略定义 | PriorityMatrix + SLA 策略 |
 | AI 智能生成 | P2 | 🔄 | LLM 生成工作流 | AIGenerator：内置关键词模板引擎，<b>未接入真实 DeepSeek</b> |
-| 服务目录 | P2 | 📅 | 可请求的 IT 服务项 | ServiceCategory 模型存在，但无完整服务项+履行流程 |
+| 服务目录 | P2 | ✅ | 可请求的 IT 服务项 | ServiceItem 模型 + 双模式(flow/lightweight) + 服务市场(分类树+卡片) + 服务详情(表单+提交) + 管理后台(CRUD+预览) |
 | OpsFlow 双向审批 | P2 | 📅 | OpsFlow 审批节点创建 ITSM 工单 | 仅 ITSM→OpsFlow 单向，反向未实现 |
 | Monitor 告警→工单 | P2 | 📅 | 告警自动创建工单 | 无 Ticket ← Alert 集成 |
 | 变更日历 | P2 | 📅 | 变更时间线展示 | 无前端组件 |
@@ -52,6 +52,14 @@
 - [ ] OpsFlow 审批节点 ↔ ITSM 工单双向
 - [ ] Monitor 告警 → 创建工单
 - [ ] 变更日历前端
+
+### 2026-07-05 Update #2
+> 提交: e4b1923c
+- 服务目录: ServiceItem 模型 + flow/lightweight 双模式 + 服务市场(分类树+卡片) + 服务详情(表单+提交) + 管理后台(CRUD+预览) + 12个种子服务项 → ✅
+- SignTask 通过 TicketStatus pk 查询修复 → ✅
+- SLA stopped 状态重置支持（审批节点复用同一 SLA）→ ✅
+- WorkflowVersion rollback 保留 node_key，StateSync 保护旧状态 → ✅
+- 前端设计器清理 console.log + 连线数据引用修复 → ✅
 
 ### 2026-07-05 Update
 > 提交: 229bae20

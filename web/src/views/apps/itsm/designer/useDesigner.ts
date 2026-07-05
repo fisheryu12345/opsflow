@@ -170,8 +170,6 @@ export function useDesigner(containerId: string, workflowId?: number) {
       const tgtCell = edge.getTargetCell()
       const srcId = edge.getSourceCellId?.() || ''
       const tgtId = edge.getTargetCellId?.() || ''
-      const rawSrc = edge.getSource()
-      const rawTgt = edge.getTarget()
       if (!ed.label && !ed._initialized) ed.label = ''
       if (!ed.from_node_key) {
         ed.from_node_key = srcCell?.getData()?.node_key || srcCell?.id || ''
@@ -306,9 +304,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
         transitionApi.list({ workflow: id, page_size: 1000 }),
       ])
       workflow.value = wfRes.data?.data || wfRes.data || wfRes
-      console.log('[LOAD] raw states:', JSON.stringify((stRes.data?.data||stRes.data?.results||stRes.data||[]).map((s:any)=>({nk:s.node_key,t:s.type,n:s.name}))))
       const states = stRes.data?.data || stRes.data?.results || stRes.data || []
-      console.log('[LOAD] raw trans:', JSON.stringify((trRes.data?.data||trRes.data?.results||trRes.data||[]).map((t:any)=>({f:t.from_node_key,to:t.to_node_key}))))
       const trans = trRes.data?.data || trRes.data?.results || trRes.data || []
       nodes.value = states
       edges.value = trans
@@ -387,7 +383,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
           },
         },
         data: {
-          ...t, _from_state: t.from_state, _to_state: t.to_state,
+          ...t, _from_state: fromCellId, _to_state: toCellId,
           from_node_key: t.from_node_key || '',
           to_node_key: t.to_node_key || '',
           isReject, label: isReject ? '驳回' : (t.condition ? '条件' : ''),
@@ -437,8 +433,6 @@ export function useDesigner(containerId: string, workflowId?: number) {
         description: workflowData.description,
         itsm_type: workflowData.itsm_type,
       })
-      console.log('[SAVE] states:', JSON.stringify(stData.map(s=>({nk:s.node_key,t:s.type,n:s.name}))))
-      console.log('[SAVE] edges:', JSON.stringify(trData.map(t=>({f:t.from_node_key,to:t.to_node_key}))))
       await StateSync(wfId, stData)
       await TransitionSync(wfId, trData)
       // Mark as draft to re-enable deploy button after modifying a deployed workflow
@@ -561,7 +555,6 @@ export function useDesigner(containerId: string, workflowId?: number) {
         }
       }
       g.centerContent()
-      console.log('[LAYOUT] after layout - nodes:', g.getNodes().map(n=>({id:n.id,pos:n.getPosition(),nk:n.getData()?.node_key})))
       ElMessage.success('Auto layout complete')
     } catch (e: any) {
       console.error('Layout failed:', e)

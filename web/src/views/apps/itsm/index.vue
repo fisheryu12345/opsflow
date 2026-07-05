@@ -41,6 +41,16 @@
         <Dashboard :tickets="tickets" @view-ticket="onViewTicket" @switch-tab="activeTab = $event" />
       </div>
 
+      <!-- ==================== TAB: 服务市场 ==================== -->
+      <div v-show="activeTab === 'service-market'" class="itsm-section g-fade-in-up">
+        <ServiceMarket />
+      </div>
+
+      <!-- ==================== TAB: 服务目录管理 ==================== -->
+      <div v-show="activeTab === 'service-admin'" class="itsm-section g-fade-in-up">
+        <ServiceAdmin />
+      </div>
+
       <!-- ==================== TAB: 我的工单 ==================== -->
       <div v-show="activeTab === 'tickets'" class="itsm-section g-fade-in-up">
         <!-- Filter bar -->
@@ -551,6 +561,8 @@ import OnDutySchedule from './OnDutySchedule.vue'
 import AssignRule from './AssignRule.vue'
 import EscalationLevel from './EscalationLevel.vue'
 import TeamDashboard from './TeamDashboard.vue'
+import ServiceMarket from './catalog/ServiceMarket.vue'
+import ServiceAdmin from './catalog/ServiceAdmin.vue'
 import {
   WarningFilled, Edit, Message, QuestionFilled, Clock,
   Plus, Refresh, User, Finished, CircleClose, Select, Close,
@@ -602,6 +614,8 @@ const componentMap: Record<string, any> = {
   'assign-rules': AssignRule,
   escalation: EscalationLevel,
   'team-dashboard': TeamDashboard,
+  'service-market': ServiceMarket,
+  'service-admin': ServiceAdmin,
 }
 
 function onTabClick(tab: any) {
@@ -787,7 +801,7 @@ async function onViewTicket(row: any) {
             }
           }
         }
-      } catch { /* field definitions unavailable */ }
+      } catch { ElMessage.warning('无法加载表单字段定义') }
     }
   } catch { ticketNodeStatus.value = [] }
   showTicketDetail.value = true
@@ -1011,7 +1025,6 @@ async function onSaveAIWorkflow() {
   savingWf.value = true
   try {
     const wfData = aiResult.value.workflow || {}
-    console.log('[AI SAVE] wfData=', JSON.stringify(wfData), 'aiType=', aiType.value)
     const res = await workflowApi.create({
       name: wfData.name || `AI-${aiType.value}-${Date.now()}`,
       itsm_type: aiType.value,

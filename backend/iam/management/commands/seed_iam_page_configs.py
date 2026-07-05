@@ -60,6 +60,7 @@ class Command(BaseCommand):
             ('itsm:escalation:view', '查看升级配置', 'itsm'),
             ('itsm:escalation:manage', '管理升级', 'itsm'),
             ('itsm:sla:edit', '编辑 SLA', 'itsm'),
+            ('itsm:service:admin', '管理服务目录', 'itsm'),
             # ── CMDB tab + button perms ──
             ('cmdb:schema:view', '查看模型', 'cmdb'),
             ('cmdb:schema:create', '创建模型', 'cmdb'),
@@ -143,6 +144,8 @@ class Command(BaseCommand):
             {'key': 'on-duty',       'label_zh': '排班',      'label_en': 'On-Duty',      'icon': 'Clock',         'required_perm': 'itsm:on_duty:view',                     'sort': 90},
             {'key': 'assign-rules',  'label_zh': '路由',      'label_en': 'Assign Rules', 'icon': 'Setting',       'required_perm': 'itsm:assign_rules:view',                'sort': 100},
             {'key': 'escalation',    'label_zh': '升级',      'label_en': 'Escalation',   'icon': 'WarningFilled', 'required_perm': 'itsm:escalation:view',                  'sort': 110},
+            {'key': 'service-market', 'label_zh': '服务市场', 'label_en': 'Service Catalog','icon': 'List','required_perm': None,                                        'sort': 15},
+            {'key': 'service-admin',  'label_zh': '服务目录管理','label_en': 'Catalog Admin','icon': 'Setting','required_perm': 'itsm:service:admin',                       'sort': 22},
         ]
         itsm_buttons = {
             'tickets': [

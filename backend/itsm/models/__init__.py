@@ -12,6 +12,7 @@ from .field import Field
 from .ticket import Ticket, TicketStatus, SignTask
 from .sla import PriorityMatrix, SlaTask
 from .delegation import ApprovalDelegate
+from .service_item import ServiceItem
 from ..services.opsflow_trigger import TicketOpsflowConfig
 
 __all__ = [
@@ -25,4 +26,5 @@ __all__ = [
     'PriorityMatrix', 'SlaTask',
     'ApprovalDelegate',
     'TicketOpsflowConfig',
+    'ServiceItem',
 ]

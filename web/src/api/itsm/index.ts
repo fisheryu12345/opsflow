@@ -101,6 +101,12 @@ export function AssignTicket(id: string, userId: number, groupId?: number, reaso
 export function AutoAssignTicket(id: string) {
   return request({ url: `${prefix}/tickets/${id}/auto_assign/`, method: 'post' })
 }
+
+// ===== Service Catalog（服务目录） =====
+export const serviceItemApi = createCrudApi('service-items')
+export function SubmitServiceItem(id: string | number, data: { form_data?: Record<string, any>; title?: string; priority?: string }) {
+  return request({ url: `${prefix}/service-items/${id}/submit/`, method: 'post', data })
+}
 export function GetTicketStatus(id: string) {
   return request({ url: `${prefix}/tickets/${id}/status/`, method: 'get' })
 }

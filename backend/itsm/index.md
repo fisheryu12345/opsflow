@@ -1,6 +1,6 @@
 # itsm -- Module Index
 
-> Last auto-update: 2026-07-05 | Trigger: 847774f9
+> Last auto-update: 2026-07-05 | Trigger: 88b61c0f
 
 ---
 
@@ -29,6 +29,7 @@
 | `models\escalation.py` | -- | `EscalationLevel -- 升级级别 — 每组可配置 L1→L2→L3 超时与动作` |
 | `models\field.py` | ITSM Field model — 节点表单字段定义 | `Field -- 表单字段定义 — 绑定到 State` |
 | `models\incident.py` | -- | `ServiceCategory -- 服务分类 — 服务目录的一级/二级分类`; `SlaPolicy -- SLA 策略定义`; `Incident -- 事件工单 (Incident)` |
+| `models\service_item.py` | ServiceItem model — 服务目录的核心实体 | `ServiceItem -- 服务项 — 服务目录的核心实体` |
 | `models\skill_group.py` | -- | `SkillGroup -- 技能组 — 如网络组、数据库组、应用组等`; `OnDutySchedule -- 值班排班 — 每天每组的 primary/backup` |
 | `models\sla.py` | ITSM SLA model — SLA 策略、优先级矩阵、计时任务 | `PriorityMatrix -- 优先级矩阵 — 紧急程度 × 影响范围 → 优先级`; `SlaTask -- SLA 计时任务 — 工单级别的计时` |
 | `models\state.py` | ITSM State model — 流程节点定义 | `State -- 流程节点 — 对应 pipeline 中的一个活动` |
@@ -63,6 +64,7 @@
 | `serializers\assign_serializers.py` | Serializers for ITSM assignment models | `SkillGroupSerializer`; `OnDutyScheduleSerializer`; `AssignRuleSerializer` |
 | `serializers\delegation.py` | Delegation serializers — 审批委托序列化器 | `DelegationSerializer -- 委托列表/详情序列化器`; `DelegationCreateUpdateSerializer -- 委托创建/更新序列化器 — user 由视图自动设置` |
 | `serializers\legacy.py` | Serializers for ITSM app | `ServiceCategorySerializer`; `ServiceCategoryCreateUpdateSerializer`; `SlaPolicySerializer` |
+| `serializers\service_item.py` | ServiceItem serializers | `ServiceItemSerializer -- 服务项列表/详情序列化器`; `ServiceItemCreateUpdateSerializer -- 服务项创建/更新序列化器`; `ServiceItemSubmitSerializer -- 提交服务申请序列化器` |
 | `serializers\ticket_serializers.py` | Ticket serializers | `TicketSerializer`; `TicketCreateSerializer`; `TicketSubmitSerializer -- 提交工单（启动 pipeline）` |
 | `serializers\workflow_serializers.py` | Workflow serializers | `WorkflowSerializer`; `WorkflowCreateSerializer`; `WorkflowVersionSerializer` |
 
@@ -102,6 +104,7 @@
 | `views\assign_views.py` | View sets for ITSM assignment models — project-scoped with multi-tenant isolation | `SkillGroupViewSet -- 技能组管理 — business-scoped (非 project 维度，保持 CustomModelViewSet)`; `OnDutyScheduleViewSet -- 值班排班管理 — project-scoped`; `AssignRuleViewSet -- 分派规则管理 — project-scoped` |
 | `views\dashboard.py` | ITSM Dashboard view — 看板数据聚合 | `DashboardViewSet -- ITSM 看板 — 数据聚合（只读）` |
 | `views\delegation.py` | Delegation views — 审批委托 CRUD | `DelegationViewSet -- 审批委托 CRUD` |
+| `views\service_item.py` | ServiceItem views — 服务目录 CRUD + 提交申请 | `ServiceItemViewSet -- 服务目录管理 — 服务项 CRUD + 提交申请` |
 | `views\ticket_views.py` | ITSM Ticket views — 工单管理、提交、审批、状态管理、文件上传 | `TicketViewSet -- 工单管理 — project-scoped with environment gate` |
 | `views\views.py` | ITSM views - Incident, Change, ServiceRequest, Problem, ServiceCategory, SlaPolicy | `ServiceCategoryViewSet -- 服务分类 CRUD — project-scoped`; `SlaPolicyViewSet -- SLA 策略 CRUD — project-scoped`; `IncidentViewSet -- 事件工单管理 — project-scoped` |
 | `views\workflow_views.py` | ITSM Workflow views — 流程模板管理、节点、连线、字段、AI 生成 | `ItsmProjectViewSet -- ITSM project-scoped ViewSet — 整合 IAM ProjectFilteredViewSet + dvadmin 响应格式`; `WorkflowViewSet -- 流程模板管理 — project-scoped with multi-tenant isolation`; `WorkflowVersionViewSet -- 流程版本管理` |

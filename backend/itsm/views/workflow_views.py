@@ -49,8 +49,6 @@ class ItsmProjectViewSet(ProjectFilteredViewSet):
         return DetailResponse(data=serializer.data, msg="获取成功")
 
     def create(self, request, *args, **kwargs):
-        import logging
-        logging.getLogger(__name__).warning(f'[WF CREATE] request.data={request.data}')
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -195,6 +193,7 @@ class WorkflowVersionViewSet(CustomModelViewSet):
             ns = State.objects.create(
                 workflow=workflow, name=sdata.get('name', ''),
                 type=sdata.get('type', 'NORMAL'),
+                node_key=sdata.get('node_key') or '',
                 processors_type=sdata.get('processors_type', 'PERSON'),
                 processors=sdata.get('processors', ''),
                 is_multi=sdata.get('is_multi', False),
@@ -203,14 +202,23 @@ class WorkflowVersionViewSet(CustomModelViewSet):
                 is_allow_skip=sdata.get('is_allow_skip', False),
                 fields=sdata.get('fields', []), extras=sdata.get('extras', {}),
                 is_builtin=sdata.get('is_builtin', False),
+                distribute_type=sdata.get('distribute_type', 'PROCESS'),
+                api_instance_id=sdata.get('api_instance_id', 0),
             )
-            state_id_map[int(sid)] = ns.id
+            # Map both node_key (str) and original id (int) for transition lookup
+            state_id_map[str(sid)] = ns.id
+            db_id = sdata.get('id')
+            if db_id is not None:
+                state_id_map[str(db_id)] = ns.id
         for tid, tdata in old_version.transitions.items():
             Transition.objects.create(
                 workflow=workflow, name=tdata.get('name', ''),
-                from_state_id=state_id_map.get(tdata.get('from_state_id')),
-                to_state_id=state_id_map.get(tdata.get('to_state_id')),
-                condition=tdata.get('condition', ''),
+                from_state_id=state_id_map.get(str(tdata.get('from_state_id', ''))),
+                to_state_id=state_id_map.get(str(tdata.get('to_state_id', ''))),
+                from_node_key=tdata.get('from_node_key') or '',
+                to_node_key=tdata.get('to_node_key') or '',
+                condition=tdata.get('condition', {}),
+                condition_type=tdata.get('condition_type', 'default'),
                 direction=tdata.get('direction', 'forward'),
             )
         for fid, fdata in old_version.fields.items():
@@ -245,7 +253,7 @@ class StateViewSet(CustomModelViewSet):
 
     @action(methods=['POST'], detail=False)
     def sync(self, request):
-        """全量同步节点（自动保存用）— 按 node_key 差异删除+创建+更新"""
+        """Full sync of states (auto-save) — upsert by node_key, delete orphans"""
         workflow_id = request.data.get('workflow_id')
         states = request.data.get('states', [])
         if not workflow_id:
@@ -265,8 +273,11 @@ class StateViewSet(CustomModelViewSet):
                 if nk:
                     clean['node_key'] = nk
                 new_state = State.objects.create(**clean)
+                # Track by node_key if set, otherwise by DB id to prevent purge
                 if nk:
                     incoming_keys.add(nk)
+                else:
+                    incoming_keys.add(f'__dbid_{new_state.id}')
         # Delete states that no longer exist on canvas + old states without node_key
         to_delete = set(existing.keys()) - incoming_keys
         State.objects.filter(workflow_id=workflow_id, node_key__in=to_delete).delete()
@@ -293,7 +304,7 @@ class TransitionViewSet(CustomModelViewSet):
 
     @action(methods=['POST'], detail=False)
     def sync(self, request):
-        """全量同步连线（自动保存用）— 按 from_node_key → to_node_key 标识"""
+        """Full sync of transitions (auto-save) — resolve by from_node_key/to_node_key"""
         workflow_id = request.data.get('workflow_id')
         transitions = request.data.get('transitions', [])
         if not workflow_id:

@@ -52,6 +52,52 @@
 - 清理乱码: 有（2 个 0 字节垃圾文件）
 - 工作区状态: 干净 ✅
 
+
+## 88b61c0f
+
+> 提交日期: 2026-07-05 | 提交信息: feat: itsm service catalog with ServiceItem model + market page — ITSM 服务目录（服务市场+管理后台）
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/itsm/models/service_item.py` | 后端 | **新建** ServiceItem 模型 — flow/lightweight 双模式、form_fields、可见性控制 |
+| `backend/itsm/serializers/service_item.py` | 后端 | **新建** CRUD + submit 验证序列化器 |
+| `backend/itsm/views/service_item.py` | 后端 | **新建** ServiceItemViewSet + submit action（flow/lightweight 双路径） |
+| `backend/itsm/urls.py` | 后端 | 注册 service-items 路由 |
+| `backend/itsm/migrations/0006_add_service_item.py` | 迁移 | **新建** ServiceItem 数据迁移 |
+| `backend/itsm/tests/test_models.py` | 测试 | **新增** 5 个 ServiceItem 单元测试 |
+| `backend/itsm/management/commands/seed_itsm.py` | 后端 | **新增** 12 个 Mock 服务项种子数据 |
+| `backend/iam/management/commands/seed_iam_page_configs.py` | 配置 | **新增** 服务市场/服务目录管理 Tab + itsm:service:admin 权限 |
+| `web/src/views/apps/itsm/catalog/ServiceMarket.vue` | 前端 | **新建** 服务市场（分类树+卡片网格+搜索） |
+| `web/src/views/apps/itsm/catalog/ServiceDetail.vue` | 前端 | **新建** 服务详情（动态表单+提交申请） |
+| `web/src/views/apps/itsm/catalog/ServiceAdmin.vue` | 前端 | **新建** 服务管理后台（CRUD+编辑弹窗+预览） |
+| `web/src/views/apps/itsm/index.vue` | 前端 | 集成 service-market/service-admin 两个新 Tab |
+| `web/src/api/itsm/index.ts` | 前端 | 新增 serviceItemApi + SubmitServiceItem |
+| `backend/itsm/models/ticket.py` | 后端 | SignTask 通过 TicketStatus pk 查询修复 |
+| `backend/itsm/services/sla_engine.py` | 后端 | stopped 状态 SLA 重置支持 |
+| `backend/itsm/views/workflow_views.py` | 后端 | rollback node_key 支持；StateSync 保护旧状态；transition 同步增强 |
+| `web/src/views/apps/itsm/designer/useDesigner.ts` | 前端 | 清理 console.log；连线数据引用修复 |
+
+### 解决
+
+- **问题/背景：** ITSM 缺少统一服务目录入口，用户创建工单需先理解"流程模板"，体验不友好
+- **办法：** 新增 ServiceItem 模型，双模式服务目录（flow 走 Pipeline / lightweight 直接分派），服务市场+管理后台双视图，12 个 Mock 种子数据即时可见
+
+### 文档
+
+- **生成文档：**
+  - `docs/itsm/features/2026-07-05-service-catalog.md`
+  - `docs/superpowers/specs/2026-07-05-itsm-service-catalog-design.md`
+
+### 验证
+
+- 改动类型: feat + fix
+- 清理乱码: 有（6 个 0 字节垃圾文件）
+- 工作区状态: 干净 ✅
+
+
+
 ---
 
 ## 1d8ddc88

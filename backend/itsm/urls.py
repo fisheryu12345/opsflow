@@ -25,6 +25,7 @@ from .views.assign_views import (
     AssignRuleViewSet, EscalationLevelViewSet,
     TicketTransferLogViewSet,
 )
+from .views.service_item import ServiceItemViewSet
 
 router = routers.SimpleRouter()
 # Existing ITSM routes
@@ -55,6 +56,7 @@ router.register(r'on-duty-schedules', OnDutyScheduleViewSet)
 router.register(r'assign-rules', AssignRuleViewSet)
 router.register(r'escalation-levels', EscalationLevelViewSet)
 router.register(r'transfer-logs', TicketTransferLogViewSet)
+router.register(r'service-items', ServiceItemViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -214,13 +214,17 @@ class Ticket(CoreModel):
     def check_approval_finished(self, state_id):
         """检查会签/审批是否已完成"""
         state_data = self.get_state(state_id)
+        if not state_data:
+            return False  # state not found — cannot determine status
         if not state_data.get('is_multi'):
             return True
         finish_cond = state_data.get('finish_condition', {})
         cond_type = finish_cond.get('type', 'all')
         cond_value = finish_cond.get('value', 1)
-        total = SignTask.objects.filter(ticket=self, status_id=state_id).count()
-        passed = SignTask.objects.filter(ticket=self, status_id=state_id, status_val='passed').count()
+        # Find TicketStatus by state_id, then look up SignTask by its pk
+        status_record = TicketStatus.objects.filter(ticket=self, state_id=int(state_data.get('id', state_id))).first()
+        total = SignTask.objects.filter(ticket=self, status=status_record).count() if status_record else 0
+        passed = SignTask.objects.filter(ticket=self, status=status_record, status_val='passed').count() if status_record else 0
         if cond_type == 'percent':
             return total > 0 and (passed / total * 100) >= cond_value
         elif cond_type == 'count':

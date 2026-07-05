@@ -132,8 +132,10 @@ class ITSMWorkflowBuilder:
                 el.name = state.get('name', '')
 
             element_map[sid_str] = el
-
-        # Connect elements via transitions
+            # Also register by DB id for transition lookup fallback
+            db_id = state.get('id')
+            if db_id is not None:
+                element_map[str(db_id)] = el
         for from_id, outgoing in transition_map.items():
             from_el = element_map.get(from_id)
             if not from_el:

@@ -196,3 +196,21 @@ def sync(self, request):
 - **工单详情**: NORMAL 节点在 RUNNING 状态时自动显示表单字段，填写后点击"提交"
 - **SLA**: 挂起/恢复工单时 SLA 计时器自动暂停/补偿，无需人工干预
 - **开发者**: 无额外操作，DB migration 自动填充
+
+---
+
+## 2026-07-05 Update
+
+> 提交: 88b61c0f
+
+### 变更内容
+
+- ticket.py: SignTask 通过 TicketStatus pk 查询修复（state_id 改为 status 外键）
+- sla_engine.py: 支持 stopped 状态 SLA 重置，审批节点复用同一 SLA 时正确重置
+- workflow_builder.py: element_map 同时注册 DB id（支持 transition 按 from_state_id 回退查找）
+- workflow_views.py: rollback 时保留 node_key；StateSync 保护无 node_key 旧状态不被误删；transition 同步保留 condition_type/direction
+- useDesigner.ts: 清理 console.log 调试输出；修复连线 _from_state/_to_state 引用为 cell ID
+
+### 原因
+
+node_key 稳定标识首次实现后，rolling deploy 和版本回滚场景下发现 state_id → node_key 映射不够完整，导致部分旧流程兼容性问题
