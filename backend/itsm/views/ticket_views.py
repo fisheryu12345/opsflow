@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """ITSM Ticket views — 工单管理、提交、审批、状态管理、文件上传"""
 
+from django.db import models
+
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -11,7 +13,7 @@ from common.utils.json_response import DetailResponse, ErrorResponse
 from opsflow.views.base import ProjectFilteredViewSet
 from iam.permissions import TenantPermission, EnvironmentGatePermission
 
-from itsm.models import Ticket, TicketStatus, SignTask, WorkflowVersion
+from itsm.models import Ticket, TicketStatus, SignTask, WorkflowVersion, SlaTask
 from itsm.serializers import (
     TicketSerializer, TicketCreateSerializer,
     TicketStatusSerializer, SignTaskSerializer,
@@ -24,7 +26,9 @@ from itsm.views.workflow_views import ItsmProjectViewSet
 class TicketViewSet(ItsmProjectViewSet):
     """工单管理 — project-scoped with environment gate"""
     model = Ticket
-    queryset = Ticket.objects.all()
+    queryset = Ticket.objects.prefetch_related(
+        models.Prefetch('sla_tasks', queryset=SlaTask.objects.select_related('sla_policy'))
+    )
     serializer_class = TicketSerializer
     filter_fields = ['itsm_type', 'current_status', 'priority', 'creator']
     search_fields = ['sn', 'title']

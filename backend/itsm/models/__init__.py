@@ -7,9 +7,10 @@ from .state import State
 from .transition import Transition
 from .field import Field
 from .ticket import Ticket, TicketStatus, SignTask
-from .sla import PriorityMatrix, SlaTask
+from .sla import SlaTask
 from .delegation import ApprovalDelegate
 from .service_item import ServiceItem
+from .escalation import EscalationLevel
 from ..services.opsflow_trigger import TicketOpsflowConfig
 
 __all__ = [
@@ -19,8 +20,9 @@ __all__ = [
     'Transition',
     'Field',
     'Ticket', 'TicketStatus', 'SignTask',
-    'PriorityMatrix', 'SlaTask',
+    'SlaTask',
     'ApprovalDelegate',
     'TicketOpsflowConfig',
     'ServiceItem',
+    'EscalationLevel',
 ]

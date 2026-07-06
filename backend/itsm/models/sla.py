@@ -1,25 +1,8 @@
 # -*- coding: utf-8 -*-
-"""ITSM SLA model — SLA 策略、优先级矩阵、计时任务"""
+"""ITSM SLA model — SLA 计时任务"""
 
 from django.db import models
 from common.utils.models import CoreModel, table_prefix
-
-
-class PriorityMatrix(CoreModel):
-    """优先级矩阵 — 紧急程度 × 影响范围 → 优先级"""
-    itsm_type = models.CharField(max_length=32, verbose_name="服务类型")
-    urgency = models.CharField(max_length=16, verbose_name="紧急程度")
-    impact = models.CharField(max_length=16, verbose_name="影响范围")
-    priority = models.CharField(max_length=16, verbose_name="优先级")
-
-    class Meta:
-        db_table = table_prefix + "itsm_priority_matrix"
-        verbose_name = "优先级矩阵"
-        verbose_name_plural = verbose_name
-        unique_together = [('itsm_type', 'urgency', 'impact')]
-
-    def __str__(self):
-        return f"{self.itsm_type} {self.urgency}x{self.impact} → {self.priority}"
 
 
 class SlaTask(CoreModel):
@@ -42,7 +25,6 @@ class SlaTask(CoreModel):
     priority = models.CharField(max_length=16, verbose_name="当前优先级")
     deadline = models.DateTimeField(verbose_name="处理截止时间")
     reply_deadline = models.DateTimeField(null=True, blank=True, verbose_name="响应截止时间")
-    cost_seconds = models.IntegerField(default=0, verbose_name="已用时间(秒)")
     paused_at = models.DateTimeField(null=True, blank=True, verbose_name="暂停时间")
     task_status = models.CharField(max_length=16, choices=TASK_STATUS, default='unactivated',
                                     verbose_name="任务状态")

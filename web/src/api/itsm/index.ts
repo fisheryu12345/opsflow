@@ -114,3 +114,6 @@ export function GetMyDelegations() {
   return request({ url: `${prefix}/delegations/my_delegations/`, method: 'get' })
 }
 
+// ===== Escalation (升级层级) =====
+export const escalationApi = createCrudApi('escalation-levels')
+

@@ -1,6 +1,6 @@
 # ITSM — 开发进度跟踪
 
-> 最后更新: 2026-07-05 | 参考目标: docs/opsflow_target.md
+> 最后更新: 2026-07-07 | 参考目标: docs/opsflow_target.md
 
 ## 成熟度评估
 
@@ -21,8 +21,8 @@
 | 3 种网关类型 | P0 | ✅ | 排他/并行/条件并行网关 | EXCLUSIVE/ParallelGateway / PARALLEL/ConditionalParallelGateway / CONDITIONAL_PARALLEL/ConditionalParallelGateway + by_field 条件 + ConvergeGateway 自动配对 |
 | 多级审批/会签 | P0 | ✅ | 多审批人/顺序/并行 | SignTask + RoleResolver(6种解析) + delegation |
 | 可视化表单设计器 | P1 | ✅ | 拖拽设计工单表单 | FormDesigner.vue 三栏可视化拖拽(vuedraggable)，14种字段+Section+COL布局 |
-| 智能分派体系 | P1 | ✅ | 技能组+排班+路由+升级 | SkillGroup/OnDuty/AssignRule/EscalationLevel/TransferLog + AssignEngine + EscalationService |
-| SLA 引擎 | P1 | ✅ | 超时升级 | SlaEngine + EscalationService 多级升级(L1→L2→L3) + APScheduler 每分钟检测 |
+| 升级层级体系 | P1 | ✅ | SLA 超时后的处理层级 | EscalationLevel 模型 CRUD + 前端升级 Tab(表格+编辑+用户多选) + seed 数据 |
+| SLA 引擎 | P1 | ✅ | 端到端计时 + 超时通知 | SlaEngine(ITSMEngine.run启动→pipeline结束停止) + APScheduler 60s 检测 + notify_sla_violation + sla_info 前端展示 |
 | 通知渠道 | P1 | ✅ | 钉钉/企微/邮件/IntegrationHub | 4 个 channel 实现 |
 | 审批委托 | P1 | ✅ | 代理审批 | 时间范围+工单类型过滤 |
 | 传统 ITSM 模型 | P1 | ✅ | Incident/Change/Problem/ServiceRequest | 完整 CRUD + 状态转换 |
@@ -32,7 +32,7 @@
 | i18n 国际化 | P1 | ✅ | 中英文翻译 | itsm/zh-cn.ts + en.ts，SkillGroup/OnDutySchedule/AssignRule/EscalationLevel 完成 |
 | DevOps 测试 | P1 | ✅ | 43+ 个单元测试 | test_models(14) + test_views(4) + test_services(8) + test_itsm_engine(8) + test_workflow_builder(11) + test_layout(3) |
 | 多租户对齐 | P1 | ✅ | Project/Business FK 隔离 | ITSM 核心模型注入 project/business FK，ViewSet 继承 ItsmProjectViewSet |
-| SlaPolicy 模型 | P1 | ✅ | SLA 策略定义 | PriorityMatrix + SLA 策略 |
+| SlaPolicy 模型 | P1 | ✅ | SLA 策略定义 | SlaPolicy(priority+response+resolve) + SlaTask 计时任务 |
 | AI 智能生成 | P2 | 🔄 | LLM 生成工作流 | AIGenerator：内置关键词模板引擎，<b>未接入真实 DeepSeek</b> |
 | 服务目录 | P2 | ✅ | 可请求的 IT 服务项 | ServiceItem 模型 + 双模式(flow/lightweight) + 服务市场(分类树+卡片) + 服务详情(表单+提交) + 管理后台(CRUD+预览) |
 | OpsFlow 双向审批 | P2 | 📅 | OpsFlow 审批节点创建 ITSM 工单 | 仅 ITSM→OpsFlow 单向，反向未实现 |
@@ -52,6 +52,17 @@
 - [ ] OpsFlow 审批节点 ↔ ITSM 工单双向
 - [ ] Monitor 告警 → 创建工单
 - [ ] 变更日历前端
+
+### 2026-07-07 Update
+> 提交: bafc693b
+- SLA 端到端计时: 启动移至 ITSMEngine.run()，停止由 pipeline EndEvent 统一处理，移除节点级双重触发 → ✅
+- APScheduler: BackgroundScheduler 替代 Celery Beat，60s 间隔运行 SLA 检查 → ✅
+- 超时通知: _execute_escalation 调用 notify_sla_violation() → ✅
+- 前端 SLA 显示: 工单列表 SLA 列(状态+倒计时) + 详情 SLA 信息卡片 → ✅
+- 仪表板 deadline: 超时统计从 7 天硬编码改为 SlaTask.deadline → ✅
+- 升级层级体系: EscalationLevel 模型重新实现(level/timeout/action/notify_users) + ViewSet CRUD + 前端完整 Tab(CRUD表格+编辑对话框+用户多选) + seed 数据 → ✅
+- 清理: PriorityMatrix(未使用)、cost_seconds(未更新) → ✅
+- 修复: remaining_seconds=0 假零 bug、APScheduler 时区硬编码、N+1 查询、seed_itsm --force 更新升级级别 → ✅
 
 ### 2026-07-05 Update #2
 > 提交: e4b1923c

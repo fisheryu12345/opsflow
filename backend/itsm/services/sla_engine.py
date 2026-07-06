@@ -143,12 +143,8 @@ class SlaEngine:
 
     @staticmethod
     def _execute_escalation(ticket, esc_type='timeout'):
-        """执行升级动作"""
+        """执行升级动作 — 记录日志 + 发送通知"""
         logger.warning(f'SLA escalation for ticket {ticket.sn}: type={esc_type}')
-        # 升级动作:
-        # 1. 记录日志（已通过日志记录）
-        # 2. 后续可扩展: 通知上级、自动转派、标记工单
-        from itsm.models import Ticket
         meta = ticket.meta or {}
         sla_history = meta.get('sla_history', [])
         sla_history.append({
@@ -158,3 +154,10 @@ class SlaEngine:
         meta['sla_history'] = sla_history
         ticket.meta = meta
         ticket.save(update_fields=['meta'])
+
+        # 发送超时通知
+        try:
+            from itsm.services.notifications import NotificationService
+            NotificationService.notify_sla_violation(ticket)
+        except Exception as e:
+            logger.error(f'SLA notification failed: {e}')

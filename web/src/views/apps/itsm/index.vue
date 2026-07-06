@@ -88,6 +88,14 @@
                 </span>
               </template>
             </el-table-column>
+            <el-table-column label="SLA" width="100">
+              <template #default="{ row }">
+                <span v-if="row.sla_info" :class="'sla-badge sla-' + row.sla_info.sla_status">
+                  {{ row.sla_info.remaining_seconds != null ? formatSla(row.sla_info.remaining_seconds) : '-' }}
+                </span>
+                <span v-else style="font-size:12px;color:#C0C4CC">-</span>
+              </template>
+            </el-table-column>
             <el-table-column prop="priority" :label="$t('message.ticketCreate.priority')" width="80">
               <template #default="{ row }">
                 <span class="itsm-prio-badge" :class="'it-prio-' + (row.priority || 'p3').toLowerCase()">{{ row.priority }}</span>
@@ -244,6 +252,65 @@
       <div v-show="activeTab === 'delegation'" class="itsm-section g-fade-in-up">
         <Delegation />
       </div>
+
+      <!-- ==================== TAB: 升级层级 ==================== -->
+      <div v-show="activeTab === 'escalation'" class="itsm-section g-fade-in-up">
+        <div class="itsm-table-card">
+          <div class="itsm-table-header">
+            <span class="itsm-table-title">升级级别</span>
+            <el-button size="small" type="primary" v-can="'itsm:escalation:manage'" @click="onEscalationCreate">
+              <el-icon><Plus /></el-icon> 新建
+            </el-button>
+          </div>
+          <el-table :data="escalationLevels" v-loading="loadingEsc" stripe style="width:100%" size="small"
+            :empty-text="loadingEsc ? '加载中...' : '暂无升级级别'">
+            <el-table-column prop="level" label="级别" width="70" />
+            <el-table-column prop="name" label="级别名称" min-width="160" />
+            <el-table-column prop="timeout_minutes" label="超时阈值(分钟)" width="150" />
+            <el-table-column prop="action" label="升级动作" width="140">
+              <template #default="{ row }">{{ escActionLabel(row.action) }}</template>
+            </el-table-column>
+            <el-table-column prop="is_active" label="启用" width="80" align="center">
+              <template #default="{ row }"><el-switch v-model="row.is_active" size="small" @change="onEscToggle(row)" /></template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" fixed="right">
+              <template #default="{ row }">
+                <el-button size="small" text v-can="'itsm:escalation:manage'" @click="onEscEdit(row)">编辑</el-button>
+                <el-button size="small" text type="danger" v-can="'itsm:escalation:manage'" @click="onEscDelete(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <!-- Escalation Edit Dialog -->
+        <el-dialog v-model="showEscEdit" :title="escForm.id ? '编辑升级级别' : '新建升级级别'" width="480px" top="15vh" destroy-on-close append-to-body>
+          <el-form :model="escForm" label-width="130px" size="small">
+            <el-form-item label="级别序号"><el-input-number v-model="escForm.level" :min="1" :max="10" style="width:100%" /></el-form-item>
+            <el-form-item label="级别名称"><el-input v-model="escForm.name" /></el-form-item>
+            <el-form-item label="超时阈值(分钟)"><el-input-number v-model="escForm.timeout_minutes" :min="1" :max="43200" style="width:100%" /></el-form-item>
+            <el-form-item label="升级动作">
+              <el-select v-model="escForm.action" style="width:100%">
+                <el-option label="仅通知" value="notify_only" />
+                <el-option label="转给组长" value="transfer_leader" />
+                <el-option label="升级到下一级" value="transfer_next" />
+                <el-option label="通知用户" value="notify_users" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="通知用户">
+              <el-select v-model="escNotifyUsers" multiple filterable remote :remote-method="loadEscUsers"
+                :loading="escUsersLoading" style="width:100%" placeholder="搜索选择用户"
+                @change="syncEscNotifyUsersStr">
+                <el-option v-for="u in escUserOptions" :key="u.value" :label="u.label" :value="u.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="启用"><el-switch v-model="escForm.is_active" /></el-form-item>
+          </el-form>
+          <template #footer>
+            <el-button @click="showEscEdit = false">{{ $t('message.common.cancel') }}</el-button>
+            <el-button type="primary" :loading="savingEsc" @click="onEscSave">{{ escForm.id ? '保存' : '创建' }}</el-button>
+          </template>
+        </el-dialog>
+      </div>
     </div>
 
     <!-- ===== AI 创建流程 ===== -->
@@ -362,6 +429,7 @@ import {
   CloseTicket,
   AIGenerateWorkflow,
   AssignTicket, RollbackVersion,
+  escalationApi,
 } from '/@/api/itsm/index'
 
 // ===== Page Config (data-driven tabs) =====
@@ -709,6 +777,106 @@ function statusLabel(s: string) {
   return m[s] || s || '未知'
 }
 
+function formatSla(seconds: number): string {
+  if (seconds <= 0) return '超时'
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  if (h > 0) return `${h}h${m}m`
+  return `${m}m`
+}
+
+// ===== Escalation Levels =====
+const loadingEsc = ref(false)
+const escalationLevels = ref<any[]>([])
+const showEscEdit = ref(false)
+const savingEsc = ref(false)
+const escForm = ref<any>({ level: 1, name: '', timeout_minutes: 60, action: 'notify_only', notify_users: '', is_active: true })
+const escNotifyUsers = ref<string[]>([])
+const escUserOptions = ref<any[]>([])
+const escUsersLoading = ref(false)
+
+function escActionLabel(action: string): string {
+  const m: Record<string, string> = { notify_only: '仅通知', transfer_leader: '转给组长', transfer_next: '升级到下一级', notify_users: '通知用户' }
+  return m[action] || action
+}
+
+function escExtractUsername(label: string): string {
+  const m = label.match(/\((\w+)\)$/)
+  return m ? m[1] : label
+}
+
+async function loadEscUsers() {
+  escUsersLoading.value = true
+  try {
+    const { request } = await import('/@/utils/service')
+    const res = await request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 10000 } })
+    escUserOptions.value = ((res as any).data || []).map((item: any) => ({
+      value: escExtractUsername(item.label),
+      label: item.label,
+    }))
+  } catch { escUserOptions.value = [] }
+  escUsersLoading.value = false
+}
+
+// Sync escForm.notify_users ↔ escNotifyUsers
+function syncEscNotifyUsers() {
+  const us = escForm.value.notify_users ? escForm.value.notify_users.split(',').filter(Boolean) : []
+  escNotifyUsers.value = escUserOptions.value
+    .filter(o => us.includes(o.value))
+    .map(o => o.value)
+}
+function syncEscNotifyUsersStr() {
+  escForm.value.notify_users = escNotifyUsers.value.join(',')
+}
+
+async function loadEscalation() {
+  loadingEsc.value = true
+  try { const res = await escalationApi.list(); escalationLevels.value = res?.results || res?.data || res || [] } finally { loadingEsc.value = false }
+}
+
+function onEscalationCreate() {
+  escForm.value = { level: 1, name: '', timeout_minutes: 60, action: 'notify_only', notify_users: '', is_active: true }
+  escNotifyUsers.value = []
+  showEscEdit.value = true
+  loadEscUsers()
+}
+
+async function onEscEdit(row: any) {
+  escForm.value = { ...row }
+  showEscEdit.value = true
+  await loadEscUsers()
+  syncEscNotifyUsers()
+}
+
+async function onEscSave() {
+  savingEsc.value = true
+  try {
+    const data = { ...escForm.value }
+    if (data.id) {
+      await escalationApi.update(data.id, data)
+    } else {
+      await escalationApi.create(data)
+    }
+    ElMessage.success('保存成功')
+    showEscEdit.value = false
+    await loadEscalation()
+  } catch { ElMessage.error('保存失败') }
+  savingEsc.value = false
+}
+
+async function onEscDelete(row: any) {
+  try {
+    await ElMessageBox.confirm(`确定删除升级级别「${row.name}」吗？`, '删除确认', { type: 'warning' })
+    await escalationApi.delete(row.id)
+    ElMessage.success('已删除')
+    await loadEscalation()
+  } catch { /* cancelled */ }
+}
+
+async function onEscToggle(row: any) {
+  try { await escalationApi.update(row.id, { is_active: row.is_active }) } catch { row.is_active = !row.is_active }
+}
+
 onMounted(async () => {
   await loadPageConfig()
   await loadAllData()
@@ -731,6 +899,7 @@ async function loadAllData() {
   await Promise.all([
     loadTickets(), loadWorkflows(),
     loadSla(),
+    loadEscalation(),
   ])
 }
 </script>
@@ -849,6 +1018,12 @@ async function loadAllData() {
 
 .it-status-closed .itsm-status-dot { background: #c0c4cc; }
 .it-status-closed { background: #f5f7fa; color: #909399; }
+
+/* ===== SLA Badge ===== */
+.sla-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px; }
+.sla-normal { background: #f0f9eb; color: #67C23A; }
+.sla-warning { background: #fdf6ec; color: #E6A23C; }
+.sla-violated { background: #fef0f0; color: #F56C6C; }
 
 /* ===== Priority Badge ===== */
 .itsm-prio-badge {

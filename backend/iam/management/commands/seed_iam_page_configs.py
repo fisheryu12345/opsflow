@@ -140,6 +140,7 @@ class Command(BaseCommand):
             # ── ITSM 管理 ──
             {'key': 'service-admin',  'label_zh': '服务目录管理','label_en': 'Catalog Admin','icon': 'Setting','required_perm': 'itsm:service:admin',                       'sort': 50},
             {'key': 'sla',           'label_zh': 'SLA',       'label_en': 'SLA',          'icon': 'Clock',         'required_perm': None,                     'sort': 60},
+            {'key': 'escalation',    'label_zh': '升级',      'label_en': 'Escalation',   'icon': 'WarningFilled', 'required_perm': 'itsm:escalation:view',     'sort': 70},
             {'key': 'delegation',    'label_zh': '委托',      'label_en': 'Delegation',   'icon': 'User',          'required_perm': None,                     'sort': 110},
         ]
         itsm_buttons = {

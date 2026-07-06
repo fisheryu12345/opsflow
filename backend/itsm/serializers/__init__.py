@@ -21,6 +21,9 @@ from .service_item import (
     ServiceItemCreateUpdateSerializer,
     ServiceItemSubmitSerializer,
 )
+from .escalation import (
+    EscalationLevelSerializer,
+)
 
 __all__ = [
     'ServiceCategorySerializer', 'ServiceCategoryCreateUpdateSerializer',
@@ -31,4 +34,5 @@ __all__ = [
     'DelegationSerializer', 'DelegationCreateUpdateSerializer',
     'ServiceItemSerializer', 'ServiceItemCreateUpdateSerializer',
     'ServiceItemSubmitSerializer',
+    'EscalationLevelSerializer',
 ]

@@ -2,6 +2,52 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## bafc693b
+
+> 提交日期: 2026-07-07 | 提交信息: feat: end-to-end SLA timing + escalation hierarchy — 端到端 SLA 计时与升级层级体系
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/itsm/services/itsm_engine.py` | 后端 | SLA 启动移至 ITSMEngine.run() — pipeline 启动时统一 start_ticket_sla() |
+| `backend/itsm/models/ticket.py` | 后端 | 移除节点级 SLA start/stop，do_before_exit_state 变为空钩子 |
+| `backend/itsm/signals.py` | 后端 | 移除 post_set_state 按节点无条件启动 SLA |
+| `backend/itsm/apps.py` | 后端 | APScheduler BackgroundScheduler 替代 Celery Beat，60s 间隔运行 SLA check |
+| `backend/itsm/sla_check_job.py` | 后端 | **新建** — 普通函数版 SLA 检查，不依赖 Celery |
+| `backend/itsm/services/sla_engine.py` | 后端 | _execute_escalation 新增 notify_sla_violation 超时通知 |
+| `backend/itsm/serializers/ticket_serializers.py` | 后端 | TicketSerializer 新增 sla_info 字段暴露 SLA 数据到前端 (+ prefetch_related N+1 消除) |
+| `backend/itsm/views/dashboard.py` | 后端 | 超时统计从 7 天硬编码改为 SlaTask.deadline < now |
+| `backend/itsm/models/escalation.py` | 后端 | **新建** — EscalationLevel 模型 |
+| `backend/itsm/views/escalation_views.py` | 后端 | **新建** — EscalationLevelViewSet CRUD |
+| `backend/itsm/urls.py` | 后端 | 注册 escalation-levels 路由 |
+| `backend/itsm/models/sla.py` | 后端 | 清理 — 删除 PriorityMatrix(未使用)、cost_seconds(未更新) |
+| `backend/itsm/management/commands/seed_itsm.py` | 后端 | 新增 _create_escalation_levels() + --force 更新支持 |
+| `backend/iam/management/commands/seed_iam_page_configs.py` | 后端 | 注册升级 Tab 页面配置 |
+| `web/src/views/apps/itsm/index.vue` | 前端 | 工单表格新增 SLA 列 + 完整升级 Tab(CRUD表格+编辑对话框+用户多选) |
+| `web/src/views/apps/itsm/TicketDetail.vue` | 前端 | 新增 SLA 信息卡片(状态/倒计时/截止时间) |
+| `web/src/views/apps/itsm/Dashboard.vue` | 前端 | 超时列表改用 overdue_seconds 格式化显示 |
+| `web/src/api/itsm/index.ts` | 前端 | 新增 escalationApi |
+
+### 解决
+
+- **问题/背景：** SLA 与 pipeline 协作断裂：双重触发、无定时检查、无超时通知、数据前端不可见、仪表板硬编码 7 天规则
+- **办法：** 重构为端到端 SLA（ITSMEngine.run 启动→pipeline 结束停止）；APScheduler 替代 Celery Beat；补全超时通知；新建 EscalationLevel 模型+API+UI；仪表板改 SlaTask.deadline；序列化器暴露 sla_info 到前端
+
+### 文档
+
+- **生成文档：**
+  - `docs/itsm/features/2026-07-07-sla-escalation.md`
+
+### 验证
+
+- 改动类型: feat + fix + chore
+- 清理乱码: 无
+- 子 App index.md 更新: itsm
+- 工作区状态: 待提交 ✅
+
+---
+
 ## fc3bae8c
 
 > 提交日期: 2026-07-06 | 提交信息: refactor: full ITSM legacy cleanup + 6 bug fixes — 清理遗留模块与修复代码审查发现的 6 个缺陷

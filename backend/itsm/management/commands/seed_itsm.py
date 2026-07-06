@@ -40,6 +40,7 @@ class Command(BaseCommand):
         self._create_sla_policies()
         self._create_workflows()
         self._create_service_items()
+        self._create_escalation_levels()
 
         self.stdout.write(self.style.SUCCESS("\nSeed complete!"))
 
@@ -167,6 +168,7 @@ class Command(BaseCommand):
                 for i, nd in enumerate(wd["nodes"]):
                     s = State.objects.create(
                         workflow=wf, name=nd["name"], type=nd["type"],
+                        node_key=f"node_{i + 1}",
                         processors_type=nd.get("processors_type", ""),
                         processors=nd.get("processors", ""),
                         is_builtin=nd.get("is_builtin", False),
@@ -305,7 +307,7 @@ class Command(BaseCommand):
 
             wf = None
             if item["mode"] == "flow" and self.wf_list:
-                match_type = item.pop("match_itsm_type", None)
+                match_type = item.get("match_itsm_type")
                 if category:
                     for w in self.wf_list:
                         if category.name.lower() in w.name.lower() or w.name.lower() in category.name.lower():
@@ -351,3 +353,34 @@ class Command(BaseCommand):
                 ])
 
         self.stdout.write(f"  + {ServiceItem.objects.count()} items total")
+
+    # ── Escalation Levels ──
+    def _create_escalation_levels(self):
+        self.stdout.write("\n>>> Escalation Levels ...")
+        from itsm.models import EscalationLevel
+
+        defaults = [
+            (1, "一级通知", 60, 'notify_only', ''),
+            (2, "二级通知", 120, 'notify_users', ''),
+            (3, "三级升级", 240, 'transfer_leader', ''),
+        ]
+        for level, name, timeout, action, users in defaults:
+            obj, created = EscalationLevel.objects.get_or_create(
+                level=level,
+                defaults={
+                    "name": name,
+                    "timeout_minutes": timeout,
+                    "action": action,
+                    "notify_users": users,
+                    "is_active": True,
+                },
+            )
+            if created:
+                self.stdout.write(f"  + L{level} {name}")
+            elif self.force:
+                for k, v in [("name", name), ("timeout_minutes", timeout), ("action", action), ("notify_users", users)]:
+                    setattr(obj, k, v)
+                obj.is_active = True
+                obj.save()
+                self.stdout.write(f"  ~ L{level} {name} updated")
+        self.stdout.write(f"  + {EscalationLevel.objects.count()} escalation levels")

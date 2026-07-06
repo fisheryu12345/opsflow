@@ -61,7 +61,7 @@
               <span class="itsm-prio-badge" :class="'it-prio-' + (item.priority || 'p3').toLowerCase()">{{ item.priority }}</span>
               <span class="itsm-dash-list-title" @click="$emit('view-ticket', item)">{{ item.sn }} {{ item.title }}</span>
             </div>
-            <span class="itsm-dash-list-meta">{{ item.elapsed_days }}天</span>
+            <span class="itsm-dash-list-meta">{{ formatOverdue(item.overdue_seconds) }}</span>
           </div>
         </div>
         <el-empty v-else description="暂无超时工单" :image-size="40" />
@@ -191,6 +191,15 @@ function handleResize() {
 watch(() => trendData.value, () => {
   nextTick(renderChart)
 })
+
+function formatOverdue(seconds: number | null | undefined): string {
+  if (seconds == null || seconds < 0) return '-'
+  const d = Math.floor(seconds / 86400)
+  const h = Math.floor((seconds % 86400) / 3600)
+  if (d > 0) return `${d}天${h}小时`
+  if (h > 0) return `${h}小时`
+  return `${Math.floor(seconds / 60)}分钟`
+}
 
 onMounted(async () => {
   await loadDashboard()

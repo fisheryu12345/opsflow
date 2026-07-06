@@ -16,6 +16,7 @@ from rest_framework.viewsets import ViewSet
 from common.utils.json_response import DetailResponse
 
 from itsm.models import Ticket, TicketStatus, SignTask
+from itsm.models.sla import SlaTask
 
 ACTIVE_STATUSES = ['assigned', 'receiving', 'running']
 
@@ -77,11 +78,12 @@ class DashboardViewSet(ViewSet):
             status_records__processors__icontains=user.username,
         ).distinct().count()
 
-        # 超时工单: running 超过 7 天的工单（简易判定）
-        week_ago = timezone.now() - timedelta(days=7)
-        overdue_count = Ticket.objects.filter(
-            current_status__in=ACTIVE_STATUSES,
-            create_datetime__lt=week_ago,
+        # 超时工单: SlaTask deadline 已过期且仍在 running
+        now = timezone.now()
+        overdue_count = SlaTask.objects.filter(
+            deadline__lt=now,
+            task_status='running',
+            ticket__current_status__in=ACTIVE_STATUSES,
         ).count()
 
         # 今日 resolved (根据工单状态变更记录)
@@ -168,18 +170,19 @@ class DashboardViewSet(ViewSet):
         return list(qs)
 
     def _overdue(self, request):
-        """超时工单列表 — running 超过 7 天"""
-        week_ago = timezone.now() - timedelta(days=7)
-        qs = Ticket.objects.filter(
-            current_status__in=ACTIVE_STATUSES,
-            create_datetime__lt=week_ago,
-        ).order_by('create_datetime')[:20]
+        """超时工单列表 — SlaTask deadline 已过期"""
+        now = timezone.now()
+        overdue_tasks = SlaTask.objects.filter(
+            deadline__lt=now,
+            task_status='running',
+            ticket__current_status__in=ACTIVE_STATUSES,
+        ).select_related('ticket').order_by('deadline')[:20]
         return [{
-            'id': t.id,
-            'sn': t.sn,
-            'title': t.title,
-            'priority': t.priority,
-            'itsm_type': t.itsm_type,
-            'create_datetime': t.create_datetime.isoformat() if t.create_datetime else '',
-            'elapsed_days': (timezone.now() - t.create_datetime).days if t.create_datetime else 0,
-        } for t in qs]
+            'id': t.ticket.id,
+            'sn': t.ticket.sn,
+            'title': t.ticket.title,
+            'priority': t.ticket.priority,
+            'itsm_type': t.ticket.itsm_type,
+            'deadline': t.deadline.isoformat() if t.deadline else '',
+            'overdue_seconds': int((now - t.deadline).total_seconds()) if t.deadline else 0,
+        } for t in overdue_tasks]

@@ -82,10 +82,6 @@ def itsm_post_set_state_handler(sender, node_id, to_state, version, root_id, **k
         except (EriNode.DoesNotExist, json.JSONDecodeError, TypeError, AttributeError):
             pass
 
-    # 节点进入时触发 SLA 启动
+    # SLA start unified in ITSMEngine.run() — no longer triggered per-node
     if to_state == states.RUNNING:
-        from itsm.services.sla_engine import SlaEngine
-        try:
-            SlaEngine.start_ticket_sla(ticket)
-        except Exception as e:
-            logger.warning('[Signal] SLA start error for ticket %s: %s', ticket.id, e)
+        pass

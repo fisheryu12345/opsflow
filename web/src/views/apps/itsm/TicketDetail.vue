@@ -26,6 +26,37 @@
       </div>
     </div>
 
+    <!-- SLA 信息卡片 -->
+    <div class="td-sla-card" :class="'sla-' + ticket.sla_info.sla_status" v-if="ticket?.sla_info">
+      <div class="td-card-title">SLA 信息</div>
+      <div class="td-sla-grid">
+        <div class="td-sla-item">
+          <span class="td-sla-label">状态</span>
+          <span :class="'sla-badge sla-' + ticket.sla_info.sla_status">
+            {{ slaStatusLabel(ticket.sla_info.sla_status) }}
+          </span>
+        </div>
+        <div class="td-sla-item">
+          <span class="td-sla-label">策略</span>
+          <span>{{ ticket.sla_info.policy_name || '-' }}</span>
+        </div>
+        <div class="td-sla-item">
+          <span class="td-sla-label">剩余时间</span>
+          <span :style="{ color: ticket.sla_info.remaining_seconds < 300 ? '#F56C6C' : '#67C23A' }">
+            {{ formatSlaTime(ticket.sla_info.remaining_seconds) }}
+          </span>
+        </div>
+        <div class="td-sla-item">
+          <span class="td-sla-label">响应截止</span>
+          <span>{{ ticket.sla_info.reply_deadline ? ticket.sla_info.reply_deadline.slice(0,16).replace('T', ' ') : '-' }}</span>
+        </div>
+        <div class="td-sla-item">
+          <span class="td-sla-label">解决截止</span>
+          <span>{{ ticket.sla_info.deadline ? ticket.sla_info.deadline.slice(0,16).replace('T', ' ') : '-' }}</span>
+        </div>
+      </div>
+    </div>
+
     <div class="td-body">
       <div class="td-summary-card" v-if="summaryNode">
         <div class="td-card-title">申请内容</div>
@@ -166,6 +197,19 @@ function stepTypeLabel(t: string) {
 function formatTime(dt: string | undefined | null): string {
   if (!dt) return ''
   return dt.replace(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}).*$/, '$1')
+}
+
+function slaStatusLabel(s: string): string {
+  const m: Record<string, string> = { normal: '正常', warning: '即将超时', violated: '已超时' }
+  return m[s] || s || '未知'
+}
+
+function formatSlaTime(seconds: number | null | undefined): string {
+  if (seconds == null || seconds <= 0) return '已超时'
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  if (h > 0) return `${h} 小时 ${m} 分`
+  return `${m} 分钟`
 }
 
 async function loadTicket() {
@@ -329,6 +373,17 @@ onMounted(() => loadTicket())
 .td-meta-divider { width: 1px; height: 14px; background: #dcdfe6; flex-shrink: 0; }
 .td-body { display: flex; flex-direction: column; gap: 16px; }
 .td-card-title { font-size: 15px; font-weight: 600; color: #1d2129; margin-bottom: 12px; }
+
+.td-sla-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 18px 24px; margin-bottom: 16px; border-left: 4px solid #909399; }
+.td-sla-card.sla-violated { border-left-color: #F56C6C; }
+.td-sla-card.sla-warning { border-left-color: #E6A23C; }
+.td-sla-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+.td-sla-item { display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
+.td-sla-label { font-size: 11px; color: #909399; }
+.sla-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px; }
+.sla-normal { background: #f0f9eb; color: #67C23A; }
+.sla-warning { background: #fdf6ec; color: #E6A23C; }
+.sla-violated { background: #fef0f0; color: #F56C6C; }
 
 .td-summary-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 18px 24px; border-left: 4px solid #67C23A; }
 .td-summary-grid { display: flex; flex-wrap: wrap; }

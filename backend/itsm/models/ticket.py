@@ -208,7 +208,7 @@ class Ticket(CoreModel):
         self.save(update_fields=['node_status'])
 
     def do_before_exit_state(self, state_id, operator=''):
-        """退出节点前处理"""
+        """退出节点前处理（当前为预留钩子，SLA 停止已统一由 pipeline 结束时处理）"""
         pass
 
     def do_before_end_pipeline(self):
