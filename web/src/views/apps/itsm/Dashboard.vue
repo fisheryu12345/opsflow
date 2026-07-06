@@ -8,7 +8,7 @@
         </div>
         <div class="itsm-dash-stat-body">
           <span class="itsm-dash-stat-value">{{ summary.pending_tickets }}</span>
-          <span class="itsm-dash-stat-label">我的待办</span>
+          <span class="itsm-dash-stat-label">{{ $t('message.dashboard.myPending') }}</span>
         </div>
       </div>
       <div class="itsm-dash-stat-card">
@@ -17,7 +17,7 @@
         </div>
         <div class="itsm-dash-stat-body">
           <span class="itsm-dash-stat-value">{{ summary.overdue_count }}</span>
-          <span class="itsm-dash-stat-label">超时工单</span>
+          <span class="itsm-dash-stat-label">{{ $t('message.dashboard.overdue') }}</span>
         </div>
       </div>
       <div class="itsm-dash-stat-card">
@@ -26,7 +26,7 @@
         </div>
         <div class="itsm-dash-stat-body">
           <span class="itsm-dash-stat-value">{{ summary.today_resolved }}</span>
-          <span class="itsm-dash-stat-label">今日解决</span>
+          <span class="itsm-dash-stat-label">{{ $t('message.dashboard.todayResolved') }}</span>
         </div>
       </div>
       <div class="itsm-dash-stat-card">
@@ -35,7 +35,7 @@
         </div>
         <div class="itsm-dash-stat-body">
           <span class="itsm-dash-stat-value">{{ summary.avg_resolution_hours }}</span>
-          <span class="itsm-dash-stat-label">平均解决(h)</span>
+          <span class="itsm-dash-stat-label">{{ $t('message.dashboard.avgResolution') }}</span>
         </div>
       </div>
     </div>
@@ -45,7 +45,7 @@
       <!-- 30-day Trend Chart -->
       <div class="itsm-dash-card itsm-dash-card-chart">
         <div class="itsm-dash-card-header">
-          <span class="itsm-dash-card-title">近30天工单趋势</span>
+          <span class="itsm-dash-card-title">{{ $t('message.dashboard.trend30d') }}</span>
         </div>
         <div ref="chartRef" style="height: 280px; width: 100%;" />
       </div>
@@ -53,7 +53,7 @@
       <!-- Overdue Tickets -->
       <div class="itsm-dash-card itsm-dash-card-list">
         <div class="itsm-dash-card-header">
-          <span class="itsm-dash-card-title">超时工单 ({{ overdue.length }})</span>
+          <span class="itsm-dash-card-title">{{ $t('message.dashboard.overdueList', { n: overdue.length }) }}</span>
         </div>
         <div class="itsm-dash-list" v-if="overdue.length">
           <div v-for="item in overdue" :key="item.id" class="itsm-dash-list-item">
@@ -64,37 +64,37 @@
             <span class="itsm-dash-list-meta">{{ formatOverdue(item.overdue_seconds) }}</span>
           </div>
         </div>
-        <el-empty v-else description="暂无超时工单" :image-size="40" />
+        <el-empty v-else :description="$t('message.dashboard.noOverdue')" :image-size="40" />
       </div>
     </div>
 
     <!-- My Tasks -->
     <div class="itsm-dash-card">
       <div class="itsm-dash-card-header">
-        <span class="itsm-dash-card-title">我的待办任务 ({{ myTasks.length }})</span>
+        <span class="itsm-dash-card-title">{{ $t('message.dashboard.myTasks', { n: myTasks.length }) }}</span>
         <el-button size="small" text @click="$emit('switch-tab', 'tickets')">
-          查看全部
+          {{ $t('message.dashboard.viewAll') }}
         </el-button>
       </div>
       <el-table :data="myTasks" stripe style="width:100%" size="small"
-        :empty-text="'暂无待办任务'"
+        :empty-text="$t('message.dashboard.noTasks')"
         @row-click="(row: any) => $emit('view-ticket', row)">
-        <el-table-column prop="sn" label="单号" width="150" />
-        <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="node_name" label="当前节点" width="140" />
-        <el-table-column prop="node_type" label="节点类型" width="100">
+        <el-table-column prop="sn" :label="$t('message.itsmPage.colSn')" width="150" />
+        <el-table-column prop="title" :label="$t('message.itsmPage.colTitle')" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="node_name" :label="$t('message.dashboard.currentNode')" width="140" />
+        <el-table-column prop="node_type" :label="$t('message.dashboard.nodeType')" width="100">
           <template #default="{ row }">
             <el-tag :type="row.node_type === 'APPROVAL' ? 'warning' : 'primary'" size="small">
               {{ row.node_type }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="priority" label="优先级" width="80">
+        <el-table-column prop="priority" :label="$t('message.ticketCreate.priority')" width="80">
           <template #default="{ row }">
             <span class="itsm-prio-badge" :class="'it-prio-' + (row.priority || 'p3').toLowerCase()">{{ row.priority }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="create_datetime" label="创建时间" width="160" />
+        <el-table-column prop="create_datetime" :label="$t('message.itsmPage.colCreateTime')" width="160" />
       </el-table>
     </div>
   </div>
@@ -102,8 +102,11 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { List, WarningFilled, Finished, Clock } from '@element-plus/icons-vue'
 import { dashboardApi } from '/@/api/itsm/index'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   tickets: any[]

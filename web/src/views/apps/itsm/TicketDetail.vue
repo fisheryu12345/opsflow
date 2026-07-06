@@ -2,9 +2,9 @@
   <div class="ticket-detail" v-loading="loading">
     <div class="td-header">
       <div class="td-header-top">
-        <div class="td-card-title">单据信息</div>
+        <div class="td-card-title">{{ $t('message.ticketDetail.ticketInfo') }}</div>
         <el-button text @click="goBack" class="td-back-btn">
-          <el-icon><ArrowLeft /></el-icon> 返回工单列表
+          <el-icon><ArrowLeft /></el-icon> {{ $t('message.common.back') }}
         </el-button>
       </div>
       <div class="td-header-row" v-if="ticket">
@@ -20,7 +20,7 @@
         <span class="td-meta-divider" />
         <span>{{ ticket.itsm_type }}</span>
         <span class="td-meta-divider" />
-        <span>创建人: {{ ticket.creator_name || ticket.creator || '-' }}</span>
+        <span>{{ $t('message.itsmPage.colCreator') }}: {{ ticket.creator_name || ticket.creator || '-' }}</span>
         <span class="td-meta-divider" />
         <span>{{ ticket.create_datetime || '' }}</span>
       </div>
@@ -145,6 +145,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, User, Select, Close } from '@element-plus/icons-vue'
@@ -153,6 +154,7 @@ import { ticketApi, GetTicketStatus, NodeSubmit, ApproveTicketNode, RejectTicket
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -411,5 +413,4 @@ onMounted(() => loadTicket())
 .td-timeline-name { font-size: 14px; font-weight: 500; color: #1d2129; }
 .td-timeline-meta { font-size: 12px; color: #86909c; margin-top: 3px; }
 .td-timeline-result { margin-top: 4px; display: flex; align-items: center; gap: 6px; }
-.td-timeline-comment { font-size: 12px; color: #606266; }
-</style>
+.td-timeline-comment { font-size: 12p

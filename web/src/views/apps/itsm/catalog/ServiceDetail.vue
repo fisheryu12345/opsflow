@@ -2,7 +2,7 @@
   <div class="service-detail" v-loading="loading">
     <!-- Back button -->
     <div class="sd-back" @click="$emit('back')">
-      <el-icon><ArrowLeft /></el-icon> 返回服务列表
+      <el-icon><ArrowLeft /></el-icon> {{ $t('message.serviceDetail.backToList') }}
     </div>
 
     <!-- Detail Card -->
@@ -15,32 +15,32 @@
           <div class="sd-meta">
             <span class="sd-category" v-if="item.category_name">{{ item.category_name }}</span>
             <el-tag :type="item.mode === 'flow' ? 'primary' : 'success'" size="small">
-              {{ item.mode === 'flow' ? '流程驱动' : '快捷服务' }}
+              {{ item.mode === 'flow' ? $t('message.serviceDetail.flowMode') : $t('message.serviceDetail.lightweightMode') }}
             </el-tag>
-            <span v-if="item.expected_duration" class="sd-duration">⏱ 预计 {{ item.expected_duration }}</span>
+            <span v-if="item.expected_duration" class="sd-duration">{{ $t('message.serviceDetail.expectedDuration', { duration: item.expected_duration }) }}</span>
           </div>
         </div>
       </div>
 
       <!-- Description -->
       <div class="sd-section" v-if="item.description">
-        <div class="sd-section-title">服务说明</div>
+        <div class="sd-section-title">{{ $t('message.serviceDetail.serviceDesc') }}</div>
         <div class="sd-desc">{{ item.description }}</div>
       </div>
 
       <!-- Form -->
       <div class="sd-section">
-        <div class="sd-section-title">申请信息</div>
+        <div class="sd-section-title">{{ $t('message.serviceDetail.applyInfo') }}</div>
         <el-form label-position="top" size="small" class="sd-form">
-          <el-form-item label="申请标题" required>
-            <el-input v-model="form.title" placeholder="请输入申请标题" :maxlength="200" />
+          <el-form-item :label="$t('message.serviceDetail.applyTitle')" required>
+            <el-input v-model="form.title" :placeholder="$t('message.serviceDetail.applyTitlePlaceholder')" :maxlength="200" />
           </el-form-item>
-          <el-form-item label="优先级">
+          <el-form-item :label="$t('message.serviceDetail.priority')">
             <el-select v-model="form.priority" style="width:100%">
-              <el-option label="P1 危急" value="P1" />
-              <el-option label="P2 高" value="P2" />
-              <el-option label="P3 中" value="P3" />
-              <el-option label="P4 低" value="P4" />
+              <el-option :label="$t('message.serviceDetail.p1')" value="P1" />
+              <el-option :label="$t('message.serviceDetail.p2')" value="P2" />
+              <el-option :label="$t('message.serviceDetail.p3')" value="P3" />
+              <el-option :label="$t('message.serviceDetail.p4')" value="P4" />
             </el-select>
           </el-form-item>
 
@@ -75,9 +75,9 @@
 
       <!-- Submit -->
       <div class="sd-actions">
-        <el-button @click="$emit('back')">取消</el-button>
+        <el-button @click="$emit('back')">{{ $t('message.common.cancel') }}</el-button>
         <el-button type="primary" :loading="submitting" @click="onSubmit">
-          <el-icon><Select /></el-icon> 提交申请
+          <el-icon><Select /></el-icon> {{ $t('message.serviceDetail.submitApply') }}
         </el-button>
       </div>
     </div>
@@ -86,12 +86,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Select } from '@element-plus/icons-vue'
 import { serviceItemApi, SubmitServiceItem } from '/@/api/itsm/index'
 
 const props = defineProps<{ serviceId: number }>()
 const emit = defineEmits<{ back: []; submitted: [ticketId: number] }>()
+const { t } = useI18n()
 
 const loading = ref(false)
 const submitting = ref(false)

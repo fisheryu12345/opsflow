@@ -2,12 +2,12 @@
   <div class="service-market">
     <!-- Search -->
     <div class="sm-search-bar">
-      <el-input v-model="searchQuery" placeholder="搜索服务..." clearable size="large" class="sm-search-input" @input="onSearch">
+      <el-input v-model="searchQuery" :placeholder="$t('message.serviceMarket.searchPlaceholder')" clearable size="large" class="sm-search-input" @input="onSearch">
         <template #prefix><el-icon><Search /></el-icon></template>
       </el-input>
       <div class="sm-filter-tags" v-if="activeMode">
         <el-tag closable size="small" @close="activeMode = ''">
-          {{ activeMode === 'flow' ? '流程驱动' : '快捷服务' }}
+          {{ activeMode === 'flow' ? $t('message.serviceMarket.flowMode') : $t('message.serviceMarket.lightweightMode') }}
         </el-tag>
       </div>
     </div>
@@ -78,12 +78,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Search, FolderOpened, Folder } from '@element-plus/icons-vue'
 import { serviceItemApi, serviceCategoryApi } from '/@/api/itsm/index'
 import ServiceDetail from './ServiceDetail.vue'
 
 const emit = defineEmits<{ goTicket: [ticketId: number] }>()
+const { t } = useI18n()
 const loading = ref(false)
 const items = ref<any[]>([])
 const categories = ref<any[]>([])

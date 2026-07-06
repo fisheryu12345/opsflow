@@ -98,10 +98,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Check } from '@element-plus/icons-vue'
 import { delegationApi, ToggleDelegation } from '/@/api/itsm/index'
 import { GetList } from '/@/views/apps/iam/admin/user/api'
+
+const { t } = useI18n()
 
 // ===== Data =====
 const loading = ref(false)
