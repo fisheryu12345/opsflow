@@ -83,6 +83,7 @@ import { Search, FolderOpened, Folder } from '@element-plus/icons-vue'
 import { serviceItemApi, serviceCategoryApi } from '/@/api/itsm/index'
 import ServiceDetail from './ServiceDetail.vue'
 
+const emit = defineEmits<{ goTicket: [ticketId: number] }>()
 const loading = ref(false)
 const items = ref<any[]>([])
 const categories = ref<any[]>([])
@@ -135,7 +136,7 @@ function onViewDetail(item: any) {
 
 function onSubmitted(ticketId: number) {
   showDetail.value = false
-  ElMessage.success(`工单 #${ticketId} 已提交`)
+  emit('goTicket', ticketId)
 }
 
 onMounted(async () => {
@@ -245,4 +246,5 @@ onMounted(async () => {
   overflow-y: auto;
   padding: 16px 20px;
 }
+
 </style>

@@ -71,9 +71,10 @@ class Workflow(CoreModel):
                 'api_instance_id': s.api_instance_id,
             }
         # Safety net: ensure START/END exist even if not saved
-        if '__start__' not in states_data:
+        # Check by type, not by dict key — a real START may have a different node_key
+        if not any(s.get('type') == 'START' for s in states_data.values()):
             states_data['__start__'] = {'id': -1, 'node_key': '__start__', 'name': '开始', 'type': 'START', 'fields': [], 'is_builtin': True}
-        if '__end__' not in states_data:
+        if not any(s.get('type') == 'END' for s in states_data.values()):
             states_data['__end__'] = {'id': -2, 'node_key': '__end__', 'name': '结束', 'type': 'END', 'fields': [], 'is_builtin': True}
         transitions_data = {}
         for t in self.transitions.all():

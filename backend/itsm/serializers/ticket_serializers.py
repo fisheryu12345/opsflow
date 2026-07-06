@@ -19,20 +19,9 @@ class TicketCreateSerializer(CustomModelSerializer):
         fields = '__all__'
         read_only_fields = ['sn', 'current_status', 'pipeline_id',
                             'creator', 'create_datetime', 'update_datetime']
-
-
-class TicketSubmitSerializer(CustomModelSerializer):
-    """提交工单（启动 pipeline）"""
-    class Meta:
-        model = Ticket
-        fields = ['id']
-
-
-class TicketApproveSerializer(CustomModelSerializer):
-    """审批工单"""
-    class Meta:
-        model = Ticket
-        fields = ['id', 'state_id', 'approve_result', 'comment']
+        extra_kwargs = {
+            'workflow_version': {'required': False, 'allow_null': True},
+        }
 
 
 class TicketStatusSerializer(CustomModelSerializer):

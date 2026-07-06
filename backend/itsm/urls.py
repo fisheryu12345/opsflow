@@ -9,8 +9,6 @@ from rest_framework import routers
 
 from .views.views import (
     ServiceCategoryViewSet, SlaPolicyViewSet,
-    IncidentViewSet, ChangeViewSet,
-    ServiceRequestViewSet, ProblemViewSet,
 )
 from .views.workflow_views import (
     WorkflowViewSet, WorkflowVersionViewSet,
@@ -20,21 +18,12 @@ from .views.workflow_views import (
 from .views.ticket_views import TicketViewSet
 from .views.dashboard import DashboardViewSet
 from .views.delegation import DelegationViewSet
-from .views.assign_views import (
-    SkillGroupViewSet, OnDutyScheduleViewSet,
-    AssignRuleViewSet, EscalationLevelViewSet,
-    TicketTransferLogViewSet,
-)
 from .views.service_item import ServiceItemViewSet
 
 router = routers.SimpleRouter()
 # Existing ITSM routes
 router.register(r'service-categories', ServiceCategoryViewSet)
 router.register(r'sla-policies', SlaPolicyViewSet)
-router.register(r'incidents', IncidentViewSet)
-router.register(r'changes', ChangeViewSet)
-router.register(r'service-requests', ServiceRequestViewSet)
-router.register(r'problems', ProblemViewSet)
 
 # Workflow engine routes
 router.register(r'workflows', WorkflowViewSet)
@@ -50,12 +39,7 @@ router.register(r'dashboard', DashboardViewSet, basename='dashboard')
 # Delegation (审批委托)
 router.register(r'delegations', DelegationViewSet)
 
-# Assignment management
-router.register(r'skill-groups', SkillGroupViewSet)
-router.register(r'on-duty-schedules', OnDutyScheduleViewSet)
-router.register(r'assign-rules', AssignRuleViewSet)
-router.register(r'escalation-levels', EscalationLevelViewSet)
-router.register(r'transfer-logs', TicketTransferLogViewSet)
+# Service catalog
 router.register(r'service-items', ServiceItemViewSet)
 
 urlpatterns = [

@@ -73,51 +73,6 @@ def cmdb_sync(request):
 @api_view(['POST'])
 @authentication_classes(AUTH_CLASSES)
 @throttle_classes(THROTTLE_CLASSES)
-def create_incident(request):
-    """第三方系统创建事件工单"""
-    data = request.data if isinstance(request.data, dict) else {}
-
-    title = data.get('title', '').strip()
-    if not title:
-        return ErrorResponse(msg='title 为必填字段', code=4000)
-
-    from itsm.models.incident import Incident
-    import uuid
-
-    inc = Incident.objects.create(
-        incident_id=f"EXT-{uuid.uuid4().hex[:8].upper()}",
-        title=title,
-        description=data.get('description', ''),
-        priority=data.get('priority', 'P3'),
-        source='api',
-        cmdb_biz_id=data.get('biz_id', ''),
-    )
-    return DetailResponse(data={'incident_id': inc.incident_id}, msg='工单创建成功')
-
-
-@api_view(['GET'])
-@authentication_classes(AUTH_CLASSES)
-@throttle_classes(THROTTLE_CLASSES)
-def query_incident(request, incident_id):
-    """第三方查询工单状态"""
-    from itsm.models.incident import Incident
-    try:
-        inc = Incident.objects.get(incident_id=incident_id)
-        return DetailResponse(data={
-            'incident_id': inc.incident_id,
-            'title': inc.title,
-            'status': inc.status,
-            'priority': inc.priority,
-            'assignee': inc.assignee.name if inc.assignee else None,
-            'created_at': inc.create_datetime,
-        })
-    except Incident.DoesNotExist:
-        return ErrorResponse(msg='工单不存在', code=4000)
-
-
-@api_view(['POST'])
-@authentication_classes(AUTH_CLASSES)
-@throttle_classes(THROTTLE_CLASSES)
 def trigger_execution(request):
     """第三方触发作业执行（支持 Plan 或快速执行）"""
     data = request.data if isinstance(request.data, dict) else {}

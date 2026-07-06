@@ -15,6 +15,7 @@
 """
 
 import logging
+import uuid
 from collections import deque
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ class ITSMWorkflowBuilder:
             ticket_id: 工单 ID，注入到 ServiceActivity 的 inputs 中
 
         Returns:
-            (tree_dict, element_map): bamboo pipeline tree + 节点元素映射
+            (tree_dict, element_map, node_id_map): bamboo pipeline tree + 节点元素映射 + 原始 key → element ID 映射
         """
         from bamboo_engine.builder import (
             Var, Data, ServiceActivity, EmptyStartEvent, EmptyEndEvent,
@@ -60,77 +61,88 @@ class ITSMWorkflowBuilder:
                 'condition_type': trans.get('condition_type', 'default'),
             })
 
+        # Generate unique suffix per run to avoid Data.node_id collisions
+        # across different pipeline runs of the same workflow version
+        run_salt = uuid.uuid4().hex[:6]
+
         # Data 对象 — 承载 NodeOutput 注册，必须传入 build_tree()
         data = Data()
         all_node_ids = set()
+        node_id_map = {}  # original key → unique element ID
 
-        # Create pipeline elements
+        # Create pipeline elements with unique IDs per run
         for sid, state in states.items():
             sid_str = str(sid)
             stype = state.get('type', 'START')
-            all_node_ids.add(sid_str)
+            # Append unique salt so repeated runs don't collide on Data.node_id
+            elem_id = f"{sid_str}_{run_salt}"
+            node_id_map[sid_str] = elem_id
+            all_node_ids.add(elem_id)
+            all_node_ids.add(sid_str)  # condition expressions reference original keys
 
             if stype == 'START':
-                el = EmptyStartEvent(id=sid_str)
+                el = EmptyStartEvent(id=elem_id)
             elif stype == 'END':
-                el = EmptyEndEvent(id=sid_str)
+                el = EmptyEndEvent(id=elem_id)
             elif stype == 'NORMAL':
                 el = ServiceActivity(
                     component_code='itsm_fill_form',
-                    id=sid_str,
+                    id=elem_id,
                     skippable=False,
                 )
                 el.name = state.get('name', '')
                 el.component.inputs['ticket_id'] = Var(type=Var.PLAIN, value=ticket_id)
                 el.component.inputs['state_id'] = Var(type=Var.PLAIN, value=state.get('id'))
-                _register_field_outputs(data, sid_str, state)
+                _register_field_outputs(data, elem_id, state)
             elif stype == 'APPROVAL':
                 el = ServiceActivity(
                     component_code='itsm_approval',
-                    id=sid_str,
+                    id=elem_id,
                     skippable=False,
                 )
                 el.name = state.get('name', '')
                 el.component.inputs['ticket_id'] = Var(type=Var.PLAIN, value=ticket_id)
                 el.component.inputs['state_id'] = Var(type=Var.PLAIN, value=state.get('id'))
-                _register_field_outputs(data, sid_str, state)
+                _register_field_outputs(data, elem_id, state)
             elif stype == 'SIGN':
                 el = ServiceActivity(
                     component_code='itsm_sign',
-                    id=sid_str,
+                    id=elem_id,
                     skippable=False,
                 )
                 el.name = state.get('name', '')
                 el.component.inputs['ticket_id'] = Var(type=Var.PLAIN, value=ticket_id)
                 el.component.inputs['state_id'] = Var(type=Var.PLAIN, value=state.get('id'))
-                _register_field_outputs(data, sid_str, state)
+                _register_field_outputs(data, elem_id, state)
             elif stype == 'TASK':
                 el = ServiceActivity(
                     component_code='itsm_auto_task',
-                    id=sid_str,
+                    id=elem_id,
                     skippable=True,
                 )
                 el.name = state.get('name', '')
                 el.component.inputs['ticket_id'] = Var(type=Var.PLAIN, value=ticket_id)
                 el.component.inputs['state_id'] = Var(type=Var.PLAIN, value=state.get('id'))
-                _register_field_outputs(data, sid_str, state)
+                _register_field_outputs(data, elem_id, state)
             elif stype == 'CONDITIONAL_PARALLEL':
-                el = ConditionalParallelGateway(id=sid_str)
+                el = ConditionalParallelGateway(id=elem_id)
             elif stype == 'EXCLUSIVE':
-                el = ExclusiveGateway(id=sid_str)
+                el = ExclusiveGateway(id=elem_id)
             elif stype == 'PARALLEL':
-                el = ParallelGateway(id=sid_str)
+                el = ParallelGateway(id=elem_id)
             elif stype == 'COVERAGE':
-                el = ConvergeGateway(id=sid_str)
+                el = ConvergeGateway(id=elem_id)
             else:
                 # Unknown type fallback
                 el = ServiceActivity(
                     component_code='itsm_fill_form',
-                    id=sid_str,
+                    id=elem_id,
                     skippable=True,
                 )
                 el.name = state.get('name', '')
 
+            element_map[elem_id] = el
+            # Also register by original state key for transition lookup
             element_map[sid_str] = el
             # Also register by DB id for transition lookup fallback
             db_id = state.get('id')
@@ -155,37 +167,52 @@ class ITSMWorkflowBuilder:
                             expr = _build_by_field_expr(cond, from_id)
                             expr = _collect_condition_refs(expr, data, all_node_ids)
                         else:
+                            cond = edge.get('condition', {})
                             expr = cond.get('evaluate', cond.get('expression', True))
                             if isinstance(expr, str):
                                 expr = _collect_condition_refs(expr, data, all_node_ids)
 
                         from_el.add_condition(i, {'evaluate': expr})
 
-        # ConvergeGateway 配对 — PARALLEL / CONDITIONAL_PARALLEL 需要与下游 COVERAGE 配对
-        for sid_str, el in element_map.items():
-            stype = states.get(sid_str, {}).get('type', '')
-            if stype not in ('PARALLEL', 'CONDITIONAL_PARALLEL'):
-                continue
-            cg = _find_downstream_converge(sid_str, transition_map, element_map)
-            if cg:
-                el.converge(cg)
-
         # Build tree — find start/end by state type
+        # IMPORTANT: first match wins. Safety-net START/END (id < 0) may exist
+        # alongside real ones; prefer the real one that has outgoing/incoming.
         start_event = None
         end_event = None
-        for sid_str, el in element_map.items():
-            sdata = states.get(sid_str, {})
-            stype = sdata.get('type', '')
+        for sid_str in states.keys():
+            el = element_map.get(sid_str)
+            if el is None:
+                continue
+            stype = states[sid_str].get('type', '')
             if stype == 'START':
-                start_event = el
+                if start_event is None or (not start_event.outgoing and el.outgoing):
+                    start_event = el
             elif stype == 'END':
-                end_event = el
+                if end_event is None:
+                    end_event = el
 
         if not start_event or not end_event:
             raise ValueError('Workflow must have START and END states')
 
+        # Validate every non-END node has at least one outgoing edge
+        # Iterate over state keys (original keys), not element_map (which has
+        # both unique IDs and original key aliases)
+        for sid_str in states.keys():
+            el = element_map.get(sid_str)
+            if el is None:
+                continue
+            stype = states[sid_str].get('type', '')
+            if stype == 'END':
+                continue
+            if len(getattr(el, 'outgoing', [])) == 0:
+                name = states[sid_str].get('name', sid_str)
+                raise ValueError(
+                    f"Node '{name}' (type={stype}, id={sid_str}) "
+                    f"has no outgoing transitions — check the workflow diagram"
+                )
+
         tree = build_tree(start_event, data=data)
-        return tree, element_map
+        return tree, element_map, node_id_map
 
 
 def _register_field_outputs(data, sid_str, state):

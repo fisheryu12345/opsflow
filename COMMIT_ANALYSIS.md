@@ -2,6 +2,69 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## fc3bae8c
+
+> 提交日期: 2026-07-06 | 提交信息: refactor: full ITSM legacy cleanup + 6 bug fixes — 清理遗留模块与修复代码审查发现的 6 个缺陷
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/itsm/views/assign_views.py` | 后端 | **删除** — 5 个遗留 ViewSet (SkillGroup/OnDutySchedule/AssignRule/EscalationLevel/TicketTransferLog) |
+| `backend/itsm/views/views.py` | 后端 | **重写** — 仅保留 ServiceCategory/SlaPolicy，删除 Incident/Change/ServiceRequest/Problem ViewSet 及 CRUD |
+| `backend/itsm/serializers/assign_serializers.py` | 后端 | **删除** |
+| `backend/itsm/serializers/legacy.py` | 后端 | **重写** — 仅保留 ServiceCategory/SlaPolicy serializers |
+| `backend/itsm/services/assign_engine.py` | 后端 | **删除** — AssignEngine 自动分派引擎（已由节点 processors 驱动替代） |
+| `backend/itsm/services/escalation_service.py` | 后端 | **删除** — EscalationService 升级检测 |
+| `backend/itsm/management/commands/start_itsm_scheduler.py` | 后端 | **删除** — ITSM 独立调度器 |
+| `backend/itsm/models/incident.py` | 后端 | **删除** — Incident/Change/ServiceRequest/Problem 模型（ServiceCategory/SlaPolicy 迁至 catalog.py） |
+| `backend/itsm/models/skill_group.py` | 后端 | **删除** — SkillGroup/OnDutySchedule |
+| `backend/itsm/models/assign_rule.py` | 后端 | **删除** |
+| `backend/itsm/models/escalation.py` | 后端 | **删除** — EscalationLevel |
+| `backend/itsm/models/transfer_log.py` | 后端 | **删除** — TicketTransferLog |
+| `backend/itsm/models/catalog.py` | 后端 | **新建** — ServiceCategory + SlaPolicy 模型 |
+| `backend/itsm/services/role_resolver.py` | 后端修复 | **Bug 1:** _resolve_starter_leader 用 `username=ticket.creator` → `id=ticket.creator` (creator 是 IntegerField) |
+| `backend/itsm/pipeline_plugins/components.py` | 后端修复 | **Bug 2:** ItsmSignService 持有 _approval_svc 实例，只在 is_schedule_finished() 为 True 时 finish_schedule() |
+| `backend/itsm/services/workflow_builder.py` | 后端修复 | **Bug 3:** `all_node_ids.add(sid_str)` 添加原始 key 使 _collect_condition_refs 能匹配；**Bug 4:** run_salt 12→6 字符确保 element ID 不超 EriNode.node_id(33) |
+| `backend/itsm/signals.py` | 后端修复 | **Bug 6:** EndEvent 检测从 JSON 子串匹配改为 json.loads() 解析后检 type 字段 |
+| `backend/itsm/views/ticket_views.py` | 后端修复 | **Bug 5:** assign 接口加 int(user_id) 转换和明确错误提示 |
+| `backend/itsm/views/service_item.py` | 后端修复 | 保存 pipeline_id + 设置 current_status='running' 使 pipeline 结束信号能匹配 |
+| `backend/portal/views/dashboard.py` | 后端 | 移除 Incident/Change 引用，改用 Ticket 统计 |
+| `backend/open_api/views/external.py` | 后端 | 移除 create_incident/query_incident 端点 |
+| `backend/monitor/adapters/action/itsm.py` | 后端 | Incident → Ticket |
+| `backend/monitor/views/alert_views.py` | 后端 | Incident → Ticket |
+| `backend/iam/migrations/0003-0005` | 迁移 | 删除 PageTab 记录（3 个迁移） |
+| `backend/itsm/migrations/0008-0009` | 迁移 | FK 字段清理 + 10 张 legacy 表删除 |
+| `backend/iam/management/commands/seed_iam_page_configs.py` | 配置 | 移除 incidents/changes/assign-rules/skill-groups/on-duty/escalation tab 配置 |
+| `backend/itsm/management/commands/seed_itsm.py` | 配置 | 清理遗留 seed 数据 |
+| `web/src/views/apps/itsm/index.vue` | 前端 | 移除 6 个废弃 tab 组件引用+import+componentMap；移除工单详情 dialog 改用独立页面路由；转派/分派按钮限制 finished/terminated 状态 |
+| `web/src/views/apps/itsm/TicketDetail.vue` | 前端 | **新建** 独立详情页（全宽布局、单据信息区、申请内容区、流程图、已完成节点时间线、审批结果标签） |
+| `web/src/views/apps/itsm/FlowChart.vue` | 前端 | **新建** X6 只读流程图（dagre 布局、状态着色、zoom in/out/fit、驳回标签） |
+| `web/src/api/itsm/index.ts` | 前端 | 移除 legacy API (incidentApi/changeApi/AssignIncident 等) |
+| `web/src/router/route.ts` | 前端 | ItsmTicketDetail 路由 |
+| `web/src/views/apps/itsm/{AssignRule,EscalationLevel,OnDutySchedule,SkillGroup,TeamDashboard}.vue` | 前端 | **删除** — 5 个废弃组件 |
+| `backend/itsm/index.md` | 文档 | 全量重写，移除已删除文件引用 |
+| `docs/superpowers/specs/2026-07-06-itsm-flowchart-readonly-design.md` | 文档 | **新建** FlowChart 只读流程设计文档 |
+
+### 解决
+
+- **问题/背景：** 继承多个会话累计改动：ITS 遗留模型/视图/序列化器/服务/测试文件在统一 Ticket 模型后未被清理（6 个废弃 tab）；代码审查发现 6 个严重 bug（STARTER_LEADER 解析、会签提前结束、条件表达式失效等）
+- **办法：** 全量清理遗留代码（删除 15+ 后端文件、5 个 Vue 组件、8 张 DB 表）；逐一修复 6 个 confirmed bug；新增 FlowChart 只读流程图替代 el-steps 线性展示；独立详情页全面优化
+
+### 文档
+
+- **生成文档：**
+  - `docs/superpowers/specs/2026-07-06-itsm-flowchart-readonly-design.md`
+
+### 验证
+
+- 改动类型: refactor + fix + feat
+- 清理乱码: 有（6 个 shell 残留代码片段文件）
+- 子 App index.md 更新: itsm
+- 工作区状态: 待提交 ✅
+
+---
+
 ## db14a792
 
 > 提交日期: 2026-07-05 | 提交信息: fix: cross-app hero-tab alignment — 全线修复 hero-tab 内容与标题左对齐，全局 mixin + 8 个 app CSS 修正

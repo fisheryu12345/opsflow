@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 """Re-export all models for itsm app"""
 
-from .incident import Incident, Change, ServiceRequest, Problem, ServiceCategory, SlaPolicy
-from .skill_group import SkillGroup, OnDutySchedule
-from .assign_rule import AssignRule
-from .escalation import EscalationLevel
+from .catalog import ServiceCategory, SlaPolicy
 from .workflow import Workflow, WorkflowVersion
 from .state import State
 from .transition import Transition
@@ -16,7 +13,6 @@ from .service_item import ServiceItem
 from ..services.opsflow_trigger import TicketOpsflowConfig
 
 __all__ = [
-    'Incident', 'Change', 'ServiceRequest', 'Problem',
     'ServiceCategory', 'SlaPolicy',
     'Workflow', 'WorkflowVersion',
     'State',

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ITSM 信号处理器 — 工单状态变更时自动触发 SLA/通知 + post_set_state 同步"""
 
+import json
 import logging
 
 from django.db.models.signals import post_save
@@ -8,6 +9,7 @@ from django.dispatch import receiver
 
 from pipeline.eri.signals import post_set_state
 from bamboo_engine import states
+from pipeline.eri.models import Node as EriNode
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +70,17 @@ def itsm_post_set_state_handler(sender, node_id, to_state, version, root_id, **k
         }]
 
     ticket.save(update_fields=['node_status', 'state_history'])
+
+    # pipeline 结束检测：EndEvent 节点 FINISHED → 更新工单状态
+    if to_state == states.FINISHED:
+        try:
+            nd = EriNode.objects.values_list('detail', flat=True).get(node_id=node_id)
+            if nd:
+                detail_data = json.loads(nd) if isinstance(nd, str) else nd
+                if detail_data.get('type') in ('EmptyEndEvent', 'ExecutableEndEvent'):
+                    ticket.do_before_end_pipeline()
+        except (EriNode.DoesNotExist, json.JSONDecodeError, TypeError, AttributeError):
+            pass
 
     # 节点进入时触发 SLA 启动
     if to_state == states.RUNNING:

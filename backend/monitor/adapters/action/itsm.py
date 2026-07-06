@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""ITSM action adapter — 创建 ITSM 工单"""
+"""ITSM action adapter — 创建 ITSM 工单（通过 Ticket 模型）"""
 
 import logging
 
@@ -14,19 +14,16 @@ class ItsmAction(BaseActionAdapter):
 
     def execute(self, context: ActionContext) -> ActionResult:
         try:
-            from itsm.models.incident import Incident
-            import uuid
+            from itsm.models import Ticket
 
             severity_map = {1: 'P1', 2: 'P2', 3: 'P3'}
-            incident = Incident.objects.create(
-                incident_id=f"INC-{uuid.uuid4().hex[:8].upper()}",
+            ticket = Ticket.objects.create(
                 title=f"[告警自愈] {context.alert_title}",
-                description=context.config.get('description', ''),
+                itsm_type='incident',
                 priority=severity_map.get(context.severity, 'P3'),
-                source='alert',
-                alert_id=context.alert_id,
+                current_status='assigned',
             )
-            return ActionResult(success=True, message=f"Incident created: {incident.incident_id}")
+            return ActionResult(success=True, message=f"Ticket created: {ticket.sn}")
         except ImportError:
             return ActionResult(success=False, message='ITSM module not available')
         except Exception as e:

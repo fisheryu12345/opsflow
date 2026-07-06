@@ -1,11 +1,7 @@
-# Legacy serializers (existing Incident/Change models)
+# Legacy serializers (ServiceCategory, SlaPolicy)
 from .legacy import (
     ServiceCategorySerializer, ServiceCategoryCreateUpdateSerializer,
     SlaPolicySerializer,
-    IncidentSerializer, IncidentCreateUpdateSerializer,
-    ChangeSerializer, ChangeCreateUpdateSerializer,
-    ServiceRequestSerializer,
-    ProblemSerializer, ProblemCreateUpdateSerializer,
 )
 # New workflow engine serializers
 from .workflow_serializers import (
@@ -14,8 +10,7 @@ from .workflow_serializers import (
     StateSerializer, TransitionSerializer, FieldSerializer,
 )
 from .ticket_serializers import (
-    TicketSerializer, TicketCreateSerializer, TicketSubmitSerializer,
-    TicketApproveSerializer, TicketStatusSerializer, SignTaskSerializer,
+    TicketSerializer, TicketCreateSerializer, TicketStatusSerializer, SignTaskSerializer,
 )
 from .delegation import (
     DelegationSerializer,
@@ -30,14 +25,9 @@ from .service_item import (
 __all__ = [
     'ServiceCategorySerializer', 'ServiceCategoryCreateUpdateSerializer',
     'SlaPolicySerializer',
-    'IncidentSerializer', 'IncidentCreateUpdateSerializer',
-    'ChangeSerializer', 'ChangeCreateUpdateSerializer',
-    'ServiceRequestSerializer',
-    'ProblemSerializer', 'ProblemCreateUpdateSerializer',
     'WorkflowSerializer', 'WorkflowCreateSerializer', 'WorkflowVersionSerializer',
     'StateSerializer', 'TransitionSerializer', 'FieldSerializer',
-    'TicketSerializer', 'TicketCreateSerializer', 'TicketSubmitSerializer',
-    'TicketApproveSerializer', 'TicketStatusSerializer', 'SignTaskSerializer',
+    'TicketSerializer', 'TicketCreateSerializer', 'TicketStatusSerializer', 'SignTaskSerializer',
     'DelegationSerializer', 'DelegationCreateUpdateSerializer',
     'ServiceItemSerializer', 'ServiceItemCreateUpdateSerializer',
     'ServiceItemSubmitSerializer',

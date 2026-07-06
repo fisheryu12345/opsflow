@@ -13,11 +13,6 @@
         </div>
         <div class="itsm-hero-stats">
           <div class="itsm-stat-item"><span class="itsm-stat-value">{{ tickets.length }}</span><span class="itsm-stat-label">工单</span></div>
-          <div class="itsm-stat-divider" />
-          <div class="itsm-stat-item"><span class="itsm-stat-value">{{ incidents.length }}</span><span class="itsm-stat-label">事件</span></div>
-          <div class="itsm-stat-divider" />
-          <div class="itsm-stat-divider" />
-          <div class="itsm-stat-item"><span class="itsm-stat-value">{{ changes.length }}</span><span class="itsm-stat-label">变更</span></div>
         </div>
       </div>
       <!-- Hero tabs -->
@@ -36,14 +31,14 @@
     <!-- ===== Body ===== -->
     <div class="itsm-body">
 
-      <!-- ==================== TAB: {{ $t('message.itsm.itsmPage.tabDashboard') }} ==================== -->
+      <!-- ==================== TAB: {{ $t('message.itsmPage.tabDashboard') }} ==================== -->
       <div v-show="activeTab === 'dashboard'" class="itsm-section g-fade-in-up">
         <Dashboard :tickets="tickets" @view-ticket="onViewTicket" @switch-tab="activeTab = $event" />
       </div>
 
       <!-- ==================== TAB: 服务市场 ==================== -->
       <div v-show="activeTab === 'service-market'" class="itsm-section g-fade-in-up">
-        <ServiceMarket />
+        <ServiceMarket @goTicket="onGoTicket" />
       </div>
 
       <!-- ==================== TAB: 服务目录管理 ==================== -->
@@ -70,9 +65,6 @@
             </div>
           </div>
           <div class="itsm-filter-actions">
-            <el-button v-can="'itsm:ticket:create'" size="small" @click="onOpenCreateTicket">
-              <el-icon><Plus /></el-icon> 新建工单
-            </el-button>
             <el-button :icon="Refresh" size="small" text @click="loadTickets" :loading="loadingTickets">刷新</el-button>
           </div>
         </div>
@@ -96,12 +88,16 @@
                 </span>
               </template>
             </el-table-column>
-            <el-table-column prop="priority" label="优先级" width="80">
+            <el-table-column prop="priority" :label="$t('message.ticketCreate.priority')" width="80">
               <template #default="{ row }">
                 <span class="itsm-prio-badge" :class="'it-prio-' + (row.priority || 'p3').toLowerCase()">{{ row.priority }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="creator" label="创建人" width="120" />
+            <el-table-column label="创建人" width="120">
+              <template #default="{ row }">
+                {{ row.creator_name || row.creator || '-' }}
+              </template>
+            </el-table-column>
             <el-table-column prop="create_datetime" label="创建时间" width="170" />
             <el-table-column label="处理人" width="140">
               <template #default="{ row }">
@@ -123,10 +119,10 @@
                 <el-button size="small" text @click="onViewTicket(row)">
                   <el-icon><Search /></el-icon> 详情
                 </el-button>
-                <el-button v-if="row.meta?.assignee" size="small" text type="warning" v-can="'itsm:ticket:assign'" @click="ticketAssign(row)">
+                <el-button v-if="row.meta?.assignee && row.current_status !== 'finished' && row.current_status !== 'terminated'" size="small" text type="warning" v-can="'itsm:ticket:assign'" @click="ticketAssign(row)">
                   <el-icon><User /></el-icon> 转派
                 </el-button>
-                <el-button v-else size="small" text type="primary" v-can="'itsm:ticket:assign'" @click="ticketAssign(row)">
+                <el-button v-else-if="!row.meta?.assignee && row.current_status !== 'finished' && row.current_status !== 'terminated'" size="small" text type="primary" v-can="'itsm:ticket:assign'" @click="ticketAssign(row)">
                   <el-icon><User /></el-icon> 分派
                 </el-button>
                 <el-button v-if="row.current_status === 'running'" size="small" text type="danger" v-can="'itsm:ticket:close'" @click="onCloseTicket(row)">
@@ -175,10 +171,7 @@
                 <span>{{ wf.create_datetime || '' }}</span>
               </div>
               <div class="itsm-wf-actions">
-                <el-button v-if="!wf.is_draft" size="small" text v-can="'itsm:ticket:create'" @click="onCreateTicketFromWf(wf)">
-                  <el-icon><Plus /></el-icon> 建单
-                </el-button>
-                <el-button v-if="wf.is_draft" v-can="'itsm:workflow:deploy'" size="small" text type="success" @click="onDeployWorkflow(wf)">
+<el-button v-if="wf.is_draft" v-can="'itsm:workflow:deploy'" size="small" text type="success" @click="onDeployWorkflow(wf)">
                   <el-icon><Upload /></el-icon> 部署
                 </el-button>
                 <el-button v-can="'itsm:workflow:design'" size="small" text @click="onOpenDesigner(wf.id)">
@@ -199,91 +192,6 @@
         </div>
       </div>
 
-      <!-- ==================== TAB: 事件工单 ==================== -->
-      <div v-show="activeTab === 'incidents'" class="itsm-section g-fade-in-up">
-        <div class="itsm-table-card">
-          <div class="itsm-table-header">
-            <span class="itsm-table-title">事件工单</span>
-            <el-button type="primary" size="small" @click="onOpenCreateTicket">
-              <el-icon><Plus /></el-icon> 新建工单
-            </el-button>
-          </div>
-          <el-table :data="incidents" v-loading="loadingIncidents" stripe style="width:100%" size="small"
-            :empty-text="loadingIncidents ? '加载中...' : '暂无事件工单'">
-            <el-table-column prop="incident_id" label="编号" width="130" />
-            <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="priority" label="优先级" width="80">
-              <template #default="{ row }">
-                <span class="itsm-prio-badge" :class="'it-prio-' + (row.priority || '').toLowerCase()">{{ row.priority }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="100">
-              <template #default="{ row }">
-                <span class="itsm-status-badge" :class="'it-status-' + row.status">
-                  <span class="itsm-status-dot" />{{ row.status }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="sla_status" label="SLA" width="80">
-              <template #default="{ row }">
-                <el-tag :type="row.sla_status === 'breached' ? 'danger' : row.sla_status === 'warning' ? 'warning' : 'success'" size="small">{{ row.sla_status }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="assignee_name" label="处理人" width="120" />
-            <el-table-column prop="create_datetime" label="创建时间" width="170" />
-            <el-table-column label="操作" width="200" fixed="right">
-              <template #default="{ row }">
-                <el-button size="small" text v-can="'itsm:ticket:assign'" @click="assignIncident(row)">
-                  <el-icon><User /></el-icon> 分派
-                </el-button>
-                <el-button size="small" text type="success" v-can="'itsm:ticket:close'" @click="resolveIncident(row)">
-                  <el-icon><Finished /></el-icon> 解决
-                </el-button>
-                <el-button size="small" text type="info" v-can="'itsm:ticket:close'" @click="closeIncident(row)">
-                  <el-icon><CircleClose /></el-icon> 关闭
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-      </div>
-
-      <!-- ==================== TAB: 变更申请 ==================== -->
-      <div v-show="activeTab === 'changes'" class="itsm-section g-fade-in-up">
-        <div class="itsm-table-card">
-          <div class="itsm-table-header">
-            <span class="itsm-table-title">变更申请</span>
-          </div>
-          <el-table :data="changes" v-loading="loadingChanges" stripe style="width:100%" size="small"
-            :empty-text="loadingChanges ? '加载中...' : '暂无变更申请'">
-            <el-table-column prop="change_id" label="编号" width="130" />
-            <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="change_type" label="类型" width="100" />
-            <el-table-column prop="status" label="状态" width="100">
-              <template #default="{ row }">
-                <span class="itsm-status-badge" :class="'it-status-' + row.status">
-                  <span class="itsm-status-dot" />{{ row.status }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="risk_level" label="风险" width="80">
-              <template #default="{ row }">
-                <span class="itsm-prio-badge" :class="'it-prio-' + (row.risk_level || '').toLowerCase()">{{ row.risk_level }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="160" fixed="right">
-              <template #default="{ row }">
-                <el-button v-if="row.status==='pending_approval'" size="small" text type="success" v-can="'itsm:ticket:approve'" @click="approveChange(row)">
-                  <el-icon><Select /></el-icon> 批准
-                </el-button>
-                <el-button v-if="row.status==='pending_approval'" size="small" text type="danger" v-can="'itsm:ticket:approve'" @click="rejectChange(row)">
-                  <el-icon><Close /></el-icon> 驳回
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-      </div>
 
       <!-- ==================== TAB: SLA 策略 ==================== -->
       <div v-show="activeTab === 'sla'" class="itsm-section g-fade-in-up">
@@ -294,7 +202,7 @@
           <el-table :data="slaPolicies" v-loading="loadingSla" stripe style="width:100%" size="small"
             :empty-text="loadingSla ? '加载中...' : '暂无 SLA 策略'">
             <el-table-column prop="name" label="策略名称" min-width="160" />
-            <el-table-column prop="priority" label="优先级" width="80" />
+            <el-table-column prop="priority" :label="$t('message.ticketCreate.priority')" width="80" />
             <el-table-column prop="response_minutes" label="响应时限(min)" width="140" />
             <el-table-column prop="resolve_minutes" label="解决时限(min)" width="140" />
             <el-table-column prop="is_active" label="启用" width="80" align="center">
@@ -312,13 +220,13 @@
         <el-dialog v-model="showSlaEdit" title="编辑 SLA 策略" width="440px" top="15vh" destroy-on-close append-to-body>
           <el-form :model="slaForm" label-width="120px" size="small">
             <el-form-item label="策略名称"><el-input v-model="slaForm.name" /></el-form-item>
-            <el-form-item label="优先级" v-if="!slaForm.id">
+            <el-form-item :label="$t('message.ticketCreate.priority')" v-if="!slaForm.id">
               <el-select v-model="slaForm.priority" style="width:100%">
                 <el-option label="P1" value="P1" /><el-option label="P2" value="P2" />
                 <el-option label="P3" value="P3" /><el-option label="P4" value="P4" />
               </el-select>
             </el-form-item>
-            <el-form-item label="优先级" v-else>
+            <el-form-item :label="$t('message.ticketCreate.priority')" v-else>
               <span style="font-weight:600">{{ slaForm.priority }}</span>
             </el-form-item>
             <el-form-item label="响应时限(分钟)"><el-input-number v-model="slaForm.response_minutes" :min="1" :max="10080" style="width:160px" /></el-form-item>
@@ -326,7 +234,7 @@
             <el-form-item label="启用"><el-switch v-model="slaForm.is_active" /></el-form-item>
           </el-form>
           <template #footer>
-            <el-button @click="showSlaEdit = false">取消</el-button>
+            <el-button @click="showSlaEdit = false">{{ $t('message.common.cancel') }}</el-button>
             <el-button type="primary" :loading="savingSla" @click="onSlaSave">保存</el-button>
           </template>
         </el-dialog>
@@ -335,27 +243,6 @@
       <!-- ==================== TAB: 审批委托 ==================== -->
       <div v-show="activeTab === 'delegation'" class="itsm-section g-fade-in-up">
         <Delegation />
-      </div>
-
-      <!-- ==================== TAB: 技能组 ==================== -->
-      <div v-show="activeTab === 'skill-groups'" class="itsm-section g-fade-in-up">
-        <SkillGroup />
-      </div>
-      <!-- ==================== TAB: 排班 ==================== -->
-      <div v-show="activeTab === 'on-duty'" class="itsm-section g-fade-in-up">
-        <OnDutySchedule />
-      </div>
-      <!-- ==================== TAB: 路由规则 ==================== -->
-      <div v-show="activeTab === 'assign-rules'" class="itsm-section g-fade-in-up">
-        <AssignRule />
-      </div>
-      <!-- ==================== TAB: 升级级别 ==================== -->
-      <div v-show="activeTab === 'escalation'" class="itsm-section g-fade-in-up">
-        <EscalationLevel />
-      </div>
-      <!-- ==================== TAB: 团队看板 ==================== -->
-      <div v-show="activeTab === 'team-dashboard'" class="itsm-section g-fade-in-up">
-        <TeamDashboard />
       </div>
     </div>
 
@@ -366,10 +253,12 @@
           <el-input v-model="aiDescription" type="textarea" :rows="4"
             placeholder="例如: 帮我创建一个服务器采购审批流程，需要主管审批 -> 财务审批 -> 总监审批三级，审批通过后自动执行变更" />
         </el-form-item>
-        <el-form-item label="服务类型">
+        <el-form-item :label="$t('message.ticketCreate.itsmType')">
           <el-select v-model="aiType" style="width:100%">
-            <el-option label="变更申请" value="change" />
-            <el-option label="事件工单" value="incident" />
+            <el-option :label="$t('message.ticketCreate.changeRequest')" value="change" />
+            <el-option :label="$t('message.ticketCreate.eventTicket')" value="incident" />
+            <el-option :label="$t('message.ticketCreate.serviceRequest')" value="request" />
+            <el-option :label="$t('message.ticketCreate.problem')" value="problem" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -384,7 +273,7 @@
         </div>
       </div>
       <template #footer>
-        <el-button @click="showAICreate = false">取消</el-button>
+        <el-button @click="showAICreate = false">{{ $t('message.common.cancel') }}</el-button>
         <el-button v-if="!aiResult" type="primary" :loading="aiLoading" @click="onAIGenerate">
           <el-icon><MagicStick /></el-icon> 一键生成
         </el-button>
@@ -394,108 +283,9 @@
       </template>
     </el-dialog>
 
-    <!-- ===== 创建工单 ===== -->
-    <el-dialog v-model="showCreateTicket" title="新建工单 (Pipeline 驱动)" width="520px" top="5vh" class="itsm-dialog">
-      <el-form label-width="100px">
-        <el-form-item label="流程模板">
-          <el-select v-model="newTicket.workflow_version" placeholder="选择已部署的流程" style="width:100%">
-            <el-option v-for="v in deployedVersions" :key="v.id" :label="v.workflow_name || v.id" :value="v.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="工单标题">
-          <el-input v-model="newTicket.title" placeholder="如 申请采购服务器" />
-        </el-form-item>
-        <el-form-item label="服务类型">
-          <el-select v-model="newTicket.itsm_type" style="width:100%">
-            <el-option label="变更申请" value="change" />
-            <el-option label="事件工单" value="incident" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="优先级">
-          <el-select v-model="newTicket.priority" style="width:100%">
-            <el-option label="P1 危急" value="P1" />
-            <el-option label="P2 高" value="P2" />
-            <el-option label="P3 中" value="P3" />
-            <el-option label="P4 低" value="P4" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="工单分类">
-          <el-select v-model="newTicket.category" clearable filterable style="width:100%" placeholder="选填，用于自动分派路由">
-            <el-option v-for="c in categoryOptions" :key="c.id" :label="c.name" :value="c.id" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showCreateTicket = false">取消</el-button>
-        <el-button type="primary" :icon="Plus" :loading="submittingTicket" @click="onCreateTicket">创建并提交</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- ===== 工单详情 ===== -->
-    <el-dialog v-model="showTicketDetail" :title="detailTicket?.sn || '工单详情'" width="640px" top="3vh" class="itsm-dialog">
-      <template v-if="detailTicket">
-        <div class="itsm-detail-meta">
-          <span class="itsm-detail-field">标题: <b>{{ detailTicket.title }}</b></span>
-          <span class="itsm-detail-field">状态:
-            <span class="itsm-status-badge" :class="'it-status-' + detailTicket.current_status">
-              <span class="itsm-status-dot" />{{ statusLabel(detailTicket.current_status) }}
-            </span>
-          </span>
-        </div>
-        <!-- Node status timeline -->
-        <div class="itsm-detail-timeline" v-if="ticketNodeStatus.length">
-          <div class="itsm-detail-section-title">节点状态</div>
-          <div v-for="ns in ticketNodeStatus" :key="ns.id" class="itsm-timeline-item">
-            <span class="itsm-timeline-dot" :class="'dot-' + (ns.status || 'WAIT').toLowerCase()" />
-            <div class="itsm-timeline-body">
-              <div class="itsm-timeline-name">{{ ns.name }} <el-tag :type="ns.status === 'FINISHED' ? 'success' : ns.status === 'RUNNING' ? 'primary' : 'info'" size="small">{{ ns.status }}</el-tag></div>
-              <div class="itsm-timeline-meta" v-if="ns.processors">处理人: {{ ns.processors }}</div>
-            </div>
-            <!-- Fill form for RUNNING normal (fill-form) nodes -->
-            <div v-if="ns.type === 'NORMAL' && ns.status === 'RUNNING' && ns.fields?.length" class="itsm-timeline-form">
-              <el-form label-position="top" size="small" class="itsm-fill-form">
-                <el-form-item v-for="f in ns.fields" :key="f.key" :label="f.name" :required="f.required">
-                  <template v-if="f.type === 'TEXT'">
-                    <el-input v-model="fillFormData[f.key]" type="textarea" :rows="3" :placeholder="f.placeholder" />
-                  </template>
-                  <template v-else-if="f.type === 'SELECT'">
-                    <el-select v-model="fillFormData[f.key]" style="width:100%" :placeholder="f.placeholder">
-                      <el-option v-for="c in (f.choice || [])" :key="c.value" :label="c.label" :value="c.value" />
-                    </el-select>
-                  </template>
-                  <template v-else-if="f.type === 'FILE'">
-                    <el-upload :auto-upload="false" :limit="1" @change="(file: any) => fillFormData[f.key] = file.raw">
-                      <el-button size="small" type="primary">选择文件</el-button>
-                    </el-upload>
-                  </template>
-                  <template v-else>
-                    <el-input v-model="fillFormData[f.key]" :placeholder="f.placeholder" />
-                  </template>
-                </el-form-item>
-                <el-button type="primary" size="small" :loading="submittingNode" @click="onNodeSubmit(ns)">提交</el-button>
-              </el-form>
-            </div>
-            <!-- Approve/reject for RUNNING approval nodes -->
-            <div v-if="ns.type === 'APPROVAL' && ns.status === 'RUNNING'" class="itsm-timeline-actions">
-              <el-button size="small" type="success" @click="onApprove(ns)">通过</el-button>
-              <el-button size="small" type="danger" @click="onReject(ns)">拒绝</el-button>
-            </div>
-          </div>
-        </div>
-      </template>
-      <template #footer>
-        <el-button @click="showTicketDetail = false">关闭</el-button>
-      </template>
-    </el-dialog>
-
     <!-- ===== 工单分派对话框 ===== -->
-    <el-dialog v-model="assignTicketVisible" title="分派工单" width="440px" top="25vh" destroy-on-close>
+    <el-dialog v-model="assignTicketVisible" title="分派工单" width="380px" top="25vh" destroy-on-close>
       <el-form label-position="top">
-        <el-form-item label="技能组筛选">
-          <el-select v-model="assignGroupFilter" filterable clearable size="small" style="width:100%" placeholder="选择技能组">
-            <el-option v-for="g in groupOptions" :key="g.id" :label="g.name" :value="g.id" />
-          </el-select>
-        </el-form-item>
         <el-form-item label="选择处理人">
           <el-select v-model="assignUserId" filterable size="small" style="width:100%"
             :loading="usersLoading" placeholder="搜索用户">
@@ -507,7 +297,7 @@
         </div>
       </el-form>
       <template #footer>
-        <el-button @click="assignTicketVisible = false">取消</el-button>
+        <el-button @click="assignTicketVisible = false">{{ $t('message.common.cancel') }}</el-button>
         <el-button type="primary" :disabled="!assignUserId" @click="confirmAssignTicket">确认分派</el-button>
       </template>
     </el-dialog>
@@ -539,7 +329,7 @@
         <p style="color: #909399; font-size: 12px; margin-bottom: 0;">将用此版本快照重建流程并生成新版本。</p>
       </div>
       <template #footer>
-        <el-button @click="showRollbackDialog = false">取消</el-button>
+        <el-button @click="showRollbackDialog = false">{{ $t('message.common.cancel') }}</el-button>
         <el-button type="warning" :loading="rollbackLoading" @click="confirmRollback">确定回滚</el-button>
       </template>
     </el-dialog>
@@ -548,7 +338,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { request } from '/@/utils/service'
 import Designer from './designer/index.vue'
@@ -556,11 +347,6 @@ import { useI18n } from 'vue-i18n'
 import { usePermissionStore } from '/@/stores/permission'
 import Dashboard from './Dashboard.vue'
 import Delegation from './Delegation.vue'
-import SkillGroup from './SkillGroup.vue'
-import OnDutySchedule from './OnDutySchedule.vue'
-import AssignRule from './AssignRule.vue'
-import EscalationLevel from './EscalationLevel.vue'
-import TeamDashboard from './TeamDashboard.vue'
 import ServiceMarket from './catalog/ServiceMarket.vue'
 import ServiceAdmin from './catalog/ServiceAdmin.vue'
 import {
@@ -570,12 +356,10 @@ import {
   Search, Delete, Upload, Lock,
 } from '@element-plus/icons-vue'
 import {
-  incidentApi, changeApi, slaPolicyApi,
-  AssignIncident, ResolveIncident, CloseIncident,
-  ApproveChange, RejectChange,
+  slaPolicyApi,
   workflowApi, workflowVersionApi, stateApi, transitionApi, ticketApi,
-  DeployWorkflow, SubmitTicket, NodeSubmit, ApproveTicketNode, RejectTicketNode,
-  CloseTicket, GetTicketStatus,
+  DeployWorkflow, SubmitTicket,
+  CloseTicket,
   AIGenerateWorkflow,
   AssignTicket, RollbackVersion,
 } from '/@/api/itsm/index'
@@ -599,6 +383,12 @@ async function loadPageConfig() {
     userPerms.value = res.data.user_permissions || []
     const defaultTab = res.data.tabs.find((t: any) => t.is_default) || res.data.tabs[0]
     if (defaultTab) activeTab.value = defaultTab.key
+    // Check sessionStorage for tab override (set by TicketDetail back button)
+    const savedTab = sessionStorage.getItem('itsm_active_tab')
+    if (savedTab && getTab(savedTab)) {
+      activeTab.value = savedTab
+      sessionStorage.removeItem('itsm_active_tab')
+    }
   } catch { /* show empty */ }
 }
 
@@ -609,11 +399,6 @@ const iconMap: Record<string, any> = {
 const componentMap: Record<string, any> = {
   dashboard: Dashboard,
   delegation: Delegation,
-  'skill-groups': SkillGroup,
-  'on-duty': OnDutySchedule,
-  'assign-rules': AssignRule,
-  escalation: EscalationLevel,
-  'team-dashboard': TeamDashboard,
   'service-market': ServiceMarket,
   'service-admin': ServiceAdmin,
 }
@@ -646,24 +431,7 @@ function onCloseDesigner() {
 const loadingTickets = ref(false)
 const tickets = ref<any[]>([])
 const ticketFilter = ref('')
-const showCreateTicket = ref(false)
-const showTicketDetail = ref(false)
-const detailTicket = ref<any>(null)
-const ticketNodeStatus = ref<any[]>([])
-const newTicket = reactive({ workflow_version: null, title: '', itsm_type: 'change', priority: 'P3', category: null })
-const deployedVersions = ref<any[]>([])
-const categoryOptions = ref<any[]>([])
-
-async function loadCategories() {
-  try {
-    const { request } = await import('/@/utils/service')
-    const res: any = await request({ url: '/api/itsm/service-categories/', method: 'get' })
-    categoryOptions.value = (res as any).results || (res as any).data || []
-  } catch { categoryOptions.value = [] }
-}
-const submittingTicket = ref(false)
-const submittingNode = ref(false)
-const fillFormData = reactive<Record<string, any>>({})
+const router = useRouter()
 
 async function loadTickets() {
   loadingTickets.value = true
@@ -674,90 +442,48 @@ async function loadTickets() {
     tickets.value = res?.results || res?.data || res || []
   } finally { loadingTickets.value = false }
 }
-
-async function loadDeployedVersions() {
-  try { const res = await workflowVersionApi.list(); deployedVersions.value = res?.results || res?.data || res || [] } catch { deployedVersions.value = [] }
-}
-
-// ===== 工单分派（技能组筛选 + 单用户选择） =====
+// ===== 工单分派 =====
 const assignTicketVisible = ref(false)
 const assignUserId = ref<number | null>(null)
 const assignTicketRow = ref<any>(null)
-const assignGroupFilter = ref<number | null>(null)
 const userOptions = ref<any[]>([])
-const groupOptions = ref<any[]>([])
 const usersLoading = ref(false)
 
-const filteredUserOptions = computed(() => {
-  if (!assignGroupFilter.value) return userOptions.value
-  const group = groupOptions.value.find((g: any) => g.id === assignGroupFilter.value)
-  if (!group) return userOptions.value
-  const memberIds = new Set((group.members || []).map((m: any) => m.id || m))
-  return userOptions.value.filter((u: any) => memberIds.has(u.id))
-})
+const filteredUserOptions = computed(() => userOptions.value)
 
 async function loadAllUsers() {
   usersLoading.value = true
   try {
     const { request } = await import('/@/utils/service')
-    const [uRes, gRes] = await Promise.all([
-      request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 10000 } }),
-      request({ url: '/api/itsm/skill-groups/', method: 'get' }),
-    ])
-    userOptions.value = ((uRes as any).data || []).map((item: any) => ({ id: item.value, name: item.label }))
-    groupOptions.value = (gRes as any).results || (gRes as any).data || []
-  } catch { userOptions.value = []; groupOptions.value = [] }
+    const res = await request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 10000 } })
+    userOptions.value = ((res as any).data || []).map((item: any) => ({
+      id: item.value,
+      name: item.label,
+    }))
+  } catch { userOptions.value = [] }
   usersLoading.value = false
 }
 async function ticketAssign(row: any) {
   assignTicketRow.value = row
   assignUserId.value = null
-  assignGroupFilter.value = null
   if (!userOptions.value.length) await loadAllUsers()
   assignTicketVisible.value = true
 }
 async function confirmAssignTicket() {
   if (!assignTicketRow.value || !assignUserId.value) return
   try {
-    await AssignTicket(assignTicketRow.value.id, assignUserId.value, assignGroupFilter.value || undefined)
+    await AssignTicket(assignTicketRow.value.id, assignUserId.value)
     ElMessage.success('工单已分派')
     assignTicketVisible.value = false
     assignTicketRow.value = null
     assignUserId.value = null
-    assignGroupFilter.value = null
     await loadTickets()
   } catch { ElMessage.error('分派失败') }
 }
 
-function onOpenCreateTicket() { if (!categoryOptions.value.length) loadCategories(); showCreateTicket.value = true }
-async function onCreateTicket() {
-  if (!newTicket.workflow_version || !newTicket.title) {
-    ElMessage.warning('请填写完整信息')
-    return
-  }
-  submittingTicket.value = true
-  try {
-    const res = await ticketApi.create({ ...newTicket })
-    console.debug('[ITSM] create response:', res)
-    // Resolve ID from nested response: res = {code:2000, data: {id:X,...}, msg:...}
-    const respData = res?.data || res
-    const ticketId = respData?.id || respData?.pk
-    if (!ticketId) {
-      ElMessage.error('创建失败(server): ' + (res?.msg || JSON.stringify(res)))
-      submittingTicket.value = false
-      return
-    }
-    try {
-      await SubmitTicket(ticketId)
-      ElMessage.success('工单 #' + ticketId + ' 创建并提交成功')
-    } catch (submitErr: any) {
-      ElMessage.warning('工单 #' + ticketId + ' 已创建但提交失败: ' + (submitErr?.msg || ''))
-    }
-    showCreateTicket.value = false
-    await loadTickets()
-  } catch (e: any) {
-    ElMessage.error(e?.msg || e?.message || '创建失败(exception)')
-  } finally { submittingTicket.value = false }
+// 从服务市场提交后跳转到工单详情页进行填单
+function onGoTicket(ticketId: number) {
+  router.push('/apps/itsm/ticket/' + ticketId)
 }
 
 async function onSubmitTicket(row: any) {
@@ -771,40 +497,8 @@ async function onSubmitTicket(row: any) {
   }
 }
 
-async function onViewTicket(row: any) {
-  detailTicket.value = row
-  if (!row?.id) { showTicketDetail.value = true; return }
-  try {
-    const res = await ticketApi.detail(row.id)
-    const ticketDetail = res?.data || res
-    detailTicket.value = ticketDetail
-    ticketNodeStatus.value = ticketDetail.node_status ? Object.values(ticketDetail.node_status) : []
-    const statusRes = await GetTicketStatus(row.id)
-    const statusData = statusRes?.data || statusRes
-    if (statusData?.node_status) {
-      ticketNodeStatus.value = statusData.node_status
-    }
-    // Merge field definitions from workflow version states into node status items
-    const wfVersionId = ticketDetail.workflow_version
-    if (wfVersionId) {
-      try {
-        const wfRes = await workflowVersionApi.detail(String(wfVersionId))
-        const wfData = wfRes?.data || wfRes
-        const states = wfData?.states || {}
-        for (const ns of ticketNodeStatus.value) {
-          for (const [key, state] of Object.entries(states) as [string, any][]) {
-            if (String(state.id) === String(ns.state_id) || key === String(ns.state_id)) {
-              ns.fields = state.fields || []
-              ns.state_id = state.id
-              ns.node_key = state.node_key
-              break
-            }
-          }
-        }
-      } catch { ElMessage.warning('无法加载表单字段定义') }
-    }
-  } catch { ticketNodeStatus.value = [] }
-  showTicketDetail.value = true
+function onViewTicket(row: any) {
+  if (row?.id) router.push('/apps/itsm/ticket/' + row.id)
 }
 
 async function onCloseTicket(row: any) {
@@ -814,61 +508,6 @@ async function onCloseTicket(row: any) {
     await loadTickets()
   } catch (e: any) {
     ElMessage.error(e?.msg || '关闭失败')
-  }
-}
-
-async function onNodeSubmit(ns: any) {
-  if (!detailTicket.value) return
-  submittingNode.value = true
-  try {
-    // Build fields object from fillFormData
-    const fields: Record<string, any> = {}
-    for (const [k, v] of Object.entries(fillFormData)) {
-      if (v != null && v !== '') fields[k] = v
-    }
-    await NodeSubmit(detailTicket.value.id, {
-      state_id: ns.state_id || ns.id,
-      fields,
-    })
-    ElMessage.success('提交成功')
-    // Clear form and refresh detail
-    Object.keys(fillFormData).forEach(k => delete fillFormData[k])
-    const row = { id: detailTicket.value.id }
-    // Re-fetch ticket detail
-    const res = await ticketApi.detail(row.id)
-    detailTicket.value = res?.data || res
-    const statusRes = await GetTicketStatus(row.id)
-    const statusData = statusRes?.data || statusRes
-    ticketNodeStatus.value = statusData?.node_status || []
-    await loadTickets()
-  } catch (e: any) {
-    ElMessage.error(e?.msg || '提交失败')
-  }
-  submittingNode.value = false
-}
-
-async function onApprove(ns: any) {
-  if (!detailTicket.value) return
-  const comment = await ElMessageBox.prompt('审批意见（可选）', '审批通过').catch(() => null)
-  try {
-    await ApproveTicketNode(detailTicket.value.id, ns.state_id, comment?.value || '')
-    ElMessage.success('审批通过')
-    onViewTicket(detailTicket.value)
-  } catch (e: any) {
-    ElMessage.error(e?.msg || '审批失败')
-  }
-}
-
-async function onReject(ns: any) {
-  if (!detailTicket.value) return
-  const comment = await ElMessageBox.prompt('驳回原因（必填）', '审批驳回').catch(() => null)
-  if (!comment?.value) return
-  try {
-    await RejectTicketNode(detailTicket.value.id, ns.state_id, comment.value)
-    ElMessage.success('已驳回')
-    onViewTicket(detailTicket.value)
-  } catch (e: any) {
-    ElMessage.error(e?.msg || '驳回失败')
   }
 }
 
@@ -982,25 +621,6 @@ async function onDeleteWorkflow(wf: any) {
   }
 }
 
-async function onCreateTicketFromWf(wf: any) {
-  // Ensure deployed versions are loaded
-  if (!deployedVersions.value.length) {
-    const res = await workflowVersionApi.list()
-    deployedVersions.value = res?.results || res?.data || res || []
-  }
-  const version = deployedVersions.value.find((v: any) => v.workflow === wf.id)
-  if (!version) {
-    ElMessage.warning('该流程模板尚未部署，请先部署')
-    return
-  }
-  newTicket.workflow_version = version.id
-  newTicket.title = `${wf.name} 工单`
-  newTicket.itsm_type = wf.itsm_type
-  newTicket.category = null
-  loadCategories()
-  showCreateTicket.value = true
-}
-
 function showWfDetail(wf: any) {
   ElMessage.info(`模板: ${wf.name}\n类型: ${wf.itsm_type}\n状态: ${wf.is_draft ? '草稿' : '已发布'}`)
 }
@@ -1047,43 +667,6 @@ async function onSaveAIWorkflow() {
   } catch (e: any) {
     ElMessage.error(e?.msg || '保存失败')
   } finally { savingWf.value = false }
-}
-
-// ===== Incidents (legacy) =====
-const loadingIncidents = ref(false)
-const incidents = ref<any[]>([])
-
-async function loadIncidents() {
-  loadingIncidents.value = true
-  try { const res = await incidentApi.list(); incidents.value = res?.results || res?.data || res || [] } finally { loadingIncidents.value = false }
-}
-async function assignIncident(row: any) {
-  const { value } = await ElMessageBox.prompt('输入处理人 ID', '分派工单')
-  await AssignIncident(row.id, Number(value))
-  ElMessage.success('已分派'); await loadIncidents()
-}
-async function resolveIncident(row: any) {
-  const { value } = await ElMessageBox.prompt('输入解决方案', '解决工单')
-  await ResolveIncident(row.id, value)
-  ElMessage.success('已解决'); await loadIncidents()
-}
-async function closeIncident(row: any) {
-  await CloseIncident(row.id)
-  ElMessage.success('已关闭'); await loadIncidents()
-}
-
-// ===== Changes (legacy) =====
-const loadingChanges = ref(false)
-const changes = ref<any[]>([])
-async function loadChanges() {
-  loadingChanges.value = true
-  try { const res = await changeApi.list(); changes.value = res?.results || res?.data || res || [] } finally { loadingChanges.value = false }
-}
-async function approveChange(row: any) {
-  await ApproveChange(row.id); ElMessage.success('已批准'); await loadChanges()
-}
-async function rejectChange(row: any) {
-  await RejectChange(row.id); ElMessage.success('已驳回'); await loadChanges()
 }
 
 // ===== SLA =====
@@ -1140,15 +723,14 @@ onMounted(async () => {
   }
 })
 
-// 卸载时移除事件监听
 onBeforeUnmount(() => {
   window.removeEventListener('project-changed', loadAllData)
 })
 
 async function loadAllData() {
   await Promise.all([
-    loadTickets(), loadWorkflows(), loadDeployedVersions(),
-    loadIncidents(), loadChanges(), loadSla(),
+    loadTickets(), loadWorkflows(),
+    loadSla(),
   ])
 }
 </script>
@@ -1324,24 +906,4 @@ async function loadAllData() {
 .node-normal { background: #ecf5ff; color: #409EFF; }
 .node-task { background: #f0f9eb; color: #67C23A; }
 
-/* ===== Ticket Detail ===== */
-.itsm-detail-meta { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-.itsm-detail-field { font-size: 13px; color: #606266; }
-.itsm-detail-section-title { font-size: 14px; font-weight: 600; color: $g-text-primary; margin-bottom: 12px; }
-.itsm-detail-timeline { border: 1px solid $g-border-default; border-radius: 8px; padding: 14px; }
-.itsm-timeline-item {
-  display: flex; align-items: flex-start; gap: 10px; padding: 8px 0;
-  border-bottom: 1px solid $g-border-light;
-  &:last-child { border-bottom: none; }
-}
-.itsm-timeline-dot {
-  width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0;
-}
-.dot-finished { background: #67C23A; }
-.dot-running { background: #409EFF; }
-.dot-wait { background: #c0c4cc; }
-.itsm-timeline-body { flex: 1; }
-.itsm-timeline-name { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
-.itsm-timeline-meta { font-size: 11px; color: $g-text-muted; margin-top: 2px; }
-.itsm-timeline-actions { flex-shrink: 0; display: flex; gap: 2px; }
 </style>

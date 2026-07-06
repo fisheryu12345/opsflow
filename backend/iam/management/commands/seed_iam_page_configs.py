@@ -140,14 +140,7 @@ class Command(BaseCommand):
             # ── ITSM 管理 ──
             {'key': 'service-admin',  'label_zh': '服务目录管理','label_en': 'Catalog Admin','icon': 'Setting','required_perm': 'itsm:service:admin',                       'sort': 50},
             {'key': 'sla',           'label_zh': 'SLA',       'label_en': 'SLA',          'icon': 'Clock',         'required_perm': None,                     'sort': 60},
-            {'key': 'skill-groups',  'label_zh': '技能组',    'label_en': 'Skill Groups', 'icon': 'Collection',    'required_perm': 'itsm:skill_groups:view',                'sort': 70},
-            {'key': 'on-duty',       'label_zh': '排班',      'label_en': 'On-Duty',      'icon': 'Clock',         'required_perm': 'itsm:on_duty:view',                     'sort': 80},
-            {'key': 'assign-rules',  'label_zh': '路由',      'label_en': 'Assign Rules', 'icon': 'Setting',       'required_perm': 'itsm:assign_rules:view',                'sort': 90},
-            {'key': 'escalation',    'label_zh': '升级',      'label_en': 'Escalation',   'icon': 'WarningFilled', 'required_perm': 'itsm:escalation:view',                  'sort': 100},
             {'key': 'delegation',    'label_zh': '委托',      'label_en': 'Delegation',   'icon': 'User',          'required_perm': None,                     'sort': 110},
-            # ── 遗留模块 ──
-            {'key': 'incidents',     'label_zh': '事件',      'label_en': 'Incidents',    'icon': 'WarningFilled', 'required_perm': None,                     'sort': 120},
-            {'key': 'changes',       'label_zh': '变更',      'label_en': 'Changes',      'icon': 'Edit',          'required_perm': None,                     'sort': 130},
         ]
         itsm_buttons = {
             'tickets': [
@@ -161,18 +154,6 @@ class Command(BaseCommand):
                 {'key': 'design', 'label_zh': '设计',   'label_en': 'Design', 'icon': 'Edit',   'required_perm': 'itsm:workflow:design', 'style': 'default', 'sort': 20},
                 {'key': 'deploy', 'label_zh': '发布',   'label_en': 'Deploy', 'icon': 'Upload', 'required_perm': 'itsm:workflow:deploy', 'style': 'success', 'sort': 30},
                 {'key': 'delete', 'label_zh': '删除',   'label_en': 'Delete', 'icon': 'Delete', 'required_perm': 'itsm:workflow:delete', 'style': 'danger',  'sort': 40},
-            ],
-            'skill-groups': [
-                {'key': 'manage', 'label_zh': '管理',   'label_en': 'Manage', 'icon': 'Setting', 'required_perm': 'itsm:skillgroup:manage', 'style': 'primary', 'sort': 10},
-            ],
-            'on-duty': [
-                {'key': 'manage', 'label_zh': '管理',   'label_en': 'Manage', 'icon': 'Setting', 'required_perm': 'itsm:duty:manage',      'style': 'primary', 'sort': 10},
-            ],
-            'assign-rules': [
-                {'key': 'manage', 'label_zh': '管理',   'label_en': 'Manage', 'icon': 'Setting', 'required_perm': 'itsm:rule:manage',      'style': 'primary', 'sort': 10},
-            ],
-            'escalation': [
-                {'key': 'manage', 'label_zh': '管理',   'label_en': 'Manage', 'icon': 'Setting', 'required_perm': 'itsm:escalation:manage', 'style': 'primary', 'sort': 10},
             ],
             'sla': [
                 {'key': 'edit', 'label_zh': '编辑 SLA', 'label_en': 'Edit SLA', 'icon': 'Edit', 'required_perm': 'itsm:sla:edit', 'style': 'primary', 'sort': 10},

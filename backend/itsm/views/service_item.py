@@ -115,8 +115,10 @@ class ServiceItemViewSet(ItsmProjectViewSet):
         ticket.do_after_create()
 
         # 启动 Pipeline
-        engine = ITSMEngine(ticket)
-        engine.run(operator=user.id, form_data=form_data)
+        pipeline_id, tree = ITSMEngine(ticket).run(version)
+        ticket.pipeline_id = pipeline_id
+        ticket.current_status = 'running'
+        ticket.save(update_fields=['pipeline_id', 'current_status'])
 
         return ticket
 

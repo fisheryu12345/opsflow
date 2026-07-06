@@ -93,8 +93,7 @@ export default {
   },
   // ===== 工单创建对话框 =====
   ticketCreate: {
-    title: '新建工单 (Pipeline 驱动)',
-    workflowVersion: '流程模板',
+    title: '新建工单',
     ticketTitle: '工单标题',
     itsmType: '服务类型',
     priority: '优先级',
@@ -102,8 +101,10 @@ export default {
     createAndSubmit: '创建并提交',
     fillComplete: '请填写完整信息',
     titlePlaceholder: '如 申请采购服务器',
-    eventTicket: '事件工单',
     changeRequest: '变更申请',
+    eventTicket: '事件工单',
+    serviceRequest: '服务请求',
+    problem: '问题管理',
     p1: 'P1 危急',
     p2: 'P2 高',
     p3: 'P3 中',

@@ -169,23 +169,21 @@ class AlertViewSet(CustomModelViewSet):
         if instance.incident_id:
             return ErrorResponse(msg=f'已关联工单: {instance.incident_id}')
         try:
-            from itsm.models.incident import Incident
-            import uuid
-            incident = Incident.objects.create(
-                incident_id=f"INC-{uuid.uuid4().hex[:8].upper()}",
+            from itsm.models import Ticket
+
+            ticket = Ticket.objects.create(
                 title=f"[告警] {instance.title}",
-                description=instance.description[:2000] if instance.description else '',
+                itsm_type='incident',
                 priority='P1' if instance.severity == 1 else 'P2' if instance.severity == 2 else 'P3',
-                source='alert',
-                alert_data={'severity': instance.severity, 'labels': instance.labels},
+                current_status='assigned',
             )
-            instance.incident_id = incident.incident_id
+            instance.incident_id = ticket.sn
             instance.save(update_fields=['incident_id'])
             AlertLog.objects.create(
                 alert=instance, operate='incident_created',
                 operator=str(request.user),
-                description=f'创建 ITSM 工单: {incident.incident_id}',
+                description=f'创建 ITSM 工单: {ticket.sn}',
             )
-            return DetailResponse(data={'incident_id': incident.incident_id}, msg='工单已创建')
+            return DetailResponse(data={'incident_id': ticket.sn}, msg='工单已创建')
         except Exception as e:
             return ErrorResponse(msg=f'创建工单失败: {e}')

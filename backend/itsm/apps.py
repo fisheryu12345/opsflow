@@ -7,8 +7,12 @@ class ItsmConfig(AppConfig):
     verbose_name = 'ITSM 服务管理'
 
     def ready(self):
-        """Register signal handlers"""
+        """Register signal handlers and pipeline components"""
         try:
             from . import signals  # noqa
+        except ImportError:
+            pass
+        try:
+            from .pipeline_plugins import components  # noqa — register ITSM components with ComponentLibrary
         except ImportError:
             pass

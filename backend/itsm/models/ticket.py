@@ -140,20 +140,11 @@ class Ticket(CoreModel):
         self.save(update_fields=['node_status'])
         self.set_status('running', operator)
 
-        # SLA: start timer for first approval node
-        if state_data.get('type') in ('APPROVAL', 'SIGN'):
-            try:
-                from itsm.services.sla_engine import SlaEngine
-                SlaEngine.start_ticket_sla(self)
-            except Exception as e:
-                import logging
-                logging.getLogger(__name__).warning(f'SLA start failed: {e}')
-
         # Notification: notify processors
+        p_type = state_data.get('processors_type', 'PERSON')
         try:
             from itsm.services.notifications import NotificationService
             from itsm.services.role_resolver import resolve_processors
-            p_type = state_data.get('processors_type', 'PERSON')
             resolved = resolve_processors(p_type, processors_text, self)
             if state_data.get('type') in ('APPROVAL', 'SIGN'):
                 NotificationService.notify_approval(self, state_data.get('name', ''), resolved)
@@ -162,6 +153,43 @@ class Ticket(CoreModel):
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning(f'Notify failed: {e}')
+
+        # 将当前节点处理人同步到工单层 assignee（用于列表显示）
+        self._sync_assignee_from_node(state_data, p_type, processors_text)
+
+    def _sync_assignee_from_node(self, state_data, p_type, processors_text):
+        """将节点 processors 解析结果写入 ticket.meta.assignee
+
+        前端期待的格式: {'name': '张三', 'username': 'zhangsan', 'id': 1}
+        resolve_processors 返回的是用户名列表，此处需转为前端格式。
+        """
+        try:
+            from itsm.services.role_resolver import resolve_processors
+            resolved = resolve_processors(p_type, processors_text, self)
+            if not resolved:
+                return
+            # 取第一个处理人作为 assignee
+            first = resolved[0]
+            meta = dict(self.meta or {})
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                user = User.objects.get(username=first)
+                meta['assignee'] = {
+                    'id': user.id,
+                    'username': user.username,
+                    'name': user.name or first,
+                }
+            except User.DoesNotExist:
+                # 无法匹配用户时至少显示名称
+                meta['assignee'] = {'name': first, 'username': first}
+            self.meta = meta
+            self.save(update_fields=['meta'])
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                'Sync assignee from node failed: %s', e
+            )
 
     def do_in_state(self, state_id, fields_data, operator=''):
         """节点处理中 — 保存表单数据"""
@@ -181,11 +209,7 @@ class Ticket(CoreModel):
 
     def do_before_exit_state(self, state_id, operator=''):
         """退出节点前处理"""
-        state_data = self.get_state(state_id)
-        stype = state_data.get('type', '')
-        if stype in ('APPROVAL', 'SIGN'):
-            from itsm.services.sla_engine import SlaEngine
-            SlaEngine.stop_ticket_sla(self)
+        pass
 
     def do_before_end_pipeline(self):
         """pipeline 结束处理"""

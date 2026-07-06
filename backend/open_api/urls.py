@@ -8,7 +8,7 @@ from django.urls import path, include
 from rest_framework import routers
 
 from .views.views import ApiAppViewSet, OpenApiTokenViewSet, WebhookSubscriptionViewSet, OpenApiLogViewSet
-from .views.external import health, cmdb_sync, create_incident, query_incident, trigger_execution
+from .views.external import health, cmdb_sync, trigger_execution
 
 # 管理后台路由
 router = routers.SimpleRouter()
@@ -26,8 +26,6 @@ admin_urls = [
 external_urls = [
     path('health/', health, name='open-health'),
     path('cmdb/sync/', cmdb_sync, name='open-cmdb-sync'),
-    path('incidents/', create_incident, name='open-create-incident'),
-    path('incidents/<str:incident_id>/', query_incident, name='open-query-incident'),
     path('executions/trigger/', trigger_execution, name='open-trigger-execution'),
 ]
 

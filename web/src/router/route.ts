@@ -58,7 +58,17 @@ export const dynamicRoutes: Array<RouteRecordRaw> = [
 			isIframe: false,
 			icon: 'iconfont icon-gerenzhongxin',
 		},
-	}
+	},
+	{
+		path: '/apps/itsm/ticket/:id',
+		name: 'ItsmTicketDetail',
+		component: () => import('/@/views/apps/itsm/TicketDetail.vue'),
+		meta: {
+			title: '工单详情',
+			isHide: true,
+			isKeepAlive: false,
+		},
+	},
 ];
 
 /**

@@ -43,7 +43,7 @@ class ITSMEngineRunTests(TestCase):
         wv = ticket.workflow_version
         from itsm.services.itsm_engine import ITSMEngine
 
-        pipeline_id, tree = ITSMEngine.run(ticket, wv)
+        pipeline_id, tree = ITSMEngine(ticket).run(wv)
 
         self.assertTrue(pipeline_id)
         mock_pipeline_api.run_pipeline.assert_called_once()
@@ -63,7 +63,7 @@ class ITSMEngineRunTests(TestCase):
         from itsm.services.itsm_engine import ITSMEngine
 
         with self.assertRaises(RuntimeError) as ctx:
-            ITSMEngine.run(ticket, wv)
+            ITSMEngine(ticket).run(wv)
         self.assertIn('test error', str(ctx.exception))
 
 
@@ -118,19 +118,44 @@ class ITSMEnginePauseResumeRevokeTests(TestCase):
         self.ticket.refresh_from_db()
         self.assertEqual(self.ticket.current_status, 'terminated')
 
+    @patch('itsm.services.itsm_engine.Schedule.objects.filter')
     @patch('itsm.services.itsm_engine.pipeline_api')
     @patch('itsm.services.itsm_engine.BambooDjangoRuntime')
-    def test_activity_callback(self, mock_runtime_cls, mock_pipeline_api):
+    def test_activity_callback(self, mock_runtime_cls, mock_pipeline_api, mock_filter):
         """activity_callback 转发到 bamboo api"""
         mock_result = MagicMock()
         mock_result.result = True
-        mock_pipeline_api.activity_callback.return_value = mock_result
+        mock_pipeline_api.callback.return_value = mock_result
+
+        # Mock Schedule lookup
+        mock_schedule = MagicMock()
+        mock_schedule.version = 'vtest123'
+        mock_qs = MagicMock()
+        mock_qs.first.return_value = mock_schedule
+        mock_filter.return_value.order_by.return_value = mock_qs
 
         from itsm.services.itsm_engine import ITSMEngine
         result = ITSMEngine.activity_callback('node-1', {'key': 'val'})
 
         self.assertTrue(result)
-        mock_pipeline_api.activity_callback.assert_called_once()
+        mock_pipeline_api.callback.assert_called_once_with(
+            mock_runtime_cls.return_value, 'node-1', 'vtest123', {'key': 'val'}
+        )
+
+    @patch('itsm.services.itsm_engine.Schedule.objects.filter')
+    @patch('itsm.services.itsm_engine.pipeline_api')
+    @patch('itsm.services.itsm_engine.BambooDjangoRuntime')
+    def test_activity_callback_no_schedule(self, mock_runtime_cls, mock_pipeline_api, mock_filter):
+        """activity_callback 没有 Schedule 时返回 False 不报错"""
+        mock_qs = MagicMock()
+        mock_qs.first.return_value = None
+        mock_filter.return_value.order_by.return_value = mock_qs
+
+        from itsm.services.itsm_engine import ITSMEngine
+        result = ITSMEngine.activity_callback('node-1', {'key': 'val'})
+
+        self.assertFalse(result)
+        mock_pipeline_api.callback.assert_not_called()
 
     @patch('itsm.services.itsm_engine.pipeline_api')
     @patch('itsm.services.itsm_engine.BambooDjangoRuntime')

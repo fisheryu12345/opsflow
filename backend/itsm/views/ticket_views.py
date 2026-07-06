@@ -2,6 +2,7 @@
 """ITSM Ticket views — 工单管理、提交、审批、状态管理、文件上传"""
 
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 
 from common.utils.viewset import CustomModelViewSet
@@ -35,7 +36,26 @@ class TicketViewSet(ItsmProjectViewSet):
             return TicketCreateSerializer
         return TicketSerializer
 
+    def _resolve_workflow_version(self, itsm_type, project_id=None):
+        """根据工单类型自动匹配最新已部署的流程版本"""
+        return WorkflowVersion.objects.filter(
+            workflow__itsm_type=itsm_type,
+            workflow__is_draft=False,
+            workflow__is_enabled=True,
+            workflow__project_id=project_id,
+        ).order_by('-create_datetime').first()
+
     def perform_create(self, serializer):
+        if not serializer.validated_data.get('workflow_version'):
+            itsm_type = serializer.validated_data.get('itsm_type', 'change')
+            project_id = serializer.validated_data.get('project_id')
+            version = self._resolve_workflow_version(itsm_type, project_id)
+            if not version:
+                raise ValidationError(
+                    f'工单类型 "{dict(Ticket.ITSM_TYPE_CHOICES).get(itsm_type, itsm_type)}" '
+                    f'没有已部署的流程模板，请先联系管理员配置'
+                )
+            serializer.validated_data['workflow_version'] = version
         instance = serializer.save(creator=self.request.user.id)
         # Auto-fill business from project's business
         if instance.project and instance.project.business_id:
@@ -51,22 +71,12 @@ class TicketViewSet(ItsmProjectViewSet):
         if instance.current_status != 'draft':
             return ErrorResponse(msg='工单已提交，不能重复提交')
         try:
-            pipeline_id, tree = ITSMEngine.run(instance, instance.workflow_version)
+            pipeline_id, tree = ITSMEngine(instance).run(instance.workflow_version)
             instance.pipeline_id = pipeline_id
             instance.current_status = 'running'
             instance.save(update_fields=['pipeline_id', 'current_status'])
 
-            # 提交后尝试自动分派
-            try:
-                from itsm.services.assign_engine import AssignEngine
-                engine = AssignEngine(instance, project_id=instance.project_id)
-                engine.auto_assign()
-            except Exception as assign_err:
-                import logging
-                logging.getLogger(__name__).warning(
-                    "Auto-assign failed for ticket %s: %s", instance.sn, assign_err
-                )
-
+            # 分派由节点 processors 驱动，不再调用 AssignEngine.auto_assign()
             return DetailResponse(data={
                 'pipeline_id': pipeline_id,
                 'ticket_id': instance.id,
@@ -167,43 +177,33 @@ class TicketViewSet(ItsmProjectViewSet):
     @action(methods=['POST'], detail=True)
     def assign(self, request, pk=None):
         """分派工单 — 手动分派/转派给指定用户"""
-        from itsm.services.assign_engine import AssignEngine
-
         instance = self.get_object()
-        # project_id is already validated by TenantPermission
-        user_id = request.data.get('user_id')
-        group_id = request.data.get('group_id')
+        user_id_raw = request.data.get('user_id')
         reason = request.data.get('reason', '')
-        if not user_id:
+        if not user_id_raw:
             return ErrorResponse(msg='user_id required')
         try:
-            from iam.models import IAMUsers
-            user = IAMUsers.objects.get(id=user_id)
-            group = None
-            if group_id:
-                from itsm.models.skill_group import SkillGroup
-                try:
-                    group = SkillGroup.objects.get(id=group_id)
-                except SkillGroup.DoesNotExist:
-                    pass
-            AssignEngine.manual_assign(instance, user, group, reason)
+            user_id = int(user_id_raw)
+        except (ValueError, TypeError):
+            return ErrorResponse(msg='user_id must be a valid integer')
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        try:
+            user = User.objects.get(id=user_id)
+            meta = dict(instance.meta or {})
+            meta['assignee'] = {
+                'id': user.id,
+                'username': user.username,
+                'name': user.name,
+            }
+            instance.meta = meta
+            instance.current_status = 'assigned'
+            instance.save(update_fields=['meta', 'current_status'])
             return DetailResponse(msg='工单已分派')
-        except IAMUsers.DoesNotExist:
+        except User.DoesNotExist:
             return ErrorResponse(msg='用户不存在')
         except Exception as e:
             return ErrorResponse(msg=f'分派失败: {str(e)}')
-
-    @action(methods=['POST'], detail=True)
-    def auto_assign(self, request, pk=None):
-        """触发自动分派，由 AssignEngine 按规则决定"""
-        from itsm.services.assign_engine import AssignEngine
-
-        instance = self.get_object()
-        engine = AssignEngine(instance, project_id=instance.project_id)
-        result = engine.auto_assign()
-        if result:
-            return DetailResponse(data=result, msg='自动分派完成')
-        return ErrorResponse(msg='无匹配规则，未分派')
 
     @action(methods=['GET'], detail=True)
     def status(self, request, pk=None):
@@ -250,14 +250,26 @@ class TicketViewSet(ItsmProjectViewSet):
 
     @staticmethod
     def _get_activity_id(ticket, state_id):
-        """获取 pipeline activity ID — 用 node_key 匹配 bamboo element ID"""
-        states = (ticket.workflow_version and ticket.workflow_version.states) or {}
+        """获取 pipeline activity ID — 用 node_key + pipeline_id_map 匹配 bamboo element ID
+
+        每个 pipeline 运行使用唯一 element ID (带 run_salt 后缀)，
+        _pipeline_id_map 保存在 ticket.meta 中用于状态 key → element ID 的解析。
+        """
+        id_map = (ticket.meta or {}).get('_pipeline_id_map', {})
         key = str(state_id)
+        # Fast path: direct lookup in pipeline id_map
+        if key in id_map:
+            return id_map[key]
+        # Fallback: resolve from workflow_version states, then map through id_map
+        states = (ticket.workflow_version and ticket.workflow_version.states) or {}
         if key in states:
             s = states[key]
-            return str(s.get('node_key') or key)
+            node_key = str(s.get('node_key') or key)
+            return id_map.get(node_key, node_key)
         # Fallback: search by id field
         for s in states.values():
             if str(s.get('id')) == key:
-                return str(s.get('node_key') or key)
-        return str(state_id)
+                node_key = str(s.get('node_key') or key)
+                return id_map.get(node_key, node_key)
+        # Last resort
+        return id_map.get(key, key)

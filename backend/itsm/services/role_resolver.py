@@ -99,9 +99,13 @@ def _resolve_person(processors: str, ticket=None) -> list:
 
 
 def _resolve_starter(processors: str, ticket=None) -> list:
-    """提单人"""
+    """提单人 — ticket.creator 是 user ID(IntegerField)，需转为 username"""
     if ticket and ticket.creator:
-        return [ticket.creator]
+        try:
+            user = UserModel.objects.get(id=ticket.creator)
+            return [user.username]
+        except UserModel.DoesNotExist:
+            return [str(ticket.creator)]
     return []
 
 
@@ -110,7 +114,7 @@ def _resolve_starter_leader(processors: str, ticket=None) -> list:
     if not ticket or not ticket.creator:
         return []
     try:
-        user = UserModel.objects.filter(username=ticket.creator).first()
+        user = UserModel.objects.filter(id=ticket.creator).first()
         if user:
             # Try common leader field patterns
             for field in ['leader', 'manager', 'superior', 'parent']:

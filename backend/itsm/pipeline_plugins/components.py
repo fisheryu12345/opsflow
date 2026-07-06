@@ -36,8 +36,11 @@ class ItsmFillFormService(Service):
         return True
 
     def schedule(self, data, parent_data, callback_data=None):
+        # 🆕 首次 POLL 回调无 callback_data 时，检查 ticket.meta 是否有 form_data
+        # （来自服务目录提交流程），有则自动完成，避免 Celery 异步导致的时序问题
         if not callback_data:
-            return False
+            return self._try_auto_complete(data, parent_data)
+        # 正常回调（用户主动提交表单）
         ticket_id = callback_data.get('ticket_id')
         state_id = callback_data.get('state_id')
         fields = callback_data.get('fields', {})
@@ -49,12 +52,40 @@ class ItsmFillFormService(Service):
             for field_key, field_val in fields.items():
                 data.set_outputs(f'field_{field_key}', field_val)
             ticket.do_before_exit_state(state_id, operator)
-            self.finish(data)
+            self.finish_schedule()
             logger.info(f'[itsm_fill] Fill form done for ticket #{ticket_id}')
         except Ticket.DoesNotExist:
             logger.error(f'Ticket #{ticket_id} not found')
             return False
         return True
+
+    def _try_auto_complete(self, data, parent_data):
+        """尝试从 ticket.meta.form_data 自动完成填单节点"""
+        ticket_id = data.get_one_of_inputs('ticket_id')
+        state_id = data.get_one_of_inputs('state_id')
+        try:
+            ticket = Ticket.objects.get(id=ticket_id)
+            form_data = (ticket.meta or {}).get('form_data', {})
+            if not form_data:
+                return False  # 无初始数据，继续等待用户提交
+            logger.info(
+                '[itsm_fill] Auto-completing node #%s with form_data for ticket #%s',
+                state_id, ticket_id
+            )
+            ticket.do_in_state(state_id, form_data, 'system')
+            for field_key, field_val in form_data.items():
+                data.set_outputs(f'field_{field_key}', field_val)
+            ticket.do_before_exit_state(state_id, 'system')
+            # 清除 form_data，防止后续其他 NORMAL 节点误自动完成
+            meta = dict(ticket.meta or {})
+            meta.pop('form_data', None)
+            ticket.meta = meta
+            ticket.save(update_fields=['meta'])
+            self.finish_schedule()
+            return True
+        except Ticket.DoesNotExist:
+            logger.error(f'Ticket #{ticket_id} not found')
+            return False
 
 
 class ItsmApprovalService(Service):
@@ -100,13 +131,13 @@ class ItsmApprovalService(Service):
                 # Rejected — terminate pipeline
                 data.set_outputs('field_approve_result', 'rejected')  # 供条件引用
                 ticket.set_status('terminated', operator)
-                self.finish(data)
+                self.finish_schedule()
                 return True
             if ticket.check_approval_finished(state_id):
                 ticket.do_in_state(state_id, {'approve_result': approve_result}, operator)
                 data.set_outputs('field_approve_result', 'approved')  # 供条件引用
                 ticket.do_before_exit_state(state_id, operator)
-                self.finish(data)
+                self.finish_schedule()
                 logger.info(f'[itsm_approval] Approval finished for ticket #{ticket_id}')
             else:
                 # More signers needed — keep waiting
@@ -123,10 +154,18 @@ class ItsmSignService(Service):
     __multi_callback_enabled__ = True
 
     def execute(self, data, parent_data):
-        return ItsmApprovalService().execute(data, parent_data)
+        if not hasattr(self, '_approval_svc'):
+            self._approval_svc = ItsmApprovalService()
+        return self._approval_svc.execute(data, parent_data)
 
     def schedule(self, data, parent_data, callback_data=None):
-        return ItsmApprovalService().schedule(data, parent_data, callback_data)
+        if not hasattr(self, '_approval_svc'):
+            self._approval_svc = ItsmApprovalService()
+        result = self._approval_svc.schedule(data, parent_data, callback_data)
+        # 只在底层的审批服务也认为已完成时才标记会签完成
+        if result and self._approval_svc.is_schedule_finished():
+            self.finish_schedule()
+        return result
 
 
 class ItsmAutoTaskService(Service):

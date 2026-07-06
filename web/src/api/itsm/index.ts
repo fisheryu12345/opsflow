@@ -15,29 +15,9 @@ export function createCrudApi(resource: string) {
   }
 }
 
-// ===== Legacy ITSM (Incident/Change models) =====
-export const incidentApi = createCrudApi('incidents')
-export const changeApi = createCrudApi('changes')
-export const serviceRequestApi = createCrudApi('service-requests')
-export const problemApi = createCrudApi('problems')
+// ===== Service Catalog & SLA =====
 export const serviceCategoryApi = createCrudApi('service-categories')
 export const slaPolicyApi = createCrudApi('sla-policies')
-
-export function AssignIncident(id: string, userId: number) {
-  return request({ url: `${prefix}/incidents/${id}/assign/`, method: 'post', data: { user_id: userId } })
-}
-export function ResolveIncident(id: string, resolution: string) {
-  return request({ url: `${prefix}/incidents/${id}/resolve/`, method: 'post', data: { resolution } })
-}
-export function CloseIncident(id: string) {
-  return request({ url: `${prefix}/incidents/${id}/close/`, method: 'post' })
-}
-export function ApproveChange(id: string, note?: string) {
-  return request({ url: `${prefix}/changes/${id}/approve/`, method: 'post', data: { note } })
-}
-export function RejectChange(id: string, note?: string) {
-  return request({ url: `${prefix}/changes/${id}/reject/`, method: 'post', data: { note } })
-}
 
 // ===== Workflow Engine (pipeline-driven) =====
 export const workflowApi = createCrudApi('workflows')
@@ -95,11 +75,8 @@ export function ResumeTicket(id: string) {
 export function CloseTicket(id: string) {
   return request({ url: `${prefix}/tickets/${id}/close/`, method: 'post' })
 }
-export function AssignTicket(id: string, userId: number, groupId?: number, reason?: string) {
-  return request({ url: `${prefix}/tickets/${id}/assign/`, method: 'post', data: { user_id: userId, group_id: groupId, reason } })
-}
-export function AutoAssignTicket(id: string) {
-  return request({ url: `${prefix}/tickets/${id}/auto_assign/`, method: 'post' })
+export function AssignTicket(id: string, userId: number, reason?: string) {
+  return request({ url: `${prefix}/tickets/${id}/assign/`, method: 'post', data: { user_id: userId, reason } })
 }
 
 // ===== Service Catalog（服务目录） =====
@@ -137,16 +114,3 @@ export function GetMyDelegations() {
   return request({ url: `${prefix}/delegations/my_delegations/`, method: 'get' })
 }
 
-// ===== Assignment Management (分派体系) =====
-export const skillGroupApi = createCrudApi('skill-groups')
-export const onDutyScheduleApi = createCrudApi('on-duty-schedules')
-export const assignRuleApi = createCrudApi('assign-rules')
-export const escalationLevelApi = createCrudApi('escalation-levels')
-export const transferLogApi = createCrudApi('transfer-logs')
-
-export function AddSkillGroupMember(groupId: number, userId: number) {
-  return request({ url: `${prefix}/skill-groups/${groupId}/add_member/`, method: 'post', data: { user_id: userId } })
-}
-export function RemoveSkillGroupMember(groupId: number, userId: number) {
-  return request({ url: `${prefix}/skill-groups/${groupId}/remove_member/`, method: 'post', data: { user_id: userId } })
-}

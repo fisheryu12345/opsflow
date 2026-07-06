@@ -23,7 +23,6 @@ def dashboard_summary(request):
     user = request.user
     data = {
         'user_info': _get_user_info(user),
-        'incident_stats': _get_incident_stats(),
         'alert_stats': _get_alert_stats(),
         'execution_stats': _get_execution_stats(),
         'itsm_ticket_stats': _get_itsm_ticket_stats(),
@@ -48,7 +47,6 @@ def my_tasks(request):
 def quick_stats(request):
     """快速概览统计"""
     data = {
-        'incidents': _get_incident_stats(),
         'alerts': _get_alert_stats(),
         'executions': _get_execution_stats(),
         'tickets': _get_itsm_ticket_stats(),
@@ -265,23 +263,6 @@ def _get_user_info(user):
     }
 
 
-def _get_incident_stats():
-    """获取工单统计"""
-    try:
-        from itsm.models.incident import Incident
-        today = timezone.now().date()
-        return {
-            'total': Incident.objects.count(),
-            'open': Incident.objects.filter(status__in=['new', 'assigned', 'in_progress']).count(),
-            'overdue': Incident.objects.filter(sla_status='breached').count(),
-            'resolved_today': Incident.objects.filter(
-                status='resolved', update_datetime__date=today
-            ).count(),
-        }
-    except Exception:
-        return {'total': 0, 'open': 0, 'overdue': 0, 'resolved_today': 0}
-
-
 def _get_alert_stats():
     """获取告警统计"""
     try:
@@ -351,32 +332,6 @@ def _get_opsflow_template_stats():
 def _get_my_tasks(user):
     """获取当前用户的待办事项"""
     tasks = []
-    try:
-        from itsm.models.incident import Incident, Change
-        incidents = Incident.objects.filter(
-            assignee=user, status__in=['new', 'assigned', 'in_progress']
-        )
-        for inc in incidents:
-            tasks.append({
-                'type': 'incident',
-                'id': inc.incident_id,
-                'title': inc.title,
-                'status': inc.status,
-                'priority': inc.priority,
-                'created_at': inc.create_datetime,
-            })
-        changes = Change.objects.filter(assignee=user, status='pending_approval')
-        for ch in changes:
-            tasks.append({
-                'type': 'change',
-                'id': ch.change_id,
-                'title': ch.title,
-                'status': ch.status,
-                'risk_level': ch.risk_level,
-                'created_at': ch.create_datetime,
-            })
-    except Exception:
-        pass
 
     # ITSM Ticket 待审批
     try:
@@ -447,12 +402,6 @@ def _get_module_counts():
         counts['cmdb_hosts'] = Host.objects.count()
     except Exception:
         counts['cmdb_hosts'] = 0
-
-    try:
-        from itsm.models.incident import Incident
-        counts['incidents'] = Incident.objects.count()
-    except Exception:
-        counts['incidents'] = 0
 
     try:
         from monitor.models.alert import AlertEvent
