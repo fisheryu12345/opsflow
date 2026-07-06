@@ -28,30 +28,30 @@
 
     <!-- SLA 信息卡片 -->
     <div class="td-sla-card" :class="'sla-' + ticket.sla_info.sla_status" v-if="ticket?.sla_info">
-      <div class="td-card-title">SLA 信息</div>
+      <div class="td-card-title">{{ $t('message.ticketDetail.slaInfo') }}</div>
       <div class="td-sla-grid">
         <div class="td-sla-item">
-          <span class="td-sla-label">状态</span>
+          <span class="td-sla-label">{{ $t('message.ticketDetail.slaStatus') }}</span>
           <span :class="'sla-badge sla-' + ticket.sla_info.sla_status">
             {{ slaStatusLabel(ticket.sla_info.sla_status) }}
           </span>
         </div>
         <div class="td-sla-item">
-          <span class="td-sla-label">策略</span>
+          <span class="td-sla-label">{{ $t('message.ticketDetail.slaPolicy') }}</span>
           <span>{{ ticket.sla_info.policy_name || '-' }}</span>
         </div>
         <div class="td-sla-item">
-          <span class="td-sla-label">剩余时间</span>
+          <span class="td-sla-label">{{ $t('message.ticketDetail.slaRemaining') }}</span>
           <span :style="{ color: ticket.sla_info.remaining_seconds < 300 ? '#F56C6C' : '#67C23A' }">
             {{ formatSlaTime(ticket.sla_info.remaining_seconds) }}
           </span>
         </div>
         <div class="td-sla-item">
-          <span class="td-sla-label">响应截止</span>
+          <span class="td-sla-label">{{ $t('message.ticketDetail.slaReplyDeadline') }}</span>
           <span>{{ ticket.sla_info.reply_deadline ? ticket.sla_info.reply_deadline.slice(0,16).replace('T', ' ') : '-' }}</span>
         </div>
         <div class="td-sla-item">
-          <span class="td-sla-label">解决截止</span>
+          <span class="td-sla-label">{{ $t('message.ticketDetail.slaResolveDeadline') }}</span>
           <span>{{ ticket.sla_info.deadline ? ticket.sla_info.deadline.slice(0,16).replace('T', ' ') : '-' }}</span>
         </div>
       </div>
@@ -59,7 +59,7 @@
 
     <div class="td-body">
       <div class="td-summary-card" v-if="summaryNode">
-        <div class="td-card-title">申请内容</div>
+        <div class="td-card-title">{{ $t('message.ticketDetail.ticketContent') }}</div>
         <div class="td-summary-grid">
           <div v-for="(val, key) in summaryNode.fields_data" :key="key" class="td-summary-cell">
             <span class="td-summary-label">{{ submittedFieldLabels[key] || key }}</span>
@@ -69,23 +69,23 @@
       </div>
 
       <div class="td-steps-card" v-if="flowStates && Object.keys(flowStates).length">
-        <div class="td-card-title">流程步骤</div>
+        <div class="td-card-title">{{ $t('message.ticketDetail.flowSteps') }}</div>
         <FlowChart :states="flowStates" :transitions="flowTransitions" :node-status="ticketNodeStatus" />
       </div>
 
       <div class="td-action-card" v-if="currentNode">
-        <div class="td-card-title">当前节点 · {{ currentNode.name }}</div>
+        <div class="td-card-title">{{ $t('message.ticketDetail.currentNode') }} · {{ currentNode.name }}</div>
         <div class="td-action-body">
           <template v-if="currentNode.type === 'APPROVAL' || currentNode.type === 'SIGN'">
             <div class="td-processor" v-if="currentNode.processors">
-              <el-icon><User /></el-icon> 处理人: {{ currentNode.processors }}
+              <el-icon><User /></el-icon> {{ $t('message.ticketDetail.processor') }}: {{ currentNode.processors }}
             </div>
             <div class="td-approval-btns">
               <el-button type="success" :loading="submitting" @click="onApprove">
-                <el-icon><Select /></el-icon> 通过
+                <el-icon><Select /></el-icon> {{ $t('message.ticketDetail.approveBtn') }}
               </el-button>
               <el-button type="danger" :loading="submitting" @click="onReject">
-                <el-icon><Close /></el-icon> 拒绝
+                <el-icon><Close /></el-icon> {{ $t('message.ticketDetail.rejectBtn') }}
               </el-button>
             </div>
           </template>
@@ -106,7 +106,7 @@
                 </template>
               </el-form-item>
               <el-button type="primary" :loading="submitting" @click="onNodeSubmit">
-                <el-icon><Select /></el-icon> 提交
+                <el-icon><Select /></el-icon> {{ $t('message.itsmPage.submit') }}
               </el-button>
             </el-form>
           </template>
@@ -118,7 +118,7 @@
       </div>
 
       <div class="td-timeline-card" v-if="finishedNodes.length">
-        <div class="td-card-title">已完成节点</div>
+        <div class="td-card-title">{{ $t('message.ticketDetail.finishedNodes') }}</div>
         <div class="td-timeline">
           <div v-for="(ns, idx) in finishedNodes" :key="ns.id" class="td-timeline-item">
             <div class="td-timeline-col">
@@ -202,16 +202,22 @@ function formatTime(dt: string | undefined | null): string {
 }
 
 function slaStatusLabel(s: string): string {
-  const m: Record<string, string> = { normal: '正常', warning: '即将超时', violated: '已超时' }
-  return m[s] || s || '未知'
+  const m: Record<string, string> = {
+    normal: t('message.itsmPage.slaNormal'),
+    warning: t('message.itsmPage.slaWarning'),
+    violated: t('message.itsmPage.slaViolated'),
+  }
+  return m[s] || s || ''
 }
 
 function formatSlaTime(seconds: number | null | undefined): string {
-  if (seconds == null || seconds <= 0) return '已超时'
+  if (seconds == null || seconds <= 0) return t('message.itsmPage.slaViolated')
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
-  if (h > 0) return `${h} 小时 ${m} 分`
-  return `${m} 分钟`
+  const hr = t('message.itsmPage.slaHours')
+  const mi = t('message.itsmPage.slaMinutes')
+  if (h > 0) return `${h} ${hr} ${m} ${mi}`
+  return `${m} ${mi}`
 }
 
 async function loadTicket() {
@@ -245,7 +251,7 @@ async function loadTicket() {
 
     rebuildFlow(allStates)
   } catch {
-    ElMessage.error('加载工单详情失败')
+    ElMessage.error(t('message.ticketDetail.loadFailed'))
   }
   loading.value = false
 }
@@ -305,26 +311,26 @@ function rebuildFlow(allStates: Record<string, any>) {
 
 async function onApprove() {
   if (!ticket.value || !currentNode.value) return
-  const comment = await ElMessageBox.prompt('审批意见（可选）', '审批通过').catch(() => null)
+  const comment = await ElMessageBox.prompt(t('message.ticketDetail.approveComment'), t('message.ticketDetail.approveTitle')).catch(() => null)
   submitting.value = true
   try {
     await ApproveTicketNode(ticket.value.id, currentNode.value.state_id || currentNode.value.id, comment?.value || '')
-    ElMessage.success('审批通过')
+    ElMessage.success(t('message.ticketDetail.approveSuccess'))
     await loadTicket()
-  } catch (e: any) { ElMessage.error(e?.msg || '审批失败') }
+  } catch (e: any) { ElMessage.error(e?.msg || t('message.ticketDetail.approveFailed')) }
   submitting.value = false
 }
 
 async function onReject() {
   if (!ticket.value || !currentNode.value) return
-  const comment = await ElMessageBox.prompt('驳回原因（必填）', '审批驳回').catch(() => null)
+  const comment = await ElMessageBox.prompt(t('message.ticketDetail.rejectReason'), t('message.ticketDetail.rejectTitle')).catch(() => null)
   if (!comment?.value) return
   submitting.value = true
   try {
     await RejectTicketNode(ticket.value.id, currentNode.value.state_id || currentNode.value.id, comment.value)
-    ElMessage.success('已驳回')
+    ElMessage.success(t('message.ticketDetail.rejectSuccess'))
     await loadTicket()
-  } catch (e: any) { ElMessage.error(e?.msg || '驳回失败') }
+  } catch (e: any) { ElMessage.error(e?.msg || t('message.ticketDetail.rejectFailed')) }
   submitting.value = false
 }
 
@@ -338,9 +344,9 @@ async function onNodeSubmit() {
   submitting.value = true
   try {
     await NodeSubmit(ticket.value.id, { state_id: stateId, fields })
-    ElMessage.success('提交成功')
+    ElMessage.success(t('message.ticketDetail.submitSuccess'))
     router.back()
-  } catch (e: any) { ElMessage.error(e?.msg || '提交失败') }
+  } catch (e: any) { ElMessage.error(e?.msg || t('message.ticketDetail.submitFailed')) }
   submitting.value = false
 }
 
@@ -413,4 +419,5 @@ onMounted(() => loadTicket())
 .td-timeline-name { font-size: 14px; font-weight: 500; color: #1d2129; }
 .td-timeline-meta { font-size: 12px; color: #86909c; margin-top: 3px; }
 .td-timeline-result { margin-top: 4px; display: flex; align-items: center; gap: 6px; }
-.td-timeline-comment { font-size: 12p
+.td-timeline-comment { font-size: 12px; color: #606266; }
+</style>

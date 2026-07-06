@@ -12,6 +12,7 @@ class ServiceCategory(CoreModel):
         related_name='itsm_categories', verbose_name='Project',
     )
     name = models.CharField(max_length=128, verbose_name="分类名称")
+    name_en = models.CharField(max_length=128, blank=True, default='', verbose_name="分类名称(英文)")
     code = models.CharField(max_length=64, unique=True, verbose_name="分类编码")
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True,
                                 related_name='children', verbose_name="上级分类")
@@ -28,6 +29,9 @@ class ServiceCategory(CoreModel):
     def __str__(self):
         return self.name
 
+    def display_name(self, lang='zh'):
+        return self.name_en if lang == 'en' and self.name_en else self.name
+
 
 class SlaPolicy(CoreModel):
     """SLA 策略定义"""
@@ -42,6 +46,7 @@ class SlaPolicy(CoreModel):
         ('P4', 'P4 低'),
     )
     name = models.CharField(max_length=128, verbose_name="策略名称")
+    name_en = models.CharField(max_length=128, blank=True, default='', verbose_name="策略名称(英文)")
     priority = models.CharField(max_length=8, choices=priority_choices, unique=True, verbose_name="优先级")
     response_minutes = models.IntegerField(default=60, verbose_name="响应时限(分钟)")
     resolve_minutes = models.IntegerField(default=480, verbose_name="解决时限(分钟)")
@@ -54,3 +59,6 @@ class SlaPolicy(CoreModel):
 
     def __str__(self):
         return f"{self.name} ({self.priority})"
+
+    def display_name(self, lang='zh'):
+        return self.name_en if lang == 'en' and self.name_en else self.name

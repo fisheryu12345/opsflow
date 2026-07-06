@@ -2,95 +2,95 @@
   <div class="itsm-delegation">
     <!-- Toolbar -->
     <div class="itsm-delegation-toolbar">
-      <span class="itsm-delegation-title">我的审批委托</span>
+      <span class="itsm-delegation-title">{{ $t('message.delegation.title') }}</span>
       <el-button type="primary" size="small" v-can="'itsm:ticket:assign'" @click="openCreate">
-        <el-icon><Plus /></el-icon> 新建委托
+        <el-icon><Plus /></el-icon> {{ $t('message.delegation.new') }}
       </el-button>
     </div>
 
     <!-- Delegation List -->
     <div class="itsm-table-card">
       <el-table :data="list" v-loading="loading" stripe style="width:100%" size="small"
-        :empty-text="'暂无委托规则'">
-        <el-table-column label="委托人" width="120">
+        :empty-text="$t('message.delegation.noRules')">
+        <el-table-column :label="$t('message.delegation.delegator')" width="120">
           <template #default="{ row }">
             {{ row.user_name || row.user }}
           </template>
         </el-table-column>
-        <el-table-column label="被委托人" width="120">
+        <el-table-column :label="$t('message.delegation.delegate')" width="120">
           <template #default="{ row }">
             {{ row.delegate_to_name || row.delegate_to }}
           </template>
         </el-table-column>
-        <el-table-column label="工单类型" width="120">
+        <el-table-column :label="$t('message.delegation.ticketType')" width="120">
           <template #default="{ row }">
             <el-tag v-if="row.ticket_type" size="small">{{ row.ticket_type }}</el-tag>
-            <span v-else class="itsm-delegation-all">全部类型</span>
+            <span v-else class="itsm-delegation-all">{{ $t('message.delegation.allTypes') }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="开始时间" width="160">
+        <el-table-column :label="$t('message.delegation.dateFrom')" width="160">
           <template #default="{ row }">
             {{ formatDate(row.date_from) }}
           </template>
         </el-table-column>
-        <el-table-column label="结束时间" width="160">
+        <el-table-column :label="$t('message.delegation.dateTo')" width="160">
           <template #default="{ row }">
             {{ formatDate(row.date_to) }}
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="80">
+        <el-table-column :label="$t('message.delegation.status')" width="80">
           <template #default="{ row }">
             <el-switch :model-value="row.is_active" size="small"
               @click="onToggleActive(row)" />
           </template>
         </el-table-column>
-        <el-table-column label="备注" min-width="150" show-overflow-tooltip>
+        <el-table-column :label="$t('message.delegation.remark')" min-width="150" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="itsm-delegation-remark">{{ row.remark || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column :label="$t('message.itsmPage.colActions')" width="160" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" text v-can="'itsm:ticket:assign'" @click="openEdit(row)">编辑</el-button>
-            <el-button size="small" text type="danger" v-can="'itsm:ticket:assign'" @click="onDelete(row)">删除</el-button>
+            <el-button size="small" text v-can="'itsm:ticket:assign'" @click="openEdit(row)">{{ $t('message.common.edit') }}</el-button>
+            <el-button size="small" text type="danger" v-can="'itsm:ticket:assign'" @click="onDelete(row)">{{ $t('message.common.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
     </div>
 
     <!-- Create/Edit Dialog -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑委托' : '新建委托'" width="520px" top="8vh" class="itsm-dialog" append-to-body>
+    <el-dialog v-model="dialogVisible" :title="isEdit ? $t('message.delegation.editDelegation') : $t('message.delegation.new')" width="520px" top="8vh" class="itsm-dialog" append-to-body>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="被委托人" prop="delegate_to">
+        <el-form-item :label="$t('message.delegation.delegate')" prop="delegate_to">
           <el-select v-model="form.delegate_to" filterable remote :remote-method="searchUsers"
-            :loading="searching" placeholder="搜索用户" style="width:100%"
+            :loading="searching" :placeholder="$t('message.delegation.searchUser')" style="width:100%"
             value-key="id">
             <el-option v-for="u in userOptions" :key="u.id" :label="u.name + ' (' + u.username + ')'" :value="u.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="工单类型" prop="ticket_type">
-          <el-select v-model="form.ticket_type" clearable placeholder="全部类型" style="width:100%">
-            <el-option label="变更申请" value="change" />
-            <el-option label="事件工单" value="incident" />
-            <el-option label="服务请求" value="request" />
-            <el-option label="问题管理" value="problem" />
+        <el-form-item :label="$t('message.delegation.ticketType')" prop="ticket_type">
+          <el-select v-model="form.ticket_type" clearable :placeholder="$t('message.delegation.allTypes')" style="width:100%">
+            <el-option :label="$t('message.ticketCreate.changeRequest')" value="change" />
+            <el-option :label="$t('message.ticketCreate.eventTicket')" value="incident" />
+            <el-option :label="$t('message.ticketCreate.serviceRequest')" value="request" />
+            <el-option :label="$t('message.ticketCreate.problem')" value="problem" />
           </el-select>
         </el-form-item>
-        <el-form-item label="开始时间" prop="date_from">
-          <el-date-picker v-model="form.date_from" type="datetime" placeholder="选择开始时间"
+        <el-form-item :label="$t('message.delegation.dateFrom')" prop="date_from">
+          <el-date-picker v-model="form.date_from" type="datetime" :placeholder="$t('message.delegation.selectStartTime')"
             style="width:100%" value-format="YYYY-MM-DDTHH:mm:ss" />
         </el-form-item>
-        <el-form-item label="结束时间" prop="date_to">
-          <el-date-picker v-model="form.date_to" type="datetime" placeholder="选择结束时间"
+        <el-form-item :label="$t('message.delegation.dateTo')" prop="date_to">
+          <el-date-picker v-model="form.date_to" type="datetime" :placeholder="$t('message.delegation.selectEndTime')"
             style="width:100%" value-format="YYYY-MM-DDTHH:mm:ss" />
         </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="委托原因（可选）" />
+        <el-form-item :label="$t('message.delegation.remark')" prop="remark">
+          <el-input v-model="form.remark" type="textarea" :rows="2" :placeholder="$t('message.delegation.remarkPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :icon="Check" :loading="saving" @click="onSave">保存</el-button>
+        <el-button @click="dialogVisible = false">{{ $t('message.common.cancel') }}</el-button>
+        <el-button type="primary" :icon="Check" :loading="saving" @click="onSave">{{ $t('message.common.save') }}</el-button>
       </template>
     </el-dialog>
   </div>

@@ -2,6 +2,43 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 0a4a32f3
+
+> 提交日期: 2026-07-07 | 提交信息: feat: ITSM i18n full coverage + name_en fields + Manage Categories dialog
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/itsm/models/catalog.py` | 后端 | ServiceCategory + SlaPolicy 新增 name_en |
+| `backend/itsm/models/escalation.py` | 后端 | EscalationLevel 新增 name_en |
+| `backend/itsm/models/service_item.py` | 后端 | ServiceItem 新增 name_en + description_en |
+| `backend/itsm/models/state.py` | 后端 | State 新增 name_en |
+| `backend/itsm/models/workflow.py` | 后端 | Workflow 新增 name_en |
+| `backend/itsm/migrations/0002_*` | 迁移 | 6 个 name_en 字段迁移 |
+| `backend/itsm/serializers/legacy.py` | 后端 | ServiceCategory/SlaPolicy to_representation i18n |
+| `backend/itsm/serializers/service_item.py` | 后端 | ServiceItem + category_name i18n |
+| `backend/itsm/serializers/workflow_serializers.py` | 后端 | Workflow/WorkflowVersion i18n |
+| `backend/itsm/serializers/escalation.py` | 后端 | EscalationLevel i18n |
+| `backend/itsm/management/commands/seed_itsm.py` | 后端 | 全量中英双语 seed 数据 |
+| `web/src/views/apps/itsm/*.vue` (12 文件) | 前端 | 全页面 i18n 替换 + Manage Categories CRUD 弹窗 |
+| `web/src/i18n/pages/itsm/zh-cn.ts` | i18n | 新增 150+ 中文 key |
+| `web/src/i18n/pages/itsm/en.ts` | i18n | 对应英文翻译 |
+
+### 解决
+
+- **问题/背景：** ITSM 12 个前端页面硬编码中文违反 i18n first 规则；seed 数据全中文切换英文不生效；分类管理按钮为占位 ElMessage
+- **办法：** 3 个 Agent 并行 i18n 替换；6 个模型加 name_en + 序列化器按 ?lang=en 返回；seed 中英双语重写；新增树形 CRUD 分类管理弹窗
+
+### 验证
+
+- 改动类型: feat + refactor
+- 清理乱码: 无
+- 子 App index.md 更新: 无
+- 工作区状态: 待推送 ✅
+
+---
+
 ## bafc693b
 
 > 提交日期: 2026-07-07 | 提交信息: feat: end-to-end SLA timing + escalation hierarchy — 端到端 SLA 计时与升级层级体系

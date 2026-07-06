@@ -4,9 +4,9 @@
       <el-select v-model="newFieldType" size="small" style="width:130px;margin-right:6px;">
         <el-option v-for="ft in fieldTypes" :key="ft.value" :label="ft.label" :value="ft.value" />
       </el-select>
-      <el-input v-model="newFieldKey" size="small" placeholder="标识" style="width:100px;margin-right:6px;" />
-      <el-input v-model="newFieldName" size="small" placeholder="名称" style="width:120px;margin-right:6px;" />
-      <el-button size="small" type="primary" @click="onAddField">添加</el-button>
+      <el-input v-model="newFieldKey" size="small" :placeholder="$t('message.formDesigner.key')" style="width:100px;margin-right:6px;" />
+      <el-input v-model="newFieldName" size="small" :placeholder="$t('message.formDesigner.name')" style="width:120px;margin-right:6px;" />
+      <el-button size="small" type="primary" @click="onAddField">{{ $t('message.designer.addField') }}</el-button>
     </div>
     <div class="fe-list" v-if="localFields.length">
       <div v-for="(f, fi) in localFields" :key="fi" class="fe-item">
@@ -14,7 +14,7 @@
           <span class="fe-name">{{ f.name }}</span>
           <span class="fe-key">{{ f.key }}</span>
           <el-tag size="small">{{ f.type }}</el-tag>
-          <el-tag v-if="f.required" size="small" type="danger">必填</el-tag>
+          <el-tag v-if="f.required" size="small" type="danger">{{ $t('message.formDesigner.required') }}</el-tag>
         </div>
         <div class="fe-actions">
           <el-button v-if="showChoiceEditor(f.type)" size="small" text @click="editChoices(f, fi)">
@@ -26,32 +26,34 @@
         </div>
       </div>
     </div>
-    <div v-else class="fe-empty">暂无字段，点击添加</div>
+    <div v-else class="fe-empty">{{ $t('message.formDesigner.noFieldClickAdd') }}</div>
 
     <!-- Choices editor -->
     <div v-if="editingChoices" class="fe-choices">
-      <div class="fe-choices-title">编辑选项: {{ editingChoicesName }}</div>
+      <div class="fe-choices-title">{{ $t('message.formDesigner.editChoices', { name: editingChoicesName }) }}</div>
       <div v-for="(c, ci) in editingChoicesList" :key="ci" class="fe-choice-row">
-        <el-input v-model="c.label" size="small" placeholder="显示名" style="width:130px;margin-right:4px;" />
-        <el-input v-model="c.value" size="small" placeholder="值" style="width:110px;margin-right:4px;" />
+        <el-input v-model="c.label" size="small" :placeholder="$t('message.formDesigner.dispName')" style="width:130px;margin-right:4px;" />
+        <el-input v-model="c.value" size="small" :placeholder="$t('message.formDesigner.value')" style="width:110px;margin-right:4px;" />
         <el-button size="small" text type="danger" @click="editingChoicesList.splice(ci, 1)">
           <el-icon><Delete /></el-icon>
         </el-button>
       </div>
-      <el-button size="small" @click="editingChoicesList.push({ label: '', value: '' })">添加选项</el-button>
-      <el-button size="small" type="primary" @click="saveChoices">完成</el-button>
+      <el-button size="small" @click="editingChoicesList.push({ label: '', value: '' })">{{ $t('message.formDesigner.addChoice') }}</el-button>
+      <el-button size="small" type="primary" @click="saveChoices">{{ $t('message.formDesigner.complete') }}</el-button>
     </div>
 
     <div style="margin-top:12px;">
-      <el-button @click="$emit('save', localFields)" type="primary">保存字段</el-button>
+      <el-button @click="$emit('save', localFields)" type="primary">{{ $t('message.formDesigner.save') }}</el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Delete, Setting } from '@element-plus/icons-vue'
 
+const { t } = useI18n()
 const props = defineProps<{ fields?: any[] }>()
 const emit = defineEmits<{ save: [fields: any[]] }>()
 

@@ -15,6 +15,7 @@ class EscalationLevel(CoreModel):
     )
 
     name = models.CharField(max_length=128, verbose_name="级别名称")
+    name_en = models.CharField(max_length=128, blank=True, default='', verbose_name="级别名称(英文)")
     level = models.IntegerField(default=1, verbose_name="级别序号")
     timeout_minutes = models.IntegerField(default=60, verbose_name="超时阈值(分钟)")
     action = models.CharField(max_length=32, choices=ACTION_CHOICES, default='notify_only',

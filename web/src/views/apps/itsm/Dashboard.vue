@@ -199,9 +199,12 @@ function formatOverdue(seconds: number | null | undefined): string {
   if (seconds == null || seconds < 0) return '-'
   const d = Math.floor(seconds / 86400)
   const h = Math.floor((seconds % 86400) / 3600)
-  if (d > 0) return `${d}天${h}小时`
-  if (h > 0) return `${h}小时`
-  return `${Math.floor(seconds / 60)}分钟`
+  const day = t('message.itsmPage.slaDays')
+  const hour = t('message.itsmPage.slaHours')
+  const min = t('message.itsmPage.slaMinutes')
+  if (d > 0) return `${d}${day}${h}${hour}`
+  if (h > 0) return `${h}${hour}`
+  return `${Math.floor(seconds / 60)}${min}`
 }
 
 onMounted(async () => {

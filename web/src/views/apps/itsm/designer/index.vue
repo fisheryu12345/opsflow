@@ -35,19 +35,19 @@
       />
     </div>
 
-    <el-dialog v-model="showFieldEditor" title="工单设计" width="960px" top="3vh" class="fd-dialog">
+    <el-dialog v-model="showFieldEditor" :title="$t('message.designer.formDesign')" width="960px" top="3vh" class="fd-dialog">
       <FormDesigner :fields="editingFields" @save="onFieldsSave" @cancel="showFieldEditor = false" />
     </el-dialog>
 
-    <el-dialog v-model="showAIDialog" title="AI 生成流程" width="560px" top="5vh">
+    <el-dialog v-model="showAIDialog" :title="$t('message.aiCreate.title')" width="560px" top="5vh">
       <el-form label-position="top">
-        <el-form-item label="描述审批需求">
-          <el-input v-model="aiPrompt" type="textarea" :rows="4" placeholder="例如: 创建一个服务器采购审批流程，需主管→财务→总监三级审批" />
+        <el-form-item :label="$t('message.aiCreate.descLabel')">
+          <el-input v-model="aiPrompt" type="textarea" :rows="4" :placeholder="$t('message.aiCreate.descPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showAIDialog = false">取消</el-button>
-        <el-button type="primary" :loading="aiLoading" @click="onAIGenerate">AI 生成</el-button>
+        <el-button @click="showAIDialog = false">{{ $t('message.common.cancel') }}</el-button>
+        <el-button type="primary" :loading="aiLoading" @click="onAIGenerate">{{ $t('message.designer.aiGenerate') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -57,6 +57,7 @@
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { useDesigner } from './useDesigner'
 import DesignerToolbar from './DesignerToolbar.vue'
 import DesignerConfigPanel from './DesignerConfigPanel.vue'
@@ -65,6 +66,7 @@ import { AIGenerateWorkflow } from '/@/api/itsm/index'
 
 const props = defineProps<{ workflowId?: number }>()
 const emit = defineEmits<{ back: [] }>()
+const { t } = useI18n()
 
 const designer = useDesigner('itsm-canvas-container', props.workflowId)
 const stencilRef = ref<HTMLElement | null>(null)

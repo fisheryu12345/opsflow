@@ -9,10 +9,10 @@
       <div class="itsm-hero-inner">
         <div class="itsm-hero-left">
           <h1 class="itsm-hero-title">ITSM</h1>
-          <p class="itsm-hero-subtitle">IT service management — 工单、变更与流程审批</p>
+          <p class="itsm-hero-subtitle">{{ $t('message.itsmPage.subtitle') }}</p>
         </div>
         <div class="itsm-hero-stats">
-          <div class="itsm-stat-item"><span class="itsm-stat-value">{{ tickets.length }}</span><span class="itsm-stat-label">工单</span></div>
+          <div class="itsm-stat-item"><span class="itsm-stat-value">{{ tickets.length }}</span><span class="itsm-stat-label">{{ $t('message.itsmPage.tickets') }}</span></div>
         </div>
       </div>
       <!-- Hero tabs -->
@@ -52,43 +52,43 @@
         <div class="itsm-filter-bar">
           <div class="itsm-filter-tabs">
             <div class="itsm-tab" :class="{ active: ticketFilter === '' }" @click="ticketFilter = ''; loadTickets()">
-              <span class="itsm-tab-dot" style="background:#409EFF" />全部
+              <span class="itsm-tab-dot" style="background:#409EFF" />{{ $t('message.itsmPage.filterAll') }}
             </div>
             <div class="itsm-tab" :class="{ active: ticketFilter === 'draft' }" @click="ticketFilter = 'draft'; loadTickets()">
-              <span class="itsm-tab-dot" style="background:#E6A23C" />草稿
+              <span class="itsm-tab-dot" style="background:#E6A23C" />{{ $t('message.itsmPage.filterDraft') }}
             </div>
             <div class="itsm-tab" :class="{ active: ticketFilter === 'running' }" @click="ticketFilter = 'running'; loadTickets()">
-              <span class="itsm-tab-dot" style="background:#409EFF" />处理中
+              <span class="itsm-tab-dot" style="background:#409EFF" />{{ $t('message.itsmPage.filterRunning') }}
             </div>
             <div class="itsm-tab" :class="{ active: ticketFilter === 'finished' }" @click="ticketFilter = 'finished'; loadTickets()">
-              <span class="itsm-tab-dot" style="background:#67C23A" />已完成
+              <span class="itsm-tab-dot" style="background:#67C23A" />{{ $t('message.itsmPage.filterFinished') }}
             </div>
           </div>
           <div class="itsm-filter-actions">
-            <el-button :icon="Refresh" size="small" text @click="loadTickets" :loading="loadingTickets">刷新</el-button>
+            <el-button :icon="Refresh" size="small" text @click="loadTickets" :loading="loadingTickets">{{ $t('message.itsmPage.refresh') }}</el-button>
           </div>
         </div>
 
         <div class="itsm-table-card">
           <el-table :data="tickets" v-loading="loadingTickets" stripe style="width:100%" size="small"
-            :empty-text="loadingTickets ? '加载中...' : '暂无工单'">
-            <el-table-column prop="sn" label="单号" width="160" />
-            <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-            <el-table-column label="类型" width="90">
+            :empty-text="loadingTickets ? $t('message.itsmPage.loading') : $t('message.itsmPage.noTickets')">
+            <el-table-column prop="sn" :label="$t('message.itsmPage.colSn')" width="160" />
+            <el-table-column prop="title" :label="$t('message.itsmPage.colTitle')" min-width="200" show-overflow-tooltip />
+            <el-table-column :label="$t('message.itsmPage.colType')" width="90">
               <template #default="{ row }">
                 <el-tag :type="row.itsm_type === 'incident' ? 'danger' : row.itsm_type === 'change' ? 'warning' : ''" size="small">
                   {{ row.itsm_type }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="100">
+            <el-table-column :label="$t('message.itsmPage.colStatus')" width="100">
               <template #default="{ row }">
                 <span class="itsm-status-badge" :class="'it-status-' + row.current_status">
                   <span class="itsm-status-dot" />{{ statusLabel(row.current_status) }}
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="SLA" width="100">
+            <el-table-column :label="$t('message.itsmPage.colSla')" width="100">
               <template #default="{ row }">
                 <span v-if="row.sla_info" :class="'sla-badge sla-' + row.sla_info.sla_status">
                   {{ row.sla_info.remaining_seconds != null ? formatSla(row.sla_info.remaining_seconds) : '-' }}
@@ -101,13 +101,13 @@
                 <span class="itsm-prio-badge" :class="'it-prio-' + (row.priority || 'p3').toLowerCase()">{{ row.priority }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="创建人" width="120">
+            <el-table-column :label="$t('message.itsmPage.colCreator')" width="120">
               <template #default="{ row }">
                 {{ row.creator_name || row.creator || '-' }}
               </template>
             </el-table-column>
-            <el-table-column prop="create_datetime" label="创建时间" width="170" />
-            <el-table-column label="处理人" width="140">
+            <el-table-column prop="create_datetime" :label="$t('message.itsmPage.colCreateTime')" width="170" />
+            <el-table-column :label="$t('message.itsmPage.colAssignee')" width="140">
               <template #default="{ row }">
                 <template v-if="row.meta?.assignee">
                   <span style="font-size:13px;color:#606266">{{ row.meta.assignee.name }}</span>
@@ -116,25 +116,25 @@
                 <span v-else-if="row.meta?.assign_group" style="font-size:12px;color:#909399">
                   组: {{ row.meta.assign_group.name }}
                 </span>
-                <span v-else style="font-size:12px;color:#C0C4CC">待分派</span>
+                <span v-else style="font-size:12px;color:#C0C4CC">{{ $t('message.itsmPage.pendingAssignee') }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="280" fixed="right">
+            <el-table-column :label="$t('message.itsmPage.colActions')" width="280" fixed="right">
               <template #default="{ row }">
                 <el-button v-if="row.current_status === 'draft'" size="small" text v-can="'itsm:ticket:create'" @click="onSubmitTicket(row)">
-                  <el-icon><Select /></el-icon> 提交
+                  <el-icon><Select /></el-icon> {{ $t('message.itsmPage.submit') }}
                 </el-button>
                 <el-button size="small" text @click="onViewTicket(row)">
-                  <el-icon><Search /></el-icon> 详情
+                  <el-icon><Search /></el-icon> {{ $t('message.itsmPage.detail') }}
                 </el-button>
                 <el-button v-if="row.meta?.assignee && row.current_status !== 'finished' && row.current_status !== 'terminated'" size="small" text type="warning" v-can="'itsm:ticket:assign'" @click="ticketAssign(row)">
-                  <el-icon><User /></el-icon> 转派
+                  <el-icon><User /></el-icon> {{ $t('message.itsmPage.transfer') }}
                 </el-button>
                 <el-button v-else-if="!row.meta?.assignee && row.current_status !== 'finished' && row.current_status !== 'terminated'" size="small" text type="primary" v-can="'itsm:ticket:assign'" @click="ticketAssign(row)">
-                  <el-icon><User /></el-icon> 分派
+                  <el-icon><User /></el-icon> {{ $t('message.itsmPage.assign') }}
                 </el-button>
                 <el-button v-if="row.current_status === 'running'" size="small" text type="danger" v-can="'itsm:ticket:close'" @click="onCloseTicket(row)">
-                  <el-icon><CircleClose /></el-icon> 关闭
+                  <el-icon><CircleClose /></el-icon> {{ $t('message.itsmPage.close') }}
                 </el-button>
               </template>
             </el-table-column>
@@ -147,20 +147,20 @@
         <div class="itsm-filter-bar">
           <div class="itsm-filter-tabs">
             <div class="itsm-tab" :class="{ active: wfFilter === '' }" @click="wfFilter = ''; loadWorkflows()">
-              <span class="itsm-tab-dot" style="background:#409EFF" />全部
+              <span class="itsm-tab-dot" style="background:#409EFF" />{{ $t('message.itsmPage.filterAll') }}
             </div>
             <div class="itsm-tab" :class="{ active: wfFilter === 'change' }" @click="wfFilter = 'change'; loadWorkflows()">
-              <span class="itsm-tab-dot" style="background:#E6A23C" />变更
+              <span class="itsm-tab-dot" style="background:#E6A23C" />{{ $t('message.itsmPage.changes') }}
             </div>
             <div class="itsm-tab" :class="{ active: wfFilter === 'incident' }" @click="wfFilter = 'incident'; loadWorkflows()">
-              <span class="itsm-tab-dot" style="background:#F56C6C" />事件
+              <span class="itsm-tab-dot" style="background:#F56C6C" />{{ $t('message.itsmPage.incidents') }}
             </div>
           </div>
           <div class="itsm-filter-actions">
             <el-button v-can="'itsm:workflow:create'" size="small" type="primary" @click="showAICreate = true">
-              <el-icon><MagicStick /></el-icon> AI 创建
+              <el-icon><MagicStick /></el-icon> {{ $t('message.itsmPage.aiCreate') }}
             </el-button>
-            <el-button :icon="Refresh" size="small" text @click="loadWorkflows" :loading="loadingWf">刷新</el-button>
+            <el-button :icon="Refresh" size="small" text @click="loadWorkflows" :loading="loadingWf">{{ $t('message.itsmPage.refresh') }}</el-button>
           </div>
         </div>
 
@@ -169,8 +169,8 @@
             <div class="itsm-wf-card-inner">
               <div class="itsm-wf-card-header">
                 <span class="itsm-wf-type-tag" :class="'wf-type-' + wf.itsm_type">{{ wf.itsm_type }}</span>
-                <el-tag v-if="wf.is_draft" size="small" type="warning">草稿</el-tag>
-                <el-tag v-else size="small" type="success">已发布</el-tag>
+                <el-tag v-if="wf.is_draft" size="small" type="warning">{{ $t('message.itsmPage.filterDraft') }}</el-tag>
+                <el-tag v-else size="small" type="success">{{ $t('message.itsmPage.published') }}</el-tag>
               </div>
               <div class="itsm-wf-name">{{ wf.name }}</div>
               <div class="itsm-wf-desc" v-if="wf.description">{{ wf.description }}</div>
@@ -180,22 +180,22 @@
               </div>
               <div class="itsm-wf-actions">
 <el-button v-if="wf.is_draft" v-can="'itsm:workflow:deploy'" size="small" text type="success" @click="onDeployWorkflow(wf)">
-                  <el-icon><Upload /></el-icon> 部署
+                  <el-icon><Upload /></el-icon> {{ $t('message.itsmPage.deploy') }}
                 </el-button>
                 <el-button v-can="'itsm:workflow:design'" size="small" text @click="onOpenDesigner(wf.id)">
-                  <el-icon><Setting /></el-icon> 设计
+                  <el-icon><Setting /></el-icon> {{ $t('message.itsmPage.design') }}
                 </el-button>
                 <el-button size="small" text @click="onOpenVersions(wf)">
-                  <el-icon><Clock /></el-icon> 版本
+                  <el-icon><Clock /></el-icon> {{ $t('message.itsmPage.version') }}
                 </el-button>
                 <el-button v-can.admin="'itsm:workflow:delete'" size="small" text type="danger" @click="onDeleteWorkflow(wf)">
-                  <el-icon><Delete /></el-icon> 删除
+                  <el-icon><Delete /></el-icon> {{ $t('message.itsmPage.delete') }}
                 </el-button>
               </div>
             </div>
           </div>
           <div v-if="!workflows.length && !loadingWf" class="itsm-wf-empty">
-            <el-empty description="暂无流程模板。点击「AI 创建」快速生成" :image-size="50" />
+            <el-empty :description="$t('message.itsmPage.noWorkflows')" :image-size="50" />
           </div>
         </div>
       </div>
@@ -205,29 +205,29 @@
       <div v-show="activeTab === 'sla'" class="itsm-section g-fade-in-up">
         <div class="itsm-table-card">
           <div class="itsm-table-header">
-            <span class="itsm-table-title">SLA 策略</span>
+            <span class="itsm-table-title">{{ $t('message.itsmPage.slaPolicies') }}</span>
           </div>
           <el-table :data="slaPolicies" v-loading="loadingSla" stripe style="width:100%" size="small"
-            :empty-text="loadingSla ? '加载中...' : '暂无 SLA 策略'">
-            <el-table-column prop="name" label="策略名称" min-width="160" />
+            :empty-text="loadingSla ? $t('message.itsmPage.loading') : $t('message.itsmPage.noSla')">
+            <el-table-column prop="name" :label="$t('message.itsmPage.colSLAPolicy')" min-width="160" />
             <el-table-column prop="priority" :label="$t('message.ticketCreate.priority')" width="80" />
-            <el-table-column prop="response_minutes" label="响应时限(min)" width="140" />
-            <el-table-column prop="resolve_minutes" label="解决时限(min)" width="140" />
-            <el-table-column prop="is_active" label="启用" width="80" align="center">
+            <el-table-column prop="response_minutes" :label="$t('message.itsmPage.colResponseMin')" width="140" />
+            <el-table-column prop="resolve_minutes" :label="$t('message.itsmPage.colResolveMin')" width="140" />
+            <el-table-column prop="is_active" :label="$t('message.itsmPage.colEnabled')" width="80" align="center">
               <template #default="{ row }"><el-switch v-model="row.is_active" size="small" @change="onSlaToggle(row)" /></template>
             </el-table-column>
-            <el-table-column label="操作" width="80" fixed="right">
+            <el-table-column :label="$t('message.itsmPage.colActions')" width="80" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" text v-can="'itsm:sla:edit'" @click="onSlaEdit(row)">编辑</el-button>
+                <el-button size="small" text v-can="'itsm:sla:edit'" @click="onSlaEdit(row)">{{ $t('message.common.edit') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
         </div>
 
         <!-- SLA Edit Dialog -->
-        <el-dialog v-model="showSlaEdit" title="编辑 SLA 策略" width="440px" top="15vh" destroy-on-close append-to-body>
+        <el-dialog v-model="showSlaEdit" :title="$t('message.itsmPage.editSlaPolicy')" width="440px" top="15vh" destroy-on-close append-to-body>
           <el-form :model="slaForm" label-width="120px" size="small">
-            <el-form-item label="策略名称"><el-input v-model="slaForm.name" /></el-form-item>
+            <el-form-item :label="$t('message.itsmPage.colSLAPolicy')"><el-input v-model="slaForm.name" /></el-form-item>
             <el-form-item :label="$t('message.ticketCreate.priority')" v-if="!slaForm.id">
               <el-select v-model="slaForm.priority" style="width:100%">
                 <el-option label="P1" value="P1" /><el-option label="P2" value="P2" />
@@ -237,13 +237,13 @@
             <el-form-item :label="$t('message.ticketCreate.priority')" v-else>
               <span style="font-weight:600">{{ slaForm.priority }}</span>
             </el-form-item>
-            <el-form-item label="响应时限(分钟)"><el-input-number v-model="slaForm.response_minutes" :min="1" :max="10080" style="width:160px" /></el-form-item>
-            <el-form-item label="解决时限(分钟)"><el-input-number v-model="slaForm.resolve_minutes" :min="1" :max="43200" style="width:160px" /></el-form-item>
-            <el-form-item label="启用"><el-switch v-model="slaForm.is_active" /></el-form-item>
+            <el-form-item :label="$t('message.itsmPage.responseMinLabel')"><el-input-number v-model="slaForm.response_minutes" :min="1" :max="10080" style="width:160px" /></el-form-item>
+            <el-form-item :label="$t('message.itsmPage.resolveMinLabel')"><el-input-number v-model="slaForm.resolve_minutes" :min="1" :max="43200" style="width:160px" /></el-form-item>
+            <el-form-item :label="$t('message.itsmPage.colEnabled')"><el-switch v-model="slaForm.is_active" /></el-form-item>
           </el-form>
           <template #footer>
             <el-button @click="showSlaEdit = false">{{ $t('message.common.cancel') }}</el-button>
-            <el-button type="primary" :loading="savingSla" @click="onSlaSave">保存</el-button>
+            <el-button type="primary" :loading="savingSla" @click="onSlaSave">{{ $t('message.common.save') }}</el-button>
           </template>
         </el-dialog>
       </div>
@@ -257,68 +257,68 @@
       <div v-show="activeTab === 'escalation'" class="itsm-section g-fade-in-up">
         <div class="itsm-table-card">
           <div class="itsm-table-header">
-            <span class="itsm-table-title">升级级别</span>
+            <span class="itsm-table-title">{{ $t('message.escalation.title') }}</span>
             <el-button size="small" type="primary" v-can="'itsm:escalation:manage'" @click="onEscalationCreate">
-              <el-icon><Plus /></el-icon> 新建
+              <el-icon><Plus /></el-icon> {{ $t('message.common.create') }}
             </el-button>
           </div>
           <el-table :data="escalationLevels" v-loading="loadingEsc" stripe style="width:100%" size="small"
-            :empty-text="loadingEsc ? '加载中...' : '暂无升级级别'">
-            <el-table-column prop="level" label="级别" width="70" />
-            <el-table-column prop="name" label="级别名称" min-width="160" />
-            <el-table-column prop="timeout_minutes" label="超时阈值(分钟)" width="150" />
-            <el-table-column prop="action" label="升级动作" width="140">
+            :empty-text="loadingEsc ? $t('message.itsmPage.loading') : $t('message.escalation.noData')">
+            <el-table-column prop="level" :label="$t('message.escalation.level')" width="70" />
+            <el-table-column prop="name" :label="$t('message.escalation.name')" min-width="160" />
+            <el-table-column prop="timeout_minutes" :label="$t('message.escalation.timeoutLabel')" width="150" />
+            <el-table-column prop="action" :label="$t('message.escalation.action')" width="140">
               <template #default="{ row }">{{ escActionLabel(row.action) }}</template>
             </el-table-column>
-            <el-table-column prop="is_active" label="启用" width="80" align="center">
+            <el-table-column prop="is_active" :label="$t('message.itsmPage.colEnabled')" width="80" align="center">
               <template #default="{ row }"><el-switch v-model="row.is_active" size="small" @change="onEscToggle(row)" /></template>
             </el-table-column>
-            <el-table-column label="操作" width="120" fixed="right">
+            <el-table-column :label="$t('message.itsmPage.colActions')" width="120" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" text v-can="'itsm:escalation:manage'" @click="onEscEdit(row)">编辑</el-button>
-                <el-button size="small" text type="danger" v-can="'itsm:escalation:manage'" @click="onEscDelete(row)">删除</el-button>
+                <el-button size="small" text v-can="'itsm:escalation:manage'" @click="onEscEdit(row)">{{ $t('message.common.edit') }}</el-button>
+                <el-button size="small" text type="danger" v-can="'itsm:escalation:manage'" @click="onEscDelete(row)">{{ $t('message.common.delete') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
         </div>
 
         <!-- Escalation Edit Dialog -->
-        <el-dialog v-model="showEscEdit" :title="escForm.id ? '编辑升级级别' : '新建升级级别'" width="480px" top="15vh" destroy-on-close append-to-body>
+        <el-dialog v-model="showEscEdit" :title="escForm.id ? $t('message.escalation.editEscalation') : $t('message.escalation.createEscalation')" width="480px" top="15vh" destroy-on-close append-to-body>
           <el-form :model="escForm" label-width="130px" size="small">
-            <el-form-item label="级别序号"><el-input-number v-model="escForm.level" :min="1" :max="10" style="width:100%" /></el-form-item>
-            <el-form-item label="级别名称"><el-input v-model="escForm.name" /></el-form-item>
-            <el-form-item label="超时阈值(分钟)"><el-input-number v-model="escForm.timeout_minutes" :min="1" :max="43200" style="width:100%" /></el-form-item>
-            <el-form-item label="升级动作">
+            <el-form-item :label="$t('message.escalation.levelNumber')"><el-input-number v-model="escForm.level" :min="1" :max="10" style="width:100%" /></el-form-item>
+            <el-form-item :label="$t('message.escalation.name')"><el-input v-model="escForm.name" /></el-form-item>
+            <el-form-item :label="$t('message.escalation.timeoutLabel')"><el-input-number v-model="escForm.timeout_minutes" :min="1" :max="43200" style="width:100%" /></el-form-item>
+            <el-form-item :label="$t('message.escalation.action')">
               <el-select v-model="escForm.action" style="width:100%">
-                <el-option label="仅通知" value="notify_only" />
-                <el-option label="转给组长" value="transfer_leader" />
-                <el-option label="升级到下一级" value="transfer_next" />
-                <el-option label="通知用户" value="notify_users" />
+                <el-option :label="$t('message.escalation.notifyOnly')" value="notify_only" />
+                <el-option :label="$t('message.escalation.transferLeader')" value="transfer_leader" />
+                <el-option :label="$t('message.escalation.transferNext')" value="transfer_next" />
+                <el-option :label="$t('message.escalation.notifyUsers')" value="notify_users" />
               </el-select>
             </el-form-item>
-            <el-form-item label="通知用户">
+            <el-form-item :label="$t('message.escalation.notifyUsersLabel')">
               <el-select v-model="escNotifyUsers" multiple filterable remote :remote-method="loadEscUsers"
-                :loading="escUsersLoading" style="width:100%" placeholder="搜索选择用户"
+                :loading="escUsersLoading" style="width:100%" :placeholder="$t('message.designer.searchUserPlaceholder')"
                 @change="syncEscNotifyUsersStr">
                 <el-option v-for="u in escUserOptions" :key="u.value" :label="u.label" :value="u.value" />
               </el-select>
             </el-form-item>
-            <el-form-item label="启用"><el-switch v-model="escForm.is_active" /></el-form-item>
+            <el-form-item :label="$t('message.itsmPage.colEnabled')"><el-switch v-model="escForm.is_active" /></el-form-item>
           </el-form>
           <template #footer>
             <el-button @click="showEscEdit = false">{{ $t('message.common.cancel') }}</el-button>
-            <el-button type="primary" :loading="savingEsc" @click="onEscSave">{{ escForm.id ? '保存' : '创建' }}</el-button>
+            <el-button type="primary" :loading="savingEsc" @click="onEscSave">{{ escForm.id ? $t('message.common.save') : $t('message.common.create') }}</el-button>
           </template>
         </el-dialog>
       </div>
     </div>
 
     <!-- ===== AI 创建流程 ===== -->
-    <el-dialog v-model="showAICreate" title="🤖 AI 创建流程" width="620px" top="5vh" class="itsm-dialog">
+    <el-dialog v-model="showAICreate" :title="$t('message.aiCreate.title')" width="620px" top="5vh" class="itsm-dialog">
       <el-form label-position="top">
-        <el-form-item label="描述审批需求">
+        <el-form-item :label="$t('message.aiCreate.descLabel')">
           <el-input v-model="aiDescription" type="textarea" :rows="4"
-            placeholder="例如: 帮我创建一个服务器采购审批流程，需要主管审批 -> 财务审批 -> 总监审批三级，审批通过后自动执行变更" />
+            :placeholder="$t('message.aiCreate.descPlaceholder')" />
         </el-form-item>
         <el-form-item :label="$t('message.ticketCreate.itsmType')">
           <el-select v-model="aiType" style="width:100%">
@@ -330,7 +330,7 @@
         </el-form-item>
       </el-form>
       <div v-if="aiResult" class="itsm-ai-preview g-fade-in-up">
-        <div class="itsm-ai-preview-header">生成结果预览</div>
+        <div class="itsm-ai-preview-header">{{ $t('message.aiCreate.generatePreview') }}</div>
         <div class="itsm-ai-flow">
           <span v-for="(s, idx) in aiResult.states?.filter((s: any) => s.type !== 'START' && s.type !== 'END') || []" :key="idx" class="itsm-ai-node">
             <span class="itsm-ai-node-badge" :class="'node-' + (s.type || '').toLowerCase()">{{ s.type }}</span>
@@ -342,62 +342,62 @@
       <template #footer>
         <el-button @click="showAICreate = false">{{ $t('message.common.cancel') }}</el-button>
         <el-button v-if="!aiResult" type="primary" :loading="aiLoading" @click="onAIGenerate">
-          <el-icon><MagicStick /></el-icon> 一键生成
+          <el-icon><MagicStick /></el-icon> {{ $t('message.aiCreate.oneClick') }}
         </el-button>
         <el-button v-else type="success" :loading="savingWf" @click="onSaveAIWorkflow">
-          <el-icon><Check /></el-icon> 保存为模板
+          <el-icon><Check /></el-icon> {{ $t('message.aiCreate.saveTemplate') }}
         </el-button>
       </template>
     </el-dialog>
 
     <!-- ===== 工单分派对话框 ===== -->
-    <el-dialog v-model="assignTicketVisible" title="分派工单" width="380px" top="25vh" destroy-on-close>
+    <el-dialog v-model="assignTicketVisible" :title="$t('message.assignment.title')" width="380px" top="25vh" destroy-on-close>
       <el-form label-position="top">
-        <el-form-item label="选择处理人">
+        <el-form-item :label="$t('message.assignment.selectUser')">
           <el-select v-model="assignUserId" filterable size="small" style="width:100%"
-            :loading="usersLoading" placeholder="搜索用户">
+            :loading="usersLoading" :placeholder="$t('message.assignment.searchUser')">
             <el-option v-for="u in filteredUserOptions" :key="u.id" :label="`${u.name} (${u.username})`" :value="u.id" />
           </el-select>
         </el-form-item>
         <div v-if="assignTicketRow" style="font-size:12px;color:#909399;margin-top:-8px;margin-bottom:8px">
-          工单: <b>{{ assignTicketRow.sn }} - {{ assignTicketRow.title }}</b>
+          {{ $t('message.assignment.ticketPrefix') }}: <b>{{ assignTicketRow.sn }} - {{ assignTicketRow.title }}</b>
         </div>
       </el-form>
       <template #footer>
         <el-button @click="assignTicketVisible = false">{{ $t('message.common.cancel') }}</el-button>
-        <el-button type="primary" :disabled="!assignUserId" @click="confirmAssignTicket">确认分派</el-button>
+        <el-button type="primary" :disabled="!assignUserId" @click="confirmAssignTicket">{{ $t('message.assignment.confirm') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ===== 版本历史对话框 ===== -->
-    <el-dialog v-model="showVersionDialog" :title="'版本历史 — ' + (versionDialogWf?.name || '')" width="520px" top="10vh" destroy-on-close @closed="onVersionDialogClosed">
+    <el-dialog v-model="showVersionDialog" :title="$t('message.itsmPage.versionHistory', { name: versionDialogWf?.name || '' })" width="520px" top="10vh" destroy-on-close @closed="onVersionDialogClosed">
       <div v-loading="versionLoading" style="min-height: 80px;">
-        <div v-if="!versionLoading && !versionList.length" style="text-align:center;padding:24px;color:#909399;">暂无历史版本</div>
+        <div v-if="!versionLoading && !versionList.length" style="text-align:center;padding:24px;color:#909399;">{{ $t('message.itsmPage.noVersions') }}</div>
         <div v-for="ver in versionList" :key="ver.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;">
           <div>
             <el-tag size="small" type="info" style="margin-right:8px;">v{{ ver.version }}</el-tag>
             <span style="font-size:12px;color:#909399;">{{ ver.create_datetime }}</span>
           </div>
           <div>
-            <el-button size="small" text type="warning" @click="onRollbackClick(ver)">回滚</el-button>
-            <el-button size="small" text type="danger" @click="onDeleteVersion(ver)">删除</el-button>
+            <el-button size="small" text type="warning" @click="onRollbackClick(ver)">{{ $t('message.itsmPage.rollback') }}</el-button>
+            <el-button size="small" text type="danger" @click="onDeleteVersion(ver)">{{ $t('message.itsmPage.delete') }}</el-button>
           </div>
         </div>
       </div>
       <template #footer>
-        <el-button @click="showVersionDialog = false">关闭</el-button>
+        <el-button @click="showVersionDialog = false">{{ $t('message.itsmPage.close') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ===== 版本回滚确认对话框 ===== -->
-    <el-dialog v-model="showRollbackDialog" title="版本回滚确认" width="440px" top="25vh" destroy-on-close>
+    <el-dialog v-model="showRollbackDialog" :title="$t('message.itsmPage.rollbackConfirm')" width="440px" top="25vh" destroy-on-close>
       <div style="padding: 8px 0; font-size: 14px;">
-        <p style="margin-bottom: 12px;">确定回滚到 <b>v{{ rollbackTarget?.version }}</b> 吗？</p>
-        <p style="color: #909399; font-size: 12px; margin-bottom: 0;">将用此版本快照重建流程并生成新版本。</p>
+        <p style="margin-bottom: 12px;">{{ $t('message.itsmPage.rollbackToVersion', { version: rollbackTarget?.version }) }}</p>
+        <p style="color: #909399; font-size: 12px; margin-bottom: 0;">{{ $t('message.itsmPage.rollbackHint') }}</p>
       </div>
       <template #footer>
         <el-button @click="showRollbackDialog = false">{{ $t('message.common.cancel') }}</el-button>
-        <el-button type="warning" :loading="rollbackLoading" @click="confirmRollback">确定回滚</el-button>
+        <el-button type="warning" :loading="rollbackLoading" @click="confirmRollback">{{ $t('message.itsmPage.confirmRollback') }}</el-button>
       </template>
     </el-dialog>
 
@@ -773,16 +773,29 @@ async function onSlaToggle(row: any) {
 
 // ===== Utility =====
 function statusLabel(s: string) {
-  const m: Record<string, string> = { draft: '草稿', assigned: '已分派', receiving: '待认领', running: '处理中', escalated: '已升级', suspended: '挂起', finished: '已完成', terminated: '已终止', failed: '失败', success: '成功', firing: '触发中', acknowledged: '已确认', resolved: '已恢复' }
-  return m[s] || s || '未知'
+  const m: Record<string, string> = {
+    draft: t('message.itsmPage.statusDraft'),
+    assigned: t('message.itsmPage.statusAssigned'),
+    receiving: t('message.itsmPage.statusReceiving'),
+    running: t('message.itsmPage.statusRunning'),
+    escalated: t('message.itsmPage.statusEscalated'),
+    suspended: t('message.itsmPage.statusSuspended'),
+    finished: t('message.itsmPage.statusFinished'),
+    terminated: t('message.itsmPage.statusTerminated'),
+    failed: t('message.itsmPage.statusFailed'),
+    success: '成功', firing: '触发中', acknowledged: '已确认', resolved: '已恢复',
+  }
+  return m[s] || s || t('message.common.empty') || ''
 }
 
 function formatSla(seconds: number): string {
-  if (seconds <= 0) return '超时'
+  if (seconds <= 0) return t('message.itsmPage.slaOverdue')
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
-  if (h > 0) return `${h}h${m}m`
-  return `${m}m`
+  const hr = t('message.itsmPage.slaHours')
+  const mi = t('message.itsmPage.slaMinutes')
+  if (h > 0) return `${h}${hr}${m}${mi}`
+  return `${m}${mi}`
 }
 
 // ===== Escalation Levels =====
@@ -1040,7 +1053,7 @@ async function loadAllData() {
 
 /* ===== Workflow Grid ===== */
 .itsm-wf-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(315px, 1fr)); gap: 14px;
 }
 .itsm-wf-card {
   border-radius: $g-radius-card; overflow: hidden; @include g-hover-lift;

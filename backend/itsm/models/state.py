@@ -14,9 +14,9 @@ class State(CoreModel):
         ('APPROVAL', '审批'),
         ('SIGN', '会签'),
         ('TASK', '自动任务'),
-        ('CONDITIONAL_PARALLEL', '条件并行网关'),   # 原 ROUTER_P
-        ('EXCLUSIVE', '排他网关'),                  # 新增
-        ('PARALLEL', '并行网关'),                   # 新增
+        ('CONDITIONAL_PARALLEL', '条件并行网关'),
+        ('EXCLUSIVE', '排他网关'),
+        ('PARALLEL', '并行网关'),
         ('COVERAGE', '汇聚网关'),
     )
     PROCESSOR_TYPE_CHOICES = (
@@ -37,6 +37,7 @@ class State(CoreModel):
     node_key = models.CharField(max_length=32, null=True, blank=True, db_index=True,
                                 verbose_name="前端节点标识")
     name = models.CharField(max_length=128, verbose_name="节点名称")
+    name_en = models.CharField(max_length=128, blank=True, default='', verbose_name="节点名称(英文)")
     type = models.CharField(max_length=32, choices=TYPE_CHOICES, verbose_name="节点类型")
     is_builtin = models.BooleanField(default=False, verbose_name="内置节点")
 

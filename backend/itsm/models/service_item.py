@@ -17,7 +17,9 @@ class ServiceItem(CoreModel):
         ('user', '指定用户'),
     )
     name = models.CharField(max_length=128, verbose_name="服务名称")
+    name_en = models.CharField(max_length=128, blank=True, default='', verbose_name="服务名称(英文)")
     description = models.TextField(blank=True, default='', verbose_name="服务描述")
+    description_en = models.TextField(blank=True, default='', verbose_name="服务描述(英文)")
     icon = models.CharField(max_length=64, null=True, blank=True, verbose_name="图标 emoji")
     cover_image = models.CharField(max_length=256, null=True, blank=True, verbose_name="封面图 URL")
 
@@ -78,3 +80,9 @@ class ServiceItem(CoreModel):
 
     def __str__(self):
         return self.name
+
+    def display_name(self, lang='zh'):
+        return self.name_en if lang == 'en' and self.name_en else self.name
+
+    def display_description(self, lang='zh'):
+        return self.description_en if lang == 'en' and self.description_en else self.description

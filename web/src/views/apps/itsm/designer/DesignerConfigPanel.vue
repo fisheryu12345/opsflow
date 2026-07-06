@@ -10,73 +10,73 @@
       <!-- Node config -->
       <template v-if="node">
         <el-form label-position="top" size="small">
-          <el-form-item label="节点名称">
+          <el-form-item :label="$t('message.designer.nodeName')">
             <el-input v-model="node.name" @input="onChange" />
           </el-form-item>
-          <el-form-item label="节点ID">
+          <el-form-item :label="$t('message.designer.nodeId')">
             <el-input :model-value="node.node_key || node._x6Id" disabled />
           </el-form-item>
-          <el-form-item label="节点类型">
+          <el-form-item :label="$t('message.designer.nodeType')">
             <el-tag size="small">{{ typeLabel }}</el-tag>
           </el-form-item>
 
           <!-- APPROVAL -->
           <template v-if="node.type === 'APPROVAL'">
-            <el-form-item label="处理人类型">
+            <el-form-item :label="$t('message.designer.processorType')">
               <el-select v-model="node.processors_type" @change="onChange" style="width:100%">
-                <el-option label="提单人上级" value="STARTER_LEADER" />
-                <el-option label="指定人员" value="PERSON" />
-                <el-option label="角色" value="ROLE" />
-                <el-option label="提单人" value="STARTER" />
+                <el-option :label="$t('message.designer.starterLeader')" value="STARTER_LEADER" />
+                <el-option :label="$t('message.designer.designatedPerson')" value="PERSON" />
+                <el-option :label="$t('message.designer.role')" value="ROLE" />
+                <el-option :label="$t('message.designer.starter')" value="STARTER" />
               </el-select>
             </el-form-item>
             <template v-if="node.processors_type === 'PERSON'">
-              <el-form-item label="处理人">
+              <el-form-item :label="$t('message.designer.processor')">
                 <el-select v-model="personUsers" multiple filterable size="small" style="width:100%"
-                  :loading="usersLoading" placeholder="搜索选择用户" @focus="loadUsers" @change="onPersonChange">
+                  :loading="usersLoading" :placeholder="$t('message.designer.searchUserPlaceholder')" @focus="loadUsers" @change="onPersonChange">
                   <el-option v-for="u in userOptions" :key="u.username" :label="`${u.name} (${u.username})`" :value="u.username" />
                 </el-select>
               </el-form-item>
             </template>
-            <el-form-item v-if="node.processors_type === 'ROLE'" label="处理人">
-              <el-input v-model="node.processorsRaw" @input="onChange" placeholder="角色名称" />
+            <el-form-item v-if="node.processors_type === 'ROLE'" :label="$t('message.designer.processor')">
+              <el-input v-model="node.processorsRaw" @input="onChange" :placeholder="$t('message.designer.rolePlaceholder')" />
             </el-form-item>
-            <el-form-item label="审批方式">
+            <el-form-item :label="$t('message.designer.approvalMethod')">
               <el-radio-group v-model="node.is_multi" @change="onChange">
-                <el-radio :label="false">单签（一人通过即可）</el-radio>
-                <el-radio :label="true">会签（全部通过才过）</el-radio>
+                <el-radio :label="false">{{ $t('message.designer.singleSign') }}</el-radio>
+                <el-radio :label="true">{{ $t('message.designer.multiSign') }}</el-radio>
               </el-radio-group>
             </el-form-item>
-            <el-form-item label="允许跳过">
+            <el-form-item :label="$t('message.designer.allowSkip')">
               <el-switch v-model="node.is_allow_skip" @change="onChange" />
             </el-form-item>
           </template>
 
           <!-- SIGN -->
           <template v-if="node.type === 'SIGN'">
-            <el-form-item label="处理人类型">
+            <el-form-item :label="$t('message.designer.processorType')">
               <el-select v-model="node.processors_type" @change="onChange" style="width:100%">
-                <el-option label="提单人上级" value="STARTER_LEADER" />
-                <el-option label="指定人员" value="PERSON" />
-                <el-option label="角色" value="ROLE" />
-                <el-option label="提单人" value="STARTER" />
+                <el-option :label="$t('message.designer.starterLeader')" value="STARTER_LEADER" />
+                <el-option :label="$t('message.designer.designatedPerson')" value="PERSON" />
+                <el-option :label="$t('message.designer.role')" value="ROLE" />
+                <el-option :label="$t('message.designer.starter')" value="STARTER" />
               </el-select>
             </el-form-item>
             <template v-if="node.processors_type === 'PERSON'">
-              <el-form-item label="处理人">
+              <el-form-item :label="$t('message.designer.processor')">
                 <el-select v-model="personUsers" multiple filterable size="small" style="width:100%"
-                  :loading="usersLoading" placeholder="搜索选择用户" @focus="loadUsers" @change="onPersonChange">
+                  :loading="usersLoading" :placeholder="$t('message.designer.searchUserPlaceholder')" @focus="loadUsers" @change="onPersonChange">
                   <el-option v-for="u in userOptions" :key="u.username" :label="`${u.name} (${u.username})`" :value="u.username" />
                 </el-select>
               </el-form-item>
             </template>
-            <el-form-item v-if="node.processors_type === 'ROLE'" label="处理人">
-              <el-input v-model="node.processorsRaw" @input="onChange" placeholder="角色名称" />
+            <el-form-item v-if="node.processors_type === 'ROLE'" :label="$t('message.designer.processor')">
+              <el-input v-model="node.processorsRaw" @input="onChange" :placeholder="$t('message.designer.rolePlaceholder')" />
             </el-form-item>
-            <el-form-item label="会签方式">
+            <el-form-item :label="$t('message.designer.signMethod')">
               <el-radio-group v-model="node.is_sequential" @change="onChange">
-                <el-radio :label="false">并行会签（同时审批）</el-radio>
-                <el-radio :label="true">顺序会签（逐一审批）</el-radio>
+                <el-radio :label="false">{{ $t('message.designer.parallelSign') }}</el-radio>
+                <el-radio :label="true">{{ $t('message.designer.sequentialSign') }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </template>
@@ -87,37 +87,37 @@
 
           <!-- TASK -- with WEBHOOK -->
           <template v-if="node.type === 'TASK'">
-            <el-form-item label="处理人类型">
+            <el-form-item :label="$t('message.designer.processorType')">
               <el-select v-model="node.processors_type" @change="onChange" style="width:100%">
-                <el-option label="提单人" value="STARTER" />
-                <el-option label="指定人员" value="PERSON" />
-                <el-option label="角色" value="ROLE" />
+                <el-option :label="$t('message.designer.starter')" value="STARTER" />
+                <el-option :label="$t('message.designer.designatedPerson')" value="PERSON" />
+                <el-option :label="$t('message.designer.role')" value="ROLE" />
               </el-select>
             </el-form-item>
             <template v-if="node.processors_type === 'PERSON'">
-              <el-form-item label="处理人">
+              <el-form-item :label="$t('message.designer.processor')">
                 <el-select v-model="personUsers" multiple filterable size="small" style="width:100%"
-                  :loading="usersLoading" placeholder="搜索选择用户" @focus="loadUsers" @change="onPersonChange">
+                  :loading="usersLoading" :placeholder="$t('message.designer.searchUserPlaceholder')" @focus="loadUsers" @change="onPersonChange">
                   <el-option v-for="u in userOptions" :key="u.username" :label="`${u.name} (${u.username})`" :value="u.username" />
                 </el-select>
               </el-form-item>
             </template>
-            <el-form-item v-if="node.processors_type === 'ROLE'" label="处理人">
-              <el-input v-model="node.processorsRaw" @input="onChange" placeholder="角色名称" />
+            <el-form-item v-if="node.processors_type === 'ROLE'" :label="$t('message.designer.processor')">
+              <el-input v-model="node.processorsRaw" @input="onChange" :placeholder="$t('message.designer.rolePlaceholder')" />
             </el-form-item>
             <!-- TASK only: execute type -->
             <template v-if="node.type === 'TASK'">
-              <el-form-item label="执行方式">
+              <el-form-item :label="$t('message.designer.executeType')">
                 <el-radio-group v-model="node.execute_type" @change="onChange">
-                  <el-radio label="internal">内部执行</el-radio>
-                  <el-radio label="webhook">外部调用</el-radio>
+                  <el-radio label="internal">{{ $t('message.designer.internalExec') }}</el-radio>
+                  <el-radio label="webhook">{{ $t('message.designer.webhookExec') }}</el-radio>
                 </el-radio-group>
               </el-form-item>
               <template v-if="node.execute_type === 'webhook'">
-                <el-form-item label="请求 URL">
+                <el-form-item :label="$t('message.designer.requestUrl')">
                   <el-input v-model="node.api_url" @input="onChange" placeholder="https://..." />
                 </el-form-item>
-                <el-form-item label="请求方法">
+                <el-form-item :label="$t('message.designer.requestMethod')">
                   <el-select v-model="node.api_method" @change="onChange" style="width:100%">
                     <el-option label="POST" value="POST" />
                     <el-option label="GET" value="GET" />
@@ -130,18 +130,18 @@
 
           <!-- Fields button (all except gateways) -->
           <template v-if="!['COVERAGE', 'EXCLUSIVE', 'CONDITIONAL_PARALLEL', 'PARALLEL'].includes(node.type)">
-            <el-form-item label="工单设计">
+            <el-form-item :label="$t('message.designer.formDesign')">
               <template v-if="node.type === 'NORMAL'">
                 <div style="display:flex;align-items:center;gap:6px;width:100%">
                   <el-button size="small" type="primary" plain @click="onOpenFieldEditor">
-                    <el-icon><Plus /></el-icon> 添加字段
+                    <el-icon><Plus /></el-icon> {{ $t('message.designer.addField') }}
                   </el-button>
                   <span v-if="(node.fields || []).length" style="font-size:12px;color:#909399">
-                    已配置 {{ (node.fields || []).length }} 项
+                    {{ $t('message.designer.configStatus', { n: (node.fields || []).length }) }}
                   </span>
                 </div>
                 <div v-if="!(node.fields || []).length" style="font-size:12px;color:#C0C4CC;margin-top:2px">
-                  由申请人填写，需手动设计工单
+                  {{ $t('message.designer.emptyTip') }}
                 </div>
               </template>
               <template v-else>
@@ -157,7 +157,7 @@
                   </el-tag>
                 </div>
                 <el-button size="small" @click="onOpenFieldEditor">
-                  <el-icon><Edit /></el-icon> 编辑字段
+                  <el-icon><Edit /></el-icon> {{ $t('message.designer.editField') }}
                 </el-button>
               </template>
             </el-form-item>
@@ -173,15 +173,15 @@
       <!-- Edge config -->
       <template v-else-if="edge">
         <el-form label-position="top" size="small">
-          <el-form-item label="标签">
-            <el-input v-model="edge.label" placeholder="连线标签" @input="onEdgeChange" />
+          <el-form-item :label="$t('message.designer.edgeLabel')">
+            <el-input v-model="edge.label" :placeholder="$t('message.designer.edgeLabel')" @input="onEdgeChange" />
           </el-form-item>
-          <el-form-item label="条件表达式">
-            <el-input v-model="edge.condition" type="textarea" :rows="2" placeholder="如 ${node_1.field} == 'approved'" @input="onEdgeChange" />
+          <el-form-item :label="$t('message.designer.conditionExpr')">
+            <el-input v-model="edge.condition" type="textarea" :rows="2" :placeholder="$t('message.designer.conditionExprPlaceholder')" @input="onEdgeChange" />
           </el-form-item>
-          <el-form-item label="驳回连线">
+          <el-form-item :label="$t('message.designer.rejectEdge')">
             <el-switch v-model="edge.isReject" @change="onEdgeChange" />
-            <span style="font-size:11px;color:#909399;margin-left:8px;">审批节点驳回路径</span>
+            <span style="font-size:11px;color:#909399;margin-left:8px;">{{ $t('message.designer.rejectTip') }}</span>
           </el-form-item>
         </el-form>
       </template>
@@ -192,9 +192,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Close, Edit, Plus } from '@element-plus/icons-vue'
 import { getNodeConfig } from './shapes'
 import { request } from '/@/utils/service'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   node: any
@@ -208,7 +211,7 @@ const emit = defineEmits<{
 }>()
 
 const configVisible = computed(() => props.node || props.edge)
-const configTitle = computed(() => props.node ? '节点配置' : '连线配置')
+const configTitle = computed(() => props.node ? t('message.designer.nodeConfig') : t('message.designer.edgeConfig'))
 const typeLabel = computed(() => {
   if (!props.node?.type) return ''
   return getNodeConfig(props.node.type).label

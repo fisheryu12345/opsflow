@@ -18,6 +18,7 @@ class Workflow(CoreModel):
         ('problem', '问题管理'),
     )
     name = models.CharField(max_length=128, verbose_name="流程名称")
+    name_en = models.CharField(max_length=128, blank=True, default='', verbose_name="流程名称(英文)")
     itsm_type = models.CharField(max_length=32, choices=itsm_type_choices, default='change', verbose_name="服务类型")
     is_enabled = models.BooleanField(default=False, verbose_name="是否启用")
     is_draft = models.BooleanField(default=True, verbose_name="草稿状态")
@@ -71,7 +72,6 @@ class Workflow(CoreModel):
                 'api_instance_id': s.api_instance_id,
             }
         # Safety net: ensure START/END exist even if not saved
-        # Check by type, not by dict key — a real START may have a different node_key
         if not any(s.get('type') == 'START' for s in states_data.values()):
             states_data['__start__'] = {'id': -1, 'node_key': '__start__', 'name': '开始', 'type': 'START', 'fields': [], 'is_builtin': True}
         if not any(s.get('type') == 'END' for s in states_data.values()):

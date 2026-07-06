@@ -2,7 +2,7 @@
   <div class="fd-wrap">
     <!-- Left: Toolbox -->
     <div class="fd-toolbox" v-if="!previewMode">
-      <div class="fd-toolbox-title">字段类型</div>
+      <div class="fd-toolbox-title">{{ $t('message.formDesigner.toolbox') }}</div>
       <div v-for="grp in fieldTypeGroups" :key="grp.group" class="fd-tg">
         <div class="fd-tg-label">{{ grp.group }}</div>
         <VueDraggable :list="grp.types" :group="{ name: 'form-fields', pull: 'clone', put: false }"
@@ -17,11 +17,11 @@
     <!-- Center: Canvas -->
     <div class="fd-canvas">
       <div class="fd-canvas-title">
-        <span>{{ previewMode ? '🔍 预览模式' : '表单设计' }}</span>
+        <span>{{ previewMode ? $t('message.formDesigner.preview') : $t('message.formDesigner.design') }}</span>
         <div class="fd-canvas-actions">
           <!-- Global column selector (design mode only) -->
           <template v-if="!previewMode">
-            <span class="fd-col-label">列数:</span>
+            <span class="fd-col-label">{{ $t('message.formDesigner.columnLabel') }}</span>
             <div class="fd-col-btns">
               <button v-for="col in columnPresets" :key="col.cols"
                 class="fd-col-btn" :class="{ active: activeColumnPreset === col.cols }"
@@ -32,13 +32,13 @@
             <span class="fd-col-divider" />
           </template>
           <el-button size="small" :type="previewMode ? 'primary' : 'default'" @click="previewMode = !previewMode">
-            {{ previewMode ? '退出预览' : '预览工单' }}
+            {{ previewMode ? $t('message.formDesigner.exitPreview') : $t('message.formDesigner.preview') }}
           </el-button>
         </div>
       </div>
       <div class="fd-canvas-body">
         <div v-if="!localFields.length" class="fd-canvas-empty">
-          从左侧拖入字段类型到此处
+          {{ $t('message.formDesigner.empty') }}
         </div>
         <div v-if="previewMode" class="fd-drag-list">
           <div v-for="(element, index) in localFields" :key="element.key"
@@ -47,7 +47,7 @@
             <div v-if="element.type === 'SECTION'" class="fd-sec">
               <div class="fd-sec-title">
                 <el-icon><FolderOpened /></el-icon>
-                {{ element.name || '未命名分组' }}
+                {{ element.name || $t('message.formDesigner.unnamedGroup') }}
               </div>
               <div class="fd-sec-line" />
             </div>
@@ -56,12 +56,12 @@
                 {{ element.name || element.key }}
                 <span v-if="element.required" class="fd-req">*</span>
               </div>
-              <el-input v-if="element.type === 'STRING'" size="small" :placeholder="element.placeholder || '请输入'" />
-              <el-input v-else-if="element.type === 'TEXT'" type="textarea" :rows="2" size="small" :placeholder="element.placeholder || '请输入'" />
+              <el-input v-if="element.type === 'STRING'" size="small" :placeholder="element.placeholder || $t('message.formDesigner.placeholder')" />
+              <el-input v-else-if="element.type === 'TEXT'" type="textarea" :rows="2" size="small" :placeholder="element.placeholder || $t('message.formDesigner.placeholder')" />
               <el-input-number v-else-if="element.type === 'INT'" size="small" :min="0" style="width:100%" />
               <el-date-picker v-else-if="element.type === 'DATE'" type="date" size="small" style="width:100%" />
               <el-date-picker v-else-if="element.type === 'DATETIME'" type="datetime" size="small" style="width:100%" />
-              <el-select v-else-if="element.type === 'SELECT'" size="small" style="width:100%" :placeholder="'请选择'">
+              <el-select v-else-if="element.type === 'SELECT'" size="small" style="width:100%" :placeholder="$t('message.formDesigner.selectPlaceholder')">
                 <el-option v-for="c in element.choice || []" :key="c.value" :label="c.label" :value="c.value" />
               </el-select>
               <el-radio-group v-else-if="element.type === 'RADIO'">
@@ -70,14 +70,14 @@
               <el-checkbox-group v-else-if="element.type === 'CHECKBOX'">
                 <el-checkbox v-for="c in element.choice || []" :key="c.value" :value="c.value" style="margin-right:12px">{{ c.label }}</el-checkbox>
               </el-checkbox-group>
-              <el-select v-else-if="element.type === 'MULTISELECT'" size="small" multiple style="width:100%" :placeholder="'多选'">
+              <el-select v-else-if="element.type === 'MULTISELECT'" size="small" multiple style="width:100%" :placeholder="$t('message.formDesigner.multiSelectPlaceholder')">
                 <el-option v-for="c in element.choice || []" :key="c.value" :label="c.label" :value="c.value" />
               </el-select>
-              <el-select v-else-if="element.type === 'MEMBERS'" size="small" filterable style="width:100%" :placeholder="'选择人员'" />
-              <div v-else-if="element.type === 'FILE'" class="fd-placeholder">📎 文件上传区域</div>
-              <div v-else-if="element.type === 'RICHTEXT'" class="fd-placeholder fd-rich">📝 富文本编辑器</div>
-              <div v-else-if="element.type === 'TABLE'" class="fd-placeholder">⊞ 子表格</div>
-              <el-cascader v-else-if="element.type === 'CASCADE'" size="small" style="width:100%" :placeholder="'请选择'" />
+              <el-select v-else-if="element.type === 'MEMBERS'" size="small" filterable style="width:100%" :placeholder="$t('message.formDesigner.selectUser')" />
+              <div v-else-if="element.type === 'FILE'" class="fd-placeholder">{{ $t('message.formDesigner.upload') }}</div>
+              <div v-else-if="element.type === 'RICHTEXT'" class="fd-placeholder fd-rich">{{ $t('message.formDesigner.richtextArea') }}</div>
+              <div v-else-if="element.type === 'TABLE'" class="fd-placeholder">{{ $t('message.formDesigner.tablePlaceholder') }}</div>
+              <el-cascader v-else-if="element.type === 'CASCADE'" size="small" style="width:100%" :placeholder="$t('message.formDesigner.selectPlaceholder')" />
               <el-input v-else size="small" :placeholder="element.type" />
             </template>
           </div>
@@ -90,7 +90,7 @@
               <div v-if="element.type === 'SECTION'" class="fd-sec">
                 <div class="fd-sec-title">
                   <el-icon><FolderOpened /></el-icon>
-                  {{ element.name || '未命名分组' }}
+                  {{ element.name || $t('message.formDesigner.unnamedGroup') }}
                 </div>
                 <div class="fd-sec-line" />
               </div>
@@ -102,12 +102,12 @@
                   <span class="fd-field-type-tag">{{ typeLabel(element.type) }}</span>
                 </div>
                 <!-- STRING -->
-                <el-input v-if="element.type === 'STRING'" size="small" :placeholder="element.placeholder || '请输入'" disabled />
-                <el-input v-else-if="element.type === 'TEXT'" type="textarea" :rows="2" size="small" :placeholder="element.placeholder || '请输入'" disabled />
+                <el-input v-if="element.type === 'STRING'" size="small" :placeholder="element.placeholder || $t('message.formDesigner.placeholder')" disabled />
+                <el-input v-else-if="element.type === 'TEXT'" type="textarea" :rows="2" size="small" :placeholder="element.placeholder || $t('message.formDesigner.placeholder')" disabled />
                 <el-input-number v-else-if="element.type === 'INT'" size="small" :min="0" disabled style="width:100%" />
                 <el-date-picker v-else-if="element.type === 'DATE'" type="date" size="small" disabled style="width:100%" />
                 <el-date-picker v-else-if="element.type === 'DATETIME'" type="datetime" size="small" disabled style="width:100%" />
-                <el-select v-else-if="element.type === 'SELECT'" size="small" disabled style="width:100%" :placeholder="'请选择'">
+                <el-select v-else-if="element.type === 'SELECT'" size="small" disabled style="width:100%" :placeholder="$t('message.formDesigner.selectPlaceholder')">
                   <el-option v-for="c in element.choice || []" :key="c.value" :label="c.label" :value="c.value" />
                 </el-select>
                 <el-radio-group v-else-if="element.type === 'RADIO'" disabled>
@@ -116,14 +116,14 @@
                 <el-checkbox-group v-else-if="element.type === 'CHECKBOX'" disabled>
                   <el-checkbox v-for="c in element.choice || []" :key="c.value" :value="c.value" style="margin-right:12px">{{ c.label }}</el-checkbox>
                 </el-checkbox-group>
-                <el-select v-else-if="element.type === 'MULTISELECT'" size="small" multiple disabled style="width:100%" :placeholder="'多选'">
+                <el-select v-else-if="element.type === 'MULTISELECT'" size="small" multiple disabled style="width:100%" :placeholder="$t('message.formDesigner.multiSelectPlaceholder')">
                   <el-option v-for="c in element.choice || []" :key="c.value" :label="c.label" :value="c.value" />
                 </el-select>
-                <el-select v-else-if="element.type === 'MEMBERS'" size="small" filterable disabled style="width:100%" :placeholder="'选择人员'" />
-                <div v-else-if="element.type === 'FILE'" class="fd-placeholder">📎 文件上传区域</div>
-                <div v-else-if="element.type === 'RICHTEXT'" class="fd-placeholder fd-rich">📝 富文本编辑器</div>
-                <div v-else-if="element.type === 'TABLE'" class="fd-placeholder">⊞ 子表格</div>
-                <el-cascader v-else-if="element.type === 'CASCADE'" size="small" disabled style="width:100%" :placeholder="'请选择'" />
+                <el-select v-else-if="element.type === 'MEMBERS'" size="small" filterable disabled style="width:100%" :placeholder="$t('message.formDesigner.selectUser')" />
+                <div v-else-if="element.type === 'FILE'" class="fd-placeholder">{{ $t('message.formDesigner.upload') }}</div>
+                <div v-else-if="element.type === 'RICHTEXT'" class="fd-placeholder fd-rich">{{ $t('message.formDesigner.richtextArea') }}</div>
+                <div v-else-if="element.type === 'TABLE'" class="fd-placeholder">{{ $t('message.formDesigner.tablePlaceholder') }}</div>
+                <el-cascader v-else-if="element.type === 'CASCADE'" size="small" disabled style="width:100%" :placeholder="$t('message.formDesigner.selectPlaceholder')" />
                 <el-input v-else size="small" disabled :placeholder="element.type" />
                 <!-- Field actions -->
                 <div class="fd-actions" @click.stop>
@@ -134,37 +134,37 @@
             </div>
           </template>
         </VueDraggable>
-        <div class="fd-add-sec" @click="addSection">+ 添加分组</div>
+        <div class="fd-add-sec" @click="addSection">{{ $t('message.formDesigner.addSection') }}</div>
       </div>
     </div>
 
     <!-- Right: Property panel -->
     <div class="fd-props" v-if="selectedField && !previewMode">
-      <div class="fd-props-title">字段属性</div>
+      <div class="fd-props-title">{{ $t('message.formDesigner.fieldProps') }}</div>
       <el-form size="small" label-position="top">
         <template v-if="selectedField.type !== 'SECTION'">
-          <el-form-item label="标识 (key)">
+          <el-form-item :label="$t('message.formDesigner.key')">
             <el-input v-model="selectedField.key" />
           </el-form-item>
-          <el-form-item label="名称">
+          <el-form-item :label="$t('message.formDesigner.name')">
             <el-input v-model="selectedField.name" />
           </el-form-item>
-          <el-form-item label="提示文字">
-            <el-input v-model="selectedField.placeholder" placeholder="选填" />
+          <el-form-item :label="$t('message.formDesigner.placeholder')">
+            <el-input v-model="selectedField.placeholder" :placeholder="$t('message.formDesigner.optionalPlaceholder')" />
           </el-form-item>
-          <el-form-item label="必填">
+          <el-form-item :label="$t('message.formDesigner.required')">
             <el-switch v-model="selectedField.required" />
           </el-form-item>
-          <el-form-item label="列宽">
+          <el-form-item :label="$t('message.formDesigner.layout')">
             <el-radio-group v-model="selectedField.layout">
-              <el-radio value="COL_12">整行</el-radio>
-              <el-radio value="COL_8">2/3</el-radio>
-              <el-radio value="COL_6">1/2</el-radio>
-              <el-radio value="COL_4">1/3</el-radio>
-              <el-radio value="COL_3">1/4</el-radio>
+              <el-radio value="COL_12">{{ $t('message.formDesigner.colFull') }}</el-radio>
+              <el-radio value="COL_8">{{ $t('message.formDesigner.colTwoThirds') }}</el-radio>
+              <el-radio value="COL_6">{{ $t('message.formDesigner.colHalf') }}</el-radio>
+              <el-radio value="COL_4">{{ $t('message.formDesigner.colOneThird') }}</el-radio>
+              <el-radio value="COL_3">{{ $t('message.formDesigner.colQuarter') }}</el-radio>
             </el-radio-group>
           </el-form-item>
-          <el-form-item label="默认值">
+          <el-form-item :label="$t('message.formDesigner.defaultValue')">
             <el-input v-if="['STRING','TEXT'].includes(selectedField.type)" v-model="selectedField.default" />
             <el-select v-else-if="selectedField.type === 'SELECT'" v-model="selectedField.default" clearable size="small" style="width:100%">
               <el-option v-for="c in selectedField.choice || []" :key="c.value" :label="c.label" :value="c.value" />
@@ -172,56 +172,59 @@
           </el-form-item>
         </template>
         <template v-else>
-          <el-form-item label="分组标题">
-            <el-input v-model="selectedField.name" placeholder="如 基本信息" />
+          <el-form-item :label="$t('message.formDesigner.sectionLabel')">
+            <el-input v-model="selectedField.name" :placeholder="$t('message.formDesigner.sectionPlaceholder')" />
           </el-form-item>
         </template>
 
         <!-- Choices editor (SELECT/RADIO/CHECKBOX/MULTISELECT) -->
         <div v-if="showChoicesEditor(selectedField.type)" class="fd-choices">
-          <div class="fd-choices-title">选项列表
-            <el-button size="small" text @click="addChoice">+ 添加</el-button>
+          <div class="fd-choices-title">{{ $t('message.formDesigner.choices') }}
+            <el-button size="small" text @click="addChoice">{{ $t('message.formDesigner.addChoice') }}</el-button>
           </div>
           <div v-for="(c, ci) in selectedField.choice" :key="ci" class="fd-choice-row">
-            <el-input v-model="c.label" size="small" placeholder="显示名" style="flex:1" />
-            <el-input v-model="c.value" size="small" placeholder="值" style="flex:1;margin:0 4px" />
+            <el-input v-model="c.label" size="small" :placeholder="$t('message.formDesigner.dispName')" style="flex:1" />
+            <el-input v-model="c.value" size="small" :placeholder="$t('message.formDesigner.value')" style="flex:1;margin:0 4px" />
             <el-button size="small" text type="danger" @click="selectedField.choice.splice(ci, 1)">
               <el-icon><Delete /></el-icon>
             </el-button>
           </div>
-          <div v-if="!selectedField.choice?.length" class="fd-choices-empty">暂无选项</div>
+          <div v-if="!selectedField.choice?.length" class="fd-choices-empty">{{ $t('message.formDesigner.noChoice') }}</div>
         </div>
 
         <!-- Show condition -->
-        <el-form-item label="显示条件">
+        <el-form-item :label="$t('message.formDesigner.showCondition')">
           <el-switch v-model="showConditionEnabled" />
         </el-form-item>
         <template v-if="showConditionEnabled">
-          <el-form-item label="条件字段">
+          <el-form-item :label="$t('message.formDesigner.conditionField')">
             <el-select v-model="selectedField.show_conditions.field" filterable style="width:100%">
               <el-option v-for="f in availableConditionFields" :key="f.key" :label="f.name || f.key" :value="f.key" />
             </el-select>
           </el-form-item>
-          <el-form-item label="条件值">
-            <el-input v-model="selectedField.show_conditions.value" placeholder="等于" />
+          <el-form-item :label="$t('message.formDesigner.conditionValue')">
+            <el-input v-model="selectedField.show_conditions.value" :placeholder="$t('message.formDesigner.equalPlaceholder')" />
           </el-form-item>
         </template>
       </el-form>
     </div>
     <div v-else-if="!previewMode" class="fd-props fd-props-empty">
-      <span style="color:#C0C4CC">点击字段编辑属性</span>
+      <span style="color:#C0C4CC">{{ $t('message.formDesigner.clickProp') }}</span>
     </div>
   </div>
   <div class="fd-footer">
-    <el-button @click="emit('cancel')">取消</el-button>
-    <el-button type="primary" @click="emit('save', localFields)">保存设计</el-button>
+    <el-button @click="emit('cancel')">{{ $t('message.common.cancel') }}</el-button>
+    <el-button type="primary" @click="emit('save', localFields)">{{ $t('message.formDesigner.save') }}</el-button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Delete, CopyDocument, FolderOpened } from '@element-plus/icons-vue'
 import VueDraggable from 'vuedraggable'
+
+const { t } = useI18n()
 
 const props = defineProps<{ fields?: any[] }>()
 const emit = defineEmits<{ save: [fields: any[]]; cancel: [] }>()

@@ -15,10 +15,10 @@
     <div class="sm-layout">
       <!-- Left: Category Tree -->
       <div class="sm-sidebar">
-        <div class="sm-sidebar-title">服务分类</div>
+        <div class="sm-sidebar-title">{{ $t('message.serviceMarket.categories') }}</div>
         <div class="sm-category-list">
           <div class="sm-cat-item" :class="{ active: activeCategory === '' }" @click="activeCategory = ''; loadItems()">
-            <el-icon><FolderOpened /></el-icon> 全部服务
+            <el-icon><FolderOpened /></el-icon> {{ $t('message.serviceMarket.allServices') }}
           </div>
           <template v-for="cat in categories" :key="cat.id">
             <div class="sm-cat-item" :class="{ active: activeCategory === cat.id }" @click="onCategoryClick(cat)">
@@ -36,12 +36,12 @@
       <!-- Right: Service Cards -->
       <div class="sm-content">
         <div class="sm-content-header">
-          <span class="sm-count">共 <b>{{ items.length }}</b> 个服务</span>
+          <span class="sm-count" v-html="$t('message.serviceMarket.serviceCount', { count: items.length })" />
           <div class="sm-mode-filter">
             <el-radio-group v-model="activeMode" size="small" @change="loadItems">
-              <el-radio-button value="">全部</el-radio-button>
-              <el-radio-button value="flow">流程驱动</el-radio-button>
-              <el-radio-button value="lightweight">快捷服务</el-radio-button>
+              <el-radio-button value="">{{ $t('message.serviceMarket.all') }}</el-radio-button>
+              <el-radio-button value="flow">{{ $t('message.serviceMarket.flowMode') }}</el-radio-button>
+              <el-radio-button value="lightweight">{{ $t('message.serviceMarket.lightweightMode') }}</el-radio-button>
             </el-radio-group>
           </div>
         </div>
@@ -56,14 +56,14 @@
               </div>
               <div class="sm-card-footer">
                 <el-tag :type="item.mode === 'flow' ? 'primary' : 'success'" size="small">
-                  {{ item.mode === 'flow' ? '流程驱动' : '快捷服务' }}
+                  {{ item.mode === 'flow' ? $t('message.serviceMarket.flowMode') : $t('message.serviceMarket.lightweightMode') }}
                 </el-tag>
                 <span v-if="item.expected_duration" class="sm-duration">⏱ {{ item.expected_duration }}</span>
               </div>
             </div>
           </el-col>
           <el-col v-if="!items.length && !loading" :span="24">
-            <el-empty description="暂无服务" :image-size="60" />
+            <el-empty :description="$t('message.serviceMarket.noServices')" :image-size="60" />
           </el-col>
         </el-row>
       </div>

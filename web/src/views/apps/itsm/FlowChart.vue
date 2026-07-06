@@ -16,6 +16,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Graph } from '@antv/x6'
 import { ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
 import { resolveItsmShape, CARD_WIDTH, CARD_HEIGHT } from './designer/shapes'
@@ -31,6 +32,7 @@ const containerRef = ref<HTMLElement | null>(null)
 const loading = ref(true)
 const zoomLevel = ref(1)
 let graph: Graph | null = null
+const { t } = useI18n()
 
 const STATUS_COLORS: Record<string, string> = {
   FINISHED: '#67C23A',
@@ -125,7 +127,7 @@ function buildGraph() {
           strokeDasharray: isReject ? '8,4' : undefined,
         },
       },
-      labels: isReject ? [{ attrs: { text: { text: '驳回', fill: '#F56C6C', fontSize: 10 } } }] : [],
+      labels: isReject ? [{ attrs: { text: { text: t('message.flowChart.rejectLabel'), fill: '#F56C6C', fontSize: 10 } } }] : [],
     })
   }
 
