@@ -38,7 +38,7 @@
       <!-- Right: Service Cards -->
       <div class="sm-content">
         <div class="sm-content-header">
-          <span class="sm-count" v-html="$t('message.serviceMarket.serviceCount', { count: items.length })" />
+          <span class="sm-count">{{ $t('message.serviceMarket.serviceCount', { count: items.length }) }}</span>
           <div class="sm-mode-filter">
             <el-radio-group v-model="activeMode" size="small" @change="loadItems">
               <el-radio-button value="">{{ $t('message.serviceMarket.all') }}</el-radio-button>

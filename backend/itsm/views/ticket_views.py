@@ -60,7 +60,15 @@ class TicketViewSet(ItsmProjectViewSet):
                     f'没有已部署的流程模板，请先联系管理员配置'
                 )
             serializer.validated_data['workflow_version'] = version
-        instance = serializer.save(creator=self.request.user.id)
+        # Resolve project assignment (inherited from ProjectFilteredViewSet)
+        kwargs = self.resolve_project_kwargs(self.request)
+        if 'project_id' in kwargs:
+            user_project_ids = self.get_user_project_ids()
+            if kwargs['project_id'] not in user_project_ids:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied('无权限在此项目中创建资源')
+        kwargs['creator'] = self.request.user.id
+        instance = serializer.save(**kwargs)
         # Auto-fill business from project's business
         if instance.project and instance.project.business_id:
             instance.business = instance.project.business

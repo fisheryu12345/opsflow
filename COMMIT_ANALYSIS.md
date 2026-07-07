@@ -2,6 +2,49 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## db5ad6f9
+
+> 提交日期: 2026-07-07 | 提交信息: refactor: extract ITSM inline tabs to components + fix project scoping bugs
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/views/base.py` | 后端 | `get_queryset()` 只对 list/create 应用 project_id 过滤 |
+| `backend/itsm/views/ticket_views.py` | 后端 | `perform_create()` 调用 `resolve_project_kwargs()` 赋值 project |
+| `backend/common/utils/exception.py` | 后端 | Http404 错误消息改为"请求的资源不存在" |
+| `web/src/views/apps/itsm/index.vue` | 前端 | 从 ~1200 行简化到 ~250 行，内联 tab 提取为组件 |
+| `web/src/views/apps/itsm/components/TicketList.vue` | 前端 | **新建** — 工单列表组件（含筛选、分派） |
+| `web/src/views/apps/itsm/components/WorkflowList.vue` | 前端 | **新建** — 流程模板组件（含 AI 创建、版本、回滚） |
+| `web/src/views/apps/itsm/components/SlaPolicyList.vue` | 前端 | **新建** — SLA 策略组件 |
+| `web/src/views/apps/itsm/components/EscalationList.vue` | 前端 | **新建** — 升级层级组件 |
+| `web/src/views/apps/itsm/Dashboard.vue` | 前端 | 修复 ECharts 重复初始化 + tickets prop 改为可选 |
+| `web/src/views/apps/itsm/catalog/ServiceMarket.vue` | 前端 | 修复 i18n HTML 警告（v-html → {{ }}） |
+| `web/src/i18n/pages/itsm/en.ts` | 前端 | 移除 serviceCount 中的 `<b>` 标签 |
+| `web/src/i18n/pages/itsm/zh-cn.ts` | 前端 | 移除 serviceCount 中的 `<b>` 标签 |
+| `docs/guides/frontend-style-guide.md` | 文档 | 新增子 Tab 组件模式强制规则 |
+| `docs/guides/project-standards.md` | 文档 | 新增 ProjectFilteredViewSet 过滤规范 |
+
+### 解决
+
+- **问题 1：工单详情 404** — 两个层面修复：① `perform_create()` 未赋值 project_id；② `get_queryset()` 对 detail 接口错误应用了 project 过滤
+- **问题 2：首次进 ticket tab 数据不加载** — 内联 tab 的 watch 不触发 → 改为组件自驱加载
+- **问题 3：i18n HTML 警告** — ServiceMarket 的 `v-html` 含 `<b>` 标签 → 移除 HTML
+- **问题 4：ECharts 重复初始化** — Dashboard 图表未 dispose → 初始化前先 dispose
+
+### 文档
+
+- `docs/itsm/architecture/2026-07-07-tab-component-extraction-refactor.md`
+- `docs/itsm/debug/2026-07-07-ticket-detail-404-project-scoping-fix.md`
+
+### 验证
+
+- 改动类型: refactor + fix
+- 清理乱码: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## f1179192
 
 > 提交日期: 2026-07-07 | 提交信息: refactor: unify tab lazy loading, hero communication, and hero SCSS across 7 apps

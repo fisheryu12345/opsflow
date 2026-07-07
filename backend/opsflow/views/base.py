@@ -55,8 +55,11 @@ class ProjectFilteredViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
+        # Only scope by project_id query param for list/create actions.
+        # For detail/update/delete and custom @action(detail=True), the
+        # resource is fetched by PK — project scoping doesn't apply.
+        project_id = self.request.query_params.get('project_id') if self.action in ('list', 'create') else None
         if user.is_superuser:
-            project_id = self.request.query_params.get('project_id')
             if project_id:
                 base_q = Q(**{self.project_field + '_id': project_id})
                 if self.include_public:
@@ -65,7 +68,6 @@ class ProjectFilteredViewSet(viewsets.ModelViewSet):
             return qs
 
         user_project_ids = self.get_user_project_ids()
-        project_id = self.request.query_params.get('project_id')
         if project_id:
             if int(project_id) not in user_project_ids:
                 return qs.none()

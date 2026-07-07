@@ -323,7 +323,7 @@ export default {
     searchPlaceholder: '搜索服务...',
     categories: '服务分类',
     allServices: '全部服务',
-    serviceCount: '共 <b>{count}</b> 个服务',
+    serviceCount: '共 {count} 个服务',
     all: '全部',
     flowMode: '流程驱动',
     lightweightMode: '快捷服务',

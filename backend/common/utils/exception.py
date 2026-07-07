@@ -43,7 +43,7 @@ def CustomExceptionHandler(ex, context):
             msg = ex.detail
     elif isinstance(ex,Http404):
         code = 400
-        msg = "接口地址不正确"
+        msg = "请求的资源不存在"
     elif isinstance(ex, DRFAPIException):
         set_rollback()
         msg = ex.detail

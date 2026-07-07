@@ -105,6 +105,36 @@ opsflow/
 | 4 | **查询参数命名** | `snake_case`，如 `?page=1&limit=20&search=foo` |
 | 5 | **自定义动作** | 对 `ViewSet` 中的非 CRUD 动作，用 `@action(detail=True, methods=['post'])` 装饰器 |
 
+### ProjectFilteredViewSet 项目过滤规范
+
+`ProjectFilteredViewSet`（`opsflow/views/base.py`）为所有 project-scoped ViewSet 提供统一的 queryset 过滤。
+
+**核心规则：`project_id` 查询参数只在 `list` 和 `create` 两个 action 生效。**
+
+```python
+# base.py - get_queryset()
+project_id = self.request.query_params.get('project_id') if self.action in ('list', 'create') else None
+```
+
+| Action 类型 | project_id 过滤 | 说明 |
+|------------|:---:|------|
+| `list` | ✅ 生效 | 列表页按项目隔离数据 |
+| `create` | ✅ 生效 | 创建时确定资源归属项目 |
+| `retrieve` | ❌ 忽略 | 详情页按 PK 查单条，不应被当前项目卡死 |
+| `update` / `partial_update` / `destroy` | ❌ 忽略 | 操作已有记录，按 PK 定位 |
+| `@action(detail=True)` 自定义动作 | ❌ 忽略 | 如 `submit`、`approve`、`status` 等，操作特定记录 |
+| `@action(detail=False)` 自定义动作 | ✅ 生效 | 列表型自定义动作，等同于 `list` |
+
+**设计原因：** 前端 `service.ts` 的 Axios 拦截器会全局自动注入 `project_id` 到所有请求（`localStorage.opsflow_active_project_id`）。如果后端不加区分地对所有 action 都按该参数过滤，会导致 detail 接口查不到其他项目的资源。因此后端只对需要项目上下文的 `list`/`create` 生效，其余 action 忽略。
+
+**注意事项：**
+- 新增 `@action(detail=True)` → 自动走不过滤分支，无需额外处理
+- 新增 `@action(detail=False)` → 自动走过滤分支，行为与 `list` 一致
+- 非超管用户的 `get_user_project_ids()` 过滤（基于用户所有可见项目）始终生效，不受此规则影响
+- `ItsmProjectViewSet` 额外包含 `project_id IS NULL` 的兜底查询，用于向后兼容迁移期间的旧数据
+
+---
+
 ### 错误处理规范
 
 | 层 | 规范 | 说明 |

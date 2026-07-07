@@ -165,10 +165,44 @@ const { isVisited } = useTabLazyLoad({
 
 | 场景 | 做法 |
 |------|------|
-| **内联 Tab**（数据在父组件管理） | `onTabActivated` 中调用对应 `loadXxx()` |
-| **组件 Tab**（数据在子组件管理） | 无需 `onTabActivated` — 子组件 `onMounted` 自动触发 |
+| **组件 Tab** | 每个 tab 必须是独立 `.vue` 组件；数据在子组件 `onMounted` / `watch(active)` 中自动加载 |
 | **项目切换** | 传入 `resetOn` ref → composable 清空 `visitedTabs` → 当前 tab 重新挂载 |
 | **默认 Tab** | composable 在 `onMounted` 时自动标记 `activeTab` 为 visited |
+
+### 子 Tab 组件模式（强制）
+
+**所有子 Tab 必须使用独立组件，禁止在父 `index.vue` 中内联渲染。** 每个子 Tab 组件遵守以下契约：
+
+```vue
+<script setup lang="ts">
+import { ref, watch, onMounted } from 'vue'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
+
+// 1. Props
+const props = withDefaults(defineProps<{ active?: boolean }>(), { active: false })
+
+// 2. Hero stats reporting
+const { reportStats: updateHeroStats } = useHeroConsumer()
+
+// 3. Data loading — on mount + on reactivation
+onMounted(() => { if (props.active) loadData() })
+watch(() => props.active, (isActive) => { if (isActive && isEmpty) loadData() })
+
+// 4. Report stats after data loads
+function reportStats() {
+  updateHeroStats([
+    { value: count, label: '标签1' },
+    { value: otherCount, label: '标签2' },
+  ])
+}
+</script>
+```
+
+**关键点：**
+- 数据加载、状态管理、对话框全部在子组件内部，不泄露到父组件
+- 通过 `props.active` 感知是否激活，避免不可见时浪费请求
+- 通过 `useHeroConsumer().reportStats()` 上报 Hero 统计数据
+- 跨 tab 导航（如打开设计器、跳转详情）通过 `emit` 通知父组件
 
 ### 约束规则
 
@@ -178,6 +212,7 @@ const { isVisited } = useTabLazyLoad({
 | 2 | **禁止裸 `v-show`** | 每个 tab 区块必须有 `v-if="isVisited('key')"` + `v-show="activeTab === 'key'"` |
 | 3 | **禁止 `window.addEventListener('project-changed')`** | 统一改用 `resetOn` ref |
 | 4 | **子组件禁止 `inject` 字符串 key** | 统一使用 `useHeroConsumer()`（见下一节） |
+| 5 | **子 Tab 必须是独立组件** | 禁止在父 `index.vue` 内联写 tab 内容（模板、逻辑、样式）；每个 tab 抽成独立 `.vue` 文件放 `components/` 目录 |
 
 ### 已接入 APP
 

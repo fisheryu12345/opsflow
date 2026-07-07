@@ -110,7 +110,7 @@ import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 const { t } = useI18n()
 
 const props = defineProps<{
-  tickets: any[]
+  tickets?: any[]
   active?: boolean
 }>()
 
@@ -154,6 +154,7 @@ async function loadDashboard() {
 // ===== ECharts =====
 async function renderChart() {
   if (!chartRef.value || !trendData.value.length) return
+  chartInstance?.dispose()
   const echarts = await import('echarts')
   chartInstance = echarts.init(chartRef.value)
   const dates = trendData.value.map((d: any) => d.date?.slice(5) || '')
