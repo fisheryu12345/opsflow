@@ -2,7 +2,7 @@
   <div class="opsflow-exec-page">
     <!-- List view -->
     <div v-if="!selectedExecution" class="exec-page-body">
-      <ExecutionList @view-detail="onViewDetail" ref="listRef" />
+      <ExecutionList @view-detail="onViewDetail" ref="listRef" :active="props.active" />
     </div>
 
     <!-- Detail view -->
@@ -24,7 +24,7 @@ import ExecutionDetail from './components/ExecutionDetail.vue'
 import { GetExecutionDetail } from '../opsflow/api/executions'
 import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 
-const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
+const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>(), { embedded: false, active: false })
 
 const store = useOpsflowStore()
 const route = useRoute()

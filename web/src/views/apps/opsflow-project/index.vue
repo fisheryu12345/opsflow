@@ -1,39 +1,22 @@
 <template>
   <div class="pj-page">
-    <!-- Hero Section -->
-    <div class="pj-hero">
-      <div class="pj-hero-bg" />
-      <div class="pj-hero-inner">
-        <div class="pj-hero-left">
-          <h1 class="pj-hero-title">{{ $t("message.project.title") }}</h1>
-          <p class="pj-hero-subtitle">{{ $t("message.opsflowPage.projectsSubtitle") }}</p>
-        </div>
-        <div class="pj-hero-center">
-          <el-input
-            v-model="searchQuery"
-            :placeholder="$t('message.opsflowPage.projectsSearch')"
-            clearable
-            size="default"
-            class="pj-search-input"
-            @keyup.enter="onSearch"
-            @clear="onSearch"
-          >
-            <template #prefix><el-icon><Search /></el-icon></template>
-          </el-input>
-        </div>
-        <div class="pj-hero-stats">
-          <div class="pj-stat-item"><span class="pj-stat-value">{{ total }}</span><span class="pj-stat-label">{{ $t("message.opsflowPage.projectsStatTotal") }}</span></div>
-          <div class="pj-stat-divider" />
-          <div class="pj-stat-item"><span class="pj-stat-value">{{ activeCount }}</span><span class="pj-stat-label">{{ $t("message.opsflowPage.projectsStatActive") }}</span></div>
-          <div class="pj-stat-divider" />
-          <div class="pj-stat-item"><span class="pj-stat-value">{{ templateTotal }}</span><span class="pj-stat-label">{{ $t("message.opsflowPage.projectsStatTemplates") }}</span></div>
-        </div>
-      </div>
-    </div>
+    <!-- Search (teleported to outer hero dark area) -->
+    <Teleport v-if="active && heroSearchEl" :to="heroSearchEl">
+      <el-input
+        v-model="searchQuery"
+        :placeholder="$t('message.opsflowPage.projectsSearch')"
+        clearable
+        size="default"
+        class="pj-search-input"
+        @keyup.enter="onSearch"
+        @clear="onSearch"
+      >
+        <template #prefix><el-icon><Search /></el-icon></template>
+      </el-input>
+    </Teleport>
 
-    <!-- Body -->
-    <div class="pj-body">
-      <!-- Filter bar -->
+    <!-- Filter bar (teleported to outer hero filter area) -->
+    <Teleport v-if="active && heroFilterEl" :to="heroFilterEl">
       <div class="pj-filter-bar">
         <div class="pj-filter-tabs">
           <div class="pj-tab" :class="{ active: filterStatus === '' }" @click="filterStatus = ''; onSearch()">
@@ -51,6 +34,10 @@
           <el-button type="primary" v-can.admin :icon="Plus" @click="showForm(null)" size="small">{{ $t("message.opsflowPage.projectsNew") }}</el-button>
         </div>
       </div>
+    </Teleport>
+
+    <!-- Body -->
+    <div class="pj-body">
 
       <!-- Grid -->
       <div class="pj-grid" v-loading="loading">
@@ -191,7 +178,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete, Setting } from '@element-plus/icons-vue'
@@ -201,7 +188,13 @@ import { GetProjects, CreateProject, UpdateProject, DeleteProject, GetProjectDet
 import PluginVisibilityDialog from '/@/views/apps/opsflow/components/pickers/PluginVisibilityDialog.vue'
 import ProjectEnvVarPanel from '/@/views/apps/opsflow/components/common/ProjectEnvVarPanel.vue'
 
+const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>(), { embedded: false, active: false })
+
 const { t } = useI18n()
+
+const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
+const heroFilterEl = inject<any>('heroFilterEl', null)
+const heroSearchEl = inject<any>('heroSearchEl', null)
 
 const loading = ref(false)
 const saving = ref(false)
@@ -248,6 +241,8 @@ async function fetchData() {
     if (filterStatus.value === 'active') items = items.filter(p => p.is_active)
     if (filterStatus.value === 'inactive') items = items.filter(p => !p.is_active)
     projects.value = items
+    // Report stats to outer hero (only when this tab is active)
+    if (props.active) reportStats()
   } catch (e: any) {
     ElMessage.error(e?.msg || e?.message || t('message.opsflowPage.projectsLoadFailed'))
   } finally {
@@ -368,6 +363,20 @@ async function handleDelete(row: any) {
 
 function onSearch() { fetchData() }
 
+function reportStats() {
+  const items = projects.value
+  updateHeroStats([
+    { value: items.length, label: t('message.opsflowPage.projectsStatTotal') },
+    { value: items.filter((p: any) => p.is_active).length, label: t('message.opsflowPage.projectsStatActive') },
+    { value: items.reduce((s: number, p: any) => s + (p.template_count || 0), 0), label: t('message.opsflowPage.projectsStatTemplates') },
+  ])
+}
+
+// Re-report stats when this tab becomes active
+watch(() => props.active, (isActive) => {
+  if (isActive && projects.value.length > 0) reportStats()
+})
+
 // When detail dialog closes, reset tab and close plugin visibility dialog
 watch(detailVisible, (v) => {
   if (!v) {
@@ -388,36 +397,20 @@ onMounted(async () => {
 /* ===== Layout ===== */
 .pj-page { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; background: #f5f6fa; overflow: hidden; }
 
-/* ===== Hero ===== */
-.pj-hero { position: relative; flex-shrink: 0; overflow: hidden; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
-.pj-hero-bg { position: absolute; inset: 0; opacity: 0.06; background-image: radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px); background-size: 40px 40px; }
-.pj-hero-inner { position: relative; z-index: 1; padding: 12px 20px; display: flex; flex-direction: row; align-items: center; gap: 16px; }
-.pj-hero-left { flex: 0 0 auto; }
-.pj-hero-title { margin: 0; font-size: 22px; font-weight: 800; color: #fff; white-space: nowrap; }
-.pj-hero-subtitle { margin: 0; font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap; }
-.pj-hero-center { flex: 1 1 auto; min-width: 0; }
-.pj-search-input { width: 100%; max-width: 320px; }
-.pj-search-input :deep(.el-input__wrapper) { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.12); box-shadow: none; border-radius: 10px; padding: 2px 12px; }
-.pj-search-input :deep(.el-input__inner) { color: #fff; font-size: 14px; }
-.pj-search-input :deep(.el-input__inner::placeholder) { color: rgba(255,255,255,0.4); }
-.pj-search-input :deep(.el-input__prefix-inner) { color: rgba(255,255,255,0.4); }
-.pj-hero-stats { flex: 0 0 auto; display: flex; align-items: center; }
-.pj-stat-item { text-align: center; padding: 0 14px; }
-.pj-stat-value { display: block; font-size: 18px; font-weight: 700; color: #fff; line-height: 1.2; }
-.pj-stat-label { font-size: 10px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; }
-.pj-stat-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
-
 /* ===== Body ===== */
-.pj-body { flex: 1; overflow-y: auto; padding: 0 16px 24px; }
+.pj-body { flex: 1; overflow-y: auto; padding: 16px 16px 24px; }
 
-/* ===== Filter bar ===== */
-.pj-filter-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; gap: 16px; position: sticky; top: 0; z-index: 10; background: #f5f6fa; }
+/* ===== Filter bar (teleported to outer hero) ===== */
+.pj-filter-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.pj-filter-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .pj-filter-tabs { display: flex; gap: 4px; }
 .pj-tab { display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; color: #606266; cursor: pointer; transition: all 0.2s; user-select: none; }
 .pj-tab:hover { background: rgba(64,158,255,0.06); color: #409EFF; }
 .pj-tab.active { background: #409EFF; color: #fff; box-shadow: 0 2px 8px rgba(64,158,255,0.3); }
 .pj-tab-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 .pj-filter-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.pj-search-input { width: 200px; }
+.pj-search-input :deep(.el-input__wrapper) { border-radius: 10px; }
 
 /* ===== Grid ===== */
 .pj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; padding-bottom: 24px; min-height: 200px; }

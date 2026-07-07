@@ -165,12 +165,12 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, inject, watch } from 'vue'
 import { Refresh, Plus, Search, Edit, Delete, Clock, Notification, Document } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { GetKnowledgeList, CreateKnowledge, UpdateKnowledge, DeleteKnowledge } from '../opsflow/api/knowledge'
 
-const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
+const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>(), { embedded: false, active: false })
 
 const loading = ref(false)
 const saving = ref(false)
@@ -184,6 +184,7 @@ const isEditing = ref(false)
 const editingId = ref<number | null>(null)
 const form = reactive({ title: '', content: '', tags: [] as string[], source: 'doc' })
 const { t } = useI18n()
+const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
 
 
 const viewVisible = ref(false)
@@ -224,11 +225,21 @@ async function fetchData() {
     const items = res.data?.data || res.data?.results || res.data || []
     list.value = items
     total.value = res.data?.total || res.data?.count || items.length
+    if (props.active) reportStats()
   } catch {
     list.value = []
     total.value = 0
   }
   loading.value = false
+}
+
+function reportStats() {
+  updateHeroStats([
+    { value: total.value, label: t('message.opsflowPage.knowledgeStatTotal') },
+    { value: runbookCount.value, label: t('message.opsflowPage.knowledgeStatRB') },
+    { value: incidentCount.value, label: t('message.opsflowPage.knowledgeStatIC') },
+    { value: docCount.value, label: t('message.opsflowPage.knowledgeStatDoc') },
+  ])
 }
 
 async function onSearch() { fetchData() }
@@ -288,6 +299,11 @@ onMounted(async () => {
     ElMessage.info({ message: t('message.opsflowPage.knowledgeTourMsg'), duration: 3000 })
     localStorage.setItem(key, 'true')
   }
+})
+
+// Re-report stats when this tab becomes active
+watch(() => props.active, (isActive) => {
+  if (isActive && list.value.length > 0) reportStats()
 })
 </script>
 

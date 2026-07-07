@@ -1,34 +1,15 @@
 <template>
   <div class="exec-list-page">
-    <!-- Hero Section -->
-    <div class="exec-hero">
-      <div class="exec-hero-bg" />
-      <div class="exec-hero-inner">
-        <div class="exec-hero-left">
-          <h1 class="exec-hero-title">{{ $t('message.execution.title') }}</h1>
-          <p class="exec-hero-subtitle">{{ $t('message.execution.subtitle') }}</p>
-        </div>
-        <div class="exec-hero-center">
-          <el-input v-model="searchQuery" :placeholder="$t('message.execution.searchPlaceholder')" clearable size="default"
-            class="exec-search-input" @keyup.enter="onSearch" @clear="onSearch">
-            <template #prefix><el-icon><Search /></el-icon></template>
-          </el-input>
-        </div>
-        <div class="exec-hero-stats">
-          <div class="exec-stat-item"><span class="exec-stat-value">{{ total }}</span><span class="exec-stat-label">{{ $t('message.execution.statTotal') }}</span></div>
-          <div class="exec-stat-divider" />
-          <div class="exec-stat-item"><span class="exec-stat-value">{{ runningCount }}</span><span class="exec-stat-label">{{ $t('message.execution.statRunning') }}</span></div>
-          <div class="exec-stat-divider" />
-          <div class="exec-stat-item"><span class="exec-stat-value">{{ failedCount }}</span><span class="exec-stat-label">{{ $t('message.execution.statFailed') }}</span></div>
-          <div class="exec-stat-divider" />
-          <div class="exec-stat-item"><span class="exec-stat-value">{{ completedCount }}</span><span class="exec-stat-label">{{ $t('message.execution.statCompleted') }}</span></div>
-        </div>
-      </div>
-    </div>
+    <!-- Search (teleported to outer hero dark area) -->
+    <Teleport v-if="active && heroSearchEl" :to="heroSearchEl">
+      <el-input v-model="searchQuery" :placeholder="$t('message.execution.searchPlaceholder')" clearable size="default"
+        class="exec-search-input" @keyup.enter="onSearch" @clear="onSearch">
+        <template #prefix><el-icon><Search /></el-icon></template>
+      </el-input>
+    </Teleport>
 
-    <!-- Body -->
-    <div class="exec-body">
-      <!-- Filter bar -->
+    <!-- Filter bar (teleported to outer hero filter area) -->
+    <Teleport v-if="active && heroFilterEl" :to="heroFilterEl">
       <div class="exec-filter-bar">
         <div class="exec-filter-tabs">
           <div class="exec-tab" :class="{ active: filterStatus.length === 0 }" @click="filterStatus = []; onFilter()">
@@ -57,6 +38,10 @@
           <el-button :icon="Refresh" @click="fetchExecutions" :loading="loading" text size="small">{{ $t("message.common.refresh") }}</el-button>
         </div>
       </div>
+    </Teleport>
+
+    <!-- Body -->
+    <div class="exec-body">
 
       <!-- Table card -->
       <div class="exec-table-card">
@@ -128,13 +113,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Refresh, Search, View, VideoPlay, VideoPause, Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { GetExecutions, StartExecution as StartExec, PauseExecution, CancelExecution } from '../../opsflow/api/executions'
 import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
+
+const props = withDefaults(defineProps<{ active?: boolean }>(), { active: false })
 const emit = defineEmits<{ viewDetail: [execution: any] }>()
+
+const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
+const heroFilterEl = inject<any>('heroFilterEl', null)
+const heroSearchEl = inject<any>('heroSearchEl', null)
 
 const store = useOpsflowStore()
 const { t } = useI18n()
@@ -190,8 +181,20 @@ async function fetchExecutions() {
     const list = Array.isArray(r) ? r : (Array.isArray(r.data) ? r.data : (r.results || []))
     executions.value = list
     total.value = r.total || r.count || 0
+    // Report stats to outer hero (only when this tab is active)
+    if (props.active) reportStats()
   } catch { /* ignore */ }
   loading.value = false
+}
+
+function reportStats() {
+  const execList = executions.value
+  updateHeroStats([
+    { value: total.value || execList.length, label: t('message.execution.statTotal') },
+    { value: execList.filter((e: any) => e.status === 'running').length, label: t('message.execution.statRunning') },
+    { value: execList.filter((e: any) => e.status === 'failed').length, label: t('message.execution.statFailed') },
+    { value: execList.filter((e: any) => e.status === 'completed').length, label: t('message.execution.statCompleted') },
+  ])
 }
 
 function onFilter() { page.value = 1; fetchExecutions() }
@@ -203,6 +206,11 @@ async function onStart(row: any) { startingId.value = row.id; try { await StartE
 async function onPause(row: any) { pausingId.value = row.id; try { await PauseExecution(row.id); await fetchExecutions() } catch { /* ignore */ }; pausingId.value = null }
 async function onCancel(row: any) { cancellingId.value = row.id; try { await CancelExecution(row.id); ElMessage.success(t('message.execution.cancelSuccess')); await fetchExecutions() } catch { /* ignore */ }; cancellingId.value = null }
 
+// Re-report stats when this tab becomes active
+watch(() => props.active, (isActive) => {
+  if (isActive && executions.value.length > 0) reportStats()
+})
+
 onMounted(async () => {
   if (!store.myProjects.length) await store.fetchMyProjects()
   fetchExecutions()
@@ -212,36 +220,20 @@ onMounted(async () => {
 <style scoped>
 .exec-list-page { height: 100%; display: flex; flex-direction: column; }
 
-/* ===== Hero ===== */
-.exec-hero { position: relative; flex-shrink: 0; overflow: hidden; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
-.exec-hero-bg { position: absolute; inset: 0; opacity: 0.06; background-image: radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px); background-size: 40px 40px; }
-.exec-hero-inner { position: relative; z-index: 1; padding: 12px 20px; display: flex; flex-direction: row; align-items: center; gap: 16px; }
-.exec-hero-left { flex: 0 0 auto; }
-.exec-hero-title { margin: 0; font-size: 22px; font-weight: 800; color: #fff; white-space: nowrap; }
-.exec-hero-subtitle { margin: 0; font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap; }
-.exec-hero-center { flex: 1 1 auto; min-width: 0; }
-.exec-search-input { width: 100%; max-width: 320px; }
-.exec-search-input :deep(.el-input__wrapper) { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.12); box-shadow: none; border-radius: 10px; padding: 2px 12px; }
-.exec-search-input :deep(.el-input__inner) { color: #fff; font-size: 14px; }
-.exec-search-input :deep(.el-input__inner::placeholder) { color: rgba(255,255,255,0.4); }
-.exec-search-input :deep(.el-input__prefix-inner) { color: rgba(255,255,255,0.4); }
-.exec-hero-stats { flex: 0 0 auto; display: flex; align-items: center; }
-.exec-stat-item { text-align: center; padding: 0 14px; }
-.exec-stat-value { display: block; font-size: 18px; font-weight: 700; color: #fff; line-height: 1.2; }
-.exec-stat-label { font-size: 10px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; }
-.exec-stat-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
-
 /* ===== Body ===== */
-.exec-body { flex: 1; overflow-y: auto; padding: 0 16px 24px; }
+.exec-body { flex: 1; overflow-y: auto; padding: 16px 16px 24px; }
 
-/* ===== Filter bar ===== */
-.exec-filter-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; gap: 16px; position: sticky; top: 0; z-index: 10; background: #f5f6fa; }
-.exec-filter-tabs { display: flex; gap: 4px; }
+/* ===== Filter bar (teleported to outer hero) ===== */
+.exec-filter-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.exec-filter-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.exec-filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .exec-tab { display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; color: #606266; cursor: pointer; transition: all 0.2s; user-select: none; }
 .exec-tab:hover { background: rgba(64,158,255,0.06); color: #409EFF; }
 .exec-tab.active { background: #409EFF; color: #fff; box-shadow: 0 2px 8px rgba(64,158,255,0.3); }
 .exec-tab-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 .exec-filter-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.exec-search-input { width: 220px; }
+.exec-search-input :deep(.el-input__wrapper) { border-radius: 10px; }
 .exec-actions { display: flex; gap: 2px; align-items: center; }
 
 /* ===== Table card ===== */

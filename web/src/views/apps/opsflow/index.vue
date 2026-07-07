@@ -115,12 +115,15 @@
           <h1 class="opsflow-hero-title">OPSflow</h1>
           <p class="opsflow-hero-subtitle">运维流程编排与自动化 — pipeline design, execution & monitoring</p>
         </div>
+        <div ref="heroSearchRef" class="opsflow-hero-search" />
         <div class="opsflow-hero-stats">
-          <div class="opsflow-stat-item"><span class="opsflow-stat-value">{{ templates.length }}</span><span class="opsflow-stat-label">模板</span></div>
-          <div class="opsflow-stat-divider" />
-          <div class="opsflow-stat-item"><span class="opsflow-stat-value">-</span><span class="opsflow-stat-label">执行</span></div>
-          <div class="opsflow-stat-divider" />
-          <div class="opsflow-stat-item"><span class="opsflow-stat-value">-</span><span class="opsflow-stat-label">待审批</span></div>
+          <template v-for="(stat, i) in heroStats" :key="i">
+            <div v-if="i > 0" class="opsflow-stat-divider" />
+            <div class="opsflow-stat-item">
+              <span class="opsflow-stat-value">{{ stat.value }}</span>
+              <span class="opsflow-stat-label">{{ stat.label }}</span>
+            </div>
+          </template>
         </div>
       </div>
       <!-- Hero tabs -->
@@ -136,12 +139,15 @@
       </div>
     </div>
 
+    <!-- Hero filter bar area (populated by embedded sub-pages) -->
+    <div ref="heroFilterRef" class="opsflow-hero-filter" />
+
     <!-- Body -->
     <div class="opsflow-body-wrap">
       <template v-if="pageConfig">
         <template v-for="tab in pageConfig.tabs" :key="tab.key">
           <div v-if="tab.has_access" v-show="activeTab === tab.key" class="opsflow-section g-fade-in-up">
-            <component :is="componentMap[tab.key]" embedded />
+            <component :is="componentMap[tab.key]" embedded :active="activeTab === tab.key" />
           </div>
         </template>
       </template>
@@ -151,7 +157,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch, reactive, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -190,6 +196,37 @@ const activeTab = ref<string>('dashboard')
 const canvasMode = ref(false)
 const pageConfig = ref<any>(null)
 const userPerms = ref<string[]>([])
+
+// ===== Hero stats (updated by embedded sub-pages) =====
+const heroStats = reactive<{ value: number | string; label: string }[]>([
+  { value: 0, label: '模板' },
+  { value: '-', label: '执行' },
+  { value: '-', label: '待审批' },
+])
+
+provide('updateHeroStats', (stats: { value: number | string; label: string }[]) => {
+  heroStats.length = 0
+  heroStats.push(...stats)
+})
+
+const heroFilterRef = ref<HTMLDivElement | null>(null)
+provide('heroFilterEl', heroFilterRef)
+
+const heroSearchRef = ref<HTMLDivElement | null>(null)
+provide('heroSearchEl', heroSearchRef)
+
+// Reset hero stats to defaults when switching to dashboard (no sub-page stats)
+watch(activeTab, (tab) => {
+  if (tab === 'dashboard') {
+    heroStats.length = 0
+    heroStats.push(
+      { value: templates.value.length, label: '模板' },
+      { value: '-', label: '执行' },
+      { value: '-', label: '待审批' },
+    )
+  }
+  // Other tabs: sub-components report their own stats via updateHeroStats
+})
 
 const permissionStore = usePermissionStore()
 const requestPerm = permissionStore.requestPerm
@@ -559,6 +596,73 @@ onBeforeUnmount(() => {
   &.locked:hover { opacity: 0.9; background: rgba(255,193,7,0.1); border-bottom-color: #ffc107; }
   .el-icon { font-size: 15px; }
   .tab-lock { font-size: 11px; margin-left: 3px; }
+}
+
+/* Hero search (populated by sub-pages via Teleport, sits between title and stats) */
+.opsflow-hero-search {
+  margin-left: auto;
+  margin-right: 60px;
+  display: flex; align-items: center;
+  :deep(.pj-search-input),
+  :deep(.exec-search-input) {
+    width: 280px;
+  }
+  :deep(.el-input__wrapper) {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: none; border-radius: 10px;
+  }
+  :deep(.el-input__inner) { color: #fff; font-size: 14px; }
+  :deep(.el-input__inner::placeholder) { color: rgba(255,255,255,0.4); }
+  :deep(.el-input__prefix-inner) { color: rgba(255,255,255,0.4); }
+}
+
+/* Hero filter bar (populated by sub-pages via Teleport) */
+.opsflow-hero-filter {
+  padding: 0 24px;
+  background: #f5f6fa;
+  min-height: 0;
+  &:not(:empty) {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  :deep(.pj-filter-bar),
+  :deep(.exec-filter-bar) {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 0 0 0; gap: 16px;
+  }
+  :deep(.pj-filter-tabs),
+  :deep(.exec-filter-tabs) {
+    display: flex; gap: 4px; flex-wrap: wrap;
+  }
+  :deep(.pj-tab),
+  :deep(.exec-tab) {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: 20px;
+    font-size: 13px; font-weight: 500; color: #606266;
+    cursor: pointer; transition: all 0.2s; user-select: none;
+  }
+  :deep(.pj-tab:hover),
+  :deep(.exec-tab:hover) {
+    background: rgba(64,158,255,0.06); color: #409EFF;
+  }
+  :deep(.pj-tab.active),
+  :deep(.exec-tab.active) {
+    background: #409EFF; color: #fff;
+    box-shadow: 0 2px 8px rgba(64,158,255,0.3);
+  }
+  :deep(.pj-tab-dot),
+  :deep(.exec-tab-dot) {
+    width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+  }
+  :deep(.pj-filter-actions),
+  :deep(.exec-filter-actions) {
+    display: flex; gap: 8px; align-items: center; flex-shrink: 0;
+  }
+  :deep(.pj-search-input),
+  :deep(.exec-search-input) {
+    width: 240px;
+  }
 }
 
 /* ===== Body ===== */

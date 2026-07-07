@@ -181,7 +181,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, computed, onMounted, onUnmounted, shallowRef, nextTick, markRaw } from 'vue'
+import { ref, computed, onMounted, onUnmounted, shallowRef, nextTick, markRaw, inject, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { Refresh, Top, Bottom, Timer, VideoPlay, VideoPause, RefreshRight, Histogram, Collection, CircleCheck, CircleClose, User, Loading, Upload } from '@element-plus/icons-vue'
@@ -191,9 +191,10 @@ import {
   GetDashboardStatusDistribution, GetDashboardNodeTypeDistribution,
 } from '../opsflow/api/dashboard'
 
-const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
+const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>(), { embedded: false, active: false })
 
 const { t } = useI18n()
+const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
 const loading = ref(false)
 const period = ref<'7d' | '14d' | '30d'>('30d')
 const stats = ref<any>({})
@@ -353,8 +354,18 @@ async function refreshAll() {
     if (ntRes.status === 'fulfilled') nodeTypeDist.value = ntRes.value.data?.data || ntRes.value.data || []
     if (ssRes.status === 'fulfilled') scheduleStats.value = ssRes.value.data?.data || ssRes.value.data || {}
   } catch { /* handled by allSettled */ }
+  if (props.active) reportStats()
   nextTick(() => { renderTrendChart(); renderStatusChart(); renderTemplatesChart(); renderNodeTypeChart(); renderSchedTrendChart() })
   loading.value = false
+}
+
+function reportStats() {
+  updateHeroStats([
+    { value: stats.value.total_executions ?? 0, label: t('message.opsflowPage.dashboardExec') },
+    { value: stats.value.running_executions ?? 0, label: t('message.opsflowPage.dashboardRun') },
+    { value: (stats.value.success_rate ?? 0) + '%', label: t('message.opsflowPage.dashboardOk') },
+    { value: stats.value.failed_executions ?? 0, label: t('message.opsflowPage.dashboardFail') },
+  ])
 }
 
 function onResize() { [trendChart, statusChart, templatesChart, nodeTypeChart, schedTrendChart].forEach(c => c?.resize()) }
@@ -366,6 +377,11 @@ onMounted(() => {
     ElMessage.info({ message: '📊 仪表盘 — OpsFlow 全局概览，展示执行趋势、节点分布、项目活跃度', duration: 1500 })
     localStorage.setItem(key, 'true')
   }
+})
+
+// Re-report stats when this tab becomes active
+watch(() => props.active, (isActive) => {
+  if (isActive && Object.keys(stats.value).length > 0) reportStats()
 })
 onUnmounted(() => { window.removeEventListener('resize', onResize); [trendChart, statusChart, templatesChart, nodeTypeChart, schedTrendChart].forEach(c => c?.dispose()) })
 </script>

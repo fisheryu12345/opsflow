@@ -190,7 +190,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete, Link } from '@element-plus/icons-vue'
 import { GetTemplates } from '../opsflow/api/templates'
@@ -198,9 +198,10 @@ import {
   GetWebhooks, CreateWebhook, UpdateWebhook, DeleteWebhook, GetWebhookLogs,
 } from '../opsflow/api/webhooks'
 
-const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
+const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>(), { embedded: false, active: false })
 
 const { t } = useI18n()
+const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
 const loading = ref(false)
 const saving = ref(false)
 const webhooks = ref<any[]>([])
@@ -241,11 +242,20 @@ async function fetchData() {
     webhooks.value = searchQuery.value
       ? results.filter(w => w.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || w.url.includes(searchQuery.value))
       : results
+    if (props.active) reportStats()
   } catch (e: any) {
     ElMessage.error(e?.msg || t('message.opsflowPage.webhookLoadFailed'))
   } finally {
     loading.value = false
   }
+}
+
+function reportStats() {
+  updateHeroStats([
+    { value: total.value, label: t('message.opsflowPage.webhookStatTotal') },
+    { value: activeCount.value, label: t('message.opsflowPage.webhookStatActive') },
+    { value: failedLogs.value, label: t('message.opsflowPage.webhookStatErr') },
+  ])
 }
 
 function showForm(row: any | null) {
@@ -312,6 +322,11 @@ onMounted(async () => {
   const store = useOpsflowStore();
   if (!store.myProjects.length) await store.fetchMyProjects();
   fetchData()
+})
+
+// Re-report stats when this tab becomes active
+watch(() => props.active, (isActive) => {
+  if (isActive && webhooks.value.length > 0) reportStats()
 })
 </script>
 

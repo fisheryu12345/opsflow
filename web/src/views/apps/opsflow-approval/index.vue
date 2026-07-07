@@ -88,15 +88,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Refresh, Search, CircleCheck, Close, Clock, View } from '@element-plus/icons-vue'
 import { GetPendingApprovals, ApproveNode, RejectNode } from '../opsflow/api/executions'
 
-const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
+const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>(), { embedded: false, active: false })
 
 const { t } = useI18n()
+const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
 const loading = ref(false)
 const actionLoading = ref<string | null>(null)
 const list = ref<any[]>([])
@@ -146,8 +147,16 @@ async function fetchData() {
   try {
     const res = await GetPendingApprovals()
     list.value = res.data?.data || res.data?.results || res.data || []
+    if (props.active) reportStats()
   } catch { list.value = [] }
   loading.value = false
+}
+
+function reportStats() {
+  updateHeroStats([
+    { value: displayList.value.length, label: t('message.opsflowPage.approvalStatPending') },
+    { value: urgentCount.value, label: t('message.opsflowPage.approvalStatOver1h') },
+  ])
 }
 
 async function handleApprove(row: any) {
@@ -192,6 +201,11 @@ onMounted(async () => {
     ElMessage.info({ message: '✅ 审批中心 — 流程中的审批节点暂停后，在此 Approve/Reject。批准后流程自动继续', duration: 1500 })
     localStorage.setItem(key, 'true')
   }
+})
+
+// Re-report stats when this tab becomes active
+watch(() => props.active, (isActive) => {
+  if (isActive && list.value.length > 0) reportStats()
 })
 </script>
 

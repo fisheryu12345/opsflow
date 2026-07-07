@@ -113,13 +113,14 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject, watch } from 'vue'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { GetLogs } from '../opsflow/api/logs'
 
-const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
+const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>(), { embedded: false, active: false })
 
 const { t } = useI18n()
+const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
 const loading = ref(false)
 const list = ref<any[]>([])
 const page = ref(1)
@@ -143,8 +144,17 @@ async function fetchData() {
     const items = res.data?.results || res.data || res.results || []
     list.value = items
     total.value = res.data?.count || res.count || items.length || 0
+    if (props.active) reportStats()
   } catch { /* ignore */ }
   loading.value = false
+}
+
+function reportStats() {
+  updateHeroStats([
+    { value: total.value, label: t('message.opsflowPage.auditStatTotal') },
+    { value: errCount.value, label: t('message.opsflowPage.auditStatErrors') },
+    { value: highRiskCount.value, label: t('message.opsflowPage.auditStatHighRisk') },
+  ])
 }
 
 function onSearch() { page.value = 1; fetchData() }
@@ -162,6 +172,11 @@ onMounted(async () => {
     ElMessage.info({ message: t('message.opsflowPage.auditTourMsg'), duration: 1500 })
     localStorage.setItem(key, 'true')
   }
+})
+
+// Re-report stats when this tab becomes active
+watch(() => props.active, (isActive) => {
+  if (isActive && list.value.length > 0) reportStats()
 })
 </script>
 

@@ -301,7 +301,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, reactive, onMounted, onBeforeUnmount, inject, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { Refresh, Upload, Edit, Delete, Search, List, Grid, Connection, Share, Timer, Setting, Clock, Download, UploadFilled } from '@element-plus/icons-vue'
@@ -312,11 +312,12 @@ import { useUserInfo } from '/@/stores/userInfo'
 import ScheduleManager from './components/ScheduleManager.vue'
 import VersionDialog from './components/VersionDialog.vue'
 
-const props = withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
+const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>(), { embedded: false, active: false })
 
 const router = useRouter()
 const opsflowStore = useOpsflowStore()
 const { t } = useI18n()
+const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
 const userInfo = useUserInfo()
 
 const isSuperuser = computed(() => userInfo.userInfos?.roles?.includes('admin') || false)
@@ -464,8 +465,17 @@ async function fetchData() {
     const items = res.data?.results || res.data || res.results || []
     list.value = items; total.value = res.total || res.data?.count || res.count || items.length || 0
     await loadCategories()
+    if (props.active) reportStats()
   } catch { list.value = []; total.value = 0 }
   loading.value = false
+}
+
+function reportStats() {
+  updateHeroStats([
+    { value: total.value, label: t('message.template.tplStatTotal') },
+    { value: pubCount.value, label: t('message.template.tplStatPublished') },
+    { value: draftCount.value, label: t('message.template.tplStatDraft') },
+  ])
 }
 
 function onFilter() { page.value = 1; fetchData() }
@@ -541,6 +551,11 @@ onMounted(async () => {
     ElMessage.info({ message: t('message.template.tourMsg'), duration: 1500 })
     localStorage.setItem(key, 'true')
   }
+})
+
+// Re-report stats when this tab becomes active
+watch(() => props.active, (isActive) => {
+  if (isActive && list.value.length > 0) reportStats()
 })
 
 onBeforeUnmount(() => {
