@@ -126,6 +126,158 @@ All OPSflow Vue components should follow these conventions for visual consistenc
 
 ---
 
+## Tab 懒加载规范（`useTabLazyLoad`）
+
+所有带 Tab 切换的 APP 页面**必须**使用 `useTabLazyLoad` composable，禁止所有 Tab 在 `onMounted` 时全部挂载。
+
+### 核心模式
+
+```html
+<!-- 每个 tab 区块：v-if 控制挂载，v-show 控制显示 -->
+<div v-if="isVisited('tickets')" v-show="activeTab === 'tickets'" class="app-section">
+  <!-- inline content or component -->
+</div>
+```
+
+- **`v-if`** — 懒挂载核心。组件/内联内容仅在首次访问时创建 DOM、触发 `onMounted`
+- **`v-show`** — 已挂载 tab 的显示/隐藏切换，无额外开销
+- **`isVisited()`** — composable 提供的访问追踪函数，语义清晰
+
+### Composable API
+
+```ts
+import { useTabLazyLoad } from '/@/composables/useTabLazyLoad'
+
+const { isVisited } = useTabLazyLoad({
+  tabs: ['dashboard', 'tickets', 'workflows', ...],  // 所有 tab key
+  activeTab,                                          // Ref<string> 当前 active tab
+  onTabActivated: (tab, isFirstVisit) => {            // 首次访问时触发数据加载
+    if (!isFirstVisit) return
+    if (tab === 'tickets') loadTickets()
+    else if (tab === 'workflows') loadWorkflows()
+    // 组件 tab 由子组件 onMounted 自动处理，无需手动加载
+  },
+  resetOn: projectChangedTrigger,                     // 可选：外部重置（项目切换）
+})
+```
+
+### 使用场景
+
+| 场景 | 做法 |
+|------|------|
+| **内联 Tab**（数据在父组件管理） | `onTabActivated` 中调用对应 `loadXxx()` |
+| **组件 Tab**（数据在子组件管理） | 无需 `onTabActivated` — 子组件 `onMounted` 自动触发 |
+| **项目切换** | 传入 `resetOn` ref → composable 清空 `visitedTabs` → 当前 tab 重新挂载 |
+| **默认 Tab** | composable 在 `onMounted` 时自动标记 `activeTab` 为 visited |
+
+### 约束规则
+
+| # | 规则 | 说明 |
+|---|------|------|
+| 1 | **禁止 `loadAllData()`** | 禁止在 `onMounted` 中一次性加载所有 tab 数据 |
+| 2 | **禁止裸 `v-show`** | 每个 tab 区块必须有 `v-if="isVisited('key')"` + `v-show="activeTab === 'key'"` |
+| 3 | **禁止 `window.addEventListener('project-changed')`** | 统一改用 `resetOn` ref |
+| 4 | **子组件禁止 `inject` 字符串 key** | 统一使用 `useHeroConsumer()`（见下一节） |
+
+### 已接入 APP
+
+ITSM / OPSflow / CMDB / Monitor / IAM / Integration / Job-Platform（7 个 APP，55 个 Tab）
+
+---
+
+## 组件通信规范（`useHeroProvider` / `useHeroConsumer`）
+
+当父页面 Hero 的 stats、搜索框、过滤栏需要由子 Tab 组件动态填充时，**必须**使用 Symbol-based `provide`/`inject`，通过配套 composable 封装。
+
+### 架构
+
+```
+父页面 (app/index.vue)
+  └─ useHeroProvider()           ← provide stats + Teleport DOM refs
+        ├─ HERO_STATS_KEY        → reactive HeroStatItem[]
+        ├─ HERO_FILTER_KEY       → Ref<HTMLElement | null>
+        └─ HERO_SEARCH_KEY       → Ref<HTMLElement | null>
+
+子组件 (app/components/XxxTab.vue)
+  └─ useHeroConsumer()           ← inject stats + Teleport DOM refs
+        ├─ reportStats(items)     → 写入 hero stats
+        ├─ filterEl              → Teleport 过滤栏目标
+        └─ searchEl              → Teleport 搜索框目标
+```
+
+### 父页面用法
+
+```ts
+// app/index.vue — 只调用一次
+import { useHeroProvider } from '/@/composables/useHeroProvider'
+
+const { stats: heroStats, searchRef: heroSearchRef, filterRef: heroFilterRef, updateStats } = useHeroProvider()
+```
+
+模板中放置 Teleport 接收槽位：
+```html
+<div class="app-hero-inner">
+  <div class="app-hero-left">...</div>
+  <div ref="heroSearchRef" class="app-hero-search" />   <!-- 子组件搜索框 Teleport 目标 -->
+  <div class="app-hero-stats">
+    <template v-for="(stat, i) in heroStats" :key="i">  <!-- 动态渲染 stats -->
+      <div v-if="i > 0" class="app-stat-divider" />
+      <div class="app-stat-item">
+        <span class="app-stat-value">{{ stat.value }}</span>
+        <span class="app-stat-label">{{ stat.label }}</span>
+      </div>
+    </template>
+  </div>
+</div>
+<div ref="heroFilterRef" class="app-hero-filter" />   <!-- 子组件过滤栏 Teleport 目标 -->
+```
+
+### 子组件用法
+
+```ts
+// app/components/XxxTab.vue
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
+
+const props = withDefaults(defineProps<{ active?: boolean }>(), { active: false })
+const { searchEl, filterEl, reportStats: updateHeroStats } = useHeroConsumer()
+
+// 本地包装函数，组件内部调用此函数来报告 stats
+function reportStats() {
+  updateHeroStats([
+    { value: data.value.length, label: '总数' },
+    { value: activeCount.value, label: '活跃' },
+  ])
+}
+
+// 数据加载后报告 + active 变化时重新报告
+watch(() => props.active, (isActive) => {
+  if (isActive && data.value.length > 0) reportStats()
+})
+```
+
+模板中 Teleport 到父页面：
+```html
+<Teleport v-if="active && searchEl" :to="searchEl">
+  <el-input v-model="searchQuery" :placeholder="..." class="my-search-input" />
+</Teleport>
+```
+
+### 约束规则
+
+| # | 规则 | 说明 |
+|---|------|------|
+| 1 | **禁止字符串 key** | 禁止 `provide('updateHeroStats', ...)` / `inject('updateHeroStats', ...)`，必须用 Symbol-based composable |
+| 2 | **Teleport 必须加 `active` 守卫** | `v-if="active && searchEl"` — 防止多个 Tab 的 Teleport 内容同时写入同一 DOM 节点 |
+| 3 | **子组件必须设 safe fallback** | `useHeroConsumer()` 内部 inject 带默认值 `null`，确保子组件独立渲染不崩溃 |
+| 4 | **stats 必须 reactive** | `useHeroProvider` 内部用 `reactive([])` ，子组件通过 `reportStats()` 替换内容 |
+| 5 | **不为空时才渲染** | 父页面 hero-filter 使用 `:not(:empty)` 条件 padding |
+
+### 已接入 APP
+
+ITSM（ServiceMarket + ServiceAdmin 搜索框 Teleport）、OPSflow（Project + Execution 搜索框 + 过滤栏 Teleport + 全部 8 个子组件 stats 上报）
+
+---
+
 ## Vue 组件结构规范
 
 所有 `.vue` 文件**必须**遵循以下三段式结构：

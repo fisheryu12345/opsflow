@@ -52,7 +52,7 @@
     <div class="int-body">
 
       <!-- ── Tab: 连接器定义 ── -->
-      <div v-show="activeTab === 'definitions'" class="int-section g-fade-in-up">
+      <div v-if="isVisited('definitions')" v-show="activeTab === 'definitions'" class="int-section g-fade-in-up">
         <div class="int-filter-bar">
           <div class="int-filter-tabs">
             <div class="int-tab" :class="{ active: defCategoryFilter === 'all' }" @click="defCategoryFilter = 'all'">
@@ -106,7 +106,7 @@
       </div>
 
       <!-- ── Tab: 连接器实例 ── -->
-      <div v-show="activeTab === 'instances'" class="int-section g-fade-in-up">
+      <div v-if="isVisited('instances')" v-show="activeTab === 'instances'" class="int-section g-fade-in-up">
         <div class="int-table-card">
           <div class="int-table-header">
             <span class="int-table-title">{{ $t('message.integration.tabInstances') }}</span>
@@ -165,7 +165,7 @@
       </div>
 
       <!-- ── Tab: 凭证管理 ── -->
-      <div v-show="activeTab === 'credentials'" class="int-section g-fade-in-up">
+      <div v-if="isVisited('credentials')" v-show="activeTab === 'credentials'" class="int-section g-fade-in-up">
         <div class="int-table-card">
           <div class="int-table-header">
             <span class="int-table-title">{{ $t('message.integration.tabCredentials') }}</span>
@@ -198,7 +198,7 @@
       </div>
 
       <!-- ── Tab: 调用日志 ── -->
-      <div v-show="activeTab === 'logs'" class="int-section g-fade-in-up">
+      <div v-if="isVisited('logs')" v-show="activeTab === 'logs'" class="int-section g-fade-in-up">
         <div class="int-table-card">
           <div class="int-table-header">
             <span class="int-table-title">{{ $t('message.integration.tabLogs') }}</span>
@@ -226,12 +226,12 @@
       </div>
 
       <!-- ── Tab: 云同步 ── -->
-      <div v-show="activeTab === 'cloud-sync'" class="int-section g-fade-in-up">
+      <div v-if="isVisited('cloud-sync')" v-show="activeTab === 'cloud-sync'" class="int-section g-fade-in-up">
         <CloudSync />
       </div>
 
       <!-- ── Tab: 身份同步 ── -->
-      <div v-show="activeTab === 'identity-sync'" class="int-section g-fade-in-up">
+      <div v-if="isVisited('identity-sync')" v-show="activeTab === 'identity-sync'" class="int-section g-fade-in-up">
         <IdentitySync />
       </div>
     </div>
@@ -351,6 +351,7 @@
 
 <script setup lang="ts" name="IntegrationHub">
 import { ref, computed, onMounted, markRaw } from 'vue'
+import { useTabLazyLoad } from '/@/composables/useTabLazyLoad'
 import { useI18n } from 'vue-i18n'
 import { connectorDefinitionApi, connectorInstanceApi, credentialApi, callLogApi, HealthCheck, ToggleInstance, DecryptCredential } from '/@/api/integration/index'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -385,6 +386,11 @@ interface CallLog {
 const { t } = useI18n()
 
 const activeTab = ref('instances')
+
+const { isVisited } = useTabLazyLoad({
+  tabs: ['definitions', 'instances', 'credentials', 'logs', 'cloud-sync', 'identity-sync'],
+  activeTab,
+})
 const defCategoryFilter = ref('all')
 const searchQuery = ref('')
 
@@ -791,33 +797,12 @@ onMounted(async () => {
 }
 
 // ===== Hero =====
-.int-hero {
-  position: relative;
-  flex-shrink: 0;
-  overflow: hidden;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-}
-.int-hero-bg {
-  position: absolute;
-  inset: 0;
-  opacity: 0.06;
-  background-image:
-    radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px),
-    radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-.int-hero-inner {
-  position: relative;
-  z-index: 1;
-  padding: 14px 24px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 16px;
-}
+.int-hero { @include g-hero-container; }
+.int-hero-bg { @include g-hero-bg-dots; }
+.int-hero-inner { @include g-hero-inner; flex-direction: row; }
 .int-hero-left { flex: 0 0 auto; }
-.int-hero-title { margin: 0; font-size: 22px; font-weight: 800; color: #fff; white-space: nowrap; }
-.int-hero-subtitle { margin: 0; font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap; }
+.int-hero-title { @include g-hero-title; white-space: nowrap; }
+.int-hero-subtitle { @include g-hero-subtitle; white-space: nowrap; }
 .int-hero-center { flex: 1 1 auto; min-width: 0; max-width: 360px; }
 .int-search-input { width: 100%; }
 .int-search-input :deep(.el-input__wrapper) {
@@ -837,32 +822,9 @@ onMounted(async () => {
 .int-stat-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
 
 // ===== Hero Tabs =====
-.int-hero-tabs {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  gap: 0;
-  padding: 0 24px;
-  margin-top: -4px;
-}
-.int-hero-tab {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 20px 10px 0;
-  font-size: 13px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.6);
-  cursor: pointer;
-  transition: all 0.2s;
-  border-bottom: 2px solid transparent;
-  user-select: none;
+.int-hero-tabs { @include g-hero-tabs; }
+.int-hero-tab { @include g-hero-tab;
   .el-icon { font-size: 16px; }
-}
-.int-hero-tab:hover { color: rgba(255,255,255,0.9); }
-.int-hero-tab.active {
-  color: #fff;
-  border-bottom-color: #409EFF;
 }
 
 // ===== Body =====

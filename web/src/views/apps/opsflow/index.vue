@@ -146,7 +146,7 @@
     <div class="opsflow-body-wrap">
       <template v-if="pageConfig">
         <template v-for="tab in pageConfig.tabs" :key="tab.key">
-          <div v-if="tab.has_access" v-show="activeTab === tab.key" class="opsflow-section g-fade-in-up">
+          <div v-if="tab.has_access && isVisited(tab.key)" v-show="activeTab === tab.key" class="opsflow-section g-fade-in-up">
             <component :is="componentMap[tab.key]" embedded :active="activeTab === tab.key" />
           </div>
         </template>
@@ -157,7 +157,9 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch, reactive, provide } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch, reactive } from 'vue'
+import { useTabLazyLoad } from '/@/composables/useTabLazyLoad'
+import { useHeroProvider } from '/@/composables/useHeroProvider'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -197,35 +199,35 @@ const canvasMode = ref(false)
 const pageConfig = ref<any>(null)
 const userPerms = ref<string[]>([])
 
-// ===== Hero stats (updated by embedded sub-pages) =====
-const heroStats = reactive<{ value: number | string; label: string }[]>([
+// ===== Hero stats (provided to sub-pages via useHeroProvider) =====
+const { stats: heroStats, filterRef: heroFilterRef, searchRef: heroSearchRef, updateStats } = useHeroProvider()
+
+// Initialize default stats
+heroStats.push(
   { value: 0, label: '模板' },
   { value: '-', label: '执行' },
   { value: '-', label: '待审批' },
-])
+)
 
-provide('updateHeroStats', (stats: { value: number | string; label: string }[]) => {
-  heroStats.length = 0
-  heroStats.push(...stats)
+// ===== Tab lazy loading =====
+const projectChangedTrigger = ref(0)
+
+const { isVisited } = useTabLazyLoad({
+  tabs: [], // tabs are data-driven from pageConfig; keys are validated at runtime
+  activeTab,
+  resetOn: projectChangedTrigger,
 })
-
-const heroFilterRef = ref<HTMLDivElement | null>(null)
-provide('heroFilterEl', heroFilterRef)
-
-const heroSearchRef = ref<HTMLDivElement | null>(null)
-provide('heroSearchEl', heroSearchRef)
 
 // Reset hero stats to defaults when switching to dashboard (no sub-page stats)
 watch(activeTab, (tab) => {
   if (tab === 'dashboard') {
-    heroStats.length = 0
-    heroStats.push(
+    updateStats([
       { value: templates.value.length, label: '模板' },
       { value: '-', label: '执行' },
       { value: '-', label: '待审批' },
-    )
+    ])
   }
-  // Other tabs: sub-components report their own stats via updateHeroStats
+  // Other tabs: sub-components report their own stats via useHeroConsumer
 })
 
 const permissionStore = usePermissionStore()
@@ -485,6 +487,7 @@ async function onDiffConfirmed() {
 }
 
 function onProjectChanged() {
+  projectChangedTrigger.value++ // reset tab lazy load state
   fetchTemplates()
   if (store.currentTemplate?.is_public) return
   const stillExists = templates.value.some(t => t.id === selectedTemplateId.value)
@@ -542,59 +545,26 @@ onBeforeUnmount(() => {
 }
 
 /* ===== Hero (ITSM pattern) ===== */
-.opsflow-hero {
-  position: relative; overflow: hidden;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-  flex-shrink: 0;
-}
-.opsflow-hero-bg {
-  position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-  background: radial-gradient(circle at 30% 40%, rgba(64,158,255,0.08) 0%, transparent 50%),
-              radial-gradient(circle at 70% 60%, rgba(103,194,58,0.06) 0%, transparent 50%),
-              radial-gradient(circle at 50% 50%, rgba(230,162,60,0.04) 0%, transparent 50%);
-  pointer-events: none;
-}
-.opsflow-hero-inner {
-  position: relative; z-index: 1;
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 14px 24px;
-}
-.opsflow-hero-left {
-  h1 { font-size: 22px; font-weight: 800; color: #fff; margin: 0; letter-spacing: 0.5px; }
-  p { font-size: 11px; color: rgba(255,255,255,0.5); margin: 2px 0 0; }
-}
+.opsflow-hero { @include g-hero-container; }
+.opsflow-hero-bg { @include g-hero-bg-dots; }
+.opsflow-hero-inner { @include g-hero-inner; justify-content: space-between; }
+.opsflow-hero-left { flex: 1; }
+.opsflow-hero-title { @include g-hero-title; letter-spacing: 0.5px; }
+.opsflow-hero-subtitle { @include g-hero-subtitle; }
 .opsflow-hero-stats {
   display: flex; align-items: center; gap: 12px;
 }
-.opsflow-stat-item {
-  display: flex; flex-direction: column; align-items: center;
-  span:first-child { font-size: 18px; font-weight: 700; color: #fff; }
-  span:last-child { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 2px; }
-}
-.opsflow-stat-divider {
-  width: 1px; height: 24px; background: rgba(255,255,255,0.1);
-}
+.opsflow-stat-item { display: flex; flex-direction: column; align-items: center; }
+.opsflow-stat-value { @include g-hero-stat-value; }
+.opsflow-stat-label { @include g-hero-stat-label; }
+.opsflow-stat-divider { @include g-hero-stat-divider; }
 
 /* Hero tabs */
-.opsflow-hero-tabs {
-  position: relative; z-index: 1;
-  display: flex; gap: 0;
-  padding: 0 24px;
-  margin-top: -4px;
-  background: rgba(0,0,0,0.15);
-}
-.opsflow-hero-tab {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 16px 10px 0;
-  font-size: 13px; color: rgba(255,255,255,0.65);
-  cursor: pointer; border-bottom: 2px solid transparent;
-  transition: all 0.2s;
-  white-space: nowrap;
-  &:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.05); }
-  &.active { color: #fff; border-bottom-color: #409EFF; background: rgba(64,158,255,0.12); }
+.opsflow-hero-tabs { @include g-hero-tabs; }
+.opsflow-hero-tab { @include g-hero-tab;
+  .el-icon { font-size: 15px; }
   &.locked { opacity: 0.6; }
   &.locked:hover { opacity: 0.9; background: rgba(255,193,7,0.1); border-bottom-color: #ffc107; }
-  .el-icon { font-size: 15px; }
   .tab-lock { font-size: 11px; margin-left: 3px; }
 }
 

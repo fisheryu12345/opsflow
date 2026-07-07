@@ -97,14 +97,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Check } from '@element-plus/icons-vue'
 import { delegationApi, ToggleDelegation } from '/@/api/itsm/index'
 import { GetList } from '/@/views/apps/iam/admin/user/api'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 
+const props = withDefaults(defineProps<{ active?: boolean }>(), { active: false })
 const { t } = useI18n()
+const { reportStats: updateHeroStats } = useHeroConsumer()
 
 // ===== Data =====
 const loading = ref(false)
@@ -226,7 +229,22 @@ function formatDate(d: string) {
   return d.slice(0, 16).replace('T', ' ')
 }
 
-onMounted(loadList)
+function reportStats() {
+  updateHeroStats([
+    { value: list.value.length, label: '规则总数' },
+    { value: list.value.filter((r: any) => r.is_active).length, label: '已启用' },
+  ])
+}
+
+onMounted(async () => {
+  await loadList()
+  if (props.active) reportStats()
+})
+
+// Re-report stats when this tab becomes active
+watch(() => props.active, (isActive) => {
+  if (isActive && list.value.length > 0) reportStats()
+})
 </script>
 
 <style lang="scss" scoped>

@@ -49,7 +49,7 @@
 
     <!-- Body -->
     <div class="iam-body">
-      <div v-show="activeTab === 'permissions'" class="iam-section g-fade-in-up">
+      <div v-if="isVisited('permissions')" v-show="activeTab === 'permissions'" class="iam-section g-fade-in-up">
         <div v-loading="permLoading" class="perm-page">
           <template v-if="myPerms">
             <!-- Header -->
@@ -131,22 +131,23 @@
         </div>
       </div>
 
-      <div v-show="activeTab === 'requests'" class="iam-section g-fade-in-up"><MyRequests /></div>
-      <div v-show="activeTab === 'approval'" class="iam-section g-fade-in-up"><ApprovalDashboard /></div>
-      <div v-if="isSuperuser" v-show="activeTab === 'business'" class="iam-section g-fade-in-up"><BusinessManage /></div>
-      <div v-if="isSuperuser" v-show="activeTab === 'environment'" class="iam-section g-fade-in-up"><EnvironmentManage /></div>
-      <div v-if="isSuperuser" v-show="activeTab === 'roles'" class="iam-section g-fade-in-up"><RoleManage /></div>
-      <div v-if="isSuperuser" v-show="activeTab === 'users'" class="iam-section g-fade-in-up"><UserManage /></div>
-      <div v-if="isSuperuser" v-show="activeTab === 'menus'" class="iam-section g-fade-in-up"><MenuManage /></div>
-      <div v-if="isSuperuser" v-show="activeTab === 'depts'" class="iam-section g-fade-in-up"><DeptManage /></div>
-      <div v-show="activeTab === 'operationLog'" class="iam-section g-fade-in-up"><OperationLogManage /></div>
-      <div v-if="isSuperuser" v-show="activeTab === 'loginLog'" class="iam-section g-fade-in-up"><LoginLogManage /></div>
+      <div v-if="isVisited('requests')" v-show="activeTab === 'requests'" class="iam-section g-fade-in-up"><MyRequests /></div>
+      <div v-if="isVisited('approval')" v-show="activeTab === 'approval'" class="iam-section g-fade-in-up"><ApprovalDashboard /></div>
+      <div v-if="isSuperuser && isVisited('business')" v-show="activeTab === 'business'" class="iam-section g-fade-in-up"><BusinessManage /></div>
+      <div v-if="isSuperuser && isVisited('environment')" v-show="activeTab === 'environment'" class="iam-section g-fade-in-up"><EnvironmentManage /></div>
+      <div v-if="isSuperuser && isVisited('roles')" v-show="activeTab === 'roles'" class="iam-section g-fade-in-up"><RoleManage /></div>
+      <div v-if="isSuperuser && isVisited('users')" v-show="activeTab === 'users'" class="iam-section g-fade-in-up"><UserManage /></div>
+      <div v-if="isSuperuser && isVisited('menus')" v-show="activeTab === 'menus'" class="iam-section g-fade-in-up"><MenuManage /></div>
+      <div v-if="isSuperuser && isVisited('depts')" v-show="activeTab === 'depts'" class="iam-section g-fade-in-up"><DeptManage /></div>
+      <div v-if="isVisited('operationLog')" v-show="activeTab === 'operationLog'" class="iam-section g-fade-in-up"><OperationLogManage /></div>
+      <div v-if="isSuperuser && isVisited('loginLog')" v-show="activeTab === 'loginLog'" class="iam-section g-fade-in-up"><LoginLogManage /></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { useTabLazyLoad } from '/@/composables/useTabLazyLoad'
 import { useI18n } from 'vue-i18n'
 import { useUserInfo } from '/@/stores/userInfo'
 import { useProjectStore } from '/@/stores/project'
@@ -181,6 +182,11 @@ const catalog = ref<any[]>([])
 const userPerms = computed(() => new Set<string>(myPerms.value?.permissions || []))
 
 const activeTab = ref('permissions')
+
+const { isVisited } = useTabLazyLoad({
+  tabs: ['permissions', 'requests', 'approval', 'business', 'environment', 'users', 'roles', 'menus', 'depts', 'operationLog', 'loginLog'],
+  activeTab,
+})
 const userInfo = useUserInfo()
 const isSuperuser = computed(() => userInfo.userInfos?.roles?.includes('admin') || false)
 
@@ -326,35 +332,17 @@ function tabPerms(tab: any): { key: string; label: string; shortKey: string; gra
 }
 
 /* ===== Hero ===== */
-.iam-hero {
-  position: relative; flex-shrink: 0; overflow: hidden;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-}
-.iam-hero-bg {
-  position: absolute; inset: 0; opacity: 0.06;
-  background-image: radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-.iam-hero-inner {
-  position: relative; z-index: 1; padding: 14px 24px;
-  display: flex; align-items: center; gap: 16px;
-}
+.iam-hero { @include g-hero-container; }
+.iam-hero-bg { @include g-hero-bg-dots; }
+.iam-hero-inner { @include g-hero-inner; }
 .iam-hero-left { flex: 1; }
-.iam-hero-title { margin: 0; font-size: 22px; font-weight: 800; color: #fff; }
-.iam-hero-subtitle { margin: 0; font-size: 11px; color: rgba(255,255,255,0.5); }
+.iam-hero-title { @include g-hero-title; }
+.iam-hero-subtitle { @include g-hero-subtitle; }
 
-.iam-hero-tabs {
-  position: relative; z-index: 1; display: flex; justify-content: flex-start; gap: 0; padding: 0 24px; margin-top: -4px;
-}
-.iam-hero-tab {
-  display: flex; align-items: center; gap: 6px; padding: 10px 16px 10px 0;
-  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.6);
-  cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; user-select: none;
+.iam-hero-tabs { @include g-hero-tabs; justify-content: flex-start; }
+.iam-hero-tab { @include g-hero-tab;
   .el-icon { font-size: 16px; }
 }
-.iam-hero-tab:first-child { padding-left: 0; }
-.iam-hero-tab:hover { color: rgba(255,255,255,0.9); }
-.iam-hero-tab.active { color: #fff; border-bottom-color: #409EFF; }
 
 /* ===== Body ===== */
 .iam-body { flex: 1; overflow-y: auto; padding: 0 24px 24px; }

@@ -105,17 +105,21 @@ import { ref, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { List, WarningFilled, Finished, Clock } from '@element-plus/icons-vue'
 import { dashboardApi } from '/@/api/itsm/index'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 
 const { t } = useI18n()
 
 const props = defineProps<{
   tickets: any[]
+  active?: boolean
 }>()
 
 defineEmits<{
   'view-ticket': [row: any]
   'switch-tab': [tab: string]
 }>()
+
+const { reportStats: updateHeroStats } = useHeroConsumer()
 
 // ===== Data =====
 const summary = reactive({
@@ -207,10 +211,25 @@ function formatOverdue(seconds: number | null | undefined): string {
   return `${Math.floor(seconds / 60)}${min}`
 }
 
+function reportStats() {
+  updateHeroStats([
+    { value: summary.pending_tickets, label: '待处理' },
+    { value: summary.overdue_count, label: '已逾期' },
+    { value: summary.today_resolved, label: '今日解决' },
+    { value: summary.avg_resolution_hours + 'h', label: '平均解决' },
+  ])
+}
+
 onMounted(async () => {
   await loadDashboard()
+  if (props.active) reportStats()
   nextTick(renderChart)
   window.addEventListener('resize', handleResize)
+})
+
+// Re-report stats when this tab becomes active
+watch(() => props.active, (isActive) => {
+  if (isActive && summary.pending_tickets !== undefined) reportStats()
 })
 
 onUnmounted(() => {

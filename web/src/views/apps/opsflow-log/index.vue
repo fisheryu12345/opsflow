@@ -113,14 +113,15 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { ref, computed, onMounted, inject, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { GetLogs } from '../opsflow/api/logs'
 
 const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>(), { embedded: false, active: false })
 
 const { t } = useI18n()
-const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
+const { reportStats: updateHeroStats } = useHeroConsumer()
 const loading = ref(false)
 const list = ref<any[]>([])
 const page = ref(1)

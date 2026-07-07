@@ -11,8 +11,15 @@
           <h1 class="itsm-hero-title">ITSM</h1>
           <p class="itsm-hero-subtitle">{{ $t('message.itsmPage.subtitle') }}</p>
         </div>
+        <div ref="heroSearchRef" class="itsm-hero-search" />
         <div class="itsm-hero-stats">
-          <div class="itsm-stat-item"><span class="itsm-stat-value">{{ tickets.length }}</span><span class="itsm-stat-label">{{ $t('message.itsmPage.tickets') }}</span></div>
+          <template v-for="(stat, i) in heroStats" :key="i">
+            <div v-if="i > 0" class="itsm-stat-divider" />
+            <div class="itsm-stat-item">
+              <span class="itsm-stat-value">{{ stat.value }}</span>
+              <span class="itsm-stat-label">{{ stat.label }}</span>
+            </div>
+          </template>
         </div>
       </div>
       <!-- Hero tabs -->
@@ -32,22 +39,22 @@
     <div class="itsm-body">
 
       <!-- ==================== TAB: {{ $t('message.itsmPage.tabDashboard') }} ==================== -->
-      <div v-show="activeTab === 'dashboard'" class="itsm-section g-fade-in-up">
-        <Dashboard :tickets="tickets" @view-ticket="onViewTicket" @switch-tab="activeTab = $event" />
+      <div v-if="isVisited('dashboard')" v-show="activeTab === 'dashboard'" class="itsm-section g-fade-in-up">
+        <Dashboard :tickets="tickets" :active="activeTab === 'dashboard'" @view-ticket="onViewTicket" @switch-tab="activeTab = $event" />
       </div>
 
       <!-- ==================== TAB: 服务市场 ==================== -->
-      <div v-show="activeTab === 'service-market'" class="itsm-section g-fade-in-up">
-        <ServiceMarket @goTicket="onGoTicket" />
+      <div v-if="isVisited('service-market')" v-show="activeTab === 'service-market'" class="itsm-section g-fade-in-up">
+        <ServiceMarket :active="activeTab === 'service-market'" @goTicket="onGoTicket" />
       </div>
 
       <!-- ==================== TAB: 服务目录管理 ==================== -->
-      <div v-show="activeTab === 'service-admin'" class="itsm-section g-fade-in-up">
-        <ServiceAdmin />
+      <div v-if="isVisited('service-admin')" v-show="activeTab === 'service-admin'" class="itsm-section g-fade-in-up">
+        <ServiceAdmin :active="activeTab === 'service-admin'" />
       </div>
 
       <!-- ==================== TAB: 我的工单 ==================== -->
-      <div v-show="activeTab === 'tickets'" class="itsm-section g-fade-in-up">
+      <div v-if="isVisited('tickets')" v-show="activeTab === 'tickets'" class="itsm-section g-fade-in-up">
         <!-- Filter bar -->
         <div class="itsm-filter-bar">
           <div class="itsm-filter-tabs">
@@ -143,7 +150,7 @@
       </div>
 
       <!-- ==================== TAB: 流程模板 ==================== -->
-      <div v-show="activeTab === 'workflows'" class="itsm-section g-fade-in-up">
+      <div v-if="isVisited('workflows')" v-show="activeTab === 'workflows'" class="itsm-section g-fade-in-up">
         <div class="itsm-filter-bar">
           <div class="itsm-filter-tabs">
             <div class="itsm-tab" :class="{ active: wfFilter === '' }" @click="wfFilter = ''; loadWorkflows()">
@@ -202,7 +209,7 @@
 
 
       <!-- ==================== TAB: SLA 策略 ==================== -->
-      <div v-show="activeTab === 'sla'" class="itsm-section g-fade-in-up">
+      <div v-if="isVisited('sla')" v-show="activeTab === 'sla'" class="itsm-section g-fade-in-up">
         <div class="itsm-table-card">
           <div class="itsm-table-header">
             <span class="itsm-table-title">{{ $t('message.itsmPage.slaPolicies') }}</span>
@@ -249,12 +256,12 @@
       </div>
 
       <!-- ==================== TAB: 审批委托 ==================== -->
-      <div v-show="activeTab === 'delegation'" class="itsm-section g-fade-in-up">
-        <Delegation />
+      <div v-if="isVisited('delegation')" v-show="activeTab === 'delegation'" class="itsm-section g-fade-in-up">
+        <Delegation :active="activeTab === 'delegation'" />
       </div>
 
       <!-- ==================== TAB: 升级层级 ==================== -->
-      <div v-show="activeTab === 'escalation'" class="itsm-section g-fade-in-up">
+      <div v-if="isVisited('escalation')" v-show="activeTab === 'escalation'" class="itsm-section g-fade-in-up">
         <div class="itsm-table-card">
           <div class="itsm-table-header">
             <span class="itsm-table-title">{{ $t('message.escalation.title') }}</span>
@@ -405,7 +412,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
+import { useTabLazyLoad } from '/@/composables/useTabLazyLoad'
+import { useHeroProvider, type HeroStatItem } from '/@/composables/useHeroProvider'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { request } from '/@/utils/service'
@@ -464,13 +473,6 @@ const iconMap: Record<string, any> = {
   DataAnalysis, List, Setting, WarningFilled, Edit, Clock, User, Collection,
 }
 
-const componentMap: Record<string, any> = {
-  dashboard: Dashboard,
-  delegation: Delegation,
-  'service-market': ServiceMarket,
-  'service-admin': ServiceAdmin,
-}
-
 function onTabClick(tab: any) {
   if (!tab.has_access) {
     permissionStore.requestPerm(tab.label_zh, tab.required_perm)
@@ -508,6 +510,7 @@ async function loadTickets() {
     if (ticketFilter.value) params.current_status = ticketFilter.value
     const res = await ticketApi.list(params)
     tickets.value = res?.results || res?.data || res || []
+    reportInlineStats()
   } finally { loadingTickets.value = false }
 }
 // ===== 工单分派 =====
@@ -606,6 +609,7 @@ async function loadWorkflows() {
     if (wfFilter.value) params.itsm_type = wfFilter.value
     const res = await workflowApi.list(params)
     workflows.value = res?.results || res?.data || res || []
+    reportInlineStats()
   } finally { loadingWf.value = false }
 }
 
@@ -742,7 +746,7 @@ const loadingSla = ref(false)
 const slaPolicies = ref<any[]>([])
 async function loadSla() {
   loadingSla.value = true
-  try { const res = await slaPolicyApi.list(); slaPolicies.value = res?.results || res?.data || res || [] } finally { loadingSla.value = false }
+  try { const res = await slaPolicyApi.list(); slaPolicies.value = res?.results || res?.data || res || []; reportInlineStats() } finally { loadingSla.value = false }
 }
 
 // ===== SLA Edit =====
@@ -844,7 +848,7 @@ function syncEscNotifyUsersStr() {
 
 async function loadEscalation() {
   loadingEsc.value = true
-  try { const res = await escalationApi.list(); escalationLevels.value = res?.results || res?.data || res || [] } finally { loadingEsc.value = false }
+  try { const res = await escalationApi.list(); escalationLevels.value = res?.results || res?.data || res || []; reportInlineStats() } finally { loadingEsc.value = false }
 }
 
 function onEscalationCreate() {
@@ -890,12 +894,129 @@ async function onEscToggle(row: any) {
   try { await escalationApi.update(row.id, { is_active: row.is_active }) } catch { row.is_active = !row.is_active }
 }
 
+// ===== Project change trigger (replaces window event listener) =====
+const projectChangedTrigger = ref(0)
+function onProjectChanged() { projectChangedTrigger.value++ }
+
+// ===== Tab lazy loading =====
+const { isVisited } = useTabLazyLoad({
+  tabs: ['dashboard', 'service-market', 'service-admin', 'tickets', 'workflows', 'sla', 'delegation', 'escalation'],
+  activeTab,
+  onTabActivated: (tab, firstVisit) => {
+    if (!firstVisit) return
+    // Inline tabs: manually trigger data load on first visit
+    if (tab === 'tickets') loadTickets()
+    else if (tab === 'workflows') loadWorkflows()
+    else if (tab === 'sla') loadSla()
+    else if (tab === 'escalation') loadEscalation()
+    // Component tabs (dashboard/service-market/service-admin/delegation):
+    // their own onMounted fires automatically when v-if becomes true
+  },
+  resetOn: projectChangedTrigger,
+})
+
+// ===== Hero stats provider =====
+const { stats: heroStats, searchRef: heroSearchRef, updateStats } = useHeroProvider()
+
+// Initialize default stats (replaced by sub-tab reportStats when data loads)
+updateStats([
+  { value: 0, label: '工单' },
+  { value: 0, label: '流程' },
+  { value: 0, label: 'SLA' },
+])
+
+// Watch activeTab: reset stats to tab-appropriate defaults when switching
+watch(activeTab, (tab) => {
+  if (tab === 'dashboard') {
+    updateStats([
+      { value: '-', label: '待处理' },
+      { value: '-', label: '已逾期' },
+      { value: '-', label: '今日解决' },
+      { value: '-', label: '平均解决(h)' },
+    ])
+  } else if (tab === 'service-market') {
+    updateStats([
+      { value: '-', label: '服务总数' },
+      { value: '-', label: '流程模式' },
+      { value: '-', label: '轻量模式' },
+    ])
+  } else if (tab === 'service-admin') {
+    updateStats([
+      { value: '-', label: '服务总数' },
+      { value: '-', label: '已启用' },
+      { value: '-', label: '已禁用' },
+    ])
+  } else if (tab === 'tickets') {
+    updateStats([
+      { value: '-', label: '工单总数' },
+      { value: '-', label: '处理中' },
+      { value: '-', label: '草稿' },
+      { value: '-', label: '已完成' },
+    ])
+  } else if (tab === 'workflows') {
+    updateStats([
+      { value: '-', label: '模板总数' },
+      { value: '-', label: '已发布' },
+      { value: '-', label: '草稿' },
+    ])
+  } else if (tab === 'sla') {
+    updateStats([
+      { value: '-', label: '策略总数' },
+      { value: '-', label: '已启用' },
+    ])
+  } else if (tab === 'delegation') {
+    updateStats([
+      { value: '-', label: '规则总数' },
+      { value: '-', label: '已启用' },
+    ])
+  } else if (tab === 'escalation') {
+    updateStats([
+      { value: '-', label: '层级总数' },
+      { value: '-', label: '已启用' },
+    ])
+  }
+  // Other tabs: sub-components report their own stats via useHeroConsumer
+})
+
+/** Report stats for inline tabs when data is loaded for the current active tab */
+function reportInlineStats() {
+  const tab = activeTab.value
+  if (tab === 'tickets') {
+    const items = tickets.value
+    updateStats([
+      { value: items.length, label: '工单总数' },
+      { value: items.filter((t: any) => t.current_status === 'running').length, label: '处理中' },
+      { value: items.filter((t: any) => t.current_status === 'draft').length, label: '草稿' },
+      { value: items.filter((t: any) => t.current_status === 'finished').length, label: '已完成' },
+    ])
+  } else if (tab === 'workflows') {
+    const items = workflows.value
+    updateStats([
+      { value: items.length, label: '模板总数' },
+      { value: items.filter((w: any) => !w.is_draft).length, label: '已发布' },
+      { value: items.filter((w: any) => w.is_draft).length, label: '草稿' },
+    ])
+  } else if (tab === 'sla') {
+    const items = slaPolicies.value
+    updateStats([
+      { value: items.length, label: '策略总数' },
+      { value: items.filter((s: any) => s.is_active).length, label: '已启用' },
+    ])
+  } else if (tab === 'escalation') {
+    const items = escalationLevels.value
+    updateStats([
+      { value: items.length, label: '层级总数' },
+      { value: items.filter((e: any) => e.is_active).length, label: '已启用' },
+    ])
+  }
+}
+
 onMounted(async () => {
   await loadPageConfig()
-  await loadAllData()
+  // loadAllData removed — data loads on-demand via useTabLazyLoad
 
-  // 多租户: 监听全局项目切换事件，重新加载所有数据
-  window.addEventListener('project-changed', loadAllData)
+  // Project switch: increment trigger → composable resets visitedTabs → current tab remounts
+  window.addEventListener('project-changed', onProjectChanged)
 
   const key = 'opsflow_tour_itsm'
   if (!localStorage.getItem(key)) {
@@ -905,16 +1026,8 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('project-changed', loadAllData)
+  window.removeEventListener('project-changed', onProjectChanged)
 })
-
-async function loadAllData() {
-  await Promise.all([
-    loadTickets(), loadWorkflows(),
-    loadSla(),
-    loadEscalation(),
-  ])
-}
 </script>
 
 <style lang="scss" scoped>
@@ -927,42 +1040,39 @@ async function loadAllData() {
 }
 
 /* ===== Hero ===== */
-.itsm-hero {
-  position: relative; flex-shrink: 0; overflow: hidden;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-}
-.itsm-hero-bg {
-  position: absolute; inset: 0; opacity: 0.06;
-  background-image: radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-.itsm-hero-inner {
-  position: relative; z-index: 1; padding: 14px 24px;
-  display: flex; flex-direction: row; align-items: center; gap: 16px;
-}
+.itsm-hero { @include g-hero-container; }
+.itsm-hero-bg { @include g-hero-bg-dots; }
+.itsm-hero-inner { @include g-hero-inner; flex-direction: row; }
 .itsm-hero-left { flex: 1 1 auto; }
-.itsm-hero-title { margin: 0; font-size: 22px; font-weight: 800; color: #fff; }
-.itsm-hero-subtitle { margin: 0; font-size: 11px; color: rgba(255,255,255,0.5); }
-.itsm-hero-stats { flex: 0 0 auto; display: flex; align-items: center; }
-.itsm-stat-item { text-align: center; padding: 0 14px; }
-.itsm-stat-value { display: block; font-size: 18px; font-weight: 700; color: #fff; line-height: 1.2; }
-.itsm-stat-label { font-size: 10px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; }
-.itsm-stat-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
+.itsm-hero-title { @include g-hero-title; }
+.itsm-hero-subtitle { @include g-hero-subtitle; }
+.itsm-hero-search {
+  margin-left: auto; margin-right: 20px;
+  display: flex; align-items: center;
+  :deep(.sm-search-input),
+  :deep(.sa-search-input) { width: 280px; }
+  :deep(.el-input__wrapper) {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: none; border-radius: 10px;
+  }
+  :deep(.el-input__inner) { color: #fff; font-size: 14px; }
+  :deep(.el-input__inner::placeholder) { color: rgba(255,255,255,0.4); }
+  :deep(.el-input__prefix-inner) { color: rgba(255,255,255,0.4); }
+}
+.itsm-hero-stats { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; }
+.itsm-stat-item { text-align: center; padding: 0 10px; }
+.itsm-stat-value { @include g-hero-stat-value; }
+.itsm-stat-label { @include g-hero-stat-label; text-transform: uppercase; letter-spacing: 0.5px; }
+.itsm-stat-divider { @include g-hero-stat-divider; flex-shrink: 0; }
 
-.itsm-hero-tabs {
-  position: relative; z-index: 1; display: flex; gap: 0; padding: 0 24px; margin-top: -4px; 
-}
-.itsm-hero-tab {
-  display: flex; align-items: center; gap: 6px; padding: 10px 20px 10px 0;
-  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.6);
-  cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; user-select: none;
+.itsm-hero-tabs { @include g-hero-tabs; }
+.itsm-hero-tab { @include g-hero-tab;
   .el-icon { font-size: 16px; }
+  &.locked { opacity: 0.6; }
+  &.locked:hover { opacity: 0.9; background: rgba(255,193,7,0.1); border-bottom-color: #ffc107; }
+  .tab-lock { font-size: 11px; margin-left: 3px; }
 }
-.itsm-hero-tab:hover { color: rgba(255,255,255,0.9); }
-.itsm-hero-tab.active { color: #fff; border-bottom-color: #409EFF; }
-.itsm-hero-tab.locked { opacity: 0.6; }
-.itsm-hero-tab.locked:hover { opacity: 0.9; background: rgba(255,193,7,0.1); border-bottom-color: #ffc107; }
-.itsm-hero-tab .tab-lock { font-size: 11px; margin-left: 3px; }
 
 /* ===== Body ===== */
 .itsm-body { flex: 1; overflow-y: auto; padding: 0 20px 24px; }

@@ -32,7 +32,7 @@
     <div class="cmdb-body">
 
       <!-- ─── Tab 1: 模型管理 ─── -->
-      <div v-show="activeTab === 'schema'" class="cmdb-section g-fade-in-up">
+      <div v-if="isVisited('schema')" v-show="activeTab === 'schema'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-schema-layout">
           <!-- Left: Model List -->
           <div class="cmdb-schema-sidebar">
@@ -138,7 +138,7 @@
       </div>
 
       <!-- ─── Tab 2: 实例管理 ─── -->
-      <div v-show="activeTab === 'instance'" class="cmdb-section g-fade-in-up">
+      <div v-if="isVisited('instance')" v-show="activeTab === 'instance'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-instance-layout">
           <div class="cmdb-instance-sidebar">
             <div class="cmdb-table-card">
@@ -169,7 +169,7 @@
       </div>
 
       <!-- ─── Tab 3: 拓扑视图 ─── -->
-      <div v-show="activeTab === 'topology'" class="cmdb-section cmdb-section-topo g-fade-in-up">
+      <div v-if="isVisited('topology')" v-show="activeTab === 'topology'" class="cmdb-section cmdb-section-topo g-fade-in-up">
         <div class="cmdb-topo-card">
           <div class="cmdb-topo-toolbar">
             <div class="cmdb-topo-toolbar-left">
@@ -208,7 +208,7 @@
       </div>
 
       <!-- ─── Tab 4: DR 拓扑 ─── -->
-      <div v-show="activeTab === 'dr'" class="cmdb-section cmdb-section-topo g-fade-in-up">
+      <div v-if="isVisited('dr')" v-show="activeTab === 'dr'" class="cmdb-section cmdb-section-topo g-fade-in-up">
         <div class="cmdb-topo-card">
           <div class="cmdb-topo-toolbar">
             <div class="cmdb-topo-toolbar-left">
@@ -232,7 +232,7 @@
       </div>
 
       <!-- ─── Tab 5: 数据同步 ─── -->
-      <div v-show="activeTab === 'sync'" class="cmdb-section g-fade-in-up">
+      <div v-if="isVisited('sync')" v-show="activeTab === 'sync'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-sync-grid">
           <div class="cmdb-table-card">
             <div class="cmdb-table-header">
@@ -264,7 +264,7 @@
       </div>
 
       <!-- ─── Tab 5: 事件订阅 ─── -->
-      <div v-show="activeTab === 'events'" class="cmdb-section g-fade-in-up">
+      <div v-if="isVisited('events')" v-show="activeTab === 'events'" class="cmdb-section g-fade-in-up">
         <div class="cmdb-table-card">
           <div class="cmdb-table-header">
             <span class="cmdb-table-title">{{ $t('message.cmdb.eventSubTitle') }}</span>
@@ -439,7 +439,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useTabLazyLoad } from '/@/composables/useTabLazyLoad'
 import { useI18n } from 'vue-i18n'
 import { usePermissionStore } from '/@/stores/permission'
 import {
@@ -468,6 +469,12 @@ const permissionStore = usePermissionStore()
 const pageConfig = ref<any>(null)
 const userPerms = ref<string[]>([])
 const activeTab = ref('instance')
+
+// ===== Tab lazy loading =====
+const { isVisited } = useTabLazyLoad({
+  tabs: ['schema', 'instance', 'topology', 'dr', 'sync', 'events'],
+  activeTab,
+})
 
 function getTab(key: string) {
   return pageConfig.value?.tabs?.find((t: any) => t.key === key)
@@ -938,22 +945,12 @@ onMounted(async () => {
 }
 
 /* ===== Hero ===== */
-.cmdb-hero {
-  position: relative; flex-shrink: 0; overflow: hidden;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-}
-.cmdb-hero-bg {
-  position: absolute; inset: 0; opacity: 0.06;
-  background-image: radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-.cmdb-hero-inner {
-  position: relative; z-index: 1; padding: 14px 24px;
-  display: flex; flex-direction: row; align-items: center; gap: 16px;
-}
+.cmdb-hero { @include g-hero-container; }
+.cmdb-hero-bg { @include g-hero-bg-dots; }
+.cmdb-hero-inner { @include g-hero-inner; flex-direction: row; }
 .cmdb-hero-left { flex: 0 0 auto; }
-.cmdb-hero-title { margin: 0; font-size: 22px; font-weight: 800; color: #fff; white-space: nowrap; }
-.cmdb-hero-subtitle { margin: 0; font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap; }
+.cmdb-hero-title { @include g-hero-title; white-space: nowrap; }
+.cmdb-hero-subtitle { @include g-hero-subtitle; white-space: nowrap; }
 .cmdb-hero-center { flex: 1 1 auto; min-width: 0; max-width: 360px; }
 .cmdb-search-input { width: 100%; }
 .cmdb-search-input :deep(.el-input__wrapper) {
@@ -964,19 +961,12 @@ onMounted(async () => {
 .cmdb-search-input :deep(.el-input__inner::placeholder) { color: rgba(255,255,255,0.4); }
 .cmdb-search-input :deep(.el-input__prefix-inner) { color: rgba(255,255,255,0.4); }
 
-.cmdb-hero-tabs {
-  position: relative; z-index: 1; display: flex; gap: 0; padding: 0 24px; margin-top: -4px;
+.cmdb-hero-tabs { @include g-hero-tabs; }
+.cmdb-hero-tab { @include g-hero-tab;
+  &.locked { opacity: 0.6; }
+  &.locked:hover { opacity: 0.9; background: rgba(255,193,7,0.1); border-bottom-color: #ffc107; }
+  .tab-lock { font-size: 11px; margin-left: 3px; }
 }
-.cmdb-hero-tab {
-  display: flex; align-items: center; gap: 6px; padding: 10px 20px 10px 0;
-  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.6);
-  cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; user-select: none;
-}
-.cmdb-hero-tab:hover { color: rgba(255,255,255,0.9); }
-.cmdb-hero-tab.active { color: #fff; border-bottom-color: #409EFF; }
-.cmdb-hero-tab.locked { opacity: 0.6; }
-.cmdb-hero-tab.locked:hover { opacity: 0.9; background: rgba(255,193,7,0.1); border-bottom-color: #ffc107; }
-.cmdb-hero-tab .tab-lock { font-size: 11px; margin-left: 3px; }
 
 /* ===== Body ===== */
 .cmdb-body { flex: 1; overflow-y: auto; padding: 0 20px 0; display: flex; flex-direction: column; }

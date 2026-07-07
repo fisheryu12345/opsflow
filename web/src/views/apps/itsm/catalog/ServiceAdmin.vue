@@ -11,7 +11,9 @@
         </el-button>
       </div>
       <div class="sa-toolbar-right">
-        <el-input v-model="searchQuery" :placeholder="$t('message.serviceAdmin.searchPlaceholder')" clearable size="small" style="width:200px" @input="loadItems" />
+        <Teleport v-if="active && searchEl" :to="searchEl">
+          <el-input v-model="searchQuery" :placeholder="$t('message.serviceAdmin.searchPlaceholder')" clearable size="default" class="sa-search-input" @input="loadItems" />
+        </Teleport>
       </div>
     </div>
 
@@ -228,13 +230,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, FolderOpened, Edit, Delete } from '@element-plus/icons-vue'
 import { serviceItemApi, workflowApi, serviceCategoryApi } from '/@/api/itsm/index'
 
+const props = withDefaults(defineProps<{ active?: boolean }>(), { active: false })
 const { t } = useI18n()
+const { searchEl, reportStats: updateHeroStats } = useHeroConsumer()
 
 const loading = ref(false)
 const items = ref<any[]>([])
@@ -384,8 +389,22 @@ async function onDeleteCat(cat: any) {
   } catch { ElMessage.error('删除失败') }
 }
 
+function reportStats() {
+  updateHeroStats([
+    { value: items.value.length, label: '服务总数' },
+    { value: items.value.filter((it: any) => it.is_active).length, label: '已启用' },
+    { value: items.value.filter((it: any) => !it.is_active).length, label: '已禁用' },
+  ])
+}
+
 onMounted(async () => {
   await Promise.all([loadItems(), loadCategories(), loadWorkflows()])
+  if (props.active) reportStats()
+})
+
+// Re-report stats when this tab becomes active
+watch(() => props.active, (isActive) => {
+  if (isActive && items.value.length > 0) reportStats()
 })
 </script>
 

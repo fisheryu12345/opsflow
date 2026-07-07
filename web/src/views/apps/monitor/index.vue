@@ -31,7 +31,7 @@
     </div>
 
     <!-- ════════════ tab: alerts ════════════ -->
-    <div v-show="activeTab==='alerts'" class="monitor-body">
+    <div v-if="isVisited('alerts')" v-show="activeTab==='alerts'" class="monitor-body">
       <div class="section-card">
         <div class="section-header">
           <span class="section-title">告警事件中心</span>
@@ -86,7 +86,7 @@
     </div>
 
     <!-- ════════════ tab: strategies ════════════ -->
-    <div v-show="activeTab==='strategies'" class="monitor-body">
+    <div v-if="isVisited('strategies')" v-show="activeTab==='strategies'" class="monitor-body">
       <div class="section-card">
         <div class="section-header">
           <span class="section-title">告警规则</span>
@@ -121,7 +121,7 @@
     </div>
 
     <!-- ════════════ tab: notify-groups ════════════ -->
-    <div v-show="activeTab==='notify-groups'" class="monitor-body">
+    <div v-if="isVisited('notify-groups')" v-show="activeTab==='notify-groups'" class="monitor-body">
       <div class="section-card">
         <div class="section-header">
           <span class="section-title">通知组</span>
@@ -143,7 +143,7 @@
     </div>
 
     <!-- ════════════ tab: dashboard ════════════ -->
-    <div v-show="activeTab==='dashboard'" class="monitor-body">
+    <div v-if="isVisited('dashboard')" v-show="activeTab==='dashboard'" class="monitor-body">
       <div class="dashboard-grid">
         <div class="dash-card" v-for="s in summaryStats" :key="s.label">
           <div class="dash-val" :style="{color:s.color}">{{ s.value }}</div>
@@ -157,32 +157,32 @@
     </div>
 
     <!-- ════════════ tab: duty calendar ════════════ -->
-    <div v-show="activeTab==='duty'" class="monitor-body">
+    <div v-if="isVisited('duty')" v-show="activeTab==='duty'" class="monitor-body">
       <DutyCalendar />
     </div>
 
     <!-- ════════════ tab: assign rules ════════════ -->
-    <div v-show="activeTab==='assign'" class="monitor-body">
+    <div v-if="isVisited('assign')" v-show="activeTab==='assign'" class="monitor-body">
       <AssignRules />
     </div>
 
     <!-- ════════════ tab: shield plans ════════════ -->
-    <div v-show="activeTab==='shields'" class="monitor-body">
+    <div v-if="isVisited('shields')" v-show="activeTab==='shields'" class="monitor-body">
       <ShieldPlans />
     </div>
 
     <!-- ════════════ tab: action plugins ════════════ -->
-    <div v-show="activeTab==='actions'" class="monitor-body">
+    <div v-if="isVisited('actions')" v-show="activeTab==='actions'" class="monitor-body">
       <ActionPlugins />
     </div>
 
     <!-- ════════════ tab: collectors ════════════ -->
-    <div v-show="activeTab==='collectors'" class="monitor-body">
+    <div v-if="isVisited('collectors')" v-show="activeTab==='collectors'" class="monitor-body">
       <CollectConfigs />
     </div>
 
     <!-- ════════════ tab: datasources ════════════ -->
-    <div v-show="activeTab==='datasources'" class="monitor-body">
+    <div v-if="isVisited('datasources')" v-show="activeTab==='datasources'" class="monitor-body">
       <DataSources />
     </div>
 
@@ -193,6 +193,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import { useTabLazyLoad } from '/@/composables/useTabLazyLoad'
 import {
   alertApi, strategyApi, notifyGroupApi, dashboardApi,
 } from '/@/api/monitor/index'
@@ -324,11 +325,18 @@ function onStrategyCreated() { showStrategyWizard.value = false; loadStrategies(
 watch(() => alertFilter, () => { alertPage.value = 1; loadAlerts() }, { deep: true })
 watch(alertPage, () => loadAlerts())
 watch(strategySearch, () => loadStrategies())
-watch(activeTab, (tab) => {
-  if (tab === 'alerts') loadAlerts()
-  else if (tab === 'strategies') loadStrategies()
-  else if (tab === 'notify-groups') loadNotifyGroups()
-  else if (tab === 'dashboard') loadDashboard()
+const { isVisited } = useTabLazyLoad({
+  tabs: ['alerts', 'strategies', 'notify-groups', 'dashboard', 'duty', 'assign', 'shields', 'actions', 'collectors', 'datasources'],
+  activeTab,
+  onTabActivated: (tab, firstVisit) => {
+    if (!firstVisit) return
+    if (tab === 'alerts') loadAlerts()
+    else if (tab === 'strategies') loadStrategies()
+    else if (tab === 'notify-groups') loadNotifyGroups()
+    else if (tab === 'dashboard') loadDashboard()
+    // duty / assign / shields / actions / collectors / datasources:
+    // their child components' onMounted handles data loading automatically
+  },
 })
 
 onMounted(() => loadAlerts())

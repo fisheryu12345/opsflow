@@ -1,7 +1,7 @@
 <template>
   <div class="pj-page">
     <!-- Search (teleported to outer hero dark area) -->
-    <Teleport v-if="active && heroSearchEl" :to="heroSearchEl">
+    <Teleport v-if="active && searchEl" :to="searchEl">
       <el-input
         v-model="searchQuery"
         :placeholder="$t('message.opsflowPage.projectsSearch')"
@@ -16,7 +16,7 @@
     </Teleport>
 
     <!-- Filter bar (teleported to outer hero filter area) -->
-    <Teleport v-if="active && heroFilterEl" :to="heroFilterEl">
+    <Teleport v-if="active && filterEl" :to="filterEl">
       <div class="pj-filter-bar">
         <div class="pj-filter-tabs">
           <div class="pj-tab" :class="{ active: filterStatus === '' }" @click="filterStatus = ''; onSearch()">
@@ -178,7 +178,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, inject } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete, Setting } from '@element-plus/icons-vue'
@@ -192,9 +193,7 @@ const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>
 
 const { t } = useI18n()
 
-const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
-const heroFilterEl = inject<any>('heroFilterEl', null)
-const heroSearchEl = inject<any>('heroSearchEl', null)
+const { reportStats: updateHeroStats, filterEl, searchEl } = useHeroConsumer()
 
 const loading = ref(false)
 const saving = ref(false)

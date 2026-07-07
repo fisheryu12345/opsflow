@@ -2,9 +2,11 @@
   <div class="service-market">
     <!-- Search -->
     <div class="sm-search-bar">
-      <el-input v-model="searchQuery" :placeholder="$t('message.serviceMarket.searchPlaceholder')" clearable size="large" class="sm-search-input" @input="onSearch">
-        <template #prefix><el-icon><Search /></el-icon></template>
-      </el-input>
+      <Teleport v-if="active && searchEl" :to="searchEl">
+        <el-input v-model="searchQuery" :placeholder="$t('message.serviceMarket.searchPlaceholder')" clearable size="default" class="sm-search-input" @input="onSearch">
+          <template #prefix><el-icon><Search /></el-icon></template>
+        </el-input>
+      </Teleport>
       <div class="sm-filter-tags" v-if="activeMode">
         <el-tag closable size="small" @close="activeMode = ''">
           {{ activeMode === 'flow' ? $t('message.serviceMarket.flowMode') : $t('message.serviceMarket.lightweightMode') }}
@@ -77,7 +79,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Search, FolderOpened, Folder } from '@element-plus/icons-vue'
@@ -85,7 +88,9 @@ import { serviceItemApi, serviceCategoryApi } from '/@/api/itsm/index'
 import ServiceDetail from './ServiceDetail.vue'
 
 const emit = defineEmits<{ goTicket: [ticketId: number] }>()
+const props = withDefaults(defineProps<{ active?: boolean }>(), { active: false })
 const { t } = useI18n()
+const { searchEl, reportStats: updateHeroStats } = useHeroConsumer()
 const loading = ref(false)
 const items = ref<any[]>([])
 const categories = ref<any[]>([])
@@ -141,9 +146,23 @@ function onSubmitted(ticketId: number) {
   emit('goTicket', ticketId)
 }
 
+function reportStats() {
+  updateHeroStats([
+    { value: items.value.length, label: '服务总数' },
+    { value: items.value.filter((it: any) => it.mode === 'flow').length, label: '流程模式' },
+    { value: items.value.filter((it: any) => it.mode === 'lightweight').length, label: '轻量模式' },
+  ])
+}
+
 onMounted(async () => {
   await loadCategories()
   await loadItems()
+  if (props.active) reportStats()
+})
+
+// Re-report stats when this tab becomes active
+watch(() => props.active, (isActive) => {
+  if (isActive && items.value.length > 0) reportStats()
 })
 </script>
 

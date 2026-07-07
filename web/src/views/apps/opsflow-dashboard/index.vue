@@ -181,7 +181,8 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, computed, onMounted, onUnmounted, shallowRef, nextTick, markRaw, inject, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, shallowRef, nextTick, markRaw, watch } from 'vue'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { Refresh, Top, Bottom, Timer, VideoPlay, VideoPause, RefreshRight, Histogram, Collection, CircleCheck, CircleClose, User, Loading, Upload } from '@element-plus/icons-vue'
@@ -194,7 +195,7 @@ import {
 const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>(), { embedded: false, active: false })
 
 const { t } = useI18n()
-const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
+const { reportStats: updateHeroStats } = useHeroConsumer()
 const loading = ref(false)
 const period = ref<'7d' | '14d' | '30d'>('30d')
 const stats = ref<any>({})

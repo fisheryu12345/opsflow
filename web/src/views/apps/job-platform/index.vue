@@ -32,7 +32,7 @@
 
     <div class="job-body">
       <!-- ─── Tab 1: 快速执行 ─── -->
-      <div v-show="activeTab === 'quick'" class="job-section g-fade-in-up">
+      <div v-if="isVisited('quick')" v-show="activeTab === 'quick'" class="job-section g-fade-in-up">
         <div class="job-quick-grid">
           <div class="job-table-card">
             <div class="job-table-header"><span class="job-table-title">快速执行脚本</span></div>
@@ -62,7 +62,7 @@
       </div>
 
       <!-- ─── Tab 2: 模板管理 ─── -->
-      <div v-show="activeTab === 'templates'" class="job-section g-fade-in-up">
+      <div v-if="isVisited('templates')" v-show="activeTab === 'templates'" class="job-section g-fade-in-up">
         <div class="job-tpl-layout">
           <div class="job-tpl-sidebar">
             <div class="job-table-card">
@@ -108,7 +108,7 @@
       </div>
 
       <!-- ─── Tab 3: 脚本管理 ─── -->
-      <div v-show="activeTab === 'scripts'" class="job-section g-fade-in-up">
+      <div v-if="isVisited('scripts')" v-show="activeTab === 'scripts'" class="job-section g-fade-in-up">
         <div class="job-table-card">
           <div class="job-table-header">
             <span class="job-table-title">脚本库</span>
@@ -132,7 +132,7 @@
       </div>
 
       <!-- ─── Tab 4: 执行记录 ─── -->
-      <div v-show="activeTab === 'history'" class="job-section g-fade-in-up">
+      <div v-if="isVisited('history')" v-show="activeTab === 'history'" class="job-section g-fade-in-up">
         <div class="job-table-card">
           <div class="job-table-header">
             <span class="job-table-title">执行记录</span>
@@ -171,7 +171,7 @@
       </div>
 
       <!-- ─── Tab 5: 账号管理 ─── -->
-      <div v-show="activeTab === 'accounts'" class="job-section g-fade-in-up">
+      <div v-if="isVisited('accounts')" v-show="activeTab === 'accounts'" class="job-section g-fade-in-up">
         <div class="job-table-card">
           <div class="job-table-header">
             <span class="job-table-title">执行账号</span>
@@ -198,7 +198,7 @@
       </div>
 
       <!-- ─── Tab 6: 高危规则 + 定时作业 ─── -->
-      <div v-show="activeTab === 'settings'" class="job-section g-fade-in-up">
+      <div v-if="isVisited('settings')" v-show="activeTab === 'settings'" class="job-section g-fade-in-up">
         <div class="job-settings-grid">
           <div class="job-table-card">
             <div class="job-table-header">
@@ -336,6 +336,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useTabLazyLoad } from '/@/composables/useTabLazyLoad'
 import {
   Search, Plus, CaretRight, Document, Timer, WarningFilled,
   Refresh, Close, Edit, Delete, View, Top, List, Setting, Key, Loading,
@@ -362,6 +363,11 @@ const tabs = [
 ]
 
 const activeTab = ref('quick')
+
+const { isVisited } = useTabLazyLoad({
+  tabs: ['quick', 'templates', 'scripts', 'history', 'accounts', 'settings'],
+  activeTab,
+})
 const searchQuery = ref('')
 const loading = ref(false)
 const saving = ref(false)
@@ -680,18 +686,12 @@ onMounted(async () => {
   display: flex; flex-direction: column;
   background: #f5f6fa; overflow: hidden;
 }
-.job-hero {
-  position: relative; flex-shrink: 0; overflow: hidden;
-  background: linear-gradient(135deg, #1a2e1a 0%, #163e16 50%, #1a4a1a 100%);
-}
-.job-hero-bg { position: absolute; inset: 0; opacity: 0.06;
-  background-image: radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 30%, #fff 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-.job-hero-inner { position: relative; z-index: 1; padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
+.job-hero { @include g-hero-container; }
+.job-hero-bg { @include g-hero-bg-dots; }
+.job-hero-inner { @include g-hero-inner; }
 .job-hero-left { flex: 0 0 auto; }
-.job-hero-title { margin: 0; font-size: 22px; font-weight: 800; color: #fff; white-space: nowrap; }
-.job-hero-subtitle { margin: 0; font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap; }
+.job-hero-title { @include g-hero-title; white-space: nowrap; }
+.job-hero-subtitle { @include g-hero-subtitle; white-space: nowrap; }
 .job-hero-center { flex: 1 1 auto; min-width: 0; max-width: 360px; }
 .job-search-input { width: 100%; }
 .job-search-input :deep(.el-input__wrapper) {
@@ -706,14 +706,8 @@ onMounted(async () => {
 .job-stat-value { display: block; font-size: 18px; font-weight: 700; color: #fff; line-height: 1.2; }
 .job-stat-label { font-size: 10px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; }
 .job-stat-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
-.job-hero-tabs { position: relative; z-index: 1; display: flex; gap: 0; padding: 0 24px; margin-top: -4px; }
-.job-hero-tab {
-  display: flex; align-items: center; gap: 6px; padding: 10px 20px 10px 0;
-  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.6);
-  cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; user-select: none;
-}
-.job-hero-tab:hover { color: rgba(255,255,255,0.9); }
-.job-hero-tab.active { color: #fff; border-bottom-color: #67C23A; }
+.job-hero-tabs { @include g-hero-tabs; }
+.job-hero-tab { @include g-hero-tab; }
 
 .job-body { flex: 1; overflow-y: auto; padding: 0 20px 24px; }
 .job-section { padding-top: 16px; }

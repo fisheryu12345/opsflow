@@ -165,7 +165,8 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, computed, onMounted, reactive, inject, watch } from 'vue'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 import { Refresh, Plus, Search, Edit, Delete, Clock, Notification, Document } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { GetKnowledgeList, CreateKnowledge, UpdateKnowledge, DeleteKnowledge } from '../opsflow/api/knowledge'
@@ -184,7 +185,7 @@ const isEditing = ref(false)
 const editingId = ref<number | null>(null)
 const form = reactive({ title: '', content: '', tags: [] as string[], source: 'doc' })
 const { t } = useI18n()
-const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
+const { reportStats: updateHeroStats } = useHeroConsumer()
 
 
 const viewVisible = ref(false)

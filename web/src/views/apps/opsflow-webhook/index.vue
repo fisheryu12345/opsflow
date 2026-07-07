@@ -190,7 +190,8 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ref, computed, onMounted, inject, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete, Link } from '@element-plus/icons-vue'
 import { GetTemplates } from '../opsflow/api/templates'
@@ -201,7 +202,7 @@ import {
 const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>(), { embedded: false, active: false })
 
 const { t } = useI18n()
-const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
+const { reportStats: updateHeroStats } = useHeroConsumer()
 const loading = ref(false)
 const saving = ref(false)
 const webhooks = ref<any[]>([])

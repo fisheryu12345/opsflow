@@ -2,6 +2,51 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## f1179192
+
+> 提交日期: 2026-07-07 | 提交信息: refactor: unify tab lazy loading, hero communication, and hero SCSS across 7 apps
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/src/composables/useTabLazyLoad.ts` | 前端 | 新建 — 统一 tab 懒加载 composable |
+| `web/src/composables/useHeroProvider.ts` | 前端 | 新建 — Symbol-based hero provide |
+| `web/src/composables/useHeroConsumer.ts` | 前端 | 新建 — Symbol-based hero inject |
+| `web/src/views/apps/itsm/index.vue` | 前端 | Tab 懒加载 + 动态 hero stats + search Teleport |
+| `web/src/views/apps/opsflow/index.vue` | 前端 | provide()→useHeroProvider() + tab 懒加载 |
+| `web/src/views/apps/cmdb/index.vue` | 前端 | 6 tab v-if 懒挂载 |
+| `web/src/views/apps/monitor/index.vue` | 前端 | watch→useTabLazyLoad + 10 tab v-if |
+| `web/src/views/apps/iam/index.vue` | 前端 | 11 tab v-if 懒挂载 |
+| `web/src/views/apps/integration/index.vue` | 前端 | 6 tab v-if 懒挂载 |
+| `web/src/views/apps/job-platform/index.vue` | 前端 | 6 tab v-if 懒挂载 |
+| 8 个 opsflow 子组件 | 前端 | inject()→useHeroConsumer() |
+| 2 个 itsm catalog 组件 | 前端 | 搜索框 Teleport 到 hero |
+| 6 个 APP hero SCSS | 前端 | 硬编码→@include g-hero-* mixin |
+| `docs/guides/frontend-style-guide.md` | 文档 | 新增 Tab 懒加载 + 组件通信规范 |
+
+### 解决
+
+- **问题/背景：** 7 个 APP 各自实现 tab 切换（v-show 全挂载 / eager load / watch），无统一模式；OPSflow 用字符串 key 做 provide/inject 有命名冲突风险；6 个 APP hero CSS 硬编码 ~200 行重复代码
+- **办法：** 创建 3 个 composable 统一 tab 懒加载 + hero 通信；所有 APP hero CSS 改用 @include g-hero-* mixin
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/architecture/2026-07-07-unified-hero-communication-refactor.md`
+  - `docs/itsm/architecture/2026-07-07-tab-lazy-loading-refactor.md`
+  - `docs/itsm/features/2026-07-07-hero-search-teleport.md`
+
+### 验证
+
+- 改动类型: refactor
+- 清理乱码: 无
+- 子 App index.md 更新: 无（纯前端改动）
+- 工作区状态: 干净 ✅
+
+---
+
+
 ## 0a4a32f3
 
 > 提交日期: 2026-07-07 | 提交信息: feat: ITSM i18n full coverage + name_en fields + Manage Categories dialog

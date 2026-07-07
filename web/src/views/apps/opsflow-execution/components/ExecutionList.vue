@@ -1,7 +1,7 @@
 <template>
   <div class="exec-list-page">
     <!-- Search (teleported to outer hero dark area) -->
-    <Teleport v-if="active && heroSearchEl" :to="heroSearchEl">
+    <Teleport v-if="active && searchEl" :to="searchEl">
       <el-input v-model="searchQuery" :placeholder="$t('message.execution.searchPlaceholder')" clearable size="default"
         class="exec-search-input" @keyup.enter="onSearch" @clear="onSearch">
         <template #prefix><el-icon><Search /></el-icon></template>
@@ -9,7 +9,7 @@
     </Teleport>
 
     <!-- Filter bar (teleported to outer hero filter area) -->
-    <Teleport v-if="active && heroFilterEl" :to="heroFilterEl">
+    <Teleport v-if="active && filterEl" :to="filterEl">
       <div class="exec-filter-bar">
         <div class="exec-filter-tabs">
           <div class="exec-tab" :class="{ active: filterStatus.length === 0 }" @click="filterStatus = []; onFilter()">
@@ -113,7 +113,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, inject, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 import { useI18n } from 'vue-i18n'
 import { Refresh, Search, View, VideoPlay, VideoPause, Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -123,9 +124,7 @@ import { useOpsflowStore } from '/@/views/apps/opsflow/stores/opsflowStore'
 const props = withDefaults(defineProps<{ active?: boolean }>(), { active: false })
 const emit = defineEmits<{ viewDetail: [execution: any] }>()
 
-const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
-const heroFilterEl = inject<any>('heroFilterEl', null)
-const heroSearchEl = inject<any>('heroSearchEl', null)
+const { reportStats: updateHeroStats, filterEl, searchEl } = useHeroConsumer()
 
 const store = useOpsflowStore()
 const { t } = useI18n()

@@ -301,7 +301,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onBeforeUnmount, inject, watch } from 'vue'
+import { ref, computed, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { Refresh, Upload, Edit, Delete, Search, List, Grid, Connection, Share, Timer, Setting, Clock, Download, UploadFilled } from '@element-plus/icons-vue'
@@ -317,7 +318,7 @@ const props = withDefaults(defineProps<{ embedded?: boolean; active?: boolean }>
 const router = useRouter()
 const opsflowStore = useOpsflowStore()
 const { t } = useI18n()
-const updateHeroStats = inject<(stats: { value: number | string; label: string }[]) => void>('updateHeroStats', () => {})
+const { reportStats: updateHeroStats } = useHeroConsumer()
 const userInfo = useUserInfo()
 
 const isSuperuser = computed(() => userInfo.userInfos?.roles?.includes('admin') || false)
