@@ -91,24 +91,14 @@
           </template>
 
           <template v-else-if="currentNode.type === 'NORMAL'">
-            <el-form label-position="top" size="small" class="td-fill-form">
-              <el-form-item v-for="f in (currentNode.fields || [])" :key="f.key" :label="f.name" :required="f.required">
-                <template v-if="f.type === 'TEXT'">
-                  <el-input v-model="fillForm[f.key]" type="textarea" :rows="3" :placeholder="f.placeholder" />
-                </template>
-                <template v-else-if="f.type === 'SELECT'">
-                  <el-select v-model="fillForm[f.key]" style="width:100%" :placeholder="f.placeholder">
-                    <el-option v-for="c in (f.choice || [])" :key="c.value" :label="c.label" :value="c.value" />
-                  </el-select>
-                </template>
-                <template v-else>
-                  <el-input v-model="fillForm[f.key]" :placeholder="f.placeholder" />
-                </template>
-              </el-form-item>
-              <el-button type="primary" :loading="submitting" @click="onNodeSubmit">
-                <el-icon><Select /></el-icon> {{ $t('message.itsmPage.submit') }}
-              </el-button>
-            </el-form>
+            <ItsmFormRenderer
+              mode="fill"
+              :fields="currentNode.fields || []"
+              :data="fillForm"
+              :submitting="submitting"
+              @field-change="(k, v) => fillForm[k] = v"
+              @submit="onNodeSubmit"
+            />
           </template>
 
           <div v-else class="td-action-placeholder">
@@ -150,6 +140,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, User, Select, Close } from '@element-plus/icons-vue'
 import FlowChart from './FlowChart.vue'
+import ItsmFormRenderer from '/@/components/ItsmFormRenderer/index.vue'
 import { ticketApi, GetTicketStatus, NodeSubmit, ApproveTicketNode, RejectTicketNode, workflowVersionApi } from '/@/api/itsm/index'
 
 const route = useRoute()
@@ -334,11 +325,12 @@ async function onReject() {
   submitting.value = false
 }
 
-async function onNodeSubmit() {
-  if (!ticket.value || !currentNode.value) return
+async function onNodeSubmit(formData?: Record<string, any>) {
+  if (submitting.value || !ticket.value || !currentNode.value) return
   const stateId = currentNode.value.state_id || currentNode.value.id
+  const source = formData || fillForm
   const fields: Record<string, any> = {}
-  for (const [k, v] of Object.entries(fillForm)) {
+  for (const [k, v] of Object.entries(source)) {
     if (v != null && v !== '') fields[k] = v
   }
   submitting.value = true

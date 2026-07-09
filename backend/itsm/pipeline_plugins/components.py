@@ -28,6 +28,16 @@ class ItsmFillFormService(Service):
         state_id = data.get_one_of_inputs('state_id')
         try:
             ticket = Ticket.objects.get(id=ticket_id)
+            # Skip if already completed synchronously (service catalog auto-complete)
+            existing = TicketStatus.objects.filter(
+                ticket=ticket, state_id=state_id
+            ).first()
+            if existing and existing.status == 'FINISHED':
+                logger.info(
+                    '[itsm_fill] Node #%s already FINISHED, skip for ticket #%s',
+                    state_id, ticket_id
+                )
+                return True  # Callback from _submit_flow() will handle schedule
             ticket.do_before_enter_state(state_id)
             logger.info(f'[itsm_fill] Enter fill form state #{state_id} for ticket #{ticket_id}')
         except Ticket.DoesNotExist:
@@ -36,8 +46,22 @@ class ItsmFillFormService(Service):
         return True
 
     def schedule(self, data, parent_data, callback_data=None):
-        # 🆕 首次 POLL 回调无 callback_data 时，检查 ticket.meta 是否有 form_data
-        # （来自服务目录提交流程），有则自动完成，避免 Celery 异步导致的时序问题
+        # Check if node already completed synchronously (service catalog flow)
+        ticket_id = data.get_one_of_inputs('ticket_id')
+        state_id = data.get_one_of_inputs('state_id')
+        existing = TicketStatus.objects.filter(
+            ticket_id=ticket_id, state_id=state_id
+        ).first()
+        if existing and existing.status == 'FINISHED':
+            logger.info(
+                '[itsm_fill] Node #%s already FINISHED (sync), skip for ticket #%s',
+                state_id, ticket_id
+            )
+            self.finish_schedule()
+            return True
+
+        # 首次回调无 callback_data 时，检查 ticket.meta 是否有 form_data
+        # （来自服务目录提交流程），有则自动完成
         if not callback_data:
             return self._try_auto_complete(data, parent_data)
         # 正常回调（用户主动提交表单）

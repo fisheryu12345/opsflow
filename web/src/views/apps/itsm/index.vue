@@ -296,8 +296,8 @@ onBeforeUnmount(() => {
 }
 
 /* ===== Body ===== */
-.itsm-body { flex: 1; overflow-y: auto; padding: 0 20px 24px; }
-.itsm-section { padding-top: 16px; }
+.itsm-body { flex: 1; display: flex; flex-direction: column; padding: 0; }
+.itsm-section { flex: 1; min-height: 0; padding: 16px 20px 0; overflow-y: auto; }
 </style>
 
 <!-- Shared utility styles for tab components (non-scoped so child components can use them) -->

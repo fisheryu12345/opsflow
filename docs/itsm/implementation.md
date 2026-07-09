@@ -117,3 +117,10 @@
 - 前端设计器: 排他/并行/条件并行网关拖拽 + 出边校验 + by_field 条件编辑面板 → ✅
 - 测试: test_itsm_engine(8) + test_workflow_builder(11) + test_layout(3) 新增 → ✅
 - eri migration 修复: RenameIndex → AddIndex，SQLite 测试兼容 → ✅
+
+### 2026-07-07 Update
+> 提交: db5ad6f9
+- 子 Tab 组件化重构: tickets/workflows/sla/escalation 内联 tab → 4 个独立组件（TicketList/WorkflowList/SlaPolicyList/EscalationList），index.vue 从 ~1200 行降至 ~250 行 → ✅
+- ProjectFilteredViewSet 过滤修复: 工单详情 404 — perform_create() 补齐 project_id 赋值 + get_queryset() 仅对 list/create 应用 project_id 过滤 → ✅
+- Dashboard ECharts 重复初始化修复 + ServiceMarket i18n HTML 警告修复 → ✅
+- 前端规范更新: 子 Tab 强制组件模式 + ProjectFilteredViewSet 过滤规范 → ✅

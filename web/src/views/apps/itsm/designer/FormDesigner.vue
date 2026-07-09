@@ -40,101 +40,30 @@
         <div v-if="!localFields.length" class="fd-canvas-empty">
           {{ $t('message.formDesigner.empty') }}
         </div>
-        <div v-if="previewMode" class="fd-drag-list">
-          <div v-for="(element, index) in localFields" :key="element.key"
-            class="fd-field-wrap" :class="[layoutClass(element.layout), { 'fd-sec-wrap': element.type === 'SECTION' }]">
-            <!-- Section type -->
-            <div v-if="element.type === 'SECTION'" class="fd-sec">
-              <div class="fd-sec-title">
-                <el-icon><FolderOpened /></el-icon>
-                {{ element.name || $t('message.formDesigner.unnamedGroup') }}
-              </div>
-              <div class="fd-sec-line" />
-            </div>
-            <template v-else>
-              <div class="fd-field-label">
-                {{ element.name || element.key }}
-                <span v-if="element.required" class="fd-req">*</span>
-              </div>
-              <el-input v-if="element.type === 'STRING'" size="small" :placeholder="element.placeholder || $t('message.formDesigner.placeholder')" />
-              <el-input v-else-if="element.type === 'TEXT'" type="textarea" :rows="2" size="small" :placeholder="element.placeholder || $t('message.formDesigner.placeholder')" />
-              <el-input-number v-else-if="element.type === 'INT'" size="small" :min="0" style="width:100%" />
-              <el-date-picker v-else-if="element.type === 'DATE'" type="date" size="small" style="width:100%" />
-              <el-date-picker v-else-if="element.type === 'DATETIME'" type="datetime" size="small" style="width:100%" />
-              <el-select v-else-if="element.type === 'SELECT'" size="small" style="width:100%" :placeholder="$t('message.formDesigner.selectPlaceholder')">
-                <el-option v-for="c in element.choice || []" :key="c.value" :label="c.label" :value="c.value" />
-              </el-select>
-              <el-radio-group v-else-if="element.type === 'RADIO'">
-                <el-radio v-for="c in element.choice || []" :key="c.value" :value="c.value" style="margin-right:12px">{{ c.label }}</el-radio>
-              </el-radio-group>
-              <el-checkbox-group v-else-if="element.type === 'CHECKBOX'">
-                <el-checkbox v-for="c in element.choice || []" :key="c.value" :value="c.value" style="margin-right:12px">{{ c.label }}</el-checkbox>
-              </el-checkbox-group>
-              <el-select v-else-if="element.type === 'MULTISELECT'" size="small" multiple style="width:100%" :placeholder="$t('message.formDesigner.multiSelectPlaceholder')">
-                <el-option v-for="c in element.choice || []" :key="c.value" :label="c.label" :value="c.value" />
-              </el-select>
-              <el-select v-else-if="element.type === 'MEMBERS'" size="small" filterable style="width:100%" :placeholder="$t('message.formDesigner.selectUser')" />
-              <div v-else-if="element.type === 'FILE'" class="fd-placeholder">{{ $t('message.formDesigner.upload') }}</div>
-              <div v-else-if="element.type === 'RICHTEXT'" class="fd-placeholder fd-rich">{{ $t('message.formDesigner.richtextArea') }}</div>
-              <div v-else-if="element.type === 'TABLE'" class="fd-placeholder">{{ $t('message.formDesigner.tablePlaceholder') }}</div>
-              <el-cascader v-else-if="element.type === 'CASCADE'" size="small" style="width:100%" :placeholder="$t('message.formDesigner.selectPlaceholder')" />
-              <el-input v-else size="small" :placeholder="element.type" />
-            </template>
-          </div>
-        </div>
-        <VueDraggable v-else v-model="localFields" group="form-fields" item-key="key" class="fd-drag-list"
+        <!-- Preview mode: use shared ItsmFormRenderer -->
+        <ItsmFormRenderer
+          v-if="previewMode && localFields.length"
+          mode="preview"
+          :fields="localFields"
+          :show-submit="false"
+        />
+        <!-- Design mode: VueDraggable wraps ItsmFormField for per-field drag + actions -->
+        <VueDraggable v-else-if="!previewMode" v-model="localFields" group="form-fields" item-key="key" class="fd-drag-list"
           @change="onSortChange">
           <template #item="{ element, index }">
-            <div class="fd-field-wrap" :class="[layoutClass(element.layout), { 'fd-selected': selectedIndex === index, 'fd-sec-wrap': element.type === 'SECTION' }]" @click.stop="selectField(index)">
-              <!-- Section type -->
-              <div v-if="element.type === 'SECTION'" class="fd-sec">
-                <div class="fd-sec-title">
-                  <el-icon><FolderOpened /></el-icon>
-                  {{ element.name || $t('message.formDesigner.unnamedGroup') }}
-                </div>
-                <div class="fd-sec-line" />
-              </div>
-              <!-- Regular field preview -->
-              <template v-else>
-                <div class="fd-field-label">
-                  {{ element.name || element.key }}
-                  <span v-if="element.required" class="fd-req">*</span>
-                  <span class="fd-field-type-tag">{{ typeLabel(element.type) }}</span>
-                </div>
-                <!-- STRING -->
-                <el-input v-if="element.type === 'STRING'" size="small" :placeholder="element.placeholder || $t('message.formDesigner.placeholder')" disabled />
-                <el-input v-else-if="element.type === 'TEXT'" type="textarea" :rows="2" size="small" :placeholder="element.placeholder || $t('message.formDesigner.placeholder')" disabled />
-                <el-input-number v-else-if="element.type === 'INT'" size="small" :min="0" disabled style="width:100%" />
-                <el-date-picker v-else-if="element.type === 'DATE'" type="date" size="small" disabled style="width:100%" />
-                <el-date-picker v-else-if="element.type === 'DATETIME'" type="datetime" size="small" disabled style="width:100%" />
-                <el-select v-else-if="element.type === 'SELECT'" size="small" disabled style="width:100%" :placeholder="$t('message.formDesigner.selectPlaceholder')">
-                  <el-option v-for="c in element.choice || []" :key="c.value" :label="c.label" :value="c.value" />
-                </el-select>
-                <el-radio-group v-else-if="element.type === 'RADIO'" disabled>
-                  <el-radio v-for="c in element.choice || []" :key="c.value" :value="c.value" style="margin-right:12px">{{ c.label }}</el-radio>
-                </el-radio-group>
-                <el-checkbox-group v-else-if="element.type === 'CHECKBOX'" disabled>
-                  <el-checkbox v-for="c in element.choice || []" :key="c.value" :value="c.value" style="margin-right:12px">{{ c.label }}</el-checkbox>
-                </el-checkbox-group>
-                <el-select v-else-if="element.type === 'MULTISELECT'" size="small" multiple disabled style="width:100%" :placeholder="$t('message.formDesigner.multiSelectPlaceholder')">
-                  <el-option v-for="c in element.choice || []" :key="c.value" :label="c.label" :value="c.value" />
-                </el-select>
-                <el-select v-else-if="element.type === 'MEMBERS'" size="small" filterable disabled style="width:100%" :placeholder="$t('message.formDesigner.selectUser')" />
-                <div v-else-if="element.type === 'FILE'" class="fd-placeholder">{{ $t('message.formDesigner.upload') }}</div>
-                <div v-else-if="element.type === 'RICHTEXT'" class="fd-placeholder fd-rich">{{ $t('message.formDesigner.richtextArea') }}</div>
-                <div v-else-if="element.type === 'TABLE'" class="fd-placeholder">{{ $t('message.formDesigner.tablePlaceholder') }}</div>
-                <el-cascader v-else-if="element.type === 'CASCADE'" size="small" disabled style="width:100%" :placeholder="$t('message.formDesigner.selectPlaceholder')" />
-                <el-input v-else size="small" disabled :placeholder="element.type" />
-                <!-- Field actions -->
-                <div class="fd-actions" @click.stop>
-                  <el-button size="small" text @click="onCopyField(index)"><el-icon><CopyDocument /></el-icon></el-button>
-                  <el-button size="small" text type="danger" @click="localFields.splice(index, 1)"><el-icon><Delete /></el-icon></el-button>
-                </div>
-              </template>
-            </div>
+            <ItsmFormField
+              :field="element"
+              :mode="'design'"
+              :selected="selectedIndex === index"
+              :show-type-tag="true"
+              :show-actions="true"
+              @select="selectField(index)"
+              @copy="onCopyField(index)"
+              @delete="localFields.splice(index, 1)"
+            />
           </template>
         </VueDraggable>
-        <div class="fd-add-sec" @click="addSection">{{ $t('message.formDesigner.addSection') }}</div>
+        <div v-if="!previewMode" class="fd-add-sec" @click="addSection">{{ $t('message.formDesigner.addSection') }}</div>
       </div>
     </div>
 
@@ -223,6 +152,8 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Delete, CopyDocument, FolderOpened } from '@element-plus/icons-vue'
 import VueDraggable from 'vuedraggable'
+import ItsmFormRenderer from '/@/components/ItsmFormRenderer/index.vue'
+import ItsmFormField from '/@/components/ItsmFormRenderer/ItsmFormField.vue'
 
 const { t } = useI18n()
 
@@ -292,13 +223,6 @@ const fieldTypeGroups = ref<FieldTypeGroup[]>([
   ]},
 ])
 
-const FIELD_LABELS: Record<string, string> = {
-  STRING: '文本', TEXT: '多行', INT: '数字', DATE: '日期', DATETIME: '时间',
-  SELECT: '下拉', RADIO: '单选', CHECKBOX: '复选', MULTISELECT: '多选',
-  MEMBERS: '人员', TABLE: '表格', FILE: '附件', RICHTEXT: '富文', CASCADE: '级联',
-}
-function typeLabel(t: string) { return FIELD_LABELS[t] || t }
-
 let keyCounter = Date.now()
 function createDefaultField(type: string): Field {
   keyCounter++
@@ -351,9 +275,6 @@ function onCopyField(index: number) {
   localFields.value.splice(index + 1, 0, copy)
 }
 
-function layoutClass(layout: string) {
-  return 'fd-layout-' + (layout || 'COL_12').toLowerCase().replace('col_', '')
-}
 function onSortChange() {
   // Re-index sort_order after drag
   localFields.value.forEach((f, i) => { f.sort_order = i })
@@ -388,30 +309,8 @@ function onSortChange() {
 .fd-canvas-body { flex: 1; overflow-y: auto; padding: 12px; }
 .fd-canvas-empty { text-align: center; color: #C0C4CC; font-size: 13px; padding: 60px 20px; border: 2px dashed #e4e7ed; border-radius: 8px; }
 .fd-drag-list { min-height: 200px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
-.fd-field-wrap { position: relative; border: 2px solid transparent; border-radius: 6px; padding: 8px; transition: border-color 0.2s; background: #fff; cursor: pointer; }
-.fd-field-wrap:hover { border-color: #d9ecff; }
-.fd-field-wrap.fd-selected { border-color: #409EFF; box-shadow: 0 0 0 2px rgba(64,158,255,0.15); }
-.fd-field-wrap.fd-sec-wrap { border: none; padding: 4px 0; cursor: default; }
-.fd-layout-12 { width: 100%; }
-.fd-layout-8 { width: calc(66.66% - 6px); }
-.fd-layout-6 { width: calc(50% - 4px); }
-.fd-layout-4 { width: calc(33.33% - 6px); }
-.fd-layout-3 { width: calc(25% - 6px); }
-.fd-field-label { font-size: 12px; color: #606266; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
-.fd-req { color: #F56C6C; }
-.fd-field-type-tag { font-size: 10px; color: #909399; background: #f5f7fa; padding: 0 6px; border-radius: 3px; line-height: 16px; }
-.fd-placeholder { border: 1px dashed #d9ecff; border-radius: 4px; padding: 8px; font-size: 12px; color: #909399; text-align: center; background: #fafafa; }
-.fd-rich { min-height: 48px; }
-.fd-actions { position: absolute; top: 4px; right: 4px; display: none; gap: 2px; }
-.fd-field-wrap:hover .fd-actions { display: flex; }
-.fd-actions :deep(.el-button) { padding: 2px 4px; min-height: 0; }
 .fd-add-sec { text-align: center; padding: 6px 0; font-size: 12px; color: #409EFF; cursor: pointer; border: 1px dashed #d9ecff; border-radius: 4px; margin-top: 4px; width: 100%; }
 .fd-add-sec:hover { background: #ecf5ff; }
-
-/* Section */
-.fd-sec { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 0; }
-.fd-sec-title { font-size: 13px; font-weight: 600; color: #303133; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
-.fd-sec-line { flex: 1; height: 1px; background: #e4e7ed; }
 
 /* Right properties */
 .fd-props { width: 260px; flex-shrink: 0; border-left: 1px solid #e4e7ed; background: #fafafa; padding: 12px; overflow-y: auto; }

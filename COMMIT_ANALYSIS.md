@@ -2,6 +2,42 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## a5c1083f
+
+> 提交日期: 2026-07-08 | 提交信息: feat: ITSM WYSIWYG form renderer + service catalog flow
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `web/src/components/ItsmFormRenderer/` (10 files) | 前端 | 新增 WYSIWYG 表单渲染器组件体系 |
+| `web/src/views/apps/itsm/designer/FormDesigner.vue` | 前端 | 预览模式→ItsmFormRenderer；设计模式→ItsmFormField+VueDraggable |
+| `web/src/views/apps/itsm/TicketDetail.vue` | 前端 | 填单→ItsmFormRenderer mode=fill |
+| `web/src/views/apps/itsm/catalog/ServiceDetail.vue` | 前端 | 加载节点字段+ItsmFormRenderer；CSS flex 铺满 |
+| `web/src/views/apps/itsm/catalog/ServiceAdmin.vue` | 前端 | 预览→ItsmFormRenderer mode=preview |
+| `web/src/views/apps/itsm/index.vue` | 前端 | itsm-body/section CSS flex fill |
+| `backend/itsm/views/service_item.py` | 后端 | 同步 auto-complete + callback 推进 pipeline；project_id 修复 |
+| `backend/itsm/pipeline_plugins/components.py` | 后端 | execute() FINISHED 保护 + schedule() skip |
+
+### 解决
+
+- **问题/背景：** 设计器 15 种字段 vs 填单器 3 种，代码重复 ~400 行；服务目录提单后 pipeline CALLBACK schedule 永久等待
+- **办法：** 提取 ItsmFormRenderer 共享组件（4 处复用）；_submit_flow 同步完成第一节点 + activity_callback 推进 pipeline；ticket.project 用请求上下文 project_id
+
+### 文档
+
+- **生成文档：** 
+  - `docs/itsm/features/2026-07-08-wysiwyg-form-renderer.md`
+
+### 验证
+
+- 改动类型: feat + fix + refactor
+- 清理乱码: formData[k] (空文件)
+- 子 App index.md 更新: itsm
+- 工作区状态: 干净 ✅
+
+---
+
 ## db5ad6f9
 
 > 提交日期: 2026-07-07 | 提交信息: refactor: extract ITSM inline tabs to components + fix project scoping bugs

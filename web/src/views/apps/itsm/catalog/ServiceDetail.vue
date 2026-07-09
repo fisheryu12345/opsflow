@@ -31,65 +31,30 @@
       <!-- Form -->
       <div class="sd-section">
         <div class="sd-section-title">{{ $t('message.serviceDetail.applyInfo') }}</div>
-        <el-form label-position="top" size="small" class="sd-form">
-          <el-form-item :label="$t('message.serviceDetail.applyTitle')" required>
-            <el-input v-model="form.title" :placeholder="$t('message.serviceDetail.applyTitlePlaceholder')" :maxlength="200" />
-          </el-form-item>
-          <el-form-item :label="$t('message.serviceDetail.priority')">
-            <el-select v-model="form.priority" style="width:100%">
-              <el-option :label="$t('message.serviceDetail.p1')" value="P1" />
-              <el-option :label="$t('message.serviceDetail.p2')" value="P2" />
-              <el-option :label="$t('message.serviceDetail.p3')" value="P3" />
-              <el-option :label="$t('message.serviceDetail.p4')" value="P4" />
-            </el-select>
-          </el-form-item>
-
-          <!-- Dynamic fields from service item form_fields -->
-          <template v-for="(field, idx) in item.form_fields || []" :key="idx">
-            <el-form-item :label="field.name" :required="field.required">
-              <template v-if="field.type === 'TEXT'">
-                <el-input v-model="formData[field.key]" type="textarea" :rows="3" :placeholder="field.placeholder" />
-              </template>
-              <template v-else-if="field.type === 'SELECT'">
-                <el-select v-model="formData[field.key]" style="width:100%" :placeholder="field.placeholder">
-                  <el-option v-for="c in (field.choice || [])" :key="c.value" :label="c.label" :value="c.value" />
-                </el-select>
-              </template>
-              <template v-else-if="field.type === 'RADIO'">
-                <el-radio-group v-model="formData[field.key]">
-                  <el-radio v-for="c in (field.choice || [])" :key="c.value" :value="c.value">{{ c.label }}</el-radio>
-                </el-radio-group>
-              </template>
-              <template v-else-if="field.type === 'CHECKBOX'">
-                <el-checkbox-group v-model="formData[field.key]">
-                  <el-checkbox v-for="c in (field.choice || [])" :key="c.value" :label="c.value">{{ c.label }}</el-checkbox>
-                </el-checkbox-group>
-              </template>
-              <template v-else>
-                <el-input v-model="formData[field.key]" :placeholder="field.placeholder" />
-              </template>
-            </el-form-item>
-          </template>
-        </el-form>
+        <ItsmFormRenderer
+          mode="fill"
+          :fields="nodeFormFields"
+          :data="formData"
+          :submitting="submitting"
+          :submit-text="$t('message.serviceDetail.submitApply')"
+          :cancel-text="$t('message.common.cancel')"
+          @field-change="(k, v) => formData[k] = v"
+          @submit="onSubmit"
+          @cancel="$emit('back')"
+        />
       </div>
 
-      <!-- Submit -->
-      <div class="sd-actions">
-        <el-button @click="$emit('back')">{{ $t('message.common.cancel') }}</el-button>
-        <el-button type="primary" :loading="submitting" @click="onSubmit">
-          <el-icon><Select /></el-icon> {{ $t('message.serviceDetail.submitApply') }}
-        </el-button>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Select } from '@element-plus/icons-vue'
-import { serviceItemApi, SubmitServiceItem } from '/@/api/itsm/index'
+import { ArrowLeft } from '@element-plus/icons-vue'
+import ItsmFormRenderer from '/@/components/ItsmFormRenderer/index.vue'
+import { serviceItemApi, SubmitServiceItem, stateApi } from '/@/api/itsm/index'
 
 const props = defineProps<{ serviceId: number }>()
 const emit = defineEmits<{ back: []; submitted: [ticketId: number] }>()
@@ -98,33 +63,75 @@ const { t } = useI18n()
 const loading = ref(false)
 const submitting = ref(false)
 const item = ref<any>(null)
+const workflowFields = ref<any[]>([])
 
-const form = reactive({ title: '', priority: 'P3' })
 const formData = reactive<Record<string, any>>({})
+
+// Use workflow's first NORMAL node fields as the form
+const nodeFormFields = computed(() => {
+  if (workflowFields.value.length) return workflowFields.value
+  // Fallback: item.form_fields if no workflow fields loaded
+  return item.value?.form_fields || []
+})
 
 async function loadDetail() {
   loading.value = true
   try {
     const res = await serviceItemApi.detail(String(props.serviceId))
     item.value = (res as any).data || res
+    // Load the workflow's first NORMAL node fields for the form
+    if (item.value?.mode === 'flow' && item.value?.workflow) {
+      await loadWorkflowFields()
+    }
   } catch {
     ElMessage.error('加载服务详情失败')
   }
   loading.value = false
 }
 
-async function onSubmit() {
-  if (!form.title.trim()) {
-    ElMessage.warning('请输入申请标题')
+async function loadWorkflowFields() {
+  try {
+    const res: any = await stateApi.list({ workflow: item.value.workflow, type: 'NORMAL' })
+    const states = res?.results || res?.data || res || []
+    const list = Array.isArray(states) ? states : []
+    const firstNormal = list.find((s: any) => s.type === 'NORMAL')
+    if (firstNormal) {
+      const fields = firstNormal.fields || []
+      // Merge service item overrides into workflow fields
+      const overrides = item.value?.form_fields || []
+      const merged = [...fields]
+      const existingKeys = new Set(fields.map((f: any) => f.key))
+      for (const f of overrides) {
+        if (!existingKeys.has(f.key)) merged.push(f)
+      }
+      workflowFields.value = merged
+    }
+  } catch {
+    // Fallback: use item.form_fields
+    workflowFields.value = item.value?.form_fields || []
+  }
+}
+
+async function onSubmit(data?: Record<string, any>) {
+  if (submitting.value) return  // Prevent double submission
+  const source = data || formData
+  console.log('[ServiceDetail] onSubmit source:', JSON.stringify(source))
+  // Extract title from form data (workflow field) or fallback to service item name
+  const title = (source.title || source['title'] || item.value?.name || '').trim()
+  if (!title) {
+    ElMessage.warning('请输入标题')
     return
   }
   submitting.value = true
   try {
-    const res = await SubmitServiceItem(props.serviceId, {
-      title: form.title,
-      priority: form.priority,
-      form_data: { ...formData },
-    })
+    const { title: _title, priority, ...rest } = source
+    const payload = {
+      title: _title || title,
+      priority: priority || 'P3',
+      form_data: { title: _title || title, priority: priority || 'P3', ...rest },
+    }
+    console.log('[ServiceDetail] SubmitServiceItem payload:', JSON.stringify(payload))
+    const res = await SubmitServiceItem(props.serviceId, payload)
     const respData = (res as any).data || res
     const ticketId = respData?.ticket_id
     if (ticketId) {
@@ -144,9 +151,22 @@ onMounted(() => loadDetail())
 
 <style lang="scss" scoped>
 .service-detail {
-  max-width: 100%;
-  margin: 0 auto;
-  padding: 8px 0 24px;
+  width: 100%;
+  height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px 24px;
+}
+
+.sd-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  overflow: hidden;
 }
 
 .sd-back {
@@ -158,13 +178,6 @@ onMounted(() => loadDetail())
   cursor: pointer;
   margin-bottom: 16px;
   &:hover { text-decoration: underline; }
-}
-
-.sd-card {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-  overflow: hidden;
 }
 
 .sd-header {

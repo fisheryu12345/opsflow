@@ -190,30 +190,11 @@
         <div v-if="previewItem.description" class="sa-preview-desc">{{ previewItem.description }}</div>
         <div v-if="previewItem.form_fields?.length" class="sa-preview-fields">
           <div class="sa-preview-section-title">{{ $t('message.serviceAdmin.previewForm') }}</div>
-          <div v-for="(f, idx) in previewItem.form_fields" :key="idx" class="sa-preview-field">
-            <div class="sa-preview-field-label">{{ f.name }}<span v-if="f.required" style="color:#F56C6C;"> *</span></div>
-            <div class="sa-preview-field-value">
-              <template v-if="f.type === 'TEXT'">
-                <div class="sa-preview-input sa-preview-textarea">{{ f.placeholder || '' }}</div>
-              </template>
-              <template v-else-if="f.type === 'SELECT'">
-                <div class="sa-preview-input">{{ $t('message.serviceAdmin.previewSelectPlaceholder', { name: f.name }) }}</div>
-              </template>
-              <template v-else-if="f.type === 'RADIO'">
-                <div class="sa-preview-input">
-                  <span v-for="(c, ci) in (f.choice || [])" :key="ci" style="margin-right:16px;">○ {{ c.label }}</span>
-                </div>
-              </template>
-              <template v-else-if="f.type === 'CHECKBOX'">
-                <div class="sa-preview-input">
-                  <span v-for="(c, ci) in (f.choice || [])" :key="ci" style="margin-right:16px;">□ {{ c.label }}</span>
-                </div>
-              </template>
-              <template v-else>
-                <div class="sa-preview-input">{{ f.placeholder || '' }}</div>
-              </template>
-            </div>
-          </div>
+          <ItsmFormRenderer
+            mode="preview"
+            :fields="previewItem.form_fields"
+            :show-submit="false"
+          />
         </div>
         <div class="sa-preview-footer">
           <el-tag v-if="previewItem.workflow_name" type="info" size="small">
@@ -235,6 +216,7 @@ import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, FolderOpened, Edit, Delete } from '@element-plus/icons-vue'
+import ItsmFormRenderer from '/@/components/ItsmFormRenderer/index.vue'
 import { serviceItemApi, workflowApi, serviceCategoryApi } from '/@/api/itsm/index'
 
 const props = withDefaults(defineProps<{ active?: boolean }>(), { active: false })

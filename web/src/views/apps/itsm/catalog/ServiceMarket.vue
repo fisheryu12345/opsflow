@@ -265,7 +265,7 @@ watch(() => props.active, (isActive) => {
   background: #f5f6fa;
   z-index: 1000;
   overflow-y: auto;
-  padding: 16px 20px;
+  padding: 16px 0 0;
 }
 
 </style>
