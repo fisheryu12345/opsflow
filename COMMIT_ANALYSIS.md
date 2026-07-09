@@ -2,6 +2,46 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+## 34b64ce6
+
+> Date: 2026-07-09 | Message: feat: ITSM Preset — reusable processor/field-options presets + FormDesigner integration + code review fixes
+
+### Changes
+
+| File | Type | Description |
+|------|------|-------------|
+| `backend/itsm/models/preset.py` | Backend | New Preset model (5 types: user_list/role_list/dept_list/text/options) |
+| `backend/itsm/serializers/preset.py` | Backend | PresetSerializer with 3-tier cascade sync (State/Fied/State.fields JSON) |
+| `backend/itsm/views/preset_views.py` | Backend | PresetViewSet CRUD with project permission enforcement |
+| `backend/itsm/views/workflow_views.py` | Backend | _expand_preset_processors field-level expansion, batch_update preset resolution |
+| `backend/itsm/models/field.py` | Backend | Added preset FK to Field model |
+| `web/src/views/apps/itsm/components/PresetList.vue` | Frontend | Preset management tab (CRUD, type filter, dynamic value editors) |
+| `web/src/views/apps/itsm/designer/components/PresetProcessorInput.vue` | Frontend | Shared preset/manual toggle component (extracted 8x duplication) |
+| `web/src/views/apps/itsm/designer/DesignerConfigPanel.vue` | Frontend | Node processor config: preset selection for PERSON/ROLE/ORGANIZATION |
+| `web/src/views/apps/itsm/designer/FormDesigner.vue` | Frontend | Field options: source toggle (manual/preset), preset preview, unified defaults |
+| `web/src/views/apps/itsm/designer/useDesigner.ts` | Frontend | preset_id conditional send (_usePreset guard) |
+| `web/src/views/apps/itsm/TicketDetail.vue` | Frontend | isProcessor fix (exact match + legacy comma support), form visible to observers |
+| `web/src/i18n/pages/itsm/*.ts` | Frontend | i18n keys for manualInput, fromPreset, presetLoaded |
+
+### Solved
+
+- **Problem:** Workflow nodes and form fields required repetitive manual entry of processor lists and option choices
+- **Solution:** Preset model with cascade sync — define once, reference anywhere, changes propagate automatically
+- **Also fixed:** 15 code review findings including int() crash guard, IntegrityError on deleted preset, type guard for processors expansion, empty array truthiness, legacy comma-separated processors, personUsers restore, stale defaults reset
+
+### Docs
+
+- Generated: `docs/itsm/features/2026-07-09-preset-management.md`
+
+### Verification
+
+- Type: feat + fix + refactor
+- Stray files cleaned: PresetSelector dead code removed
+- App index.md updated: itsm
+- Workspace: clean
+
+---
+
 ## a5c1083f
 
 > 提交日期: 2026-07-08 | 提交信息: feat: ITSM WYSIWYG form renderer + service catalog flow

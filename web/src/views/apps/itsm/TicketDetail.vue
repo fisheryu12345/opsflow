@@ -98,7 +98,7 @@
         <div class="td-card-title">{{ $t('message.ticketDetail.currentNode') }} · {{ currentNode.name }}</div>
         <div class="td-action-body">
           <template v-if="currentNode.type === 'APPROVAL' || currentNode.type === 'SIGN'">
-            <div class="td-processor" v-if="currentNode.processor_name || currentNode.processors">
+            <div class="td-processor">
               <el-icon><User /></el-icon> {{ $t('message.ticketDetail.processor') }}: {{ currentNode.processor_name || currentNode.processors }}
             </div>
             <ItsmFormRenderer
@@ -110,13 +110,19 @@
               :show-submit="false"
               @field-change="(k, v) => fillForm[k] = v"
             />
-            <div class="td-approval-btns">
-              <el-button type="success" :loading="submitting" @click="onApprove">
-                <el-icon><Select /></el-icon> {{ $t('message.ticketDetail.approveBtn') }}
-              </el-button>
-              <el-button type="danger" :loading="submitting" @click="onReject">
-                <el-icon><Close /></el-icon> {{ $t('message.ticketDetail.rejectBtn') }}
-              </el-button>
+            <template v-if="isProcessor(currentNode.processors)">
+              <div class="td-approval-btns">
+                <el-button type="success" :loading="submitting" @click="onApprove">
+                  <el-icon><Select /></el-icon> {{ $t('message.ticketDetail.approveBtn') }}
+                </el-button>
+                <el-button type="danger" :loading="submitting" @click="onReject">
+                  <el-icon><Close /></el-icon> {{ $t('message.ticketDetail.rejectBtn') }}
+                </el-button>
+              </div>
+            </template>
+            <div v-else class="td-action-placeholder">
+              <p>{{ currentNode.name }}（{{ stepTypeLabel(currentNode.type) }}）</p>
+              <p style="font-size:12px;color:#E6A23C">您不是当前节点处理人，无法操作</p>
             </div>
           </template>
 
@@ -172,10 +178,34 @@ import { ArrowLeft, ArrowRight, ArrowDown, User, Select, Close } from '@element-
 import FlowChart from './FlowChart.vue'
 import ItsmFormRenderer from '/@/components/ItsmFormRenderer/index.vue'
 import { ticketApi, GetTicketStatus, NodeSubmit, SubmitTicket, ApproveTicketNode, RejectTicketNode, workflowVersionApi } from '/@/api/itsm/index'
+import { useUserInfo } from '/@/stores/userInfo'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const userInfo = useUserInfo()
+
+function getMyUsername(): string {
+  const raw = sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo')
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw)
+      return parsed.username || parsed.name || ''
+    } catch {}
+  }
+  return userInfo.userInfos.username || ''
+}
+
+function isProcessor(processors: string): boolean {
+  const username = getMyUsername()
+  if (!username || !processors) return false
+  try {
+    const arr = JSON.parse(processors)
+    if (Array.isArray(arr)) return arr.some((u: string) => u === username)
+  } catch {}
+  // Fallback: exact match for single processor or split comma-separated legacy format
+  return processors === username || processors.split(',').some((u: string) => u.trim() === username)
+}
 
 const loading = ref(false)
 const submitting = ref(false)

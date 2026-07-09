@@ -95,9 +95,12 @@
           </el-form-item>
           <el-form-item :label="$t('message.formDesigner.defaultValue')">
             <el-input v-if="['STRING','TEXT'].includes(selectedField.type)" v-model="selectedField.default" />
-            <el-select v-else-if="selectedField.type === 'SELECT'" v-model="selectedField.default" clearable size="small" style="width:100%">
+            <el-select v-else-if="['SELECT','RADIO','MULTISELECT'].includes(selectedField.type)" v-model="selectedField.default" clearable size="small" style="width:100%">
               <el-option v-for="c in selectedField.choice || []" :key="c.value" :label="c.label" :value="c.value" />
             </el-select>
+            <el-checkbox-group v-else-if="selectedField.type === 'CHECKBOX'" v-model="selectedField.default" size="small">
+              <el-checkbox v-for="c in selectedField.choice || []" :key="c.value" :label="c.value">{{ c.label }}</el-checkbox>
+            </el-checkbox-group>
           </el-form-item>
         </template>
         <template v-else>
@@ -108,17 +111,48 @@
 
         <!-- Choices editor (SELECT/RADIO/CHECKBOX/MULTISELECT) -->
         <div v-if="showChoicesEditor(selectedField.type)" class="fd-choices">
-          <div class="fd-choices-title">{{ $t('message.formDesigner.choices') }}
-            <el-button size="small" text @click="addChoice">{{ $t('message.formDesigner.addChoice') }}</el-button>
+          <!-- Source toggle: manual vs preset -->
+          <div class="fd-choices-source">
+            <label class="fd-radio-label" :class="{ active: !selectedField._usePreset }" @click="setSourceMode(false)">
+              {{ $t('message.formDesigner.manualInput') }}
+            </label>
+            <label class="fd-radio-label" :class="{ active: selectedField._usePreset }" @click="setSourceMode(true)">
+              {{ $t('message.formDesigner.fromPreset') }}
+            </label>
           </div>
-          <div v-for="(c, ci) in selectedField.choice" :key="ci" class="fd-choice-row">
-            <el-input v-model="c.label" size="small" :placeholder="$t('message.formDesigner.dispName')" style="flex:1" />
-            <el-input v-model="c.value" size="small" :placeholder="$t('message.formDesigner.value')" style="flex:1;margin:0 4px" />
-            <el-button size="small" text type="danger" @click="selectedField.choice.splice(ci, 1)">
-              <el-icon><Delete /></el-icon>
-            </el-button>
+
+          <!-- Preset mode: dropdown + preview + default value -->
+          <div v-if="selectedField._usePreset" class="fd-preset-select">
+            <el-select v-model="selectedField.preset_id" filterable clearable size="small" style="width:100%"
+              :placeholder="$t('message.preset.selectPreset')" @change="onPresetChange">
+              <el-option v-for="p in presetOptions" :key="p.id" :label="p.name" :value="p.id" />
+            </el-select>
+            <!-- Preview loaded options -->
+            <div v-if="selectedField.choice?.length" class="fd-preset-preview">
+              <div style="font-size:11px;color:#67C23A;margin-bottom:4px">
+                ✓ {{ $t('message.formDesigner.presetLoaded', { n: selectedField.choice.length }) }}
+              </div>
+              <div v-for="(c, ci) in selectedField.choice" :key="ci" class="fd-preset-option">
+                <span class="fd-preset-option-label">{{ c.label }}</span>
+                <span class="fd-preset-option-value">{{ c.value }}</span>
+              </div>
+            </div>
           </div>
-          <div v-if="!selectedField.choice?.length" class="fd-choices-empty">{{ $t('message.formDesigner.noChoice') }}</div>
+
+          <!-- Manual mode: existing choice rows -->
+          <template v-else>
+            <div class="fd-choices-title">{{ $t('message.formDesigner.choices') }}
+              <el-button size="small" text @click="addChoice">{{ $t('message.formDesigner.addChoice') }}</el-button>
+            </div>
+            <div v-for="(c, ci) in selectedField.choice" :key="ci" class="fd-choice-row">
+              <el-input v-model="c.label" size="small" :placeholder="$t('message.formDesigner.dispName')" style="flex:1" />
+              <el-input v-model="c.value" size="small" :placeholder="$t('message.formDesigner.value')" style="flex:1;margin:0 4px" />
+              <el-button size="small" text type="danger" @click="selectedField.choice.splice(ci, 1)">
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </div>
+            <div v-if="!selectedField.choice?.length" class="fd-choices-empty">{{ $t('message.formDesigner.noChoice') }}</div>
+          </template>
         </div>
 
         <!-- Show condition -->
@@ -148,19 +182,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Delete, CopyDocument, FolderOpened } from '@element-plus/icons-vue'
 import VueDraggable from 'vuedraggable'
 import ItsmFormRenderer from '/@/components/ItsmFormRenderer/index.vue'
 import ItsmFormField from '/@/components/ItsmFormRenderer/ItsmFormField.vue'
+import { presetApi } from '/@/api/itsm/index'
 
 const { t } = useI18n()
 
 const props = defineProps<{ fields?: any[] }>()
 const emit = defineEmits<{ save: [fields: any[]]; cancel: [] }>()
 
-interface Field { key: string; name?: string; type: string; required: boolean; layout: string; choice?: any[]; default?: any; placeholder?: string; sort_order?: number; show_conditions?: any }
+interface Field { key: string; name?: string; type: string; required: boolean; layout: string; choice?: any[]; default?: any; placeholder?: string; sort_order?: number; show_conditions?: any; _usePreset?: boolean; preset_id?: number | null }
 
 const localFields = ref<Field[]>([])
 const selectedIndex = ref<number | null>(null)
@@ -183,9 +218,13 @@ function setGlobalColumns(cols: number) {
   }
 }
 
-// Initialize from props
+// Initialize _usePreset on all fields when loading from props
 watch(() => props.fields, (f) => {
   localFields.value = f ? JSON.parse(JSON.stringify(f)) : []
+  // Ensure backward compat: init _usePreset for loaded fields with preset_id
+  localFields.value.forEach(field => {
+    if (field._usePreset == null) field._usePreset = field.preset_id != null
+  })
   selectedIndex.value = null
 }, { immediate: true })
 
@@ -267,6 +306,10 @@ function selectField(index: number) {
   selectedIndex.value = index
   const f = localFields.value[index]
   showConditionEnabled.value = !!(f.show_conditions?.field)
+  // Ensure _usePreset is initialized on every field (handles both new and loaded fields)
+  if (f) {
+    if (f._usePreset == null) f._usePreset = f.preset_id != null
+  }
 }
 
 function onCopyField(index: number) {
@@ -279,6 +322,45 @@ function onSortChange() {
   // Re-index sort_order after drag
   localFields.value.forEach((f, i) => { f.sort_order = i })
 }
+
+// ── 预设选项加载 ──
+const presetOptions = ref<any[]>([])
+
+async function loadPresets() {
+  try {
+    const res = await presetApi.list({ preset_type: 'options', page_size: 200 })
+    presetOptions.value = (res as any).data || []
+  } catch { presetOptions.value = [] }
+}
+
+function setSourceMode(usePreset: boolean) {
+  if (!selectedField.value) return
+  selectedField.value._usePreset = usePreset
+  if (usePreset) {
+    // Switching to preset: keep existing choice for fallback
+  } else {
+    // Switching to manual: clear preset reference, keep current choice
+    selectedField.value.preset_id = null
+  }
+}
+
+function onPresetChange(presetId: number | null) {
+  if (!selectedField.value) return
+  // Clear stale default when choice options change
+  selectedField.value.default = undefined
+  if (presetId) {
+    const preset = presetOptions.value.find((p: any) => p.id === presetId)
+    if (preset && preset.value) {
+      selectedField.value.choice = JSON.parse(JSON.stringify(preset.value))
+      selectedField.value.preset_id = presetId
+    }
+  } else {
+    selectedField.value.preset_id = null
+    selectedField.value.choice = []
+  }
+}
+
+onMounted(() => { loadPresets() })
 </script>
 
 <style scoped>
@@ -317,6 +399,15 @@ function onSortChange() {
 .fd-props-title { font-size: 12px; font-weight: 600; color: #303133; margin-bottom: 12px; }
 .fd-props-empty { display: flex; align-items: center; justify-content: center; }
 .fd-choices { border-top: 1px solid #e4e7ed; padding-top: 12px; margin-top: 4px; }
+.fd-choices-source { display: flex; gap: 0; margin-bottom: 10px; border-radius: 4px; overflow: hidden; border: 1px solid #dcdfe6; }
+.fd-radio-label { flex: 1; text-align: center; padding: 4px 0; font-size: 12px; cursor: pointer; background: #f5f7fa; color: #909399; transition: all 0.2s; }
+.fd-radio-label.active { background: #ecf5ff; color: #409EFF; font-weight: 600; }
+.fd-radio-label:hover:not(.active) { color: #606266; }
+.fd-preset-select { margin-bottom: 8px; }
+.fd-preset-preview { margin-top: 8px; padding: 8px; background: #f0f9eb; border-radius: 4px; }
+.fd-preset-option { display: flex; gap: 8px; font-size: 11px; padding: 2px 0; }
+.fd-preset-option-label { color: #606266; min-width: 60px; }
+.fd-preset-option-value { color: #909399; font-family: monospace; }
 .fd-choices-title { font-size: 12px; font-weight: 600; color: #606266; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
 .fd-choice-row { display: flex; align-items: center; margin-bottom: 4px; }
 .fd-choices-empty { font-size: 11px; color: #C0C4CC; padding: 4px 0; }

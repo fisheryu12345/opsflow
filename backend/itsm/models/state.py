@@ -54,6 +54,12 @@ class State(CoreModel):
     finish_condition = models.JSONField(default=dict, verbose_name="完成条件")
     is_allow_skip = models.BooleanField(default=False, verbose_name="允许跳过")
 
+    # 预设引用
+    preset = models.ForeignKey(
+        'itsm.Preset', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='states', verbose_name="关联预设",
+    )
+
     # 字段配置与扩展
     fields = models.JSONField(default=list, verbose_name="表单字段定义")
     extras = models.JSONField(default=dict, verbose_name="扩展配置")

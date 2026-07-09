@@ -117,3 +117,6 @@ export function GetMyDelegations() {
 // ===== Escalation (升级层级) =====
 export const escalationApi = createCrudApi('escalation-levels')
 
+// ===== Presets (预设管理) =====
+export const presetApi = createCrudApi('presets')
+

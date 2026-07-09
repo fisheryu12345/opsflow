@@ -56,6 +56,11 @@ class Field(CoreModel):
                                     default='CUSTOM', verbose_name="数据来源")
     meta = models.JSONField(default=dict, verbose_name="扩展元数据")
     sort_order = models.IntegerField(default=0, verbose_name="排序")
+    # Preset reference for options fields — allows reusing option lists from Preset
+    preset = models.ForeignKey(
+        'itsm.Preset', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='field_defs', verbose_name="关联预设",
+    )
 
     class Meta:
         db_table = table_prefix + "itsm_workflow_field"

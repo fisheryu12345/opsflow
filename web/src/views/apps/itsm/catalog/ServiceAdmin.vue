@@ -133,7 +133,18 @@
         <el-row :gutter="16">
           <el-col :span="8">
             <el-form-item :label="$t('message.serviceAdmin.formIcon')">
-              <el-input v-model="form.icon" placeholder="🖥️" maxlength="8" />
+              <div class="sa-icon-input-row">
+                <span class="sa-icon-preview">{{ form.icon || '📋' }}</span>
+                <el-popover placement="bottom-start" :width="360" trigger="click">
+                  <template #reference>
+                    <el-button size="small">{{ $t('message.serviceAdmin.chooseIcon') }}</el-button>
+                  </template>
+                  <div class="sa-emoji-picker">
+                    <span v-for="emoji in emojiList" :key="emoji" class="sa-emoji-opt"
+                      :class="{ active: form.icon === emoji }" @click="form.icon = emoji">{{ emoji }}</span>
+                  </div>
+                </el-popover>
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -221,6 +232,8 @@ import { serviceItemApi, workflowApi, serviceCategoryApi } from '/@/api/itsm/ind
 
 const props = withDefaults(defineProps<{ active?: boolean }>(), { active: false })
 const { t } = useI18n()
+const emojiList = ['📋','🖥️','🔧','🛡️','📡','💾','🗄️','🔑','📧','🌐','⚙️','📊','🔔','📁','🔄','💡','🗂️','📌','🏷️','📎','🔒','🔓','📞','📟','📠','📱','📲','💻','🖨️','🖱️','🖲️','💿','📀','🗜️','⚡','🔥','⭐','✅','❌','⚠️','ℹ️']
+
 const { searchEl, reportStats: updateHeroStats } = useHeroConsumer()
 
 const loading = ref(false)
@@ -415,6 +428,12 @@ watch(() => props.active, (isActive) => {
 .sa-preview { font-size: 13px; }
 .sa-preview-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .sa-preview-icon { font-size: 32px; }
+.sa-icon-input-row { display: flex; align-items: center; gap: 10px; }
+.sa-icon-input-row .sa-icon-preview { font-size: 24px; min-width: 36px; text-align: center; }
+.sa-emoji-picker { display: flex; flex-wrap: wrap; gap: 6px; max-height: 300px; overflow-y: auto; }
+.sa-emoji-opt { font-size: 22px; cursor: pointer; padding: 6px 8px; border-radius: 6px; border: 1px solid transparent; transition: all 0.15s; }
+.sa-emoji-opt:hover { background: #ecf5ff; border-color: #409EFF; }
+.sa-emoji-opt.active { background: #409EFF; }
 .sa-preview-name { font-size: 16px; font-weight: 600; color: #303133; }
 .sa-preview-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
 .sa-preview-tag { font-size: 11px; color: #909399; }

@@ -20,6 +20,7 @@ from .views.dashboard import DashboardViewSet
 from .views.delegation import DelegationViewSet
 from .views.service_item import ServiceItemViewSet
 from .views.escalation_views import EscalationLevelViewSet
+from .views.preset_views import PresetViewSet
 
 router = routers.SimpleRouter()
 # Existing ITSM routes
@@ -45,6 +46,9 @@ router.register(r'service-items', ServiceItemViewSet)
 
 # Escalation hierarchy
 router.register(r'escalation-levels', EscalationLevelViewSet)
+
+# Presets (预设管理)
+router.register(r'presets', PresetViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

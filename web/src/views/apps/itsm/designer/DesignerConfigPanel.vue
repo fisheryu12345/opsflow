@@ -27,20 +27,48 @@
                 <el-option :label="$t('message.designer.starterLeader')" value="STARTER_LEADER" />
                 <el-option :label="$t('message.designer.designatedPerson')" value="PERSON" />
                 <el-option :label="$t('message.designer.role')" value="ROLE" />
+                <el-option :label="$t('message.designer.organization')" value="ORGANIZATION" />
                 <el-option :label="$t('message.designer.starter')" value="STARTER" />
               </el-select>
             </el-form-item>
-            <template v-if="node.processors_type === 'PERSON'">
-              <el-form-item :label="$t('message.designer.processor')">
-                <el-select v-model="personUsers" multiple filterable size="small" style="width:100%"
-                  :loading="usersLoading" :placeholder="$t('message.designer.searchUserPlaceholder')" @focus="loadUsers" @change="onPersonChange">
-                  <el-option v-for="u in userOptions" :key="u.username" :label="`${u.name} (${u.username})`" :value="u.username" />
-                </el-select>
-              </el-form-item>
-            </template>
-            <el-form-item v-if="node.processors_type === 'ROLE'" :label="$t('message.designer.processor')">
-              <el-input v-model="node.processorsRaw" @input="onChange" :placeholder="$t('message.designer.rolePlaceholder')" />
-            </el-form-item>
+            <PresetProcessorInput
+              v-if="node.processors_type === 'PERSON'"
+              preset-type="user_list"
+              input-mode="select"
+              :node="node"
+              v-model:person-users="personUsers"
+              :user-options="userOptions"
+              :users-loading="usersLoading"
+              :preset-options="presetOptions"
+              :manual-placeholder="$t('message.designer.searchUserPlaceholder')"
+              @load-users="loadUsers"
+              @person-change="onPersonChange()"
+              @change="onChange()"
+            />
+            <PresetProcessorInput
+              v-if="node.processors_type === 'ORGANIZATION'"
+              preset-type="dept_list"
+              input-mode="text"
+              :node="node"
+              :person-users="[]"
+              :user-options="[]"
+              :users-loading="false"
+              :preset-options="presetOptions"
+              :manual-placeholder="$t('message.preset.deptPlaceholder')"
+              @change="onChange()"
+            />
+            <PresetProcessorInput
+              v-if="node.processors_type === 'ROLE'"
+              preset-type="role_list"
+              input-mode="text"
+              :node="node"
+              :person-users="[]"
+              :user-options="[]"
+              :users-loading="false"
+              :preset-options="presetOptions"
+              :manual-placeholder="$t('message.designer.rolePlaceholder')"
+              @change="onChange()"
+            />
             <el-form-item :label="$t('message.designer.approvalMethod')">
               <el-radio-group v-model="node.is_multi" @change="onChange">
                 <el-radio :label="false">{{ $t('message.designer.singleSign') }}</el-radio>
@@ -59,20 +87,48 @@
                 <el-option :label="$t('message.designer.starterLeader')" value="STARTER_LEADER" />
                 <el-option :label="$t('message.designer.designatedPerson')" value="PERSON" />
                 <el-option :label="$t('message.designer.role')" value="ROLE" />
+                <el-option :label="$t('message.designer.organization')" value="ORGANIZATION" />
                 <el-option :label="$t('message.designer.starter')" value="STARTER" />
               </el-select>
             </el-form-item>
-            <template v-if="node.processors_type === 'PERSON'">
-              <el-form-item :label="$t('message.designer.processor')">
-                <el-select v-model="personUsers" multiple filterable size="small" style="width:100%"
-                  :loading="usersLoading" :placeholder="$t('message.designer.searchUserPlaceholder')" @focus="loadUsers" @change="onPersonChange">
-                  <el-option v-for="u in userOptions" :key="u.username" :label="`${u.name} (${u.username})`" :value="u.username" />
-                </el-select>
-              </el-form-item>
-            </template>
-            <el-form-item v-if="node.processors_type === 'ROLE'" :label="$t('message.designer.processor')">
-              <el-input v-model="node.processorsRaw" @input="onChange" :placeholder="$t('message.designer.rolePlaceholder')" />
-            </el-form-item>
+            <PresetProcessorInput
+              v-if="node.processors_type === 'PERSON'"
+              preset-type="user_list"
+              input-mode="select"
+              :node="node"
+              v-model:person-users="personUsers"
+              :user-options="userOptions"
+              :users-loading="usersLoading"
+              :preset-options="presetOptions"
+              :manual-placeholder="$t('message.designer.searchUserPlaceholder')"
+              @load-users="loadUsers"
+              @person-change="onPersonChange()"
+              @change="onChange()"
+            />
+            <PresetProcessorInput
+              v-if="node.processors_type === 'ORGANIZATION'"
+              preset-type="dept_list"
+              input-mode="text"
+              :node="node"
+              :person-users="[]"
+              :user-options="[]"
+              :users-loading="false"
+              :preset-options="presetOptions"
+              :manual-placeholder="$t('message.preset.deptPlaceholder')"
+              @change="onChange()"
+            />
+            <PresetProcessorInput
+              v-if="node.processors_type === 'ROLE'"
+              preset-type="role_list"
+              input-mode="text"
+              :node="node"
+              :person-users="[]"
+              :user-options="[]"
+              :users-loading="false"
+              :preset-options="presetOptions"
+              :manual-placeholder="$t('message.designer.rolePlaceholder')"
+              @change="onChange()"
+            />
             <el-form-item :label="$t('message.designer.signMethod')">
               <el-radio-group v-model="node.is_sequential" @change="onChange">
                 <el-radio :label="false">{{ $t('message.designer.parallelSign') }}</el-radio>
@@ -94,17 +150,32 @@
                 <el-option :label="$t('message.designer.role')" value="ROLE" />
               </el-select>
             </el-form-item>
-            <template v-if="node.processors_type === 'PERSON'">
-              <el-form-item :label="$t('message.designer.processor')">
-                <el-select v-model="personUsers" multiple filterable size="small" style="width:100%"
-                  :loading="usersLoading" :placeholder="$t('message.designer.searchUserPlaceholder')" @focus="loadUsers" @change="onPersonChange">
-                  <el-option v-for="u in userOptions" :key="u.username" :label="`${u.name} (${u.username})`" :value="u.username" />
-                </el-select>
-              </el-form-item>
-            </template>
-            <el-form-item v-if="node.processors_type === 'ROLE'" :label="$t('message.designer.processor')">
-              <el-input v-model="node.processorsRaw" @input="onChange" :placeholder="$t('message.designer.rolePlaceholder')" />
-            </el-form-item>
+            <PresetProcessorInput
+              v-if="node.processors_type === 'PERSON'"
+              preset-type="user_list"
+              input-mode="select"
+              :node="node"
+              v-model:person-users="personUsers"
+              :user-options="userOptions"
+              :users-loading="usersLoading"
+              :preset-options="presetOptions"
+              :manual-placeholder="$t('message.designer.searchUserPlaceholder')"
+              @load-users="loadUsers"
+              @person-change="onPersonChange()"
+              @change="onChange()"
+            />
+            <PresetProcessorInput
+              v-if="node.processors_type === 'ROLE'"
+              preset-type="role_list"
+              input-mode="text"
+              :node="node"
+              :person-users="[]"
+              :user-options="[]"
+              :users-loading="false"
+              :preset-options="presetOptions"
+              :manual-placeholder="$t('message.designer.rolePlaceholder')"
+              @change="onChange()"
+            />
             <!-- TASK only: execute type -->
             <template v-if="node.type === 'TASK'">
               <el-form-item :label="$t('message.designer.executeType')">
@@ -191,11 +262,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Close, Edit, Plus } from '@element-plus/icons-vue'
 import { getNodeConfig } from './shapes'
 import { request } from '/@/utils/service'
+import { presetApi } from '/@/api/itsm/index'
+import PresetProcessorInput from './components/PresetProcessorInput.vue'
 
 const { t } = useI18n()
 
@@ -230,11 +303,11 @@ function gatewayHint(type: string) {
   return hints[type] || ''
 }
 
-// 当节点 processors_type 变为 PERSON 时，从 node.processorsRaw 同步 personUsers
-watch(() => props.node?.processors_type, (val) => {
-  if (val === 'PERSON' && props.node?.processorsRaw) {
-    personUsers.value = props.node.processorsRaw.split(',').filter(Boolean)
-  } else if (val !== 'PERSON') {
+// Watch selected node changes: restore personUsers from processorsRaw for PERSON type
+watch(() => props.node, (newNode, oldNode) => {
+  if (newNode?.processors_type === 'PERSON' && newNode?.processorsRaw) {
+    personUsers.value = newNode.processorsRaw.split(',').filter(Boolean)
+  } else {
     personUsers.value = []
   }
 })
@@ -244,12 +317,26 @@ const personUsers = ref<string[]>([])
 const usersLoading = ref(false)
 const userOptions = ref<any[]>([])
 
+// ===== 预设加载 =====
+const presetOptions = ref<any[]>([])
+const presetsLoading = ref(false)
+
+async function loadPresets() {
+  presetsLoading.value = true
+  try {
+    const res = await presetApi.list({ page_size: 200 })
+    presetOptions.value = (res as any).data || []
+  } catch { presetOptions.value = [] }
+  presetsLoading.value = false
+}
+
 async function loadUsers() {
   if (userOptions.value.length) return
   usersLoading.value = true
   try {
-    const res: any = await request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 10000 } })
-    userOptions.value = ((res as any).data || []).map((item: any) => ({ id: item.value, name: item.label }))
+    const res: any = await request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 500 } })
+    // API returns {value: username, label: "Name (username)"} — pass through directly
+    userOptions.value = (res as any).data || []
   } catch { userOptions.value = [] }
   usersLoading.value = false
 }
@@ -258,6 +345,10 @@ function onPersonChange() {
   if (props.node) props.node.processorsRaw = (personUsers.value || []).join(',')
   onChange()
 }
+
+onMounted(() => {
+  loadPresets()
+})
 </script>
 
 <style scoped>

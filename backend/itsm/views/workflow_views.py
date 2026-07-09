@@ -71,7 +71,7 @@ class ItsmProjectViewSet(ProjectFilteredViewSet):
 def _filter_model_fields(model, data: dict) -> dict:
     """只保留 model 字段名，过滤前端额外数据"""
     field_names = {f.name for f in model._meta.get_fields()}
-    fk_names = {'workflow', 'from_state', 'to_state', 'state'}
+    fk_names = {'workflow', 'from_state', 'to_state', 'state', 'preset'}
     result = {}
     for k, v in data.items():
         if k.endswith('_id'):
@@ -258,6 +258,8 @@ class StateViewSet(CustomModelViewSet):
         states = request.data.get('states', [])
         if not workflow_id:
             return ErrorResponse(msg='workflow_id required')
+        # Resolve preset processors before sync
+        states = self._expand_preset_processors(states, workflow_id)
         # Use node_key as stable identifier; fall back to id for backward compat
         existing = {s.node_key: s for s in State.objects.filter(workflow_id=workflow_id) if s.node_key}
         incoming_keys = set()
@@ -284,6 +286,67 @@ class StateViewSet(CustomModelViewSet):
         # Also purge legacy states without node_key (already replaced by node_key versions)
         State.objects.filter(workflow_id=workflow_id, node_key__isnull=True).delete()
         return DetailResponse(msg='节点全量同步成功')
+
+    @staticmethod
+    def _expand_preset_processors(states, workflow_id=None):
+        """Expand preset_id → processors text for each state in the sync payload"""
+        from itsm.models.preset import Preset
+        from itsm.serializers.preset import PresetSerializer
+
+        raw_ids = {s.get('preset_id') for s in states if s.get('preset_id')}
+        # Also collect preset_ids from embedded fields
+        for s in states:
+            for f in (s.get('fields') or []):
+                if f.get('preset_id'):
+                    raw_ids.add(f['preset_id'])
+        if not raw_ids:
+            return states
+        # Coerce to int — preset_id may arrive as string from JSON; skip invalid values
+        preset_ids = set()
+        for pid in raw_ids:
+            try:
+                preset_ids.add(int(pid))
+            except (ValueError, TypeError):
+                pass
+        if not preset_ids:
+            return states
+        qs = Preset.objects.filter(id__in=preset_ids)
+        # Scope to workflow's project to prevent cross-project preset reference
+        if workflow_id:
+            from itsm.models import Workflow
+            try:
+                workflow = Workflow.objects.only('project_id').get(id=workflow_id)
+                if workflow.project_id:
+                    qs = qs.filter(project_id=workflow.project_id)
+            except Workflow.DoesNotExist:
+                import logging
+                logging.getLogger(__name__).warning(
+                    'sync preset expansion: workflow %s not found, skipping project scope', workflow_id
+                )
+        presets = {p.id: p for p in qs}
+        for s in states:
+            pid = s.get('preset_id')
+            if pid:
+                try:
+                    int_pid = int(pid)
+                except (ValueError, TypeError):
+                    continue
+                if int_pid in presets:
+                    preset = presets[int_pid]
+                    # Only expand non-options presets as processors (user_list/role_list/dept_list/text)
+                    if preset.preset_type != 'options':
+                        s['processors'] = PresetSerializer._expand_value(preset)
+            # Expand preset_id → choice for embedded fields in State.fields JSON
+            for f in (s.get('fields') or []):
+                fid = f.get('preset_id')
+                if fid:
+                    try:
+                        int_fid = int(fid)
+                    except (ValueError, TypeError):
+                        continue
+                    if int_fid in presets and presets[int_fid].preset_type == 'options':
+                        f['choice'] = presets[int_fid].value
+        return states
 
 
 class TransitionViewSet(CustomModelViewSet):
@@ -367,7 +430,31 @@ class FieldViewSet(CustomModelViewSet):
         fields = request.data.get('fields', [])
         if not state_id:
             return ErrorResponse(msg='state_id required')
+        # Batch-fetch presets to avoid N+1 queries
+        preset_ids = {f['preset_id'] for f in fields if f.get('preset_id')}
+        presets_map = {}
+        if preset_ids:
+            from itsm.models.preset import Preset
+            # Scope to state's workflow project for multi-tenancy
+            state = State.objects.only('workflow__project_id').select_related('workflow').filter(id=state_id).first()
+            qs = Preset.objects.filter(id__in=preset_ids)
+            if state and state.workflow.project_id:
+                qs = qs.filter(project_id=state.workflow.project_id)
+            presets_map = {p.id: p for p in qs}
         for f in fields:
+            # Expand preset_id → choice before filtering model fields
+            if f.get('preset_id'):
+                pid = f['preset_id']
+                try:
+                    pid = int(pid)
+                except (ValueError, TypeError):
+                    pid = None
+                preset = presets_map.get(pid) if pid else None
+                if preset and preset.preset_type == 'options':
+                    f['choice'] = preset.value
+                else:
+                    # Clear stale preset_id if preset not found (deleted or out of scope)
+                    f['preset_id'] = None
             fid = f.get('id')
             clean = _filter_model_fields(Field, f)
             clean.pop('id', None)

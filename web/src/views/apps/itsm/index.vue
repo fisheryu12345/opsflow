@@ -77,6 +77,11 @@
       <div v-if="isVisited('escalation')" v-show="activeTab === 'escalation'" class="itsm-section g-fade-in-up">
         <EscalationList :active="activeTab === 'escalation'" />
       </div>
+
+      <!-- TAB: Presets -->
+      <div v-if="isVisited('presets')" v-show="activeTab === 'presets'" class="itsm-section g-fade-in-up">
+        <PresetList :active="activeTab === 'presets'" />
+      </div>
     </div>
   </div>
 </template>
@@ -99,6 +104,7 @@ import TicketList from './components/TicketList.vue'
 import WorkflowList from './components/WorkflowList.vue'
 import SlaPolicyList from './components/SlaPolicyList.vue'
 import EscalationList from './components/EscalationList.vue'
+import PresetList from './components/PresetList.vue'
 import { DataAnalysis, List, Setting, WarningFilled, Edit, Clock, User, Collection } from '@element-plus/icons-vue'
 
 // ===== Page Config (data-driven tabs) =====

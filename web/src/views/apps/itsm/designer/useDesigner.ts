@@ -149,6 +149,9 @@ export function useDesigner(containerId: string, workflowId?: number) {
         data.name = data.name || cfg.label
         data.processors_type = data.processors_type || ''
         data.processorsRaw = data.processorsRaw || ''
+        // Backend returns 'preset' (FK id), frontend uses 'preset_id'
+        data.preset_id = data.preset_id ?? data.preset ?? null
+        data._usePreset = data._usePreset ?? (data.preset_id ? true : false)
         data.is_multi = data.is_multi ?? false
         data.is_sequential = data.is_sequential ?? false
         data.is_allow_skip = data.is_allow_skip ?? false
@@ -405,6 +408,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
           node_key: n.node_key || n.id, workflow_id: wfId, name: n.name || getNodeConfig(n.type).label,
           type: n.type, processors_type: n.processors_type || '',
           processors: n.processorsRaw || n.processors || '',
+          preset_id: n._usePreset ? (n.preset_id || null) : null,
           is_multi: n.is_multi ?? false, is_sequential: n.is_sequential ?? false,
           is_allow_skip: n.is_allow_skip ?? false, is_builtin: n.is_builtin ?? false,
           fields: n.fields || [],
