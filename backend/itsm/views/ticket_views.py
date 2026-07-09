@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """ITSM Ticket views — 工单管理、提交、审批、状态管理、文件上传"""
 
+import time
+
 from django.db import models
 
 from rest_framework.decorators import action
@@ -82,13 +84,53 @@ class TicketViewSet(ItsmProjectViewSet):
         instance = self.get_object()
         if instance.current_status != 'draft':
             return ErrorResponse(msg='工单已提交，不能重复提交')
+        if not instance.workflow_version:
+            return ErrorResponse(msg='工单未绑定流程版本，无法提交')
         try:
+            logger = __import__('logging').getLogger(__name__)
+            logger.info(f'[SubmitTicket] ticket={instance.id} current meta keys={list((instance.meta or {}).keys())[:5]}')
+            # Sync auto-complete first NORMAL node from form_data (same as _submit_flow)
+            form_data = (instance.meta or {}).get('form_data', {})
+            states = (instance.workflow_version and instance.workflow_version.states) or {}
+            first_normal_id = None
+            first_normal_key = None
+            for key, s in states.items():
+                if s.get('type') == 'NORMAL':
+                    first_normal_id = s.get('id')
+                    first_normal_key = key
+                    break
+            if form_data and first_normal_id:
+                instance.do_in_state(first_normal_id, form_data, 'system')
+                # Clear form_data to prevent auto-completion of subsequent NORMAL nodes
+                meta = dict(instance.meta or {})
+                meta.pop('form_data', None)
+                instance.meta = meta
+                instance.save(update_fields=['meta'])
+
             pipeline_id, tree = ITSMEngine(instance).run(instance.workflow_version)
             instance.pipeline_id = pipeline_id
             instance.current_status = 'running'
             instance.save(update_fields=['pipeline_id', 'current_status'])
 
-            # 分派由节点 processors 驱动，不再调用 AssignEngine.auto_assign()
+            # Trigger callback to advance pipeline past first NORMAL (same as _submit_flow)
+            if form_data and first_normal_key:
+                from pipeline.eri.models import Process as BambooProcess, Schedule as BambooSchedule
+                from itsm.services.bamboo_engine import activity_callback as bamboo_cb
+                node_id_map = (instance.meta or {}).get('_pipeline_id_map', {})
+                activity_id = node_id_map.get(str(first_normal_key))
+                if activity_id:
+                    ok = False
+                    for attempt in range(25):
+                        proc = BambooProcess.objects.filter(root_pipeline_id=pipeline_id).first()
+                        if proc and BambooSchedule.objects.filter(process_id=proc.id, finished=False).exists():
+                            bamboo_cb(activity_id, {'ticket_id': instance.id, 'state_id': first_normal_id, 'fields': form_data, 'operator': 'system'})
+                            ok = True
+                            break
+                        time.sleep(0.2)
+                    if not ok:
+                        logger = __import__('logging').getLogger(__name__)
+                        logger.error(f'[SubmitTicket] Callback polling timed out after 5s for ticket={instance.id}, pipeline may be stuck')
+
             return DetailResponse(data={
                 'pipeline_id': pipeline_id,
                 'ticket_id': instance.id,
@@ -235,16 +277,33 @@ class TicketViewSet(ItsmProjectViewSet):
         if not state_id:
             return ErrorResponse(msg='state_id required')
         try:
-            ITSMEngine.activity_callback(
-                activity_id=self._get_activity_id(instance, state_id),
-                callback_data={
-                    'ticket_id': instance.id,
-                    'state_id': state_id,
-                    'approve_result': result,
-                    'comment': comment,
-                    'operator': request.user.username,
-                }
-            )
+            fields = request.data.get('fields', {}) or {}
+            activity_id = self._get_activity_id(instance, state_id)
+            if not activity_id:
+                return ErrorResponse(msg='未找到审批节点，pipeline 可能尚未就绪，请稍后重试')
+            # Retry up to 3 times with 1s delay for Celery schedule creation
+            ok = False
+            import logging
+            log = logging.getLogger(__name__)
+            for attempt in range(3):
+                log.info(f'[_do_approve] attempt {attempt+1}/3: activity_id={activity_id} ticket={instance.id} state={state_id}')
+                ok = ITSMEngine.activity_callback(
+                    activity_id=activity_id,
+                    callback_data={
+                        'ticket_id': instance.id,
+                        'state_id': state_id,
+                        'approve_result': result,
+                        'comment': comment,
+                        'fields': fields,
+                        'operator': request.user.username,
+                    }
+                )
+                if ok:
+                    break
+                time.sleep(1)
+            if not ok:
+                return ErrorResponse(msg='审批回调失败，pipeline 可能尚未就绪，请稍后重试')
+
             action_name = '通过' if result == 'true' else '拒绝'
 
             if result == 'true':

@@ -68,18 +68,48 @@
         </div>
       </div>
 
-      <div class="td-steps-card" v-if="flowStates && Object.keys(flowStates).length">
-        <div class="td-card-title">{{ $t('message.ticketDetail.flowSteps') }}</div>
-        <FlowChart :states="flowStates" :transitions="flowTransitions" :node-status="ticketNodeStatus" />
+      <div class="td-steps-card" v-if="(flowStates && Object.keys(flowStates).length) || (pipelineTree?.nodes?.length)">
+        <div class="td-card-title td-collapse-title" @click="onToggleFlow">
+          <el-icon><component :is="flowCollapsed ? 'ArrowRight' : 'ArrowDown'" /></el-icon>
+          {{ $t('message.ticketDetail.flowSteps') }}
+        </div>
+        <div v-show="!flowCollapsed">
+          <FlowChart ref="flowChartRef" :pipeline-tree="pipelineTree" :node-status="ticketNodeStatus" />
+        </div>
       </div>
 
-      <div class="td-action-card" v-if="currentNode">
+      <!-- Draft mode: allow edit + resubmit -->
+      <div class="td-action-card" v-if="ticket?.current_status === 'draft' && summaryNode">
+        <div class="td-card-title">重新提交</div>
+        <div class="td-action-body">
+          <ItsmFormRenderer
+            mode="fill"
+            :fields="summaryNode.fields || []"
+            :data="fillForm"
+            :submitting="submitting"
+            :submit-text="'重新提交'"
+            @field-change="(k, v) => fillForm[k] = v"
+            @submit="onResubmit"
+          />
+        </div>
+      </div>
+
+      <div class="td-action-card" v-else-if="currentNode">
         <div class="td-card-title">{{ $t('message.ticketDetail.currentNode') }} · {{ currentNode.name }}</div>
         <div class="td-action-body">
           <template v-if="currentNode.type === 'APPROVAL' || currentNode.type === 'SIGN'">
-            <div class="td-processor" v-if="currentNode.processors">
-              <el-icon><User /></el-icon> {{ $t('message.ticketDetail.processor') }}: {{ currentNode.processors }}
+            <div class="td-processor" v-if="currentNode.processor_name || currentNode.processors">
+              <el-icon><User /></el-icon> {{ $t('message.ticketDetail.processor') }}: {{ currentNode.processor_name || currentNode.processors }}
             </div>
+            <ItsmFormRenderer
+              v-if="(currentNode.fields || []).length"
+              mode="fill"
+              :fields="currentNode.fields || []"
+              :data="fillForm"
+              :submitting="submitting"
+              :show-submit="false"
+              @field-change="(k, v) => fillForm[k] = v"
+            />
             <div class="td-approval-btns">
               <el-button type="success" :loading="submitting" @click="onApprove">
                 <el-icon><Select /></el-icon> {{ $t('message.ticketDetail.approveBtn') }}
@@ -122,7 +152,7 @@
                 <span v-if="ns.finish_time"> · {{ formatTime(ns.finish_time) }}</span>
               </div>
               <div v-if="ns.result_label || ns.result_comment" class="td-timeline-result">
-                <el-tag v-if="ns.result_label" size="small" :type="ns.result_label === '通过' ? 'success' : 'danger'">{{ ns.result_label }}</el-tag>
+                <el-tag v-if="ns.result_label" size="small" :type="ns.result_val === 'passed' ? 'success' : 'danger'">{{ ns.result_label }}</el-tag>
                 <span v-if="ns.result_comment" class="td-timeline-comment">{{ ns.result_comment }}</span>
               </div>
             </div>
@@ -134,14 +164,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, User, Select, Close } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { ArrowLeft, ArrowRight, ArrowDown, User, Select, Close } from '@element-plus/icons-vue'
 import FlowChart from './FlowChart.vue'
 import ItsmFormRenderer from '/@/components/ItsmFormRenderer/index.vue'
-import { ticketApi, GetTicketStatus, NodeSubmit, ApproveTicketNode, RejectTicketNode, workflowVersionApi } from '/@/api/itsm/index'
+import { ticketApi, GetTicketStatus, NodeSubmit, SubmitTicket, ApproveTicketNode, RejectTicketNode, workflowVersionApi } from '/@/api/itsm/index'
 
 const route = useRoute()
 const router = useRouter()
@@ -149,6 +179,15 @@ const { t } = useI18n()
 
 const loading = ref(false)
 const submitting = ref(false)
+const flowCollapsed = ref(true)
+const flowChartRef = ref<any>(null)
+
+function onToggleFlow() {
+  flowCollapsed.value = !flowCollapsed.value
+  if (!flowCollapsed.value) {
+    nextTick(() => { flowChartRef.value?.buildGraph?.() })
+  }
+}
 const ticket = ref<any>(null)
 const ticketNodeStatus = ref<any[]>([])
 const ticketSignTasks = ref<Record<number, any>>({})
@@ -159,7 +198,7 @@ const currentNode = ref<any>(null)
 const finishedNodes = ref<any[]>([])
 const submittedFieldLabels = ref<Record<string, string>>({})
 const flowStates = ref<Record<string, any>>({})
-const flowTransitions = ref<Record<string, any>>({})
+const pipelineTree = ref<{ nodes: any[]; edges: any[] } | null>(null)
 
 const summaryNode = computed(() =>
   finishedNodes.value.find(n => n.type === 'NORMAL' && n.fields_data && Object.keys(n.fields_data).length > 0) || null
@@ -216,10 +255,12 @@ async function loadTicket() {
   if (!id) return
   loading.value = true
   try {
-    const res = await ticketApi.detail(id)
+    // Parallelize independent calls
+    const [res, statusRes] = await Promise.all([
+      ticketApi.detail(id),
+      GetTicketStatus(id),
+    ])
     ticket.value = res?.data || res
-
-    const statusRes = await GetTicketStatus(id)
     const statusData = statusRes?.data || statusRes
     ticketNodeStatus.value = statusData?.node_status || []
 
@@ -237,10 +278,15 @@ async function loadTicket() {
       const wfData = wfRes?.data || wfRes
       allStates = wfData?.states || {}
       flowStates.value = allStates
-      flowTransitions.value = wfData?.transitions || {}
+      pipelineTree.value = wfData?.pipeline_tree || null
     }
 
     rebuildFlow(allStates)
+    // Pre-fill from previous submission when draft
+    if (ticket.value?.current_status === 'draft') {
+      const firstFill = ticketNodeStatus.value.find((n: any) => n.type === 'NORMAL' && n.fields && Object.keys(n.fields).length)
+      if (firstFill) Object.assign(fillForm, firstFill.fields)
+    }
   } catch {
     ElMessage.error(t('message.ticketDetail.loadFailed'))
   }
@@ -262,7 +308,6 @@ function rebuildFlow(allStates: Record<string, any>) {
 
   for (const [key, state] of Object.entries(allStates)) {
     const st = state as any
-    if (st.type === 'START' || st.type === 'END') continue
     if (seenIds.has(st.id)) continue
     seenIds.add(st.id)
     const ns = statusByStateId[String(st.id)] || statusByStateId[key]
@@ -275,11 +320,12 @@ function rebuildFlow(allStates: Record<string, any>) {
       type: st.type,
       status,
       processors: ns?.processors || '',
+      processor_name: ns?.processor_name || signTask?.processor || (st.type === 'NORMAL' && ticket.value ? (ticket.value.creator_name || String(ticket.value.creator)) : '') || '',
       fields: st.fields || [],
       fields_data: ns?.fields || {},
       finish_time: ns?.update_datetime || '',
-      processor_name: signTask?.processor || (st.type === 'NORMAL' && ticket.value ? (ticket.value.creator_name || String(ticket.value.creator)) : '') || '',
-      result_label: signTask?.status_val === 'passed' ? '通过' : signTask?.status_val === 'rejected' ? '拒绝' : '',
+      result_val: signTask?.status_val || '',
+      result_label: signTask?.status_val === 'passed' ? t('message.ticketDetail.approveSuccess') : signTask?.status_val === 'rejected' ? t('message.ticketDetail.rejectSuccess') : '',
       result_comment: signTask?.comment || '',
     }
     if (status === 'RUNNING') {
@@ -300,27 +346,60 @@ function rebuildFlow(allStates: Record<string, any>) {
   finishedNodes.value = done
 }
 
-async function onApprove() {
-  if (!ticket.value || !currentNode.value) return
-  const comment = await ElMessageBox.prompt(t('message.ticketDetail.approveComment'), t('message.ticketDetail.approveTitle')).catch(() => null)
+async function onResubmit(data?: Record<string, any>) {
+  if (!ticket.value || submitting.value) return
+  const fields: Record<string, any> = {}
+  const source = data || fillForm
+  for (const [k, v] of Object.entries(source)) {
+    if (v != null && v !== '') fields[k] = v
+  }
   submitting.value = true
   try {
-    await ApproveTicketNode(ticket.value.id, currentNode.value.state_id || currentNode.value.id, comment?.value || '')
+    // Save only form_data (merge into existing meta), then submit
+    await ticketApi.update(String(ticket.value.id), {
+      meta: { ...(ticket.value?.meta || {}), form_data: fields },
+    } as any)
+    await SubmitTicket(ticket.value.id)
+    ElMessage.success('重新提交成功')
+    router.back()
+  } catch (e: any) { ElMessage.error(e?.msg || '提交失败') }
+  submitting.value = false
+}
+
+function collectFillFields(): Record<string, any> {
+  const fields: Record<string, any> = {}
+  for (const [k, v] of Object.entries(fillForm)) {
+    if (v != null && v !== '') fields[k] = v
+  }
+  return fields
+}
+
+async function onApprove() {
+  if (!ticket.value || !currentNode.value) return
+  submitting.value = true
+  try {
+    const fields = collectFillFields()
+    await ApproveTicketNode(ticket.value.id, currentNode.value.state_id || currentNode.value.id, '', fields)
     ElMessage.success(t('message.ticketDetail.approveSuccess'))
-    await loadTicket()
+    router.back()
   } catch (e: any) { ElMessage.error(e?.msg || t('message.ticketDetail.approveFailed')) }
   submitting.value = false
 }
 
 async function onReject() {
   if (!ticket.value || !currentNode.value) return
-  const comment = await ElMessageBox.prompt(t('message.ticketDetail.rejectReason'), t('message.ticketDetail.rejectTitle')).catch(() => null)
-  if (!comment?.value) return
+  const fields = collectFillFields()
+  const hasComment = Object.values(fields).some(v => v && String(v).trim())
+  if (!hasComment) {
+    ElMessage.warning(t('message.ticketDetail.rejectReason'))
+    return
+  }
   submitting.value = true
   try {
-    await RejectTicketNode(ticket.value.id, currentNode.value.state_id || currentNode.value.id, comment.value)
+    const fields = collectFillFields()
+    await RejectTicketNode(ticket.value.id, currentNode.value.state_id || currentNode.value.id, '', fields)
     ElMessage.success(t('message.ticketDetail.rejectSuccess'))
-    await loadTicket()
+    router.back()
   } catch (e: any) { ElMessage.error(e?.msg || t('message.ticketDetail.rejectFailed')) }
   submitting.value = false
 }
@@ -373,6 +452,8 @@ onMounted(() => loadTicket())
 .td-meta-divider { width: 1px; height: 14px; background: #dcdfe6; flex-shrink: 0; }
 .td-body { display: flex; flex-direction: column; gap: 16px; }
 .td-card-title { font-size: 15px; font-weight: 600; color: #1d2129; margin-bottom: 12px; }
+.td-collapse-title { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 4px; }
+.td-collapse-title:hover { color: #409EFF; }
 
 .td-sla-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 18px 24px; margin-bottom: 16px; border-left: 4px solid #909399; }
 .td-sla-card.sla-violated { border-left-color: #F56C6C; }
@@ -395,8 +476,7 @@ onMounted(() => loadTicket())
 .td-action-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 18px 24px; border-left: 4px solid #409EFF; }
 .td-action-body { min-height: 40px; }
 .td-processor { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #606266; margin-bottom: 14px; }
-.td-approval-btns { display: flex; gap: 10px; .el-button { min-width: 100px; } }
-.td-fill-form { max-width: 560px; }
+.td-approval-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; .el-button { min-width: 100px; } }
 .td-action-placeholder { color: #909399; font-size: 13px; }
 
 .td-timeline-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 18px 24px; }

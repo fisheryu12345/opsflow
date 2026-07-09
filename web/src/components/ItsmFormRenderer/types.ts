@@ -28,7 +28,6 @@ export type ItsmFieldType =
   | 'TABLE'
   | 'CASCADE'
   | 'SECTION'
-  | 'TREESELECT'
 
 export type ItsmLayout = 'COL_12' | 'COL_8' | 'COL_6' | 'COL_4' | 'COL_3'
 

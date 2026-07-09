@@ -114,12 +114,12 @@ def send_email_notify(smtp_config: dict, recipients: list, title: str, content: 
 
         use_tls = smtp_config.get('use_tls', True)
         if use_tls:
-            server = smtplib.SMTP(smtp_config['host'], smtp_config.get('port', 587))
+            server = smtplib.SMTP(smtp_config['host'], smtp_config.get('port', 587), timeout=5)
             server.ehlo()
             server.starttls()
             server.ehlo()
         else:
-            server = smtplib.SMTP(smtp_config['host'], smtp_config.get('port', 25))
+            server = smtplib.SMTP(smtp_config['host'], smtp_config.get('port', 25), timeout=5)
 
         if smtp_config.get('user') and smtp_config.get('password'):
             server.login(smtp_config['user'], smtp_config['password'])
@@ -248,11 +248,6 @@ class NotificationService:
             dingtalk_webhook = get_config_from_ticket(ticket, 'dingtalk_webhook') or NotificationService._get_global_config('DINGTALK_WEBHOOK')
             if dingtalk_webhook:
                 send_dingtalk_notify(dingtalk_webhook, title, message)
-
-            # Email
-            smtp_config = NotificationService._get_smtp_config(ticket)
-            if smtp_config and recipients_list:
-                send_email_notify(smtp_config, recipients_list, title, message)
 
         except Exception as e:
             logger.error(f'Failed to send notification: {e}')

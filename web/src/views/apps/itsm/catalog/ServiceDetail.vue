@@ -84,7 +84,7 @@ async function loadDetail() {
       await loadWorkflowFields()
     }
   } catch {
-    ElMessage.error('加载服务详情失败')
+    ElMessage.error(t('message.common.loadFailed'))
   }
   loading.value = false
 }
@@ -115,11 +115,10 @@ async function loadWorkflowFields() {
 async function onSubmit(data?: Record<string, any>) {
   if (submitting.value) return  // Prevent double submission
   const source = data || formData
-  console.log('[ServiceDetail] onSubmit source:', JSON.stringify(source))
   // Extract title from form data (workflow field) or fallback to service item name
   const title = (source.title || source['title'] || item.value?.name || '').trim()
   if (!title) {
-    ElMessage.warning('请输入标题')
+    ElMessage.warning(t('message.serviceDetail.applyTitlePlaceholder'))
     return
   }
   submitting.value = true
@@ -130,18 +129,17 @@ async function onSubmit(data?: Record<string, any>) {
       priority: priority || 'P3',
       form_data: { title: _title || title, priority: priority || 'P3', ...rest },
     }
-    console.log('[ServiceDetail] SubmitServiceItem payload:', JSON.stringify(payload))
     const res = await SubmitServiceItem(props.serviceId, payload)
     const respData = (res as any).data || res
     const ticketId = respData?.ticket_id
     if (ticketId) {
       emit('submitted', ticketId)
     } else {
-      ElMessage.success('提交成功')
+      ElMessage.success(t('message.common.submitSuccess'))
       emit('back')
     }
   } catch (e: any) {
-    ElMessage.error(e?.msg || e?.message || '提交失败')
+    ElMessage.error(e?.msg || e?.message || t('message.common.submitFailed'))
   }
   submitting.value = false
 }
@@ -197,8 +195,6 @@ onMounted(() => loadDetail())
 .sd-section:last-of-type { border-bottom: none; }
 .sd-section-title { font-size: 14px; font-weight: 600; color: #303133; margin-bottom: 10px; }
 .sd-desc { font-size: 13px; color: #606266; line-height: 1.6; }
-
-.sd-form { max-width: 100%; }
 
 .sd-actions {
   display: flex;

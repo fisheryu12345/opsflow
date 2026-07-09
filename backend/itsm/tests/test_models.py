@@ -89,13 +89,39 @@ class WorkflowCreateVersionNodeKeyTests(TestCase):
         state_data = version.states['approve_1']
         self.assertEqual(state_data['name'], '审批')
 
-    def test_version_has_start_end_safety_net(self):
+    def test_version_no_synthetic_start_end(self):
+        """create_version() should NOT inject virtual START/END — designer enforces them."""
         from django.contrib.auth import get_user_model
         User = get_user_model()
         user = User.objects.create(username='tester2', name='tester2', password='x')
         version = self.wf.create_version(operator=user.id)
-        self.assertIn('__start__', version.states)
-        self.assertIn('__end__', version.states)
+        # No START/END states exist → pipeline_tree should have empty nodes
+        self.assertEqual(version.pipeline_tree, {'nodes': [], 'edges': []})
+        # states should NOT contain synthetic __start__/__end__
+        self.assertNotIn('__start__', version.states)
+        self.assertNotIn('__end__', version.states)
+
+    def test_pipeline_tree_with_nodes_and_edges(self):
+        """create_version() produces Opsflow-compatible pipeline_tree."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.create(username='tester3', name='tester3', password='x')
+        s_start = State.objects.create(workflow=self.wf, name='开始', type='START', node_key='start_1')
+        s_normal = State.objects.create(workflow=self.wf, name='填单', type='NORMAL', node_key='node_2')
+        s_end = State.objects.create(workflow=self.wf, name='结束', type='END', node_key='end_1')
+        Transition.objects.create(workflow=self.wf, from_state=s_start, to_state=s_normal,
+                                  from_node_key='start_1', to_node_key='node_2', name='')
+        Transition.objects.create(workflow=self.wf, from_state=s_normal, to_state=s_end,
+                                  from_node_key='node_2', to_node_key='end_1', name='通过')
+        version = self.wf.create_version(operator=user.id)
+        tree = version.pipeline_tree
+        self.assertEqual(len(tree['nodes']), 3)
+        self.assertEqual(tree['nodes'][0]['node_type'], 'start_event')
+        self.assertEqual(tree['nodes'][1]['node_type'], 'atom')
+        self.assertEqual(tree['nodes'][2]['node_type'], 'end_event')
+        self.assertEqual(len(tree['edges']), 2)
+        self.assertEqual(tree['edges'][0]['from'], 'start_1')
+        self.assertEqual(tree['edges'][1]['label'], '通过')
 
     def test_version_includes_node_key_in_snapshot(self):
         s = State.objects.create(workflow=self.wf, name='填单', type='NORMAL', node_key='fill_1')

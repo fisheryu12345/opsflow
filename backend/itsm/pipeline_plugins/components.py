@@ -122,7 +122,7 @@ class ItsmApprovalService(Service):
         try:
             ticket = Ticket.objects.get(id=ticket_id)
             ticket.do_before_enter_state(state_id)
-            logger.info(f'[itsm_approval] Enter approval state #{state_id} for ticket #{ticket_id}')
+            logger.info(f'[itsm_approval] Enter approval state #{state_id} for ticket #{ticket_id} pipeline={ticket.pipeline_id}')
         except Ticket.DoesNotExist:
             logger.error(f'Ticket #{ticket_id} not found')
             return False
@@ -136,6 +136,7 @@ class ItsmApprovalService(Service):
         operator = callback_data.get('operator', '')
         approve_result = callback_data.get('approve_result', 'false')
         comment = callback_data.get('comment', '')
+        logger.info(f'[itsm_approval] schedule callback: ticket={ticket_id} state={state_id} approve={approve_result}')
         try:
             ticket = Ticket.objects.get(id=ticket_id)
             # Record sign task
@@ -152,13 +153,23 @@ class ItsmApprovalService(Service):
                 )
             # Check if approval is finished
             if approve_result != 'true':
-                # Rejected — terminate pipeline
-                data.set_outputs('field_approve_result', 'rejected')  # 供条件引用
-                ticket.set_status('terminated', operator)
+                # Rejected — revoke pipeline first, then finish + reset to draft
+                data.set_outputs('field_approve_result', 'rejected')
+                from bamboo_engine import api as pipeline_api
+                from pipeline.eri.runtime import BambooDjangoRuntime
+                revoke_result = pipeline_api.revoke_pipeline(BambooDjangoRuntime(), ticket.pipeline_id)
+                if not revoke_result.result:
+                    logger.error(f'[itsm_approval] Failed to revoke pipeline {ticket.pipeline_id}: {revoke_result.message}')
+                ticket.set_status('draft', operator)
+                ticket.pipeline_id = ''
+                ticket.save(update_fields=['pipeline_id'])
                 self.finish_schedule()
                 return True
+            # Save form fields + approval result
+            form_fields = callback_data.get('fields', {}) or {}
+            state_fields = {**form_fields, 'approve_result': approve_result, 'comment': comment}
             if ticket.check_approval_finished(state_id):
-                ticket.do_in_state(state_id, {'approve_result': approve_result}, operator)
+                ticket.do_in_state(state_id, state_fields, operator)
                 data.set_outputs('field_approve_result', 'approved')  # 供条件引用
                 ticket.do_before_exit_state(state_id, operator)
                 self.finish_schedule()

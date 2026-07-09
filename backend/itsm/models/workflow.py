@@ -71,11 +71,6 @@ class Workflow(CoreModel):
                 'is_builtin': s.is_builtin,
                 'api_instance_id': s.api_instance_id,
             }
-        # Safety net: ensure START/END exist even if not saved
-        if not any(s.get('type') == 'START' for s in states_data.values()):
-            states_data['__start__'] = {'id': -1, 'node_key': '__start__', 'name': '开始', 'type': 'START', 'fields': [], 'is_builtin': True}
-        if not any(s.get('type') == 'END' for s in states_data.values()):
-            states_data['__end__'] = {'id': -2, 'node_key': '__end__', 'name': '结束', 'type': 'END', 'fields': [], 'is_builtin': True}
         transitions_data = {}
         for t in self.transitions.all():
             transitions_data[t.id] = {
@@ -103,15 +98,54 @@ class Workflow(CoreModel):
                 'source_type': f.source_type,
                 'meta': f.meta, 'sort_order': f.sort_order,
             }
+        # Build pipeline_tree (aligned with Opsflow format)
+        pipeline_tree = self._build_pipeline_tree(states_data, transitions_data)
+
         return WorkflowVersion.objects.create(
             workflow=self,
-            version=self.update_datetime.strftime('%Y%m%d%H%M%S') if hasattr(self, 'update_datetime') and self.update_datetime else '',
+            version=self.update_datetime.strftime('%Y%m%d%H%M%S%f') if self.update_datetime else '',
             version_message=message,
             states=states_data,
             transitions=transitions_data,
             fields=fields_data,
+            pipeline_tree=pipeline_tree,
             creator=operator,
         )
+
+    def _build_pipeline_tree(self, states_data, transitions_data):
+        """Convert states + transitions dicts to Opsflow-compatible pipeline_tree format.
+
+        Node types: START -> start_event, END -> end_event, gateways -> *_gateway, others -> atom
+        """
+        nodes = []
+        for key, s in states_data.items():
+            stype = s.get('type', 'NORMAL')
+            node_type_map = {
+                'START': 'start_event', 'END': 'end_event',
+                'EXCLUSIVE': 'exclusive_gateway', 'PARALLEL': 'parallel_gateway',
+                'CONDITIONAL_PARALLEL': 'conditional_parallel_gateway', 'COVERAGE': 'converge_gateway',
+            }
+            node = {
+                'id': str(s.get('node_key') or key),
+                'node_type': node_type_map.get(stype, 'atom'),
+                'label': s.get('name', ''),
+                'state_type': stype,  # Keep ITSM type for backward ref
+                'state_id': s.get('id'),  # DB ID for status matching
+            }
+            if stype not in ('START', 'END'):
+                node['fields'] = s.get('fields', [])
+            nodes.append(node)
+
+        edges = []
+        for t in transitions_data.values():
+            from_key = t.get('from_node_key', '') or str(t.get('from_state_id', ''))
+            to_key = t.get('to_node_key', '') or str(t.get('to_state_id', ''))
+            label = t.get('name', '')
+            if t.get('direction') == 'reject':
+                label = label or '拒绝'
+            edges.append({'from': from_key, 'to': to_key, 'label': label})
+
+        return {'nodes': nodes, 'edges': edges}
 
 
 class WorkflowVersion(CoreModel):
@@ -125,6 +159,7 @@ class WorkflowVersion(CoreModel):
     transitions = models.JSONField(default=dict, verbose_name="连线快照")
     fields = models.JSONField(default=dict, verbose_name="字段快照")
     pipeline_data = models.JSONField(default=dict, verbose_name="Pipeline 数据缓存")
+    pipeline_tree = models.JSONField(default=dict, verbose_name="流程图画布数据 (对齐 Opsflow)")
 
     class Meta:
         db_table = table_prefix + "itsm_workflow_version"

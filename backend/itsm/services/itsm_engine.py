@@ -21,7 +21,6 @@ SLA 暂停/恢复由 ticket.set_status() 触发的信号自动处理（signals.p
 import logging
 
 from bamboo_engine import api as pipeline_api
-from pipeline.eri.models import Schedule
 from pipeline.eri.runtime import BambooDjangoRuntime
 
 from itsm.services.workflow_builder import ITSMWorkflowBuilder
@@ -59,6 +58,7 @@ class ITSMEngine:
         meta['_pipeline_id_map'] = node_id_map
         ticket.meta = meta
         ticket.save(update_fields=['meta'])
+        logger.info(f'[ITSMEngine] saved _pipeline_id_map: {list(node_id_map.keys())[:5]}')
 
         pipeline_id = tree.get('id', '')
         runtime = BambooDjangoRuntime()
@@ -102,44 +102,12 @@ class ITSMEngine:
 
     @staticmethod
     def activity_callback(activity_id, callback_data):
-        """向 bamboo-engine 发送节点回调（审批/填单操作完成）
-
-        bamboo-engine 的 api.callback() 需要 version 参数（来自 Schedule 模型），
-        此处自动查找当前节点的最新未完成 Schedule 来获取 version。
-        """
-        try:
-            schedule = Schedule.objects.filter(
-                node_id=activity_id, finished=False
-            ).order_by('-schedule_times').first()
-            if not schedule:
-                logger.error(
-                    '[ITSMEngine] No active schedule found for node %s',
-                    activity_id
-                )
-                return False
-            runtime = BambooDjangoRuntime()
-            result = pipeline_api.callback(
-                runtime, activity_id, schedule.version, callback_data
-            )
-            if not result.result:
-                logger.error(
-                    '[ITSMEngine] activity_callback failed: %s', result.message
-                )
-            return result.result
-        except Exception as e:
-            logger.error(
-                '[ITSMEngine] activity_callback error: %s', e
-            )
-            return False
+        """向 bamboo-engine 发送节点回调（审批/填单操作完成）— delegate to shared."""
+        from itsm.services.bamboo_engine import activity_callback as _cb
+        return _cb(activity_id, callback_data)
 
     @staticmethod
     def revoke_by_pipeline_id(pipeline_id):
-        """通过 pipeline_id 直接撤销（供 opsflow 插件等无 ticket 实例的场景调用）
-
-        仅撤销 pipeline，不操作工单状态（由调用方自行处理）。
-        """
-        runtime = BambooDjangoRuntime()
-        result = pipeline_api.revoke_pipeline(runtime, pipeline_id)
-        if not result.result:
-            logger.error('[ITSMEngine] revoke_by_pipeline_id failed: %s', result.message)
-        return result.result
+        """通过 pipeline_id 直接撤销 — delegate to shared."""
+        from itsm.services.bamboo_engine import revoke_by_pipeline_id as _revoke
+        return _revoke(pipeline_id)

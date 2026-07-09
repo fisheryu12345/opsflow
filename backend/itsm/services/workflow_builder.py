@@ -174,6 +174,38 @@ class ITSMWorkflowBuilder:
 
                         from_el.add_condition(i, {'evaluate': expr})
 
+        # Link ParallelGateways to their ConvergeGateways (opsflow-style, via edge data)
+        # Build outgoing edges map: from_id → [to_id, ...]
+        out_edges: dict = {}
+        for t in transitions.values():
+            fk = str(t.get('from_node_key') or t.get('from_state_id') or '')
+            tk = str(t.get('to_node_key') or t.get('to_state_id') or '')
+            if fk not in out_edges:
+                out_edges[fk] = []
+            out_edges[fk].append(tk)
+        for sid_str, state in states.items():
+            el = element_map.get(sid_str)
+            if el is None:
+                continue
+            stype = state.get('type', '')
+            if stype in ('PARALLEL', 'CONDITIONAL_PARALLEL'):
+                # BFS through edge IDs to find ConvergeGateway (max depth 20)
+                visited = {sid_str}
+                q = [(nid, 0) for nid in out_edges.get(sid_str, [])]
+                cg_id = None
+                while q:
+                    nid, depth = q.pop(0)
+                    if nid in visited or depth > 20:
+                        continue
+                    visited.add(nid)
+                    next_el = element_map.get(nid)
+                    if next_el and isinstance(next_el, ConvergeGateway):
+                        cg_id = nid
+                        break
+                    q.extend((n, depth + 1) for n in out_edges.get(nid, []))
+                if cg_id and cg_id in element_map:
+                    el.converge(element_map[cg_id])
+
         # Build tree — find start/end by state type
         # IMPORTANT: first match wins. Safety-net START/END (id < 0) may exist
         # alongside real ones; prefer the real one that has outgoing/incoming.
@@ -265,23 +297,3 @@ def _build_by_field_expr(condition: dict, from_id: str) -> str:
     return joiner.join(parts)
 
 
-def _find_downstream_converge(gw_id, transition_map, element_map):
-    """BFS 从网关出发查找下游第一个 ConvergeGateway"""
-    from bamboo_engine.builder import ConvergeGateway
-
-    visited = {gw_id}
-    q = deque()
-    for edge in transition_map.get(gw_id, []):
-        q.append(edge['to_id'])
-    while q:
-        nid = q.popleft()
-        if nid in visited:
-            continue
-        visited.add(nid)
-        el = element_map.get(nid)
-        if isinstance(el, ConvergeGateway):
-            return el
-        for edge in transition_map.get(nid, []):
-            if edge['to_id'] not in visited:
-                q.append(edge['to_id'])
-    return None

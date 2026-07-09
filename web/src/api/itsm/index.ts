@@ -60,11 +60,11 @@ export function SubmitTicket(id: string) {
 export function NodeSubmit(id: string, data: { state_id: number; fields: Record<string, any> }) {
   return request({ url: `${prefix}/tickets/${id}/node_submit/`, method: 'post', data })
 }
-export function ApproveTicketNode(id: string, stateId: number, comment?: string) {
-  return request({ url: `${prefix}/tickets/${id}/approve/`, method: 'post', data: { state_id: stateId, comment } })
+export function ApproveTicketNode(id: string, stateId: number, comment?: string, fields?: Record<string, any>) {
+  return request({ url: `${prefix}/tickets/${id}/approve/`, method: 'post', data: { state_id: stateId, comment, fields } })
 }
-export function RejectTicketNode(id: string, stateId: number, comment?: string) {
-  return request({ url: `${prefix}/tickets/${id}/reject/`, method: 'post', data: { state_id: stateId, comment } })
+export function RejectTicketNode(id: string, stateId: number, comment?: string, fields?: Record<string, any>) {
+  return request({ url: `${prefix}/tickets/${id}/reject/`, method: 'post', data: { state_id: stateId, comment, fields } })
 }
 export function SuspendTicket(id: string) {
   return request({ url: `${prefix}/tickets/${id}/suspend/`, method: 'post' })

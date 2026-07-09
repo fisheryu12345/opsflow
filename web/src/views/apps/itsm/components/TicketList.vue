@@ -28,7 +28,7 @@
         <el-table-column prop="title" :label="$t('message.itsmPage.colTitle')" min-width="200" show-overflow-tooltip />
         <el-table-column :label="$t('message.itsmPage.colType')" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.itsm_type === 'incident' ? 'danger' : row.itsm_type === 'change' ? 'warning' : ''" size="small">
+            <el-tag :type="row.itsm_type === 'incident' ? 'danger' : row.itsm_type === 'change' ? 'warning' : 'info'" size="small">
               {{ row.itsm_type }}
             </el-tag>
           </template>
@@ -63,7 +63,7 @@
           <template #default="{ row }">
             <template v-if="row.meta?.assignee">
               <span style="font-size:13px;color:#606266">{{ row.meta.assignee.name }}</span>
-              <el-tag v-if="row.meta.assignee.group" size="small" style="margin-left:4px">{{ row.meta.assignee.group }}</el-tag>
+              <el-tag v-if="row.meta.assignee.group" type="info" size="small" style="margin-left:4px">{{ row.meta.assignee.group }}</el-tag>
             </template>
             <span v-else-if="row.meta?.assign_group" style="font-size:12px;color:#909399">
               组: {{ row.meta.assign_group.name }}
@@ -73,9 +73,6 @@
         </el-table-column>
         <el-table-column :label="$t('message.itsmPage.colActions')" width="280" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="row.current_status === 'draft'" size="small" text v-can="'itsm:ticket:create'" @click="onSubmitTicket(row)">
-              <el-icon><Select /></el-icon> {{ $t('message.itsmPage.submit') }}
-            </el-button>
             <el-button size="small" text @click="onViewTicket(row)">
               <el-icon><Search /></el-icon> {{ $t('message.itsmPage.detail') }}
             </el-button>
@@ -121,7 +118,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Refresh, Select, Search, User, CircleClose } from '@element-plus/icons-vue'
 import { useHeroConsumer } from '/@/composables/useHeroConsumer'
-import { ticketApi, SubmitTicket, CloseTicket, AssignTicket } from '/@/api/itsm/index'
+import { ticketApi, CloseTicket, AssignTicket } from '/@/api/itsm/index'
 
 const props = withDefaults(defineProps<{ active?: boolean }>(), { active: false })
 const emit = defineEmits<{ viewTicket: [row: any]; designer: [wfId: number] }>()
@@ -217,17 +214,6 @@ async function confirmAssignTicket() {
     assignUserId.value = null
     await loadTickets()
   } catch { ElMessage.error('分派失败') }
-}
-
-async function onSubmitTicket(row: any) {
-  if (!row?.id) { ElMessage.error('无效工单'); return }
-  try {
-    await SubmitTicket(row.id)
-    ElMessage.success('工单已提交，pipeline 已启动')
-    await loadTickets()
-  } catch (e: any) {
-    ElMessage.error(e?.msg || e?.message || '提交失败')
-  }
 }
 
 function onViewTicket(row: any) {

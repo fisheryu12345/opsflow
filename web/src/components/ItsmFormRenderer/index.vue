@@ -4,6 +4,7 @@
       <ItsmFormField
         v-for="f in sortedFields"
         :key="f.key"
+        v-show="isVisible(f)"
         :field="f"
         :model-value="data[f.key]"
         :mode="mode"
@@ -63,6 +64,14 @@ const emit = defineEmits<{
 const sortedFields = computed(() => {
   return [...props.fields].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
 })
+
+// Check show_conditions
+function isVisible(field: ItsmField): boolean {
+  const cond = field.show_conditions
+  if (!cond?.field) return true
+  const depValue = props.data[cond.field]
+  return String(depValue ?? '') === String(cond.value ?? '')
+}
 
 // Expose for parent access
 defineExpose({})

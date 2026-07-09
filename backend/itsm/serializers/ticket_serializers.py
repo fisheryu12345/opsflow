@@ -48,9 +48,40 @@ class TicketCreateSerializer(CustomModelSerializer):
 
 
 class TicketStatusSerializer(CustomModelSerializer):
+    processor_name = serializers.SerializerMethodField()
+
     class Meta:
         model = TicketStatus
         fields = '__all__'
+
+    def get_processor_name(self, obj):
+        """Resolve processors text (may be user IDs) to display names."""
+        raw = obj.processors or ''
+        if not raw.strip():
+            return ''
+        # Use cached user map from context to avoid N+1 queries
+        user_map = getattr(self, '_user_map', None)
+        if user_map is None:
+            from django.contrib.auth import get_user_model
+            from django.db.models import Q
+            User = get_user_model()
+            # Collect all numeric IDs from ALL records being serialized, then batch-query once
+            all_ids = set()
+            if self.parent and hasattr(self.parent, 'instance') and isinstance(self.parent.instance, list):
+                for ts in self.parent.instance:
+                    r = (ts.processors or '')
+                    for x in r.replace(';', ',').split(','):
+                        if x.strip().isdigit():
+                            all_ids.add(int(x.strip()))
+            if not all_ids:
+                self._user_map = {}
+                return raw + ''  # non-numeric — return as-is
+            users = User.objects.filter(Q(id__in=all_ids)).values('id', 'username')
+            self._user_map = {str(u['id']): u.get('username', str(u['id'])) for u in users}
+        ids = [x.strip() for x in raw.replace(';', ',').split(',') if x.strip().isdigit()]
+        if ids:
+            return ', '.join(self._user_map.get(uid, uid) for uid in ids)
+        return raw
 
 
 class SignTaskSerializer(CustomModelSerializer):

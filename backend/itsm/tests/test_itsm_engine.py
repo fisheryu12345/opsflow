@@ -118,9 +118,9 @@ class ITSMEnginePauseResumeRevokeTests(TestCase):
         self.ticket.refresh_from_db()
         self.assertEqual(self.ticket.current_status, 'terminated')
 
-    @patch('itsm.services.itsm_engine.Schedule.objects.filter')
-    @patch('itsm.services.itsm_engine.pipeline_api')
-    @patch('itsm.services.itsm_engine.BambooDjangoRuntime')
+    @patch('itsm.services.bamboo_engine.Schedule.objects.filter')
+    @patch('itsm.services.bamboo_engine.pipeline_api')
+    @patch('itsm.services.bamboo_engine.BambooDjangoRuntime')
     def test_activity_callback(self, mock_runtime_cls, mock_pipeline_api, mock_filter):
         """activity_callback 转发到 bamboo api"""
         mock_result = MagicMock()
@@ -142,9 +142,9 @@ class ITSMEnginePauseResumeRevokeTests(TestCase):
             mock_runtime_cls.return_value, 'node-1', 'vtest123', {'key': 'val'}
         )
 
-    @patch('itsm.services.itsm_engine.Schedule.objects.filter')
-    @patch('itsm.services.itsm_engine.pipeline_api')
-    @patch('itsm.services.itsm_engine.BambooDjangoRuntime')
+    @patch('itsm.services.bamboo_engine.Schedule.objects.filter')
+    @patch('itsm.services.bamboo_engine.pipeline_api')
+    @patch('itsm.services.bamboo_engine.BambooDjangoRuntime')
     def test_activity_callback_no_schedule(self, mock_runtime_cls, mock_pipeline_api, mock_filter):
         """activity_callback 没有 Schedule 时返回 False 不报错"""
         mock_qs = MagicMock()
@@ -157,8 +157,8 @@ class ITSMEnginePauseResumeRevokeTests(TestCase):
         self.assertFalse(result)
         mock_pipeline_api.callback.assert_not_called()
 
-    @patch('itsm.services.itsm_engine.pipeline_api')
-    @patch('itsm.services.itsm_engine.BambooDjangoRuntime')
+    @patch('itsm.services.bamboo_engine.pipeline_api')
+    @patch('itsm.services.bamboo_engine.BambooDjangoRuntime')
     def test_revoke_by_pipeline_id(self, mock_runtime_cls, mock_pipeline_api):
         """revoke_by_pipeline_id 通过 pipeline_id 直接撤销"""
         mock_result = MagicMock()

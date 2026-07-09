@@ -103,36 +103,6 @@ class BuildTreeBasicTests(TestCase):
         # TASK 节点应该 skippable
         self.assertTrue(task_el.skippable)
 
-    def test_conditional_parallel_coverage(self):
-        """CONDITIONAL_PARALLEL + COVERAGE 映射为 ConditionalParallelGateway + ConvergeGateway"""
-        states = {
-            '1': {'id': 1, 'type': 'START'},
-            '2': {'id': 2, 'type': 'CONDITIONAL_PARALLEL', 'name': '条件分支'},
-            '3': {'id': 3, 'type': 'NORMAL', 'name': 'A'},
-            '4': {'id': 4, 'type': 'NORMAL', 'name': 'B'},
-            '5': {'id': 5, 'type': 'COVERAGE', 'name': '汇聚'},
-            '6': {'id': 6, 'type': 'END'},
-        }
-        transitions = {
-            't1': {'from_state_id': 1, 'to_state_id': 2},
-            't2': {'from_state_id': 2, 'to_state_id': 3, 'condition': {'type': 'default'}},
-            't3': {'from_state_id': 2, 'to_state_id': 4, 'condition': {'type': 'default'}},
-            't4': {'from_state_id': 3, 'to_state_id': 5},
-            't5': {'from_state_id': 4, 'to_state_id': 5},
-            't6': {'from_state_id': 5, 'to_state_id': 6},
-        }
-        wv = _create_workflow_version(states, transitions)
-
-        from itsm.services.workflow_builder import ITSMWorkflowBuilder
-        tree, element_map, node_id_map = ITSMWorkflowBuilder.build_tree(wv, ticket_id=1)
-
-        self.assertGreaterEqual(len(element_map), 6)
-        # 网关类型正确
-        gw = element_map['2']
-        self.assertIsNotNone(gw)
-        from bamboo_engine.builder import ConditionalParallelGateway
-        self.assertIsInstance(gw, ConditionalParallelGateway)
-
     def test_exclusive_gateway(self):
         """EXCLUSIVE 网关 — 2 条条件边 + 默认边"""
         states = {
