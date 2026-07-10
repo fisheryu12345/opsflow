@@ -3,6 +3,46 @@
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
 
+## f689e639
+
+> 提交日期: 2026-07-10 | 提交信息: fix: exclusive gateway condition expression + designer edge refactor — 网关条件表达式修复 + 设计器边重构 + 驳回流程清理
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/itsm/services/workflow_builder.py` | 后端 | 修复add_condition参数格式，直接传expr而非{'evaluate': expr} |
+| `backend/itsm/pipeline_plugins/components.py` | 后端 | 驳回后清理TicketStatus和node_status |
+| `backend/itsm/views/ticket_views.py` | 后端 | 提交前批量重置TicketStatus→WAIT，移除do_in_state竞态 |
+| `web/src/components/ItsmFormRenderer/ItsmFormField.vue` | 前端 | 数字字段空字符串→null，兼容ElInputNumber |
+| `web/src/views/apps/itsm/designer/DesignerConfigPanel.vue` | 前端 | 结构化条件预览、网关门卫、条件反向解析、移除驳回开关 |
+| `web/src/views/apps/itsm/designer/shapes.ts` | 前端 | 移除APPROVAL/SIGN默认字段、边颜色统一 |
+| `web/src/views/apps/itsm/designer/useDesigner.ts` | 前端 | 边选中自动同步画布、_from_state_type、移除reject方向 |
+| `web/src/views/apps/opsflow/composables/useGraphCanvas.ts` | 前端 | 字符串运算符标准化为BoolRule兼容 |
+| `web/src/views/apps/itsm/FlowChart.vue` | 前端 | 边颜色统一#E6A23C |
+| `web/src/views/apps/itsm/TicketDetail.vue` | 前端 | SLA网格布局修复 |
+
+### 解决
+
+- **问题/背景：** 网关条件表达式被错误包裹在{'evaluate': ...}中导致BoolRule求值失败；驳回后状态残留；提交时do_in_state与engine callback竞态；数字字段ElInputNumber空值报错
+- **办法：** 统一条件表达式为opsflow原始字符串格式；驳回后清理所有TicketStatus和node_status；提交前批量重置状态；移除冗余的驳回边机制
+
+### 文档
+
+- **生成文档：**
+  - `docs/itsm/debug/2026-07-10-exclusive-gateway-fix.md`
+  - `docs/itsm/architecture/2026-07-10-designer-edge-refactor.md`
+  - `docs/opsflow/debug/2026-07-10-condition-operator-fix.md`
+
+### 验证
+
+- 改动类型: fix + refactor
+- 清理乱码: 无
+- 子 App index.md 更新: itsm, opsflow
+- 工作区状态: 进行中
+
+---
+
 ## 0ce5f5a0
 
 > 提交日期: 2026-07-10 | 提交信息: fix: parallel gateway hang, processor display, and designer data sync

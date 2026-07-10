@@ -160,7 +160,7 @@ function buildGraph() {
       target: { cell: toKey, anchor: { name: 'center' } },
       attrs: {
         line: {
-          stroke: isReject ? '#F56C6C' : (edge.condition || edge.label) ? '#E6A23C' : '#DCDFE6',
+          stroke: '#E6A23C',
           strokeWidth: 1.5,
           targetMarker: 'classic',
           strokeDasharray: isReject ? '8,4' : undefined,

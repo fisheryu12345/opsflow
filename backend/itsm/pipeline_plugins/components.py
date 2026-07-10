@@ -154,16 +154,18 @@ class ItsmApprovalService(Service):
                 )
             # Check if approval is finished
             if approve_result != 'true':
-                # Rejected — revoke pipeline first, then finish + reset to draft
+                # Rejected — reset node states, revoke pipeline, return to draft
                 data.set_outputs('field_approve_result', 'rejected')
                 from bamboo_engine import api as pipeline_api
                 from pipeline.eri.runtime import BambooDjangoRuntime
                 revoke_result = pipeline_api.revoke_pipeline(BambooDjangoRuntime(), ticket.pipeline_id)
                 if not revoke_result.result:
                     logger.error(f'[itsm_approval] Failed to revoke pipeline {ticket.pipeline_id}: {revoke_result.message}')
+                TicketStatus.objects.filter(ticket=ticket, status='RUNNING').update(status='WAIT')
                 ticket.set_status('draft', operator)
                 ticket.pipeline_id = ''
-                ticket.save(update_fields=['pipeline_id'])
+                ticket.node_status = {}
+                ticket.save(update_fields=['pipeline_id', 'node_status'])
                 self.finish_schedule()
                 return True
             # Save form fields + approval result

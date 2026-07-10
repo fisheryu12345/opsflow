@@ -51,6 +51,25 @@ export function useDesigner(containerId: string, workflowId?: number) {
       }
     }
   }, { deep: true })
+
+  // Auto-sync selectedEdge label/condition to X6 cell for immediate canvas update
+  watch(selectedEdge, (se) => {
+    if (!se?._x6Id) return
+    const g = graph.value
+    if (!g) return
+    const cell = g.getCellById(se._x6Id)
+    if (!cell || !cell.isEdge()) return
+    const cellData = cell.getData()
+    if (!cellData) return
+    if (se.label !== undefined && cellData.label !== se.label) {
+      cellData.label = se.label
+      const labelText = se.label || ''
+      cell.setLabels(labelText ? [{ attrs: { text: { text: labelText.length > 20 ? labelText.substring(0, 18) + '…' : labelText, fontSize: 10, fill: '#909399' } } }] : [])
+    }
+    if (se.condition !== undefined && cellData.condition !== se.condition) {
+      cellData.condition = se.condition
+    }
+  }, { deep: true })
   const loading = ref(false)
   const saving = ref(false)
   const workflow = ref<any>(null)
@@ -111,7 +130,9 @@ export function useDesigner(containerId: string, workflowId?: number) {
     })
     g.on('edge:click', ({ edge }) => {
       const data = edge.getData() || {}
-      selectedEdge.value = { ...data, _id: edge.id, _x6Id: edge.id }
+      const srcCell = edge.getSourceCell()
+      const srcData = srcCell?.getData() || {}
+      selectedEdge.value = { ...data, _id: edge.id, _x6Id: edge.id, _from_state_type: srcData.type || '' }
       selectedNode.value = null
     })
     g.on('blank:click', () => { selectedNode.value = null; selectedEdge.value = null })
@@ -416,10 +437,9 @@ export function useDesigner(containerId: string, workflowId?: number) {
       if (!fromNode || !toNode) {
         return
       }
-      const isReject = t.direction === 'reject' || t.name === 'reject'
-      // Compute edge label for display: condition text (truncated) or reject label
+      // Edge label: user-set name first, fallback to condition text
       const condText = typeof t.condition === 'string' ? t.condition : ''
-      const edgeLabel = isReject ? '驳回' : condText
+      const edgeLabel = t.name || condText
       const labelText = edgeLabel.length > 20 ? edgeLabel.substring(0, 18) + '…' : edgeLabel
 
       g.addEdge({
@@ -428,16 +448,15 @@ export function useDesigner(containerId: string, workflowId?: number) {
         labels: labelText ? [{ attrs: { text: { text: labelText, fontSize: 10, fill: '#909399' } } }] : undefined,
         attrs: {
           line: {
-            stroke: isReject ? '#F56C6C' : t.condition ? '#E6A23C' : '#DCDFE6',
+            stroke: '#E6A23C',
             strokeWidth: 1.5, targetMarker: 'classic',
-            strokeDasharray: isReject ? '8,4' : undefined,
           },
         },
         data: {
           ...t, _from_state: fromCellId, _to_state: toCellId,
           from_node_key: t.from_node_key || '',
           to_node_key: t.to_node_key || '',
-          isReject, label: edgeLabel,
+          label: edgeLabel,
         },
       })
     })
@@ -497,7 +516,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
         from_node_key: fnk, to_node_key: tnk,
         condition: e.condition || '',
         condition_type: (typeof e.condition === 'string' && e.condition.trim()) ? 'script' : '',
-        direction: e.isReject ? 'reject' : 'forward',
+        direction: 'forward',
       }})
       // Sync workflow metadata
       await workflowApi.update(String(wfId), {

@@ -20,7 +20,7 @@
       </div>
       <component
         :is="tagComponent"
-        :model-value="modelValue"
+        :model-value="safeModelValue"
         :placeholder="field.placeholder"
         :disabled="isDisabled"
         v-bind="tagExtraProps"
@@ -65,6 +65,14 @@ const props = withDefaults(defineProps<{
 }>(), {
   mode: 'fill',
   modelValue: '',
+})
+
+// Coerce empty string to null for numeric types (ElInputNumber rejects "")
+const numericTypes = ['INT', 'NUMBER', 'FLOAT']
+const safeModelValue = computed(() => {
+  const v = props.modelValue
+  if (v === '' && numericTypes.includes(props.field.type || '')) return null
+  return v
 })
 
 defineEmits<{

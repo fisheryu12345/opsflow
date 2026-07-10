@@ -171,7 +171,8 @@ export const CONDITION_OPS = ['==', '!=', '>', '<', '>=', '<=', 'contains', 'not
 export function opsForType(fieldType: 'string' | 'number' | 'boolean'): string[] {
   if (fieldType === 'boolean') return ['==', '!=']
   if (fieldType === 'number') return ['==', '!=', '>', '<', '>=', '<=']
-  return ['==', '!=', 'contains', 'not contains', 'startsWith', 'endsWith', 'regex']
+  // BoolRule-supported: == != > < >= <= in notin (no contains/startsWith/endsWith/regex)
+  return ['==', '!=', '>', '<', '>=', '<=', 'in', 'notin']
 }
 
 /**

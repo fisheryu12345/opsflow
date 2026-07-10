@@ -74,28 +74,10 @@ export const DEFAULT_NODE_FIELDS: Record<string, any[]> = {
     },
     { key: 'attachment', name: '附件', type: 'FILE', required: false, layout: 'COL_12' },
   ],
-  /** 审批节点自带字段 */
-  APPROVAL: [
-    { key: 'approval_opinion', name: '审批意见', type: 'TEXT', required: false, layout: 'COL_12' },
-    {
-      key: 'approval_result', name: '审批结果', type: 'SELECT', required: true, layout: 'COL_12',
-      choice: [
-        { label: '通过', value: 'approved' },
-        { label: '驳回', value: 'rejected' },
-      ],
-    },
-  ],
-  /** 会签节点自带字段 */
-  SIGN: [
-    { key: 'sign_opinion', name: '会签意见', type: 'TEXT', required: false, layout: 'COL_12' },
-    {
-      key: 'sign_result', name: '会签结果', type: 'SELECT', required: true, layout: 'COL_12',
-      choice: [
-        { label: '同意', value: 'agree' },
-        { label: '不同意', value: 'disagree' },
-      ],
-    },
-  ],
+  /** 审批节点自带字段 — none (user defines via FormDesigner) */
+  APPROVAL: [],
+  /** 会签节点自带字段 — none (user defines via FormDesigner) */
+  SIGN: [],
 }
 
 // ── 端口定义（与 OpsFlow 一致） ──
@@ -388,5 +370,5 @@ export function refreshPortStates(node: Node) {
 // ── 默认边样式（与 OpsFlow 一致） ──
 
 export const DEFAULT_EDGE_ATTRS = {
-  line: { stroke: '#DCDFE6', strokeWidth: 1.5, targetMarker: 'classic' },
+  line: { stroke: '#E6A23C', strokeWidth: 1.5, targetMarker: 'classic' },
 }

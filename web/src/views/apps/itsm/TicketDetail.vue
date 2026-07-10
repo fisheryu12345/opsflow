@@ -562,8 +562,8 @@ onMounted(() => loadTicket())
 .td-sla-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 18px 24px; margin-bottom: 16px; border-left: 4px solid #909399; }
 .td-sla-card.sla-violated { border-left-color: #F56C6C; }
 .td-sla-card.sla-warning { border-left-color: #E6A23C; }
-.td-sla-grid { display: flex; flex-wrap: wrap; gap: 12px; }
-.td-sla-item { display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
+.td-sla-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
+.td-sla-item { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 120px; }
 .td-sla-label { font-size: 11px; color: #909399; }
 .sla-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px; }
 .sla-normal { background: #f0f9eb; color: #67C23A; }

@@ -89,30 +89,26 @@ class TicketViewSet(ItsmProjectViewSet):
         try:
             logger = __import__('logging').getLogger(__name__)
             logger.info(f'[SubmitTicket] ticket={instance.id} current meta keys={list((instance.meta or {}).keys())[:5]}')
-            # Sync auto-complete first NORMAL node from form_data (same as _submit_flow)
+            # Only reset the fill node to WAIT so auto-complete works.
+            # Keep approval history for audit trail.
+            TicketStatus.objects.filter(ticket=instance).update(status='WAIT')
+
             form_data = (instance.meta or {}).get('form_data', {})
             states = (instance.workflow_version and instance.workflow_version.states) or {}
-            first_normal_id = None
             first_normal_key = None
+            first_normal_id = None
             for key, s in states.items():
                 if s.get('type') == 'NORMAL':
-                    first_normal_id = s.get('id')
                     first_normal_key = key
+                    first_normal_id = s.get('id')
                     break
-            if form_data and first_normal_id:
-                instance.do_in_state(first_normal_id, form_data, 'system')
-                # Clear form_data to prevent auto-completion of subsequent NORMAL nodes
-                meta = dict(instance.meta or {})
-                meta.pop('form_data', None)
-                instance.meta = meta
-                instance.save(update_fields=['meta'])
 
             pipeline_id, tree = ITSMEngine(instance).run(instance.workflow_version)
             instance.pipeline_id = pipeline_id
             instance.current_status = 'running'
             instance.save(update_fields=['pipeline_id', 'current_status'])
 
-            # Trigger callback to advance pipeline past first NORMAL (same as _submit_flow)
+            # Trigger callback to advance pipeline past first NORMAL
             if form_data and first_normal_key:
                 from pipeline.eri.models import Process as BambooProcess, Schedule as BambooSchedule
                 from itsm.services.bamboo_engine import activity_callback as bamboo_cb

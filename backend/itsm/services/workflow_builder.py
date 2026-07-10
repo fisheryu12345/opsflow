@@ -178,7 +178,7 @@ class ITSMWorkflowBuilder:
                             if isinstance(expr, str):
                                 expr = _collect_condition_refs(expr, data, all_node_ids, node_id_map)
 
-                        from_el.add_condition(i, {'evaluate': expr})
+                        from_el.add_condition(i, expr)
 
 
         # Pair ParallelGateways with their ConvergeGateways (opsflow-style).

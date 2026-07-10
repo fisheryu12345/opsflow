@@ -242,36 +242,32 @@
       </template>
 
       <!-- Edge config -->
-      <template v-else-if="edge">
+      <template v-else-if="edge && isGatewayEdge">
         <el-form label-position="top" size="small">
           <el-form-item :label="$t('message.designer.edgeLabel')">
             <el-input v-model="edge.label" :placeholder="$t('message.designer.edgeLabel')" @input="onEdgeChange" />
           </el-form-item>
           <el-form-item :label="$t('message.designer.conditionExpr')">
-            <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
-              <el-select size="small" style="flex:1;min-width:120px" placeholder="字段" @change="onCondFieldSelect" clearable filterable>
-                <el-option v-for="r in fieldRefOptions" :key="r.value" :label="r.label" :value="r.value" />
-              </el-select>
-              <el-select size="small" style="width:70px" placeholder="操作" @change="onCondOpSelect" clearable>
-                <el-option v-for="op in condOperators" :key="op" :label="op" :value="op" />
-              </el-select>
-              <el-input v-model="condState.value" size="small" style="flex:1;min-width:80px" placeholder="值" @change="buildCondExpr" clearable />
-            </div>
-            <div v-if="edge.condition" style="margin-top:4px;font-size:11px;color:#409EFF;background:#ecf5ff;padding:4px 8px;border-radius:4px;word-break:break-all">
-              {{ edge.condition }}
+            <!-- Structured preview (opsflow-style) -->
+            <div v-if="edge.condition" class="itsm-cond-preview">
+              <template v-if="parsedRules.length">
+                <div v-for="(r, i) in parsedRules" :key="i" class="cond-rule-line">
+                  <span v-if="r.logic" class="cond-logic-tag">{{ r.logic }}</span>
+                  <span class="cond-rule-ref">{{ r.source }}.{{ r.field }}</span>
+                  <span class="cond-rule-op">{{ r.op }}</span>
+                  <span class="cond-rule-val">{{ r.value }}</span>
+                </div>
+              </template>
+              <code v-else class="cond-rule-raw">{{ edge.condition }}</code>
             </div>
             <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
-              <el-button v-if="edge.condition" link size="small" type="danger" @click="edge.condition = ''; onEdgeChange()">清除（默认分支）</el-button>
+              <el-button v-if="edge.condition" link size="small" type="danger" @click="edge.condition = ''; onEdgeChange()">清除</el-button>
               <el-button link size="small" type="primary" @click="openConditionDialog">
                 <el-icon><Plus /></el-icon> 添加条件
               </el-button>
               <el-button link size="small" @click="showAdvanced = !showAdvanced">{{ showAdvanced ? '收起' : '手动' }}</el-button>
             </div>
-            <el-input v-if="showAdvanced" v-model="edge.condition" type="textarea" :rows="2" placeholder="手动输入" @input="onEdgeChange" style="margin-top:4px" />
-          </el-form-item>
-          <el-form-item :label="$t('message.designer.rejectEdge')">
-            <el-switch v-model="edge.isReject" @change="onEdgeChange" />
-            <span style="font-size:11px;color:#909399;margin-left:8px;">{{ $t('message.designer.rejectTip') }}</span>
+            <el-input v-if="showAdvanced" v-model="edge.condition" type="textarea" :rows="3" placeholder="手动输入，如 ${node_2.field} > 5 AND ${node_3.field} == 'x'" @input="onEdgeChange" style="margin-top:4px" />
           </el-form-item>
         </el-form>
       </template>
@@ -313,7 +309,12 @@ const emit = defineEmits<{
   openFieldEditor: []
 }>()
 
-const configVisible = computed(() => props.node || props.edge)
+const configVisible = computed(() => props.node || (props.edge && isGatewayEdge.value))
+// Only show edge config for gateway edges (EXCLUSIVE or CONDITIONAL_PARALLEL)
+const isGatewayEdge = computed(() => {
+  const t = props.edge?._from_state_type || ''
+  return t === 'EXCLUSIVE' || t === 'CONDITIONAL_PARALLEL'
+})
 const configTitle = computed(() => props.node ? t('message.designer.nodeConfig') : t('message.designer.edgeConfig'))
 const typeLabel = computed(() => {
   if (!props.node?.type) return ''
@@ -335,6 +336,30 @@ const fieldRefOptions = computed(() => {
   }
   return refs
 })
+const parsedLogic = computed(() => {
+  const c = (props.edge?.condition || '')
+  return / OR /i.test(c) ? 'OR' : 'AND'
+})
+const parsedRules = computed(() => {
+  const c = (props.edge?.condition || '')
+  if (!c || typeof c !== 'string' || !c.trim()) return []
+  // Opsflow's exact regex: requires ${node.field} prefix
+  const logics = []
+  const logicRe = /\s+(AND|OR)\s+/gi
+  let m2
+  while ((m2 = logicRe.exec(c)) !== null) logics.push(m2[1].toUpperCase())
+  const parts = c.split(/\s+AND\s+|\s+OR\s+/i).filter(Boolean)
+  const RULE_PAT = /^\$\{([^.]+)\.([^}]+)\}\s*(>=|<=|!=|==|>|<|in|notin)\s*(.+)$/
+  const rules = parts.map((p, i) => {
+    const pm = p.trim().match(RULE_PAT)
+    if (!pm) return null
+    let v = pm[4]
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1)
+    return { source: pm[1], field: pm[2], op: pm[3], value: v, logic: i > 0 ? (logics[i - 1] || 'AND') : '' }
+  }).filter(Boolean)
+  return rules
+})
+
 
 const showAdvanced = ref(false)
 const conditionDialogVisible = ref(false)
@@ -367,12 +392,22 @@ const availableVars = computed(() => {
   return vars
 })
 
-// Parse conditionStruct from edge.condition (string)
+// Parse existing condition expression back into structured rules for editing
 function openConditionDialog() {
   const raw = props.edge?.condition || ''
   if (typeof raw === 'string' && raw.trim()) {
-    // Try to parse existing expression back into struct (basic: single rule)
-    conditionStruct.value = { logic: 'AND', rules: [{ source: '', field: '', op: '==', value: raw }] }
+    const parts = raw.split(/\s+AND\s+|\s+OR\s+/i).filter(Boolean)
+    const logic = raw.match(/\s+OR\s+/i) ? 'OR' : 'AND'
+    const rules: any[] = []
+    for (const p of parts) {
+      const m = p.trim().match(/^\$\{([^.]+)\.([^}]+)\}\s*(>=|<=|!=|==|>|<|in|notin)\s*(.+)$/)
+      if (m) {
+        let v = m[4]
+        if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1)
+        rules.push({ source: m[1], field: m[2], op: m[3], value: v, fieldType: 'string' })
+      }
+    }
+    conditionStruct.value = rules.length ? { logic, rules } : null
   } else {
     conditionStruct.value = null
   }
@@ -386,7 +421,7 @@ function onConditionSave(struct: any) {
   emit('change')
 }
 
-const condOperators = ['==', '!=', '>', '<', '>=', '<=']
+const condOperators = ['==', '!=', '>', '<', '>=', '<=', 'in', 'notin']
 const condState = reactive({ field: '', op: '', value: '' })
 
 function onCondFieldSelect(v: string) { condState.field = v || ''; buildCondExpr() }
@@ -397,7 +432,7 @@ function buildCondExpr() {
   const { field, op, value } = condState
   if (!field) return
   const valPart = isNaN(Number(value)) && value !== 'true' && value !== 'false'
-    ? `'${value}'` : value
+    ? `"${value}"` : value
   const expr = op ? `${field} ${op} ${valPart}` : field
   props.edge.condition = expr
   updateEdgeLabel()
@@ -412,7 +447,7 @@ function onEdgeChange() {
 function updateEdgeLabel() {
   if (!props.edge) return
   // Only set label from user input; don't auto-generate from condition text
-  props.edge.label = props.edge.isReject ? '驳回' : (props.edge.label || '')
+  props.edge.label = props.edge.label || ''
 }
 
 function onChange() { emit('change') }
@@ -522,4 +557,20 @@ onMounted(() => {
   justify-content: center;
 }
 .des-config-collapse:hover { color: #409EFF; background: #e8f0fe; }
+
+/* Opsflow-style condition preview */
+.itsm-cond-preview {
+  background: #f5f7fa; border-radius: 6px; padding: 8px 10px;
+  margin-top: 4px; word-break: break-all;
+}
+.cond-rule-line { display: flex; align-items: center; gap: 4px; font-size: 12px; font-family: monospace; padding: 3px 0; white-space: nowrap; }
+.cond-rule-line + .cond-rule-line { border-top: 1px dashed #e4e7ed; }
+.cond-logic-tag {
+  background: #fdf6ec; color: #E6A23C; font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 3px; margin-right: 4px;
+}
+.cond-rule-ref { color: #909399; }
+.cond-rule-op { color: #409EFF; font-weight: 600; }
+.cond-rule-val { color: #67C23A; }
+.cond-rule-raw { font-size: 12px; color: #606266; }
 </style>

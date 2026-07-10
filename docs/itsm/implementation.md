@@ -1,6 +1,6 @@
 # ITSM — 开发进度跟踪
 
-> 最后更新: 2026-07-07 | 参考目标: docs/opsflow_target.md
+> 最后更新: 2026-07-10 | 参考目标: docs/opsflow_target.md
 
 ## 成熟度评估
 
@@ -124,3 +124,13 @@
 - ProjectFilteredViewSet 过滤修复: 工单详情 404 — perform_create() 补齐 project_id 赋值 + get_queryset() 仅对 list/create 应用 project_id 过滤 → ✅
 - Dashboard ECharts 重复初始化修复 + ServiceMarket i18n HTML 警告修复 → ✅
 - 前端规范更新: 子 Tab 强制组件模式 + ProjectFilteredViewSet 过滤规范 → ✅
+
+### 2026-07-10 Update
+> 提交: 0a34cab8
+- 网关条件表达式修复: `add_condition()` 从 `{'evaluate': expr}` 改为直接传 `expr`（匹配 BoolRule 原始字符串格式），修复排他网关条件分支始终走默认路径 → ✅
+- 驳回流程清理: 驳回后重置 `TicketStatus→WAIT` + 清空 `node_status={}`，防止重新提交时状态残留 → ✅
+- 提交流程修复: 移除 `do_in_state()` 提前完成首节点（消除与 engine callback 的竞态），改为统一下批量 `TicketStatus→WAIT` → ✅
+- 数字字段兼容: `ItsmFormField.vue` 空字符串 → null（兼容 ElInputNumber）→ ✅
+- 设计器边重构: 移除驳回边开关（`isReject`/`direction:'reject'`），改为条件表达式统一管理；`isGatewayEdge` 网关门卫仅对排他/条件并行网关显示边配置；结构化条件预览（`parsedRules`）+ 已有表达式反向解析（`openConditionDialog`）→ ✅
+- 审批/会签默认字段清理: `APPROVAL: []` / `SIGN: []`，改为用户通过 FormDesigner 自定义 → ✅
+- 条件运算符标准化: `useGraphCanvas.ts` 字符串运算符统一为 BoolRule 兼容（`in`/`notin` 替代 `contains`/`startsWith`/`endsWith`/`regex`）→ ✅
