@@ -13,8 +13,44 @@ export function useDesigner(containerId: string, workflowId?: number) {
   const { locale } = useI18n()
   const graph = shallowRef<Graph | null>(null)
   const stencil = shallowRef<Stencil | null>(null)
+  // Persistent node_key counter to avoid duplicates when multiple nodes
+  // are added in the same tick (each node:added handler independently
+  // computing maxN from g.getNodes() can race).
+  let _nodeKeyCounter = 0
+  function _nextNodeKey(): string {
+    if (_nodeKeyCounter === 0) {
+      const g = graph.value
+      if (g) {
+        for (const cell of g.getNodes()) {
+          const m = (cell.getData()?.node_key || '').match(/^node_(\d+)$/)
+          if (m) _nodeKeyCounter = Math.max(_nodeKeyCounter, parseInt(m[1], 10))
+        }
+      }
+    }
+    return `node_${++_nodeKeyCounter}`
+  }
   const selectedNode = ref<any>(null)
   const selectedEdge = ref<any>(null)
+
+  // Auto-sync selectedNode changes back to cell data immediately.
+  // Without this, configuring multiple nodes and saving only syncs the last one.
+  watch(selectedNode, (sn) => {
+    if (!sn?._x6Id) return
+    const g = graph.value
+    if (!g) return
+    const cell = g.getCellById(sn._x6Id)
+    if (!cell || !cell.isNode()) return
+    const cellData = cell.getData()
+    if (!cellData) return
+    const dirtyKeys = ['_usePreset', 'preset_id', 'preset', 'processorsRaw', 'processors_type', 'processors', 'name', 'is_multi', 'is_sequential', 'is_allow_skip', 'distribute_type', 'type', 'fields']
+    let synced = false
+    for (const k of dirtyKeys) {
+      if (sn[k] !== undefined && cellData[k] !== sn[k]) {
+        cellData[k] = sn[k]
+        synced = true
+      }
+    }
+  }, { deep: true })
   const loading = ref(false)
   const saving = ref(false)
   const workflow = ref<any>(null)
@@ -123,26 +159,14 @@ export function useDesigner(containerId: string, workflowId?: number) {
       const isGateway = ['itsm-exclusive-gateway', 'itsm-conditional-parallel-gateway', 'itsm-parallel-gateway', 'itsm-converge-gateway'].includes(node.shape)
       // Generate node_key for START/END like content nodes
       if (isEvent && !data._initialized) {
-        let maxN = 0
-        for (const cell of g.getNodes()) {
-          const nk = cell.getData()?.node_key || ''
-          const m = nk.match(/^node_(\d+)$/)
-          if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
-        }
-        data.node_key = `node_${maxN + 1}`
+        data.node_key = _nextNodeKey()
         data._initialized = true
         node.setData(data)
       }
       // Initialize gateway nodes on drop from stencil — they need node_key to survive save/reload
       if (isGateway && !data._initialized) {
         if (!data.node_key) {
-          let maxN = 0
-          for (const cell of g.getNodes()) {
-            const nk = cell.getData()?.node_key || ''
-            const m = nk.match(/^node_(\d+)$/)
-            if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
-          }
-          data.node_key = `node_${maxN + 1}`
+          data.node_key = _nextNodeKey()
         }
         data._initialized = true
         node.setData(data)
@@ -152,13 +176,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
       if (isCardNode && !data._initialized) {
         // Generate stable node_key (node_{N+1} format) — does NOT change X6 cell ID
         if (!data.node_key) {
-          let maxN = 0
-          for (const cell of g.getNodes()) {
-            const nk = cell.getData()?.node_key || ''
-            const m = nk.match(/^node_(\d+)$/)
-            if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
-          }
-          data.node_key = `node_${maxN + 1}`
+          data.node_key = _nextNodeKey()
         }
         const cfg = getNodeConfig(data.type || 'NORMAL')
         data.name = data.name || cfg.label
@@ -329,6 +347,8 @@ export function useDesigner(containerId: string, workflowId?: number) {
       nodes.value = states
       edges.value = trans
       _renderGraph(states, trans)
+      // Auto-layout after loading (non-blocking)
+      setTimeout(() => autoLayout().catch(() => {}), 300)
     } catch (e) { console.error(e); ElMessage.error('加载流程失败') }
     loading.value = false
   }
@@ -353,6 +373,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
       const m = (s.node_key || '').match(/^node_(\d+)$/)
       if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
     }
+    _nodeKeyCounter = maxN  // sync counter with loaded states
     const stateNkMap: Record<string, string> = {}  // DB id → new node_key
     for (const s of states) {
       if (s.node_key) {
@@ -396,9 +417,15 @@ export function useDesigner(containerId: string, workflowId?: number) {
         return
       }
       const isReject = t.direction === 'reject' || t.name === 'reject'
+      // Compute edge label for display: condition text (truncated) or reject label
+      const condText = typeof t.condition === 'string' ? t.condition : ''
+      const edgeLabel = isReject ? '驳回' : condText
+      const labelText = edgeLabel.length > 20 ? edgeLabel.substring(0, 18) + '…' : edgeLabel
+
       g.addEdge({
         source: { cell: fromNode.id, port: 'right' },
         target: { cell: toNode.id, port: 'left' },
+        labels: labelText ? [{ attrs: { text: { text: labelText, fontSize: 10, fill: '#909399' } } }] : undefined,
         attrs: {
           line: {
             stroke: isReject ? '#F56C6C' : t.condition ? '#E6A23C' : '#DCDFE6',
@@ -410,7 +437,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
           ...t, _from_state: fromCellId, _to_state: toCellId,
           from_node_key: t.from_node_key || '',
           to_node_key: t.to_node_key || '',
-          isReject, label: isReject ? '驳回' : (t.condition ? '条件' : ''),
+          isReject, label: edgeLabel,
         },
       })
     })
@@ -466,9 +493,10 @@ export function useDesigner(containerId: string, workflowId?: number) {
       }
       return {
         ...(e.originId && typeof e.originId === 'number' ? { id: e.originId } : {}),
-        workflow_id: wfId, name: e.label || '',
+        workflow_id: wfId, name: (e.label || '').slice(0, 60),
         from_node_key: fnk, to_node_key: tnk,
-        condition: e.condition || {}, condition_type: e.condition ? 'script' : '',
+        condition: e.condition || '',
+        condition_type: (typeof e.condition === 'string' && e.condition.trim()) ? 'script' : '',
         direction: e.isReject ? 'reject' : 'forward',
       }})
       // Sync workflow metadata
@@ -501,15 +529,12 @@ export function useDesigner(containerId: string, workflowId?: number) {
     if (!g || !workflow.value?.id) return
 
     // Sync selectedNode edits back to cell data before saving.
-    // selectedNode is a shallow copy ({...data}); component edits (preset_id,
-    // _usePreset, processorsRaw) modify the copy, not the original cell data.
     if (selectedNode.value?._x6Id) {
       const sn = selectedNode.value
       const cell = g.getCellById(sn._x6Id)
       if (cell && cell.isNode()) {
         const cellData = cell.getData()
         if (cellData) {
-          // Mirror preset/processor fields from selectedNode copy → cell data
           const syncKeys = ['_usePreset', 'preset_id', 'preset', 'processorsRaw', 'processors_type', 'processors']
           for (const k of syncKeys) {
             if (sn[k] !== undefined) {
@@ -556,14 +581,9 @@ export function useDesigner(containerId: string, workflowId?: number) {
     })
     const pg = nodeDataList.filter((d: any) => d.type === 'CONDITIONAL_PARALLEL' || d.type === 'PARALLEL')
     const cg = nodeDataList.filter((d: any) => d.type === 'COVERAGE')
-    // Exclusive gateway out-edge validation: at least one default (unconditional) edge
-    const allCells = g.getCells()
-    const edgeDataList = allCells.filter(c => c.isEdge()).map(c => c.getData()).filter(Boolean)
-    nodeDataList.filter((d: any) => d.type === 'EXCLUSIVE').forEach((gw: any) => {
-      const outEdges = edgeDataList.filter((e: any) => e._from_state === gw.id || e._from_state === String(gw.id))
-      const hasDefault = outEdges.some((e: any) => !e.condition && !e.isReject)
-      if (!hasDefault) errs.push('排他网关「' + (gw.name || gw.type) + '」缺少默认（无条件）出边')
-    })
+    // Exclusive gateway validation: removed "default edge" requirement.
+    // bamboo-engine evaluates conditions at runtime — if no condition matches,
+    // the gateway simply doesn't dispatch. Aligned with opsflow behavior.
     if (pg.length > cg.length) errs.push('并行网关与汇聚网关数量不匹配')
     validateErrors.value = errs
     return errs
@@ -612,7 +632,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
         return
       }
 
-      // Apply positions: pos.id matches X6 cell ID directly
+      // Apply positions and save to cell data for pipeline_tree reuse
       for (const pos of positions) {
         const cell = g.getCellById(String(pos.id))
         if (cell && cell.isNode()) {

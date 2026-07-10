@@ -94,7 +94,7 @@ class ITSMWorkflowBuilder:
                 el.name = state.get('name', '')
                 el.component.inputs['ticket_id'] = Var(type=Var.PLAIN, value=ticket_id)
                 el.component.inputs['state_id'] = Var(type=Var.PLAIN, value=state.get('id'))
-                _register_field_outputs(data, elem_id, state)
+                _register_field_outputs(data, sid_str, state, node_id_map)
             elif stype == 'APPROVAL':
                 el = ServiceActivity(
                     component_code='itsm_approval',
@@ -104,7 +104,7 @@ class ITSMWorkflowBuilder:
                 el.name = state.get('name', '')
                 el.component.inputs['ticket_id'] = Var(type=Var.PLAIN, value=ticket_id)
                 el.component.inputs['state_id'] = Var(type=Var.PLAIN, value=state.get('id'))
-                _register_field_outputs(data, elem_id, state)
+                _register_field_outputs(data, sid_str, state, node_id_map)
             elif stype == 'SIGN':
                 el = ServiceActivity(
                     component_code='itsm_sign',
@@ -114,7 +114,7 @@ class ITSMWorkflowBuilder:
                 el.name = state.get('name', '')
                 el.component.inputs['ticket_id'] = Var(type=Var.PLAIN, value=ticket_id)
                 el.component.inputs['state_id'] = Var(type=Var.PLAIN, value=state.get('id'))
-                _register_field_outputs(data, elem_id, state)
+                _register_field_outputs(data, sid_str, state, node_id_map)
             elif stype == 'TASK':
                 el = ServiceActivity(
                     component_code='itsm_auto_task',
@@ -124,7 +124,7 @@ class ITSMWorkflowBuilder:
                 el.name = state.get('name', '')
                 el.component.inputs['ticket_id'] = Var(type=Var.PLAIN, value=ticket_id)
                 el.component.inputs['state_id'] = Var(type=Var.PLAIN, value=state.get('id'))
-                _register_field_outputs(data, elem_id, state)
+                _register_field_outputs(data, sid_str, state, node_id_map)
             elif stype == 'CONDITIONAL_PARALLEL':
                 el = ConditionalParallelGateway(id=elem_id)
             elif stype == 'EXCLUSIVE':
@@ -168,12 +168,15 @@ class ITSMWorkflowBuilder:
                         if cond_type == 'by_field':
                             cond = edge.get('condition', {})
                             expr = _build_by_field_expr(cond, from_id)
-                            expr = _collect_condition_refs(expr, data, all_node_ids)
+                            expr = _collect_condition_refs(expr, data, all_node_ids, node_id_map)
                         else:
                             cond = edge.get('condition', {})
-                            expr = cond.get('evaluate', cond.get('expression', True))
+                            if isinstance(cond, str):
+                                expr = cond
+                            else:
+                                expr = cond.get('evaluate', cond.get('expression', True))
                             if isinstance(expr, str):
-                                expr = _collect_condition_refs(expr, data, all_node_ids)
+                                expr = _collect_condition_refs(expr, data, all_node_ids, node_id_map)
 
                         from_el.add_condition(i, {'evaluate': expr})
 
@@ -289,23 +292,24 @@ class ITSMWorkflowBuilder:
         return tree, element_map, node_id_map
 
 
-def _register_field_outputs(data, sid_str, state):
+def _register_field_outputs(data, sid_str, state, node_id_map=None):
     """注册表单字段为 NodeOutput，供网关条件引用
 
-    字段路径格式: ${sid_str.field_{key}} — _collect_condition_refs 会自动解析
+    node_id_map: maps original key → salted element ID (for correct source_act)
     """
     from bamboo_engine.builder.flow.data import NodeOutput
     from bamboo_engine.builder import Var
 
+    salted_id = (node_id_map or {}).get(sid_str, sid_str)
     for field in state.get('fields', []):
         field_key = field.get('key', '')
         if field_key:
-            var_name = f"{sid_str}_field_{field_key}"
+            var_name = f"{sid_str}_{field_key}"
             ctx_key = f"${{{var_name}}}"
             if ctx_key not in data.inputs:
                 data.inputs[ctx_key] = NodeOutput(
                     type=Var.SPLICE,
-                    source_act=sid_str,
+                    source_act=salted_id,
                     source_key=f"field_{field_key}",
                 )
 

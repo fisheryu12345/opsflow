@@ -76,6 +76,7 @@ class ItsmFillFormService(Service):
             for field_key, field_val in fields.items():
                 data.set_outputs(f'field_{field_key}', field_val)
             ticket.do_before_exit_state(state_id, operator)
+            # Verify outputs are set
             self.finish_schedule()
             logger.info(f'[itsm_fill] Fill form done for ticket #{ticket_id}')
         except Ticket.DoesNotExist:

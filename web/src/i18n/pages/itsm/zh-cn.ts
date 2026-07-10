@@ -209,7 +209,7 @@ export default {
     webhookExec: '外部调用',
     requestUrl: '请求 URL',
     requestMethod: '请求方法',
-    conditionExprPlaceholder: '如 ${node_1.field} == \'approved\'',
+    conditionExprPlaceholder: '如 node_2.field_amount > 1000，无条件填 1 == 1',
     formDesign: '工单设计',
     addField: '添加字段',
     configStatus: '已配置 {n} 项',

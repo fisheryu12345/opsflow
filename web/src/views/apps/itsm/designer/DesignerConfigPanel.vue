@@ -248,7 +248,26 @@
             <el-input v-model="edge.label" :placeholder="$t('message.designer.edgeLabel')" @input="onEdgeChange" />
           </el-form-item>
           <el-form-item :label="$t('message.designer.conditionExpr')">
-            <el-input v-model="edge.condition" type="textarea" :rows="2" :placeholder="$t('message.designer.conditionExprPlaceholder')" @input="onEdgeChange" />
+            <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+              <el-select size="small" style="flex:1;min-width:120px" placeholder="字段" @change="onCondFieldSelect" clearable filterable>
+                <el-option v-for="r in fieldRefOptions" :key="r.value" :label="r.label" :value="r.value" />
+              </el-select>
+              <el-select size="small" style="width:70px" placeholder="操作" @change="onCondOpSelect" clearable>
+                <el-option v-for="op in condOperators" :key="op" :label="op" :value="op" />
+              </el-select>
+              <el-input v-model="condState.value" size="small" style="flex:1;min-width:80px" placeholder="值" @change="buildCondExpr" clearable />
+            </div>
+            <div v-if="edge.condition" style="margin-top:4px;font-size:11px;color:#409EFF;background:#ecf5ff;padding:4px 8px;border-radius:4px;word-break:break-all">
+              {{ edge.condition }}
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+              <el-button v-if="edge.condition" link size="small" type="danger" @click="edge.condition = ''; onEdgeChange()">清除（默认分支）</el-button>
+              <el-button link size="small" type="primary" @click="openConditionDialog">
+                <el-icon><Plus /></el-icon> 添加条件
+              </el-button>
+              <el-button link size="small" @click="showAdvanced = !showAdvanced">{{ showAdvanced ? '收起' : '手动' }}</el-button>
+            </div>
+            <el-input v-if="showAdvanced" v-model="edge.condition" type="textarea" :rows="2" placeholder="手动输入" @input="onEdgeChange" style="margin-top:4px" />
           </el-form-item>
           <el-form-item :label="$t('message.designer.rejectEdge')">
             <el-switch v-model="edge.isReject" @change="onEdgeChange" />
@@ -258,23 +277,34 @@
       </template>
     </div>
     <button class="des-config-collapse" @click="$emit('close')">◀</button>
+
+    <ConditionDialog
+      :visible="conditionDialogVisible"
+      :initial-struct="conditionStruct"
+      :available-vars="availableVars"
+      @update:visible="conditionDialogVisible = $event"
+      @save="onConditionSave"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Close, Edit, Plus } from '@element-plus/icons-vue'
 import { getNodeConfig } from './shapes'
 import { request } from '/@/utils/service'
 import { presetApi } from '/@/api/itsm/index'
 import PresetProcessorInput from './components/PresetProcessorInput.vue'
+import ConditionDialog from '/@/views/apps/opsflow/components/gates/ConditionDialog.vue'
+import { generateConditionExpr } from '/@/views/apps/opsflow/composables/useGraphCanvas'
 
 const { t } = useI18n()
 
 const props = defineProps<{
   node: any
   edge: any
+  allNodes?: any[]  // for edge config: compute upstream field references
 }>()
 
 const emit = defineEmits<{
@@ -290,8 +320,102 @@ const typeLabel = computed(() => {
   return getNodeConfig(props.node.type).label
 })
 
+// ── Edge condition: field reference helpers ──
+const fieldRefOptions = computed(() => {
+  if (!props.edge || !props.allNodes?.length) return []
+  const refs: { label: string; value: string }[] = []
+  for (const n of props.allNodes) {
+    const nk = n.node_key || n.id || ''
+    if (!nk) continue
+    for (const f of (n.fields || [])) {
+      if (f.key) {
+        refs.push({ label: `${n.name || nk}.${f.name || f.key}`, value: `\${${nk}.field_${f.key}}` })
+      }
+    }
+  }
+  return refs
+})
+
+const showAdvanced = ref(false)
+const conditionDialogVisible = ref(false)
+const conditionLogic = ref<'AND' | 'OR'>('AND')
+const conditionStruct = ref<any>(null)
+
+// Build available variables from ALL graph nodes' fields
+const availableVars = computed(() => {
+  const vars: any[] = []
+  if (!props.allNodes?.length) return vars
+  for (const n of props.allNodes) {
+    const nk = n.node_key || n.id || ''
+    if (!nk) continue
+    const nodeName = n.name || nk
+    for (const f of (n.fields || [])) {
+      if (f.key) {
+        vars.push({
+          source: nk,
+          sourceLabel: nodeName,
+          field: f.key,
+          fieldLabel: f.name || f.key,
+          fieldType: f.type === 'NUMBER' || f.type === 'INT' ? 'number' : f.type === 'SELECT' || f.type === 'RADIO' ? 'string' : 'string',
+          sourceType: 'node' as const,
+          label: `${nodeName}.${f.name || f.key}`,
+          group: nodeName,
+        })
+      }
+    }
+  }
+  return vars
+})
+
+// Parse conditionStruct from edge.condition (string)
+function openConditionDialog() {
+  const raw = props.edge?.condition || ''
+  if (typeof raw === 'string' && raw.trim()) {
+    // Try to parse existing expression back into struct (basic: single rule)
+    conditionStruct.value = { logic: 'AND', rules: [{ source: '', field: '', op: '==', value: raw }] }
+  } else {
+    conditionStruct.value = null
+  }
+  conditionDialogVisible.value = true
+}
+
+function onConditionSave(struct: any) {
+  if (!props.edge) return
+  props.edge.condition = generateConditionExpr(struct.rules, struct.logic)
+  conditionDialogVisible.value = false
+  emit('change')
+}
+
+const condOperators = ['==', '!=', '>', '<', '>=', '<=']
+const condState = reactive({ field: '', op: '', value: '' })
+
+function onCondFieldSelect(v: string) { condState.field = v || ''; buildCondExpr() }
+function onCondOpSelect(v: string) { condState.op = v || ''; buildCondExpr() }
+
+function buildCondExpr() {
+  if (!props.edge) return
+  const { field, op, value } = condState
+  if (!field) return
+  const valPart = isNaN(Number(value)) && value !== 'true' && value !== 'false'
+    ? `'${value}'` : value
+  const expr = op ? `${field} ${op} ${valPart}` : field
+  props.edge.condition = expr
+  updateEdgeLabel()
+  onEdgeChange()
+}
+
+function onEdgeChange() {
+  updateEdgeLabel()
+  emit('change')
+}
+
+function updateEdgeLabel() {
+  if (!props.edge) return
+  // Only set label from user input; don't auto-generate from condition text
+  props.edge.label = props.edge.isReject ? '驳回' : (props.edge.label || '')
+}
+
 function onChange() { emit('change') }
-function onEdgeChange() { emit('change') }
 function onOpenFieldEditor() { emit('openFieldEditor') }
 function gatewayHint(type: string) {
   const hints: Record<string, string> = {

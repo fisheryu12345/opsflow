@@ -79,7 +79,7 @@
           {{ $t('message.ticketDetail.flowSteps') }}
         </div>
         <div v-show="!flowCollapsed">
-          <FlowChart ref="flowChartRef" :pipeline-tree="pipelineTree" :node-status="ticketNodeStatus" />
+          <FlowChart ref="flowChartRef" :pipeline-tree="pipelineTree" :node-status="ticketNodeStatus" :workflow-id="ticket?.workflow" />
         </div>
       </div>
 
@@ -99,53 +99,58 @@
         </div>
       </div>
 
-      <div class="td-action-card" v-else-if="currentNode">
-        <div class="td-card-title">{{ $t('message.ticketDetail.currentNode') }} · {{ currentNode.name }}</div>
+      <!-- Show ALL running nodes at once -->
+      <template v-if="myNodes.length > 0">
+        <div class="td-action-card" v-for="node in myNodes" :key="node.id">
+        <div class="td-card-title">{{ $t('message.ticketDetail.currentNode') }} · {{ node.name }}</div>
         <div class="td-action-body">
-          <template v-if="currentNode.type === 'APPROVAL' || currentNode.type === 'SIGN'">
+          <template v-if="node.type === 'APPROVAL' || node.type === 'SIGN'">
             <div class="td-processor">
-              <el-icon><User /></el-icon> {{ $t('message.ticketDetail.processor') }}: {{ currentNode.processor_name || currentNode.processors }}
+              <el-icon><User /></el-icon> {{ $t('message.ticketDetail.processor') }}: {{ node.processor_name || node.processors }}
             </div>
-            <ItsmFormRenderer
-              v-if="(currentNode.fields || []).length"
-              mode="fill"
-              :fields="currentNode.fields || []"
-              :data="fillForm"
-              :submitting="submitting"
-              :show-submit="false"
-              @field-change="(k, v) => fillForm[k] = v"
-            />
-            <template v-if="isProcessor(currentNode.processors)">
+            <template v-if="isProcessor(node.processors, node.processors_type)">
+              <ItsmFormRenderer
+                v-if="(node.fields || []).length"
+                mode="fill"
+                :fields="node.fields || []"
+                :data="fillForm"
+                :submitting="submitting"
+                :show-submit="false"
+                @field-change="(k, v) => fillForm[k] = v"
+              />
               <div class="td-approval-btns">
-                <el-button type="success" :loading="submitting" @click="onApprove">
+                <el-button type="success" :loading="submitting" @click="onApproveNode(node)">
                   <el-icon><Select /></el-icon> {{ $t('message.ticketDetail.approveBtn') }}
                 </el-button>
-                <el-button type="danger" :loading="submitting" @click="onReject">
+                <el-button type="danger" :loading="submitting" @click="onRejectNode(node)">
                   <el-icon><Close /></el-icon> {{ $t('message.ticketDetail.rejectBtn') }}
                 </el-button>
               </div>
             </template>
             <div v-else class="td-action-placeholder">
-              <p>{{ currentNode.name }}（{{ stepTypeLabel(currentNode.type) }}）</p>
               <p style="font-size:12px;color:#E6A23C">您不是当前节点处理人，无法操作</p>
             </div>
           </template>
 
-          <template v-else-if="currentNode.type === 'NORMAL'">
+          <template v-else-if="node.type === 'NORMAL'">
             <ItsmFormRenderer
               mode="fill"
-              :fields="currentNode.fields || []"
+              :fields="node.fields || []"
               :data="fillForm"
               :submitting="submitting"
               @field-change="(k, v) => fillForm[k] = v"
-              @submit="onNodeSubmit"
+              @submit="(data: any) => onNodeSubmit(data, node)"
             />
           </template>
-
-          <div v-else class="td-action-placeholder">
-            {{ currentNode.name }}（{{ stepTypeLabel(currentNode.type) }}）
-          </div>
         </div>
+        </div>
+      </template>
+
+      <!-- Batch approve all my nodes at once -->
+      <div v-if="myNodes.filter(n => isProcessor(n.processors, n.processors_type)).length > 1" class="td-batch-bar">
+        <el-button type="success" :loading="batchSubmitting" @click="onBatchApprove">
+          <el-icon><Select /></el-icon> 全部同意（{{ myNodes.filter(n => isProcessor(n.processors, n.processors_type)).length }}个节点）
+        </el-button>
       </div>
 
       <div class="td-timeline-card" v-if="finishedNodes.length">
@@ -162,9 +167,10 @@
                 <span>{{ ns.processor_name || '-' }}</span>
                 <span v-if="ns.finish_time"> · {{ formatTime(ns.finish_time) }}</span>
               </div>
-              <div v-if="ns.result_label || ns.result_comment" class="td-timeline-result">
+              <div v-if="ns.result_label || ns.result_comment || opinionText(ns)" class="td-timeline-result">
                 <el-tag v-if="ns.result_label" size="small" :type="ns.result_val === 'passed' ? 'success' : 'danger'">{{ ns.result_label }}</el-tag>
-                <span v-if="ns.result_comment" class="td-timeline-comment">{{ ns.result_comment }}</span>
+                <span v-if="opinionText(ns)" class="td-timeline-comment">{{ opinionText(ns) }}</span>
+                <span v-if="ns.result_comment && ns.result_comment !== opinionText(ns)" class="td-timeline-comment">{{ ns.result_comment }}</span>
               </div>
             </div>
           </div>
@@ -201,11 +207,20 @@ function getMyUserId(): number | null {
   return userInfo.userInfos.id || null
 }
 
-function isProcessor(processors: string): boolean {
+function isProcessor(processors: string, processorsType?: string): boolean {
   const userId = getMyUserId()
-  if (!userId || !processors) {
-    return false
+  if (!userId) return false
+
+  // STARTER: ticket creator is the processor
+  if (processorsType === 'STARTER') {
+    const creatorId = ticket.value?.creator
+    return creatorId === userId || parseInt(creatorId) === userId
   }
+  // STARTER_LEADER: not directly the user, skip for now
+  if (processorsType === 'STARTER_LEADER') return false
+
+  // PERSON / other: check processors JSON array
+  if (!processors) return false
   try {
     const arr = JSON.parse(processors)
     if (Array.isArray(arr)) return arr.some((u: any) => parseInt(u) === userId)
@@ -215,6 +230,7 @@ function isProcessor(processors: string): boolean {
 
 const loading = ref(false)
 const submitting = ref(false)
+const batchSubmitting = ref(false)
 const flowCollapsed = ref(true)
 const flowChartRef = ref<any>(null)
 
@@ -231,6 +247,7 @@ const fillForm = reactive<Record<string, any>>({})
 
 const flowSteps = ref<any[]>([])
 const currentNode = ref<any>(null)
+const myNodes = ref<any[]>([])  // parallel gateway: all RUNNING nodes where user is processor
 const finishedNodes = ref<any[]>([])
 const submittedFieldLabels = ref<Record<string, string>>({})
 const flowStates = ref<Record<string, any>>({})
@@ -265,6 +282,17 @@ function stepTypeLabel(t: string) {
 function formatTime(dt: string | undefined | null): string {
   if (!dt) return ''
   return dt.replace(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}).*$/, '$1')
+}
+
+function opinionText(node: any): string {
+  // Find any TEXT or text-like field value from fields_data
+  if (!node?.fields_data) return ''
+  for (const [k, v] of Object.entries(node.fields_data)) {
+    if (k === 'approval_opinion' || k === 'sign_opinion' || (k.startsWith('field_') && typeof v === 'string' && v)) {
+      return v as string
+    }
+  }
+  return ''
 }
 
 function slaStatusLabel(s: string): string {
@@ -350,11 +378,13 @@ function rebuildFlow(allStates: Record<string, any>) {
     const signTask = ticketSignTasks.value[ns?.id]
     const step = {
       id: st.id,
+      state_id: st.id,  // used by onApproveNode/onRejectNode
       key,
       name: st.name,
       type: st.type,
       status,
       processors: ns?.processors || '',
+      processors_type: st.processors_type || ns?.processors_type || '',
       processor_name: ns?.processor_name || signTask?.processor || (st.type === 'NORMAL' && ticket.value ? (ticket.value.creator_name || String(ticket.value.creator)) : '') || '',
       fields: st.fields || [],
       fields_data: ns?.fields || {},
@@ -380,14 +410,11 @@ function rebuildFlow(allStates: Record<string, any>) {
   finishedNodes.value = done
 
   // With parallel gateways, multiple nodes may be RUNNING.
-  // Prefer the one where current user is a processor, then fall back to last.
+  // Collect ALL nodes where user is a processor for multi-action display.
+  // Show ALL running nodes: actionable for user's nodes, read-only for others
   const runningSteps = steps.filter((s: any) => s.status === 'RUNNING')
-  if (runningSteps.length > 0) {
-    const mine = runningSteps.find((s: any) => isProcessor(s.processors))
-    currentNode.value = mine || runningSteps[runningSteps.length - 1]
-  } else {
-    currentNode.value = null
-  }
+  myNodes.value = runningSteps
+  currentNode.value = runningSteps.length > 0 ? runningSteps[runningSteps.length - 1] : null
 }
 
 async function onResubmit(data?: Record<string, any>) {
@@ -419,19 +446,53 @@ function collectFillFields(): Record<string, any> {
 }
 
 async function onApprove() {
-  if (!ticket.value || !currentNode.value) return
+  onApproveNode(currentNode.value)
+}
+
+async function onReject() {
+  onRejectNode(currentNode.value)
+}
+
+async function onBatchApprove() {
+  const mine = myNodes.value.filter((n: any) => isProcessor(n.processors, n.processors_type))
+  if (!mine.length || !ticket.value) return
+  batchSubmitting.value = true
+  let ok = 0
+  for (const node of mine) {
+    try {
+      const fields = collectFillFields()
+      const textFields = (node.fields || []).filter((f: any) => f.type === 'TEXT')
+      const comment = textFields.map((f: any) => fields[f.key]).find((v: any) => v) || ''
+      await ApproveTicketNode(ticket.value.id, node.state_id || node.id, comment, fields)
+      ok++
+    } catch (e: any) { /* continue */ }
+  }
+  batchSubmitting.value = false
+  if (ok === mine.length) {
+    ElMessage.success(`全部审批完成（${ok}个节点）`)
+  } else {
+    ElMessage.warning(`完成 ${ok}/${mine.length} 个节点`)
+  }
+  loadTicket()
+}
+
+async function onApproveNode(node: any) {
+  if (!ticket.value || !node) return
   submitting.value = true
   try {
     const fields = collectFillFields()
-    await ApproveTicketNode(ticket.value.id, currentNode.value.state_id || currentNode.value.id, '', fields)
+    // Find comment from any TEXT field (keys may be auto-generated like field_xxxx)
+    const textFields = (node.fields || []).filter((f: any) => f.type === 'TEXT')
+    const comment = textFields.map((f: any) => fields[f.key]).find((v: any) => v) || ''
+    await ApproveTicketNode(ticket.value.id, node.state_id || node.id, comment, fields)
     ElMessage.success(t('message.ticketDetail.approveSuccess'))
-    router.back()
+    loadTicket()
   } catch (e: any) { ElMessage.error(e?.msg || t('message.ticketDetail.approveFailed')) }
   submitting.value = false
 }
 
-async function onReject() {
-  if (!ticket.value || !currentNode.value) return
+async function onRejectNode(node: any) {
+  if (!ticket.value || !node) return
   const fields = collectFillFields()
   const hasComment = Object.values(fields).some(v => v && String(v).trim())
   if (!hasComment) {
@@ -440,10 +501,9 @@ async function onReject() {
   }
   submitting.value = true
   try {
-    const fields = collectFillFields()
-    await RejectTicketNode(ticket.value.id, currentNode.value.state_id || currentNode.value.id, '', fields)
+    await RejectTicketNode(ticket.value.id, node.state_id || node.id, '', fields)
     ElMessage.success(t('message.ticketDetail.rejectSuccess'))
-    router.back()
+    loadTicket()
   } catch (e: any) { ElMessage.error(e?.msg || t('message.ticketDetail.rejectFailed')) }
   submitting.value = false
 }
@@ -517,11 +577,12 @@ onMounted(() => loadTicket())
 .td-summary-value { color: #1d2129; word-break: break-all; }
 
 .td-steps-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 16px 24px; overflow: hidden; }
-.td-action-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 18px 24px; border-left: 4px solid #409EFF; }
+.td-action-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 18px 24px; border-left: 4px solid #409EFF; margin-bottom: 14px; }
 .td-action-body { min-height: 40px; }
 .td-processor { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #606266; margin-bottom: 14px; }
 .td-approval-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; .el-button { min-width: 100px; } }
 .td-action-placeholder { color: #909399; font-size: 13px; }
+.td-batch-bar { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #ebeef5; padding: 14px 24px; margin: 0 0 14px 0; border-radius: 12px; box-shadow: 0 -2px 8px rgba(0,0,0,0.06); text-align: right; z-index: 10; }
 
 .td-timeline-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 18px 24px; }
 .td-timeline { display: flex; flex-direction: column; gap: 0; }

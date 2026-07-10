@@ -129,8 +129,8 @@ class Workflow(CoreModel):
                 'id': str(s.get('node_key') or key),
                 'node_type': node_type_map.get(stype, 'atom'),
                 'label': s.get('name', ''),
-                'state_type': stype,  # Keep ITSM type for backward ref
-                'state_id': s.get('id'),  # DB ID for status matching
+                'state_type': stype,
+                'state_id': s.get('id'),
             }
             if stype not in ('START', 'END'):
                 node['fields'] = s.get('fields', [])
@@ -140,10 +140,15 @@ class Workflow(CoreModel):
         for t in transitions_data.values():
             from_key = t.get('from_node_key', '') or str(t.get('from_state_id', ''))
             to_key = t.get('to_node_key', '') or str(t.get('to_state_id', ''))
+            # Use name if set, otherwise use condition text (truncated) for display
             label = t.get('name', '')
+            if not label:
+                cond = t.get('condition', '')
+                if isinstance(cond, str) and cond.strip():
+                    label = cond[:20] + ('...' if len(cond) > 20 else '')
             if t.get('direction') == 'reject':
                 label = label or '拒绝'
-            edges.append({'from': from_key, 'to': to_key, 'label': label})
+            edges.append({'from': from_key, 'to': to_key, 'label': label, 'condition': t.get('condition', ''), 'direction': t.get('direction', '')})
 
         return {'nodes': nodes, 'edges': edges}
 

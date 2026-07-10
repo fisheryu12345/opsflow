@@ -29,6 +29,7 @@
       <DesignerConfigPanel
         :node="designer.selectedNode.value"
         :edge="designer.selectedEdge.value"
+        :all-nodes="allNodeData"
         @close="onConfigClose"
         @change="onConfigChange"
         @open-field-editor="onOpenFieldEditor"
@@ -54,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
@@ -92,6 +93,14 @@ function updateZoomLevel() {
   const g = designer.graph.value
   if (g) zoomLevel.value = Math.round(g.zoom() * 100)
 }
+
+const allNodeData = ref<any[]>([])
+
+// Refresh node data list when config panel opens (node or edge selected)
+watch([() => designer.selectedNode.value, () => designer.selectedEdge.value], () => {
+  const g = designer.graph.value
+  allNodeData.value = g ? g.getNodes().map((n: any) => n.getData()).filter(Boolean) : []
+}, { immediate: true })
 
 function onConfigClose() { designer.selectedNode.value = null; designer.selectedEdge.value = null }
 function onConfigChange() { /* manual save only */ }

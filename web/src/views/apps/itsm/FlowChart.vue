@@ -26,6 +26,7 @@ import './designer/shapes'
 const props = defineProps<{
   pipelineTree?: { nodes: any[]; edges: any[] } | null
   nodeStatus?: Array<{ state_id: number; status: string; [key: string]: any }>
+  workflowId?: number
 }>()
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -171,30 +172,26 @@ function buildGraph() {
     })
   }
 
-  // Auto layout — use Opsflow's layoutNodes (LAYER_GAP=480, NODE_GAP=120)
+  // Frontend layout — fast, non-blocking BFS algorithm
   try {
-    const nodeList = nodes.map(n => ({ id: n.id || n.node_key || '', node_type: n.node_type || n.type || 'NORMAL' }))
-    const edgeList = edges.map(e => ({ from: e.from || e.from_node_key || '', to: e.to || e.to_node_key || '' }))
-    const positions = layoutNodes(nodeList, edgeList)
+    const nList = nodes.map((n: any) => ({ id: n.id || n.node_key || '', node_type: n.node_type || n.type || 'NORMAL' }))
+    const eList = edges.map((e: any) => ({ from: e.from || e.from_node_key || '', to: e.to || e.to_node_key || '' }))
+    const positions = layoutNodes(nList, eList)
     for (const [id, pos] of Object.entries(positions)) {
       const cell = graph!.getCellById(id)
       if (cell?.isNode()) cell.position(pos.x, pos.y)
     }
-    // Position nodes that layoutNodes didn't cover (orphaned nodes)
     const positioned = new Set(Object.keys(positions))
     let orphanY = 40
     for (const n of nodes) {
       const nk = n.id || n.node_key || ''
       if (!positioned.has(nk)) {
         const cell = graph!.getCellById(nk)
-        if (cell?.isNode()) {
-          cell.position(600, orphanY)
-          orphanY += 100
-        }
+        if (cell?.isNode()) { cell.position(600, orphanY); orphanY += 100 }
       }
     }
   } catch {
-    nodes.forEach((n, i) => {
+    nodes.forEach((n: any, i: number) => {
       const nk = n.id || n.node_key || ''
       const cell = graph!.getCellById(nk)
       if (cell?.isNode()) cell.position(80 + (i % 10) * 280, 40 + Math.floor(i / 10) * 100)

@@ -27,10 +27,11 @@ def _register_node_output(data, var_name, source_act, source_key):
         )
 
 
-def _collect_condition_refs(expr: str, data, known_node_ids: set) -> str:
+def _collect_condition_refs(expr: str, data, known_node_ids: set, node_id_map: dict = None) -> str:
     """解析条件表达式中的 ${node_id.key} 引用，注册到 data.inputs 并返回重写表达式
 
-    如: "${STATE_1.field_amount} > 5" → "${_STATE_1_field_amount} > 5"
+    如: "${node_2.field_priority} > 5" → "${node_2_field_priority} > 5"
+    node_id_map: maps original keys → salted element IDs (for correct source_act)
     """
 
     def _rewrite(m):
@@ -44,7 +45,9 @@ def _collect_condition_refs(expr: str, data, known_node_ids: set) -> str:
     def _register_and_return(node_id, key):
         if node_id in known_node_ids:
             var_name = f"{node_id}_{key}"
-            _register_node_output(data, var_name, node_id, key)
+            # Use salted ID as source_act if available
+            source_id = (node_id_map or {}).get(node_id, node_id)
+            _register_node_output(data, var_name, source_id, key)
             return var_name
         return f"{node_id}.{key}"
 

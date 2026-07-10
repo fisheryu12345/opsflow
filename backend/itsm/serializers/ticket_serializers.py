@@ -8,12 +8,17 @@ from itsm.models import Ticket, TicketStatus, SignTask, SlaTask
 
 class TicketSerializer(CustomModelSerializer):
     sla_info = serializers.SerializerMethodField()
+    workflow = serializers.SerializerMethodField()
 
     class Meta:
         model = Ticket
         fields = '__all__'
         read_only_fields = ['sn', 'current_status', 'pipeline_id',
                             'create_datetime', 'update_datetime', 'sla_info']
+
+    @staticmethod
+    def get_workflow(obj):
+        return obj.workflow_version.workflow_id
 
     @staticmethod
     def get_sla_info(obj):

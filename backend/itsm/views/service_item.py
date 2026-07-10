@@ -142,15 +142,7 @@ class ServiceItemViewSet(ItsmProjectViewSet):
                 first_normal_state_key = key
                 break
 
-        # 同步自动完成第一个填单节点
-        if form_data and first_normal_state_id:
-            logger.info(f'[_submit_flow] Auto-completing state_id={first_normal_state_id} with {len(form_data)} fields')
-            ticket.do_in_state(first_normal_state_id, form_data, 'system')
-            logger.info(f'[_submit_flow] Auto-complete done for state_id={first_normal_state_id}')
-        else:
-            logger.info(f'[_submit_flow] No form_data, skipping auto-complete')
-
-        # 启动 Pipeline
+        # 启动 Pipeline — let schedule task auto-complete via ticket.meta.form_data
         logger.info(f'[_submit_flow] Starting pipeline... ticket_id={ticket.id} version_id={version.id}')
         pipeline_id, tree = ITSMEngine(ticket).run(version)
         ticket.pipeline_id = pipeline_id
@@ -158,7 +150,7 @@ class ServiceItemViewSet(ItsmProjectViewSet):
         ticket.save(update_fields=['pipeline_id', 'current_status'])
         logger.info(f'[_submit_flow] Pipeline {pipeline_id} started')
 
-        # 触发 pipeline callback 推进流程（避免 Celery CALLBACK schedule 永久等待）
+        # Trigger callback to auto-complete the first fill node via Celery
         if form_data and first_normal_state_id:
             from pipeline.eri.models import Process as BambooProcess, Schedule as BambooSchedule
             from itsm.services.itsm_engine import ITSMEngine as Engine

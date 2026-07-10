@@ -216,15 +216,21 @@ def compute_layout(nodes, edges, **kwargs):
     max_depth = 0
     # BFS 从所有入度为0的节点出发，计算最长路径
     visited_depth: dict[str, int] = {}
+    visiting: set[str] = set()
     def _dfs_depth(nid: str) -> int:
         if nid in visited_depth:
             return visited_depth[nid]
+        if nid in visiting:
+            # Cycle detected — return 1 to break recursion
+            return 1
+        visiting.add(nid)
         node = all_content.get(nid, {})
         out = node.get('outgoing', [])
         if isinstance(out, str):
             out = [out] if out else []
         if not out:
             visited_depth[nid] = 1
+            visiting.discard(nid)
             return 1
         max_child = 0
         for fid in out:
@@ -233,6 +239,7 @@ def compute_layout(nodes, edges, **kwargs):
             if tgt and tgt in all_content:
                 max_child = max(max_child, _dfs_depth(tgt))
         visited_depth[nid] = 1 + max_child
+        visiting.discard(nid)
         return visited_depth[nid]
     for nid in all_content:
         max_depth = max(max_depth, _dfs_depth(nid))
