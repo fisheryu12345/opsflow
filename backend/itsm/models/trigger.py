@@ -94,6 +94,7 @@ class TriggerExecution(models.Model):
     STATUS_CHOICES = (
         ('PENDING', '等待执行'),
         ('PROCESSING', '执行中'),
+        ('RETRYING', '重试中'),
         ('SUCCESS', '执行成功'),
         ('FAILED', '执行失败'),
     )
@@ -108,9 +109,13 @@ class TriggerExecution(models.Model):
     )
     event_type = models.CharField(max_length=16, verbose_name="事件类型")
     status = models.CharField(
-        max_length=8, choices=STATUS_CHOICES, default='PENDING', verbose_name="状态"
+        max_length=16, choices=STATUS_CHOICES, default='PENDING', verbose_name="状态"
     )
     action_results = models.JSONField(default=list, verbose_name="动作执行结果")
+    retry_count = models.IntegerField(default=0, verbose_name="已重试次数")
+    max_retries = models.IntegerField(default=0, verbose_name="最大重试次数")
+    retry_interval = models.IntegerField(default=60, verbose_name="重试间隔(秒)")
+    next_retry_at = models.DateTimeField(null=True, blank=True, verbose_name="下次重试时间")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
 
     class Meta:

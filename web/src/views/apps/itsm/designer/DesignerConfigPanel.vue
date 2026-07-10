@@ -262,39 +262,98 @@
               <el-button size="small" plain @click="onTriggerAdd(et)"><el-icon><Plus /></el-icon> 添加</el-button>
             </div>
 
-            <!-- Quick trigger edit dialog -->
-            <el-dialog v-model="triggerEditVisible" :title="triggerForm.id ? '编辑触发器' : '新建触发器'" width="600px" top="10vh" destroy-on-close append-to-body>
-              <el-form :model="triggerForm" label-width="100px" size="small">
-                <el-form-item label="名称">
-                  <el-input v-model="triggerForm.name" placeholder="触发器名称" />
-                </el-form-item>
-                <el-form-item label="启用">
-                  <el-switch v-model="triggerForm.is_active" />
-                </el-form-item>
-                <el-form-item label="动作列表">
-                  <div v-for="(a,i) in triggerForm.actions" :key="i" style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
-                    <el-select v-model="a.action_type" style="width:120px" size="small">
-                      <el-option value="NOTIFY" label="发送通知" />
-                      <el-option value="WEBHOOK" label="HTTP回调" />
-                      <el-option value="OPSFLOW" label="触发OpsFlow" />
-                      <el-option value="MODIFY_FIELD" label="修改字段" />
+            <!-- Trigger edit dialog -->
+            <el-dialog v-model="triggerEditVisible" :title="triggerForm.id ? $t('message.trigger.edit') : $t('message.trigger.create')"
+              width="780px" top="3vh" destroy-on-close append-to-body>
+              <el-form :model="triggerForm" label-width="0" size="small">
+                <el-row :gutter="16">
+                  <el-col :span="16">
+                    <el-form-item>
+                      <el-input v-model="triggerForm.name" :placeholder="$t('message.trigger.namePlaceholder')" clearable />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item>
+                      <el-switch v-model="triggerForm.is_active" :active-text="$t('message.itsmPage.colEnabled')" />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+
+                <el-divider content-position="left">{{ $t('message.trigger.actions') }}</el-divider>
+
+                <div v-for="(a,i) in triggerForm.actions" :key="i" class="trigger-action-card">
+                  <!-- Header: type + delete -->
+                  <div class="action-card-head">
+                    <el-tag size="small" :type="a.action_type==='NOTIFY'?'success':a.action_type==='WEBHOOK'?'warning':a.action_type==='OPSFLOW'?'primary':'info'">
+                      {{ i+1 }}
+                    </el-tag>
+                    <el-select v-model="a.action_type" size="small" style="width:130px">
+                      <el-option v-for="at in actionTypeOptions" :key="at.value" :label="at.label" :value="at.value" />
                     </el-select>
-                    <template v-if="a.action_type==='NOTIFY'">
-                      <el-select v-model="a._templateId" size="small" placeholder="选择模板" style="width:140px" clearable @change="(v:string)=>onNotifyTemplateSelect(i, v, a)">
-                        <el-option v-for="t in notifTemplateOptions" :key="t.id" :label="t.name" :value="t.id" />
-                      </el-select>
-                      <el-input v-model="a.config.title_tpl" size="small" placeholder="标题" style="flex:1" />
-                    </template>
-                    <el-input v-if="a.action_type==='WEBHOOK'" v-model="a.config.url" size="small" placeholder="URL" style="flex:1" />
-                    <el-input v-if="a.action_type==='MODIFY_FIELD'" v-model="a.config.field_name" size="small" placeholder="字段名" style="width:100px" />
-                    <el-button link size="small" type="danger" @click="triggerForm.actions.splice(i,1)"><el-icon><Delete /></el-icon></el-button>
+                    <div style="flex:1" />
+                    <el-button link size="small" type="danger" @click="triggerForm.actions.splice(i,1)">✕</el-button>
                   </div>
-                  <el-button size="small" plain @click="triggerForm.actions.push({action_type:'NOTIFY',config:{}})"><el-icon><Plus /></el-icon> 添加动作</el-button>
-                </el-form-item>
+
+                  <!-- NOTIFY body -->
+                  <div v-if="a.action_type==='NOTIFY'" class="action-card-body">
+                    <el-select v-model="a._templateId" size="small" :placeholder="$t('message.trigger.notifyTemplateHint')" style="width:100%;margin-bottom:6px" clearable
+                      @change="(v:string)=>onNotifyTemplateSelect(i, v, a)">
+                      <el-option v-for="t in notifTemplateOptions" :key="t.id" :label="t.name" :value="t.id" />
+                    </el-select>
+                    <el-input v-model="a.config.title_tpl" size="small" :placeholder="$t('message.trigger.notifyTitlePlaceholder')" style="margin-bottom:4px" />
+                  </div>
+
+                  <!-- WEBHOOK body -->
+                  <div v-if="a.action_type==='WEBHOOK'" class="action-card-body">
+                    <div style="display:flex;gap:6px;margin-bottom:4px">
+                      <el-select v-model="a.config.method" size="small" style="width:90px">
+                        <el-option v-for="m in ['POST','PUT','GET','DELETE','PATCH']" :key="m" :value="m" :label="m" />
+                      </el-select>
+                      <el-input v-model="a.config.url" size="small" :placeholder="$t('message.trigger.webhookUrlPlaceholder')" style="flex:1" />
+                    </div>
+                    <el-input v-model="a.config.body_tpl" size="small" type="textarea" :rows="3" :placeholder="$t('message.trigger.webhookBodyTpl')" style="margin-bottom:4px" />
+                    <div style="display:flex;gap:6px;align-items:center">
+                      <span class="cc-label">Content-Type</span>
+                      <el-input v-model="a.config.content_type" size="small" placeholder="application/json" style="width:150px" />
+                      <span class="cc-label">{{ $t('message.trigger.webhookTimeout') }}</span>
+                      <el-input-number v-model="a.config.timeout" size="small" :min="1" :max="300" style="width:85px" />
+                      <span style="font-size:12px;color:#909399">s</span>
+                      <el-checkbox v-model="a.config.ssl_verify" size="small" style="font-size:11px">SSL</el-checkbox>
+                    </div>
+                  </div>
+
+                  <!-- OPSFLOW body -->
+                  <div v-if="a.action_type==='OPSFLOW'" class="action-card-body">
+                    <el-input v-model="a.config.flow_id" size="small" :placeholder="$t('message.trigger.opsflowFlowPlaceholder')" />
+                  </div>
+
+                  <!-- MODIFY_FIELD body -->
+                  <div v-if="a.action_type==='MODIFY_FIELD'" class="action-card-body">
+                    <div style="display:flex;gap:6px">
+                      <el-input v-model="a.config.field_name" size="small" :placeholder="$t('message.trigger.fieldNamePlaceholder')" style="width:140px" />
+                      <el-input v-model="a.config.field_value" size="small" :placeholder="$t('message.trigger.fieldValuePlaceholder')" style="flex:1" />
+                    </div>
+                  </div>
+
+                  <!-- Retry footer -->
+                  <div class="action-card-foot">
+                    <el-icon style="font-size:13px"><RefreshRight /></el-icon>
+                    <span>{{ $t('message.trigger.retryCount') }}</span>
+                    <el-input-number v-model="a.config.retry_max" size="small" :min="0" :max="10" style="width:70px" />
+                    <span>{{ $t('message.trigger.retryTimes') }}</span>
+                    <el-input-number v-model="a.config.retry_interval" size="small" :min="5" :max="3600" :step="10" style="width:80px" />
+                    <span>{{ $t('message.trigger.retrySeconds') }}</span>
+                  </div>
+                </div>
+
+                <el-button size="small" type="primary" plain style="width:100%" @click="addTriggerAction()">
+                  <el-icon><Plus /></el-icon> {{ $t('message.trigger.addAction') }}
+                </el-button>
+                <div class="template-hint-trigger">{{ $t('message.trigger.templateHints') }}</div>
               </el-form>
               <template #footer>
-                <el-button @click="triggerEditVisible=false">取消</el-button>
-                <el-button type="primary" :loading="triggerSaving" @click="onTriggerSave">保存</el-button>
+                <el-button @click="triggerEditVisible=false">{{ $t('message.common.cancel') }}</el-button>
+                <el-button type="primary" :loading="triggerSaving" @click="onTriggerSave">{{ $t('message.trigger.saveTrigger') }}</el-button>
               </template>
             </el-dialog>
           </template>
@@ -347,7 +406,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Close, Edit, Plus } from '@element-plus/icons-vue'
+import { Close, Edit, Plus, RefreshRight } from '@element-plus/icons-vue'
 import { getNodeConfig } from './shapes'
 import { request } from '/@/utils/service'
 import { presetApi, triggerApi, notificationTemplateApi } from '/@/api/itsm/index'
@@ -593,6 +652,13 @@ onMounted(() => {
 })
 
 // ===== Trigger config =====
+const actionTypeOptions = computed(() => [
+  { value: 'NOTIFY', label: t('message.trigger.actionNotify') },
+  { value: 'WEBHOOK', label: t('message.trigger.actionWebhook') },
+  { value: 'OPSFLOW', label: t('message.trigger.actionOpsflow') },
+  { value: 'MODIFY_FIELD', label: t('message.trigger.actionModifyField') },
+])
+
 const triggers = ref<any[]>([])
 const triggerEditVisible = ref(false)
 const triggerSaving = ref(false)
@@ -625,9 +691,17 @@ async function loadTriggers() {
   } catch { triggers.value = [] }
 }
 
+function addTriggerAction() {
+  triggerForm.value.actions.push({
+    action_type: 'NOTIFY',
+    config: { channels: ['site'], title_tpl: '', body_tpl: '', receivers: ['processor'], retry_max: 0, retry_interval: 60 },
+  })
+}
+
 function onTriggerAdd(eventType: string) {
   currentTriggerEventType.value = eventType
-  triggerForm.value = { id: null, name: '', is_active: true, event_type: eventType, actions: [{ action_type: 'NOTIFY', config: { channels: ['site'], title_tpl: '', body_tpl: '', receivers: ['processor'] } }] }
+  triggerForm.value = { id: null, name: '', is_active: true, event_type: eventType,
+    actions: [{ action_type: 'NOTIFY', config: { channels: ['site'], title_tpl: '', body_tpl: '', receivers: ['processor'], retry_max: 0, retry_interval: 60 } }] }
   triggerEditVisible.value = true
 }
 
@@ -643,11 +717,16 @@ async function onTriggerSave() {
       state_ids: [props.node.id],
       priority: '',
       condition: {},
-      actions: triggerForm.value.actions.map((a: any, i: number) => ({
-        order: i,
-        action_type: a.action_type,
-        config: a.config || {},
-      })),
+      actions: triggerForm.value.actions.map((a: any, i: number) => {
+        const cfg = { ...(a.config || {}) }
+        // Convert form retry fields to backend retry config format
+        const retry_max = cfg.retry_max != null ? Number(cfg.retry_max) : 0
+        const retry_interval = cfg.retry_interval != null ? Number(cfg.retry_interval) : 60
+        cfg.retry = { max: retry_max, interval: retry_interval }
+        delete cfg.retry_max
+        delete cfg.retry_interval
+        return { order: i, action_type: a.action_type, config: cfg }
+      }),
     }
     if (triggerForm.value.id) {
       await triggerApi.update(triggerForm.value.id, payload)
@@ -751,4 +830,26 @@ watch(() => [props.node, props.workflowId], () => {
 }
 .trigger-item-header { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
 .trigger-item-actions { display: flex; gap: 4px; margin-top: 4px; }
+
+/* Trigger action card (dialog) */
+.trigger-action-card {
+  border: 1px solid #e4e7ed; border-radius: 8px; margin-bottom: 10px; overflow: hidden;
+}
+.action-card-head {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  background: #fafafa; border-bottom: 1px solid #ebeef5;
+}
+.action-card-body { padding: 8px 10px; }
+.action-card-foot {
+  display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+  background: #fafafa; border-top: 1px solid #ebeef5;
+  font-size: 12px; color: #909399;
+}
+.template-hint-trigger {
+  font-size: 12px; color: #909399; margin-top: 8px; line-height: 1.8;
+}
+.template-hint-trigger code {
+  background: #f0f2f5; padding: 1px 5px; border-radius: 3px; font-size: 11px;
+}
+.cc-label { font-size: 12px; color: #909399; white-space: nowrap; }
 </style>

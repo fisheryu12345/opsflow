@@ -1,5 +1,35 @@
 # Commit Analysis Log
 
+## b3c3b7fa
+
+> 提交日期: 2026-07-11 | 提交信息: feat: Webhook enhancement + unified retry + code review fixes
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/itsm/models/trigger.py` | 后端 | TriggerExecution 新增 retry 字段 + PROCESSING/RETRYING 状态 |
+| `backend/itsm/services/trigger_service.py` | 后端 | WebhookRunner 增强；统一重试逻辑；审查修复 11 个 bug |
+| `web/src/views/apps/itsm/designer/DesignerConfigPanel.vue` | 前端 | 触发器对话框重构：卡片布局、Webhook 增强、重试配置、i18n |
+| `web/src/i18n/pages/itsm/{zh-cn,en}.ts` | i18n | trigger/notifTemplate 翻译 key |
+
+### 解决
+
+- **问题：** HTTP 回调太简陋 + 所有 action 失败无重试
+- **办法：** WebhookRunner 完整 HTTP 配置；process_pending 统一重试机制
+
+### 文档
+
+- `docs/itsm/features/2026-07-11-webhook-enhancement-retry.md`
+- `docs/superpowers/specs/2026-07-11-webhook-enhancement-retry-design.md`
+
+### 验证
+
+- 改动类型: feat + fix
+- 工作区状态: 干净 ✅
+
+---
+
 ## c029ad11
 
 > 提交日期: 2026-07-11 | 提交信息: feat: Change Calendar + Trigger System + Notification Templates

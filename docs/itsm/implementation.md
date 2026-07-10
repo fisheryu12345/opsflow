@@ -1,12 +1,12 @@
 # ITSM — 开发进度跟踪
 
-> 最后更新: 2026-07-10 | 参考目标: docs/opsflow_target.md
+> 最后更新: 2026-07-11 | 参考目标: docs/opsflow_target.md
 
 ## 成熟度评估
 
 | 维度 | 评估 |
 |------|:----:|
-| 当前成熟度 | ⭐⭐⭐⭐☆ (4.7/5) |
+| 当前成熟度 | ⭐⭐⭐⭐☆ (4.8/5) |
 | 目标成熟度 | ⭐⭐⭐⭐⭐ (5/5) |
 | 差距 | AI 生成器未用真实 LLM，双向 OpsFlow 审批集成未完成 |
 
@@ -39,7 +39,9 @@
 | 服务目录 | P2 | ✅ | 可请求的 IT 服务项 | ServiceItem 模型 + 双模式(flow/lightweight) + 服务市场(分类树+卡片) + 服务详情(表单+提交) + 管理后台(CRUD+预览) |
 | OpsFlow 双向审批 | P2 | 📅 | OpsFlow 审批节点创建 ITSM 工单 | 仅 ITSM→OpsFlow 单向，反向未实现 |
 | Monitor 告警→工单 | P2 | 📅 | 告警自动创建工单 | 无 Ticket ← Alert 集成 |
-| 变更日历 | P2 | 📅 | 变更时间线展示 | 无前端组件 |
+| 变更日历 | P2 | ✅ | 变更时间线展示 | el-calendar 月/周视图 + TimelineView 时间线列表 + ChangeDetailPopover 点击详情卡片，聚合 ITSM Ticket + OpsFlow SchedulePlan |
+| 触发器系统 | P1 | ✅ | 事件驱动自动化 | Trigger(FLOW_START/END/ENTER_STATE/LEAVE_STATE) + TriggerAction(NOTIFY/WEBHOOK/OPSFLOW/MODIFY_FIELD) + TriggerExecutor 异步队列 + APScheduler 10s 轮询 + Webhook 增强(query_params/headers/ssl) + 统一重试(RETRYING/next_retry_at) |
+| 通知模板 | P1 | ✅ | 可复用通知预设 | NotificationTemplate CRUD + NotifTemplateList 前端管理页 |
 | AI 全面 LLM 替代 | P2 | 📅 | DeepSeek 替代关键词模板 | — |
 
 ## TODO
@@ -50,10 +52,21 @@
 ### P1
 - [ ] AIGenerator 接入 DeepSeek
 
+### P1
+- [x] 触发器系统 ✅
+- [x] 通知模板 ✅
+- [ ] AIGenerator 接入 DeepSeek
+
 ### P2
+- [x] 变更日历前端 ✅
 - [ ] OpsFlow 审批节点 ↔ ITSM 工单双向
 - [ ] Monitor 告警 → 创建工单
-- [ ] 变更日历前端
+
+### 2026-07-11 Update
+> 提交: f38b2b8c
+- 变更日历: 从 📅→✅。后端聚合 API + el-calendar 月/周视图 + TimelineView 时间线 + ChangeDetailPopover 详情卡片
+- 触发器系统: 新增 ✅。Trigger/TriggerAction/TriggerExecution 模型 + 4 种事件 + 条件匹配 + 异步执行
+- 通知模板: 新增 ✅。NotificationTemplate CRUD + 前端管理页
 
 ### 2026-07-07 Update
 > 提交: bafc693b

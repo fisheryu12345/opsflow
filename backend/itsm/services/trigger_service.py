@@ -251,7 +251,7 @@ class NotifyRunner:
 
 
 class WebhookRunner:
-    """HTTP callback to external system."""
+    """HTTP callback to external system with full request configuration."""
 
     @staticmethod
     def run(config, ticket, current_state_name='') -> dict:
@@ -259,31 +259,34 @@ class WebhookRunner:
         method = config.get('method', 'POST').upper()
         body_tpl = config.get('body_tpl', '{}')
         timeout = config.get('timeout', 30)
-        headers = config.get('headers', {})
+        headers = dict(config.get('headers', {}) or {})
+        query_params = config.get('query_params', {}) or {}
+        ssl_verify = config.get('ssl_verify', True)
+        content_type = config.get('content_type', 'application/json')
 
         body_str = TemplateResolver.resolve(body_tpl, ticket, current_state_name)
         try:
             body = json.loads(body_str) if body_str else {}
         except json.JSONDecodeError:
             body = body_str
+            if content_type == 'application/json':
+                content_type = 'text/plain'
 
-        kwargs: dict = {'headers': headers, 'timeout': timeout}
-        if isinstance(body, dict):
+        if 'Content-Type' not in headers:
+            headers['Content-Type'] = content_type
+
+        kwargs: dict = {
+            'headers': headers,
+            'timeout': timeout,
+            'verify': ssl_verify,
+            'params': query_params,
+        }
+        if isinstance(body, dict) and content_type == 'application/json':
             kwargs['json'] = body
         else:
             kwargs['data'] = body
-            if 'Content-Type' not in headers:
-                headers['Content-Type'] = 'text/plain'
 
-        if method == 'POST':
-            resp = requests.post(url, **kwargs)
-        elif method == 'PUT':
-            resp = requests.put(url, **kwargs)
-        elif method == 'GET':
-            resp = requests.get(url, headers=headers, timeout=timeout)
-        else:
-            resp = requests.request(method, url, **kwargs)
-
+        resp = requests.request(method, url, **kwargs)
         resp.raise_for_status()
         return {
             'action_type': 'WEBHOOK',
@@ -360,19 +363,21 @@ class TriggerExecutor:
 
     @staticmethod
     def process_pending():
-        """Called by APScheduler every 10s. Process batch of PENDING executions."""
+        """Called by APScheduler every 10s. Process PENDING + RETRYING executions."""
         try:
             from itsm.models import TriggerExecution
             from django.db import transaction as db_transaction
+            now = timezone.now()
             with db_transaction.atomic():
                 executions = list(TriggerExecution.objects.select_for_update(
                     skip_locked=True
                 ).filter(
-                    status='PENDING'
+                    Q(status='PENDING') |
+                    Q(status='RETRYING', next_retry_at__lte=now)
                 ).select_related('trigger', 'ticket').prefetch_related(
                     'trigger__actions'
                 )[:50])
-                # Mark as PROCESSING to prevent concurrent workers from picking them up
+                # Mark as PROCESSING to prevent concurrent workers
                 if executions:
                     TriggerExecution.objects.filter(
                         id__in=[e.id for e in executions]
@@ -381,6 +386,8 @@ class TriggerExecutor:
             for exec in executions:
                 try:
                     results = []
+                    # Derive retry config from actions (take max values)
+                    TriggerExecutor.derive_execution_retry_config(exec)
                     current_state_name = exec.ticket.current_status or ''
                     for action in exec.trigger.actions.order_by('order'):
                         try:
@@ -388,6 +395,9 @@ class TriggerExecutor:
                             result.setdefault('action_id', action.id)
                             result.setdefault('action_type', action.action_type)
                             results.append(result)
+                            # Stop processing if action failed (will retry from start)
+                            if result.get('status') == 'FAILED':
+                                break
                         except Exception as e:
                             results.append({
                                 'action_id': action.id,
@@ -395,15 +405,42 @@ class TriggerExecutor:
                                 'status': 'FAILED',
                                 'error': str(e),
                             })
+                            break
                     exec.action_results = results
                     has_failure = any(r.get('status') == 'FAILED' for r in results)
-                    exec.status = 'FAILED' if has_failure else 'SUCCESS'
+                    if has_failure and exec.retry_count < exec.max_retries:
+                        exec.retry_count += 1
+                        exec.status = 'RETRYING'
+                        exec.next_retry_at = now + timedelta(seconds=exec.retry_interval)
+                    else:
+                        exec.status = 'FAILED' if has_failure else 'SUCCESS'
                 except Exception as e:
-                    exec.status = 'FAILED'
-                    exec.action_results = [{'error': str(e)}]
+                    if exec.retry_count < exec.max_retries:
+                        exec.retry_count += 1
+                        exec.status = 'RETRYING'
+                        exec.next_retry_at = now + timedelta(seconds=exec.retry_interval)
+                        exec.action_results = exec.action_results or [{'error': str(e)}]
+                    else:
+                        exec.status = 'FAILED'
+                        exec.action_results = [{'error': str(e)}]
                 exec.save()
         except Exception as e:
             logger.warning(f'TriggerExecutor.process_pending error: {e}')
+
+    @staticmethod
+    def derive_execution_retry_config(exec):
+        """Copy retry config into execution from actions (take max values)."""
+        if not exec.trigger:
+            exec.max_retries = 0
+            exec.retry_interval = 60
+            return
+        max_r, interval = 0, 60
+        for action in exec.trigger.actions.all():
+            retry_cfg = (action.config or {}).get('retry', {})
+            max_r = max(max_r, retry_cfg.get('max', 0))
+            interval = max(interval, retry_cfg.get('interval', 60))
+        exec.max_retries = max_r
+        exec.retry_interval = interval
 
     @staticmethod
     def cleanup_old_executions():
