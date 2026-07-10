@@ -3,13 +3,8 @@
 
 from rest_framework import serializers
 from common.utils.serializers import CustomModelSerializer
+from common.utils.language import get_request_lang
 from itsm.models import Workflow, WorkflowVersion, State, Transition, Field
-
-
-def _lang(request):
-    if request:
-        return request.query_params.get('lang', '') or request.META.get('HTTP_X_LANG', '')
-    return ''
 
 
 class WorkflowSerializer(CustomModelSerializer):
@@ -20,8 +15,8 @@ class WorkflowSerializer(CustomModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        lang = _lang(self.context.get('request'))
-        if lang and lang.startswith('en') and instance.name_en:
+        lang = get_request_lang(self.context.get('request'))
+        if lang == 'en' and instance.name_en:
             data['name'] = instance.name_en
         return data
 
@@ -43,8 +38,8 @@ class WorkflowVersionSerializer(CustomModelSerializer):
     def get_workflow_name(self, obj):
         if not obj.workflow:
             return ''
-        lang = _lang(self.context.get('request'))
-        if lang and lang.startswith('en') and obj.workflow.name_en:
+        lang = get_request_lang(self.context.get('request'))
+        if lang == 'en' and obj.workflow.name_en:
             return obj.workflow.name_en
         return obj.workflow.name
 

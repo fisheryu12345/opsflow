@@ -4,6 +4,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from common.utils.json_response import DetailResponse, ErrorResponse
+from common.utils.language import get_request_lang
 
 from opsflow.models import PluginMeta
 from opsflow.plugins.registry import refresh_plugins, loader, get_plugin
@@ -179,7 +180,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
             allowed = set()
             for v in versions:
                 allowed.update(v.allowed_projects or [])
-            is_en = request.query_params.get('lang') == 'en'
+            is_en = get_request_lang(request) == 'en'
             name = (plugin.name_en or plugin.name) if is_en else plugin.name
             return DetailResponse(data={
                     "code": code,

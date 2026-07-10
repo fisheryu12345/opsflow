@@ -3,13 +3,8 @@
 
 from rest_framework import serializers
 from common.utils.serializers import CustomModelSerializer
+from common.utils.language import get_request_lang
 from itsm.models import ServiceItem
-
-
-def _lang(request):
-    if request:
-        return request.query_params.get('lang', '') or request.META.get('HTTP_X_LANG', '')
-    return ''
 
 
 class ServiceItemSerializer(CustomModelSerializer):
@@ -25,15 +20,15 @@ class ServiceItemSerializer(CustomModelSerializer):
     def get_category_name(self, obj):
         if not obj.category:
             return ''
-        lang = _lang(self.context.get('request'))
-        if lang and lang.startswith('en') and obj.category.name_en:
+        lang = get_request_lang(self.context.get('request'))
+        if lang == 'en' and obj.category.name_en:
             return obj.category.name_en
         return obj.category.name
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        lang = _lang(self.context.get('request'))
-        if lang and lang.startswith('en'):
+        lang = get_request_lang(self.context.get('request'))
+        if lang == 'en':
             if instance.name_en:
                 data['name'] = instance.name_en
             if instance.description_en:

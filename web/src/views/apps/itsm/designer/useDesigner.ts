@@ -7,7 +7,7 @@ import {
   DEFAULT_EDGE_ATTRS, CARD_WIDTH, CARD_HEIGHT, ITSM_NODE_CONFIG,
   getNodeConfig, DEFAULT_NODE_FIELDS,
 } from './shapes'
-import { StateSync, TransitionSync, FieldBatchUpdate, workflowApi, stateApi, transitionApi, DeployWorkflow } from '/@/api/itsm/index'
+import { StateSync, TransitionSync, FieldBatchUpdate, workflowApi, stateApi, transitionApi, DeployWorkflow, ValidateWorkflow } from '/@/api/itsm/index'
 
 export function useDesigner(containerId: string, workflowId?: number) {
   const { locale } = useI18n()
@@ -76,7 +76,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
   const nodes = ref<any[]>([])
   const edges = ref<any[]>([])
   const fields = ref<any[]>([])
-  const validateErrors = ref<string[]>([])
+  const validationResult = ref<any>(null)  // {valid, checks: [...]} from backend
 
   // ── Graph 初始化 ──
   function initGraph(minimapContainer?: HTMLElement) {
@@ -465,7 +465,8 @@ export function useDesigner(containerId: string, workflowId?: number) {
   }
 
   // ── 保存 ──
-  async function saveDesigner(workflowData: any, nodeList: any[], edgeList: any[]) {
+  async function saveDesigner(workflowData: any, nodeList: any[], edgeList: any[], opts?: { silent?: boolean }) {
+    const silent = opts?.silent ?? false
     saving.value = true
     try {
       const wfId = workflow.value?.id || workflowData.id
@@ -531,19 +532,17 @@ export function useDesigner(containerId: string, workflowId?: number) {
         workflow.value.is_draft = true
         await workflowApi.update(String(wfId), { is_draft: true })
       }
-      ElMessage.success('保存成功')
-    } catch (e) { console.error(e); ElMessage.error('保存失败') }
+      if (!silent) ElMessage.success('保存成功')
+    } catch (e) {
+      console.error(e)
+      if (!silent) ElMessage.error('保存失败')
+      if (silent) throw e  // re-throw so deploy workflow aborts on save failure
+    }
     saving.value = false
   }
 
   // ── 部署 ──
   async function deployWorkflow() {
-    const errs = validateWorkflow()
-    if (errs.length > 0) {
-      validateErrors.value = errs
-      ElMessage.warning(`校验未通过: ${errs[0]}`)
-      return
-    }
     const g = graph.value
     if (!g || !workflow.value?.id) return
 
@@ -576,36 +575,41 @@ export function useDesigner(containerId: string, workflowId?: number) {
         if (data) edgeList.push(data)
       }
     }
-    await saveDesigner(workflow.value, nodeList, edgeList)
+    // 1+2: Save first, then validate. Both in one try/catch so save failure aborts.
     try {
-      await DeployWorkflow(String(workflow.value.id))
+      await saveDesigner(workflow.value, nodeList, edgeList, { silent: true })
+
+      const res = await ValidateWorkflow(String(workflow.value.id), locale.value)
+      validationResult.value = res?.data ?? res
+    } catch (e: any) {
+      ElMessage.error('部署准备失败: ' + (e?.message || e))
+      validationResult.value = {
+        valid: false,
+        checks: [{
+          rule: 'api_error',
+          status: 'fail',
+          message: `操作失败: ${e?.message || e}`,
+          suggestion: '请检查网络连接后重试',
+        }],
+      }
+    }
+  }
+
+  /** Execute actual deploy after validation passes. */
+  async function executeDeploy() {
+    if (!workflow.value?.id) return
+    try {
+      await DeployWorkflow(String(workflow.value.id), '', locale.value)
       if (workflow.value) {
         workflow.value.is_draft = false
         workflow.value.is_enabled = true
       }
       ElMessage.success('部署成功')
-    } catch (e) { console.error(e); ElMessage.error('部署失败') }
-  }
-
-  // ── 校验 ──
-  function validateWorkflow(): string[] {
-    const errs: string[] = []
-    const g = graph.value
-    if (!g) return ['画布未初始化']
-    const nodeDataList = g.getCells().filter(c => c.isNode()).map(c => c.getData()).filter(Boolean)
-    if (!nodeDataList.some((d: any) => d.type === 'START')) errs.push('缺少开始节点')
-    if (!nodeDataList.some((d: any) => d.type === 'END')) errs.push('缺少结束节点')
-    nodeDataList.filter((d: any) => d.type === 'APPROVAL').forEach((a: any) => {
-      if (!a.processors_type && !a.processorsRaw) errs.push(`${a.name || '审批节点'}未配置处理人`)
-    })
-    const pg = nodeDataList.filter((d: any) => d.type === 'CONDITIONAL_PARALLEL' || d.type === 'PARALLEL')
-    const cg = nodeDataList.filter((d: any) => d.type === 'COVERAGE')
-    // Exclusive gateway validation: removed "default edge" requirement.
-    // bamboo-engine evaluates conditions at runtime — if no condition matches,
-    // the gateway simply doesn't dispatch. Aligned with opsflow behavior.
-    if (pg.length > cg.length) errs.push('并行网关与汇聚网关数量不匹配')
-    validateErrors.value = errs
-    return errs
+      validationResult.value = null
+    } catch (e) {
+      console.error(e)
+      ElMessage.error('部署失败')
+    }
   }
 
   // ── 自动布局 (调用后端 Sugiyama 布局引擎) ──
@@ -673,7 +677,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
 
   return {
     graph, stencil, selectedNode, selectedEdge, loading, saving,
-    workflow, nodes, edges, fields, validateErrors,
-    initGraph, initStencil, loadWorkflow, saveDesigner, deployWorkflow, validateWorkflow, autoLayout, destroy,
+    workflow, nodes, edges, fields, validationResult,
+    initGraph, initStencil, loadWorkflow, saveDesigner, deployWorkflow, executeDeploy, autoLayout, destroy,
   }
 }

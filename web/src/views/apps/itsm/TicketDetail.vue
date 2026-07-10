@@ -473,6 +473,7 @@ async function onBatchApprove() {
   } else {
     ElMessage.warning(`完成 ${ok}/${mine.length} 个节点`)
   }
+  await new Promise(r => setTimeout(r, 3000))
   loadTicket()
 }
 
@@ -486,6 +487,7 @@ async function onApproveNode(node: any) {
     const comment = textFields.map((f: any) => fields[f.key]).find((v: any) => v) || ''
     await ApproveTicketNode(ticket.value.id, node.state_id || node.id, comment, fields)
     ElMessage.success(t('message.ticketDetail.approveSuccess'))
+    await new Promise(r => setTimeout(r, 3000))
     loadTicket()
   } catch (e: any) { ElMessage.error(e?.msg || t('message.ticketDetail.approveFailed')) }
   submitting.value = false
@@ -503,6 +505,7 @@ async function onRejectNode(node: any) {
   try {
     await RejectTicketNode(ticket.value.id, node.state_id || node.id, '', fields)
     ElMessage.success(t('message.ticketDetail.rejectSuccess'))
+    await new Promise(r => setTimeout(r, 3000))
     loadTicket()
   } catch (e: any) { ElMessage.error(e?.msg || t('message.ticketDetail.rejectFailed')) }
   submitting.value = false

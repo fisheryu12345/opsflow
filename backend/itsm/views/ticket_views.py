@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ITSM Ticket views — 工单管理、提交、审批、状态管理、文件上传"""
 
+import logging
 import time
 
 from django.db import models
@@ -12,7 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from common.utils.viewset import CustomModelViewSet
 from common.utils.json_response import DetailResponse, ErrorResponse
 
-from opsflow.views.base import ProjectFilteredViewSet
+from itsm.views.base import ProjectFilteredViewSet
 from iam.permissions import TenantPermission, EnvironmentGatePermission
 
 from itsm.models import Ticket, TicketStatus, SignTask, WorkflowVersion, SlaTask
@@ -87,20 +88,19 @@ class TicketViewSet(ItsmProjectViewSet):
         if not instance.workflow_version:
             return ErrorResponse(msg='工单未绑定流程版本，无法提交')
         try:
-            logger = __import__('logging').getLogger(__name__)
+            logger = logging.getLogger(__name__)
             logger.info(f'[SubmitTicket] ticket={instance.id} current meta keys={list((instance.meta or {}).keys())[:5]}')
-            # Only reset the fill node to WAIT so auto-complete works.
-            # Keep approval history for audit trail.
-            TicketStatus.objects.filter(ticket=instance).update(status='WAIT')
+            # Reset all node statuses to WAIT before running the pipeline.
+            # Approval history (APPROVED/REJECTED) is preserved — only RUNNING
+            # nodes are reset; historical status records remain for audit trail.
+            TicketStatus.objects.filter(ticket=instance, status='RUNNING').update(status='WAIT')
 
             form_data = (instance.meta or {}).get('form_data', {})
             states = (instance.workflow_version and instance.workflow_version.states) or {}
             first_normal_key = None
-            first_normal_id = None
             for key, s in states.items():
                 if s.get('type') == 'NORMAL':
                     first_normal_key = key
-                    first_normal_id = s.get('id')
                     break
 
             pipeline_id, tree = ITSMEngine(instance).run(instance.workflow_version)
@@ -124,7 +124,7 @@ class TicketViewSet(ItsmProjectViewSet):
                             break
                         time.sleep(0.2)
                     if not ok:
-                        logger = __import__('logging').getLogger(__name__)
+                        logger = logging.getLogger(__name__)
                         logger.error(f'[SubmitTicket] Callback polling timed out after 5s for ticket={instance.id}, pipeline may be stuck')
 
             return DetailResponse(data={
@@ -305,7 +305,7 @@ class TicketViewSet(ItsmProjectViewSet):
             if result == 'true':
                 trigger_result = OpsflowTriggerService.on_ticket_approved(instance)
                 if trigger_result.get('triggered'):
-                    logger = __import__('logging').getLogger(__name__)
+                    logger = logging.getLogger(__name__)
                     logger.info(
                         'Ticket %s approved, triggered OpsFlow execution: %s',
                         instance.sn, trigger_result.get('execution_id'),

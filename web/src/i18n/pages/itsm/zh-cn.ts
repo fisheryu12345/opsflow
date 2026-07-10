@@ -261,6 +261,11 @@ export default {
     validate: '校验',
     save: '保存',
     deploy: '部署',
+    validateTitle: '流程校验',
+    validateAllPass: '全部通过 ({n} 项)',
+    validateFailCount: '{n} 项未通过，请修正后重新校验',
+    validateClose: '关闭并继续修改',
+    confirmDeploy: '确认部署',
     fieldTypes: {
       basic: '基础字段',
       selection: '选择类',

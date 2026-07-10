@@ -74,9 +74,9 @@ export const DEFAULT_NODE_FIELDS: Record<string, any[]> = {
     },
     { key: 'attachment', name: '附件', type: 'FILE', required: false, layout: 'COL_12' },
   ],
-  /** 审批节点自带字段 — none (user defines via FormDesigner) */
+  /** Approval node fields — none (user defines via FormDesigner) */
   APPROVAL: [],
-  /** 会签节点自带字段 — none (user defines via FormDesigner) */
+  /** Sign node fields — none (user defines via FormDesigner) */
   SIGN: [],
 }
 

@@ -10,7 +10,6 @@
       @fit-canvas="fitCanvas"
       @auto-layout="designer.autoLayout()"
       @ai-generate="showAIDialog = true"
-      @validate="doValidate"
       @save="onSave"
       @deploy="designer.deployWorkflow()"
       @name-change="onNameChange"
@@ -51,6 +50,13 @@
         <el-button type="primary" :loading="aiLoading" @click="onAIGenerate">{{ $t('message.designer.aiGenerate') }}</el-button>
       </template>
     </el-dialog>
+
+    <ValidateDialog
+      v-if="showValidateDialog"
+      :checks="designer.validationResult.value?.checks || []"
+      @close="showValidateDialog = false; designer.validationResult.value = null"
+      @deploy="onValidateDeploy"
+    />
   </div>
 </template>
 
@@ -64,6 +70,7 @@ import DesignerToolbar from './DesignerToolbar.vue'
 import DesignerConfigPanel from './DesignerConfigPanel.vue'
 import FormDesigner from './FormDesigner.vue'
 import { AIGenerateWorkflow } from '/@/api/itsm/index'
+import ValidateDialog from './ValidateDialog.vue'
 
 const props = defineProps<{ workflowId?: number }>()
 const emit = defineEmits<{ back: [] }>()
@@ -80,6 +87,19 @@ const showAIDialog = ref(false)
 const editingFields = ref<any[]>([])
 const aiPrompt = ref('')
 const aiLoading = ref(false)
+const showValidateDialog = ref(false)
+
+// Watch validation result → show dialog
+watch(() => designer.validationResult.value, (val) => {
+  if (val && val.checks?.length > 0) {
+    showValidateDialog.value = true
+  }
+})
+
+async function onValidateDeploy() {
+  showValidateDialog.value = false
+  await designer.executeDeploy()
+}
 
 function toggleStencil() {
   stencilCollapsed.value = !stencilCollapsed.value
@@ -146,12 +166,6 @@ async function onSave() {
     }
   }
   await designer.saveDesigner(designer.workflow.value, nodeList, edgeList)
-}
-
-function doValidate() {
-  const errs = designer.validateWorkflow()
-  if (errs.length === 0) ElMessage.success('校验通过 ✅')
-  else ElMessage.warning(`校验未通过 (${errs.length} 项)`)
 }
 
 function onFieldsSave(fields: any[]) {

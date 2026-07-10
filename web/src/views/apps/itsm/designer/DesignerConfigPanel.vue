@@ -292,8 +292,8 @@ import { getNodeConfig } from './shapes'
 import { request } from '/@/utils/service'
 import { presetApi } from '/@/api/itsm/index'
 import PresetProcessorInput from './components/PresetProcessorInput.vue'
-import ConditionDialog from '/@/views/apps/opsflow/components/gates/ConditionDialog.vue'
-import { generateConditionExpr } from '/@/views/apps/opsflow/composables/useGraphCanvas'
+import ConditionDialog from './components/ConditionDialog.vue'
+import { generateConditionExpr } from './conditionUtils'
 
 const { t } = useI18n()
 
@@ -335,10 +335,6 @@ const fieldRefOptions = computed(() => {
     }
   }
   return refs
-})
-const parsedLogic = computed(() => {
-  const c = (props.edge?.condition || '')
-  return / OR /i.test(c) ? 'OR' : 'AND'
 })
 const parsedRules = computed(() => {
   const c = (props.edge?.condition || '')

@@ -55,13 +55,15 @@ def position(
     :returns: (locations_dict, lines_dict)
     """
     size_x = max(activity_size[0], event_size[0], gateway_size[0])
-    shift_y = int(max(activity_size[1], event_size[1], gateway_size[1]) * 3)
-    event_shift_y = int((activity_size[1] - event_size[1]) * 0.5)
-    gateway_shift_y = int((activity_size[1] - gateway_size[1]) * 0.5)
+    max_h = max(activity_size[1], event_size[1], gateway_size[1])
+    shift_y = int(max_h * 3)
+    event_shift_y = int((max_h - event_size[1]) * 0.5)
+    gateway_shift_y = int((max_h - gateway_size[1]) * 0.5)
+    activity_shift_y = int((max_h - activity_size[1]) * 0.5)
 
     pipeline_element_shift_y = {
         DUMMY_NODE_TYPE: 0,
-        NodeType.ServiceActivity: 0,
+        NodeType.ServiceActivity: activity_shift_y,
         NodeType.EmptyStartEvent: event_shift_y,
         NodeType.EmptyEndEvent: event_shift_y,
         NodeType.ExclusiveGateway: gateway_shift_y,

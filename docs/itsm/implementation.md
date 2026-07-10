@@ -134,3 +134,12 @@
 - 设计器边重构: 移除驳回边开关（`isReject`/`direction:'reject'`），改为条件表达式统一管理；`isGatewayEdge` 网关门卫仅对排他/条件并行网关显示边配置；结构化条件预览（`parsedRules`）+ 已有表达式反向解析（`openConditionDialog`）→ ✅
 - 审批/会签默认字段清理: `APPROVAL: []` / `SIGN: []`，改为用户通过 FormDesigner 自定义 → ✅
 - 条件运算符标准化: `useGraphCanvas.ts` 字符串运算符统一为 BoolRule 兼容（`in`/`notin` 替代 `contains`/`startsWith`/`endsWith`/`regex`）→ ✅
+
+### 2026-07-10 Update
+> 提交: b5ef2190
+- 部署前校验: 新建 `workflow_validator.py` 14项规则(E1-E14)，涵盖 DAG环检测/网关约束/审批处理器检查/条件语法/可达性分析 → ✅
+- 前端校验弹窗: `ValidateDialog.vue` 逐项展示 pass/fail + 修正建议，部署前必须先通过校验 → ✅
+- 代码审查修复: E5条件宽松→修正, E12 dict误报, in/notin条件表达式, HTTP 200→400, 死代码清理, i18n统一 → ✅
+- 公共语言检测: `common/utils/language.py` `get_request_lang()` 统一5处重复 → ✅
+- 布局修复: position.py 垂直居中 max(h)基准, ITSM activity_size 72→56 匹配前端 → ✅
+- 测试: 26个测试用例覆盖所有14条规则 → ✅

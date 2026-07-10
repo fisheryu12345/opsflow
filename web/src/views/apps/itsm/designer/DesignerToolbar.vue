@@ -32,10 +32,7 @@
       <el-tooltip content="AI 生成" :show-after="500">
         <el-button size="small" :icon="MagicStick" @click="$emit('aiGenerate')" circle />
       </el-tooltip>
-      <el-tooltip content="校验" :show-after="500">
-        <el-button size="small" :icon="CircleCheck" @click="$emit('validate')" circle class="btn-validate" />
-      </el-tooltip>
-      <el-tooltip content="保存" :show-after="500">
+<el-tooltip content="保存" :show-after="500">
         <el-button size="small" :icon="Upload" :loading="saving" @click="$emit('save')" circle class="btn-save" />
       </el-tooltip>
       <el-tooltip content="部署" :show-after="500">
@@ -48,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeft, ZoomIn, ZoomOut, FullScreen, Operation, MagicStick, CircleCheck, Upload } from '@element-plus/icons-vue'
+import { ArrowLeft, ZoomIn, ZoomOut, FullScreen, Operation, MagicStick, Upload } from '@element-plus/icons-vue'
 
 defineProps<{
   workflow?: any
@@ -64,7 +61,6 @@ const emit = defineEmits<{
   fitCanvas: []
   autoLayout: []
   aiGenerate: []
-  validate: []
   save: []
   deploy: []
   nameChange: [name: string]
@@ -89,6 +85,5 @@ function onNameChange(val: string) {
 .des-toolbar-right { display: flex; align-items: center; gap: 4px; }
 .zoom-level { font-size: 11px; color: #909399; min-width: 32px; text-align: center; font-family: monospace; }
 .toolbar-divider { width: 1px; height: 20px; background: #e4e7ed; margin: 0 4px; }
-.btn-validate { color: #E6A23C; }
 .btn-save { color: #667eea; }
 </style>

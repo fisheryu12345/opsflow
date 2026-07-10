@@ -77,7 +77,9 @@ export function layoutNodes(
   const START_Y = options?.startY ?? 40
 
   // 计算入度 & 邻接表（检测回环边，排除回环边使其不参与分层）
-  const gatewayIds = new Set(nodes.filter(n => n.node_type === 'exclusive_gateway').map(n => n.id))
+  // Collect ALL gateway types (exclusive, parallel, conditional_parallel, converge)
+  // to properly detect and exclude loopback edges from in-degree calculation
+  const gatewayIds = new Set(nodes.filter(n => (n.node_type || '').includes('gateway')).map(n => n.id))
   const inDeg: Record<string, number> = {}
   const adj: Record<string, string[]> = {}
   for (const n of nodes) { inDeg[n.id] = 0; adj[n.id] = [] }

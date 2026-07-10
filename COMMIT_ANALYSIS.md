@@ -39,7 +39,44 @@
 - 改动类型: fix + refactor
 - 清理乱码: 无
 - 子 App index.md 更新: itsm, opsflow
-- 工作区状态: 进行中
+- 工作区状态: 干净 ✅
+
+---
+
+## b5ef2190
+
+> 提交日期: 2026-07-10 | 提交信息: feat: workflow validator + code review fixes — 流程校验器 + 审查修复
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/itsm/services/workflow_validator.py` | 后端 | 新建 — 14项校验规则(E1-E14) |
+| `backend/itsm/tests/test_workflow_validator.py` | 后端 | 新建 — 26个测试用例 |
+| `backend/common/utils/language.py` | 后端 | 新建 — 公共语言检测 |
+| `backend/itsm/views/workflow_views.py` | 后端 | 新增validate端点+deploy加校验 |
+| `backend/itsm/views/ticket_views.py` | 后端 | 导入规范化+注释修正 |
+| `backend/itsm/serializers/` | 后端 | 4文件统一get_request_lang() |
+| `backend/opsflow/views/plugin_views.py` | 后端 | lang检测→get_request_lang() |
+| `backend/*/layout/position.py` | 后端 | 垂直居中max(h)基准修复 |
+| `web/src/views/apps/itsm/designer/ValidateDialog.vue` | 前端 | 新建 — 校验结果弹窗 |
+| `web/src/views/apps/itsm/designer/conditionUtils.ts` | 前端 | 新建 — 条件表达式工具 |
+| `web/src/views/apps/itsm/designer/components/` | 前端 | 新建 — ConditionDialog/Row/Picker |
+| `web/src/views/apps/itsm/designer/useDesigner.ts` | 前端 | 部署流程集成校验 |
+| `web/src/api/itsm/index.ts` | 前端 | ValidateWorkflow/DeployWorkflow加lang |
+| `web/src/i18n/pages/itsm/` | 前端 | validateTitle等5个i18n key |
+
+### 解决
+
+- **问题/背景：** ITSM设计器部署前无流程校验；审查发现多项bug
+- **办法：** 新增14项规则后端校验器+前端弹窗；修复所有审查bug；统一语言检测函数
+
+### 验证
+
+- 改动类型: feat + fix
+- 清理乱码: 有 (Duration`)
+- 子 App index.md 更新: itsm, opsflow
+- 工作区状态: 干净 ✅
 
 ---
 

@@ -2,6 +2,7 @@
 """Escalation serializers — with i18n support"""
 
 from common.utils.serializers import CustomModelSerializer
+from common.utils.language import get_request_lang
 from itsm.models import EscalationLevel
 
 
@@ -13,10 +14,7 @@ class EscalationLevelSerializer(CustomModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        request = self.context.get('request')
-        lang = ''
-        if request:
-            lang = request.query_params.get('lang', '') or request.META.get('HTTP_X_LANG', '')
-        if lang and lang.startswith('en') and instance.name_en:
+        lang = get_request_lang(self.context.get('request'))
+        if lang == 'en' and instance.name_en:
             data['name'] = instance.name_en
         return data

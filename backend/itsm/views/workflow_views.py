@@ -9,16 +9,47 @@ from rest_framework.permissions import IsAuthenticated
 from common.utils.viewset import CustomModelViewSet
 from common.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
 
-from opsflow.views.base import ProjectFilteredViewSet
+from itsm.views.base import ProjectFilteredViewSet
 from iam.permissions import TenantPermission
 
 from itsm.models import Workflow, WorkflowVersion, State, Transition, Field
+from itsm.services.workflow_validator import validate_workflow
 from itsm.serializers import (
     WorkflowSerializer, WorkflowCreateSerializer,
     WorkflowVersionSerializer,
     StateSerializer, TransitionSerializer, FieldSerializer,
 )
 from itsm.services.ai_generator import AIGenerator
+from common.utils.language import get_request_lang
+
+
+def _build_validation_data(workflow) -> tuple:
+    """Build states/transitions dicts from a Workflow instance for validation.
+
+    State keys use node_key (preferred) or id as fallback.
+    Transitions include from_state_id/to_state_id as fallback for old data
+    where from_node_key/to_node_key may be empty.
+    """
+    states_data = {}
+    for s in workflow.states.all():
+        key = s.node_key or str(s.id)
+        states_data[key] = {
+            'id': s.id, 'node_key': s.node_key or '', 'name': s.name, 'type': s.type,
+            'processors': (s.processors or ''),
+            'processors_type': (s.processors_type or ''),
+        }
+    transitions_data = {}
+    for t in workflow.transitions.all():
+        transitions_data[t.id] = {
+            'id': t.id, 'name': t.name,
+            'from_node_key': t.from_node_key or '',
+            'to_node_key': t.to_node_key or '',
+            'from_state_id': str(t.from_state_id) if t.from_state_id else '',
+            'to_state_id': str(t.to_state_id) if t.to_state_id else '',
+            'condition': t.condition,
+            'condition_type': t.condition_type,
+        }
+    return states_data, transitions_data
 
 
 class ItsmProjectViewSet(ProjectFilteredViewSet):
@@ -142,7 +173,7 @@ class WorkflowViewSet(ItsmProjectViewSet):
         try:
             positions = compute_layout(
                 layout_nodes, layout_edges,
-                activity_size=(280, 72),   # ITSM node card size
+                activity_size=(280, 56),   # ITSM node card size (must match frontend CARD_HEIGHT)
                 event_size=(56, 56),
                 gateway_size=(70, 70),
                 start=(80, 80),
@@ -153,10 +184,26 @@ class WorkflowViewSet(ItsmProjectViewSet):
 
         return DetailResponse(data={'positions': positions}, msg='Layout computed')
 
+    @action(methods=['POST'], detail=True, url_path='validate')
+    def validate_structure(self, request, pk=None):
+        """校验流程结构，返回逐项检测结果"""
+        instance = self.get_object()
+        states_data, transitions_data = _build_validation_data(instance)
+        lang = get_request_lang(request)
+        result = validate_workflow(states_data, transitions_data, lang=lang)
+        return DetailResponse(data=result)
+
     @action(methods=['POST'], detail=True)
     def deploy(self, request, pk=None):
-        """部署 — 创建 WorkflowVersion"""
+        """部署 — 创建 WorkflowVersion（含流程校验）"""
         instance = self.get_object()
+
+        states_data, transitions_data = _build_validation_data(instance)
+        lang = get_request_lang(request)
+        result = validate_workflow(states_data, transitions_data, lang=lang)
+        if not result['valid']:
+            return ErrorResponse(msg='流程校验未通过，请修正后再部署', data=result, code=4000, status=400)
+
         message = request.data.get('message', '')
         try:
             version = instance.create_version(

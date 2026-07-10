@@ -32,8 +32,13 @@ export function RollbackVersion(id: string, message?: string) {
 export const ticketApi = createCrudApi('tickets')
 
 // Workflow deploy
-export function DeployWorkflow(id: string, message?: string) {
-  return request({ url: `${prefix}/workflows/${id}/deploy/`, method: 'post', data: { message } })
+export function DeployWorkflow(id: string, message?: string, lang?: string) {
+  return request({ url: `${prefix}/workflows/${id}/deploy/`, method: 'post', data: { message }, params: { lang } })
+}
+
+// Workflow validation
+export function ValidateWorkflow(id: string, lang?: string) {
+  return request({ url: `${prefix}/workflows/${id}/validate/`, method: 'post', params: { lang } })
 }
 
 // Designer sync operations
