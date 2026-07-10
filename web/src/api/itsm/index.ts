@@ -129,3 +129,43 @@ export const presetApi = createCrudApi('presets')
 export const scheduleApi = createCrudApi('schedules')
 export const dayApi = createCrudApi('days')
 export const durationApi = createCrudApi('durations')
+
+// ===== Trigger Automation =====
+export const triggerApi = createCrudApi('triggers')
+
+// ===== Notification Templates =====
+export const notificationTemplateApi = createCrudApi('notification-templates')
+
+// ===== Change Calendar (变更日历) =====
+export interface CalendarQuery {
+  start_date: string
+  end_date: string
+  project_id: number
+  source?: string
+  ticket_type?: string
+}
+
+export interface CalendarItem {
+  id: string
+  source: 'itsm_ticket' | 'opsflow_schedule'
+  title: string
+  ticket_sn?: string
+  status: string
+  status_display: string
+  priority?: string | null
+  start_time: string
+  end_time?: string | null
+  link: string
+  assignee?: string[]
+  service_item_name?: string
+  sla_deadline?: string | null
+  cron_description?: string
+}
+
+export function getChangeCalendar(params: CalendarQuery) {
+  return request<{ items: CalendarItem[]; total: number }>({
+    url: `${prefix}/change-calendar/`,
+    method: 'get',
+    params,
+  })
+}

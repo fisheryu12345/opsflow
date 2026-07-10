@@ -60,6 +60,8 @@ class Command(BaseCommand):
             ('itsm:escalation:view', '查看升级配置', 'itsm'),
             ('itsm:escalation:manage', '管理升级', 'itsm'),
             ('itsm:sla:edit', '编辑 SLA', 'itsm'),
+            ('itsm:trigger:edit', '编辑触发器', 'itsm'),
+            ('itsm:notif_template:edit', '编辑通知模板', 'itsm'),
             ('itsm:service:admin', '管理服务目录', 'itsm'),
             # ── CMDB tab + button perms ──
             ('cmdb:schema:view', '查看模型', 'cmdb'),
@@ -142,6 +144,8 @@ class Command(BaseCommand):
             {'key': 'sla',           'label_zh': 'SLA',       'label_en': 'SLA',          'icon': 'Clock',         'required_perm': None,                     'sort': 60},
             {'key': 'escalation',    'label_zh': '升级',      'label_en': 'Escalation',   'icon': 'WarningFilled', 'required_perm': 'itsm:escalation:view',     'sort': 70},
             {'key': 'schedule',     'label_zh': '排班表',    'label_en': 'Schedule',     'icon': 'Calendar',      'required_perm': 'itsm:sla:edit',                        'sort': 80},
+            {'key': 'notification-templates', 'label_zh': '通知模板', 'label_en': 'Notif. Templates', 'icon': 'Bell', 'required_perm': None,                        'sort': 85},
+            {'key': 'change-calendar','label_zh': '变更日历','label_en': 'Change Calendar', 'icon': 'Calendar','required_perm': None,                                   'sort': 100},
             {'key': 'delegation',    'label_zh': '委托',      'label_en': 'Delegation',   'icon': 'User',          'required_perm': None,                     'sort': 110},
         ]
         itsm_buttons = {
@@ -357,6 +361,8 @@ class Command(BaseCommand):
                 'itsm:escalation:view',
                 'itsm:escalation:manage',
                 'itsm:sla:edit',
+                'itsm:trigger:edit',
+                'itsm:notif_template:edit',
             ],
             # ── CMDB ────────────────────────────────────────────
             'cmdb_viewer': [

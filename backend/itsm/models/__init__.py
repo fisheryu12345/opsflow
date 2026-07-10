@@ -13,6 +13,8 @@ from .delegation import ApprovalDelegate
 from .service_item import ServiceItem
 from .escalation import EscalationLevel
 from .preset import Preset
+from .trigger import Trigger, TriggerAction, TriggerExecution
+from .notification_template import NotificationTemplate
 from ..services.opsflow_trigger import TicketOpsflowConfig
 
 __all__ = [
@@ -29,4 +31,6 @@ __all__ = [
     'ServiceItem',
     'EscalationLevel',
     'Preset',
+    'Trigger', 'TriggerAction', 'TriggerExecution',
+    'NotificationTemplate',
 ]

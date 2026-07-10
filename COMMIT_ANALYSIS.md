@@ -1,7 +1,41 @@
 # Commit Analysis Log
 
-<!-- 每次提交在最前面插入新条目，时间倒序排列 -->
+## c029ad11
 
+> 提交日期: 2026-07-11 | 提交信息: feat: Change Calendar + Trigger System + Notification Templates
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/itsm/models/trigger.py` | 后端 | 新增 Trigger/TriggerAction/TriggerExecution 模型 |
+| `backend/itsm/services/trigger_service.py` | 后端 | TriggerMatcher/ConditionEvaluator/TriggerExecutor/ActionRunner |
+| `backend/itsm/services/change_calendar.py` | 后端 | ChangeCalendarService — Ticket + SchedulePlan 聚合 |
+| `backend/itsm/views/change_calendar.py` | 后端 | ChangeCalendarViewSet API 端点 |
+| `web/src/views/apps/itsm/ChangeCalendar.vue` | 前端 | 变更日历父页面 (hero + 筛选 + 月/时间线) |
+| `web/src/views/apps/itsm/components/CalendarView.vue` | 前端 | el-calendar 月/周网格 |
+| `web/src/views/apps/itsm/components/TimelineView.vue` | 前端 | 按日期分组时间线 |
+| `web/src/views/apps/itsm/components/ChangeDetailPopover.vue` | 前端 | 点击弹出详情卡片 |
+| `web/src/i18n/pages/itsm/` | 前端 | changeCalendar 26 键中英文 |
+
+### 解决
+
+- **问题：** ITSM 缺少变更日历、事件驱动触发器、可复用通知模板
+- **办法：** 三大模块并行实现。变更日历用 el-calendar + Teleport popover；触发器异步队列 + APScheduler
+
+### 文档
+
+- `docs/superpowers/specs/2026-07-10-change-calendar-design.md`
+- `docs/superpowers/specs/2026-07-10-simplified-trigger-design.md`
+- `docs/superpowers/specs/2026-07-11-notification-template-design.md`
+
+### 验证
+
+- 改动类型: feat
+- 清理乱码: 有 (空文件 `'`)
+- 工作区状态: 干净 ✅
+
+---
 
 ## c15e9353
 

@@ -87,6 +87,16 @@
       <div v-if="isVisited('schedule')" v-show="activeTab === 'schedule'" class="itsm-section g-fade-in-up">
         <ScheduleList :active="activeTab === 'schedule'" />
       </div>
+
+      <!-- TAB: Notification Templates -->
+      <div v-if="isVisited('notification-templates')" v-show="activeTab === 'notification-templates'" class="itsm-section g-fade-in-up">
+        <NotifTemplateList :active="activeTab === 'notification-templates'" />
+      </div>
+
+      <!-- TAB: Change Calendar -->
+      <div v-if="isVisited('change-calendar')" v-show="activeTab === 'change-calendar'" class="itsm-section g-fade-in-up">
+        <ChangeCalendar :active="activeTab === 'change-calendar'" />
+      </div>
     </div>
   </div>
 </template>
@@ -111,7 +121,9 @@ import SlaPolicyList from './components/SlaPolicyList.vue'
 import EscalationList from './components/EscalationList.vue'
 import PresetList from './components/PresetList.vue'
 import ScheduleList from './components/ScheduleList.vue'
-import { DataAnalysis, List, Setting, WarningFilled, Edit, Clock, User, Collection } from '@element-plus/icons-vue'
+import NotifTemplateList from './components/NotifTemplateList.vue'
+import ChangeCalendar from './ChangeCalendar.vue'
+import { DataAnalysis, List, Setting, WarningFilled, Edit, Clock, User, Collection, Calendar, Bell } from '@element-plus/icons-vue'
 
 // ===== Page Config (data-driven tabs) =====
 const pageConfig = ref<any>(null)
@@ -138,7 +150,7 @@ async function loadPageConfig() {
 }
 
 const iconMap: Record<string, any> = {
-  DataAnalysis, List, Setting, WarningFilled, Edit, Clock, User, Collection,
+  DataAnalysis, List, Setting, WarningFilled, Edit, Clock, User, Collection, Calendar, Bell, Calendar,
 }
 
 function onTabClick(tab: any) {
@@ -183,7 +195,7 @@ function onProjectChanged() { projectChangedTrigger.value++ }
 
 // ===== Tab lazy loading (all tabs are component-based, self-load on mount) =====
 const { isVisited } = useTabLazyLoad({
-  tabs: ['dashboard', 'service-market', 'service-admin', 'tickets', 'workflows', 'sla', 'delegation', 'escalation', 'schedule'],
+  tabs: ['dashboard', 'service-market', 'service-admin', 'tickets', 'workflows', 'sla', 'delegation', 'escalation', 'schedule', 'notification-templates'],
   activeTab,
   resetOn: projectChangedTrigger,
 })

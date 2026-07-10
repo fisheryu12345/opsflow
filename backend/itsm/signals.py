@@ -46,6 +46,7 @@ def itsm_post_set_state_handler(sender, node_id, to_state, version, root_id, **k
         return  # 不是 ITSM 工单 pipeline，安静跳过
 
     # 更新节点状态快照
+    node_status_before = dict(ticket.node_status or {})  # capture before mutation for LEAVE detection
     node_status = dict(ticket.node_status or {})
     # bamboo 状态 → ITSM 语义映射
     status_map = {
@@ -83,5 +84,58 @@ def itsm_post_set_state_handler(sender, node_id, to_state, version, root_id, **k
             pass
 
     # SLA start unified in ITSMEngine.run() — no longer triggered per-node
-    if to_state == states.RUNNING:
-        pass
+
+    # ---- Trigger enqueue for ENTER_STATE / LEAVE_STATE ----
+    # Resolve bamboo node_id → ITSM State.id via _pipeline_id_map (stored on ticket.meta)
+    _enqueue_triggers(ticket, node_id, to_state, node_status_before, status_map)
+
+
+def _resolve_state_id(ticket, node_id):
+    """Map bamboo element node_id → ITSM State.id via _pipeline_id_map_rev."""
+    meta = ticket.meta or {}
+    # Use pre-built reverse map if available
+    rev_map = meta.get('_pipeline_id_map_rev')
+    if rev_map and node_id in rev_map:
+        return rev_map[node_id]
+    # Fallback: build reverse map from forward map (one-time linear scan)
+    id_map = meta.get('_pipeline_id_map', {})
+    if not id_map:
+        return None
+    rev_map = {}
+    for state_id_str, elem_id in id_map.items():
+        try:
+            rev_map[elem_id] = int(state_id_str)
+        except (ValueError, TypeError):
+            pass
+    # Cache in ticket.meta for subsequent calls
+    ticket.meta['_pipeline_id_map_rev'] = rev_map
+    ticket.save(update_fields=['meta'])
+    return rev_map.get(node_id)
+
+
+def _enqueue_triggers(ticket, node_id, to_state, node_status_before, status_map):
+    """Enqueue trigger executions for ENTER_STATE / LEAVE_STATE events."""
+    state_id = _resolve_state_id(ticket, node_id)
+    if not state_id:
+        return
+
+    from itsm.models.state import State as StateModel
+    from itsm.services.trigger_service import TriggerExecutor
+
+    try:
+        st = StateModel.objects.get(id=state_id)
+    except StateModel.DoesNotExist:
+        return
+
+    # Exclude START/END nodes — FLOW_START/FLOW_END cover these
+    if st.type in ('START', 'END'):
+        return
+
+    # ENTER_STATE: node becomes READY (about to execute)
+    if to_state == states.READY:
+        TriggerExecutor.enqueue(ticket, 'ENTER_STATE', state_id)
+
+    # LEAVE_STATE: node was RUNNING → now transitioning away
+    previous_mapped = node_status_before.get(node_id)
+    if previous_mapped == status_map.get(states.RUNNING, 'running'):
+        TriggerExecutor.enqueue(ticket, 'LEAVE_STATE', state_id)

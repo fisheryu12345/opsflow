@@ -238,6 +238,66 @@
           <template v-if="['COVERAGE', 'EXCLUSIVE', 'CONDITIONAL_PARALLEL', 'PARALLEL'].includes(node.type)">
             <el-alert type="info" :closable="false" show-icon :title="gatewayHint(node.type)" />
           </template>
+
+          <!-- Trigger config (non-gateway nodes only) -->
+          <template v-if="triggerEventTypes.length > 0">
+            <el-divider content-position="left">触发器</el-divider>
+            <div v-for="et in triggerEventTypes" :key="et" class="trigger-section">
+              <div class="trigger-event-label">{{ et === 'FLOW_START' ? '流程开始' : et === 'FLOW_END' ? '流程结束' : et === 'ENTER_STATE' ? '接入节点' : '离开节点' }}</div>
+              <div v-if="!triggersByEvent[et]" style="font-size:12px;color:#909399;margin-bottom:4px">暂无配置</div>
+              <div v-for="t in (triggersByEvent[et] || [])" :key="t.id" class="trigger-item">
+                <div class="trigger-item-header">
+                  <span>{{ t.name || '(未命名)' }}</span>
+                  <div>
+                    <el-switch :model-value="t.is_active" size="small" @change="(v:boolean)=>onTriggerToggle(t,v)" />
+                    <el-button link size="small" type="danger" @click="onTriggerDelete(t)"><el-icon><Delete /></el-icon></el-button>
+                  </div>
+                </div>
+                <div class="trigger-item-actions">
+                  <el-tag v-for="a in (t.actions||[])" :key="a.id" size="small" :type="a.action_type==='NOTIFY'?'success':a.action_type==='WEBHOOK'?'warning':a.action_type==='OPSFLOW'?'primary':'info'">
+                    {{ a.action_type === 'NOTIFY' ? '通知' : a.action_type === 'WEBHOOK' ? 'Webhook' : a.action_type === 'OPSFLOW' ? 'OpsFlow' : '改字段' }}
+                  </el-tag>
+                </div>
+              </div>
+              <el-button size="small" plain @click="onTriggerAdd(et)"><el-icon><Plus /></el-icon> 添加</el-button>
+            </div>
+
+            <!-- Quick trigger edit dialog -->
+            <el-dialog v-model="triggerEditVisible" :title="triggerForm.id ? '编辑触发器' : '新建触发器'" width="600px" top="10vh" destroy-on-close append-to-body>
+              <el-form :model="triggerForm" label-width="100px" size="small">
+                <el-form-item label="名称">
+                  <el-input v-model="triggerForm.name" placeholder="触发器名称" />
+                </el-form-item>
+                <el-form-item label="启用">
+                  <el-switch v-model="triggerForm.is_active" />
+                </el-form-item>
+                <el-form-item label="动作列表">
+                  <div v-for="(a,i) in triggerForm.actions" :key="i" style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
+                    <el-select v-model="a.action_type" style="width:120px" size="small">
+                      <el-option value="NOTIFY" label="发送通知" />
+                      <el-option value="WEBHOOK" label="HTTP回调" />
+                      <el-option value="OPSFLOW" label="触发OpsFlow" />
+                      <el-option value="MODIFY_FIELD" label="修改字段" />
+                    </el-select>
+                    <template v-if="a.action_type==='NOTIFY'">
+                      <el-select v-model="a._templateId" size="small" placeholder="选择模板" style="width:140px" clearable @change="(v:string)=>onNotifyTemplateSelect(i, v, a)">
+                        <el-option v-for="t in notifTemplateOptions" :key="t.id" :label="t.name" :value="t.id" />
+                      </el-select>
+                      <el-input v-model="a.config.title_tpl" size="small" placeholder="标题" style="flex:1" />
+                    </template>
+                    <el-input v-if="a.action_type==='WEBHOOK'" v-model="a.config.url" size="small" placeholder="URL" style="flex:1" />
+                    <el-input v-if="a.action_type==='MODIFY_FIELD'" v-model="a.config.field_name" size="small" placeholder="字段名" style="width:100px" />
+                    <el-button link size="small" type="danger" @click="triggerForm.actions.splice(i,1)"><el-icon><Delete /></el-icon></el-button>
+                  </div>
+                  <el-button size="small" plain @click="triggerForm.actions.push({action_type:'NOTIFY',config:{}})"><el-icon><Plus /></el-icon> 添加动作</el-button>
+                </el-form-item>
+              </el-form>
+              <template #footer>
+                <el-button @click="triggerEditVisible=false">取消</el-button>
+                <el-button type="primary" :loading="triggerSaving" @click="onTriggerSave">保存</el-button>
+              </template>
+            </el-dialog>
+          </template>
         </el-form>
       </template>
 
@@ -290,7 +350,7 @@ import { useI18n } from 'vue-i18n'
 import { Close, Edit, Plus } from '@element-plus/icons-vue'
 import { getNodeConfig } from './shapes'
 import { request } from '/@/utils/service'
-import { presetApi } from '/@/api/itsm/index'
+import { presetApi, triggerApi, notificationTemplateApi } from '/@/api/itsm/index'
 import PresetProcessorInput from './components/PresetProcessorInput.vue'
 import ConditionDialog from './components/ConditionDialog.vue'
 import { generateConditionExpr } from './conditionUtils'
@@ -301,6 +361,7 @@ const props = defineProps<{
   node: any
   edge: any
   allNodes?: any[]  // for edge config: compute upstream field references
+  workflowId?: number
 }>()
 
 const emit = defineEmits<{
@@ -530,6 +591,117 @@ function onPersonChange() {
 onMounted(() => {
   loadPresets()
 })
+
+// ===== Trigger config =====
+const triggers = ref<any[]>([])
+const triggerEditVisible = ref(false)
+const triggerSaving = ref(false)
+const triggerForm = ref<any>({ id: null, name: '', is_active: true, event_type: '', actions: [] })
+const currentTriggerEventType = ref('')
+
+const triggerEventTypes = computed(() => {
+  if (!props.node?.type) return [] as string[]
+  const t = props.node.type
+  if (t === 'START') return ['FLOW_START']
+  if (t === 'END') return ['FLOW_END']
+  if (['COVERAGE', 'EXCLUSIVE', 'CONDITIONAL_PARALLEL', 'PARALLEL'].includes(t)) return []
+  return ['ENTER_STATE', 'LEAVE_STATE']
+})
+
+const triggersByEvent = computed(() => {
+  const map: Record<string, any[]> = {}
+  for (const et of triggerEventTypes.value) map[et] = []
+  for (const t of triggers.value) {
+    if (map[t.event_type]) map[t.event_type].push(t)
+  }
+  return map
+})
+
+async function loadTriggers() {
+  if (!props.workflowId || !props.node?.id) { triggers.value = []; return }
+  try {
+    const res = await triggerApi.list({ workflow: props.workflowId, states: props.node.id }) as any
+    triggers.value = res?.results || res?.data || res || []
+  } catch { triggers.value = [] }
+}
+
+function onTriggerAdd(eventType: string) {
+  currentTriggerEventType.value = eventType
+  triggerForm.value = { id: null, name: '', is_active: true, event_type: eventType, actions: [{ action_type: 'NOTIFY', config: { channels: ['site'], title_tpl: '', body_tpl: '', receivers: ['processor'] } }] }
+  triggerEditVisible.value = true
+}
+
+async function onTriggerSave() {
+  triggerSaving.value = true
+  try {
+    const payload = {
+      name: triggerForm.value.name || `触发_${triggerForm.value.event_type}`,
+      name_en: '',
+      is_active: triggerForm.value.is_active,
+      event_type: triggerForm.value.event_type,
+      workflow: props.workflowId,
+      state_ids: [props.node.id],
+      priority: '',
+      condition: {},
+      actions: triggerForm.value.actions.map((a: any, i: number) => ({
+        order: i,
+        action_type: a.action_type,
+        config: a.config || {},
+      })),
+    }
+    if (triggerForm.value.id) {
+      await triggerApi.update(triggerForm.value.id, payload)
+    } else {
+      await triggerApi.create(payload)
+    }
+    triggerEditVisible.value = false
+    await loadTriggers()
+  } catch (e: any) {
+    // silently fail in designer context
+  } finally {
+    triggerSaving.value = false
+  }
+}
+
+async function onTriggerDelete(t: any) {
+  try {
+    await triggerApi.delete(t.id)
+    await loadTriggers()
+  } catch { /* ignore */ }
+}
+
+async function onTriggerToggle(t: any, v: boolean) {
+  try {
+    await triggerApi.update(t.id, { is_active: v })
+    t.is_active = v
+  } catch { /* ignore */ }
+}
+
+// Notification template options for NOTIFY action
+const notifTemplateOptions = ref<any[]>([])
+
+async function loadNotifTemplates() {
+  try {
+    const res = await notificationTemplateApi.list({ is_active: true }) as any
+    notifTemplateOptions.value = res?.results || res?.data || res || []
+  } catch { notifTemplateOptions.value = [] }
+}
+
+function onNotifyTemplateSelect(actionIndex: number, templateId: string, action: any) {
+  if (!templateId) return
+  const tpl = notifTemplateOptions.value.find((t: any) => String(t.id) === String(templateId))
+  if (!tpl) return
+  action._templateId = templateId
+  action.config.title_tpl = tpl.title_tpl || ''
+  action.config.body_tpl = tpl.body_tpl || ''
+  action.config.channels = tpl.channels || ['site']
+  action.config.receivers = tpl.receivers || ['processor']
+}
+
+loadNotifTemplates()
+watch(() => [props.node, props.workflowId], () => {
+  if (props.node?.id && props.workflowId) loadTriggers()
+})
 </script>
 
 <style scoped>
@@ -569,4 +741,14 @@ onMounted(() => {
 .cond-rule-op { color: #409EFF; font-weight: 600; }
 .cond-rule-val { color: #67C23A; }
 .cond-rule-raw { font-size: 12px; color: #606266; }
+
+/* Trigger section */
+.trigger-section { margin-bottom: 10px; }
+.trigger-event-label { font-size: 13px; font-weight: 500; color: #303133; margin-bottom: 6px; }
+.trigger-item {
+  border: 1px solid #e4e7ed; border-radius: 6px; padding: 8px 10px;
+  margin-bottom: 6px;
+}
+.trigger-item-header { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.trigger-item-actions { display: flex; gap: 4px; margin-top: 4px; }
 </style>

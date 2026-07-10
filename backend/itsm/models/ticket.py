@@ -210,6 +210,12 @@ class Ticket(CoreModel):
 
     def do_before_end_pipeline(self):
         """pipeline 结束处理"""
+        # Trigger: FLOW_END event
+        try:
+            from itsm.services.trigger_service import TriggerExecutor
+            TriggerExecutor.enqueue(self, 'FLOW_END')
+        except Exception:
+            pass
         try:
             from itsm.services.sla_engine import SlaEngine
             SlaEngine.stop_ticket_sla(self)

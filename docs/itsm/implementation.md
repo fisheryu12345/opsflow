@@ -6,7 +6,7 @@
 
 | 维度 | 评估 |
 |------|:----:|
-| 当前成熟度 | ⭐⭐⭐⭐☆ (4.5/5) |
+| 当前成熟度 | ⭐⭐⭐⭐☆ (4.7/5) |
 | 目标成熟度 | ⭐⭐⭐⭐⭐ (5/5) |
 | 差距 | AI 生成器未用真实 LLM，双向 OpsFlow 审批集成未完成 |
 
@@ -22,7 +22,8 @@
 | 多级审批/会签 | P0 | ✅ | 多审批人/顺序/并行 | SignTask + RoleResolver(6种解析) + delegation |
 | 可视化表单设计器 | P1 | ✅ | 拖拽设计工单表单 | FormDesigner.vue 三栏可视化拖拽(vuedraggable)，14种字段+Section+COL布局 |
 | 升级层级体系 | P1 | ✅ | SLA 超时后的处理层级 | EscalationLevel 模型 CRUD + 前端升级 Tab(表格+编辑+用户多选) + seed 数据 |
-| SLA 引擎 | P1 | ✅ | 端到端计时 + 超时通知 | SlaEngine(ITSMEngine.run启动→pipeline结束停止) + APScheduler 60s 检测 + notify_sla_violation + sla_info 前端展示 |
+| SLA 工作时间模型 | P0 | ✅ | Schedule/Day/Duration 三层模型 + 企业级 SLA 时间计算 | SlaTime 引擎(TimeDelta/MultiTimeDelta 集合论运算) + SlaEngine working-time-aware deadline + EscalationLevel 升级动作接入 + swap bug 修复 + 排班表前端管理 |
+| SLA 引擎 | P1 | ✅ | 端到端计时 + 超时通知 | SlaEngine(ITSMEngine.run启动→pipeline结束停止) + APScheduler 60s 检测 + cost_time 更新 + sla_info 前端展示 |
 | 通知渠道 | P1 | ✅ | 钉钉/企微/邮件/IntegrationHub | 4 个 channel 实现 |
 | 审批委托 | P1 | ✅ | 代理审批 | 时间范围+工单类型过滤 |
 | 传统 ITSM 模型 | P1 | ✅ | Incident/Change/Problem/ServiceRequest | 完整 CRUD + 状态转换 |
@@ -32,7 +33,8 @@
 | i18n 国际化 | P1 | ✅ | 中英文翻译 | itsm/zh-cn.ts + en.ts，SkillGroup/OnDutySchedule/AssignRule/EscalationLevel 完成 |
 | DevOps 测试 | P1 | ✅ | 43+ 个单元测试 | test_models(14) + test_views(4) + test_services(8) + test_itsm_engine(8) + test_workflow_builder(11) + test_layout(3) |
 | 多租户对齐 | P1 | ✅ | Project/Business FK 隔离 | ITSM 核心模型注入 project/business FK，ViewSet 继承 ItsmProjectViewSet |
-| SlaPolicy 模型 | P1 | ✅ | SLA 策略定义 | SlaPolicy(priority+response+resolve) + SlaTask 计时任务 |
+| SlaPolicy 模型 | P1 | ✅ | SLA 策略定义（重构） | SlaPolicy(schedule FK + response/resolve time+unit + escalation_levels M2M) + SlaTask(cost_time/total_seconds/begin_at) |
+| Schedule 管理 | P1 | ✅ | 排班表 CRUD + 前端管理 | ScheduleViewSet + DayViewSet + DurationViewSet + ScheduleList/ScheduleEdit/HolidayCalendar 前端 |
 | AI 智能生成 | P2 | 🔄 | LLM 生成工作流 | AIGenerator：内置关键词模板引擎，<b>未接入真实 DeepSeek</b> |
 | 服务目录 | P2 | ✅ | 可请求的 IT 服务项 | ServiceItem 模型 + 双模式(flow/lightweight) + 服务市场(分类树+卡片) + 服务详情(表单+提交) + 管理后台(CRUD+预览) |
 | OpsFlow 双向审批 | P2 | 📅 | OpsFlow 审批节点创建 ITSM 工单 | 仅 ITSM→OpsFlow 单向，反向未实现 |
@@ -43,7 +45,7 @@
 ## TODO
 
 ### P0
-- [ ] 无
+- [x] SLA 工作时间模型 (Schedule/Day/Duration + SlaTime引擎 + EscalationLevel接入 + swap fix) ✅
 
 ### P1
 - [ ] AIGenerator 接入 DeepSeek
@@ -143,3 +145,12 @@
 - 公共语言检测: `common/utils/language.py` `get_request_lang()` 统一5处重复 → ✅
 - 布局修复: position.py 垂直居中 max(h)基准, ITSM activity_size 72→56 匹配前端 → ✅
 - 测试: 26个测试用例覆盖所有14条规则 → ✅
+
+### 2026-07-10 Update
+> 提交: 0b15d174
+- SLA 工作时间模型: Duration/Day/Schedule 三层模型 + SlaTime 引擎(TimeDelta/MultiTimeDelta 集合论运算) + SlaEngine working-time-aware deadline 计算 + EscalationLevel 升级动作接入 + swap bug fix + ticket_serializers SLA有效剩余时间 → ✅
+- SlaPolicy 重构: schedule FK(PROTECT) + response/resolve time+unit 替换 minutes + escalation_levels M2M + unique_together + 应用层 null project 校验 → ✅
+- 前端: ScheduleList/ScheduleEdit/ScheduleDayList/HolidayCalendar 排班管理 + SlaPolicyList 改造(schedule/time/unit/escalation_levels + 创建按钮) + i18n slaSchedule/slaPolicy sections + index.vue schedule tab + page config 注册 → ✅
+- 迁移: 0005_sla_working_time (19步: 建表→种子5×8+7×24→SlaPolicy数据迁移→约束变更) → ✅
+- 测试: 29个测试 (TimeDelta/MultiTimeDelta/SlaTime/SlaEngine/Escalation/SwapBug/Migration) → ✅
+- i18n 冲突修复: schedule → slaSchedule (避免与 opsflow/integration 的 schedule key 冲突) → ✅

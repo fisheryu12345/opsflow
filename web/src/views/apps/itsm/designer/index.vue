@@ -29,6 +29,7 @@
         :node="designer.selectedNode.value"
         :edge="designer.selectedEdge.value"
         :all-nodes="allNodeData"
+        :workflow-id="designer.workflow.value?.id"
         @close="onConfigClose"
         @change="onConfigChange"
         @open-field-editor="onOpenFieldEditor"

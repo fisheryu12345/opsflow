@@ -71,7 +71,14 @@ class ITSMEngine:
         try:
             from itsm.services.sla_engine import SlaEngine
             SlaEngine.start_ticket_sla(self.ticket)
-        except Exception as e:
+        except Exception:
+            pass
+
+        # Trigger: FLOW_START event
+        try:
+            from itsm.services.trigger_service import TriggerExecutor
+            TriggerExecutor.enqueue(self.ticket, 'FLOW_START')
+        except Exception:
             pass
 
         return pipeline_id, tree

@@ -22,6 +22,9 @@ from .views.service_item import ServiceItemViewSet
 from .views.escalation_views import EscalationLevelViewSet
 from .views.preset_views import PresetViewSet
 from .views.schedule_views import ScheduleViewSet, DayViewSet, DurationViewSet
+from .views.trigger_views import TriggerViewSet
+from .views.change_calendar import ChangeCalendarViewSet
+from .views.notification_template_views import NotificationTemplateViewSet
 
 router = routers.SimpleRouter()
 # Existing ITSM routes
@@ -55,6 +58,15 @@ router.register(r'presets', PresetViewSet)
 router.register(r'schedules', ScheduleViewSet)
 router.register(r'days', DayViewSet)
 router.register(r'durations', DurationViewSet)
+
+# Trigger automation
+router.register(r'triggers', TriggerViewSet)
+
+# Notification templates
+router.register(r'notification-templates', NotificationTemplateViewSet)
+
+# Change Calendar — aggregated timeline
+router.register(r'change-calendar', ChangeCalendarViewSet, basename='change-calendar')
 
 urlpatterns = [
     path('', include(router.urls)),
