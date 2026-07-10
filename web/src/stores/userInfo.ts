@@ -9,6 +9,7 @@ import { request } from '../utils/service';
 export const useUserInfo = defineStore('userInfo', {
 	state: (): UserInfosStates => ({
 		userInfos: {
+			id: 0,
 			avatar: '',
 			username: '',
 			name: '',
@@ -32,6 +33,7 @@ export const useUserInfo = defineStore('userInfo', {
 	actions: {
 		async updateUserInfos() {
 			let userInfos: any = await this.getApiUserInfo();
+				this.userInfos.id = userInfos.data.id || 0;
 			this.userInfos.username = userInfos.data.name;
 			this.userInfos.avatar = userInfos.data.avatar;
 			this.userInfos.name = userInfos.data.name;
@@ -52,6 +54,7 @@ export const useUserInfo = defineStore('userInfo', {
 				}
 			} else {
 				let userInfos: any = await this.getApiUserInfo();
+				this.userInfos.id = userInfos.data.id || 0;
 				this.userInfos.username = userInfos.data.name;
 				this.userInfos.avatar = userInfos.data.avatar;
 				this.userInfos.name = userInfos.data.name;

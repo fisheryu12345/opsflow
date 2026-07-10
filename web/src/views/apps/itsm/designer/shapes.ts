@@ -139,12 +139,71 @@ function makeItsmNodeAttrs(color: string, icon: string, label: string, desc: str
   }
 }
 
+// ── User name cache (shared, loaded once) ──
+let _userNameCache: Map<number, string> | null = null
+let _userCacheLoading = false
+
+async function ensureUserCache(): Promise<Map<number, string>> {
+  if (_userNameCache) return _userNameCache
+  if (_userCacheLoading) {
+    // Wait for in-flight request
+    for (let i = 0; i < 50 && !_userNameCache; i++) {
+      await new Promise(r => setTimeout(r, 100))
+    }
+    return _userNameCache || new Map()
+  }
+  _userCacheLoading = true
+  try {
+    const { request } = await import('/@/utils/service')
+    const res: any = await request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 500 } })
+    const data = res?.data || res || []
+    _userNameCache = new Map()
+    for (const u of data) {
+      _userNameCache.set(u.value, u.label)
+    }
+  } catch {
+    _userNameCache = new Map()
+  }
+  _userCacheLoading = false
+  return _userNameCache
+}
+
+function parseProcessorIds(raw: string): number[] {
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed.map((v: any) => typeof v === 'number' ? v : parseInt(String(v), 10)).filter((n: number) => !isNaN(n))
+    if (typeof parsed === 'number') return [parsed]
+  } catch {}
+  return raw.split(',').map(v => parseInt(v.trim(), 10)).filter(n => !isNaN(n))
+}
+
+async function resolveProcessorDisplay(raw: string): Promise<string> {
+  const ids = parseProcessorIds(raw)
+  if (!ids.length) return ''
+  const cache = await ensureUserCache()
+  const names = ids.map(id => {
+    const label = cache.get(id)
+    if (label) {
+      // Extract just the name part from "Name (username)" format
+      const m = label.match(/^(.+?)\s*\(/)
+      return m ? m[1] : label
+    }
+    return String(id)
+  })
+  return names.join(', ')
+}
+
 /** 运行时更新 ITSM 节点视觉（全量刷新 — 从 node:change:data 触发） */
-export function updateItsmNode(node: Node) {
+export async function updateItsmNode(node: Node) {
   const data = node.getData() || {}
   const cfg = getNodeConfig(data.type || 'NORMAL')
   const label = data.name || cfg.label
-  const processorText = data.processors_type ? `→ ${data.processorsRaw || data.processors_type}` : ''
+  let processorText = ''
+  if (data.processors_type) {
+    const display = await resolveProcessorDisplay(data.processorsRaw || '')
+    processorText = display ? `→ ${display}` : `→ ${data.processors_type}`
+  }
   const fieldText = data.fields?.length ? `📋${data.fields.length}` : ''
   const desc = [processorText, fieldText].filter(Boolean).join(' ')
   const configured = !!data.name

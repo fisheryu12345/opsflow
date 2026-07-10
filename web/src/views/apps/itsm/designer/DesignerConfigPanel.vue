@@ -71,8 +71,8 @@
             />
             <el-form-item :label="$t('message.designer.approvalMethod')">
               <el-radio-group v-model="node.is_multi" @change="onChange">
-                <el-radio :label="false">{{ $t('message.designer.singleSign') }}</el-radio>
-                <el-radio :label="true">{{ $t('message.designer.multiSign') }}</el-radio>
+                <el-radio :value="false">{{ $t('message.designer.singleSign') }}</el-radio>
+                <el-radio :value="true">{{ $t('message.designer.multiSign') }}</el-radio>
               </el-radio-group>
             </el-form-item>
             <el-form-item :label="$t('message.designer.allowSkip')">
@@ -131,8 +131,8 @@
             />
             <el-form-item :label="$t('message.designer.signMethod')">
               <el-radio-group v-model="node.is_sequential" @change="onChange">
-                <el-radio :label="false">{{ $t('message.designer.parallelSign') }}</el-radio>
-                <el-radio :label="true">{{ $t('message.designer.sequentialSign') }}</el-radio>
+                <el-radio :value="false">{{ $t('message.designer.parallelSign') }}</el-radio>
+                <el-radio :value="true">{{ $t('message.designer.sequentialSign') }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </template>
@@ -180,8 +180,8 @@
             <template v-if="node.type === 'TASK'">
               <el-form-item :label="$t('message.designer.executeType')">
                 <el-radio-group v-model="node.execute_type" @change="onChange">
-                  <el-radio label="internal">{{ $t('message.designer.internalExec') }}</el-radio>
-                  <el-radio label="webhook">{{ $t('message.designer.webhookExec') }}</el-radio>
+                  <el-radio value="internal">{{ $t('message.designer.internalExec') }}</el-radio>
+                  <el-radio value="webhook">{{ $t('message.designer.webhookExec') }}</el-radio>
                 </el-radio-group>
               </el-form-item>
               <template v-if="node.execute_type === 'webhook'">
@@ -304,16 +304,43 @@ function gatewayHint(type: string) {
 }
 
 // Watch selected node changes: restore personUsers from processorsRaw for PERSON type
-watch(() => props.node, (newNode, oldNode) => {
+watch(() => props.node, async (newNode) => {
   if (newNode?.processors_type === 'PERSON' && newNode?.processorsRaw) {
-    personUsers.value = newNode.processorsRaw.split(',').filter(Boolean)
+    // processorsRaw may be "5" (single), "5,4,1" (comma-separated), or
+    // "[5,4,1]" (JSON array from preset expansion). Normalize to number[].
+    const raw = newNode.processorsRaw
+    let ids: (string | number)[] = []
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        ids = parsed
+      } else if (typeof parsed === 'number') {
+        ids = [parsed]
+      } else {
+        throw new Error('not usable')
+      }
+    } catch {
+      ids = raw.split(',').filter(Boolean).map((v: string) => v.trim())
+    }
+    personUsers.value = ids.map((v: any) => {
+      const n = typeof v === 'number' ? v : parseInt(String(v).trim(), 10)
+      return isNaN(n) ? String(v).trim() : n
+    }) as any
+    // Pre-load user options so the multi-select can resolve IDs to names.
+    // Ensure selected users exist in userOptions even if API doesn't return them.
+    await loadUsers()
+    for (const uid of personUsers.value) {
+      if (!userOptions.value.some((o: any) => o.value === uid)) {
+        userOptions.value.push({ value: uid, label: `用户${uid}` })
+      }
+    }
   } else {
     personUsers.value = []
   }
 })
 
 // ===== PERSON 处理人用户选择 =====
-const personUsers = ref<string[]>([])
+const personUsers = ref<(string | number)[]>([])
 const usersLoading = ref(false)
 const userOptions = ref<any[]>([])
 
@@ -335,14 +362,13 @@ async function loadUsers() {
   usersLoading.value = true
   try {
     const res: any = await request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 500 } })
-    // API returns {value: username, label: "Name (username)"} — pass through directly
     userOptions.value = (res as any).data || []
   } catch { userOptions.value = [] }
   usersLoading.value = false
 }
 
 function onPersonChange() {
-  if (props.node) props.node.processorsRaw = (personUsers.value || []).join(',')
+  if (props.node) props.node.processorsRaw = JSON.stringify(personUsers.value || [])
   onChange()
 }
 

@@ -120,6 +120,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
       const data = node.getData() || {}
       const isCardNode = node.shape === 'itsm-node'
       const isEvent = node.shape === 'itsm-start-event' || node.shape === 'itsm-end-event'
+      const isGateway = ['itsm-exclusive-gateway', 'itsm-conditional-parallel-gateway', 'itsm-parallel-gateway', 'itsm-converge-gateway'].includes(node.shape)
       // Generate node_key for START/END like content nodes
       if (isEvent && !data._initialized) {
         let maxN = 0
@@ -129,6 +130,20 @@ export function useDesigner(containerId: string, workflowId?: number) {
           if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
         }
         data.node_key = `node_${maxN + 1}`
+        data._initialized = true
+        node.setData(data)
+      }
+      // Initialize gateway nodes on drop from stencil — they need node_key to survive save/reload
+      if (isGateway && !data._initialized) {
+        if (!data.node_key) {
+          let maxN = 0
+          for (const cell of g.getNodes()) {
+            const nk = cell.getData()?.node_key || ''
+            const m = nk.match(/^node_(\d+)$/)
+            if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
+          }
+          data.node_key = `node_${maxN + 1}`
+        }
         data._initialized = true
         node.setData(data)
       }
@@ -148,7 +163,9 @@ export function useDesigner(containerId: string, workflowId?: number) {
         const cfg = getNodeConfig(data.type || 'NORMAL')
         data.name = data.name || cfg.label
         data.processors_type = data.processors_type || ''
-        data.processorsRaw = data.processorsRaw || ''
+        // Populate processorsRaw from processors on load; processorsRaw is the
+        // frontend canonical field; processors is the backend TextField value.
+        data.processorsRaw = data.processorsRaw || data.processors || ''
         // Backend returns 'preset' (FK id), frontend uses 'preset_id'
         data.preset_id = data.preset_id ?? data.preset ?? null
         data._usePreset = data._usePreset ?? (data.preset_id ? true : false)
@@ -353,6 +370,8 @@ export function useDesigner(containerId: string, workflowId?: number) {
       const shap = resolveItsmShape(s.type)
       const isGateway = ['itsm-exclusive-gateway', 'itsm-conditional-parallel-gateway', 'itsm-parallel-gateway', 'itsm-converge-gateway'].includes(shap)
       const isEvent = shap === 'itsm-start-event' || shap === 'itsm-end-event'
+      if (isGateway) {
+      }
       g.addNode({
         shape: shap, id: nodeId,
         x: s._x || 80, y: s._y || 80,
@@ -373,7 +392,9 @@ export function useDesigner(containerId: string, workflowId?: number) {
       const toCellId = t.to_node_key || cellIdMap[String(t.to_state)] || `node_${t.to_state}`
       const fromNode = g.getCellById(fromCellId)
       const toNode = g.getCellById(toCellId)
-      if (!fromNode || !toNode) return
+      if (!fromNode || !toNode) {
+        return
+      }
       const isReject = t.direction === 'reject' || t.name === 'reject'
       g.addEdge({
         source: { cell: fromNode.id, port: 'right' },
@@ -403,16 +424,35 @@ export function useDesigner(containerId: string, workflowId?: number) {
     try {
       const wfId = workflow.value?.id || workflowData.id
       const stData = nodeList
-        .map((n: any) => ({
-          ...(n.originId && typeof n.originId === 'number' ? { id: n.originId } : {}),
-          node_key: n.node_key || n.id, workflow_id: wfId, name: n.name || getNodeConfig(n.type).label,
-          type: n.type, processors_type: n.processors_type || '',
-          processors: n.processorsRaw || n.processors || '',
-          preset_id: n._usePreset ? (n.preset_id || null) : null,
-          is_multi: n.is_multi ?? false, is_sequential: n.is_sequential ?? false,
-          is_allow_skip: n.is_allow_skip ?? false, is_builtin: n.is_builtin ?? false,
-          fields: n.fields || [],
-        }))
+        .map((n: any) => {
+          const gatewayTypes = ['EXCLUSIVE', 'CONDITIONAL_PARALLEL', 'PARALLEL', 'COVERAGE']
+          if (gatewayTypes.includes(n.type)) {
+          }
+          // Normalize processors to JSON array format (consistent with preset expansion)
+          let proc = n.processorsRaw || n.processors || ''
+          if (proc && proc.trim()) {
+            let arr: any[] = []
+            try {
+              const parsed = JSON.parse(proc)
+              arr = Array.isArray(parsed) ? parsed : [parsed]
+            } catch {
+              // Not JSON → comma-separated, convert to JSON array
+              arr = proc.split(',').map((v: string) => v.trim()).filter(Boolean)
+                  .map((v: string) => /^\d+$/.test(v) ? parseInt(v, 10) : v)
+            }
+            proc = JSON.stringify(arr)
+          }
+          return {
+            ...(n.originId && typeof n.originId === 'number' ? { id: n.originId } : {}),
+            node_key: n.node_key || n.id, workflow_id: wfId, name: n.name || getNodeConfig(n.type).label,
+            type: n.type, processors_type: n.processors_type || '',
+            processors: proc,
+            preset_id: n._usePreset ? (n.preset_id || null) : null,
+            is_multi: n.is_multi ?? false, is_sequential: n.is_sequential ?? false,
+            is_allow_skip: n.is_allow_skip ?? false, is_builtin: n.is_builtin ?? false,
+            fields: n.fields || [],
+          }
+        })
       const trData = edgeList.map((e: any) => {
       // Re-derive node_key from real-time cell data (stale edge data can be wrong)
       const g = graph.value
@@ -459,6 +499,27 @@ export function useDesigner(containerId: string, workflowId?: number) {
     }
     const g = graph.value
     if (!g || !workflow.value?.id) return
+
+    // Sync selectedNode edits back to cell data before saving.
+    // selectedNode is a shallow copy ({...data}); component edits (preset_id,
+    // _usePreset, processorsRaw) modify the copy, not the original cell data.
+    if (selectedNode.value?._x6Id) {
+      const sn = selectedNode.value
+      const cell = g.getCellById(sn._x6Id)
+      if (cell && cell.isNode()) {
+        const cellData = cell.getData()
+        if (cellData) {
+          // Mirror preset/processor fields from selectedNode copy → cell data
+          const syncKeys = ['_usePreset', 'preset_id', 'preset', 'processorsRaw', 'processors_type', 'processors']
+          for (const k of syncKeys) {
+            if (sn[k] !== undefined) {
+              cellData[k] = sn[k]
+            }
+          }
+        }
+      }
+    }
+
     const cells = g.getCells()
     const nodeList: any[] = []
     const edgeList: any[] = []

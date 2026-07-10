@@ -70,6 +70,7 @@ class ITSMWorkflowBuilder:
         all_node_ids = set()
         node_id_map = {}  # original key → unique element ID
 
+
         # Create pipeline elements with unique IDs per run
         for sid, state in states.items():
             sid_str = str(sid)
@@ -148,6 +149,8 @@ class ITSMWorkflowBuilder:
             db_id = state.get('id')
             if db_id is not None:
                 element_map[str(db_id)] = el
+
+
         for from_id, outgoing in transition_map.items():
             from_el = element_map.get(from_id)
             if not from_el:
@@ -174,37 +177,76 @@ class ITSMWorkflowBuilder:
 
                         from_el.add_condition(i, {'evaluate': expr})
 
-        # Link ParallelGateways to their ConvergeGateways (opsflow-style, via edge data)
-        # Build outgoing edges map: from_id → [to_id, ...]
-        out_edges: dict = {}
+
+        # Pair ParallelGateways with their ConvergeGateways (opsflow-style).
+        # First check if branches already reach END (transitions already define
+        # the converge path). Only call converge() when NOT already_converged,
+        # otherwise converge() creates duplicate edges causing infinite tail().
+        # Find END element from states for the already_converged check
+        end_elem = None
+        for sid_str, state in states.items():
+            if state.get('type') == 'END':
+                end_elem = element_map.get(sid_str)
+                break
+
+        # If there's no END node at all, skip converge linking entirely.
+        # A workflow without END is invalid and will fail validation later,
+        # but we must not hang here trying to tail-walk a cyclic graph.
+        if not end_elem:
+            pass
+
+        # Build out_edges once for converge BFS
+        converge_out_edges: dict = {}
         for t in transitions.values():
             fk = str(t.get('from_node_key') or t.get('from_state_id') or '')
             tk = str(t.get('to_node_key') or t.get('to_state_id') or '')
-            if fk not in out_edges:
-                out_edges[fk] = []
-            out_edges[fk].append(tk)
+            converge_out_edges.setdefault(fk, []).append(tk)
+
         for sid_str, state in states.items():
             el = element_map.get(sid_str)
             if el is None:
                 continue
             stype = state.get('type', '')
-            if stype in ('PARALLEL', 'CONDITIONAL_PARALLEL'):
-                # BFS through edge IDs to find ConvergeGateway (max depth 20)
-                visited = {sid_str}
-                q = [(nid, 0) for nid in out_edges.get(sid_str, [])]
-                cg_id = None
-                while q:
-                    nid, depth = q.pop(0)
-                    if nid in visited or depth > 20:
-                        continue
-                    visited.add(nid)
-                    next_el = element_map.get(nid)
-                    if next_el and isinstance(next_el, ConvergeGateway):
-                        cg_id = nid
+            if stype not in ('PARALLEL', 'CONDITIONAL_PARALLEL'):
+                continue
+            if not end_elem:
+                continue  # skip if no END node
+            # Check if all branches already converge to END (with cycle guard)
+            already_converged = True
+            for out_elem in el.outgoing:
+                walker = out_elem
+                walk_visited = set()
+                while len(walker.outgoing) > 0:
+                    if walker.id in walk_visited:
+                        # Cycle detected — graph is invalid, bail out
+                        already_converged = False
                         break
-                    q.extend((n, depth + 1) for n in out_edges.get(nid, []))
-                if cg_id and cg_id in element_map:
-                    el.converge(element_map[cg_id])
+                    walker = walker.outgoing[0]
+                if not already_converged:
+                    break
+                if walker.id != end_elem.id:
+                    already_converged = False
+                    break
+            if already_converged:
+                continue
+            # BFS to find ConvergeGateway
+            visited = {sid_str}
+            q = [(nid, 0) for nid in converge_out_edges.get(sid_str, [])]
+            cg_id = None
+            while q:
+                nid, depth = q.pop(0)
+                if nid in visited or depth > 20:
+                    continue
+                visited.add(nid)
+                next_el = element_map.get(nid)
+                if next_el and isinstance(next_el, ConvergeGateway):
+                    cg_id = nid
+                    break
+                q.extend((n, depth + 1) for n in converge_out_edges.get(nid, []))
+            if cg_id and cg_id in element_map:
+                el.converge(element_map[cg_id])
+            else:
+                pass
 
         # Build tree — find start/end by state type
         # IMPORTANT: first match wins. Safety-net START/END (id < 0) may exist

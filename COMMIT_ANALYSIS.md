@@ -2,6 +2,45 @@
 
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
+
+## 0ce5f5a0
+
+> 提交日期: 2026-07-10 | 提交信息: fix: parallel gateway hang, processor display, and designer data sync
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `workflow_builder.py` | 后端 | converge() tail()死循环修复，already_converged检查+循环检测保护 |
+| `itsm_engine.py` | 后端 | 恢复run方法完整错误处理 |
+| `ticket_serializers.py` | 后端 | get_processor_name重构，_parse_processor_ids统一格式解析 |
+| `role_resolver.py` | 后端 | _resolve_person按整数用户ID查询 |
+| `ticket.py` | 后端 | 恢复import logging |
+| `service_item.py` | 后端 | 清理诊断日志 |
+| `workflow_views.py` | 后端 | 清理诊断日志，恢复import logging |
+| `DesignerConfigPanel.vue` | 前端 | selectedNode数据同步，processors JSON统一，el-radio修复 |
+| `useDesigner.ts` | 前端 | deployWorkflow/onSave cell data同步，processors规范化 |
+| `index.vue` | 前端 | onSave cell data同步 |
+| `shapes.ts` | 前端 | updateItsmNode异步解析用户ID→显示名 |
+| `TicketDetail.vue` | 前端 | 并行网关currentNode优先选用户节点，刷新按钮 |
+| `TicketList.vue` | 前端 | assignee_names优先显示 |
+| `PresetList.vue` | 前端 | el-tag type修复 |
+| `stores/userInfo.ts` | 前端 | UserInfosState新增id字段 |
+| `stores/interface/index.ts` | 前端 | id字段类型声明 |
+
+### 解决
+
+- **问题：** 并行网关提交超时(converge死循环)、预设/处理人保存丢失、处理人显示数字ID、并行网关多个审批节点只显示一个
+- **办法：** 对齐opsflow的already_converged检查+循环检测；selectedNode修改同步回cell data；processors统一为JSON数组；currentNode优先选用户为处理人的节点
+
+### 验证
+
+- 改动类型: fix
+- 清理乱码: 无
+- 子 App index.md 更新: itsm
+- 工作区状态: 干净 ✅
+
+---
 ## 34b64ce6
 
 > Date: 2026-07-09 | Message: feat: ITSM Preset — reusable processor/field-options presets + FormDesigner integration + code review fixes

@@ -148,8 +148,8 @@ const rules = {
 
 // Helpers
 function tagType(type: string): string {
-  const map: Record<string, string> = { user_list: '', role_list: 'warning', dept_list: 'danger', text: 'success', options: 'info' }
-  return map[type] || ''
+  const map: Record<string, string> = { user_list: 'primary', role_list: 'warning', dept_list: 'danger', text: 'success', options: 'info' }
+  return map[type] || 'primary'
 }
 
 function typeLabel(type: string): string {

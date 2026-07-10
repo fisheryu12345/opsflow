@@ -151,7 +151,7 @@ class ServiceItemViewSet(ItsmProjectViewSet):
             logger.info(f'[_submit_flow] No form_data, skipping auto-complete')
 
         # 启动 Pipeline
-        logger.info(f'[_submit_flow] Starting pipeline...')
+        logger.info(f'[_submit_flow] Starting pipeline... ticket_id={ticket.id} version_id={version.id}')
         pipeline_id, tree = ITSMEngine(ticket).run(version)
         ticket.pipeline_id = pipeline_id
         ticket.current_status = 'running'
@@ -168,7 +168,6 @@ class ServiceItemViewSet(ItsmProjectViewSet):
             # node_id_map = {state_key: element_id, ...} e.g. {"node_2": "node_2_613f56"}
             node_id_map = (ticket.meta or {}).get('_pipeline_id_map', {})
             activity_id = node_id_map.get(str(first_normal_state_key)) if isinstance(node_id_map, dict) else None
-            logger.info(f'[_submit_flow] state_key={first_normal_state_key} activity_id={activity_id}')  # diag
 
             if activity_id:
                 # Wait for Celery to create the Schedule (up to 5s)

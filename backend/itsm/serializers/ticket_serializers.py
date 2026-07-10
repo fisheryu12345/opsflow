@@ -54,34 +54,42 @@ class TicketStatusSerializer(CustomModelSerializer):
         model = TicketStatus
         fields = '__all__'
 
+    @staticmethod
+    def _parse_processor_ids(raw: str) -> list:
+        """Parse processors — always JSON array e.g. "[5, 4, 1]" or '["admin", "ops"]'"""
+        import json
+        if not raw or not raw.strip():
+            return []
+        try:
+            parsed = json.loads(raw.strip())
+            return list(parsed) if isinstance(parsed, list) else [parsed]
+        except (json.JSONDecodeError, TypeError):
+            return []
+
     def get_processor_name(self, obj):
-        """Resolve processors text (may be user IDs) to display names."""
-        raw = obj.processors or ''
-        if not raw.strip():
-            return ''
-        # Use cached user map from context to avoid N+1 queries
+        """Resolve processors text to display names."""
+        ids = self._parse_processor_ids(obj.processors or '')
+        if not ids:
+            return obj.processors or ''
+
         user_map = getattr(self, '_user_map', None)
         if user_map is None:
             from django.contrib.auth import get_user_model
-            from django.db.models import Q
             User = get_user_model()
-            # Collect all numeric IDs from ALL records being serialized, then batch-query once
             all_ids = set()
-            if self.parent and hasattr(self.parent, 'instance') and isinstance(self.parent.instance, list):
-                for ts in self.parent.instance:
-                    r = (ts.processors or '')
-                    for x in r.replace(';', ',').split(','):
-                        if x.strip().isdigit():
-                            all_ids.add(int(x.strip()))
+            parent_instance = getattr(self.parent, 'instance', None) if self.parent else None
+            if parent_instance and hasattr(parent_instance, '__iter__'):
+                for ts in parent_instance:
+                    all_ids.update(self._parse_processor_ids(ts.processors or ''))
+            all_ids.update(ids)
             if not all_ids:
                 self._user_map = {}
-                return raw + ''  # non-numeric — return as-is
-            users = User.objects.filter(Q(id__in=all_ids)).values('id', 'username')
+                return obj.processors or ''
+            users = User.objects.filter(id__in=all_ids).values('id', 'username')
             self._user_map = {str(u['id']): u.get('username', str(u['id'])) for u in users}
-        ids = [x.strip() for x in raw.replace(';', ',').split(',') if x.strip().isdigit()]
-        if ids:
-            return ', '.join(self._user_map.get(uid, uid) for uid in ids)
-        return raw
+
+        names = [self._user_map.get(str(uid), str(uid)) for uid in ids]
+        return ', '.join(names)
 
 
 class SignTaskSerializer(CustomModelSerializer):

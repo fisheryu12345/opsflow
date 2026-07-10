@@ -3,9 +3,14 @@
     <div class="td-header">
       <div class="td-header-top">
         <div class="td-card-title">{{ $t('message.ticketDetail.ticketInfo') }}</div>
-        <el-button text @click="goBack" class="td-back-btn">
-          <el-icon><ArrowLeft /></el-icon> {{ $t('message.common.back') }}
-        </el-button>
+        <div class="td-header-actions">
+          <el-button text @click="goBack">
+            <el-icon><ArrowLeft /></el-icon> {{ $t('message.common.back') }}
+          </el-button>
+          <el-button text @click="loadTicket" :loading="loading">
+            <el-icon><Refresh /></el-icon> {{ $t('message.itsmPage.refresh') }}
+          </el-button>
+        </div>
       </div>
       <div class="td-header-row" v-if="ticket">
         <span class="td-sn">{{ ticket.sn }}</span>
@@ -174,7 +179,7 @@ import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, ArrowRight, ArrowDown, User, Select, Close } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, ArrowDown, User, Select, Close, Refresh } from '@element-plus/icons-vue'
 import FlowChart from './FlowChart.vue'
 import ItsmFormRenderer from '/@/components/ItsmFormRenderer/index.vue'
 import { ticketApi, GetTicketStatus, NodeSubmit, SubmitTicket, ApproveTicketNode, RejectTicketNode, workflowVersionApi } from '/@/api/itsm/index'
@@ -185,26 +190,27 @@ const router = useRouter()
 const { t } = useI18n()
 const userInfo = useUserInfo()
 
-function getMyUsername(): string {
+function getMyUserId(): number | null {
   const raw = sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo')
   if (raw) {
     try {
       const parsed = JSON.parse(raw)
-      return parsed.username || parsed.name || ''
+      return parsed.id || parsed.userId || null
     } catch {}
   }
-  return userInfo.userInfos.username || ''
+  return userInfo.userInfos.id || null
 }
 
 function isProcessor(processors: string): boolean {
-  const username = getMyUsername()
-  if (!username || !processors) return false
+  const userId = getMyUserId()
+  if (!userId || !processors) {
+    return false
+  }
   try {
     const arr = JSON.parse(processors)
-    if (Array.isArray(arr)) return arr.some((u: string) => u === username)
+    if (Array.isArray(arr)) return arr.some((u: any) => parseInt(u) === userId)
   } catch {}
-  // Fallback: exact match for single processor or split comma-separated legacy format
-  return processors === username || processors.split(',').some((u: string) => u.trim() === username)
+  return parseInt(processors) === userId
 }
 
 const loading = ref(false)
@@ -326,7 +332,6 @@ async function loadTicket() {
 function rebuildFlow(allStates: Record<string, any>) {
   const steps: any[] = []
   const done: any[] = []
-  let current: any = null
   const seenIds = new Set<number>()
 
   const statusByStateId: Record<string, any> = {}
@@ -359,7 +364,7 @@ function rebuildFlow(allStates: Record<string, any>) {
       result_comment: signTask?.comment || '',
     }
     if (status === 'RUNNING') {
-      current = step
+      // Handled below via runningSteps filtering
     } else if (status === 'FINISHED') {
       done.push(step)
     }
@@ -372,8 +377,17 @@ function rebuildFlow(allStates: Record<string, any>) {
 
   submittedFieldLabels.value = labels
   flowSteps.value = steps
-  currentNode.value = current
   finishedNodes.value = done
+
+  // With parallel gateways, multiple nodes may be RUNNING.
+  // Prefer the one where current user is a processor, then fall back to last.
+  const runningSteps = steps.filter((s: any) => s.status === 'RUNNING')
+  if (runningSteps.length > 0) {
+    const mine = runningSteps.find((s: any) => isProcessor(s.processors))
+    currentNode.value = mine || runningSteps[runningSteps.length - 1]
+  } else {
+    currentNode.value = null
+  }
 }
 
 async function onResubmit(data?: Record<string, any>) {

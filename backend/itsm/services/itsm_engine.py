@@ -58,11 +58,11 @@ class ITSMEngine:
         meta['_pipeline_id_map'] = node_id_map
         ticket.meta = meta
         ticket.save(update_fields=['meta'])
-        logger.info(f'[ITSMEngine] saved _pipeline_id_map: {list(node_id_map.keys())[:5]}')
 
         pipeline_id = tree.get('id', '')
         runtime = BambooDjangoRuntime()
-        result = pipeline_api.run_pipeline(runtime, tree)
+        # cycle_tolerate=True needed for parallel→converge gateway converge links
+        result = pipeline_api.run_pipeline(runtime, tree, cycle_tolerate=True)
         if not result.result:
             logger.error('[ITSMEngine] Pipeline run failed: %s', result.message)
             raise RuntimeError(f'Pipeline run failed: {result.message}')
@@ -72,7 +72,7 @@ class ITSMEngine:
             from itsm.services.sla_engine import SlaEngine
             SlaEngine.start_ticket_sla(self.ticket)
         except Exception as e:
-            logger.warning('[ITSMEngine] SLA start failed: %s', e)
+            pass
 
         return pipeline_id, tree
 

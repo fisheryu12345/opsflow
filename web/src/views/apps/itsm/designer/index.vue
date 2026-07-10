@@ -106,17 +106,34 @@ function onNameChange(name: string) {
 async function onSave() {
   if (!designer.workflow.value) return
   const g = designer.graph.value
+  if (!g) return
+
+  // Sync selectedNode edits back to cell data before saving
+  const sn = designer.selectedNode.value
+  if (sn?._x6Id) {
+    const cell = g.getCellById(sn._x6Id)
+    if (cell && cell.isNode()) {
+      const cellData = cell.getData()
+      if (cellData) {
+        const syncKeys = ['_usePreset', 'preset_id', 'preset', 'processorsRaw', 'processors_type', 'processors']
+        for (const k of syncKeys) {
+          if (sn[k] !== undefined) {
+            cellData[k] = sn[k]
+          }
+        }
+      }
+    }
+  }
+
   const nodeList: any[] = []
   const edgeList: any[] = []
-  if (g) {
-    for (const cell of g.getCells()) {
-      if (cell.isNode()) {
-        const data = cell.getData()
-        if (data) nodeList.push(data)
-      } else if (cell.isEdge()) {
-        const data = cell.getData()
-        if (data) edgeList.push(data)
-      }
+  for (const cell of g.getCells()) {
+    if (cell.isNode()) {
+      const data = cell.getData()
+      if (data) nodeList.push(data)
+    } else if (cell.isEdge()) {
+      const data = cell.getData()
+      if (data) edgeList.push(data)
     }
   }
   await designer.saveDesigner(designer.workflow.value, nodeList, edgeList)

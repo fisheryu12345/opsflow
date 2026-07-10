@@ -62,7 +62,7 @@
         <el-table-column :label="$t('message.itsmPage.colAssignee')" width="140">
           <template #default="{ row }">
             <template v-if="row.meta?.assignee">
-              <span style="font-size:13px;color:#606266">{{ row.meta.assignee.name }}</span>
+              <span style="font-size:13px;color:#606266">{{ row.meta.assignee_names || row.meta.assignee.name }}</span>
               <el-tag v-if="row.meta.assignee.group" type="info" size="small" style="margin-left:4px">{{ row.meta.assignee.group }}</el-tag>
             </template>
             <span v-else-if="row.meta?.assign_group" style="font-size:12px;color:#909399">

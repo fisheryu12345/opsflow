@@ -6,6 +6,7 @@ TicketStatus: 节点运行时状态
 SignTask: 会签/审批操作记录
 """
 
+import logging
 from django.db import models
 from common.utils.models import CoreModel, table_prefix
 
@@ -151,28 +152,26 @@ class Ticket(CoreModel):
             else:
                 NotificationService.notify_state_enter(self, state_data.get('name', ''), resolved)
         except Exception as e:
-            import logging
             logging.getLogger(__name__).warning(f'Notify failed: {e}')
 
         # 将当前节点处理人同步到工单层 assignee（用于列表显示）
         self._sync_assignee_from_node(state_data, p_type, processors_text)
 
     def _sync_assignee_from_node(self, state_data, p_type, processors_text):
-        """将节点 processors 解析结果写入 ticket.meta.assignee
-
-        前端期待的格式: {'name': '张三', 'username': 'zhangsan', 'id': 1}
-        resolve_processors 返回的是用户名列表，此处需转为前端格式。
-        """
+        """将节点 processors 解析结果写入 ticket.meta"""
         try:
             from itsm.services.role_resolver import resolve_processors
             resolved = resolve_processors(p_type, processors_text, self)
             if not resolved:
                 return
-            # 取第一个处理人作为 assignee
-            first = resolved[0]
             meta = dict(self.meta or {})
             from django.contrib.auth import get_user_model
             User = get_user_model()
+
+            # Store all processor names for list display
+            meta['assignee_names'] = ', '.join(resolved)
+            # Store first processor as assignee (for backward compat)
+            first = resolved[0]
             try:
                 user = User.objects.get(username=first)
                 meta['assignee'] = {
@@ -181,12 +180,10 @@ class Ticket(CoreModel):
                     'name': user.name or first,
                 }
             except User.DoesNotExist:
-                # 无法匹配用户时至少显示名称
                 meta['assignee'] = {'name': first, 'username': first}
             self.meta = meta
             self.save(update_fields=['meta'])
         except Exception as e:
-            import logging
             logging.getLogger(__name__).warning(
                 'Sync assignee from node failed: %s', e
             )

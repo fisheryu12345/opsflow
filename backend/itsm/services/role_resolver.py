@@ -86,16 +86,19 @@ def _apply_delegation(resolved_names: list, ticket=None) -> list:
 
 
 def _resolve_person(processors: str, ticket=None) -> list:
-    """指定人员"""
+    """指定人员 — processors is a JSON array of numeric user IDs"""
     if not processors:
         return []
     try:
-        names = json.loads(processors) if isinstance(processors, str) else processors
-        if isinstance(names, str):
-            names = [names]
-        return list(names) if isinstance(names, list) else [str(names)]
-    except (json.JSONDecodeError, TypeError):
-        return [p.strip() for p in str(processors).split(',') if p.strip()]
+        user_ids = json.loads(processors) if isinstance(processors, str) else processors
+        if not isinstance(user_ids, list):
+            user_ids = [user_ids]
+        return list(
+            UserModel.objects.filter(id__in=[int(uid) for uid in user_ids])
+            .values_list('username', flat=True)
+        )
+    except (json.JSONDecodeError, ValueError, TypeError):
+        return []
 
 
 def _resolve_starter(processors: str, ticket=None) -> list:

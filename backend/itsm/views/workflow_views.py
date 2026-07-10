@@ -265,6 +265,7 @@ class StateViewSet(CustomModelViewSet):
         incoming_keys = set()
         for s in states:
             nk = s.get('node_key')
+            stype = s.get('type', '?')
             clean = _filter_model_fields(State, s)
             clean.pop('id', None)
             if nk and nk in existing:
@@ -275,16 +276,14 @@ class StateViewSet(CustomModelViewSet):
                 if nk:
                     clean['node_key'] = nk
                 new_state = State.objects.create(**clean)
-                # Track by node_key if set, otherwise by DB id to prevent purge
+                    # Track by node_key if set, otherwise by DB id to prevent purge
                 if nk:
                     incoming_keys.add(nk)
-                else:
-                    incoming_keys.add(f'__dbid_{new_state.id}')
+                incoming_keys.add(f'__dbid_{new_state.id}')
         # Delete states that no longer exist on canvas + old states without node_key
         to_delete = set(existing.keys()) - incoming_keys
         State.objects.filter(workflow_id=workflow_id, node_key__in=to_delete).delete()
         # Also purge legacy states without node_key (already replaced by node_key versions)
-        State.objects.filter(workflow_id=workflow_id, node_key__isnull=True).delete()
         return DetailResponse(msg='节点全量同步成功')
 
     @staticmethod
@@ -319,7 +318,6 @@ class StateViewSet(CustomModelViewSet):
                 if workflow.project_id:
                     qs = qs.filter(project_id=workflow.project_id)
             except Workflow.DoesNotExist:
-                import logging
                 logging.getLogger(__name__).warning(
                     'sync preset expansion: workflow %s not found, skipping project scope', workflow_id
                 )
