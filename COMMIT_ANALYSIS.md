@@ -1,5 +1,31 @@
 # Commit Analysis Log
 
+## e7c6976d
+
+> 提交日期: 2026-07-11 | 提交信息: refactor: split DesignerConfigPanel into 3 focused components
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `DesignerConfigPanel.vue` | 前端 | 855→145 行，精简为纯编排层 |
+| `NodeConfigPanel.vue` | 前端 | 新增 261 行 — APPROVAL/SIGN/TASK 节点配置 |
+| `TriggerConfigSection.vue` | 前端 | 新增 240 行 — 触发器列表+编辑对话框 |
+| `EdgeConfigPanel.vue` | 前端 | 新增 82 行 — 边条件表达式编辑器 |
+
+### 解决
+
+- **问题：** DesignerConfigPanel.vue 855 行过于臃肿，配置/触发器/条件混在一起难以维护
+- **办法：** 按职责拆分为 3 个自包含子组件，父组件变为纯编排层；同时移除弃用的 condState/buildCondExpr 死代码
+
+### 验证
+
+- 改动类型: refactor
+- 清理乱码: 无
+- 工作区状态: 干净 ✅
+
+---
+
 ## b3c3b7fa
 
 > 提交日期: 2026-07-11 | 提交信息: feat: Webhook enhancement + unified retry + code review fixes
