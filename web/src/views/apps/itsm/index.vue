@@ -82,6 +82,11 @@
       <div v-if="isVisited('presets')" v-show="activeTab === 'presets'" class="itsm-section g-fade-in-up">
         <PresetList :active="activeTab === 'presets'" />
       </div>
+
+      <!-- TAB: Schedule -->
+      <div v-if="isVisited('schedule')" v-show="activeTab === 'schedule'" class="itsm-section g-fade-in-up">
+        <ScheduleList :active="activeTab === 'schedule'" />
+      </div>
     </div>
   </div>
 </template>
@@ -105,6 +110,7 @@ import WorkflowList from './components/WorkflowList.vue'
 import SlaPolicyList from './components/SlaPolicyList.vue'
 import EscalationList from './components/EscalationList.vue'
 import PresetList from './components/PresetList.vue'
+import ScheduleList from './components/ScheduleList.vue'
 import { DataAnalysis, List, Setting, WarningFilled, Edit, Clock, User, Collection } from '@element-plus/icons-vue'
 
 // ===== Page Config (data-driven tabs) =====
@@ -177,7 +183,7 @@ function onProjectChanged() { projectChangedTrigger.value++ }
 
 // ===== Tab lazy loading (all tabs are component-based, self-load on mount) =====
 const { isVisited } = useTabLazyLoad({
-  tabs: ['dashboard', 'service-market', 'service-admin', 'tickets', 'workflows', 'sla', 'delegation', 'escalation'],
+  tabs: ['dashboard', 'service-market', 'service-admin', 'tickets', 'workflows', 'sla', 'delegation', 'escalation', 'schedule'],
   activeTab,
   resetOn: projectChangedTrigger,
 })
@@ -238,6 +244,11 @@ watch(activeTab, (tab) => {
     updateStats([
       { value: '-', label: '层级总数' },
       { value: '-', label: '已启用' },
+    ])
+  } else if (tab === 'schedule') {
+    updateStats([
+      { value: '-', label: '排班总数' },
+      { value: '-', label: '内置排班' },
     ])
   }
 })

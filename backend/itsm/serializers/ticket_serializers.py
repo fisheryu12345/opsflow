@@ -29,8 +29,18 @@ class TicketSerializer(CustomModelSerializer):
         now = timezone.now()
         remaining = None
         if task.deadline:
-            delta = task.deadline - now
-            remaining = max(0, int(delta.total_seconds()))
+            # Use SLA-effective remaining time (working-time-aware)
+            if task.sla_policy and task.sla_policy.schedule_id and task.task_status == 'running':
+                try:
+                    from itsm.services.sla_time import SlaTime
+                    sla_calc = SlaTime(task.sla_policy.schedule)
+                    remaining = sla_calc.sla_time(now, task.deadline)
+                except Exception:
+                    delta = task.deadline - now
+                    remaining = max(0, int(delta.total_seconds()))
+            else:
+                delta = task.deadline - now
+                remaining = max(0, int(delta.total_seconds()))
         return {
             'deadline': task.deadline.isoformat() if task.deadline else None,
             'reply_deadline': task.reply_deadline.isoformat() if task.reply_deadline else None,
@@ -38,6 +48,7 @@ class TicketSerializer(CustomModelSerializer):
             'task_status': task.task_status,
             'sla_status': task.sla_status,
             'policy_name': task.sla_policy.name if task.sla_policy else None,
+            'schedule_name': task.sla_policy.schedule.name if task.sla_policy and task.sla_policy.schedule_id else None,
         }
 
 

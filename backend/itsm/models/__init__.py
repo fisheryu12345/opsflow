@@ -8,6 +8,7 @@ from .transition import Transition
 from .field import Field
 from .ticket import Ticket, TicketStatus, SignTask
 from .sla import SlaTask
+from .schedule import Duration, Day, Schedule
 from .delegation import ApprovalDelegate
 from .service_item import ServiceItem
 from .escalation import EscalationLevel
@@ -22,6 +23,7 @@ __all__ = [
     'Field',
     'Ticket', 'TicketStatus', 'SignTask',
     'SlaTask',
+    'Duration', 'Day', 'Schedule',
     'ApprovalDelegate',
     'TicketOpsflowConfig',
     'ServiceItem',

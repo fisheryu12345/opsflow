@@ -21,6 +21,7 @@ from .views.delegation import DelegationViewSet
 from .views.service_item import ServiceItemViewSet
 from .views.escalation_views import EscalationLevelViewSet
 from .views.preset_views import PresetViewSet
+from .views.schedule_views import ScheduleViewSet, DayViewSet, DurationViewSet
 
 router = routers.SimpleRouter()
 # Existing ITSM routes
@@ -49,6 +50,11 @@ router.register(r'escalation-levels', EscalationLevelViewSet)
 
 # Presets (预设管理)
 router.register(r'presets', PresetViewSet)
+
+# SLA Working Time Model
+router.register(r'schedules', ScheduleViewSet)
+router.register(r'days', DayViewSet)
+router.register(r'durations', DurationViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

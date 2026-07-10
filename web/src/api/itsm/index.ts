@@ -125,3 +125,7 @@ export const escalationApi = createCrudApi('escalation-levels')
 // ===== Presets (预设管理) =====
 export const presetApi = createCrudApi('presets')
 
+// ===== SLA Working Time Model =====
+export const scheduleApi = createCrudApi('schedules')
+export const dayApi = createCrudApi('days')
+export const durationApi = createCrudApi('durations')

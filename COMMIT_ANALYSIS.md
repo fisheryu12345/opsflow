@@ -3,6 +3,53 @@
 <!-- 每次提交在最前面插入新条目，时间倒序排列 -->
 
 
+## c15e9353
+
+> 提交日期: 2026-07-10 | 提交信息: feat: SLA working time model + escalation wiring + swap bugfix
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/itsm/models/schedule.py` | 后端 | NEW — Duration/Day/Schedule 三层工作时间模型 (152行) |
+| `backend/itsm/models/catalog.py` | 后端 | SlaPolicy 重构 — schedule FK + time/unit + escalation_levels |
+| `backend/itsm/models/sla.py` | 后端 | SlaTask +3字段 (cost_time, total_seconds, begin_at) |
+| `backend/itsm/services/sla_time.py` | 后端 | NEW — TimeDelta/MultiTimeDelta/SlaTime 引擎 (410行) |
+| `backend/itsm/services/sla_engine.py` | 后端 | SlaTime集成 + Escalation接入 + swap fix (204行变更) |
+| `backend/itsm/serializers/schedule.py` | 后端 | NEW — Schedule/Day/Duration serializers |
+| `backend/itsm/views/schedule_views.py` | 后端 | NEW — 3个ViewSet CRUD |
+| `backend/itsm/tests/test_sla_time.py` | 后端 | NEW — 29个测试 |
+| `backend/itsm/migrations/0005_sla_working_time.py` | 后端 | NEW — 19步迁移 |
+| `backend/iam/.../seed_iam_page_configs.py` | 后端 | 新增 schedule tab |
+| `web/.../ScheduleList.vue` | 前端 | NEW — 排班表列表页 |
+| `web/.../ScheduleEdit.vue` | 前端 | NEW — 排班编辑对话框 |
+| `web/.../ScheduleDayList.vue` | 前端 | NEW — Day列表子组件 |
+| `web/.../HolidayCalendar.vue` | 前端 | NEW — 假期日期选择器 |
+| `web/.../SlaPolicyList.vue` | 前端 | schedule/time/unit/escalation_levels + 创建按钮 |
+| `web/.../index.vue` | 前端 | 新增 schedule tab |
+| `web/src/api/itsm/index.ts` | 前端 | scheduleApi/dayApi/durationApi |
+| `web/src/i18n/.../zh-cn.ts, en.ts` | 前端 | slaSchedule + slaPolicy sections (60+ keys) |
+| `docs/.../2026-07-10-sla-working-time-model-design.md` | 文档 | 设计规格 |
+
+### 解决
+
+- **问题/背景：** OpsFlow SLA 使用纯自然时间计算截止，不支持工作时间/假期/加班。EscalationLevel 已定义未接入。response_minutes/resolve_minutes 变量名互换。
+- **办法：** 引入 BK-ITSM Schedule → Day → Duration 三层工作时间模型 + SlaTime 集合论区间引擎 + SlaEngine 升级动作接入 + swap fix。
+
+### 文档
+
+- `docs/itsm/features/2026-07-10-sla-working-time-model.md`
+- `docs/superpowers/specs/2026-07-10-sla-working-time-model-design.md`
+
+### 验证
+
+- 改动类型: feat + fix
+- 清理乱码: 无
+- 子 App index.md 更新: itsm
+- 测试: 29 tests passing
+- 工作区状态: 干净 ✅
+
+
 ## f689e639
 
 > 提交日期: 2026-07-10 | 提交信息: fix: exclusive gateway condition expression + designer edge refactor — 网关条件表达式修复 + 设计器边重构 + 驳回流程清理

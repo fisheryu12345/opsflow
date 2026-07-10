@@ -32,5 +32,5 @@ class SlaPolicyViewSet(ItsmProjectViewSet):
     model = SlaPolicy
     queryset = SlaPolicy.objects.all()
     serializer_class = SlaPolicySerializer
-    filter_fields = ['priority', 'is_active']
+    filter_fields = ['priority', 'is_active', 'schedule']
     ordering = ['priority']

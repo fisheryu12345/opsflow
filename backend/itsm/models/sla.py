@@ -30,6 +30,12 @@ class SlaTask(CoreModel):
                                     verbose_name="任务状态")
     sla_status = models.CharField(max_length=16, choices=SLA_STATUS, default='normal',
                                    verbose_name="SLA 状态")
+    cost_time = models.IntegerField(default=0, verbose_name="已消耗SLA秒数",
+                                     help_text="Effective SLA working seconds consumed.")
+    total_seconds = models.IntegerField(default=0, verbose_name="总SLA秒数",
+                                         help_text="Frozen total resolve SLA seconds at task creation.")
+    begin_at = models.DateTimeField(null=True, blank=True, verbose_name="SLA开始时间",
+                                     help_text="When this SLA task actually started counting.")
 
     class Meta:
         db_table = table_prefix + "itsm_sla_task"
