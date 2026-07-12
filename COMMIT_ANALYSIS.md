@@ -1,3 +1,28 @@
+## a2ee214f
+> 提交日期: 2026-07-13 | 提交信息: fix: hero stats cross-tab sync for all ITSM tab components
+
+### 改动
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| TicketList.vue | 前端 | tab切换时已有数据则直接reportStats()恢复统计 |
+| ServiceMarket.vue | 前端 | 移除items.length>0条件确保切换时总是更新stats |
+| WorkflowList.vue | 前端 | 同上 |
+| NotifTemplateList.vue | 前端 | 新增模板总数/已启用统计 |
+| EscalationList.vue | 前端 | 同上 |
+| SlaPolicyList.vue | 前端 | 同上 |
+| ScheduleList.vue | 前端 | 同上 |
+| preset_views.py | 后端 | perform_create新增project_id fallback |
+
+### 解决
+- **问题** hero stats跨tab污染：切换到已访问过的tab时watch不触发load导致stats残留
+- **办法** watch回调中无论是否reload都调用reportStats()恢复该tab的统计数据
+
+### 验证
+- 改动类型: fix
+- 清理乱码: 有(中文乱码文件)
+- 工作区状态: 干净 ✅
+
+---
 ## 0237cea6
 
 > 提交日期: 2026-07-13 | 提交信息: chore: clean up 14 unused npm deps + 2 minor fixes
