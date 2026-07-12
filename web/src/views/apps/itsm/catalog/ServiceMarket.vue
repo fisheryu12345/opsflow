@@ -162,7 +162,7 @@ onMounted(async () => {
 
 // Re-report stats when this tab becomes active
 watch(() => props.active, (isActive) => {
-  if (isActive && items.value.length > 0) reportStats()
+  if (isActive) reportStats()
 })
 </script>
 

@@ -90,8 +90,9 @@
 import { ref, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { useHeroConsumer } from '/@/composables/useHeroConsumer'
+
 import { notificationTemplateApi } from '/@/api/itsm/index'
+import { useHeroConsumer } from '/@/composables/useHeroConsumer'
 
 const props = withDefaults(defineProps<{ active?: boolean }>(), { active: false })
 const { reportStats: updateHeroStats } = useHeroConsumer()
@@ -178,8 +179,15 @@ async function onToggle(row: any, v: boolean) {
   } catch { row.is_active = !v; ElMessage.error('操作失败') }
 }
 
-onMounted(async () => { if (props.active) await loadItems() })
-watch(() => props.active, async (v) => { if (v) await loadItems(); updateHeroStats() })
+function reportStats() {
+  updateHeroStats([
+    { value: items.value.length, label: '模板总数' },
+    { value: items.value.filter((t: any) => t.is_active).length, label: '已启用' },
+  ])
+}
+
+onMounted(() => { if (props.active) loadItems().then(reportStats) })
+watch(() => props.active, (v) => { if (v) loadItems().then(reportStats) })
 </script>
 
 <style lang="scss" scoped>

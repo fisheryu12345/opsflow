@@ -251,6 +251,9 @@ onMounted(() => {
 })
 
 watch(() => props.active, (isActive) => {
-  if (isActive && tickets.value.length === 0) loadTickets()
+  if (isActive) {
+    if (tickets.value.length === 0) loadTickets()
+    else reportStats()
+  }
 })
 </script>
