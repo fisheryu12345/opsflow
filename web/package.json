@@ -17,6 +17,8 @@
 		"@fast-crud/fast-extends": "^1.19.2",
 		"@fast-crud/ui-element": "^1.19.2",
 		"@fast-crud/ui-interface": "^1.19.2",
+		"@form-create/designer": "^3.5.0",
+		"@form-create/element-ui": "^3.3.1",
 		"@vitejs/plugin-vue-jsx": "^3.0.0",
 		"@wangeditor/editor": "^5.1.23",
 		"@wangeditor/editor-for-vue": "^5.1.12",
@@ -55,7 +57,6 @@
 		"vue-grid-layout": "^3.0.0-beta1",
 		"vue-i18n": "^9.2.2",
 		"vue-router": "^4.1.6",
-		"vuedraggable": "^4.1.0",
 		"vxe-table": "^4.4.1",
 		"xe-utils": "^3.5.7"
 	},

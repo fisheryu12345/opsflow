@@ -57,6 +57,11 @@ class TransitionSerializer(CustomModelSerializer):
 
 
 class FieldSerializer(CustomModelSerializer):
+    """
+    DEPRECATED since 2026-07-12.
+    Field model is superseded by State.fields JSONField (form-create Rule[] format).
+    Retained for read-only backward compatibility.
+    """
     class Meta:
         model = Field
         fields = '__all__'

@@ -53,7 +53,7 @@ class PresetSerializer(CustomModelSerializer):
 
     @staticmethod
     def _sync_referencing_fields(preset):
-        """更新所有引用此预设的 Field 模型记录（options 类型）"""
+        """DEPRECATED: Update Field ORM records (legacy). Primary sync now via _sync_referencing_state_fields."""
         from itsm.models.field import Field
         fields = Field.objects.filter(preset=preset)
         if not fields:
@@ -66,22 +66,38 @@ class PresetSerializer(CustomModelSerializer):
         import logging
         logger = logging.getLogger(__name__)
         logger.info(
-            'Preset "%s" updated, synced %d Field(s)', preset.name, count
+            'Preset "%s" updated, synced %d legacy Field(s)', preset.name, count
         )
 
     @staticmethod
     def _sync_referencing_state_fields(preset):
-        """更新 State.fields JSON 中引用此预设的内嵌字段"""
+        """Sync preset changes into State.fields JSONField (Rule[] format).
+
+        Scans both itsmPresetId (new form-create format) and preset_id (legacy format).
+        Writes options into Rule.props.options per form-create convention.
+        """
         from itsm.models.state import State
-        states = State.objects.filter(fields__contains=[{"preset_id": preset.id}])
+        from django.db.models import Q
+
+        # Search for both new (itsmPresetId) and legacy (preset_id) format
+        states = State.objects.filter(
+            Q(fields__contains=[{'itsmPresetId': preset.id}])
+            | Q(fields__contains=[{'preset_id': preset.id}])
+        )
         if not states:
             return
         count = 0
         for state in states:
             updated = False
-            for f in state.fields:
-                if f.get('preset_id') == preset.id:
-                    f['choice'] = preset.value
+            for rule in (state.fields or []):
+                pid = rule.get('itsmPresetId') or rule.get('preset_id')
+                try:
+                    pid = int(pid)
+                except (ValueError, TypeError):
+                    continue
+                if pid == preset.id:
+                    # Write options into form-create Rule format (top-level options)
+                    rule['options'] = preset.value
                     updated = True
                     count += 1
             if updated:
@@ -89,7 +105,7 @@ class PresetSerializer(CustomModelSerializer):
         import logging
         logger = logging.getLogger(__name__)
         logger.info(
-            'Preset "%s" updated, synced %d embedded field(s)', preset.name, count
+            'Preset "%s" updated, synced %d embedded rule(s)', preset.name, count
         )
 
     @staticmethod

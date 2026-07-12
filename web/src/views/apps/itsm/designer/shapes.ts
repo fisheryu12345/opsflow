@@ -48,31 +48,29 @@ export function getNodeConfig(type: string) {
 // ── 节点默认表单字段（拖入画布时自动注入）──
 
 export const DEFAULT_NODE_FIELDS: Record<string, any[]> = {
-  /** 填单节点自带字段 */
+  /** NORMAL node default fields (form-create Rule format) */
   NORMAL: [
-    { key: 'title', name: '工单标题', type: 'STRING', required: true, layout: 'COL_12', placeholder: '如 服务器磁盘空间不足' },
-    { key: 'description', name: '详细描述', type: 'TEXT', required: true, layout: 'COL_12', placeholder: '请描述问题或需求详情' },
+    { type: 'input', field: 'title', title: '工单标题', validate: [{ required: true }], itsmLayout: 'COL_12', itsmSortOrder: 0, props: { placeholder: '如 服务器磁盘空间不足' } },
+    { type: 'input', field: 'description', title: '详细描述', validate: [{ required: true }], itsmLayout: 'COL_12', itsmSortOrder: 1, props: { type: 'textarea', rows: 3, placeholder: '请描述问题或需求详情' } },
     {
-      key: 'category', name: '服务分类', type: 'SELECT', required: true, layout: 'COL_6',
-      choice: [
+      type: 'select', field: 'category', title: '服务分类', validate: [{ required: true }], itsmLayout: 'COL_6', itsmSortOrder: 2, props: { options: [
         { label: '网络故障', value: 'network' },
         { label: '数据库', value: 'database' },
         { label: '应用系统', value: 'application' },
         { label: '安全事件', value: 'security' },
         { label: '桌面支持', value: 'desktop' },
         { label: '其他', value: 'other' },
-      ],
+      ]},
     },
     {
-      key: 'priority', name: '优先级', type: 'SELECT', required: true, layout: 'COL_6',
-      choice: [
+      type: 'select', field: 'priority', title: '优先级', validate: [{ required: true }], itsmLayout: 'COL_6', itsmSortOrder: 3, props: { options: [
         { label: 'P1 危急', value: 'P1' },
         { label: 'P2 高', value: 'P2' },
         { label: 'P3 中', value: 'P3' },
         { label: 'P4 低', value: 'P4' },
-      ],
+      ]},
     },
-    { key: 'attachment', name: '附件', type: 'FILE', required: false, layout: 'COL_12' },
+    { type: 'ItsmFile', field: 'attachment', title: '附件', itsmLayout: 'COL_12', itsmSortOrder: 4 },
   ],
   /** Approval node fields — none (user defines via FormDesigner) */
   APPROVAL: [],

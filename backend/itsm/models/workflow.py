@@ -84,20 +84,11 @@ class Workflow(CoreModel):
                 'direction': t.direction,
             }
         fields_data = {}
-        workflow_fields = []
+        # Fields are stored inline in State.fields JSONField (form-create Rule[] format).
+        # Collect per-node_key (with id fallback) for the version snapshot.
         for s in self.states.all():
-            workflow_fields.extend(list(s.field_defs.all()))
-        for f in workflow_fields:
-            fields_data[f.id] = {
-                'id': f.id, 'state_id': f.state_id,
-                'key': f.key, 'name': f.name, 'type': f.type,
-                'required': f.required, 'layout': f.layout,
-                'choice': f.choice, 'default': f.default,
-                'validate_type': f.validate_type,
-                'show_conditions': f.show_conditions,
-                'source_type': f.source_type,
-                'meta': f.meta, 'sort_order': f.sort_order,
-            }
+            key = s.node_key or s.id
+            fields_data[key] = s.fields or []
         # Build pipeline_tree (aligned with Opsflow format)
         pipeline_tree = self._build_pipeline_tree(states_data, transitions_data)
 

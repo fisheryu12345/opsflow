@@ -1,5 +1,13 @@
 <template>
   <div>
+    <!-- Search in hero area -->
+    <Teleport v-if="active && searchEl" :to="searchEl">
+      <el-input v-model="searchQuery" :placeholder="$t('message.itsmPage.searchPlaceholder')" clearable size="default"
+        class="itsm-search-input" @input="onSearch" @clear="loadTickets()">
+        <template #prefix><el-icon><Search /></el-icon></template>
+      </el-input>
+    </Teleport>
+
     <!-- Filter bar -->
     <div class="itsm-filter-bar">
       <div class="itsm-filter-tabs">
@@ -124,11 +132,13 @@ const props = withDefaults(defineProps<{ active?: boolean }>(), { active: false 
 const emit = defineEmits<{ viewTicket: [row: any]; designer: [wfId: number] }>()
 const { t } = useI18n()
 const router = useRouter()
-const { reportStats: updateHeroStats } = useHeroConsumer()
+const { searchEl, reportStats: updateHeroStats } = useHeroConsumer()
 
 const loading = ref(false)
 const tickets = ref<any[]>([])
 const ticketFilter = ref('')
+const searchQuery = ref('')
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 // Assign dialog
 const assignVisible = ref(false)
@@ -163,11 +173,17 @@ function formatSla(seconds: number): string {
   return `${m}${mi}`
 }
 
+function onSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => loadTickets(), 300)
+}
+
 async function loadTickets() {
   loading.value = true
   try {
     const params: any = {}
     if (ticketFilter.value) params.current_status = ticketFilter.value
+    if (searchQuery.value) params.search = searchQuery.value
     const res = await ticketApi.list(params)
     tickets.value = res?.results || res?.data || res || []
     reportStats()

@@ -162,8 +162,8 @@
         </template>
         <template v-else>
           <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
-            <el-tag v-for="f in (node.fields || []).slice(0, 6)" :key="f.key" size="small"
-              :type="f.required ? 'danger' : 'info'">{{ f.name }}</el-tag>
+            <el-tag v-for="r in (node.fields || []).slice(0, 6)" :key="r.field" size="small"
+              :type="(r.validate?.[0]?.required) ? 'danger' : 'info'">{{ r.title }}</el-tag>
             <el-tag v-if="(node.fields || []).length > 6" size="small">+{{ (node.fields || []).length - 6 }}</el-tag>
           </div>
           <el-button size="small" @click="$emit('openFieldEditor')">
@@ -183,10 +183,10 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue'
 import { Edit, Plus } from '@element-plus/icons-vue'
-import { getNodeConfig } from './shapes'
+import { getNodeConfig } from '../shapes'
 import { request } from '/@/utils/service'
 import { presetApi } from '/@/api/itsm/index'
-import PresetProcessorInput from './components/PresetProcessorInput.vue'
+import PresetProcessorInput from './PresetProcessorInput.vue'
 
 const props = defineProps<{ node: any }>()
 const emit = defineEmits<{ change: []; openFieldEditor: [] }>()

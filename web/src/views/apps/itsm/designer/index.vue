@@ -37,7 +37,7 @@
     </div>
 
     <el-dialog v-model="showFieldEditor" :title="$t('message.designer.formDesign')" width="960px" top="3vh" class="fd-dialog">
-      <FormDesigner :fields="editingFields" @save="onFieldsSave" @cancel="showFieldEditor = false" />
+      <FcFormDesigner :fields="editingFields" @save="onFieldsSave" @cancel="showFieldEditor = false" />
     </el-dialog>
 
     <el-dialog v-model="showAIDialog" :title="$t('message.aiCreate.title')" width="560px" top="5vh">
@@ -69,7 +69,7 @@ import { useI18n } from 'vue-i18n'
 import { useDesigner } from './useDesigner'
 import DesignerToolbar from './DesignerToolbar.vue'
 import DesignerConfigPanel from './DesignerConfigPanel.vue'
-import FormDesigner from './FormDesigner.vue'
+import FcFormDesigner from './FcFormDesigner.vue'
 import { AIGenerateWorkflow } from '/@/api/itsm/index'
 import ValidateDialog from './ValidateDialog.vue'
 

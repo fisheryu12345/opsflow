@@ -312,8 +312,11 @@ def validate_workflow(states: dict, transitions: dict, lang: str = 'zh') -> dict
             continue
         proc_found = True
         proc_type = (s.get('processors_type') or '').strip()
-        # Only PERSON type requires explicit processor IDs
-        if proc_type == 'PERSON':
+        if not proc_type:
+            # No processor type selected at all — fail regardless
+            label = s.get('name', k)
+            proc_fails.append((label, k, stype))
+        elif proc_type == 'PERSON':
             processors = (s.get('processors') or '').strip()
             if not processors or processors in ('[]', '[ ]'):
                 label = s.get('name', k)
@@ -509,7 +512,7 @@ def _check_gateways(states: dict, transitions: dict, adj: dict,
         checks.append(_pass('converge_gateway_min_in', _t('gw_e7_skip', lang)))
 
     # ─── E14: Fork-join gateway count matching ───
-    fork_count = len(exclusive_gws) + len(cond_parallel_gws)
+    fork_count = len(cond_parallel_gws)
     # PARALLEL gateways also count as forks
     parallel_gws = [(k, s) for k, s in states.items() if s.get('type') == 'PARALLEL']
     fork_count += len(parallel_gws)

@@ -33,6 +33,10 @@ import 'vxe-table/lib/style.css'
 import '/@/assets/style/reset.scss';
 import 'element-tree-line/dist/style.css'
 
+// form-create ecosystem (ITSM form designer migration)
+import formCreate from '@form-create/element-ui'
+import FcDesigner from '@form-create/designer'
+
 let forIconfont = analyzingIconForIconfont(iconfont); //解析class
 iconList.addIcon(forIconfont.list); // 添加iconfont dvadmin3的icon
 iconList.addIcon(elementPlus); // 添加element plus的图标
@@ -54,6 +58,6 @@ other.elSvg(app);
 
 
 app.use(VXETable)
-app.use(pinia).use(router).use(ElementPlus, { i18n: i18n.global.t }).use(i18n).use(VueGridLayout).use(fastCrud).mount('#app');
+app.use(formCreate).use(FcDesigner).use(pinia).use(router).use(ElementPlus, { i18n: i18n.global.t }).use(i18n).use(VueGridLayout).use(fastCrud).mount('#app');
 
 app.config.globalProperties.mittBus = mitt();

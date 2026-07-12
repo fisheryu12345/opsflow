@@ -80,12 +80,14 @@ const availableVars = computed(() => {
     if (!nk) continue
     const nodeName = n.name || nk
     for (const f of (n.fields || [])) {
-      if (f.key) {
+      if (f.field) {
+        const isNumber = f.type === 'number' || f.type === 'ItsmInt'
+        const isString = f.type === 'select' || f.type === 'radio' || f.type === 'ItsmMembers' || f.type === 'ItsmCascader'
         vars.push({
-          source: nk, sourceLabel: nodeName, field: f.key, fieldLabel: f.name || f.key,
-          fieldType: f.type === 'NUMBER' || f.type === 'INT' ? 'number' : f.type === 'SELECT' || f.type === 'RADIO' ? 'string' : 'string',
+          source: nk, sourceLabel: nodeName, field: f.field, fieldLabel: f.title || f.field,
+          fieldType: isNumber ? 'number' : isString ? 'string' : 'string',
           sourceType: 'node' as const,
-          label: `${nodeName}.${f.name || f.key}`, group: nodeName,
+          label: `${nodeName}.${f.title || f.field}`, group: nodeName,
         })
       }
     }

@@ -225,7 +225,7 @@ function isProcessor(processors: string, processorsType?: string): boolean {
     const arr = JSON.parse(processors)
     if (Array.isArray(arr)) return arr.some((u: any) => parseInt(u) === userId)
   } catch {}
-  return parseInt(processors) === userId
+  return false
 }
 
 const loading = ref(false)
@@ -385,7 +385,7 @@ function rebuildFlow(allStates: Record<string, any>) {
       status,
       processors: ns?.processors || '',
       processors_type: st.processors_type || ns?.processors_type || '',
-      processor_name: ns?.processor_name || signTask?.processor || (st.type === 'NORMAL' && ticket.value ? (ticket.value.creator_name || String(ticket.value.creator)) : '') || '',
+      processor_name: ns?.processor_name || signTask?.processor || (st.type === 'NORMAL' && ticket.value ? (ticket.value.creator_name || (ticket.value.creator != null ? String(ticket.value.creator) : '')) : '') || '',
       fields: st.fields || [],
       fields_data: ns?.fields || {},
       finish_time: ns?.update_datetime || '',
@@ -400,8 +400,8 @@ function rebuildFlow(allStates: Record<string, any>) {
     }
     steps.push(step)
 
-    for (const f of (st.fields || [])) {
-      labels[String(f.key)] = f.name || f.key
+    for (const r of (st.fields || [])) {
+      labels[r.field] = r.title || r.field
     }
   }
 
@@ -461,8 +461,8 @@ async function onBatchApprove() {
   for (const node of mine) {
     try {
       const fields = collectFillFields()
-      const textFields = (node.fields || []).filter((f: any) => f.type === 'TEXT')
-      const comment = textFields.map((f: any) => fields[f.key]).find((v: any) => v) || ''
+      const textFields = (node.fields || []).filter((f: any) => f.props?.type === 'textarea')
+      const comment = textFields.map((f: any) => fields[f.field]).find((v: any) => v) || ''
       await ApproveTicketNode(ticket.value.id, node.state_id || node.id, comment, fields)
       ok++
     } catch (e: any) { /* continue */ }
@@ -483,8 +483,8 @@ async function onApproveNode(node: any) {
   try {
     const fields = collectFillFields()
     // Find comment from any TEXT field (keys may be auto-generated like field_xxxx)
-    const textFields = (node.fields || []).filter((f: any) => f.type === 'TEXT')
-    const comment = textFields.map((f: any) => fields[f.key]).find((v: any) => v) || ''
+    const textFields = (node.fields || []).filter((f: any) => f.props?.type === 'textarea')
+    const comment = textFields.map((f: any) => fields[f.field]).find((v: any) => v) || ''
     await ApproveTicketNode(ticket.value.id, node.state_id || node.id, comment, fields)
     ElMessage.success(t('message.ticketDetail.approveSuccess'))
     await new Promise(r => setTimeout(r, 3000))

@@ -100,9 +100,9 @@ async function loadWorkflowFields() {
       // Merge service item overrides into workflow fields
       const overrides = item.value?.form_fields || []
       const merged = [...fields]
-      const existingKeys = new Set(fields.map((f: any) => f.key))
+      const existingKeys = new Set(fields.map((f: any) => f.field || f.key))
       for (const f of overrides) {
-        if (!existingKeys.has(f.key)) merged.push(f)
+        if (!existingKeys.has(f.field || f.key)) merged.push(f)
       }
       workflowFields.value = merged
     }

@@ -383,6 +383,21 @@ class TestProcessorCheck(SimpleTestCase):
         self.assertTrue(any(c['rule'] == 'processor_check' and c['status'] == 'fail'
                             for c in result['checks']))
 
+    def test_empty_processors_type_should_fail(self):
+        """No processor type selected at all should fail."""
+        states = _make_states(
+            ('start', 'Start', 'START'),
+            ('approval', 'Approval', 'APPROVAL'),
+            ('end', 'End', 'END'),
+        )
+        states['approval']['processors'] = ''
+        states['approval']['processors_type'] = ''
+        trans = _make_trans(('t1', 'start', 'approval'), ('t2', 'approval', 'end'))
+        result = validate_workflow(states, trans)
+        self.assertFalse(result['valid'])
+        self.assertTrue(any(c['rule'] == 'processor_check' and c['status'] == 'fail'
+                            for c in result['checks']))
+
     def test_starter_type_ok(self):
         """STARTER type with empty processors is valid — auto-resolved at runtime."""
         states = _make_states(

@@ -234,6 +234,7 @@ class WorkflowVersionViewSet(CustomModelViewSet):
         message = request.data.get('message', 'Rollback to v' + old_version.version)
         workflow.states.all().delete()
         workflow.transitions.all().delete()
+        # Clean up legacy Field ORM records (deprecated — fields now live in State.fields JSONField)
         Field.objects.filter(state__workflow=workflow).delete()
         state_id_map = {}
         for sid, sdata in old_version.states.items():
@@ -268,16 +269,8 @@ class WorkflowVersionViewSet(CustomModelViewSet):
                 condition_type=tdata.get('condition_type', 'default'),
                 direction=tdata.get('direction', 'forward'),
             )
-        for fid, fdata in old_version.fields.items():
-            sid = state_id_map.get(fdata.get('state_id'))
-            if sid:
-                Field.objects.create(
-                    state_id=sid, key=fdata.get('key', ''),
-                    name=fdata.get('name', ''), type=fdata.get('type', 'STRING'),
-                    required=fdata.get('required', False),
-                    layout=fdata.get('layout', 'COL_12'),
-                    choice=fdata.get('choice', []), default=fdata.get('default', []),
-                )
+        # Fields are already restored inline in State.fields JSONField (see State.objects.create above).
+        # No separate Field ORM recreation needed.
         new_version = workflow.create_version(operator=request.user.id, message=message)
         return DetailResponse(data=WorkflowVersionSerializer(new_version).data, msg='Rolled back v'+old_version.version+', created v'+new_version.version)
 
@@ -470,44 +463,36 @@ class FieldViewSet(CustomModelViewSet):
 
     @action(methods=['POST'], detail=False)
     def batch_update(self, request):
-        """批量更新字段（自动保存用）"""
+        """批量更新字段 — writes Rule[] directly to State.fields JSONField."""
         state_id = request.data.get('state_id')
         fields = request.data.get('fields', [])
         if not state_id:
             return ErrorResponse(msg='state_id required')
         # Batch-fetch presets to avoid N+1 queries
-        preset_ids = {f['preset_id'] for f in fields if f.get('preset_id')}
+        preset_ids = {f.get('itsmPresetId') or f.get('preset_id') for f in fields if f.get('itsmPresetId') or f.get('preset_id')}
         presets_map = {}
         if preset_ids:
             from itsm.models.preset import Preset
-            # Scope to state's workflow project for multi-tenancy
             state = State.objects.only('workflow__project_id').select_related('workflow').filter(id=state_id).first()
             qs = Preset.objects.filter(id__in=preset_ids)
             if state and state.workflow.project_id:
                 qs = qs.filter(project_id=state.workflow.project_id)
             presets_map = {p.id: p for p in qs}
         for f in fields:
-            # Expand preset_id → choice before filtering model fields
-            if f.get('preset_id'):
-                pid = f['preset_id']
+            preset_id = f.get('itsmPresetId') or f.get('preset_id')
+            if preset_id:
                 try:
-                    pid = int(pid)
+                    preset_id = int(preset_id)
                 except (ValueError, TypeError):
-                    pid = None
-                preset = presets_map.get(pid) if pid else None
+                    preset_id = None
+                preset = presets_map.get(preset_id) if preset_id else None
                 if preset and preset.preset_type == 'options':
-                    f['choice'] = preset.value
+                    # Write options into form-create Rule format (top-level options)
+                    f['options'] = preset.value
                 else:
-                    # Clear stale preset_id if preset not found (deleted or out of scope)
-                    f['preset_id'] = None
-            fid = f.get('id')
-            clean = _filter_model_fields(Field, f)
-            clean.pop('id', None)
-            if fid and Field.objects.filter(id=fid, state_id=state_id).exists():
-                Field.objects.filter(id=fid).update(**clean)
-            else:
-                clean['state_id'] = state_id
-                Field.objects.create(**clean)
+                    f['itsmPresetId'] = None
+        # Write the complete Rule[] directly to State.fields JSONField
+        State.objects.filter(id=state_id).update(fields=fields)
         return DetailResponse(msg='字段批量更新成功')
 
 

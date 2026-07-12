@@ -1,3 +1,44 @@
+## 4217dad2
+
+> 提交日期: 2026-07-12 | 提交信息: feat: ITSM form designer migration to form-create-designer + 12 bug fixes
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| web/src/views/apps/itsm/designer/FcFormDesigner.vue | 前端 | fc-designer包装组件，preset加载/i18n/预设选项实时同步 |
+| web/src/views/apps/itsm/designer/fcExtensions.ts | 前端 | 7个DragRule + config + 自定义组件注册中枢 |
+| web/src/components/ItsmFormRenderer/fields/Fc*.vue | 前端 | 6个自定义业务字段组件(Members/File/Richtext/Table/Cascader/Section) |
+| web/src/components/ItsmFormRenderer/index.vue | 前端 | 内部切换为form-create渲染，修复v-model setter和submit验证 |
+| web/src/views/apps/itsm/designer/*.vue | 前端 | FormDesigner删除，接入FcFormDesigner，修复导入路径 |
+| web/src/views/apps/itsm/TicketDetail.vue | 前端 | field/key格式适配，isProcessor修复，String(undefined)修复 |
+| web/src/views/apps/itsm/components/TicketList.vue | 前端 | hero区域添加Teleport搜索框 |
+| backend/itsm/services/workflow_validator.py | 后端 | E13空processors_type检查+E14排他网关不计入fork |
+| backend/itsm/models/workflow.py | 后端 | create_version读State.fields JSON、node_key fallback |
+| backend/itsm/serializers/preset.py | 后端 | itsmPresetId类型强制转换 |
+| backend/itsm/views/workflow_views.py | 后端 | rollback/batch_update适配JSONField |
+| web/package.json | 配置 | 新增@form-create/designer+element-ui，卸载vuedraggable |
+
+### 解决
+
+- **问题/背景：** ITSM表单设计器完全自研(vuedraggable+ElementPlus)，维护成本高。全面迁移至社区成熟方案form-create-designer。
+- **办法：** 用<fc-designer>替换FormDesigner.vue，<form-create>替换ItsmFormRenderer，6个自定义业务字段通过FcDesigner.component()+DragRule扩展API移植。代码审查发现12个问题全部修复。
+
+### 文档
+
+- **生成文档：**
+  - docs/superpowers/specs/2026-07-12-itsm-fc-designer-migration-design.md
+  - docs/superpowers/specs/2026-07-12-itsm-fc-designer-migration-plan.md
+
+### 验证
+
+- 改动类型: feat + fix + refactor
+- 清理乱码: 无
+- 子 App index.md 更新: itsm
+- 工作区状态: 干净 ✅
+
+---
+
 # Commit Analysis Log
 
 ## e7c6976d

@@ -771,7 +771,14 @@
   dependencies:
     core-js "^2.6.12"
 
-"@babel/runtime@^7.12.0", "@babel/runtime@^7.25.6":
+"@babel/runtime-corejs3@^7.11.2":
+  version "7.29.7"
+  resolved "https://registry.npmjs.org/@babel/runtime-corejs3/-/runtime-corejs3-7.29.7.tgz"
+  integrity sha512-ppj9ouYku+RX0ljtgZd+KMO5mkM2bCqg8H2PYAFWnLsHEIKIdRojqbJ2i3eVHrisuxy7nOFCmngTDdWtUCdXUQ==
+  dependencies:
+    core-js-pure "^3.48.0"
+
+"@babel/runtime@^7.11.2", "@babel/runtime@^7.12.0", "@babel/runtime@^7.25.6":
   version "7.29.7"
   resolved "https://registry.npmjs.org/@babel/runtime/-/runtime-7.29.7.tgz"
   integrity sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==
@@ -920,6 +927,111 @@
   version "0.2.11"
   resolved "https://registry.npmjs.org/@floating-ui/utils/-/utils-0.2.11.tgz"
   integrity sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==
+
+"@form-create/component-elm-checkbox@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.npmjs.org/@form-create/component-elm-checkbox/-/component-elm-checkbox-3.3.0.tgz"
+  integrity sha512-BNJcJ8SXtDOJCy8OXLstn6ZIbvEVAObiSJfazIW3AmAVuu958qlw6896dvQqZK0zTBpgOl3hRmMNjoFguglJfg==
+  dependencies:
+    "@form-create/utils" "^3.3.0"
+
+"@form-create/component-elm-frame@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.npmjs.org/@form-create/component-elm-frame/-/component-elm-frame-3.3.0.tgz"
+  integrity sha512-4iFyg7Jaqv/Q8Lq24XEoQOBClflmMSNxh83KV+cgH3afDIJYHngVSbCqrflaB+lWyMHzIPA3cVrgRbkhkw1eyA==
+  dependencies:
+    "@form-create/utils" "^3.3.0"
+
+"@form-create/component-elm-group@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.npmjs.org/@form-create/component-elm-group/-/component-elm-group-3.3.0.tgz"
+  integrity sha512-9lJKkEH+hCet27WkXEX6vRf1Kc01Sj4lcEksfKHmNJe/aP+Zp6D96kmYt5M6Ew9aKSNNAPdpkkLae9AUCAz4YQ==
+  dependencies:
+    "@form-create/utils" "^3.3.0"
+
+"@form-create/component-elm-radio@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.npmjs.org/@form-create/component-elm-radio/-/component-elm-radio-3.3.0.tgz"
+  integrity sha512-b3v/3ytifIc4+y3KCkZjo9X//66yY5k8MHysKqtsmRMx73cAgmHzz3wtpR773zr78xrHGnZH1mE7apdecoJoPQ==
+  dependencies:
+    "@form-create/utils" "^3.3.0"
+
+"@form-create/component-elm-select@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.npmjs.org/@form-create/component-elm-select/-/component-elm-select-3.3.0.tgz"
+  integrity sha512-uBE1rwm4/loVOjWn5/tVMaT8/BFLS6U5nieFNO+ChDJ6HwwbAjr/wXXYKPchoLzLAiDV4Tysvydkpz22hYOnjw==
+  dependencies:
+    "@form-create/utils" "^3.3.0"
+
+"@form-create/component-elm-tree@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.npmjs.org/@form-create/component-elm-tree/-/component-elm-tree-3.3.0.tgz"
+  integrity sha512-C2cAxTL8zHrt2LC1HLyp+kxhXgfGU71pkv2hCM+kleU+eJ6Ly4TQoaACUwf9oCZexxjCe1dA+zq0HZ/osQdYrQ==
+  dependencies:
+    "@form-create/utils" "^3.3.0"
+
+"@form-create/component-elm-upload@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.npmjs.org/@form-create/component-elm-upload/-/component-elm-upload-3.3.0.tgz"
+  integrity sha512-oIRpa2cEpHyBtsQh00BpCoD8R2tmQmQ+X6p8Oa3wD9OjGOfKJD7cAKp3bV798/uCXu3LzIh6PyQJQ0Iwjvqhtg==
+  dependencies:
+    "@form-create/utils" "^3.3.0"
+
+"@form-create/component-subform@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.npmjs.org/@form-create/component-subform/-/component-subform-3.3.0.tgz"
+  integrity sha512-y8F6LxvVZIiHa5Jwur6xKGfxuWFuiFzR4vhwPWTXsRbARLqaPV5OVPhB3gQWjbOjoJ2cnercEEhOFvvXf99WWQ==
+
+"@form-create/component-wangeditor@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.npmjs.org/@form-create/component-wangeditor/-/component-wangeditor-3.3.0.tgz"
+  integrity sha512-yQaYFVbLNcbsiujsJfeDd5vcvZNhHDUUyezTCf5w5JbhIeFUNXnVLRqUFD2iwyKhTy7RsUUzW2QhEiXxtYqOow==
+  dependencies:
+    wangeditor "^4.6.0"
+
+"@form-create/core@^3.3.1":
+  version "3.3.1"
+  resolved "https://registry.npmjs.org/@form-create/core/-/core-3.3.1.tgz"
+  integrity sha512-anUYh93YRQokYPRKKFhMh/VY/CrWnKBWblJKlzyis4d/0d5fkACMbrVBxlG1vf2ICRVL4aVadsGZqDLvrK0r/A==
+  dependencies:
+    "@form-create/utils" "^3.3.0"
+
+"@form-create/designer@^3.5.0":
+  version "3.5.0"
+  resolved "https://registry.npmjs.org/@form-create/designer/-/designer-3.5.0.tgz"
+  integrity sha512-IWtbx/C08kZHGfvT8oyKKyz2v/HJ7FKQzGN1ULbYhNW3o08b6ayTtr9/yA9HlsQfxJoqiUp4gWO9RWvtF/Dw9A==
+  dependencies:
+    "@form-create/component-wangeditor" "^3.3.0"
+    "@form-create/element-ui" "^3.3.1"
+    "@form-create/utils" "^3.3.0"
+    codemirror "^6.65.7"
+    element-plus "^2.11.1"
+    js-beautify "^1.15.1"
+    marked "^17.0.0"
+    signature_pad "^5.0.10"
+    sortablejs "1.14.0"
+    vuedraggable "4.1.0"
+
+"@form-create/element-ui@^3.3.1":
+  version "3.3.1"
+  resolved "https://registry.npmjs.org/@form-create/element-ui/-/element-ui-3.3.1.tgz"
+  integrity sha512-Iz6ikbaX+xRWGK+xelYM665KNDWfwKRREXHGtvDRrgv9Eq2X3ZzHfNTC/oPpppnoFgC9PV6LAT4XKLqhCxV+Yw==
+  dependencies:
+    "@form-create/component-elm-checkbox" "^3.3.0"
+    "@form-create/component-elm-frame" "^3.3.0"
+    "@form-create/component-elm-group" "^3.3.0"
+    "@form-create/component-elm-radio" "^3.3.0"
+    "@form-create/component-elm-select" "^3.3.0"
+    "@form-create/component-elm-tree" "^3.3.0"
+    "@form-create/component-elm-upload" "^3.3.0"
+    "@form-create/component-subform" "^3.3.0"
+    "@form-create/core" "^3.3.1"
+    "@form-create/utils" "^3.3.0"
+
+"@form-create/utils@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.npmjs.org/@form-create/utils/-/utils-3.3.0.tgz"
+  integrity sha512-4VGI3Qowkc0HsrxmC6NT1eUlEnN2xURqStjJXD+PjgbYKqzR01pNHJbz1UyfkrmcFE9HTUaWrH7IgPPxjlSo2g==
 
 "@httptoolkit/websocket-stream@^6.0.1":
   version "6.0.1"
@@ -1169,6 +1281,11 @@
   dependencies:
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
+
+"@one-ini/wasm@0.1.1":
+  version "0.1.1"
+  resolved "https://registry.npmjs.org/@one-ini/wasm/-/wasm-0.1.1.tgz"
+  integrity sha512-XuySG1E38YScSJoMlqovLru4KTUNSjgVTIjyh7qMX6aNN5HY5Ct5LhRJdxO79JtTzKfzV/bnWpz+zquYrISsvw==
 
 "@parcel/watcher-win32-x64@2.5.6":
   version "2.5.6"
@@ -1900,6 +2017,11 @@
   resolved "https://registry.npmjs.org/@wangeditor/video-module/-/video-module-1.1.4.tgz"
   integrity sha512-ZdodDPqKQrgx3IwWu4ZiQmXI8EXZ3hm2/fM6E3t5dB8tCaIGWQZhmqd6P5knfkRAd3z2+YRSRbxOGfoRSp/rLg==
 
+abbrev@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.npmjs.org/abbrev/-/abbrev-2.0.0.tgz"
+  integrity sha512-6/mh1E2u2YgEsCHdY0Yx5oW+61gZU+1vXaoiHHrpKeuRNNgFvS+/jrwHiQhB5apAf5oB7UB7E19ol2R2LKH8hQ==
+
 ace-builds@^1.31.1:
   version "1.44.0"
   resolved "https://registry.npmjs.org/ace-builds/-/ace-builds-1.44.0.tgz"
@@ -2290,6 +2412,11 @@ clone@^2.1.1:
   resolved "https://registry.npmjs.org/clone/-/clone-2.1.2.tgz"
   integrity sha512-3Pe/CF1Nn94hyhIYpjtiLhdCoEoz0DqQ+988E9gmeEdQZlojxnOb74wctFyuwWQHzqyf9X7C7MG8juUpqBJT8w==
 
+codemirror@^6.65.7:
+  version "6.65.7"
+  resolved "https://registry.npmjs.org/codemirror/-/codemirror-6.65.7.tgz"
+  integrity sha512-HcfnUFJwI2FvH73YWVbbMh7ObWxZiHIycEhv9ZEXy6e8ZKDjtZKbbYFUtsLN46HFXPvU5V2Uvc2d55Z//oFW5A==
+
 codepage@~1.15.0:
   version "1.15.0"
   resolved "https://registry.npmjs.org/codepage/-/codepage-1.15.0.tgz"
@@ -2326,6 +2453,11 @@ comlink@^4.4.1:
   version "4.4.2"
   resolved "https://registry.npmjs.org/comlink/-/comlink-4.4.2.tgz"
   integrity sha512-OxGdvBmJuNKSCMO4NTl1L47VRp6xn2wG4F/2hYzB6tiCb709otOxtEYCSvK80PtjODfXXZu8ds+Nw5kVCjqd2g==
+
+commander@^10.0.0:
+  version "10.0.1"
+  resolved "https://registry.npmjs.org/commander/-/commander-10.0.1.tgz"
+  integrity sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug==
 
 commander@^4.0.0:
   version "4.1.1"
@@ -2365,6 +2497,14 @@ concat-stream@^2.0.0:
     readable-stream "^3.0.2"
     typedarray "^0.0.6"
 
+config-chain@^1.1.13:
+  version "1.1.13"
+  resolved "https://registry.npmjs.org/config-chain/-/config-chain-1.1.13.tgz"
+  integrity sha512-qj+f8APARXHrM0hraqXYb2/bOVSV4PvJQlNZ/DVj0QrmNM2q2euizkeuVckQ57J+W0mRH6Hvi+k50M4Jul2VRQ==
+  dependencies:
+    ini "^1.3.4"
+    proto-list "~1.2.1"
+
 content-type@^1.0.2:
   version "1.0.5"
   resolved "https://registry.npmjs.org/content-type/-/content-type-1.0.5.tgz"
@@ -2379,6 +2519,11 @@ copy-to@^2.0.1:
   version "2.0.1"
   resolved "https://registry.npmjs.org/copy-to/-/copy-to-2.0.1.tgz"
   integrity sha512-3DdaFaU/Zf1AnpLiFDeNCD4TOWe3Zl2RZaTzUvWiIk5ERzcCodOE20Vqq4fzCbNoHURFHT4/us/Lfq+S2zyY4w==
+
+core-js-pure@^3.48.0:
+  version "3.49.0"
+  resolved "https://registry.npmjs.org/core-js-pure/-/core-js-pure-3.49.0.tgz"
+  integrity sha512-XM4RFka59xATyJv/cS3O3Kml72hQXUeGRuuTmMYFxwzc9/7C8OYTaIR/Ji+Yt8DXzsFLNhat15cE/JP15HrCgw==
 
 core-js@^2.6.12:
   version "2.6.12"
@@ -2816,6 +2961,16 @@ echarts@^5.0.1, "echarts@^5.1.2 || ^6.0.0", echarts@^5.4.1:
     tslib "2.3.0"
     zrender "5.6.1"
 
+editorconfig@^1.0.4:
+  version "1.0.7"
+  resolved "https://registry.npmjs.org/editorconfig/-/editorconfig-1.0.7.tgz"
+  integrity sha512-e0GOtq/aTQhVdNyDU9e02+wz9oDDM+SIOQxWME2QRjzRX5yyLAuHDE+0aE8vHb9XRC8XD37eO2u57+F09JqFhw==
+  dependencies:
+    "@one-ini/wasm" "0.1.1"
+    commander "^10.0.0"
+    minimatch "^9.0.1"
+    semver "^7.5.3"
+
 ee-first@~1.1.1:
   version "1.1.1"
   resolved "https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz"
@@ -2826,7 +2981,7 @@ electron-to-chromium@^1.5.328:
   resolved "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.368.tgz"
   integrity sha512-7RckJJK4uESJF9PxvfMWd3TGqIiieUTG4HxnKaKuIpGbcr+r2ZEB3g2gAhCP3Fqm42vJSzLfgab9eva/C4/XVw==
 
-element-plus@^2.14.1:
+element-plus@^2.11.1, element-plus@^2.14.1:
   version "2.14.1"
   resolved "https://registry.npmjs.org/element-plus/-/element-plus-2.14.1.tgz"
   integrity sha512-UFnm1+BckNi+azkKJ7L32q1uXs9ekr99Z9pWTQPeDR05jqEWUwQq51ro4kZMVrANbjknX3Z7ukCZwTi2T6Tr9A==
@@ -3400,6 +3555,18 @@ glob@^10.3.3:
     package-json-from-dist "^1.0.0"
     path-scurry "^1.11.1"
 
+glob@^10.4.2:
+  version "10.5.0"
+  resolved "https://registry.npmjs.org/glob/-/glob-10.5.0.tgz"
+  integrity sha512-DfXN8DfhJ7NH3Oe7cFmu3NCu1wKbkReJ8TorzSAFbSKrlNaQSKfIzqYqVY8zlbs2NLBbWpRiU52GX2PbaBVNkg==
+  dependencies:
+    foreground-child "^3.1.0"
+    jackspeak "^3.1.2"
+    minimatch "^9.0.4"
+    minipass "^7.1.2"
+    package-json-from-dist "^1.0.0"
+    path-scurry "^1.11.1"
+
 glob@^7.1.3, glob@^7.1.6:
   version "7.2.3"
   resolved "https://registry.npmjs.org/glob/-/glob-7.2.3.tgz"
@@ -3587,6 +3754,11 @@ inherits@^2.0.1, inherits@^2.0.3, inherits@^2.0.4, inherits@~2.0.3, inherits@2:
   resolved "https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz"
   integrity sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==
 
+ini@^1.3.4:
+  version "1.3.8"
+  resolved "https://registry.npmjs.org/ini/-/ini-1.3.8.tgz"
+  integrity sha512-JV/yugV2uzW5iMRSiZAyDtQd+nxtUnjeLt0acNdw98kKLrvuRVyB80tsREOE7yvGVgalhZ6RNXCmEHkUKBKxew==
+
 "internmap@1 - 2":
   version "2.0.3"
   resolved "https://registry.npmjs.org/internmap/-/internmap-2.0.3.tgz"
@@ -3752,7 +3924,18 @@ js-base64@^2.5.2:
   resolved "https://registry.npmjs.org/js-base64/-/js-base64-2.6.4.tgz"
   integrity sha512-pZe//GGmwJndub7ZghVHz7vjb2LgC1m8B07Au3eYqeqv9emhESByMXxaEgkUkEqJe87oBbSniGYoQNIBklc7IQ==
 
-js-cookie@^3.0.1:
+js-beautify@^1.15.1:
+  version "1.15.4"
+  resolved "https://registry.npmjs.org/js-beautify/-/js-beautify-1.15.4.tgz"
+  integrity sha512-9/KXeZUKKJwqCXUdBxFJ3vPh467OCckSBmYDwSK/EtV090K+iMJ7zx2S3HLVDIWFQdqMIsZWbnaGiba18aWhaA==
+  dependencies:
+    config-chain "^1.1.13"
+    editorconfig "^1.0.4"
+    glob "^10.4.2"
+    js-cookie "^3.0.5"
+    nopt "^7.2.1"
+
+js-cookie@^3.0.1, js-cookie@^3.0.5:
   version "3.0.8"
   resolved "https://registry.npmjs.org/js-cookie/-/js-cookie-3.0.8.tgz"
   integrity sha512-yeJd4aNAdYZQjaon2bpD/Gb0B/omw7HQOsynXXcOiWVCacbBcPlgn8S/d1X6blFSaHao7ozqtW7NZW19xpCtIw==
@@ -3983,6 +4166,11 @@ markdown-it@^14.1.1:
     punycode.js "^2.3.1"
     uc.micro "^2.1.0"
 
+marked@^17.0.0:
+  version "17.0.6"
+  resolved "https://registry.npmjs.org/marked/-/marked-17.0.6.tgz"
+  integrity sha512-gB0gkNafnonOw0obSTEGZTT86IuhILt2Wfx0mWH/1Au83kybTayroZ/V6nS25mN7u8ASy+5fMhgB3XPNrOZdmA==
+
 math-intrinsics@^1.1.0:
   version "1.1.0"
   resolved "https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz"
@@ -4046,6 +4234,13 @@ minimatch@^3.0.5, minimatch@^3.1.1, minimatch@^3.1.2:
   integrity sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==
   dependencies:
     brace-expansion "^1.1.7"
+
+minimatch@^9.0.1:
+  version "9.0.9"
+  resolved "https://registry.npmjs.org/minimatch/-/minimatch-9.0.9.tgz"
+  integrity sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg==
+  dependencies:
+    brace-expansion "^2.0.2"
 
 minimatch@^9.0.4:
   version "9.0.9"
@@ -4207,6 +4402,13 @@ node-releases@^2.0.36:
   version "2.0.47"
   resolved "https://registry.npmjs.org/node-releases/-/node-releases-2.0.47.tgz"
   integrity sha512-Uzmd6LXpouKo8EUK68IjH4+E01w/hXyV3R3g/geCJo+rXLNfh1xucB+LOzYEOQPSiUK3h/xZf0cQGcSsmyL2Og==
+
+nopt@^7.2.1:
+  version "7.2.1"
+  resolved "https://registry.npmjs.org/nopt/-/nopt-7.2.1.tgz"
+  integrity sha512-taM24ViiimT/XntxbPyJQzCG+p4EKOpgD3mxFwW38mGjVUrfERQOeY4EDHjdnptttfHuHQXFx+lTP08Q+mLa/w==
+  dependencies:
+    abbrev "^2.0.0"
 
 normalize-path@^3.0.0, normalize-path@~3.0.0:
   version "3.0.0"
@@ -4518,6 +4720,11 @@ process@^0.11.10:
   resolved "https://registry.npmjs.org/process/-/process-0.11.10.tgz"
   integrity sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A==
 
+proto-list@~1.2.1:
+  version "1.2.4"
+  resolved "https://registry.npmjs.org/proto-list/-/proto-list-1.2.4.tgz"
+  integrity sha512-vtK/94akxsTMhe0/cbfpR+syPuszcuwhqVjJq26CuNDgFGj682oRBXOP5MJpv2r7JtE8MsiepGIqvvOTBwn2vA==
+
 proxy-from-env@^2.1.0:
   version "2.1.0"
   resolved "https://registry.npmjs.org/proxy-from-env/-/proxy-from-env-2.1.0.tgz"
@@ -4798,7 +5005,7 @@ semver@^6.3.1:
   resolved "https://registry.npmjs.org/semver/-/semver-6.3.1.tgz"
   integrity sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==
 
-semver@^7.3.6, semver@^7.3.7, semver@^7.6.3:
+semver@^7.3.6, semver@^7.3.7, semver@^7.5.3, semver@^7.6.3:
   version "7.8.2"
   resolved "https://registry.npmjs.org/semver/-/semver-7.8.2.tgz"
   integrity sha512-c8jsqUZm3omBOI66G90z1Dyw5z622G8oLG+omfsHBJf3CWQTlOcwOjvOG6wtiNfW6anKm/eA39LMwMtMez2TiQ==
@@ -4881,6 +5088,11 @@ signal-exit@^4.0.1:
   version "4.1.0"
   resolved "https://registry.npmjs.org/signal-exit/-/signal-exit-4.1.0.tgz"
   integrity sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==
+
+signature_pad@^5.0.10:
+  version "5.1.3"
+  resolved "https://registry.npmjs.org/signature_pad/-/signature_pad-5.1.3.tgz"
+  integrity sha512-zyxW5vuJVnQdGcU+kAj9FYl7WaAunY3kA5S7mPg0xJiujL9+sPAWfSQHS5tXaJXDUa4FuZeKhfdCDQ6K3wfkpQ==
 
 simple-swizzle@^0.2.2:
   version "0.2.4"
@@ -5201,7 +5413,7 @@ tslib@^1.8.1:
   resolved "https://registry.npmjs.org/tslib/-/tslib-1.14.1.tgz"
   integrity sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==
 
-tslib@^2.0.0, tslib@^2.0.3, tslib@^2.3.1, tslib@^2.5.3, tslib@^2.6.2, tslib@^2.8.1:
+tslib@^2.0.0, tslib@^2.0.3, tslib@^2.1.0, tslib@^2.3.1, tslib@^2.5.3, tslib@^2.6.2, tslib@^2.8.1:
   version "2.8.1"
   resolved "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz"
   integrity sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==
@@ -5435,7 +5647,7 @@ vue-router@^4.1.6:
   dependencies:
     "@vue/devtools-api" "^6.6.4"
 
-"vue@^2.0.0 || >=3.0.0", "vue@^2.6.11 || ^3.2.0", "vue@^2.7.0 || ^3.5.11", vue@^3.0.0, "vue@^3.0.0-0 || ^2.6.0", vue@^3.0.1, vue@^3.0.5, vue@^3.2.0, vue@^3.2.25, vue@^3.2.31, vue@^3.2.45, vue@^3.3.7, vue@^3.5.0, vue@^3.5.16, vue@>=3.0.0, vue@3, vue@3.5.35:
+"vue@^2.0.0 || >=3.0.0", "vue@^2.6.11 || ^3.2.0", "vue@^2.7.0 || ^3.5.11", vue@^3.0.0, "vue@^3.0.0-0 || ^2.6.0", vue@^3.0.1, vue@^3.0.5, vue@^3.2.0, vue@^3.2.25, vue@^3.2.31, vue@^3.2.45, vue@^3.3.7, vue@^3.5, vue@^3.5.0, vue@^3.5.12, vue@^3.5.16, vue@>=3.0.0, vue@3, vue@3.5.35:
   version "3.5.35"
   resolved "https://registry.npmjs.org/vue/-/vue-3.5.35.tgz"
   integrity sha512-cx89fnr+0kVGHiNFG6y6s0bdjypJRFNZn6x3WPstNdQR1bi1mbB7h4v5IBGTsPJU3nK1+0Iqj3Zf+hZWMieR4Q==
@@ -5453,7 +5665,7 @@ vuedraggable-es@^4.1.1:
   dependencies:
     sortablejs "1.14.0"
 
-vuedraggable@^4.1.0:
+vuedraggable@4.1.0:
   version "4.1.0"
   resolved "https://registry.npmjs.org/vuedraggable/-/vuedraggable-4.1.0.tgz"
   integrity sha512-FU5HCWBmsf20GpP3eudURW3WdWTKIbEIQxh9/8GE806hydR9qZqRRxRE3RjqX7PkuLuMQG/A7n3cfj9rCEchww==
@@ -5473,6 +5685,15 @@ vxe-table@^4.4.1:
   integrity sha512-H8nFLcEV31WcGaf6GCPAlYz4LhQCBKYIXB0vWWXGE9Ji86AcTLSkgpcDVy5COP7vECA52ZZOjX6Rjry4llTn1w==
   dependencies:
     vxe-pc-ui "^4.14.0"
+
+wangeditor@^4.6.0:
+  version "4.7.15"
+  resolved "https://registry.npmjs.org/wangeditor/-/wangeditor-4.7.15.tgz"
+  integrity sha512-aPTdREd8BxXVyJ5MI+LU83FQ7u1EPd341iXIorRNYSOvoimNoZ4nPg+yn3FGbB93/owEa6buLw8wdhYnMCJQLg==
+  dependencies:
+    "@babel/runtime" "^7.11.2"
+    "@babel/runtime-corejs3" "^7.11.2"
+    tslib "^2.1.0"
 
 which@^2.0.1:
   version "2.0.2"

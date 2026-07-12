@@ -52,6 +52,7 @@ export default {
     oneClickGen: '一键生成',
     saveAsTemplate: '保存为模板',
     slaPolicies: 'SLA 策略',
+    searchPlaceholder: '搜索工单号/标题...',
     filterAll: '全部',
     filterDraft: '草稿',
     filterRunning: '处理中',
