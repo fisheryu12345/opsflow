@@ -172,6 +172,9 @@ onMounted(() => {
 })
 
 watch(() => props.active, (isActive) => {
-  if (isActive && items.value.length === 0) loadItems()
+  if (isActive) {
+    if (items.value.length === 0) loadItems()
+    else reportStats()
+  }
 })
 </script>

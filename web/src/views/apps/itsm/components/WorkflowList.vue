@@ -316,6 +316,9 @@ onMounted(() => {
 })
 
 watch(() => props.active, (isActive) => {
-  if (isActive && workflows.value.length === 0) loadWorkflows()
+  if (isActive) {
+    if (workflows.value.length === 0) loadWorkflows()
+    else reportStats()
+  }
 })
 </script>
