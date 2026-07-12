@@ -1,5 +1,10 @@
 import {request} from '/@/utils/service';
-import {PageQuery, AddReq, DelReq, EditReq, InfoReq} from '@fast-crud/fast-crud';
+
+type PageQuery = Record<string, any>;
+type AddReq = Record<string, any>;
+type DelReq = number | string;
+type EditReq = Record<string, any> & {id: number | string};
+type InfoReq = number | string;
 
 export const apiPrefix = '/api/system/message_center/';
 

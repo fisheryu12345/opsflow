@@ -26,10 +26,13 @@ class PresetViewSet(ItsmProjectViewSet):
             or self.request.query_params.get('project_id')
         )
         if not project_id:
+            # Fallback: use the first user-visible project
+            user_pids = self.get_user_project_ids()
+            project_id = user_pids[0] if user_pids else None
+        if not project_id:
             from rest_framework.exceptions import ValidationError
             raise ValidationError({'project_id': 'project_id is required'})
         project_id = int(project_id)
-        # Enforce project-level permission check (inherited from ProjectFilteredViewSet)
         if project_id not in self.get_user_project_ids():
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('No permission to create resources in this project')

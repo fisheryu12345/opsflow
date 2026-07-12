@@ -46,6 +46,8 @@ function createService() {
 			const pid = localStorage.getItem('opsflow_active_project_id');
 			if (pid) {
 				config.params = { ...(config.params || {}), project_id: Number(pid) };
+			} else if (config.method !== 'get') {
+				console.warn('[service] No active project_id in localStorage, request may fail:', config.url);
 			}
 			return config;
 		},

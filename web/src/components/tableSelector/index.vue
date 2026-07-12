@@ -41,8 +41,7 @@
 
 <script setup lang="ts">
 import {defineProps, onMounted, reactive, ref, toRaw, watch} from 'vue'
-import {dict} from '@fast-crud/fast-crud'
-import XEUtils from 'xe-utils'
+import {request} from '/@/utils/service'
 
 const props = defineProps({
   modelValue: {},
@@ -120,14 +119,13 @@ const handleCurrentChange = (val: any) => {
  */
 const getDict = async () => {
   const url = props.tableConfig.url
-  const params = {
+  const params: Record<string, any> = {
     page: pageConfig.page,
     limit: pageConfig.limit,
   }
   if (search.value) params.search = search.value
-  const dicts = dict({url: url, params: params})
-  await dicts.reloadDict()
-  const dictData = dicts.data
+  const res = await request({url, params})
+  const dictData = res.data
   if (Array.isArray(dictData)) {
     tableData.value = dictData
     pageConfig.total = dictData.length

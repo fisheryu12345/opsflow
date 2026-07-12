@@ -1,6 +1,11 @@
 import { request } from '/@/utils/service';
-import { UserPageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
 import XEUtils from 'xe-utils';
+
+type UserPageQuery = Record<string, any>;
+type AddReq = Record<string, any>;
+type DelReq = number | string;
+type EditReq = Record<string, any> & {id: number | string};
+type InfoReq = number | string;
 
 export const apiPrefix = '/api/system/system_config/';
 export function GetList(query: UserPageQuery) {

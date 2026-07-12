@@ -3,7 +3,7 @@
  * @param {String} jsonString 需要解析的 json 字符串
  * @param {String} defaultValue 默认值
  */
-import { uiContext } from '@fast-crud/fast-crud';
+import { ElNotification } from 'element-plus';
 
 export function parse(jsonString = '{}', defaultValue = {}) {
 	let result = defaultValue;
@@ -53,7 +53,7 @@ export function errorLog(error: any, notification = true) {
 	console.error(error);
 	// 显示提示
 	if (notification) {
-		uiContext.get().notification.error({ message: error.message });
+		ElNotification({ type: 'error', title: 'Error', message: error.message });
 	}
 }
 

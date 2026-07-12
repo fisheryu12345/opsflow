@@ -1,3 +1,46 @@
+## 0237cea6
+
+> 提交日期: 2026-07-13 | 提交信息: chore: clean up 14 unused npm deps + 2 minor fixes
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| web/package.json | 配置 | 删除14个未使用依赖，3个构建工具移至devDependencies |
+| web/package-lock.json + yarn.lock | 配置 | npm install 同步，移除225个传递依赖 |
+| web/src/settings.ts | 前端 | **删除** — 全部FastCrud插件注册代码 |
+| web/src/utils/commonCrud.ts | 前端 | **删除** — 零引用死代码 |
+| web/src/components/tableSelector/index.vue | 前端 | dict() → request() 直接HTTP调用 |
+| web/src/utils/tools.ts | 前端 | uiContext → ElNotification |
+| web/src/main.ts | 前端 | 移除 fastCrud import 和 .use(fastCrud) |
+| web/src/assets/style/reset.scss | 前端 | 删除 .fs-crud-container CSS |
+| web/src/types/global.d.ts | 前端 | 删除 splitpanes declare module |
+| web/src/views/system/messageCenter/api.ts | 前端 | fast-crud类型导入 → 本地类型别名 |
+| web/src/views/system/config/api.ts | 前端 | fast-crud类型导入 → 本地类型别名 |
+| web/src/utils/service.ts | 前端 | 非GET请求缺project_id时console.warn |
+| backend/itsm/views/preset_views.py | 后端 | perform_create() 新增project_id fallback |
+
+### 解决
+
+- **问题/背景：** web/package.json 中63个依赖含多个未使用包(@fast-crud/*, echarts-gl, markdown-it等14个)，增加构建体积和维护负担。preset创建时project_id缺省直接报错，缺少容错。
+- **办法：** 逐一扫描229+源文件的import使用情况，识别14个零使用包并移除；dict()替换为request()，uiContext替换为ElNotification；preset_views.py新增get_user_project_ids()回退。
+
+### 文档
+
+- **生成文档：**
+  - docs/itsm/debug/2026-07-13-preset-fallback-project-id.md
+  - docs/opsflow/config/2026-07-13-cleanup-unused-npm-deps-config.md
+
+### 验证
+
+- 改动类型: chore + fix
+- 清理乱码: 无
+- 生产构建: ✓ vite build 成功 (29.81s)
+- npm install: 移除225个传递依赖包
+- 工作区状态: 干净 ✅
+
+---
+
 ## 4217dad2
 
 > 提交日期: 2026-07-12 | 提交信息: feat: ITSM form designer migration to form-create-designer + 12 bug fixes

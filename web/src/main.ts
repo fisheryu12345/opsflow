@@ -12,8 +12,6 @@ import '/@/styles/trading-global.scss';
 import mitt from 'mitt';
 import VueGridLayout from 'vue-grid-layout';
 import piniaPersist from 'pinia-plugin-persist';
-// @ts-ignore
-import fastCrud from './settings.ts';
 import pinia from './stores';
 // @ts-ignore
 import eIconPicker, { iconList, analyzingIconForIconfont } from 'e-icon-picker';
@@ -58,6 +56,6 @@ other.elSvg(app);
 
 
 app.use(VXETable)
-app.use(formCreate).use(FcDesigner).use(pinia).use(router).use(ElementPlus, { i18n: i18n.global.t }).use(i18n).use(VueGridLayout).use(fastCrud).mount('#app');
+app.use(formCreate).use(FcDesigner).use(pinia).use(router).use(ElementPlus, { i18n: i18n.global.t }).use(i18n).use(VueGridLayout).mount('#app');
 
 app.config.globalProperties.mittBus = mitt();
