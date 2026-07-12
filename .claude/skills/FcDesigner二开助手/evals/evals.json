@@ -1,0 +1,95 @@
+{
+  "skill_name": "FcDesigner二开助手",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我们需要改造内置 input：默认 clearable=true，新增 showPassword 配置项，并保证历史规则不崩。请给出源码改动点（rule 和 props 两层）、兼容策略、验证步骤。",
+      "expected_output": "应明确 DragRule.rule 与 DragRule.props 的改动位置，解释仅对新拖入生效，并给历史兼容与验证清单。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我要新增一个自定义属性处理器 dataAttributes，支持给组件注入 data-*。请给出处理器实现要点，以及在 PC/移动端和设计态渲染器的注册清单。",
+      "expected_output": "应给出属性处理器接口结构（load/watch/deleted）和双端注册策略，强调设计态与运行态都要注册。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "当前 options 配置方式里我想移除“全局数据源”并新增“脚本编辑”方式。请说明要在 makeOptionsRule/makeTreeOptionsRule 哪些位置改，避免只改 options 不改 control 的坑。",
+      "expected_output": "应说明 _optionType + control 机制，给出新增与移除分支的双改动点和多语言补齐提示。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "我们运行时是 ant-design-vue，不是 element。现在要二开一个输入类组件并扩展 DragRule.props。请给出改造步骤，并指出哪些 props/事件字段必须按 antd 契约核对。",
+      "expected_output": "应输出源码改造分层步骤，并明确运行时组件契约需按 antd 校对，避免直接沿用 element 字段名。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "我改了 DragRule.rule 的默认值后，历史表单没有变化。请解释原因，并给出可执行的迁移思路（含伪代码或脚本思路）。",
+      "expected_output": "应说明默认规则仅影响新拖入组件，并提供历史规则迁移方案。",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "我要改一个组件，涉及 src/components、src/config/rule、src/form 三层。请按分层给出改造清单、风险点和验证计划。",
+      "expected_output": "应输出分层改造计划，包含影响范围、风险和设计态/运行态验证项。",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "新增属性处理器后，设计器里有效但运行时没生效。请给我一份注册检查清单，覆盖设计态、预览态、PC/移动渲染器。",
+      "expected_output": "应明确列出各注册入口和逐项检查步骤。",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "我准备扩展一个容器组件 Col，需要可拖入子组件并支持 span 配置。请给 DragRule 最小模板和关键字段解释。",
+      "expected_output": "应给出容器组件 drag/inside/mask/children 等关键配置和可执行模板。",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "我想给组件加级联样式能力，支持 ::root 和 ::wrap。请说明生效前提、作用范围和常见不生效原因。",
+      "expected_output": "应解释 ::root/::wrap 语义、组件 class 支持前提以及排查要点。",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "我做了一个自定义上传组件，想支持多语言按钮文本。请给 languageKey 和 formCreateInject.t 的接入方式。",
+      "expected_output": "应给出 DragRule.languageKey 与组件内 t() 的配套示例。",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "我想限制自定义组件只能拖入 group 容器，并且整个表单里只能有一个该组件。请给 allowDragTo 和 only 的规则写法。",
+      "expected_output": "应给出 only 与 allowDragTo 的组合配置，并说明生效范围。",
+      "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "我在 DragRule 里改了默认规则，还想在运行时强制覆盖 upload 的 action。请解释 updateDefaultRule、parser、option.global 三者边界与执行顺序。",
+      "expected_output": "应明确三者作用层级与执行顺序，并说明适用场景。",
+      "files": []
+    },
+    {
+      "id": 13,
+      "prompt": "我想覆盖内置 input 组件，但又要兼容现有规则。请给 formCreate.component 覆盖方案、组件契约清单和回归检查项。",
+      "expected_output": "应给出同名覆盖的最小实现，并说明 modelValue/update:modelValue/change/disabled/attrs 兼容要求。",
+      "files": []
+    },
+    {
+      "id": 14,
+      "prompt": "后端把 checkbox 存成逗号字符串，前端要回显成数组并提交回字符串。请用 parser 的 toFormValue/toValue 给完整方案。",
+      "expected_output": "应给出 parser 双向转换示例，说明 merge:true、触发时机和边界值处理。",
+      "files": []
+    },
+    {
+      "id": 15,
+      "prompt": "不想用 npm 的 @form-create/designer，要从 form-create-designer 仓库拷源码到业务项目二开。请给分支怎么选、Vue3 选哪个 packages 目录、拷贝后 main 里怎么从本地目录 import 并 use。",
+      "expected_output": "应说明 clone 仓库后按 Vue2/Vue3 与 UI 栈选择分支与 packages/*/src；拷贝到如 src/components/FcDesigner；合并 package.json dependencies；Vue3 用 createApp + app.use(FcDesigner) + app.use(FcDesigner.formCreate)；并提示升级需与上游 diff 合并。",
+      "files": []
+    }
+  ]
+}

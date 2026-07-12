@@ -1,0 +1,317 @@
+{
+  "skill_name": "FcDesigner使用助手",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "请帮我做一个“导入JSON并回显 + 保存JSON”的完整示例：页面里有 fc-designer，mounted 后从接口拿 ruleJson/optionsJson 回填，点击保存时把 getRule/getOptions 转成 JSON 提交。",
+      "expected_output": "应给出可运行的回显与保存示例，包含初始化时机、setRule/setOptions、getRule/getOptions 和序列化建议。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我要新增一个左侧菜单“业务组件”，并挂载两个自定义 DragRule。还希望把 subform 菜单隐藏、只保留常用按钮。请给 config 和方法调用的完整方案。",
+      "expected_output": "应输出 addMenu/addComponent 的流程，给出 hiddenMenu 和 showXxx 配置示例，并说明初始化调用顺序。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "我想扩展右侧配置：给所有组件基础配置最前面加“组件备注”，并且只给 input 组件再加“数据字段”。请用 baseRule + componentRule 写示例，并说明 appendConfigData 的作用。",
+      "expected_output": "应给出 baseRule/componentRule 的可执行配置示例，说明 prepend/append 与 appendConfigData 的关联。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "当前项目是 ant-design-vue 渲染栈。请给一个设计器“回显规则+保存规则”的示例，并提醒我哪些字段/事件在 antd 场景下需要核对，避免直接照抄 element-plus 用法。",
+      "expected_output": "应给出可执行回显保存流程，并明确 antd 与 element 路线在运行时 props/事件命名上需要核对。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "我只想隐藏设计器顶部的保存按钮，不改其他功能。请给最小配置和完整示例。",
+      "expected_output": "应明确使用 config.showSaveBtn=false，并提供最小可运行示例。",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "我想隐藏左侧组件栏和右侧配置区，但保留预览按钮。请给 config 配置。",
+      "expected_output": "应给出 showMenuBar=false、showConfig=false，并保留 showPreviewBtn=true 的示例。",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "请限制 group 容器只能拖入 input/select，其他组件不允许拖入。要给出 allowDrag 或 checkDrag 的可执行写法。",
+      "expected_output": "应输出容器拖拽限制配置，至少给出 allowDrag 或 checkDrag 的完整示例。",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "我要把 input 组件设置为不可删除、不可复制、不可移动，其他组件不受影响。怎么配 componentPermission？",
+      "expected_output": "应给出 componentPermission 针对 input 的权限配置示例，并说明作用范围。",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "我希望关闭页面时弹确认框，同时启用 field 唯一性检查和快捷键。请给 config 配置。",
+      "expected_output": "应给出 exitConfirm、checkFieldUnique、hotKey 的配置示例。",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "我想在按钮事件里给用户提示消息并弹确认框，再执行删除逻辑。请给 api.message 和 api.confirm 的写法，并说明 antd 与 element 的差异点。",
+      "expected_output": "应给出 message/confirm 示例，并说明 antd 不建议用 primary 类型等差异。",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "我要新增一个动作到行为列表：一键清空表单并提示成功。请给 setBehavior 最小示例（含 menu/name/handle）。",
+      "expected_output": "应给出可运行的 setBehavior 示例并说明动作归属菜单。",
+      "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "我想把右侧配置顺序改成：基础、高级、属性、插槽、样式、事件、验证，并同时扩展字体列表。请给 config 示例。",
+      "expected_output": "应给出 configFormOrder 与 fontFamily 的组合配置示例。",
+      "files": []
+    },
+    {
+      "id": 13,
+      "prompt": "我需要字段ID可手输，并且提供可选字段树；子表单字段要跟随父字段联动。请给 fieldReadonly/fieldList/relationField 的配置示例。",
+      "expected_output": "应给出字段ID管理配置，并说明 relationField 的影响。",
+      "files": []
+    },
+    {
+      "id": 14,
+      "prompt": "我想隐藏右侧表单配置里的 event 和提交/重置按钮开关，同时把 input 组件的 field 配置隐藏。请给 hiddenFormConfig 和 hiddenItemConfig 示例。",
+      "expected_output": "应同时给出 hiddenFormConfig 与 hiddenItemConfig 的可执行配置。",
+      "files": []
+    },
+    {
+      "id": 15,
+      "prompt": "我想在按钮点击时打开一个弹窗组件，提交后关闭并打印数据。请给 api.open/api.close 的调用示例。",
+      "expected_output": "应给出 api.open 带回调的示例，并包含关闭弹窗调用。",
+      "files": []
+    },
+    {
+      "id": 16,
+      "prompt": "我要获取当前设计器的结构树和仅表单结构树，用来做字段映射。请给 getDescription/getFormDescription 示例。",
+      "expected_output": "应给出两个方法的调用示例，并说明二者差异。",
+      "files": []
+    },
+    {
+      "id": 17,
+      "prompt": "我想在设计器里新增顶部“快速保存/导出模板”两个操作，同时在顶部再插一个自定义 header 区展示品牌信息。请给 handle 配置与插槽方案。",
+      "expected_output": "应同时给出 props.handle 方案与 #header/#handle 插槽方案，并说明适用场景。",
+      "files": []
+    },
+    {
+      "id": 18,
+      "prompt": "我需要在按钮点击时把表单数据抛给外层页面处理，不想把业务逻辑写在规则里。请用 api.emit + 外层监听给完整示例，并提醒我事件名冲突问题。",
+      "expected_output": "应给出 api.emit 与组件层监听（模板或 api.on）的完整示例，并强调不要使用 submit/change 等内置事件名。",
+      "files": []
+    },
+    {
+      "id": 19,
+      "prompt": "我有个下拉组件需要根据输入框值远程请求 options，同时统一加 token。请给 api.fetch + beforeFetch + parse 的组合示例和执行顺序说明。",
+      "expected_output": "应给出 fetch、beforeFetch、parse 的可执行示例，并说明变量替换先于 beforeFetch。",
+      "files": []
+    },
+    {
+      "id": 20,
+      "prompt": "我想在设计器里用 dynamic-render 渲染一段 SFC 字符串，还要用外部 axios。请给 setData/getData 或 extendApi 的可执行方案，并说明 import 限制。",
+      "expected_output": "应给出 dynamic-render 最小示例，说明不支持 import/require，并给外部依赖注入方式。",
+      "files": []
+    },
+    {
+      "id": 21,
+      "prompt": "右侧字段ID管理的 fieldList 和左侧拖拽字段源的 :field 是一回事吗？请分别给配置示例并解释区别。",
+      "expected_output": "应明确区分 config.fieldList 与 props.field 的职责，并给最小可运行示例。",
+      "files": []
+    },
+    {
+      "id": 22,
+      "prompt": "我想把新建表单默认配置成小尺寸、隐藏提交重置按钮，并在 onSubmit 里接管提交。请给 formOptions 配置。",
+      "expected_output": "应给出 formOptions.form/submitBtn/resetBtn/onSubmit 的组合示例，并说明对新建表单生效。",
+      "files": []
+    },
+    {
+      "id": 23,
+      "prompt": "我有多个业务模板要在左侧切换，请给 :list 的结构和 switchForm 监听示例；另外支持自定义 form-list 区域。",
+      "expected_output": "应给出 list 基本结构、switchForm 用法和 form-list 插槽示例。",
+      "files": []
+    },
+    {
+      "id": 24,
+      "prompt": "我想在运行时修改全局变量和全局数据源，并触发一个全局事件。请给 api.setGlobalVar/setGlobalData/emitGlobalData 示例和注意事项。",
+      "expected_output": "应给出三个 API 的组合示例，并强调 setGlobalVar 会覆盖原计算特性。",
+      "files": []
+    },
+    {
+      "id": 25,
+      "prompt": "请演示如何在应用启动时用 setData 注入外部 token，再在规则事件里 getData 读取，最后在组件卸载时 removeData 清理。",
+      "expected_output": "应给出 setData/getData/removeData 的完整链路，并提醒 refreshData 的使用场景。",
+      "files": []
+    },
+    {
+      "id": 26,
+      "prompt": "我需要扩展一个自定义公式 TOBOOL，并说明和内置公式一起使用时怎么避免公式循环引用卡死。",
+      "expected_output": "应给出 setFormula 示例，说明公式命名规范和循环引用规避策略。",
+      "files": []
+    },
+    {
+      "id": 27,
+      "prompt": "我想做一个“受限版”设计器：隐藏左侧模板/多语言/JSON预览，右侧仅保留基础+属性配置，顶部只保留保存按钮。请给 config。",
+      "expected_output": "应给出 showTemplate/showLanguage/showJsonPreview/showAdvancedForm/showStyleForm/showEventForm/showValidateForm 等组合配置。",
+      "files": []
+    },
+    {
+      "id": 28,
+      "prompt": "我在组件事件里要拿到 change 的值并更新当前组件规则，请给 $inject.args 和 $inject.self 的示例。",
+      "expected_output": "应给出 $inject 数据结构关键字段和最小可执行示例。",
+      "files": []
+    },
+    {
+      "id": 29,
+      "prompt": "我写了一个自定义右侧配置组件，需要直接操作当前选中规则。请给 inject(['designer']) 的 Vue3/Vue2 访问差异和示例。",
+      "expected_output": "应说明 designer.setupState.activeRule 与 designer.activeRule 的差异，并给安全访问写法。",
+      "files": []
+    },
+    {
+      "id": 30,
+      "prompt": "项目在内网，ECharts 和 xlsx 不能走 unpkg。请给 loadjs.depend 批量替换和 loadDepend 加载示例。",
+      "expected_output": "应给出 depend 批量替换、loadDepend 调用和 done 手动标记场景。",
+      "files": []
+    },
+    {
+      "id": 31,
+      "prompt": "我希望设计器界面语言切成英文，但表单业务文案继续走 options.language。这两个怎么同时配置？",
+      "expected_output": "应区分 :locale 与 options.language 两套机制，并给组合配置示例。",
+      "files": []
+    },
+    {
+      "id": 32,
+      "prompt": "我想通过 ref 一次性拿到设计器规则、配置 JSON、结构树，并手动选中某个组件。请给 methods 组合调用示例。",
+      "expected_output": "应给出 getRule/getJson/getOptionsJson/getDescription/triggerActive 的串联示例，并强调 mounted 后调用。",
+      "files": []
+    },
+    {
+      "id": 33,
+      "prompt": "我需要新增一个“业务组件”菜单并异步加载组件列表挂进去，同时保留内置 menu。请给 addMenu + addComponent 的流程。",
+      "expected_output": "应给出 addMenu/addComponent 的异步加载示例，并说明 menu id 与组件 menu 字段对齐。",
+      "files": []
+    },
+    {
+      "id": 34,
+      "prompt": "PC 端设计好的规则要在移动端渲染成 Vant 风格，Element 项目和 Antd 项目的 driver 分别怎么配？",
+      "expected_output": "应给出 form-create-mobile 用法，并明确 driver=elm/antd 的对应关系和注意事项。",
+      "files": []
+    },
+    {
+      "id": 35,
+      "prompt": "我想把表单切到阅读模式，并让一个自定义组件在 preview 下显示特殊文案。请给 options.preview + readMode custom 的示例。",
+      "expected_output": "应给出阅读模式配置和自定义组件分支渲染示例，并说明 readMode 对历史规则的影响。",
+      "files": []
+    },
+    {
+      "id": 36,
+      "prompt": "我需要实现“点击保存按钮 -> 存 rule/options JSON -> 下次进入回显”的完整流程，请给 @save、setRule、setOptions 的可运行示例。",
+      "expected_output": "应给出保存与回显双向流程，并强调 parseJson/toJson 的正确使用。",
+      "files": []
+    },
+    {
+      "id": 37,
+      "prompt": "我想把当前选中字段保存成模板，并在另一个页面把模板加载到左侧字段列表复用。请给 saveField + :field 方案。",
+      "expected_output": "应给出 showSaveFieldBtn、saveField 事件和字段模板回灌 field 列表的示例。",
+      "files": []
+    },
+    {
+      "id": 38,
+      "prompt": "我需要给业务方导出可用组件代码，想比较 getSFC 与 getTemplate 的差异，并在 Vue2 项目导出 Vue2 语法模板。",
+      "expected_output": "应说明 getSFC/getTemplate 的适用边界，并给 useTemplate=true 的配置。",
+      "files": []
+    },
+    {
+      "id": 39,
+      "prompt": "我想在表单下方插入一块自定义业务区域并能调用 api.submit，应该怎么用 slot 组件和 scope？",
+      "expected_output": "应给出 block 插槽示例，解释 scope.api/scope.preview/scope.model 的使用前提。",
+      "files": []
+    },
+    {
+      "id": 40,
+      "prompt": "我需要打印整个业务区域（表单+附加说明）并导出 PDF，怎么通过 fApi.print/exportPdf 指定自定义 DOM？",
+      "expected_output": "应给出传入 el 的示例，补充常用导出参数和 .fc-print-form 样式定制说明。",
+      "files": []
+    },
+    {
+      "id": 41,
+      "prompt": "我有一个多插槽自定义组件（default/content/footer），想在设计器里实现“插槽内可拖拽组件”。请给 DragRule.slot 的配置方案。",
+      "expected_output": "应给出 slot 字段的字符串与对象写法（含 type 容器）并说明挂载流程。",
+      "files": []
+    },
+    {
+      "id": 42,
+      "prompt": "我想把一个复杂流程拆成分步表单，要求可程序化跳步并校验当前步。请给 step-form 的 api.el/subApi 示例。",
+      "expected_output": "应给出 active 切换与 subApi.validate/formData 的可执行示例。",
+      "files": []
+    },
+    {
+      "id": 43,
+      "prompt": "我只允许 input/textarea/select/radio 之间切换，其他类型不能互切。请给 switchType 配置并说明动态修改场景。",
+      "expected_output": "应给出 switchType 分组配置和运行时更新示例。",
+      "files": []
+    },
+    {
+      "id": 44,
+      "prompt": "我想把“三列栅格”和“城市选择”封装成模板放到左侧 template 分组，请给 DragTemplateRule 示例。",
+      "expected_output": "应给出 menu=template 的模板规则示例，并说明 autoField/only/formOptions 的作用。",
+      "files": []
+    },
+    {
+      "id": 45,
+      "prompt": "我在 Vue3 项目想切换设计器主题色，同时需要说明 Vue2 为什么不可用。请给 theme 配置和注意事项。",
+      "expected_output": "应给出 theme 可选值和动态切换示例，并明确主题能力不支持 Vue2。",
+      "files": []
+    },
+    {
+      "id": 46,
+      "prompt": "上传组件我已经能调接口了，但保存后拿不到文件地址。请给 onSuccess 正确写法（必须能保存 url/name），并告诉我 beforeFetch 放哪里统一加 token。",
+      "expected_output": "应明确 onSuccess 里回填 file.url/file.name，并给 option.beforeFetch 统一加请求头的示例与位置说明。",
+      "files": []
+    },
+    {
+      "id": 47,
+      "prompt": "我想把变量统一规范：在事件里读取 $form/$cookie/$var/$globalData，并支持运行时 setGlobalVar/setGlobalData。请给一套最小示例和风险提示。",
+      "expected_output": "应给出 getData 读取与 setGlobalVar/setGlobalData 写入示例，并提醒 setGlobalVar 会覆盖计算变量特性。",
+      "files": []
+    },
+    {
+      "id": 48,
+      "prompt": "请给我一个验证规则组合示例：required + pattern + 自定义 validator，并说明 trigger 怎么选、pattern 字符串有什么坑。",
+      "expected_output": "应给出可执行 validate 数组示例，说明 blur/change/submit 触发时机，提示 pattern 字符串不要带 / /。",
+      "files": []
+    },
+    {
+      "id": 49,
+      "prompt": "我接入 vxe-data-table 后要做“获取选中行 + 翻页刷新 + 改每页条数”。请给 api.el 获取实例和 getEl 调用示例，并提醒依赖安装挂载要求。",
+      "expected_output": "应给出 getEl/getCheckboxRecords 或 getRadioRecord、initPage/changePage/changePageSize 示例，并说明 vxe 依赖需业务侧安装挂载。",
+      "files": []
+    },
+    {
+      "id": 50,
+      "prompt": "我在扩展右侧配置时不想手写 options 字段和必填规则，想复用工具方法。请演示 makeOptionsRule/makeRequiredRule 的用法和适用场景。",
+      "expected_output": "应给出 helper 方法导入与调用示例，并说明它们用于减少重复规则定义。",
+      "files": []
+    },
+    {
+      "id": 51,
+      "prompt": "我担心文档示例和真实能力不一致，想以本技能 references/types.md（内嵌 TypeScript 声明）为准做一次配置/API 校验。请给“文档用法 + 类型口径校验”流程，并举出 3 个容易漏掉的方法或字段。",
+      "expected_output": "应明确以 types.md 中 TypeScript 声明为最终签名口径，给出校验流程，并至少列出如 setValidateRuleConfig/openGlobalFetchDialog/autoResetField 等易漏点。",
+      "files": []
+    },
+    {
+      "id": 52,
+      "prompt": "打包后规则里写的 function 都不执行了，控制台还报 FormCreate 版本不够。请按 FAQ 思路给：new Function 替代方式、parseJson 注意点、以及升级哪个 @form-create 包，并说明哪类问题该找安装助手。",
+      "expected_output": "应引用 faq-runtime 中 new Function 与 parseJson/toJson 要点；版本问题指向升级 @form-create 渲染器与安装助手 §11；区分安装/使用/二开职责。",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "skill_name": "FcDesigner安装助手",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我现在是 Vue3 + Vite 项目，想把 fcDesignerPro 接进来，先只做 PC 端。请给我最小可运行的安装和 main.ts 挂载步骤，要求包含依赖安装命令和常见报错排查。",
+      "expected_output": "应给出仅 PC 端接入路径、依赖安装命令、入口挂载代码、最小页面示例和排查清单。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我们要做完整包接入（PC + 移动预览），仓库里已经有 dist 目录。请告诉我标准集成方式，包含目录放置建议、import 路径、ElementPlus/Vant 挂载顺序。",
+      "expected_output": "应输出完整包标准集成步骤，明确目录位置、导入路径、UI库与设计器挂载顺序。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "我准备做源码二开接入，不想后面升级把改动覆盖掉。请给我源码集成流程和升级维护建议，并说明什么时候不建议走源码集成。",
+      "expected_output": "应说明源码集成步骤、依赖合并、安装流程、版本管理建议和适用边界。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "我们项目是 Vue3 + ant-design-vue，不是 element-plus。请给我 fcDesignerPro 的 PC 端接入方案，要求不要出现 ElementPlus 代码，并附最小 main.ts 示例。",
+      "expected_output": "应明确识别 antd 技术栈，输出 Ant Design Vue 接入命令与挂载代码，且不混入 ElementPlus 片段。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "我是 Vue2 + Element UI 项目，只接入 PC 版设计器。请给出依赖、main.js 挂载和页面最小示例。",
+      "expected_output": "应给出 Vue2/Element UI 路线的安装与挂载方式，不使用 Vue3 的 createApp 写法。",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "我们需要完整包（含移动端预览），但现在页面只要 PC 设计器。请给一个方案，要求说明什么时候需要挂载 vant，什么时候可以省略。",
+      "expected_output": "应说明完整包与 PC 包差异，并给出 Vant 挂载条件与建议。",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "接入后页面白屏，控制台提示样式和组件都加载异常。请给一套从路径、依赖、样式、版本到重装依赖的排查流程。",
+      "expected_output": "应输出分步骤排障流程，不只是罗列原因。",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "我有两个项目：A 项目做设计器，B 项目只负责渲染表单。请给跨项目渲染方案：如何复制渲染器、替换导入、在 B 项目挂载。",
+      "expected_output": "应明确“仅导入渲染器不导入设计器”的做法，并给出按 Element/Antd 分流的路径和挂载示例。",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "我们是开源版 @form-create/designer，准备升级到 Pro。请给一份可执行迁移清单：目录替换、依赖升级、入口替换、回归验证。",
+      "expected_output": "应给出从开源版到 Pro 的分步升级链路，并包含升级后最小回归清单。",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "我要接入 fcDesignerMobile（移动端设计器）而不是 PC 版，请给安装依赖、入口挂载和组件名替换说明。",
+      "expected_output": "应给出 fcDesignerMobile 路线的接入示例，并明确 fc-designer-mobile/form-create-mobile 组件名。",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "升级到新版本后如何判断是否受影响？请结合 update 日志给一个“升级评估 + 验证清单”模板。",
+      "expected_output": "应给出版本变更评估维度（配置项、渲染器版本、导出能力）和可执行验证步骤。",
+      "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "我们不用 Pro dist，想用开源 npm：Vue3 + Vite + Element Plus，只接 PC 设计器。请给 pnpm 安装命令和 main.ts 里 FcDesigner 与 formCreate 的挂载顺序。",
+      "expected_output": "应给出 @form-create/designer@^3 与 @form-create/element-ui@^3、element-plus 的安装命令，以及 app.use(ElementPlus)→app.use(FcDesigner)→app.use(FcDesigner.formCreate) 顺序，不混入 ant-design-vue。",
+      "files": []
+    },
+    {
+      "id": 13,
+      "prompt": "开源 npm 方案：Vue3 + ant-design-vue，只要 PC 设计器。请给 pnpm 安装包名（含 antd 设计器包与渲染器包）、最低 form-create 版本提示，以及 main.ts 挂载顺序，不要出现 element-plus。",
+      "expected_output": "应给出 @form-create/antd-designer@^3、@form-create/ant-design-vue@^3、ant-design-vue；提示 form-create ≥ 3.2.18；挂载顺序为 app.use(antd)→app.use(FcDesigner)→app.use(FcDesigner.formCreate)，且 FcDesigner 来自 @form-create/antd-designer。",
+      "files": []
+    },
+    {
+      "id": 14,
+      "prompt": "我要用开源 npm 接移动端设计器（vant-designer），Vue3。请说明为什么除了 vant 还要 element-plus、四个依赖各是什么、以及 FcDesignerMobile 与 formCreate 的挂载顺序。",
+      "expected_output": "应说明设计器 UI 依赖 Element Plus、移动预览依赖 Vant；列出 @form-create/vant-designer、@form-create/element-ui@^3、@form-create/vant@^3、element-plus、vant；提示 form-create ≥ 3.2.14；顺序为 ElementPlus→vant→FcDesignerMobile→FcDesignerMobile.formCreate；组件名为 fc-designer-mobile。",
+      "files": []
+    }
+  ]
+}

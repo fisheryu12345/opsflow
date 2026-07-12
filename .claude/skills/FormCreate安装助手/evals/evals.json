@@ -1,0 +1,47 @@
+{
+  "skill_name": "FormCreate安装助手",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Vue3 新项目要用 Element Plus 接 FormCreate，请给出 pnpm 安装命令和 main.ts 里完整的 use 顺序。",
+      "expected_output": "应包含 @form-create/element-ui@^3、element-plus、样式 import，且先 use ElementPlus 再 use formCreate。",
+      "files": ["AGENTS.md"]
+    },
+    {
+      "id": 2,
+      "prompt": "我们栈是 Ant Design Vue 3，不要 Element。请说明该装哪个 @form-create 包，并给入口挂载示例。",
+      "expected_output": "应使用 @form-create/ant-design-vue，不应写 element-plus 挂载。",
+      "files": ["AGENTS.md"]
+    },
+    {
+      "id": 3,
+      "prompt": "移动端 H5 要用 Vant，FormCreate 装哪个？和 PC 的 element-ui 包能混在一个项目吗？",
+      "expected_output": "应指向 @form-create/vant + vant，并说明栈间规则与依赖不要混用。",
+      "files": ["AGENTS.md"]
+    },
+    {
+      "id": 4,
+      "prompt": "@form-create/designer 和 @form-create/element-ui 有什么区别？我都要装吗？",
+      "expected_output": "应区分设计器与渲染器；仅渲染可只装渲染器；要拖拽设计再装设计器。",
+      "files": ["AGENTS.md"]
+    },
+    {
+      "id": 5,
+      "prompt": "想用 CDN 最快跑通一个 Element Plus 的 form-create 演示，给一段 html 脚本顺序。",
+      "expected_output": "应给出 Vue、Element Plus、form-create 脚本顺序与 use 示例。",
+      "files": ["AGENTS.md"]
+    },
+    {
+      "id": 6,
+      "prompt": "Vue3 项目选 Naive UI，FormCreate 的包名和 main 里怎么挂载？",
+      "expected_output": "应给出 @form-create/naive-ui@^3、naive-ui，先 app.use(naive) 再 app.use(formCreate)。",
+      "files": ["AGENTS.md"]
+    },
+    {
+      "id": 7,
+      "prompt": "要用 TDesign Vue Next，FormCreate 对应哪个 npm 包？",
+      "expected_output": "应指向 @form-create/tdesign@^3 与 tdesign-vue-next（或说明以锁文件为准）。",
+      "files": ["AGENTS.md"]
+    }
+  ]
+}
