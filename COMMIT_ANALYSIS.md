@@ -30,6 +30,29 @@
 
 ---
 
+## 9e2787e8
+
+> 提交日期: 2026-07-13 | 提交信息: feat: preset reference count + detail popover
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| backend/itsm/serializers/preset.py | 后端 | reference_count + referenced_by 字段，FK+JSON双重引用统计 |
+| PresetList.vue | 前端 | 计数改为可点击按钮，Popover显示 Workflow→State 引用链路 |
+
+### 解决
+
+- **问题/背景：** 预设管理页面引用计数始终为0，看不到被哪些流程引用
+- **办法：** SerializerMethodField 统计 State.preset FK + State.fields JSON嵌入引用；前端 el-popover 展示详情
+
+### 验证
+
+- 改动类型: feat
+- 工作区状态: 干净 ✅
+
+---
+
 ## a2ee214f
 > 提交日期: 2026-07-13 | 提交信息: fix: hero stats cross-tab sync for all ITSM tab components
 

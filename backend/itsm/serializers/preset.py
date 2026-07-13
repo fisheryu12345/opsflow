@@ -12,10 +12,56 @@ from itsm.models.preset import Preset
 class PresetSerializer(CustomModelSerializer):
     """预设 CRUD 序列化器 — 更新时级联同步引用该预设的 State"""
 
+    reference_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Preset
         fields = '__all__'
         read_only_fields = ['creator', 'create_datetime', 'update_datetime', 'project']
+
+    referenced_by = serializers.SerializerMethodField()
+
+    def get_reference_count(self, obj):
+        return len(self.get_referenced_by(obj))
+
+    def get_referenced_by(self, obj):
+        """Return list of {workflow_name, state_name, field_title} that reference this preset."""
+        from itsm.models.state import State
+        refs = []
+        # FK refs: State.preset → Preset
+        for s in State.objects.filter(preset_id=obj.id).select_related('workflow'):
+            wf_name = getattr(s.workflow, 'name', '') or ''
+            refs.append({
+                'workflow_name': wf_name,
+                'state_name': s.name or '',
+                'field_title': '',
+                'type': 'FK',
+            })
+        # JSON refs: State.fields contains {"itsmPresetId": <id>} or {"preset_id": <id>}
+        try:
+            from django.db.models import Q
+            json_states = State.objects.filter(
+                Q(fields__contains=[{'itsmPresetId': obj.id}])
+                | Q(fields__contains=[{'preset_id': obj.id}])
+            ).select_related('workflow')
+            for s in json_states:
+                wf_name = getattr(s.workflow, 'name', '') or ''
+                for rule in (s.fields or []):
+                    pid = rule.get('itsmPresetId') or rule.get('preset_id')
+                    try:
+                        pid = int(pid)
+                    except (ValueError, TypeError):
+                        continue
+                    if pid == obj.id:
+                        refs.append({
+                            'workflow_name': wf_name,
+                            'state_name': s.name or '',
+                            'field_title': rule.get('title', '') or rule.get('field', ''),
+                            'type': 'JSON',
+                        })
+        except Exception:
+            pass
+        return refs
 
     def update(self, instance, validated_data):
         old_value = instance.value

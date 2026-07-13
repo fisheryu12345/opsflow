@@ -33,7 +33,20 @@
       </el-table-column>
       <el-table-column :label="$t('message.preset.refCount')" width="100" align="center">
         <template #default="{ row }">
-          <span class="preset-ref-count">{{ row.states?.length || 0 }}</span>
+          <el-popover v-if="row.reference_count" placement="right" :width="300" trigger="click">
+            <template #reference>
+              <el-button link type="primary" size="small" class="preset-ref-count">{{ row.reference_count }}</el-button>
+            </template>
+            <div class="preset-ref-list">
+              <div v-for="(ref, i) in row.referenced_by" :key="i" class="preset-ref-item">
+                <el-tag size="small" type="warning" effect="plain">{{ ref.workflow_name }}</el-tag>
+                <span class="preset-ref-arrow">→</span>
+                <el-tag size="small" type="primary" effect="plain">{{ ref.state_name }}</el-tag>
+                <span v-if="ref.field_title" class="preset-ref-field">({{ ref.field_title }})</span>
+              </div>
+            </div>
+          </el-popover>
+          <span v-else class="preset-ref-count zero">0</span>
         </template>
       </el-table-column>
       <el-table-column :label="$t('message.itsmPage.colActions')" width="180" align="center" fixed="right">
@@ -311,6 +324,16 @@ onMounted(() => {
 .preset-ref-count {
   font-weight: 600;
   color: #409eff;
+  &.zero { color: #c0c4cc; font-weight: 400; }
+}
+.preset-ref-list {
+  .preset-ref-item {
+    display: flex; align-items: center; gap: 6px; padding: 4px 0;
+    font-size: 12px;
+    &:not(:last-child) { border-bottom: 1px solid #ebeef5; }
+  }
+  .preset-ref-arrow { color: #c0c4cc; }
+  .preset-ref-field { color: #909399; font-size: 11px; }
 }
 
 .preset-tag-input {
