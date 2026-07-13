@@ -75,7 +75,7 @@
 
       <div class="td-steps-card" v-if="(flowStates && Object.keys(flowStates).length) || (pipelineTree?.nodes?.length)">
         <div class="td-card-title td-collapse-title" @click="onToggleFlow">
-          <el-icon><component :is="flowCollapsed ? 'ArrowRight' : 'ArrowDown'" /></el-icon>
+          <el-icon><component :is="flowCollapsed ? ArrowRight : ArrowDown" /></el-icon>
           {{ $t('message.ticketDetail.flowSteps') }}
         </div>
         <div v-show="!flowCollapsed">
@@ -142,6 +142,11 @@
               @submit="(data: any) => onNodeSubmit(data, node)"
             />
           </template>
+
+          <template v-else-if="node.type === 'TASK'">
+            <TaskNodeForm :ticket-id="ticket!.id" :node="node" :ticket-meta="ticket?.meta"
+              @submitted="loadTicket" />
+          </template>
         </div>
         </div>
       </template>
@@ -188,6 +193,7 @@ import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight, ArrowDown, User, Select, Close, Refresh } from '@element-plus/icons-vue'
 import FlowChart from './FlowChart.vue'
 import ItsmFormRenderer from '/@/components/ItsmFormRenderer/index.vue'
+import TaskNodeForm from './components/TaskNodeForm.vue'
 import { ticketApi, GetTicketStatus, NodeSubmit, SubmitTicket, ApproveTicketNode, RejectTicketNode, workflowVersionApi } from '/@/api/itsm/index'
 import { useUserInfo } from '/@/stores/userInfo'
 
@@ -276,7 +282,7 @@ function stepTypeLabel(t: string) {
     NORMAL: '填单', APPROVAL: '审批', SIGN: '会签',
     TASK: '自动任务', START: '开始', END: '结束',
   }
-  return m[t] || t || ''
+  return m[t] || t
 }
 
 function formatTime(dt: string | undefined | null): string {

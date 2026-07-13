@@ -207,22 +207,259 @@ class ItsmSignService(Service):
 
 
 class ItsmAutoTaskService(Service):
-    """自动任务节点 — 执行自动化操作"""
-    __need_schedule__ = False
+    """自动任务节点 — OpsFlow 集成：用户填写参数后启动 OpsFlow，等待完成后继续"""
+
+    __need_schedule__ = True
+    # Two callbacks are expected: (1) user submits parameters → start OpsFlow,
+    # (2) OpsFlow execution finishes → finalize the node. Multi-callback keeps
+    # the schedule alive between them.
+    __multi_callback_enabled__ = True
+
+    def need_schedule(self):
+        # A TASK node not bound to an OpsFlow template auto-completes in
+        # execute() (legacy pass-through behavior) and must NOT wait for a
+        # callback that will never arrive — otherwise the node hangs forever.
+        if getattr(self, '_auto_completed', False):
+            return False
+        return super().need_schedule()
 
     def execute(self, data, parent_data):
         ticket_id = data.get_one_of_inputs('ticket_id')
         state_id = data.get_one_of_inputs('state_id')
+        extras = data.get_one_of_inputs('extras') or {}
         try:
             ticket = Ticket.objects.get(id=ticket_id)
-            ticket.do_before_enter_state(state_id)
-            ticket.do_in_state(state_id, {'auto_executed': True}, 'system')
-            ticket.do_before_exit_state(state_id, 'system')
-            logger.info(f'[itsm_auto] Auto task executed for ticket #{ticket_id}')
         except Ticket.DoesNotExist:
             logger.error(f'Ticket #{ticket_id} not found')
             return False
+
+        template_id = extras.get('opsflow_template_id')
+        if not template_id:
+            # No OpsFlow bound → behave as a legacy pass-through auto task:
+            # complete synchronously, no schedule/callback needed.
+            ticket.do_before_enter_state(state_id)
+            ticket.do_in_state(state_id, {'auto_executed': True}, 'system')
+            ticket.do_before_exit_state(state_id, 'system')
+            self._auto_completed = True
+            logger.info('[itsm_auto_task] No OpsFlow template — auto-completed for ticket #%s', ticket_id)
+            return True
+
+        # Record the bound OpsFlow template id so the frontend knows to render
+        # the parameter form. The variable definitions themselves are fetched
+        # live from the /global-variables/ API, so we don't duplicate them here.
+        ticket.meta = ticket.meta or {}
+        ticket.meta['_opsflow_params'] = {'template_id': template_id}
+        ticket.save(update_fields=['meta'])
+        ticket.do_before_enter_state(state_id)
         return True
+
+    def schedule(self, data, parent_data, callback_data=None):
+        ticket_id = data.get_one_of_inputs('ticket_id')
+        state_id = data.get_one_of_inputs('state_id')
+        extras = data.get_one_of_inputs('extras') or {}
+
+        try:
+            ticket = Ticket.objects.get(id=ticket_id)
+        except Ticket.DoesNotExist:
+            logger.error(f'Ticket #{ticket_id} not found')
+            return False
+
+        # ── Phase 2: OpsFlow already started → this callback signals completion ──
+        # Detected by the execution id persisted in Phase 1 (not by callback_data,
+        # since the completion callback also carries data).
+        exec_id = data.get_one_of_outputs('opsflow_execution_id')
+        if exec_id:
+            return self._finalize_opsflow(data, ticket, state_id, exec_id)
+
+        # ── Phase 1: user submitted parameters → start OpsFlow, then wait ──
+        # NOTE: returning a falsy value from schedule() marks the bamboo node
+        # FAILED. To keep a MULTIPLE_CALLBACK node waiting we must return True
+        # WITHOUT calling finish_schedule().
+        if not callback_data:
+            return True  # still waiting for the user to submit parameters
+        form_fields = callback_data.get('fields', {}) or {}
+        ticket.do_in_state(state_id, form_fields,
+                           callback_data.get('operator', 'system'))
+
+        template_id = extras.get('opsflow_template_id')
+        if not template_id:
+            # No OpsFlow configured — backward compat: complete immediately
+            ticket.do_before_exit_state(state_id, 'system')
+            self.finish_schedule()
+            return True
+
+        resolved = self._resolve_vars(extras, form_fields, ticket)
+        execution = self._create_opsflow_execution(template_id, extras, resolved, ticket, state_id)
+        # Persist the execution id BEFORE kicking off the engine so the
+        # completion callback (Phase 2) can always resolve it. Do NOT
+        # finish_schedule — the node stays alive until OpsFlow completes and
+        # flow_execution_finished fires a second callback.
+        data.set_outputs('opsflow_execution_id', execution.id)
+        self._start_opsflow_engine(execution, extras)
+        logger.info('[itsm_auto_task] Started OpsFlow execution #%s for ticket #%s, '
+                    'awaiting completion', execution.id, ticket_id)
+        return True
+
+    def _finalize_opsflow(self, data, ticket, state_id, exec_id):
+        """Phase 2 — OpsFlow execution finished: record result and exit node.
+
+        Returning False here would mark the bamboo node FAILED, so the
+        keep-waiting paths return True (without finish_schedule) instead.
+        """
+        from opsflow.models import FlowExecution as OpsFlowExecution
+        try:
+            execution = OpsFlowExecution.objects.get(id=exec_id)
+        except OpsFlowExecution.DoesNotExist:
+            logger.error('[itsm_auto_task] OpsFlow execution #%s not found — keep waiting', exec_id)
+            return True  # keep the node alive; do NOT fail it on a transient miss
+
+        if execution.status in ('running', 'pending'):
+            return True  # spurious/early callback — keep waiting, don't fail
+
+        ticket.meta = ticket.meta or {}
+        if execution.status == 'completed':
+            merged, by_node = self._collect_execution_outputs(execution)
+            ticket.meta['opsflow_result'] = {
+                'execution_id': execution.id,
+                'status': 'FINISHED',
+                'outputs': by_node,
+            }
+            # Flat outputs (opsflow_<key>) keep the existing gateway-reference
+            # contract but collide when two nodes emit the same key (last wins);
+            # also expose node-scoped keys (opsflow_<node>_<key>) so gateways can
+            # disambiguate, and warn when a flat key is overwritten.
+            seen = {}
+            for node_id, out in by_node.items():
+                for k, v in out.items():
+                    if k in seen and seen[k] != node_id:
+                        logger.warning('[itsm_auto_task] output name collision on %r '
+                                       '(nodes %s, %s) — flat opsflow_%s keeps last value',
+                                       k, seen[k], node_id, k)
+                    seen[k] = node_id
+                    data.set_outputs(f'opsflow_{node_id}_{k}', v)
+            for k, v in merged.items():
+                data.set_outputs(f'opsflow_{k}', v)
+            data.set_outputs('opsflow_result', 'FINISHED')
+            if hasattr(ticket, 'add_comment'):
+                ticket.add_comment(f"OpsFlow「{execution.template.name}」执行完成")
+        else:
+            ticket.meta['opsflow_result'] = {
+                'execution_id': execution.id,
+                'status': 'FAILED',
+            }
+            # Expose the result so a downstream gateway can branch on failure.
+            data.set_outputs('opsflow_result', 'FAILED')
+            if hasattr(ticket, 'add_comment'):
+                ticket.add_comment("OpsFlow执行失败")
+
+        ticket.save(update_fields=['meta'])
+        ticket.do_before_exit_state(state_id, 'system')
+        self.finish_schedule()
+        logger.info('[itsm_auto_task] OpsFlow execution #%s %s → node finished for ticket #%s',
+                    exec_id, execution.status, ticket.id)
+        return True
+
+    @staticmethod
+    def _collect_execution_outputs(execution):
+        """Aggregate node outputs (FlowExecution has no execution-level outputs).
+
+        Returns (merged, by_node): merged is a flat dict of all node outputs
+        with later nodes winning; by_node maps node_id → that node's outputs.
+        """
+        from opsflow.models.execution import NodeExecutionTrace
+        merged, by_node = {}, {}
+        traces = NodeExecutionTrace.objects.filter(
+            execution=execution).order_by('entered_at')
+        for tr in traces:
+            out = tr.outputs or {}
+            if not isinstance(out, dict):
+                continue
+            by_node[tr.node_id] = out
+            merged.update(out)
+        return merged, by_node
+
+    @staticmethod
+    def _resolve_vars(extras, form_fields, ticket):
+        """Merge static variable mapping + runtime form fields"""
+        import re
+        mapping = extras.get('opsflow_variable_mapping', {})
+        result = {}
+        ctx = {
+            'ticket_id': ticket.id,
+            'ticket_sn': getattr(ticket, 'sn', ''),
+            'ticket_title': ticket.title if hasattr(ticket, 'title') else '',
+            'ticket_type': ticket.itsm_type if hasattr(ticket, 'itsm_type') else '',
+            'ticket_priority': ticket.priority if hasattr(ticket, 'priority') else '',
+            'ticket_creator': str(ticket.creator or ''),
+            'ticket_status': ticket.status if hasattr(ticket, 'status') else '',
+        }
+        fm = (ticket.meta or {}).get('form_data', {})
+        for k, v in fm.items():
+            ctx[f'field.{k}'] = v
+        # The just-submitted values take precedence over any stale form_data
+        # when interpolating ${field.X}.
+        for k, v in (form_fields or {}).items():
+            ctx[f'field.{k}'] = v
+        for k, v in mapping.items():
+            if isinstance(v, str):
+                result[k] = re.sub(
+                    r'\$\{(\w+(?:\.\w+)?)\}',
+                    lambda m: str(ctx.get(m.group(1), m.group(0))),
+                    v,
+                )
+            else:
+                # Non-string mapping values (int/bool/list/dict) pass through as-is.
+                result[k] = v
+        result.update(form_fields)  # runtime overrides static
+        return result
+
+    @staticmethod
+    def _create_opsflow_execution(template_id, extras, resolved_vars, ticket, state_id):
+        """Create an OpsFlow execution (not started yet).
+
+        The ITSM state_id is stored in context so on_opsflow_finished can resolve
+        the waiting TASK node via the ticket's _pipeline_id_map.
+        """
+        from opsflow.models import FlowTemplate as FlowTemplateModel
+        from opsflow.models import FlowExecution as OpsFlowExecution
+        template = FlowTemplateModel.objects.get(id=template_id)
+        # Build execution snapshot and inject resolved runtime values into its
+        # global_vars (FlowExecution reads global_vars from template_snapshot at
+        # run time — there is no separate global_vars model field).
+        snapshot = dict(template.snapshot or {}) or {
+            'pipeline_tree': template.pipeline_tree or {},
+            'global_vars': template.global_vars or {},
+        }
+        frozen_vars = dict(snapshot.get('global_vars', {}))
+        for key, value in (resolved_vars or {}).items():
+            existing = frozen_vars.get(key)
+            if isinstance(existing, dict) and 'value' in existing:
+                frozen_vars[key] = {**existing, 'value': value}
+            else:
+                frozen_vars[key] = value
+        snapshot['global_vars'] = frozen_vars
+        execution = OpsFlowExecution.objects.create(
+            template=template,
+            created_by_id=ticket.creator,  # ticket.creator is a user-id int, not an instance
+            context={
+                'trigger': 'itsm_auto_task',
+                'ticket_id': ticket.id,
+                'ticket_sn': getattr(ticket, 'sn', ''),
+                'state_id': state_id,  # ITSM State.id — used to wake this node on completion
+            },
+            template_snapshot=snapshot,
+        )
+        return execution
+
+    @staticmethod
+    def _start_opsflow_engine(execution, extras):
+        """Apply optional scheme and start the OpsFlow execution asynchronously."""
+        from opsflow.core.flow_engine import FlowEngine
+        scheme_id = extras.get('opsflow_scheme_id')
+        if scheme_id:
+            execution.apply_scheme(scheme_id)
+        FlowEngine(execution).start(sync=False)
+        return execution
 
 
 # Component registrations

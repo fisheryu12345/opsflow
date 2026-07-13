@@ -209,206 +209,7 @@
         <div v-if="templateVarsKeys.length === 0" class="wiz-empty">
           <el-empty :description="$t('message.wizard.noParams')" :image-size="40" />
         </div>
-        <div v-else class="var-list">
-          <div v-for="key in templateVarsKeys" :key="key" class="var-item">
-            <div class="var-item-head">
-              <div class="var-item-info">
-                <span class="var-item-key">{{ key }}</span>
-                <el-tag size="small" effect="plain" class="var-item-tag">{{ varTypeLabel(templateVars[key]?.type) }}</el-tag>
-              </div>
-              <span v-if="templateVars[key]?.description" class="var-item-desc">{{ templateVars[key].description }}</span>
-            </div>
-
-            <!-- select / async_select (dropdown) -->
-            <el-select
-              v-if="templateVars[key]?.type === 'select' || templateVars[key]?.type === 'async_select'"
-              v-model="overrides[key]"
-              :placeholder="defaultPlaceholder(templateVars[key])"
-              :multiple="templateVars[key]?.meta?.multiple"
-              filterable
-              clearable
-              size="default"
-              style="width:100%"
-            >
-              <el-option
-                v-for="opt in (templateVars[key]?.meta?.options || [])"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-
-            <!-- int / float -->
-            <el-input-number
-              v-else-if="templateVars[key]?.type === 'int'"
-              v-model="overrides[key]"
-              :placeholder="defaultPlaceholder(templateVars[key])"
-              :min="templateVars[key]?.meta?.min ?? -Infinity"
-              :max="templateVars[key]?.meta?.max ?? Infinity"
-              :step="1"
-              size="default"
-              style="width:100%"
-              controls-position="right"
-            />
-            <el-input-number
-              v-else-if="templateVars[key]?.type === 'float'"
-              v-model="overrides[key]"
-              :placeholder="defaultPlaceholder(templateVars[key])"
-              :min="templateVars[key]?.meta?.min ?? -Infinity"
-              :max="templateVars[key]?.meta?.max ?? Infinity"
-              :step="0.1"
-              size="default"
-              style="width:100%"
-              controls-position="right"
-            />
-
-            <!-- datetime / date / time -->
-            <el-date-picker
-              v-else-if="templateVars[key]?.type === 'datetime'"
-              v-model="overrides[key]"
-              type="datetime"
-              :placeholder="defaultPlaceholder(templateVars[key])"
-              format="YYYY-MM-DD HH:mm:ss"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              size="default"
-              style="width:100%"
-            />
-            <el-date-picker
-              v-else-if="templateVars[key]?.type === 'date'"
-              v-model="overrides[key]"
-              type="date"
-              :placeholder="defaultPlaceholder(templateVars[key])"
-              format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD"
-              size="default"
-              style="width:100%"
-            />
-            <el-time-picker
-              v-else-if="templateVars[key]?.type === 'time'"
-              v-model="overrides[key]"
-              :placeholder="defaultPlaceholder(templateVars[key])"
-              format="HH:mm:ss"
-              value-format="HH:mm:ss"
-              size="default"
-              style="width:100%"
-            />
-
-            <!-- switch -->
-            <el-switch
-              v-else-if="templateVars[key]?.type === 'switch'"
-              v-model="overrides[key]"
-              :active-value="templateVars[key]?.meta?.activeValue ?? true"
-              :inactive-value="templateVars[key]?.meta?.inactiveValue ?? false"
-              size="default"
-            />
-
-            <!-- checkbox (group) -->
-            <el-checkbox-group
-              v-else-if="templateVars[key]?.type === 'checkbox'"
-              v-model="overrides[key]"
-              size="default"
-            >
-              <el-checkbox
-                v-for="opt in (templateVars[key]?.meta?.options || [])"
-                :key="opt.value"
-                :label="opt.value"
-              >
-                {{ opt.label }}
-              </el-checkbox>
-            </el-checkbox-group>
-
-            <!-- radio -->
-            <el-radio-group
-              v-else-if="templateVars[key]?.type === 'radio'"
-              v-model="overrides[key]"
-              size="default"
-            >
-              <el-radio
-                v-for="opt in (templateVars[key]?.meta?.options || [])"
-                :key="opt.value"
-                :value="opt.value"
-              >
-                {{ opt.label }}
-              </el-radio>
-            </el-radio-group>
-
-            <!-- cascader -->
-            <el-cascader
-              v-else-if="templateVars[key]?.type === 'cascader'"
-              v-model="overrides[key]"
-              :options="templateVars[key]?.meta?.options || []"
-              :placeholder="defaultPlaceholder(templateVars[key])"
-              clearable
-              filterable
-              size="default"
-              style="width:100%"
-            />
-
-            <!-- slider -->
-            <div v-else-if="templateVars[key]?.type === 'slider'" style="display:flex;align-items:center;gap:12px;padding:0 4px;">
-              <el-slider
-                v-model="overrides[key]"
-                :min="templateVars[key]?.meta?.min ?? 0"
-                :max="templateVars[key]?.meta?.max ?? 100"
-                :step="templateVars[key]?.meta?.step ?? 1"
-                show-stops
-                style="flex:1"
-              />
-              <span style="font-size:12px;color:#909399;min-width:40px;white-space:nowrap;">
-                {{ overrides[key] ?? 0 }}
-              </span>
-            </div>
-
-            <!-- host_selector / ip_selector (filterable + allow-create) -->
-            <el-select
-              v-else-if="templateVars[key]?.type === 'host_selector' || templateVars[key]?.type === 'ip_selector'"
-              v-model="overrides[key]"
-              :placeholder="defaultPlaceholder(templateVars[key])"
-              :multiple="templateVars[key]?.meta?.multiple"
-              filterable
-              allow-create
-              default-first-option
-              clearable
-              size="default"
-              style="width:100%"
-            >
-              <el-option
-                v-for="opt in (templateVars[key]?.meta?.options || [])"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-
-            <!-- textarea -->
-            <el-input
-              v-else-if="templateVars[key]?.type === 'textarea'"
-              v-model="overrides[key]"
-              type="textarea"
-              :rows="3"
-              :placeholder="defaultPlaceholder(templateVars[key])"
-              size="default"
-            />
-
-            <!-- password -->
-            <el-input
-              v-else-if="templateVars[key]?.type === 'password'"
-              v-model="overrides[key]"
-              type="password"
-              show-password
-              :placeholder="defaultPlaceholder(templateVars[key])"
-              size="default"
-            />
-
-            <!-- input (default fallback) -->
-            <el-input
-              v-else
-              v-model="overrides[key]"
-              :placeholder="defaultPlaceholder(templateVars[key])"
-              size="default"
-            />
-          </div>
-        </div>
+        <GlobalVarInput v-else v-model="overrides" :vars="templateVars" :loading="asyncLoading" />
       </div>
 
       <!-- ==================== Step 4: Risk Analysis ==================== -->
@@ -623,11 +424,13 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Search, Aim, CircleCheck, InfoFilled, WarningFilled, Calendar } from '@element-plus/icons-vue'
-import { GetGlobalVariables, AnalyzePipeline } from '../../api/templates'
+import { AnalyzePipeline } from '../../api/templates'
 import { CreateExecution } from '../../api/executions'
 import { CreateSchedulePlan } from '../../api/schedule-plans'
 import { GetServicenowChangeRequests } from '../../api/servicenow'
 import { request } from '/@/utils/service'
+import GlobalVarInput from '/@/components/GlobalVarInput.vue'
+import { loadTemplateVars } from '/@/composables/useTemplateVars'
 
 const props = defineProps<{
   modelValue: boolean
@@ -835,35 +638,9 @@ watch(overrides, () => {
 async function loadVars() {
   if (!props.templateId) return
   try {
-    const res = await GetGlobalVariables(props.templateId)
-    const data = res.data || {}
-    // DEBUG: log the raw variable data
-    for (const [key, val] of Object.entries(data)) {
-      console.log('[SubmitWizard] var:', key, 'type:', (val as any)?.type, 'meta:', JSON.stringify((val as any)?.meta))
-    }
-    templateVars.value = {}
-    overrides.value = {}
-    for (const [key, val] of Object.entries(data)) {
-      if (typeof val === 'object' && val !== null && 'value' in (val as any)) {
-        templateVars.value[key] = val
-        // Initialize override with default value
-        overrides.value[key] = val.value ?? (val.type === 'int' || val.type === 'float' ? undefined : '')
-        // slider：确保值为数字
-        if (val?.type === 'slider') {
-          overrides.value[key] = typeof overrides.value[key] === 'number' ? overrides.value[key] : Number(overrides.value[key]) || 0
-        }
-        // 多选下拉/host_selector/ip_selector/checkbox/cascader：初始值转为数组
-        if (val?.meta?.multiple && typeof overrides.value[key] === 'string') {
-          overrides.value[key] = overrides.value[key] ? overrides.value[key].split(',').filter(Boolean) : []
-        }
-        if ((val?.type === 'checkbox' || val?.type === 'cascader') && typeof overrides.value[key] === 'string') {
-          overrides.value[key] = overrides.value[key] ? overrides.value[key].split(',').filter(Boolean) : []
-        }
-      } else {
-        templateVars.value[key] = { value: val, type: 'input', description: '' }
-        overrides.value[key] = val ?? ''
-      }
-    }
+    const { vars, values } = await loadTemplateVars(props.templateId, { coerce: true })
+    templateVars.value = vars
+    overrides.value = values
     // 等待 DOM 更新完成后再加载 async_select 选项
     await nextTick()
     loadReadyAsyncOptions()

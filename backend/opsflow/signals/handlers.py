@@ -173,6 +173,8 @@ def _handle_root_state_change(execution, to_state):
         _sweep_node_status(execution, "completed")
         execution.save(update_fields=["status", "ended_at", "node_status"])
         _try_webhook(execution, 'completed')
+        from opsflow.core.flow_engine import flow_execution_finished
+        flow_execution_finished.send(sender=_handle_root_state_change, execution=execution, status='FINISHED')
         logger.info("[Signal] pipeline %s completed", execution.id)
 
     elif target == PipelineState.FAILED:
@@ -181,6 +183,8 @@ def _handle_root_state_change(execution, to_state):
         _sweep_node_status(execution, "failed")
         execution.save(update_fields=["status", "ended_at", "node_status"])
         _try_webhook(execution, 'failed')
+        from opsflow.core.flow_engine import flow_execution_finished
+        flow_execution_finished.send(sender=_handle_root_state_change, execution=execution, status='FAILED')
         logger.info("[Signal] pipeline %s failed", execution.id)
 
     elif target == PipelineState.CANCELLED:

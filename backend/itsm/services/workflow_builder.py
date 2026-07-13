@@ -124,6 +124,7 @@ class ITSMWorkflowBuilder:
                 el.name = state.get('name', '')
                 el.component.inputs['ticket_id'] = Var(type=Var.PLAIN, value=ticket_id)
                 el.component.inputs['state_id'] = Var(type=Var.PLAIN, value=state.get('id'))
+                el.component.inputs['extras'] = Var(type=Var.PLAIN, value=state.get('extras', {}))
                 _register_field_outputs(data, sid_str, state, node_id_map)
             elif stype == 'CONDITIONAL_PARALLEL':
                 el = ConditionalParallelGateway(id=elem_id)

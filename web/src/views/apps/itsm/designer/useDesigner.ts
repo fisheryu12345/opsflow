@@ -42,7 +42,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
     if (!cell || !cell.isNode()) return
     const cellData = cell.getData()
     if (!cellData) return
-    const dirtyKeys = ['_usePreset', 'preset_id', 'preset', 'processorsRaw', 'processors_type', 'processors', 'name', 'is_multi', 'is_sequential', 'is_allow_skip', 'distribute_type', 'type', 'fields']
+    const dirtyKeys = ['_usePreset', 'preset_id', 'preset', 'processorsRaw', 'processors_type', 'processors', 'name', 'is_multi', 'is_sequential', 'is_allow_skip', 'distribute_type', 'type', 'fields', 'extras', 'execute_type', 'api_url', 'api_method']
     let synced = false
     for (const k of dirtyKeys) {
       if (sn[k] !== undefined && cellData[k] !== sn[k]) {
@@ -498,6 +498,7 @@ export function useDesigner(containerId: string, workflowId?: number) {
             is_multi: n.is_multi ?? false, is_sequential: n.is_sequential ?? false,
             is_allow_skip: n.is_allow_skip ?? false, is_builtin: n.is_builtin ?? false,
             fields: n.fields || [],
+            extras: n.extras || {},
           }
         })
       const trData = edgeList.map((e: any) => {

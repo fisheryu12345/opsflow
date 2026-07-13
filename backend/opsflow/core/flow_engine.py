@@ -13,10 +13,16 @@ from bamboo_engine.builder import Data, Var
 from bamboo_engine.exceptions import ConnectionValidateError
 from pipeline.eri.runtime import BambooDjangoRuntime
 
+from django.dispatch import Signal
+
 from opsflow.core.pipeline_builder import build_bamboo_pipeline
 from opsflow.core.safety_guard import validate_pipeline
 
 logger = logging.getLogger(__name__)
+
+# Emitted when an OpsFlow execution finishes (completed or failed).
+# Receivers: execution, status
+flow_execution_finished = Signal()
 
 
 class FlowEngine:
@@ -49,6 +55,9 @@ class FlowEngine:
             save_fields.append("context")
         self.execution.save(update_fields=save_fields)
         self._notify_completed()
+        # Early-failure paths bypass bamboo's root state-change signal, so emit
+        # explicitly — otherwise a waiting ITSM auto-task node never gets woken.
+        flow_execution_finished.send(sender=FlowEngine, execution=self.execution, status='FAILED')
 
     # -- External API --------------------------------------------------------
 
@@ -144,6 +153,9 @@ class FlowEngine:
         self.execution.ended_at = timezone.now()
         self.execution.save(update_fields=["status", "ended_at"])
         self._send_ws_completed()
+        # bamboo's CANCELLED root state does not emit flow_execution_finished,
+        # so wake any waiting ITSM auto-task node explicitly.
+        flow_execution_finished.send(sender=FlowEngine, execution=self.execution, status='CANCELLED')
         logger.info("[FlowEngine] execution %s cancelled", self.execution.id)
 
     # -- Run ------------------------------------------------------------------

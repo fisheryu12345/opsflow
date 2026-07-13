@@ -141,6 +141,9 @@ export default {
     submitFailed: '提交失败',
     loadFailed: '加载工单详情失败',
     finishedNodes: '已完成节点',
+    taskSubmitExec: '提交并执行 OpsFlow',
+    taskParamsLoading: 'OpsFlow 参数加载中...',
+    taskSubmitted: '已提交，OpsFlow 执行中...',
   },
   // ===== 工单创建对话框 =====
   ticketCreate: {
@@ -210,6 +213,11 @@ export default {
     webhookExec: '外部调用',
     requestUrl: '请求 URL',
     requestMethod: '请求方法',
+    opsflowTemplate: 'OpsFlow 模板',
+    opsflowTemplateSelect: '选择 OpsFlow 模板',
+    opsflowGlobalVars: '模板全局变量',
+    opsflowVarRuntime: '运行时由处理人填写',
+    opsflowNoVars: '该模板没有全局变量',
     conditionExprPlaceholder: '如 node_2.field_amount > 1000，无条件填 1 == 1',
     formDesign: '工单设计',
     addField: '添加字段',

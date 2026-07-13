@@ -142,6 +142,24 @@
           </el-select>
         </el-form-item>
       </template>
+
+      <!-- OpsFlow config -->
+      <el-divider>OpsFlow</el-divider>
+      <el-form-item :label="$t('message.designer.opsflowTemplate')">
+        <el-select v-model="nodeExtras.opsflow_template_id"
+                   :placeholder="$t('message.designer.opsflowTemplateSelect')" clearable style="width:100%"
+                   @change="onOpsflowTemplateSelect">
+          <el-option v-for="t in opsflowTemplates" :key="t.id"
+                     :label="t.name" :value="t.id" />
+        </el-select>
+      </el-form-item>
+      <el-form-item v-if="nodeExtras.opsflow_template_id" :label="$t('message.designer.opsflowGlobalVars')">
+        <div v-for="k in templateVarKeys" :key="k" class="var-mapping-row">
+          <el-tag size="small" type="info">{{ k }}</el-tag>
+          <span style="font-size:11px;color:#909399">{{ $t('message.designer.opsflowVarRuntime') }}</span>
+        </div>
+        <div v-if="!templateVarKeys.length" style="color:#909399;font-size:12px">{{ $t('message.designer.opsflowNoVars') }}</div>
+      </el-form-item>
     </template>
 
     <!-- Fields button (all except gateways) -->
@@ -193,6 +211,13 @@ const emit = defineEmits<{ change: []; openFieldEditor: [] }>()
 
 const typeLabel = computed(() => props.node?.type ? getNodeConfig(props.node.type).label : '')
 
+// Ensure extras is always a valid object for v-model bindings
+const nodeExtras = computed(() => {
+  if (!props.node) return {}
+  if (!props.node.extras) props.node.extras = {}
+  return props.node.extras
+})
+
 const personUsers = ref<(string | number)[]>([])
 const usersLoading = ref(false)
 const userOptions = ref<any[]>([])
@@ -232,6 +257,7 @@ function gatewayHint(type: string) {
   return hints[type] || ''
 }
 
+
 watch(() => props.node, async (newNode) => {
   if (newNode?.processors_type === 'PERSON' && newNode?.processorsRaw) {
     const raw = newNode.processorsRaw
@@ -257,5 +283,32 @@ watch(() => props.node, async (newNode) => {
   }
 })
 
-onMounted(() => { loadPresets() })
+// ── OpsFlow integration ──
+const opsflowTemplates = ref<any[]>([])
+
+async function loadOpsflowTemplates() {
+  try {
+    const res = await request({ url: '/api/opsflow/templates/', method: 'get', params: { page_size: 500 } })
+    opsflowTemplates.value = (res as any).data || (res as any).results || []
+  } catch { opsflowTemplates.value = [] }
+}
+
+const templateVarKeys = ref<string[]>([])
+
+async function onOpsflowTemplateSelect(tid: number | null) {
+  if (!tid) { templateVarKeys.value = []; onChange(); return }
+  onChange()
+  try {
+    const res = await request({ url: `/api/opsflow/templates/${tid}/global-variables/`, method: 'get' })
+    templateVarKeys.value = Object.keys((res as any).data || {})
+  } catch { templateVarKeys.value = [] }
+}
+
+onMounted(() => { loadPresets(); loadOpsflowTemplates() })
 </script>
+
+<style scoped>
+.var-mapping-row {
+  display: flex; gap: 4px; align-items: center; margin-bottom: 4px;
+}
+</style>

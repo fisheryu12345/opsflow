@@ -119,14 +119,18 @@ Requirements:
 - suggestions: optimization recommendations
 Return empty array if none found. Return only JSON."""
 
-    result = connector.chat(
-        messages=[{'role': 'user', 'content': prompt}],
-        response_format={'type': 'json_object'},
-        temperature=0.1,
-    )
-    text = result['content']
-    text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
-    return json.loads(text)
+    try:
+        result = connector.chat(
+            messages=[{'role': 'user', 'content': prompt}],
+            response_format={'type': 'json_object'},
+            temperature=0.1,
+        )
+        text = result['content']
+        text = re.sub(r'[\U00010000-\U0010FFFF]', '', text)
+        return json.loads(text)
+    except Exception:
+        logger.exception("[LLM] analyze_pipeline failed: nodes=%s edges=%s", len(nodes), len(edges))
+        raise
 
 
 def _build_system_prompt(language: str = "zh-hans") -> str:

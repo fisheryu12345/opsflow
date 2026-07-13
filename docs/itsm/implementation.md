@@ -43,6 +43,7 @@
 | 触发器系统 | P1 | ✅ | 事件驱动自动化 | Trigger(FLOW_START/END/ENTER_STATE/LEAVE_STATE) + TriggerAction(NOTIFY/WEBHOOK/OPSFLOW/MODIFY_FIELD) + TriggerExecutor 异步队列 + APScheduler 10s 轮询 + Webhook 增强(query_params/headers/ssl) + 统一重试(RETRYING/next_retry_at) |
 | 通知模板 | P1 | ✅ | 可复用通知预设 | NotificationTemplate CRUD + NotifTemplateList 前端管理页 |
 | AI 全面 LLM 替代 | P2 | 📅 | DeepSeek 替代关键词模板 | — |
+| 自动任务节点执行 OpsFlow | P1 | ✅ | TASK 节点带参启动 OpsFlow 并等待完成 | ItsmAutoTaskService 两阶段 MULTIPLE_CALLBACK 调度 + flow_execution_finished 信号回调 + GlobalVarInput/TaskNodeForm 参数表单 |
 
 ## TODO
 
@@ -55,12 +56,18 @@
 ### P1
 - [x] 触发器系统 ✅
 - [x] 通知模板 ✅
+- [x] 自动任务节点执行 OpsFlow(带参 + 等待完成) ✅
 - [ ] AIGenerator 接入 DeepSeek
 
 ### P2
 - [x] 变更日历前端 ✅
 - [ ] OpsFlow 审批节点 ↔ ITSM 工单双向
 - [ ] Monitor 告警 → 创建工单
+
+### 2026-07-13 Update
+> 提交: af55af09
+- 自动任务节点执行 OpsFlow: 新增 ✅。TASK 节点绑定 OpsFlow 模板 → 处理人填参提交 → ITSM 节点挂起等待 → OpsFlow 完成信号回调收结果继续。两阶段 MULTIPLE_CALLBACK 调度 + resolve_activity_id 抽取 + GlobalVarInput/TaskNodeForm/useTemplateVars 前端组件
+- 修复: return False 误判节点 FAILED、无模板 TASK 卡死、fail/cancel 信号缺失、GlobalVarInput 字段类型回归、_resolve_vars 崩溃等
 
 ### 2026-07-11 Update
 > 提交: f38b2b8c

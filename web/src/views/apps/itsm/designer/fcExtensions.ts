@@ -487,14 +487,21 @@ export const checkboxPresetDR: DragRule = {
 
 // ── Registration Entry ──
 
-export function registerCustomComponents(designer: any) {
-  // Register runtime rendering components (form-create side)
+export function registerRuntimeComponents() {
+  // Register runtime rendering components (form-create side). Must run at app
+  // startup so ANY page using <form-create> (service catalog, ticket detail,
+  // submit wizard) can resolve Itsm* field types — not just the designer.
   formCreate.component('ItsmMembers', FcMembersField)
   formCreate.component('ItsmFile', FcFileField)
   formCreate.component('ItsmRichtext', FcRichtextField)
   formCreate.component('ItsmTable', FcTableField)
   formCreate.component('ItsmCascader', FcCascaderField)
   formCreate.component('ItsmSection', FcSectionDivider)
+}
+
+export function registerCustomComponents(designer: any) {
+  // Register runtime rendering components (form-create side)
+  registerRuntimeComponents()
 
   // Register design-time rendering components (FcDesigner side)
   FcDesigner.component('ItsmMembers', FcMembersField)

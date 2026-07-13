@@ -317,26 +317,6 @@ class TicketViewSet(ItsmProjectViewSet):
 
     @staticmethod
     def _get_activity_id(ticket, state_id):
-        """获取 pipeline activity ID — 用 node_key + pipeline_id_map 匹配 bamboo element ID
-
-        每个 pipeline 运行使用唯一 element ID (带 run_salt 后缀)，
-        _pipeline_id_map 保存在 ticket.meta 中用于状态 key → element ID 的解析。
-        """
-        id_map = (ticket.meta or {}).get('_pipeline_id_map', {})
-        key = str(state_id)
-        # Fast path: direct lookup in pipeline id_map
-        if key in id_map:
-            return id_map[key]
-        # Fallback: resolve from workflow_version states, then map through id_map
-        states = (ticket.workflow_version and ticket.workflow_version.states) or {}
-        if key in states:
-            s = states[key]
-            node_key = str(s.get('node_key') or key)
-            return id_map.get(node_key, node_key)
-        # Fallback: search by id field
-        for s in states.values():
-            if str(s.get('id')) == key:
-                node_key = str(s.get('node_key') or key)
-                return id_map.get(node_key, node_key)
-        # Last resort
-        return id_map.get(key, key)
+        """Resolve ITSM State.id → bamboo element id (delegates to shared service)."""
+        from itsm.services.bamboo_engine import resolve_activity_id
+        return resolve_activity_id(ticket, state_id)

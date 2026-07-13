@@ -7,6 +7,7 @@ import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from opsflow.core.flow_engine import flow_execution_finished
 from pipeline.eri.signals import post_set_state
 from bamboo_engine import states
 from pipeline.eri.models import Node as EriNode
@@ -139,3 +140,39 @@ def _enqueue_triggers(ticket, node_id, to_state, node_status_before, status_map)
     previous_mapped = node_status_before.get(node_id)
     if previous_mapped == status_map.get(states.RUNNING, 'running'):
         TriggerExecutor.enqueue(ticket, 'LEAVE_STATE', state_id)
+
+
+# ── OpsFlow completion → bamboo callback ──
+
+@receiver(flow_execution_finished)
+def on_opsflow_finished(sender, execution, status, **kwargs):
+    """OpsFlow execution done → callback ITSM pipeline's waiting TASK node."""
+    ctx = execution.context or {}
+    if ctx.get('trigger') != 'itsm_auto_task':
+        return
+    ticket_id = ctx.get('ticket_id')
+    state_id = ctx.get('state_id')
+    logger.info('[opsflow_finished] execution=%s status=%s ticket=%s state=%s',
+                execution.id, status, ticket_id, state_id)
+    if not ticket_id or not state_id:
+        logger.warning('[opsflow_finished] missing ticket_id/state_id in context — abort')
+        return
+    from itsm.models.ticket import Ticket
+    ticket = Ticket.objects.filter(id=ticket_id).first()
+    if not ticket or not ticket.pipeline_id:
+        logger.warning('[opsflow_finished] ticket %s missing or has no pipeline_id — abort', ticket_id)
+        return
+    # Resolve state_id → bamboo activity id the same way form/approval callbacks do
+    # (_pipeline_id_map is keyed by node_key, NOT state_id).
+    from itsm.services.bamboo_engine import resolve_activity_id, activity_callback
+    node_id = resolve_activity_id(ticket, state_id)
+    logger.info('[opsflow_finished] resolved activity_id=%s for ticket=%s state=%s',
+                node_id, ticket_id, state_id)
+    if not node_id:
+        logger.error('[opsflow_finished] could not resolve activity_id for state %s — node will hang', state_id)
+        return
+    # Wake the waiting TASK node. activity_callback resolves the node's current
+    # unfinished Schedule version; the node reads the execution result from its
+    # own outputs, so callback_data is only informational.
+    ok = activity_callback(node_id, {'source': 'opsflow_finished', 'opsflow_status': status})
+    logger.info('[opsflow_finished] activity_callback(%s) → %s', node_id, ok)

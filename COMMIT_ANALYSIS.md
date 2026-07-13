@@ -1,3 +1,47 @@
+## af55af09
+
+> 提交日期: 2026-07-13 | 提交信息: feat: ITSM auto-task node ↔ OpsFlow integration — 自动任务节点接入 OpsFlow 引擎并修复调度/回调缺陷
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/itsm/pipeline_plugins/components.py` | 后端 | ItsmAutoTaskService 两阶段 MULTIPLE_CALLBACK 调度、need_schedule 覆写、变量解析、输出聚合 |
+| `backend/itsm/services/bamboo_engine.py` | 后端 | 抽取 resolve_activity_id(view+signal 共用) |
+| `backend/itsm/services/workflow_builder.py` | 后端 | TASK 节点注入 extras 输入 |
+| `backend/itsm/signals.py` | 后端 | on_opsflow_finished 完成回调唤醒 ITSM 节点 |
+| `backend/itsm/views/ticket_views.py` | 后端 | _get_activity_id 委托 service |
+| `backend/opsflow/core/flow_engine.py` | 后端 | flow_execution_finished 信号 + fail/cancel 显式 emit |
+| `backend/opsflow/signals/handlers.py` | 后端 | pipeline 完成/失败发送信号 |
+| `backend/opsflow/core/llm_service.py` | 后端 | analyze_pipeline 复用模块 logger + 异常日志 |
+| `web/src/components/GlobalVarInput.vue` | 前端(新增) | 全局变量多类型输入渲染组件 |
+| `web/src/composables/useTemplateVars.ts` | 前端(新增) | 变量拉取/归一化共享 composable |
+| `web/src/views/apps/itsm/components/TaskNodeForm.vue` | 前端(新增) | TASK 节点参数表单子组件 |
+| `web/src/views/apps/itsm/TicketDetail.vue` | 前端 | TASK 块改用 TaskNodeForm |
+| `web/.../designer/components/NodeConfigPanel.vue` | 前端 | 设计器绑定 OpsFlow 模板 + i18n |
+| `web/.../dialogs/SubmitWizardDialog.vue` | 前端 | 内联字段渲染替换为 GlobalVarInput |
+| `web/src/i18n/pages/itsm/{en,zh-cn}.ts` | 前端 | 新增 task/opsflow i18n key |
+
+### 解决
+
+- **问题/背景：** ITSM 自动任务节点原为同步 pass-through，无法承载实际自动化;接入 OpsFlow 后又出现节点卡死/误判 FAILED/字段渲染回归等缺陷。
+- **办法：** 两阶段回调调度打通 ITSM↔OpsFlow;修复 return False 误判 FAILED、无模板节点卡死、fail/cancel 信号缺失、字段类型回归等;抽取共享组件与 service 层解析。
+
+### 文档
+
+- **生成文档：**
+  - `docs/itsm/features/2026-07-13-itsm-autotask-opsflow-integration.md`
+  - `docs/itsm/debug/2026-07-13-autotask-schedule-and-callback-fixes.md`
+
+### 验证
+
+- 改动类型: feat + fix + refactor
+- 清理乱码: 无
+- 子 App index.md 更新: itsm, opsflow
+- 工作区状态: 干净 ✅
+
+---
+
 ## a47ec942
 
 > 提交日期: 2026-07-13 | 提交信息: feat: FcDesigner settings panel + preset integration + fullscreen/resize

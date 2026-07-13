@@ -161,6 +161,7 @@ class TemplateAIMixin:
             result = analyze_pipeline(nodes, edges, language=_get_request_language(request))
             return DetailResponse(data=result)
         except Exception as e:
+            logger.exception("[AI Analyze] Failed to analyze pipeline: nodes=%s edges=%s", len(nodes), len(edges))
             return ErrorResponse(msg=str(e), code=4000, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['post'])

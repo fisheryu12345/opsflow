@@ -106,14 +106,7 @@ function buildGraph() {
 
   const nodes = props.pipelineTree?.nodes || []
   const edges = props.pipelineTree?.edges || []
-  console.group('[FlowChart] buildGraph')
-  console.debug('[FlowChart] raw pipelineTree nodes:', nodes.map((n: any) => ({
-    id: n.id || n.node_key, node_type: n.node_type || n.type, label: n.label, state_type: n.state_type
-  })))
-  console.debug('[FlowChart] raw pipelineTree edges:', edges.map((e: any) => ({
-    from: e.from || e.from_node_key, to: e.to || e.to_node_key, label: e.label, direction: e.direction
-  })))
-  if (!nodes.length) { loading.value = false; console.groupEnd(); return }
+  if (!nodes.length) { loading.value = false; return }
 
   // Render nodes
   for (const node of nodes) {
@@ -183,11 +176,7 @@ function buildGraph() {
   try {
     const nList = nodes.map((n: any) => ({ id: n.id || n.node_key || '', node_type: n.node_type || n.type || 'NORMAL' }))
     const eList = edges.map((e: any) => ({ from: e.from || e.from_node_key || '', to: e.to || e.to_node_key || '' }))
-    console.debug('[FlowChart] layoutNodes input — nodes:', nList.map((n: any) => `${n.id}(${n.node_type})`).join(', '))
-    console.debug('[FlowChart] layoutNodes input — edges:', eList.map((e: any) => `${e.from}→${e.to}`).join(', '))
     const positions = layoutNodes(nList, eList)
-    console.debug('[FlowChart] layoutNodes output — positions:',
-      Object.entries(positions).map(([id, pos]) => `${id}@(${pos.x},${pos.y})`).join(', '))
     for (const [id, pos] of Object.entries(positions)) {
       const cell = graph!.getCellById(id)
       if (cell?.isNode()) cell.position(pos.x, pos.y)
@@ -197,13 +186,13 @@ function buildGraph() {
     for (const n of nodes) {
       const nk = n.id || n.node_key || ''
       if (!positioned.has(nk)) {
-        console.warn('[FlowChart] orphan node (not positioned by layout):', nk)
+        // orphan node (not positioned by layout)
         const cell = graph!.getCellById(nk)
         if (cell?.isNode()) { cell.position(600, orphanY); orphanY += 100 }
       }
     }
   } catch (err) {
-    console.error('[FlowChart] layoutNodes failed:', err)
+    // layoutNodes failed, fallback to grid layout
     nodes.forEach((n: any, i: number) => {
       const nk = n.id || n.node_key || ''
       const cell = graph!.getCellById(nk)
@@ -213,19 +202,6 @@ function buildGraph() {
 
   graph.centerContent()
   loading.value = false
-
-  // Log final node positions in the graph for comparison with layout output
-  const finalPositions: string[] = []
-  for (const n of nodes) {
-    const nk = n.id || n.node_key || ''
-    const cell = graph!.getCellById(nk)
-    if (cell?.isNode()) {
-      const p = cell.getPosition()
-      finalPositions.push(`${nk}@(${Math.round(p.x)},${Math.round(p.y)})`)
-    }
-  }
-  console.debug('[FlowChart] final graph positions:', finalPositions.join(', '))
-  console.groupEnd()
 
   nextTick(() => {
     if (graph) {

@@ -34,6 +34,7 @@ import 'element-tree-line/dist/style.css'
 // form-create ecosystem (ITSM form designer migration)
 import formCreate from '@form-create/element-ui'
 import FcDesigner from '@form-create/designer'
+import { registerRuntimeComponents } from '/@/views/apps/itsm/designer/fcExtensions'
 
 let forIconfont = analyzingIconForIconfont(iconfont); //解析class
 iconList.addIcon(forIconfont.list); // 添加iconfont dvadmin3的icon
@@ -56,6 +57,9 @@ other.elSvg(app);
 
 
 app.use(VXETable)
+// Register ITSM custom form-create field types globally so any page rendering
+// <form-create> (catalog, ticket detail, submit wizard) resolves them.
+registerRuntimeComponents()
 app.use(formCreate).use(FcDesigner).use(pinia).use(router).use(ElementPlus, { i18n: i18n.global.t }).use(i18n).use(VueGridLayout).mount('#app');
 
 app.config.globalProperties.mittBus = mitt();
