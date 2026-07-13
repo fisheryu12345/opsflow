@@ -28,7 +28,7 @@
 | MonitorCanvas 监控 | P0 | ✅ | 实时监控 | 着色/追踪/日志/审批 |
 | PropertyPanel 属性 | P0 | ✅ | 节点/边配置 | 插件表单/参数/条件/Loop/变量浏览器 |
 | 执行向导 (5步) | P0 | ✅ | 校验→CR→变量→风险→调度 | 完整实现 |
-| 审批节点 | P0 | ✅ | 多级审批/会签 | 暂停+恢复 |
+| 审批节点 | P0 | ➖ | 已移除，由 ITSM 工单审批替代 | ❌ 已删除（2026-07-13）— ApprovalPlugin 与审批中心前端一并移除 |
 | 手动暂停原子 | P1 | ✅ | Pipeline 中无条件暂停 | 通用插件 `ManualPausePlugin`，PluginService 直接调 FlowEngine.pause()，前端蓝色 banner 提示，复用 Resume 按钮 |
 | 子流程 | P0 | ✅ | 嵌入/独立 | 变量映射+输出映射 |
 | 版本管理 | P0 | ✅ | 发布/回滚 | snapshot 冻结 |
@@ -87,6 +87,14 @@
 > 提交: e39712c8
 - 全插件组中英文补齐: 17 组 61 文件（name_en/icon/color/version/output_schema/i18n）
 - ESXi 6 文件语法修复 + git hooks + VS Code 配置
+
+### 2026-07-13 Update
+> 提交: 2ffb31f3
+- 审批节点: ❌ 已移除 — ApprovalPlugin、审批中心前端、PropertyPanel 审批配置、审批中心 tab/路由一并删除
+- 插件注册: Wait for Approval 从 seed 样本插件列表移除
+- plugin_service_adapter: approval 特殊处理分支删除
+- SubmitWizardDialog: ServiceNow mock API → ITSM 真实变更工单
+- i18n: 删除 ~50 个 approval 相关翻译键
 
 ### 2026-06-30 Update
 > 提交: b91ba26c

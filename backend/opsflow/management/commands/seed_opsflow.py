@@ -181,7 +181,6 @@ SAMPLE_TEMPLATE_CATEGORIES = [
 SAMPLE_PLUGINS = [
     {"name": "HTTP Request", "code": "http_api", "group": "common", "description": "Send HTTP requests"},
     {"name": "SSH Command", "code": "shell", "group": "common", "description": "Execute SSH commands"},
-    {"name": "Wait for Approval", "code": "approval", "group": "common", "description": "Manual approval step"},
     {"name": "Ping Test", "code": "ping_test", "group": "monitor", "description": "ICMP ping test"},
 ]
 

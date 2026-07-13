@@ -189,25 +189,6 @@
         </div>
       </template>
 
-      <!-- Approval 配置 -->
-      <template v-else-if="isApproval">
-        <div class="panel-section">
-          <div class="section-title">{{ $t("message.properties.approvalConfig") }}</div>
-          <div class="prop-row-vertical">
-            <span class="prop-label">{{ $t("message.properties.approvers") }}</span>
-            <el-select v-model="form.approvers" multiple filterable size="small" style="width:100%"
-              :loading="usersLoading" :placeholder="$t('message.properties.selectApprovers')" @change="emitUpdate">
-              <el-option v-for="u in userList" :key="u" :label="u" :value="u" />
-            </el-select>
-          </div>
-          <div class="prop-row">
-            <span class="prop-label">{{ $t("message.properties.timeout") }}</span>
-            <el-input-number v-model="form.approval_timeout" :min="300" :max="604800" :step="3600" size="small" controls-position="right" style="width:140px" @change="emitUpdate" />
-            <span style="font-size:11px;color:#909399">sec</span>
-          </div>
-        </div>
-      </template>
-
       <template v-else>
         <div class="panel-section">
           <div class="section-title">{{ $t("message.opsflowPage.dashboardNodeType") }}</div>
@@ -321,7 +302,6 @@ import { useOpsflowStore } from '../../stores/opsflowStore'
 import ConditionDialog from '../gates/ConditionDialog.vue'
 import { generateConditionExpr, extractAvailableVariables as getAvailableVars } from '../../composables/useGraphCanvas'
 import type { ConditionStruct } from '../../utils/shapes'
-import { request } from '/@/utils/service'
 
 const { t, locale } = useI18n()
 const isEn = computed(() => String(locale.value).startsWith('en'))
@@ -534,18 +514,6 @@ const pluginRiskMap = ref<Record<string, string>>({})
 const renderFormRef = ref<InstanceType<typeof RenderForm> | null>(null)
 const publishedTemplates = ref<any[]>([])
 const templatesLoading = ref(false)
-const userList = ref<string[]>([])
-const usersLoading = ref(false)
-
-async function loadAllUsers() {
-  usersLoading.value = true
-  try {
-    const res: any = await request({ url: '/api/iam/users/search/', method: 'get', params: { page_size: 10000 } })
-    const users = ((res as any).data || []).map((item: any) => ({ id: item.value, name: item.label }))
-    userList.value = users.map((u: any) => u.username)
-  } catch { userList.value = [] }
-  usersLoading.value = false
-}
 
 async function loadPlugins() {
   pluginsLoading.value = true
@@ -616,7 +584,6 @@ const typeLabels: Record<string, string> = {
   parallel_gateway: 'Parallel Gateway',
   conditional_parallel_gateway: 'Conditional Parallel Gateway',
   converge_gateway: 'Converge Gateway',
-  approval: 'Approval',
   subprocess: 'SubProcess',
 }
 
@@ -627,7 +594,6 @@ const gatewayDescriptions: Record<string, string> = {
   parallel_gateway: 'Execute all branches in parallel.',
   conditional_parallel_gateway: 'Execute matching branches in parallel.',
   converge_gateway: 'Merge parallel branches into one path.',
-  approval: 'Pauses pipeline execution pending human approval.',
   subprocess: 'Execute another workflow template as a sub-process.',
 }
 
@@ -643,13 +609,9 @@ const gatewayIcons: Record<string, any> = {
 
 const isAtom = computed(() => !form.value.node_type || form.value.node_type === 'atom')
 const isSubprocess = computed(() => form.value.node_type === 'subprocess')
-const isApproval = computed(() => form.value.node_type === 'approval')
 const nodeTypeLabel = computed(() => typeLabels[form.value.node_type] || form.value.node_type || 'Atom')
 const gatewayDescription = computed(() => gatewayDescriptions[form.value.node_type] || '')
 const gatewayIcon = computed(() => gatewayIcons[form.value.node_type] || InfoFilled)
-
-// 加载用户列表（审批节点选择处理人用）
-watch(isApproval, (v) => { if (v && !userList.value.length) loadAllUsers() }, { immediate: true })
 
 const riskLevelText = computed(() => {
   const risk = form.value.risk_level || pluginRiskMap.value[form.value.plugin_code] || ''

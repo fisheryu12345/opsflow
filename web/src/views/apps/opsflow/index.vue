@@ -180,7 +180,6 @@ import DryRunDialog from './components/dialogs/DryRunDialog.vue'
 import HelpDrawer from './components/common/HelpDrawer.vue'
 import OpsflowTemplate from '../opsflow-template/index.vue'
 import OpsflowExecution from '../opsflow-execution/index.vue'
-import OpsflowApproval from '../opsflow-approval/index.vue'
 import OpsflowKnowledge from '../opsflow-knowledge/index.vue'
 import OpsflowLog from '../opsflow-log/index.vue'
 import OpsflowWebhook from '../opsflow-webhook/index.vue'
@@ -206,7 +205,6 @@ const { stats: heroStats, filterRef: heroFilterRef, searchRef: heroSearchRef, up
 heroStats.push(
   { value: 0, label: '模板' },
   { value: '-', label: '执行' },
-  { value: '-', label: '待审批' },
 )
 
 // ===== Tab lazy loading =====
@@ -224,7 +222,6 @@ watch(activeTab, (tab) => {
     updateStats([
       { value: templates.value.length, label: '模板' },
       { value: '-', label: '执行' },
-      { value: '-', label: '待审批' },
     ])
   }
   // Other tabs: sub-components report their own stats via useHeroConsumer
@@ -251,7 +248,6 @@ const componentMap: Record<string, any> = {
   designer: DesignCanvas,
   templates: OpsflowTemplate,
   executions: OpsflowExecution,
-  approvals: OpsflowApproval,
   knowledge: OpsflowKnowledge,
   logs: OpsflowLog,
   webhooks: OpsflowWebhook,

@@ -149,7 +149,6 @@
                 <div class="cr-opt-title">{{ cr.title }}</div>
                 <div class="cr-opt-meta">
                   <span>{{ cr.requester }}</span>
-                  <span>{{ cr.change_window_start }} ~ {{ cr.change_window_end }}</span>
                 </div>
               </div>
             </el-option>
@@ -178,10 +177,6 @@
                     {{ selectedCr.status === 'approved' ? $t('message.wizard.approved') : $t('message.wizard.pending') }}
                   </el-tag>
                 </span>
-              </div>
-              <div class="info-field">
-                <span class="info-label">{{ $t("message.wizard.changeWindow") }}</span>
-                <span class="info-value">{{ selectedCr.change_window_start }} ~ {{ selectedCr.change_window_end }}</span>
               </div>
               <div class="info-field">
                 <span class="info-label">{{ $t("message.wizard.requester") }}</span>
@@ -356,11 +351,6 @@
               </div>
             </div>
 
-            <div v-if="selectedCr" class="schedule-info schedule-info-blue">
-              <el-icon><InfoFilled /></el-icon>
-              <span>{{ $t("message.wizard.changeWindowRange", { start: selectedCr.change_window_start, end: selectedCr.change_window_end, availStart: windowStart, availEnd: windowEndExclusive }) }}</span>
-            </div>
-
             <div class="schedule-info schedule-info-red">
               <el-icon><WarningFilled /></el-icon>
               <span>{{ $t("message.wizard.autoCancelWarning") }}</span>
@@ -427,7 +417,7 @@ import { Search, Aim, CircleCheck, InfoFilled, WarningFilled, Calendar } from '@
 import { AnalyzePipeline } from '../../api/templates'
 import { CreateExecution } from '../../api/executions'
 import { CreateSchedulePlan } from '../../api/schedule-plans'
-import { GetServicenowChangeRequests } from '../../api/servicenow'
+import { ticketApi } from '/@/api/itsm'
 import { request } from '/@/utils/service'
 import GlobalVarInput from '/@/components/GlobalVarInput.vue'
 import { loadTemplateVars } from '/@/composables/useTemplateVars'
@@ -495,29 +485,29 @@ async function runValidation() {
 const crList = ref<any[]>([])
 const crLoading = ref(false)
 const selectedCr = ref<any>(null)
-const windowStart = computed(() => selectedCr.value?.change_window_start?.split(' ')[1] || '--:--')
-const windowEndExclusive = computed(() => {
-  if (!selectedCr.value?.change_window_end) return '--:--'
-  const parts = selectedCr.value.change_window_end.split(' ')
-  const timeParts = (parts[1] || '00:00').split(':')
-  let h = parseInt(timeParts[0]) - 1
-  return String(h).padStart(2, '0') + ':' + (timeParts[1] || '00')
-})
+
+// Map an ITSM change ticket to the CR shape the wizard template/gate expects.
+// A ticket with current_status 'finished' is treated as approved.
+function mapTicketToCr(t: any) {
+  return {
+    cr_number: t.sn,
+    title: t.title,
+    status: t.current_status === 'finished' ? 'approved' : 'pending',
+    requester: t.creator_name || t.creator || '',
+    description: t.meta?.form_data?.description || '',
+  }
+}
 
 async function loadCrList() {
   crLoading.value = true
   try {
-    const res = await GetServicenowChangeRequests()
-    console.log('res', res)
-    // axios response → res.data = { code: 2000, data: [...], msg: "success" }
-    // 所以需要 res.data.data 拿到实际的数组
-    
-    const body = res?.data
-    console.log('body', body)
-    crList.value = body?.data || body || []
+    // Real ITSM change tickets — only finished (approved) ones are selectable.
+    const res: any = await ticketApi.list({ itsm_type: 'change', current_status: 'finished' })
+    const list = res?.data || res?.results || res || []
+    crList.value = (Array.isArray(list) ? list : []).map(mapTicketToCr)
   } catch (err: any) {
     crList.value = []
-    console.error('[CR] loadCrList error:', err?.message || err, 'url:', err?.config?.url || err?.response?.config?.url || '?')
+    console.error('[CR] loadCrList error:', err?.message || err)
     ElMessage.error('Failed to load change requests')
   } finally {
     crLoading.value = false
@@ -694,23 +684,14 @@ const scheduledDate = ref('')
 const scheduledTime = ref('')
 
 function disabledDate(time: Date) {
-  if (!selectedCr.value) return false
-  const start = new Date(selectedCr.value.change_window_start)
-  const end = new Date(selectedCr.value.change_window_end)
-  return time < start || time > end
+  // No change-window constraint; only disallow past dates.
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return time < today
 }
 
 function disabledHours() {
-  if (!selectedCr.value) return []
-  const startParts = (selectedCr.value.change_window_start?.split(' ')[1] || '00:00').split(':')
-  const endParts = (selectedCr.value.change_window_end?.split(' ')[1] || '23:59').split(':')
-  const startH = parseInt(startParts[0])
-  const endH = parseInt(endParts[0])
-  const hours: number[] = []
-  for (let h = 0; h < 24; h++) {
-    if (h < startH || h > endH) hours.push(h)
-  }
-  return hours
+  return []
 }
 
 function disabledMinutes() {

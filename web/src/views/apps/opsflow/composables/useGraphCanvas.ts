@@ -394,7 +394,6 @@ export function defaultNodeLabel(nodeType: string, t?: (key: string) => string):
     parallel_gateway: t ? t('message.canvas.parallelGateway') : 'Parallel',
     conditional_parallel_gateway: t ? t('message.canvas.conditionalGateway') : 'Conditional',
     converge_gateway: t ? t('message.canvas.convergeGateway') : 'Converge',
-    approval: 'Approval',
     subprocess: t ? t('message.canvas.subprocess') : 'SubProcess',
     atom: t ? t('message.canvas.task') : 'Task',
   }

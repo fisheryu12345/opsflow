@@ -27,7 +27,7 @@
 | 通知渠道 | P1 | ✅ | 钉钉/企微/邮件/IntegrationHub | 4 个 channel 实现 |
 | 审批委托 | P1 | ✅ | 代理审批 | 时间范围+工单类型过滤 |
 | 传统 ITSM 模型 | P1 | ✅ | Incident/Change/Problem/ServiceRequest | 完整 CRUD + 状态转换 |
-| OpsFlow 集成 | P1 | ✅ | 审批后触发 OpsFlow 执行 | TicketOpsflowConfig + on_ticket_approved 完整 |
+| OpsFlow 集成 | P1 | ✅ | 自动任务(TASK)节点绑定并执行 OpsFlow 模板 | ItsmAutoTaskService + on_opsflow_finished 回调 |
 | 仪表盘 | P1 | ✅ | 工单统计(含 assigned/receiving) | summary/my_tasks/trend/status_dist/overdue |
 | 工单分派/转派 | P1 | ✅ | 手动+自动分派 | assign/auto_assign API + 前端对话框(技能组筛选) |
 | i18n 国际化 | P1 | ✅ | 中英文翻译 | itsm/zh-cn.ts + en.ts，SkillGroup/OnDutySchedule/AssignRule/EscalationLevel 完成 |
@@ -40,7 +40,7 @@
 | OpsFlow 双向审批 | P2 | 📅 | OpsFlow 审批节点创建 ITSM 工单 | 仅 ITSM→OpsFlow 单向，反向未实现 |
 | Monitor 告警→工单 | P2 | 📅 | 告警自动创建工单 | 无 Ticket ← Alert 集成 |
 | 变更日历 | P2 | ✅ | 变更时间线展示 | el-calendar 月/周视图 + TimelineView 时间线列表 + ChangeDetailPopover 点击详情卡片，聚合 ITSM Ticket + OpsFlow SchedulePlan |
-| 触发器系统 | P1 | ✅ | 事件驱动自动化 | Trigger(FLOW_START/END/ENTER_STATE/LEAVE_STATE) + TriggerAction(NOTIFY/WEBHOOK/OPSFLOW/MODIFY_FIELD) + TriggerExecutor 异步队列 + APScheduler 10s 轮询 + Webhook 增强(query_params/headers/ssl) + 统一重试(RETRYING/next_retry_at) |
+| 触发器系统 | P0 | ✅ | 事件驱动自动化 | Trigger(FLOW_START/END/ENTER_STATE/LEAVE_STATE) + TriggerAction(NOTIFY/WEBHOOK/MODIFY_FIELD) + TriggerExecutor 异步队列 + APScheduler 10s 轮询 + Webhook 增强(query_params/headers/ssl) + 统一重试(RETRYING/next_retry_at) |
 | 通知模板 | P1 | ✅ | 可复用通知预设 | NotificationTemplate CRUD + NotifTemplateList 前端管理页 |
 | AI 全面 LLM 替代 | P2 | 📅 | DeepSeek 替代关键词模板 | — |
 | 自动任务节点执行 OpsFlow | P1 | ✅ | TASK 节点带参启动 OpsFlow 并等待完成 | ItsmAutoTaskService 两阶段 MULTIPLE_CALLBACK 调度 + flow_execution_finished 信号回调 + GlobalVarInput/TaskNodeForm 参数表单 |
@@ -174,3 +174,10 @@
 - 迁移: 0005_sla_working_time (19步: 建表→种子5×8+7×24→SlaPolicy数据迁移→约束变更) → ✅
 - 测试: 29个测试 (TimeDelta/MultiTimeDelta/SlaTime/SlaEngine/Escalation/SwapBug/Migration) → ✅
 - i18n 冲突修复: schedule → slaSchedule (避免与 opsflow/integration 的 schedule key 冲突) → ✅
+
+### 2026-07-13 Update
+> 提交: 2ffb31f3
+- OpsFlow 集成: 删除旧版 opsflow_trigger.py（TicketOpsflowConfig + OpsflowTriggerService），已被 ItsmAutoTaskService 替代 → ✅
+- 触发器系统: Remove OPSFLOW action type from TriggerAction (原来的运维流程触发不再支持) → ✅
+- 触发器配置前端: OPSFLOW 选项从触发器编辑器移除 → ✅
+- ticket_views.py: 移除审批后自动触发 OpsFlow 的回调代码 → ✅

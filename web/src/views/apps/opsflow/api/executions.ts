@@ -78,10 +78,6 @@ export function BatchSkipNodes(id: number, node_ids?: string[]) {
 
 // -- Pending Approval --
 
-export function GetPendingApprovals() {
-  return opsflowRequest({ url: prefix + 'executions/pending_approval/', method: 'get' })
-}
-
 export function RetrySubprocessNode(id: number, node_id: string) {
   return opsflowRequest({ url: prefix + `executions/${id}/retry_subprocess/`, method: 'post', data: { node_id } })
 }

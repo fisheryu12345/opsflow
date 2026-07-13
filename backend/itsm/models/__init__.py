@@ -16,7 +16,6 @@ from .preset import Preset
 from .trigger import Trigger, TriggerAction, TriggerExecution
 from .notification_template import NotificationTemplate
 from .fc_designer import FcDesignerSettings
-from ..services.opsflow_trigger import TicketOpsflowConfig
 
 __all__ = [
     'ServiceCategory', 'SlaPolicy',
@@ -28,7 +27,6 @@ __all__ = [
     'SlaTask',
     'Duration', 'Day', 'Schedule',
     'ApprovalDelegate',
-    'TicketOpsflowConfig',
     'ServiceItem',
     'EscalationLevel',
     'Preset',

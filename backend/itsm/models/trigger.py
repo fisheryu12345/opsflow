@@ -67,7 +67,6 @@ class TriggerAction(models.Model):
     ACTION_TYPE_CHOICES = (
         ('NOTIFY', '发送通知'),
         ('WEBHOOK', 'HTTP 回调'),
-        ('OPSFLOW', '触发运维流程'),
         ('MODIFY_FIELD', '修改工单字段'),
     )
 

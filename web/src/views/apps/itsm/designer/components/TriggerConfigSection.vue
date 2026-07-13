@@ -14,8 +14,8 @@
         </div>
         <div class="trigger-item-actions">
           <el-tag v-for="a in (t.actions||[])" :key="a.id" size="small"
-            :type="a.action_type==='NOTIFY'?'success':a.action_type==='WEBHOOK'?'warning':a.action_type==='OPSFLOW'?'primary':'info'">
-            {{ a.action_type === 'NOTIFY' ? '通知' : a.action_type === 'WEBHOOK' ? 'Webhook' : a.action_type === 'OPSFLOW' ? 'OpsFlow' : '改字段' }}
+            :type="a.action_type==='NOTIFY'?'success':a.action_type==='WEBHOOK'?'warning':'info'">
+            {{ a.action_type === 'NOTIFY' ? '通知' : a.action_type === 'WEBHOOK' ? 'Webhook' : '改字段' }}
           </el-tag>
         </div>
       </div>
@@ -39,7 +39,7 @@
 
         <div v-for="(a,i) in form.actions" :key="i" class="trigger-action-card">
           <div class="action-card-head">
-            <el-tag size="small" :type="a.action_type==='NOTIFY'?'success':a.action_type==='WEBHOOK'?'warning':a.action_type==='OPSFLOW'?'primary':'info'">{{ i+1 }}</el-tag>
+            <el-tag size="small" :type="a.action_type==='NOTIFY'?'success':a.action_type==='WEBHOOK'?'warning':'info'">{{ i+1 }}</el-tag>
             <el-select v-model="a.action_type" size="small" style="width:130px">
               <el-option v-for="at in actionTypeOptions" :key="at.value" :label="at.label" :value="at.value" />
             </el-select>
@@ -71,10 +71,6 @@
               <span style="font-size:12px;color:#909399">s</span>
               <el-checkbox v-model="a.config.ssl_verify" size="small" style="font-size:11px">SSL</el-checkbox>
             </div>
-          </div>
-
-          <div v-if="a.action_type==='OPSFLOW'" class="action-card-body">
-            <el-input v-model="a.config.flow_id" size="small" placeholder="OpsFlow 流程 ID" />
           </div>
 
           <div v-if="a.action_type==='MODIFY_FIELD'" class="action-card-body">
@@ -127,7 +123,6 @@ const notifTemplateOptions = ref<any[]>([])
 const actionTypeOptions = [
   { value: 'NOTIFY', label: '发送通知' },
   { value: 'WEBHOOK', label: 'HTTP 回调' },
-  { value: 'OPSFLOW', label: '触发运维流程' },
   { value: 'MODIFY_FIELD', label: '修改工单字段' },
 ]
 

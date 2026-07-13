@@ -186,8 +186,6 @@ class ActionRunner:
                 return NotifyRunner.run(action.config, ticket, current_state_name)
             elif action.action_type == 'WEBHOOK':
                 return WebhookRunner.run(action.config, ticket, current_state_name)
-            elif action.action_type == 'OPSFLOW':
-                return OpsflowRunner.run(action.config, ticket)
             elif action.action_type == 'MODIFY_FIELD':
                 return ModifyFieldRunner.run(action.config, ticket, current_state_name)
             return {'status': 'FAILED', 'error': f'Unknown action type: {action.action_type}'}
@@ -293,21 +291,6 @@ class WebhookRunner:
             'status': 'SUCCESS',
             'http_status': resp.status_code,
         }
-
-
-class OpsflowRunner:
-    """Trigger an OpsFlow execution."""
-
-    @staticmethod
-    def run(config, ticket) -> dict:
-        from itsm.services.opsflow_trigger import OpsflowTriggerService
-
-        flow_id = config.get('flow_id')
-        if not flow_id:
-            return {'action_type': 'OPSFLOW', 'status': 'FAILED', 'error': 'flow_id is required'}
-
-        OpsflowTriggerService.execute(ticket, flow_id, config.get('variable_mapping', {}))
-        return {'action_type': 'OPSFLOW', 'status': 'SUCCESS', 'flow_id': flow_id}
 
 
 class ModifyFieldRunner:

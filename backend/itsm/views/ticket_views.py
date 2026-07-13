@@ -22,7 +22,6 @@ from itsm.serializers import (
     TicketStatusSerializer, SignTaskSerializer,
 )
 from itsm.services.itsm_engine import ITSMEngine
-from itsm.services.opsflow_trigger import OpsflowTriggerService
 from itsm.views.workflow_views import ItsmProjectViewSet
 
 
@@ -301,15 +300,6 @@ class TicketViewSet(ItsmProjectViewSet):
                 return ErrorResponse(msg='审批回调失败，pipeline 可能尚未就绪，请稍后重试')
 
             action_name = '通过' if result == 'true' else '拒绝'
-
-            if result == 'true':
-                trigger_result = OpsflowTriggerService.on_ticket_approved(instance)
-                if trigger_result.get('triggered'):
-                    logger = logging.getLogger(__name__)
-                    logger.info(
-                        'Ticket %s approved, triggered OpsFlow execution: %s',
-                        instance.sn, trigger_result.get('execution_id'),
-                    )
 
             return DetailResponse(msg=f'审批{action_name}成功')
         except Exception as e:

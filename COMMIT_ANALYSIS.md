@@ -42,6 +42,53 @@
 
 ---
 
+## 88c59d27
+
+> 提交日期: 2026-07-13 | 提交信息: refactor: remove OpsFlow approval plugin and old ITSM-OpsFlow trigger — 清理审批插件和旧版 OpsFlow 触发集成
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `backend/opsflow/plugins/approval/approval.py` | 后端 | 删除 ApprovalPlugin 标准插件实现 |
+| `backend/opsflow/plugins/approval/__init__.py` | 后端 | 删除插件包声明 |
+| `backend/opsflow/core/plugin_service_adapter.py` | 后端 | 删除 approval 特殊处理分支 |
+| `backend/opsflow/management/commands/seed_opsflow.py` | 后端 | 删除 Wait for Approval 样本插件 |
+| `backend/itsm/services/opsflow_trigger.py` | 后端 | 删除 TicketOpsflowConfig 模型 + OpsflowTriggerService |
+| `backend/itsm/models/trigger.py` | 后端 | 移除 OPSFLOW 触发器动作类型 |
+| `backend/itsm/services/trigger_service.py` | 后端 | 删除 OpsflowRunner 类 |
+| `backend/itsm/views/ticket_views.py` | 后端 | 移除审批后 OpsFlow 触发回调 |
+| `backend/iam/migrations/0003_remove_opsflow_approvals_tab.py` | 后端(迁移) | 新增数据迁移清理 approvals 标签和权限 |
+| `web/src/views/apps/opsflow-approval/index.vue` | 前端 | 删除审批中心页面 |
+| `web/src/views/apps/opsflow/index.vue` | 前端 | 移除 approvals tab 注册 |
+| `web/src/views/apps/opsflow/components/dialogs/SubmitWizardDialog.vue` | 前端 | ServiceNow → ITSM 变更工单切换 |
+| `web/src/views/apps/opsflow/components/panels/PropertyPanel.vue` | 前端 | 删除审批配置和用户加载 |
+| `web/src/i18n/pages/opsflow/en.ts` + `zh-cn.ts` | 前端 | 删除约 50 个审批相关翻译键 |
+| `web/src/views/apps/itsm/designer/components/TriggerConfigSection.vue` | 前端 | 移除 OPSFLOW 动作类型 UI |
+| `docs/itsm/implementation.md` | 文档 | 更新 OpsFlow 集成描述 |
+| `docs/.../*.md` | 文档 | 新增 3 篇架构/配置文档 |
+
+### 解决
+
+- **问题/背景：** OpsFlow 内嵌审批插件与 ITSM 审批流程功能重叠，旧版审批后触发 OpsFlow 的 opsflow_trigger.py 已被 ItsmAutoTaskService 替代；SubmitWizardDialog 使用不存在的 ServiceNow mock API
+- **办法：** 删除全套审批插件 + 审批中心前端 + 旧触发服务；迁移 SubmitWizardDialog 到真实 ITSM 变更工单；新增 IAM 数据迁移清理遗存
+
+### 文档
+
+- **生成文档：**
+  - `docs/opsflow/architecture/2026-07-13-approval-plugin-removal-refactor.md`
+  - `docs/itsm/architecture/2026-07-13-opsflow-trigger-removal-refactor.md`
+  - `docs/iam/config/2026-07-13-approvals-tab-cleanup-config.md`
+
+### 验证
+
+- 改动类型: refactor + fix + chore
+- 清理乱码: 有（3 个 0 字节垃圾文件 + 迁移备份目录）
+- 子 App index.md 更新: opsflow, itsm, iam
+- 工作区状态: 干净 ✅
+
+---
+
 ## a47ec942
 
 > 提交日期: 2026-07-13 | 提交信息: feat: FcDesigner settings panel + preset integration + fullscreen/resize

@@ -96,26 +96,6 @@ class PluginService(Service):
             data.outputs['_result'] = True
             return True
 
-        # ├─ Approval — 直接在 execute 中暂停，不依赖信号 ────────────────
-        if atom_type == 'approval':
-            from opsflow.core.flow_engine import FlowEngine
-            from opsflow.models import FlowExecution
-            try:
-                approvers = params.get('approvers', [])
-                execution = FlowExecution.objects.get(id=_execution_id)
-                execution.context['_pause_reason'] = 'approval'
-                execution.context['_approvers'] = approvers
-                execution.save(update_fields=['context'])
-                FlowEngine(execution).pause()
-                logger.info(
-                    "[Approval] Node paused execution %s (approval)",
-                    _execution_id,
-                )
-            except Exception:
-                logger.exception("[Approval] pause failed")
-            data.outputs['_result'] = True
-            return True
-
         plugin_cls = get_plugin(atom_type, version=plugin_version)
         if not plugin_cls:
             data.outputs['_result'] = False

@@ -150,9 +150,6 @@
           <div class="help-grid-item"><strong>Cancel</strong> — {{ $t('message.helpDrawer.actCancel') }}</div>
         </div>
 
-        <h3 class="help-h3">{{ $t('message.helpDrawer.approvalNodes') }}</h3>
-        <p v-html="$t('message.helpDrawer.approvalDesc')" />
-
         <h3 class="help-h3">{{ $t('message.helpDrawer.logs') }}</h3>
         <p v-html="$t('message.helpDrawer.logsDesc')" />
       </section>
