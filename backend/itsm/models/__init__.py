@@ -15,6 +15,7 @@ from .escalation import EscalationLevel
 from .preset import Preset
 from .trigger import Trigger, TriggerAction, TriggerExecution
 from .notification_template import NotificationTemplate
+from .fc_designer import FcDesignerSettings
 from ..services.opsflow_trigger import TicketOpsflowConfig
 
 __all__ = [
@@ -33,4 +34,5 @@ __all__ = [
     'Preset',
     'Trigger', 'TriggerAction', 'TriggerExecution',
     'NotificationTemplate',
+    'FcDesignerSettings',
 ]

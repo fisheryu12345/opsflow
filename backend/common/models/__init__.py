@@ -187,3 +187,7 @@ class MessageCenterTargetUser(CoreModel):
         db_table = table_prefix + "common_message_center_target_user"
         verbose_name = "消息中心目标用户表"
         verbose_name_plural = verbose_name
+
+
+
+

@@ -29,16 +29,16 @@ const COLOR_PORT_BLUE = '#5F95FF'
 // ── ITSM 节点类型 → 颜色/图标映射 ──
 
 export const ITSM_NODE_CONFIG: Record<string, { icon: string; color: string; label: string }> = {
-  NORMAL:    { icon: '📝', color: '#409EFF', label: '填单' },
-  APPROVAL:  { icon: '✓',  color: '#E6A23C', label: '审批' },
-  SIGN:      { icon: '✍',  color: '#9B59B6', label: '会签' },
-  TASK:      { icon: '⚙',  color: '#67C23A', label: '自动任务' },
-  COVERAGE:  { icon: '⨁', color: '#909399', label: '汇聚网关' },
-  EXCLUSIVE:  { icon: '⊗', color: '#E6A23C', label: '排他网关' },
+  NORMAL: { icon: '📝', color: '#409EFF', label: '填单' },
+  APPROVAL: { icon: '✓', color: '#E6A23C', label: '审批' },
+  SIGN: { icon: '✍', color: '#9B59B6', label: '会签' },
+  TASK: { icon: '⚙', color: '#67C23A', label: '自动任务' },
+  COVERAGE: { icon: '⨁', color: '#909399', label: '汇聚网关' },
+  EXCLUSIVE: { icon: '⊗', color: '#E6A23C', label: '排他网关' },
   CONDITIONAL_PARALLEL: { icon: '◐', color: '#5CADFF', label: '条件并行网关' },
-  PARALLEL:  { icon: '⊞', color: '#409EFF', label: '并行网关' },
-  START:     { icon: '▶',  color: '#67C23A', label: '开始' },
-  END:       { icon: '■',  color: '#F56C6C', label: '结束' },
+  PARALLEL: { icon: '⊞', color: '#409EFF', label: '并行网关' },
+  START: { icon: '▶', color: '#67C23A', label: '开始' },
+  END: { icon: '■', color: '#F56C6C', label: '结束' },
 }
 
 export function getNodeConfig(type: string) {
@@ -50,27 +50,8 @@ export function getNodeConfig(type: string) {
 export const DEFAULT_NODE_FIELDS: Record<string, any[]> = {
   /** NORMAL node default fields (form-create Rule format) */
   NORMAL: [
-    { type: 'input', field: 'title', title: '工单标题', validate: [{ required: true }], itsmLayout: 'COL_12', itsmSortOrder: 0, props: { placeholder: '如 服务器磁盘空间不足' } },
-    { type: 'input', field: 'description', title: '详细描述', validate: [{ required: true }], itsmLayout: 'COL_12', itsmSortOrder: 1, props: { type: 'textarea', rows: 3, placeholder: '请描述问题或需求详情' } },
-    {
-      type: 'select', field: 'category', title: '服务分类', validate: [{ required: true }], itsmLayout: 'COL_6', itsmSortOrder: 2, props: { options: [
-        { label: '网络故障', value: 'network' },
-        { label: '数据库', value: 'database' },
-        { label: '应用系统', value: 'application' },
-        { label: '安全事件', value: 'security' },
-        { label: '桌面支持', value: 'desktop' },
-        { label: '其他', value: 'other' },
-      ]},
-    },
-    {
-      type: 'select', field: 'priority', title: '优先级', validate: [{ required: true }], itsmLayout: 'COL_6', itsmSortOrder: 3, props: { options: [
-        { label: 'P1 危急', value: 'P1' },
-        { label: 'P2 高', value: 'P2' },
-        { label: 'P3 中', value: 'P3' },
-        { label: 'P4 低', value: 'P4' },
-      ]},
-    },
-    { type: 'ItsmFile', field: 'attachment', title: '附件', itsmLayout: 'COL_12', itsmSortOrder: 4 },
+    { type: 'input', field: 'title', title: 'ticket title', validate: [{ required: true }], itsmLayout: 'COL_12', itsmSortOrder: 0, props: { placeholder: 'ticket title' } },
+    { type: 'input', field: 'description', title: 'description', validate: [{ required: true }], itsmLayout: 'COL_12', itsmSortOrder: 1, props: { type: 'textarea', rows: 3, placeholder: 'description' } },
   ],
   /** Approval node fields — none (user defines via FormDesigner) */
   APPROVAL: [],
@@ -87,10 +68,10 @@ const PORT_ATTRS = {
 }
 
 const PORT_GROUPS = {
-  top:    { position: { name: 'top' },    attrs: { circle: { ...PORT_ATTRS } } },
-  right:  { position: { name: 'right' },  attrs: { circle: { ...PORT_ATTRS } } },
+  top: { position: { name: 'top' }, attrs: { circle: { ...PORT_ATTRS } } },
+  right: { position: { name: 'right' }, attrs: { circle: { ...PORT_ATTRS } } },
   bottom: { position: { name: 'bottom' }, attrs: { circle: { ...PORT_ATTRS } } },
-  left:   { position: { name: 'left' },   attrs: { circle: { ...PORT_ATTRS } } },
+  left: { position: { name: 'left' }, attrs: { circle: { ...PORT_ATTRS } } },
 }
 const PORT_ITEMS = [  // Business nodes: left-in, right-out only
   { id: 'right', group: 'right' },
@@ -154,7 +135,7 @@ function parseProcessorIds(raw: string): number[] {
     const parsed = JSON.parse(raw)
     if (Array.isArray(parsed)) return parsed.map((v: any) => typeof v === 'number' ? v : parseInt(String(v), 10)).filter((n: number) => !isNaN(n))
     if (typeof parsed === 'number') return [parsed]
-  } catch {}
+  } catch { }
   return raw.split(',').map(v => parseInt(v.trim(), 10)).filter(n => !isNaN(n))
 }
 
@@ -325,7 +306,7 @@ export function isPortConnected(node: Node, portId: string): boolean {
   if (!model) return false
   return model.getConnectedEdges(node).some(
     e => (e.getSourceCellId() === node.id && e.getSourcePortId() === portId) ||
-         (e.getTargetCellId() === node.id && e.getTargetPortId() === portId),
+      (e.getTargetCellId() === node.id && e.getTargetPortId() === portId),
   )
 }
 

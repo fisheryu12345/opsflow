@@ -25,6 +25,7 @@ from .views.schedule_views import ScheduleViewSet, DayViewSet, DurationViewSet
 from .views.trigger_views import TriggerViewSet
 from .views.change_calendar import ChangeCalendarViewSet
 from .views.notification_template_views import NotificationTemplateViewSet
+from .views.fc_designer_settings import FcDesignerSettingsView
 
 router = routers.SimpleRouter()
 # Existing ITSM routes
@@ -71,6 +72,7 @@ router.register(r'change-calendar', ChangeCalendarViewSet, basename='change-cale
 urlpatterns = [
     path('', include(router.urls)),
     # AI generation (APIView, not ModelViewSet)
+    path('fc-designer-settings/', FcDesignerSettingsView.as_view()),
     path('ai/generate-workflow/', AIGenerateView.as_view(), name='ai-generate-workflow'),
     path('ai/generate-fields/', AIGenerateView.as_view(), name='ai-generate-fields'),
 ]

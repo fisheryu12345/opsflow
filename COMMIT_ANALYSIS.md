@@ -1,3 +1,35 @@
+## a47ec942
+
+> 提交日期: 2026-07-13 | 提交信息: feat: FcDesigner settings panel + preset integration + fullscreen/resize
+
+### 改动
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| web/.../FcDesignerSettingsPanel.vue | 前端(新增) | 左侧滑出设置面板，20+开关6组分类 |
+| web/.../fcExtensions.ts | 前端 | reactive config, localStorage/DB持久化, DragRules覆盖, preset watch逻辑 |
+| web/.../FcFormDesigner.vue | 前端 | 全屏, 拉伸, 设置按钮, preset加载, setComponentRuleConfig |
+| backend/itsm/models/fc_designer.py | 后端(新增) | FcDesignerSettings模型(按Business级别) |
+| backend/itsm/views/fc_designer_settings.py | 后端(新增) | GET/PUT API, project_id→business_id解析 |
+| backend/itsm/urls.py | 后端 | /api/itsm/fc-designer-settings/ 路由 |
+
+### 解决
+
+- **问题/背景：** FcDesigner无法运行时控制功能显隐；预设管理与选项组件无联动；设计器固定560px不可伸缩。
+- **办法：** reactive config + 双层持久化(localStorage+DB)；DragRule watch监听itsmPresetId加载预设数据；fullscreen CSS + resize handle。
+
+### 文档
+
+- docs/itsm/features/2026-07-13-fc-designer-settings-preset.md
+
+### 验证
+
+- 改动类型: feat
+- 构建: ✓ built in 30s
+- 工作区状态: 干净 ✅
+
+---
+
 ## a2ee214f
 > 提交日期: 2026-07-13 | 提交信息: fix: hero stats cross-tab sync for all ITSM tab components
 
